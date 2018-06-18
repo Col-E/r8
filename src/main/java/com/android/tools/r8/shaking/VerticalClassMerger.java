@@ -457,6 +457,10 @@ public class VerticalClassMerger {
           directMethods.add(renameConstructor(directMethod));
         } else {
           directMethods.add(directMethod);
+
+          if (!directMethod.isStaticMethod()) {
+            blockRedirectionOfSuperCalls(directMethod.method);
+          }
         }
       }
 
@@ -492,6 +496,7 @@ public class VerticalClassMerger {
         // Record that invoke-super instructions in the target class should be redirected to the
         // newly created direct method.
         redirectSuperCallsInTarget(virtualMethod.method, resultingDirectMethod.method);
+        blockRedirectionOfSuperCalls(resultingDirectMethod.method);
 
         if (shadowedBy == null) {
           // In addition to the newly added direct method, create a virtual method such that we do
@@ -515,6 +520,7 @@ public class VerticalClassMerger {
               (existing, method) -> {
                 DexEncodedMethod renamedMethod = renameMethod(method, target.type, true);
                 deferredRenamings.map(method.method, renamedMethod.method);
+                blockRedirectionOfSuperCalls(renamedMethod.method);
                 return renamedMethod;
               });
       Collection<DexEncodedMethod> mergedVirtualMethods =
@@ -601,6 +607,26 @@ public class VerticalClassMerger {
           break;
         }
       }
+    }
+
+    private void blockRedirectionOfSuperCalls(DexMethod method) {
+      // We are merging a class B into C. The methods from B are being moved into C, and then we
+      // subsequently rewrite the invoke-super instructions in C that hit a method in B, such that
+      // they use an invoke-direct instruction instead. In this process, we need to avoid rewriting
+      // the invoke-super instructions that originally was in the superclass B.
+      //
+      // Example:
+      //   class A {
+      //     public void m() {}
+      //   }
+      //   class B extends A {
+      //     public void m() { super.m(); } <- invoke must not be rewritten to invoke-direct
+      //                                       (this would lead to an infinite loop)
+      //   }
+      //   class C extends B {
+      //     public void m() { super.m(); } <- invoke needs to be rewritten to invoke-direct
+      //   }
+      deferredRenamings.markMethodAsMerged(method);
     }
 
     private boolean resolutionSucceeds(DexMethod targetMethod) {

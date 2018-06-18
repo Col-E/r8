@@ -45,16 +45,19 @@ public class VerticalClassMergerGraphLense extends GraphLense {
 
   private final Map<DexField, DexField> fieldMap;
   private final Map<DexMethod, DexMethod> methodMap;
+  private final Set<DexMethod> mergedMethods;
   private final Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps;
 
   public VerticalClassMergerGraphLense(
       Map<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
+      Set<DexMethod> mergedMethods,
       Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps,
       GraphLense previousLense) {
     this.previousLense = previousLense;
     this.fieldMap = fieldMap;
     this.methodMap = methodMap;
+    this.mergedMethods = mergedMethods;
     this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
   }
 
@@ -67,7 +70,7 @@ public class VerticalClassMergerGraphLense extends GraphLense {
   public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type) {
     assert isContextFreeForMethod(method) || (context != null && type != null);
     DexMethod previous = previousLense.lookupMethod(method, context, type);
-    if (type == Type.SUPER) {
+    if (type == Type.SUPER && !mergedMethods.contains(context.method)) {
       Map<DexMethod, DexMethod> virtualToDirectMethodMap =
           contextualVirtualToDirectMethodMaps.get(context.method.holder);
       if (virtualToDirectMethodMap != null) {
@@ -127,6 +130,7 @@ public class VerticalClassMergerGraphLense extends GraphLense {
     private final ImmutableMap.Builder<DexField, DexField> fieldMapBuilder = ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, DexMethod> methodMapBuilder =
         ImmutableMap.builder();
+    private final ImmutableSet.Builder<DexMethod> mergedMethodsBuilder = ImmutableSet.builder();
     private final Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps =
         new HashMap<>();
 
@@ -141,7 +145,15 @@ public class VerticalClassMergerGraphLense extends GraphLense {
         return previousLense;
       }
       return new VerticalClassMergerGraphLense(
-          fieldMap, methodMap, contextualVirtualToDirectMethodMaps, previousLense);
+          fieldMap,
+          methodMap,
+          mergedMethodsBuilder.build(),
+          contextualVirtualToDirectMethodMaps,
+          previousLense);
+    }
+
+    public void markMethodAsMerged(DexMethod method) {
+      mergedMethodsBuilder.add(method);
     }
 
     public void map(DexField from, DexField to) {
@@ -161,6 +173,7 @@ public class VerticalClassMergerGraphLense extends GraphLense {
     public void merge(VerticalClassMergerGraphLense.Builder builder) {
       fieldMapBuilder.putAll(builder.fieldMapBuilder.build());
       methodMapBuilder.putAll(builder.methodMapBuilder.build());
+      mergedMethodsBuilder.addAll(builder.mergedMethodsBuilder.build());
       for (DexType context : builder.contextualVirtualToDirectMethodMaps.keySet()) {
         Map<DexMethod, DexMethod> current = contextualVirtualToDirectMethodMaps.get(context);
         Map<DexMethod, DexMethod> other = builder.contextualVirtualToDirectMethodMaps.get(context);
