@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -87,28 +88,20 @@ public class VerticalClassMerger {
   // Returns a set of types that must not be merged into other types.
   private Set<DexType> getPinnedTypes(Iterable<DexProgramClass> classes) {
     Set<DexType> pinnedTypes = new HashSet<>();
+
+    // For all pinned fields, also pin the type of the field (because changing the type of the field
+    // implicitly changes the signature of the field). Similarly, for all pinned methods, also pin
+    // the return type and the parameter types of the method.
+    extractPinnedItems(appInfo.pinnedItems, pinnedTypes);
+
+    // TODO(christofferqa): Remove the invariant that the graph lense should not modify any
+    // methods from the sets alwaysInline and noSideEffects (see use of assertNotModifiedBy-
+    // Lense).
+    extractPinnedItems(appInfo.alwaysInline, pinnedTypes);
+    extractPinnedItems(appInfo.noSideEffects.keySet(), pinnedTypes);
+
     for (DexProgramClass clazz : classes) {
       for (DexEncodedMethod method : clazz.methods()) {
-        // TODO(christofferqa): Remove the invariant that the graph lense should not modify any
-        // methods from the sets alwaysInline and noSideEffects (see use of assertNotModifiedBy-
-        // Lense).
-        if (appInfo.alwaysInline.contains(method) || appInfo.noSideEffects.containsKey(method)) {
-          DexClass other = appInfo.definitionFor(method.method.proto.returnType);
-          if (other != null && other.isProgramClass()) {
-            // If we were to merge [other] into its sub class, then we would implicitly change the
-            // signature of this method, and therefore break the invariant.
-            pinnedTypes.add(other.type);
-          }
-          for (DexType parameterType : method.method.proto.parameters.values) {
-            other = appInfo.definitionFor(parameterType);
-            if (other != null && other.isProgramClass()) {
-              // If we were to merge [other] into its sub class, then we would implicitly change the
-              // signature of this method, and therefore break the invariant.
-              pinnedTypes.add(other.type);
-            }
-          }
-        }
-
         // Avoid merging two types if this could remove a NoSuchMethodError, as illustrated by the
         // following example. (Alternatively, it would be possible to merge A and B and rewrite the
         // "invoke-super A.m" instruction into "invoke-super Object.m" to preserve the error. This
@@ -141,6 +134,38 @@ public class VerticalClassMerger {
       }
     }
     return pinnedTypes;
+  }
+
+  private void extractPinnedItems(Iterable<DexItem> items, Set<DexType> pinnedTypes) {
+    for (DexItem item : items) {
+      // Note: Nothing to do for the case where item is a DexType, since we check for this case
+      // using appInfo.isPinned.
+      if (item instanceof DexField) {
+        // Pin the type of the field.
+        DexField field = (DexField) item;
+        DexClass clazz = appInfo.definitionFor(field.type);
+        if (clazz != null && clazz.isProgramClass()) {
+          pinnedTypes.add(clazz.type);
+        }
+      } else if (item instanceof DexMethod) {
+        // Pin the return type and the parameter types of the method.
+        DexMethod method = (DexMethod) item;
+        DexClass clazz = appInfo.definitionFor(method.proto.returnType);
+        if (clazz != null && clazz.isProgramClass()) {
+          // If we were to merge [other] into its sub class, then we would implicitly change the
+          // signature of this method, and therefore break the invariant.
+          pinnedTypes.add(clazz.type);
+        }
+        for (DexType parameterType : method.proto.parameters.values) {
+          clazz = appInfo.definitionFor(parameterType);
+          if (clazz != null && clazz.isProgramClass()) {
+            // If we were to merge [other] into its sub class, then we would implicitly change the
+            // signature of this method, and therefore break the invariant.
+            pinnedTypes.add(clazz.type);
+          }
+        }
+      }
+    }
   }
 
   private boolean isMergeCandidate(DexProgramClass clazz, Set<DexType> pinnedTypes) {
