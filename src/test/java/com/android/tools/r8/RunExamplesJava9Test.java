@@ -4,28 +4,28 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
 import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
+import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.ByteStreams;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -33,20 +33,17 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import java.util.zip.ZipException;
-import java.util.zip.ZipFile;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 public abstract class RunExamplesJava9Test
-      <B extends BaseCommand.Builder<? extends BaseCommand, B>> {
+    <B extends BaseCommand.Builder<? extends BaseCommand, B>> {
   static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_JAVA9_BUILD_DIR;
 
   abstract class TestRunner<C extends TestRunner<C>> {
@@ -99,10 +96,6 @@ public abstract class RunExamplesJava9Test
       return self();
     }
 
-    C withMainDexClass(String... classes) {
-      return withBuilderTransformation(builder -> builder.addMainDexClasses(classes));
-    }
-
     C withInterfaceMethodDesugaring(OffOrAuto behavior) {
       return withOptionConsumer(o -> o.interfaceMethodDesugaring = behavior);
     }
@@ -111,15 +104,19 @@ public abstract class RunExamplesJava9Test
       return withOptionConsumer(o -> o.tryWithResourcesDesugaring = behavior);
     }
 
+    void combinedOptionConsumer(InternalOptions options) {
+      for (Consumer<InternalOptions> consumer : optionConsumers) {
+        consumer.accept(options);
+      }
+    }
+
     C withBuilderTransformation(UnaryOperator<B> builderTransformation) {
       builderTransformations.add(builderTransformation);
       return self();
     }
 
-    void combinedOptionConsumer(InternalOptions options) {
-      for (Consumer<InternalOptions> consumer : optionConsumers) {
-        consumer.accept(options);
-      }
+    C withMainDexClass(String... classes) {
+      return withBuilderTransformation(builder -> builder.addMainDexClasses(classes));
     }
 
     Path build() throws Throwable {
@@ -179,19 +176,19 @@ public abstract class RunExamplesJava9Test
     ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
     builder
         .put(DexVm.Version.V4_0_4, ImmutableList.of(
-            "native-private-interface-methods",// Dex version not supported
+            "native-private-interface-methods", // Dex version not supported
             "varhandle"
         ))
         .put(DexVm.Version.V4_4_4, ImmutableList.of(
-            "native-private-interface-methods",// Dex version not supported
+            "native-private-interface-methods", // Dex version not supported
             "varhandle"
         ))
         .put(DexVm.Version.V5_1_1, ImmutableList.of(
-            "native-private-interface-methods",// Dex version not supported
+            "native-private-interface-methods", // Dex version not supported
             "varhandle"
         ))
-        .put(DexVm.Version.V6_0_1, ImmutableList.of("native-private-interface-methods",
-            // Dex version not supported
+        .put(DexVm.Version.V6_0_1, ImmutableList.of(
+            "native-private-interface-methods", // Dex version not supported
             "varhandle"
         ))
         .put(DexVm.Version.V7_0_0, ImmutableList.of(
@@ -208,12 +205,14 @@ public abstract class RunExamplesJava9Test
   // Defines methods failing on JVM, specifies the output to be used for comparison.
   private static Map<String, String> expectedJvmResult =
       ImmutableMap.of(
-          "native-private-interface-methods", "0: s>i>a\n"
+          "native-private-interface-methods",
+          "0: s>i>a\n"
               + "1: d>i>s>i>a\n"
               + "2: l>i>s>i>a\n"
               + "3: x>s\n"
               + "4: c>d>i>s>i>a\n",
-          "desugared-private-interface-methods", "0: s>i>a\n"
+          "desugared-private-interface-methods",
+          "0: s>i>a\n"
               + "1: d>i>s>i>a\n"
               + "2: l>i>s>i>a\n"
               + "3: x>s\n"
@@ -245,21 +244,34 @@ public abstract class RunExamplesJava9Test
 
   @Test
   public void nativePrivateInterfaceMethods() throws Throwable {
-    test("native-private-interface-methods", "privateinterfacemethods", "PrivateInterfaceMethods")
+    test("native-private-interface-methods",
+        "privateinterfacemethods", "PrivateInterfaceMethods")
         .withMinApiLevel(AndroidApiLevel.N.getLevel())
         .run();
   }
 
   @Test
   public void desugaredPrivateInterfaceMethods() throws Throwable {
-    test("desugared-private-interface-methods", "privateinterfacemethods",
-        "PrivateInterfaceMethods")
+    final String iName = "privateinterfacemethods.I";
+    test("desugared-private-interface-methods",
+        "privateinterfacemethods", "PrivateInterfaceMethods")
         .withMinApiLevel(AndroidApiLevel.M.getLevel())
+        .withDexCheck(dexInspector -> {
+          ClassSubject companion = dexInspector.clazz(
+              iName + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX);
+          assertThat(companion, isPresent());
+          MethodSubject iFoo = companion.method(
+              "java.lang.String",
+              InterfaceMethodRewriter.PRIVATE_METHOD_PREFIX + "iFoo",
+              ImmutableList.of(iName, "boolean"));
+          assertThat(iFoo, isPresent());
+          assertTrue(iFoo.getMethod().isPublicMethod());
+        })
         .run();
   }
 
   @Test
-  public void varHAndle() throws Throwable {
+  public void varHandle() throws Throwable {
     test("varhandle", "varhandle", "VarHandleTests")
         .withMinApiLevel(AndroidApiLevel.P.getLevel())
         .run();
@@ -285,7 +297,7 @@ public abstract class RunExamplesJava9Test
       thrown.expect(Throwable.class);
     }
     String output = ToolHelper.runArtNoVerificationErrors(
-        Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
+        Arrays.stream(dexes).map(Path::toString).collect(Collectors.toList()),
         qualifiedMainClass,
         null);
     String jvmResult = null;
@@ -305,19 +317,6 @@ public abstract class RunExamplesJava9Test
               + "\n\tart: "
               + output.replace("\r", ""),
           output.equals(jvmResult.replace("\r", "")));
-    }
-  }
-
-  protected DexInspector getMainDexInspector(Path zip)
-      throws ZipException, IOException, ExecutionException {
-    try (ZipFile zipFile = new ZipFile(zip.toFile(), StandardCharsets.UTF_8)) {
-      try (InputStream in =
-          zipFile.getInputStream(zipFile.getEntry(ToolHelper.DEFAULT_DEX_FILENAME))) {
-        return new DexInspector(
-            AndroidApp.builder()
-                .addDexProgramData(ByteStreams.toByteArray(in), Origin.unknown())
-                .build());
-      }
     }
   }
 

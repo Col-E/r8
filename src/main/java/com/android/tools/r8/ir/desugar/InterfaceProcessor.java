@@ -91,7 +91,7 @@ final class InterfaceProcessor {
     remainingMethods.clear();
 
     // Process static and private methods, move them into companion class as well,
-    // make private instance methods static.
+    // make private instance methods public static.
     for (DexEncodedMethod direct : iface.directMethods()) {
       MethodAccessFlags originalFlags = direct.accessFlags;
       MethodAccessFlags newFlags = originalFlags.copy();
