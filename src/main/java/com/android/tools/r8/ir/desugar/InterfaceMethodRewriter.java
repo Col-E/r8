@@ -66,7 +66,7 @@ public final class InterfaceMethodRewriter {
   // Public for testing.
   public static final String COMPANION_CLASS_NAME_SUFFIX = "$-CC";
   public static final String DEFAULT_METHOD_PREFIX = "$default$";
-  private static final String PRIVATE_METHOD_PREFIX = "$private$";
+  public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
   private final IRConverter converter;
   private final InternalOptions options;

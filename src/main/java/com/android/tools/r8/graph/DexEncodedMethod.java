@@ -155,6 +155,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return isVirtualMethod() && !accessFlags.isAbstract();
   }
 
+  public boolean isPublicMethod() {
+    return accessFlags.isPublic();
+  }
 
   public boolean isPrivateMethod() {
     return accessFlags.isPrivate();
