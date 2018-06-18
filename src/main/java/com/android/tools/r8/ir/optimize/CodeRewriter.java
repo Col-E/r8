@@ -762,6 +762,11 @@ public class CodeRewriter {
       return;
     }
 
+    DexClass clazz = appInfo.definitionFor(method.method.holder);
+    if (clazz == null) {
+      return;
+    }
+
     boolean receiverUsedAsReturnValue = false;
     boolean seenSuperInitCall = false;
     for (Instruction insn : receiver.uniqueUsers()) {
@@ -773,7 +778,7 @@ public class CodeRewriter {
       if (insn.isInstanceGet() ||
           (insn.isInstancePut() && insn.asInstancePut().object() == receiver)) {
         DexField field = insn.asFieldInstruction().getField();
-        if (field.clazz == method.method.holder) {
+        if (field.clazz == clazz.type && clazz.lookupInstanceField(field) != null) {
           // Since class inliner currently only supports classes directly extending
           // java.lang.Object, we don't need to worry about fields defined in superclasses.
           continue;
