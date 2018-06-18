@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.OutputMode;
@@ -32,10 +34,13 @@ import com.android.tools.r8.ir.optimize.classinliner.trivial.Iface2;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.Iface2Impl;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.ReferencedFields;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.TrivialTestClass;
+import com.android.tools.r8.jasmin.JasminBuilder;
+import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -178,6 +183,39 @@ public class ClassInlinerTest extends TestBase {
     assertFalse(inspector.clazz(BuildersTestClass.Pos.class).isPresent());
   }
 
+  @Test
+  public void testErroneousInput() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+
+    ClassBuilder testClass = builder.addClass("A");
+    testClass.addStaticFinalField("f", "I", "123");
+    testClass.addDefaultConstructor();
+
+    ClassBuilder mainClass = builder.addClass("Main");
+    mainClass.addMainMethod(
+        ".limit stack 3",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  new A",
+        "  dup",
+        "  invokespecial A/<init>()V",
+        "  getfield A/f I",
+        "  invokevirtual java/io/PrintStream/print(I)V",
+        "  return");
+
+    AndroidApp compiled =
+        compileWithR8(builder.build(), getProguardConfig(mainClass.name), this::configure);
+
+    // Check that the code fails with an IncompatibleClassChangeError with Java.
+    ProcessResult javaResult =
+        runOnJavaRaw(mainClass.name, builder.buildClasses().toArray(new byte[2][]));
+    assertThat(javaResult.stderr, containsString("IncompatibleClassChangeError"));
+
+    // Check that the code fails with an IncompatibleClassChangeError with ART.
+    ProcessResult artResult = runOnArtRaw(compiled, mainClass.name);
+    assertThat(artResult.stderr, containsString("IncompatibleClassChangeError"));
+  }
+
   private Set<String> collectNewInstanceTypes(
       ClassSubject clazz, String methodName, String... params) {
     assertNotNull(clazz);
@@ -189,15 +227,8 @@ public class ClassInlinerTest extends TestBase {
   }
 
   private AndroidApp runR8(AndroidApp app, Class mainClass) throws Exception {
-    String config = keepMainProguardConfiguration(mainClass) + "\n"
-        + "-dontobfuscate\n"
-        + "-allowaccessmodification";
-
-    AndroidApp compiled = compileWithR8(app, config,
-        o -> {
-          o.enableClassInlining = true;
-          o.classInliningInstructionLimit = 10000;
-        });
+    AndroidApp compiled =
+        compileWithR8(app, getProguardConfig(mainClass.getCanonicalName()), this::configure);
 
     // Materialize file for execution.
     Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
@@ -219,5 +250,17 @@ public class ClassInlinerTest extends TestBase {
     assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
 
     return compiled;
+  }
+
+  private String getProguardConfig(String main) {
+    return keepMainProguardConfiguration(main)
+        + "\n"
+        + "-dontobfuscate\n"
+        + "-allowaccessmodification";
+  }
+
+  private void configure(InternalOptions options) {
+    options.enableClassInlining = true;
+    options.classInliningInstructionLimit = 10000;
   }
 }

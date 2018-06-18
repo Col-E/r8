@@ -169,14 +169,16 @@ public final class ClassInliner {
 
     Map<InvokeMethodWithReceiver, InliningInfo> methodCalls = new IdentityHashMap<>();
 
+    DexClass definition = appInfo.definitionFor(clazz);
+
     for (Instruction user : receiver.uniqueUsers()) {
       // Field read/write.
       if (user.isInstanceGet() ||
           (user.isInstancePut() && user.asInstancePut().value() != receiver)) {
-        if (user.asFieldInstruction().getField().clazz == newInstanceInsn.clazz) {
-          // Eligible field read or write. Note: as long as we consider only classes eligible
-          // if they directly extend java.lang.Object we don't need to check if the field
-          // really exists in the class.
+        DexField field = user.asFieldInstruction().getField();
+        if (field.clazz == newInstanceInsn.clazz && definition.lookupInstanceField(field) != null) {
+          // Since class inliner currently only supports classes directly extending
+          // java.lang.Object, we don't need to worry about fields defined in superclasses.
           continue;
         }
         return null; // Not eligible.
