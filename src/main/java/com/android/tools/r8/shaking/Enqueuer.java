@@ -1651,7 +1651,7 @@ public class Enqueuer {
           rewriteKeysWhileMergingValues(previous.staticFieldWrites, lense::lookupField);
       this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
-      this.pinnedItems = rewriteMixedItems(previous.pinnedItems, lense);
+      this.pinnedItems = rewriteMixedItemsConservatively(previous.pinnedItems, lense);
       this.virtualInvokes = rewriteMethodsConservatively(previous.virtualInvokes, lense);
       this.interfaceInvokes = rewriteMethodsConservatively(previous.interfaceInvokes, lense);
       this.superInvokes = rewriteMethodsConservatively(previous.superInvokes, lense);
@@ -1665,7 +1665,8 @@ public class Enqueuer {
       this.assumedValues = previous.assumedValues;
       assert assertNotModifiedByLense(previous.alwaysInline, lense);
       this.alwaysInline = previous.alwaysInline;
-      this.identifierNameStrings = rewriteMixedItems(previous.identifierNameStrings, lense);
+      this.identifierNameStrings =
+          rewriteMixedItemsConservatively(previous.identifierNameStrings, lense);
       // Switchmap classes should never be affected by renaming.
       assert assertNotModifiedByLense(
           previous.switchMaps.keySet().stream().map(this::definitionFor).filter(Objects::nonNull)
@@ -1846,7 +1847,7 @@ public class Enqueuer {
       return Collections.unmodifiableMap(result);
     }
 
-    private static ImmutableSet<DexItem> rewriteMixedItems(
+    private static ImmutableSet<DexItem> rewriteMixedItemsConservatively(
         Set<DexItem> original, GraphLense lense) {
       ImmutableSet.Builder<DexItem> builder = ImmutableSet.builder();
       for (DexItem item : original) {
@@ -1854,7 +1855,12 @@ public class Enqueuer {
         if (item instanceof DexType) {
           builder.add(lense.lookupType((DexType) item));
         } else if (item instanceof DexMethod) {
-          builder.add(lense.lookupMethod((DexMethod) item));
+          DexMethod method = (DexMethod) item;
+          if (lense.isContextFreeForMethod(method)) {
+            builder.add(lense.lookupMethod(method));
+          } else {
+            builder.addAll(lense.lookupMethodInAllContexts(method));
+          }
         } else if (item instanceof DexField) {
           builder.add(lense.lookupField((DexField) item));
         } else {

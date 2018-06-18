@@ -289,6 +289,30 @@ public class ClassMergingTest extends TestBase {
             "-keep public class classmerging.pkg.SimpleInterfaceImplRetriever"));
   }
 
+  @Ignore("b/73958515")
+  @Test
+  public void testRewritePinnedMethod() throws Exception {
+    String main = "classmerging.RewritePinnedMethodTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("RewritePinnedMethodTest.class"),
+          CF_DIR.resolve("RewritePinnedMethodTest$A.class"),
+          CF_DIR.resolve("RewritePinnedMethodTest$B.class"),
+          CF_DIR.resolve("RewritePinnedMethodTest$C.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.RewritePinnedMethodTest",
+            "classmerging.RewritePinnedMethodTest$A",
+            "classmerging.RewritePinnedMethodTest$C");
+    runTest(
+        main,
+        programFiles,
+        preservedClassNames,
+        getProguardConfig(
+            EXAMPLE_KEEP, "-keep class classmerging.RewritePinnedMethodTest$A { *; }"));
+  }
+
   @Test
   public void testTemplateMethodPattern() throws Exception {
     String main = "classmerging.TemplateMethodTest";
