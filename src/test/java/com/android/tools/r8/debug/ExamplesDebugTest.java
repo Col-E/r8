@@ -75,7 +75,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testBridgeMethod() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
+    // TODO(b/79671093): D8 has local variables with empty names.
     testDebuggingJvmOnly("bridge", "BridgeMethod");
   }
 
@@ -122,8 +122,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testInstanceVariable() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("instancevariable", "InstanceVariable");
+    testDebugging("instancevariable", "InstanceVariable");
   }
 
   @Test
@@ -133,8 +132,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testInvoke() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("invoke", "Invoke");
+    testDebugging("invoke", "Invoke");
   }
 
   @Test
@@ -155,8 +153,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testNewArray() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("newarray", "NewArray");
+    testDebugging("newarray", "NewArray");
   }
 
   @Test
@@ -166,8 +163,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testReturns() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("returns", "Returns");
+    testDebugging("returns", "Returns");
   }
 
   @Test
@@ -222,8 +218,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testInvokeEmpty() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("invokeempty", "InvokeEmpty");
+    testDebugging("invokeempty", "InvokeEmpty");
   }
 
   @Test
@@ -233,21 +228,17 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testRegress2() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("regress2", "Regress2");
+    testDebugging("regress2", "Regress2");
   }
 
-  @Ignore("TODO(mathiasr): Different behavior CfSourceCode vs JarSourceCode")
   @Test
   public void testRegress37726195() throws Exception {
-    // TODO(b/79671093): We don't match JVM's behavior on this example.
-    testDebuggingJvmOutputOnly("regress_37726195", "Regress");
+    testDebugging("regress_37726195", "Regress");
   }
 
   @Test
   public void testRegress37658666() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("regress_37658666", "Regress");
+    testDebugging("regress_37658666", "Regress");
   }
 
   @Test
@@ -257,8 +248,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testRegress37955340() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("regress_37955340", "Regress");
+    testDebugging("regress_37955340", "Regress");
   }
 
   @Test
@@ -304,8 +294,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testMemberrebinding2() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("memberrebinding2", "Memberrebinding");
+    testDebugging("memberrebinding2", "Memberrebinding");
   }
 
   @Test
@@ -315,14 +304,12 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testMinification() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("minification", "Minification");
+    testDebugging("minification", "Minification");
   }
 
   @Test
   public void testEnclosingmethod() throws Exception {
-    // TODO(b/79671093): D8 has different line number info during stepping.
-    testDebuggingJvmOnly("enclosingmethod", "Main");
+    testDebugging("enclosingmethod", "Main");
   }
 
   @Test

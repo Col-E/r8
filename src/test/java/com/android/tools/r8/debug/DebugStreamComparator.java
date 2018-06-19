@@ -13,7 +13,9 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +43,60 @@ public class DebugStreamComparator {
       options.printVariables = true;
       options.printStack = true;
       return options;
+    }
+  }
+
+  private static class StreamState {
+    static final int ENTRY_LINE = -1;
+    static final int PLACEHOLDER_LINE = -2;
+
+    final Iterator<DebuggeeState> iterator;
+    final Deque<Integer> frameEntryLines = new ArrayDeque<>();
+    int currentLine = ENTRY_LINE;
+
+    StreamState(Stream<DebuggeeState> stream) {
+      iterator = stream.iterator();
+    }
+
+    DebuggeeState next() {
+      while (true) {
+        DebuggeeState state = iterator.next();
+        if (state == null) {
+          return null;
+        }
+        int nextDepth = state.getFrameDepth();
+        int nextLine = state.getLineNumber();
+        if (nextDepth == frameEntryLines.size()) {
+          currentLine = nextLine;
+          return state;
+        }
+        if (nextDepth > frameEntryLines.size()) {
+          frameEntryLines.push(currentLine);
+          while (nextDepth > frameEntryLines.size()) {
+            // If the depth grows by more than one we have entered into filtered out frames, eg,
+            // java/android internals. In this case push placeholder lines on the stack.
+            frameEntryLines.push(PLACEHOLDER_LINE);
+          }
+          currentLine = nextLine;
+          assert nextDepth == frameEntryLines.size();
+          return state;
+        }
+        currentLine = nextLine;
+        while (frameEntryLines.size() > nextDepth + 1) {
+          // If the depth decreases by more than one we have popped the filtered frames.
+          // Verify they are placeholder lines.
+          int placeholder = frameEntryLines.pop();
+          assert placeholder == PLACEHOLDER_LINE;
+        }
+        int lineOnEntry = frameEntryLines.pop();
+        assert nextDepth == frameEntryLines.size();
+        if (lineOnEntry != nextLine) {
+          return state;
+        }
+        // A frame was popped and the current line is the same as when the frame was entered.
+        // In this case we advance again to avoid comparing that a function call returns to the
+        // same line (which may not be the case if no stores are needed after the call).
+      }
     }
   }
 
@@ -140,13 +196,13 @@ public class DebugStreamComparator {
   }
 
   private void internal() {
-    List<Iterator<DebuggeeState>> iterators =
-        streams.stream().map(Stream::iterator).collect(Collectors.toList());
+    List<StreamState> streamStates =
+        streams.stream().map(StreamState::new).collect(Collectors.toList());
     while (true) {
-      List<DebuggeeState> states = new ArrayList<>(iterators.size());
+      List<DebuggeeState> states = new ArrayList<>(streamStates.size());
       boolean done = false;
-      for (Iterator<DebuggeeState> iterator : iterators) {
-        DebuggeeState state = iterator.next();
+      for (StreamState streamState : streamStates) {
+        DebuggeeState state = streamState.next();
         states.add(state);
         if (state == null) {
           done = true;
