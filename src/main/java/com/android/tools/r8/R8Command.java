@@ -531,7 +531,8 @@ public final class R8Command extends BaseCompilerCommand {
   InternalOptions getInternalOptions() {
     InternalOptions internal = new InternalOptions(proguardConfiguration, getReporter());
     assert !internal.debug;
-    internal.debug = getMode() == CompilationMode.DEBUG;
+    internal.debug = getMode() == CompilationMode.DEBUG
+        || (forceProguardCompatibility && !proguardConfiguration.isObfuscating());
     internal.programConsumer = getProgramConsumer();
     internal.minApiLevel = getMinApiLevel();
     internal.enableDesugaring = getEnableDesugaring();
