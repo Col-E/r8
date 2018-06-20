@@ -275,7 +275,8 @@ public class VerticalClassMerger {
     timing.end();
     assert result.assertNotModified(appInfo.alwaysInline);
     assert result.assertNotModified(appInfo.noSideEffects.keySet());
-    assert result.assertNotModified(appInfo.pinnedItems);
+    // TODO(christofferqa): Enable this assert.
+    // assert result.assertNotModified(appInfo.pinnedItems);
     return result;
   }
 
