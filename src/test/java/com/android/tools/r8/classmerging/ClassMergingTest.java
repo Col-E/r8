@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -44,10 +45,14 @@ import org.junit.Test;
 public class ClassMergingTest extends TestBase {
 
   private static final Path CF_DIR =
-      Paths.get(ToolHelper.BUILD_DIR).resolve("classes/examples/classmerging");
+      Paths.get(ToolHelper.BUILD_DIR).resolve("test/examples/classes/classmerging");
+  private static final Path JAVA8_CF_DIR =
+      Paths.get(ToolHelper.BUILD_DIR).resolve("test/examplesAndroidO/classes/classmerging");
   private static final Path EXAMPLE_JAR = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR)
       .resolve("classmerging.jar");
   private static final Path EXAMPLE_KEEP = Paths.get(ToolHelper.EXAMPLES_DIR)
+      .resolve("classmerging").resolve("keep-rules.txt");
+  private static final Path JAVA8_EXAMPLE_KEEP = Paths.get(ToolHelper.EXAMPLES_ANDROID_O_DIR)
       .resolve("classmerging").resolve("keep-rules.txt");
   private static final Path DONT_OPTIMIZE = Paths.get(ToolHelper.EXAMPLES_DIR)
       .resolve("classmerging").resolve("keep-rules-dontoptimize.txt");
@@ -109,6 +114,28 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
+  public void testLambdaRewriting() throws Exception {
+    String main = "classmerging.LambdaRewritingTest";
+    Path[] programFiles =
+        new Path[] {
+          JAVA8_CF_DIR.resolve("LambdaRewritingTest.class"),
+          JAVA8_CF_DIR.resolve("LambdaRewritingTest$Function.class"),
+          JAVA8_CF_DIR.resolve("LambdaRewritingTest$Interface.class"),
+          JAVA8_CF_DIR.resolve("LambdaRewritingTest$InterfaceImpl.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.LambdaRewritingTest",
+            "classmerging.LambdaRewritingTest$Function",
+            "classmerging.LambdaRewritingTest$InterfaceImpl");
+    runTest(
+        main,
+        programFiles,
+        name -> preservedClassNames.contains(name) || name.contains("$Lambda$"),
+        getProguardConfig(JAVA8_EXAMPLE_KEEP));
+  }
+
+  @Test
   public void testSuperCallWasDetected() throws Exception {
     String main = "classmerging.SuperCallRewritingTest";
     Path[] programFiles =
@@ -121,7 +148,7 @@ public class ClassMergingTest extends TestBase {
         ImmutableSet.of(
             "classmerging.SubClassThatReferencesSuperMethod",
             "classmerging.SuperCallRewritingTest");
-    runTest(main, programFiles, preservedClassNames);
+    runTest(main, programFiles, preservedClassNames::contains);
   }
 
   // When a subclass A has been merged into its subclass B, we rewrite invoke-super calls that hit
@@ -177,7 +204,7 @@ public class ClassMergingTest extends TestBase {
     runTestOnInput(
         main,
         builder.build(),
-        preservedClassNames,
+        preservedClassNames::contains,
         // Prevent class merging, such that the generated code would be invalid if we rewrite the
         // invoke-super instruction into an invoke-direct instruction.
         getProguardConfig(EXAMPLE_KEEP, "-keep class *"));
@@ -197,7 +224,7 @@ public class ClassMergingTest extends TestBase {
         ImmutableSet.of(
             "classmerging.ConflictingInterfaceSignaturesTest",
             "classmerging.ConflictingInterfaceSignaturesTest$InterfaceImpl");
-    runTest(main, programFiles, preservedClassNames);
+    runTest(main, programFiles, preservedClassNames::contains);
   }
 
   // If an exception class A is merged into another exception class B, then all exception tables
@@ -218,7 +245,7 @@ public class ClassMergingTest extends TestBase {
             "classmerging.ExceptionTest",
             "classmerging.ExceptionTest$ExceptionB",
             "classmerging.ExceptionTest$Exception2");
-    DexInspector inspector = runTest(main, programFiles, preservedClassNames);
+    DexInspector inspector = runTest(main, programFiles, preservedClassNames::contains);
 
     ClassSubject mainClass = inspector.clazz(main);
     assertThat(mainClass, isPresent());
@@ -256,7 +283,7 @@ public class ClassMergingTest extends TestBase {
             "classmerging.SimpleInterfaceAccessTest",
             "classmerging.pkg.SimpleInterfaceImplRetriever",
             "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
-    runTest(main, programFiles, preservedClassNames);
+    runTest(main, programFiles, preservedClassNames::contains);
   }
 
   @Ignore("b/73958515")
@@ -282,7 +309,7 @@ public class ClassMergingTest extends TestBase {
     runTest(
         main,
         programFiles,
-        preservedClassNames,
+        preservedClassNames::contains,
         getProguardConfig(
             EXAMPLE_KEEP,
             "-allowaccessmodification",
@@ -310,7 +337,7 @@ public class ClassMergingTest extends TestBase {
     runTest(
         main,
         programFiles,
-        preservedClassNames,
+        preservedClassNames::contains,
         getProguardConfig(
             EXAMPLE_KEEP, "-keep class classmerging.RewritePinnedMethodTest$A { *; }"));
   }
@@ -327,40 +354,42 @@ public class ClassMergingTest extends TestBase {
     Set<String> preservedClassNames =
         ImmutableSet.of(
             "classmerging.TemplateMethodTest", "classmerging.TemplateMethodTest$AbstractClassImpl");
-    runTest(main, programFiles, preservedClassNames);
+    runTest(main, programFiles, preservedClassNames::contains);
   }
 
-  private DexInspector runTest(String main, Path[] programFiles, Set<String> preservedClassNames)
-      throws Exception {
+  private DexInspector runTest(
+      String main, Path[] programFiles, Predicate<String> preservedClassNames) throws Exception {
     return runTest(main, programFiles, preservedClassNames, getProguardConfig(EXAMPLE_KEEP));
   }
 
   private DexInspector runTest(
-      String main, Path[] programFiles, Set<String> preservedClassNames, String proguardConfig)
+      String main,
+      Path[] programFiles,
+      Predicate<String> preservedClassNames,
+      String proguardConfig)
       throws Exception {
     return runTestOnInput(
         main, readProgramFiles(programFiles), preservedClassNames, proguardConfig);
   }
 
   private DexInspector runTestOnInput(
-      String main, AndroidApp input, Set<String> preservedClassNames, String proguardConfig)
+      String main, AndroidApp input, Predicate<String> preservedClassNames, String proguardConfig)
       throws Exception {
     AndroidApp output = compileWithR8(input, proguardConfig, this::configure);
-    DexInspector inspector = new DexInspector(output);
+    DexInspector inputInspector = new DexInspector(input);
+    DexInspector outputInspector = new DexInspector(output);
     // Check that all classes in [preservedClassNames] are in fact preserved.
-    for (String className : preservedClassNames) {
-      assertTrue(
-          "Class " + className + " should be present", inspector.clazz(className).isPresent());
-    }
-    // Check that all other classes have been removed.
-    for (FoundClassSubject classSubject : inspector.allClasses()) {
-      String className = classSubject.getDexClass().toSourceString();
-      assertTrue(
-          "Class " + className + " should be absent", preservedClassNames.contains(className));
+    for (FoundClassSubject classSubject : inputInspector.allClasses()) {
+      String className = classSubject.getOriginalName();
+      boolean shouldBePresent = preservedClassNames.test(className);
+      assertEquals(
+          "Class " + className + " should be " + (shouldBePresent ? "present" : "absent"),
+          shouldBePresent,
+          outputInspector.clazz(className).isPresent());
     }
     // Check that the R8-generated code produces the same result as D8-generated code.
     assertEquals(runOnArt(compileWithD8(input), main), runOnArt(output, main));
-    return inspector;
+    return outputInspector;
   }
 
   private String getProguardConfig(Path path, String... additionalRules) throws IOException {
