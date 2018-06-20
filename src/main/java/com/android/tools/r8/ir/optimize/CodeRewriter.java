@@ -13,6 +13,9 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.ClassTrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.InstanceClassTrivialInitializer;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -48,6 +51,7 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -810,6 +814,187 @@ public class CodeRewriter {
 
     feedback.setClassInlinerEligibility(
         method, new ClassInlinerEligibility(receiverUsedAsReturnValue));
+  }
+
+  public void identifyTrivialInitializer(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    boolean isInstanceInitializer = method.isInstanceInitializer();
+    boolean isClassInitializer = method.isClassInitializer();
+    assert isInstanceInitializer || isClassInitializer;
+    if (method.accessFlags.isNative()) {
+      return;
+    }
+
+    DexClass clazz = appInfo.definitionFor(method.method.holder);
+    if (clazz == null) {
+      return;
+    }
+
+    feedback.setTrivialInitializer(method,
+        isInstanceInitializer
+            ? computeInstanceInitializerInfo(code, clazz, appInfo::definitionFor)
+            : computeClassInitializerInfo(code, clazz));
+  }
+
+  // This method defines trivial instance initializer as follows:
+  //
+  // ** The initializer may only call the initializer of the base class, which
+  //    itself must be trivial.
+  //
+  // ** java.lang.Object.<init>() is considered trivial.
+  //
+  // ** all arguments passed to a super-class initializer must be non-throwing
+  //    constants or arguments.
+  //
+  // ** Assigns arguments or non-throwing constants to fields of this class.
+  //
+  // (Note that this initializer does not have to have zero arguments.)
+  private TrivialInitializer computeInstanceInitializerInfo(
+      IRCode code, DexClass clazz, Function<DexType, DexClass> typeToClass) {
+    Value receiver = code.getThis();
+
+    InstructionIterator it = code.instructionIterator();
+    while (it.hasNext()) {
+      Instruction insn = it.next();
+
+      if (insn.isReturn()) {
+        continue;
+      }
+
+      if (insn.isArgument()) {
+        continue;
+      }
+
+      if (insn.isConstInstruction()) {
+        if (insn.instructionInstanceCanThrow()) {
+          return null;
+        } else {
+          continue;
+        }
+      }
+
+      if (insn.isInvokeDirect()) {
+        InvokeDirect invokedDirect = insn.asInvokeDirect();
+        DexMethod invokedMethod = invokedDirect.getInvokedMethod();
+
+        if (invokedMethod.holder != clazz.superType) {
+          return null;
+        }
+
+        // java.lang.Object.<init>() is considered trivial.
+        if (invokedMethod == dexItemFactory.objectMethods.constructor) {
+          continue;
+        }
+
+        DexClass holder = typeToClass.apply(invokedMethod.holder);
+        if (holder == null) {
+          return null;
+        }
+
+        DexEncodedMethod callTarget = holder.lookupDirectMethod(invokedMethod);
+        if (callTarget == null ||
+            !callTarget.isInstanceInitializer() ||
+            callTarget.getOptimizationInfo().getTrivialInitializerInfo() == null ||
+            invokedDirect.getReceiver() != receiver) {
+          return null;
+        }
+
+        for (Value value : invokedDirect.inValues()) {
+          if (value != receiver && !(value.isConstant() || value.isArgument())) {
+            return null;
+          }
+        }
+        continue;
+      }
+
+      if (insn.isInstancePut()) {
+        InstancePut instancePut = insn.asInstancePut();
+        DexEncodedField field = clazz.lookupInstanceField(instancePut.getField());
+        if (field == null ||
+            instancePut.object() != receiver ||
+            (instancePut.value() != receiver && !instancePut.value().isArgument())) {
+          return null;
+        }
+        continue;
+      }
+
+      // Other instructions make the instance initializer not eligible.
+      return null;
+    }
+
+    return InstanceClassTrivialInitializer.INSTANCE;
+  }
+
+  // This method defines trivial class initializer as follows:
+  //
+  // ** The initializer may only instantiate an instance of the same class,
+  //    initialize it with a call to a trivial constructor *without* arguments,
+  //    and assign this instance to a static final field of the same class.
+  //
+  private synchronized TrivialInitializer computeClassInitializerInfo(IRCode code, DexClass clazz) {
+    InstructionIterator it = code.instructionIterator();
+
+    Value createdSingletonInstance = null;
+    DexField singletonField = null;
+
+    while (it.hasNext()) {
+      Instruction insn = it.next();
+
+      if (insn.isReturn()) {
+        continue;
+      }
+
+      if (insn.isNewInstance()) {
+        NewInstance newInstance = insn.asNewInstance();
+        if (createdSingletonInstance != null ||
+            newInstance.clazz != clazz.type ||
+            insn.outValue() == null) {
+          return null;
+        }
+        createdSingletonInstance = insn.outValue();
+        continue;
+      }
+
+      if (insn.isInvokeDirect()) {
+        InvokeDirect invokedDirect = insn.asInvokeDirect();
+        if (createdSingletonInstance == null ||
+            invokedDirect.getReceiver() != createdSingletonInstance) {
+          return null;
+        }
+
+        DexEncodedMethod callTarget = clazz.lookupDirectMethod(invokedDirect.getInvokedMethod());
+        if (callTarget == null ||
+            !callTarget.isInstanceInitializer() ||
+            !callTarget.method.proto.parameters.isEmpty() ||
+            callTarget.getOptimizationInfo().getTrivialInitializerInfo() == null) {
+          return null;
+        }
+        continue;
+      }
+
+      if (insn.isStaticPut()) {
+        StaticPut staticPut = insn.asStaticPut();
+        if (singletonField != null ||
+            createdSingletonInstance == null ||
+            staticPut.inValue() != createdSingletonInstance) {
+          return null;
+        }
+
+        DexEncodedField field = clazz.lookupStaticField(staticPut.getField());
+        if (field == null ||
+            !field.accessFlags.isStatic() ||
+            !field.accessFlags.isFinal()) {
+          return null;
+        }
+        singletonField = field.field;
+        continue;
+      }
+
+      // Other instructions make the class initializer not eligible.
+      return null;
+    }
+
+    return singletonField == null ? null : new ClassTrivialInitializer(singletonField);
   }
 
   /**

@@ -587,7 +587,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "primitiveProp";
@@ -614,7 +614,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_usePrivateProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "privateProp";
@@ -641,7 +641,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "internalProp";
@@ -668,7 +668,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "publicProp";
@@ -695,7 +695,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useLateInitPrivateProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "privateLateInitProp";
@@ -722,7 +722,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useLateInitInternalProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "internalLateInitProp";
@@ -745,7 +745,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useLateInitPublicProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "publicLateInitProp";
@@ -768,7 +768,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "primitiveProp";
@@ -795,7 +795,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePrivateProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "privateProp";
@@ -821,7 +821,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "internalProp";
@@ -847,7 +847,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "publicProp";
@@ -874,7 +874,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useLateInitPrivateProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject fileClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "privateLateInitProp";
@@ -900,7 +900,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useLateInitInternalProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "internalLateInitProp";
@@ -924,7 +924,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useLateInitPublicProp");
-    runTest(PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
       DexInspector dexInspector = new DexInspector(app);
       ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
       String propertyName = "publicLateInitProp";

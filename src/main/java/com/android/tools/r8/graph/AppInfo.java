@@ -481,15 +481,15 @@ public class AppInfo {
     return result;
   }
 
-  public boolean canTriggerStaticInitializer(DexType type) {
+  public boolean canTriggerStaticInitializer(DexType type, boolean ignoreTypeItself) {
     Set<DexType> knownInterfaces = Sets.newIdentityHashSet();
 
     // Process superclass chain.
     DexType clazz = type;
     while (clazz != null && clazz != dexItemFactory.objectType) {
       DexClass definition = definitionFor(clazz);
-      if (canTriggerStaticInitializer(definition)) {
-        return true; // Assume it *may* trigger if we didn't find the definition.
+      if (canTriggerStaticInitializer(definition) && (!ignoreTypeItself || clazz != type)) {
+        return true;
       }
       knownInterfaces.addAll(Arrays.asList(definition.interfaces.values));
       clazz = definition.superType;
@@ -501,7 +501,7 @@ public class AppInfo {
       DexType iface = queue.remove();
       DexClass definition = definitionFor(iface);
       if (canTriggerStaticInitializer(definition)) {
-        return true; // Assume it *may* trigger if we didn't find the definition.
+        return true;
       }
       if (!definition.isInterface()) {
         throw new Unreachable(iface.toSourceString() + " is expected to be an interface");
@@ -517,6 +517,7 @@ public class AppInfo {
   }
 
   private static boolean canTriggerStaticInitializer(DexClass clazz) {
+    // Assume it *may* trigger if we didn't find the definition.
     return clazz == null || clazz.hasClassInitializer();
   }
 

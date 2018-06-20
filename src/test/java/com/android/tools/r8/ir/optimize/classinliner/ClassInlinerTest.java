@@ -16,13 +16,17 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.NewInstance;
+import com.android.tools.r8.code.Sget;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.ir.optimize.classinliner.builders.BuildersTestClass;
 import com.android.tools.r8.ir.optimize.classinliner.builders.ControlFlow;
 import com.android.tools.r8.ir.optimize.classinliner.builders.Pair;
 import com.android.tools.r8.ir.optimize.classinliner.builders.PairBuilder;
 import com.android.tools.r8.ir.optimize.classinliner.builders.Tuple;
+import com.android.tools.r8.ir.optimize.classinliner.code.C;
+import com.android.tools.r8.ir.optimize.classinliner.code.CodeTestClass;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.ClassWithFinal;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceAB;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceBA;
@@ -46,6 +50,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -67,64 +72,64 @@ public class ClassInlinerTest extends TestBase {
         ToolHelper.getClassAsBytes(CycleReferenceBA.class),
         ToolHelper.getClassAsBytes(ClassWithFinal.class)
     };
-    String main = TrivialTestClass.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJavaRaw(main, classes);
-    assertEquals(0, javaOutput.exitCode);
-
     AndroidApp app = runR8(buildAndroidApp(classes), TrivialTestClass.class);
+
+    String javaOutput = runOnJava(TrivialTestClass.class);
+    String artOutput = runOnArt(app, TrivialTestClass.class);
+    assertEquals(javaOutput, artOutput);
 
     DexInspector inspector = new DexInspector(app);
     ClassSubject clazz = inspector.clazz(TrivialTestClass.class);
 
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
-        collectNewInstanceTypes(clazz, "testInner"));
+        collectTypes(clazz, "testInner", "void"));
 
     assertEquals(
         Collections.emptySet(),
-        collectNewInstanceTypes(clazz, "testConstructorMapping1"));
+        collectTypes(clazz, "testConstructorMapping1", "void"));
 
     assertEquals(
         Collections.emptySet(),
-        collectNewInstanceTypes(clazz, "testConstructorMapping2"));
+        collectTypes(clazz, "testConstructorMapping2", "void"));
 
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
-        collectNewInstanceTypes(clazz, "testConstructorMapping3"));
+        collectTypes(clazz, "testConstructorMapping3", "void"));
 
     assertEquals(
         Collections.emptySet(),
-        collectNewInstanceTypes(clazz, "testEmptyClass"));
+        collectTypes(clazz, "testEmptyClass", "void"));
 
     assertEquals(
         Collections.singleton(
             "com.android.tools.r8.ir.optimize.classinliner.trivial.EmptyClassWithInitializer"),
-        collectNewInstanceTypes(clazz, "testEmptyClassWithInitializer"));
+        collectTypes(clazz, "testEmptyClassWithInitializer", "void"));
 
     assertEquals(
         Collections.singleton(
             "com.android.tools.r8.ir.optimize.classinliner.trivial.ClassWithFinal"),
-        collectNewInstanceTypes(clazz, "testClassWithFinalizer"));
+        collectTypes(clazz, "testClassWithFinalizer", "void"));
 
     assertEquals(
         Collections.emptySet(),
-        collectNewInstanceTypes(clazz, "testCallOnIface1"));
+        collectTypes(clazz, "testCallOnIface1", "void"));
 
     assertEquals(
         Collections.singleton(
             "com.android.tools.r8.ir.optimize.classinliner.trivial.Iface2Impl"),
-        collectNewInstanceTypes(clazz, "testCallOnIface2"));
+        collectTypes(clazz, "testCallOnIface2", "void"));
 
     assertEquals(
         Sets.newHashSet(
             "com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceAB",
             "java.lang.StringBuilder"),
-        collectNewInstanceTypes(clazz, "testCycles"));
+        collectTypes(clazz, "testCycles", "void"));
 
     assertEquals(
         Sets.newHashSet("java.lang.StringBuilder",
             "com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceAB"),
-        collectNewInstanceTypes(inspector.clazz(CycleReferenceAB.class), "foo", "int"));
+        collectTypes(inspector.clazz(CycleReferenceAB.class), "foo", "void", "int"));
 
     assertFalse(inspector.clazz(CycleReferenceBA.class).isPresent());
   }
@@ -139,11 +144,11 @@ public class ClassInlinerTest extends TestBase {
         ToolHelper.getClassAsBytes(PairBuilder.class),
         ToolHelper.getClassAsBytes(ControlFlow.class),
     };
-    String main = BuildersTestClass.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJavaRaw(main, classes);
-    assertEquals(0, javaOutput.exitCode);
-
     AndroidApp app = runR8(buildAndroidApp(classes), BuildersTestClass.class);
+
+    String javaOutput = runOnJava(BuildersTestClass.class);
+    String artOutput = runOnArt(app, BuildersTestClass.class);
+    assertEquals(javaOutput, artOutput);
 
     DexInspector inspector = new DexInspector(app);
     ClassSubject clazz = inspector.clazz(BuildersTestClass.class);
@@ -152,7 +157,7 @@ public class ClassInlinerTest extends TestBase {
         Sets.newHashSet(
             "com.android.tools.r8.ir.optimize.classinliner.builders.Pair",
             "java.lang.StringBuilder"),
-        collectNewInstanceTypes(clazz, "testSimpleBuilder"));
+        collectTypes(clazz, "testSimpleBuilder", "void"));
 
     // Note that Pair created instances were also inlined in the following method since
     // we use 'System.out.println(pX.toString())', if we used 'System.out.println(pX)'
@@ -160,25 +165,25 @@ public class ClassInlinerTest extends TestBase {
     // would make it not eligible for inlining.
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
-        collectNewInstanceTypes(clazz, "testSimpleBuilderWithMultipleBuilds"));
+        collectTypes(clazz, "testSimpleBuilderWithMultipleBuilds", "void"));
 
     assertFalse(inspector.clazz(PairBuilder.class).isPresent());
 
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
-        collectNewInstanceTypes(clazz, "testBuilderConstructors"));
+        collectTypes(clazz, "testBuilderConstructors", "void"));
 
     assertFalse(inspector.clazz(Tuple.class).isPresent());
 
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
-        collectNewInstanceTypes(clazz, "testWithControlFlow"));
+        collectTypes(clazz, "testWithControlFlow", "void"));
 
     assertFalse(inspector.clazz(ControlFlow.class).isPresent());
 
     assertEquals(
         Collections.emptySet(),
-        collectNewInstanceTypes(clazz, "testWithMoreControlFlow"));
+        collectTypes(clazz, "testWithMoreControlFlow", "void"));
 
     assertFalse(inspector.clazz(BuildersTestClass.Pos.class).isPresent());
   }
@@ -216,14 +221,65 @@ public class ClassInlinerTest extends TestBase {
     assertThat(artResult.stderr, containsString("IncompatibleClassChangeError"));
   }
 
-  private Set<String> collectNewInstanceTypes(
-      ClassSubject clazz, String methodName, String... params) {
+  @Test
+  public void testCodeSample() throws Exception {
+    byte[][] classes = {
+        ToolHelper.getClassAsBytes(C.class),
+        ToolHelper.getClassAsBytes(C.L.class),
+        ToolHelper.getClassAsBytes(C.F.class),
+        ToolHelper.getClassAsBytes(CodeTestClass.class)
+    };
+    AndroidApp app = runR8(buildAndroidApp(classes), CodeTestClass.class);
+
+    String javaOutput = runOnJava(CodeTestClass.class);
+    String artOutput = runOnArt(app, CodeTestClass.class);
+    assertEquals(javaOutput, artOutput);
+
+    DexInspector inspector = new DexInspector(app);
+    ClassSubject clazz = inspector.clazz(C.class);
+
+    assertEquals(
+        Collections.emptySet(),
+        collectTypes(clazz, "method1", "int"));
+
+    assertEquals(
+        Collections.emptySet(),
+        collectTypes(clazz, "method2", "int"));
+
+    assertEquals(
+        Collections.emptySet(),
+        collectTypes(clazz, "method3", "int"));
+
+    assertFalse(inspector.clazz(C.L.class).isPresent());
+    assertFalse(inspector.clazz(C.F.class).isPresent());
+  }
+
+  private Set<String> collectTypes(
+      ClassSubject clazz, String methodName, String retValue, String... params) {
+    return Stream.concat(
+        collectNewInstanceTypesWithRetValue(clazz, methodName, retValue, params),
+        collectStaticGetTypesWithRetValue(clazz, methodName, retValue, params)
+    ).collect(Collectors.toSet());
+  }
+
+  private Stream<String> collectNewInstanceTypesWithRetValue(
+      ClassSubject clazz, String methodName, String retValue, String... params) {
     assertNotNull(clazz);
-    MethodSignature signature = new MethodSignature(methodName, "void", params);
+    MethodSignature signature = new MethodSignature(methodName, retValue, params);
     DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
     return filterInstructionKind(code, NewInstance.class)
-        .map(insn -> ((NewInstance) insn).getType().toSourceString())
-        .collect(Collectors.toSet());
+        .map(insn -> ((NewInstance) insn).getType().toSourceString());
+  }
+
+  private Stream<String> collectStaticGetTypesWithRetValue(
+      ClassSubject clazz, String methodName, String retValue, String... params) {
+    assertNotNull(clazz);
+    MethodSignature signature = new MethodSignature(methodName, retValue, params);
+    DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
+    return filterInstructionKind(code, Sget.class)
+        .map(Instruction::getField)
+        .filter(field -> field.clazz == field.type)
+        .map(field -> field.clazz.toSourceString());
   }
 
   private AndroidApp runR8(AndroidApp app, Class mainClass) throws Exception {

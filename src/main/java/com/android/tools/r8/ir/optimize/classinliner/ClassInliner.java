@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.ClassTrivialInitializer;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -22,12 +24,13 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.kotlin.KotlinInfo;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -55,11 +58,12 @@ public final class ClassInliner {
 
   // Process method code and inline eligible class instantiations, in short:
   //
-  // - collect all 'new-instance' instructions in the original code. Note that class
-  // inlining, if happens, mutates code and may add new 'new-instance' instructions.
-  // Processing them as well is possible, but does not seem to bring much value.
+  // - collect all 'new-instance' and 'static-get' instructions (called roots below) in
+  // the original code. Note that class inlining, if happens, mutates code and may add
+  // new root instructions. Processing them as well is possible, but does not seem to
+  // bring much value.
   //
-  // - for each 'new-instance' we check if it is eligible for inlining, i.e:
+  // - for each 'new-instance' root we check if it is eligible for inlining, i.e:
   //     -> the class of the new instance is 'eligible' (see computeClassEligible(...))
   //     -> the instance is initialized with 'eligible' constructor (see comments in
   //        CodeRewriter::identifyClassInlinerEligibility(...))
@@ -71,14 +75,20 @@ public final class ClassInliner {
   //            NOTE: if method receiver is used as a return value, the method call
   //            should ignore return value
   //
-  // - inline eligible 'new-instance' instructions, i.e:
+  // - for each 'static-get' root we check if it is eligible for inlining, i.e:
+  //     -> the class of the new instance is 'eligible' (see computeClassEligible(...))
+  //        *and* has a trivial class constructor (see CoreRewriter::computeClassInitializerInfo
+  //        and description in isClassAndUsageEligible(...)) initializing the field root reads
+  //     -> has only 'eligible' uses, (see above)
+  //
+  // - inline eligible root instructions, i.e:
   //     -> force inline methods called on the instance (including the initializer);
   //        (this may introduce additional instance field reads/writes on the receiver)
   //     -> replace instance field reads with appropriate values calculated based on
   //        fields writes
-  //     -> remove the call to superclass initializer
+  //     -> remove the call to superclass initializer (if root is 'new-instance')
   //     -> remove all field writes
-  //     -> remove 'new-instance' instructions
+  //     -> remove root instructions
   //
   // For example:
   //
@@ -93,11 +103,20 @@ public final class ClassInliner {
   //         return x;
   //       }
   //     }
+  //     static class F {
+  //       final static F I = new F();
+  //       int getX() {
+  //         return 123;
+  //       }
+  //     }
   //     static int method1() {
   //       return new L(1).x;
   //     }
   //     static int method2() {
   //       return new L(1).getX();
+  //     }
+  //     static int method3() {
+  //       return F.I.getX();
   //     }
   //   }
   //
@@ -109,47 +128,59 @@ public final class ClassInliner {
   //     static int method2() {
   //       return 1;
   //     }
+  //     static int method3() {
+  //       return "F::getX";
+  //     }
   //   }
   //
   public final void processMethodCode(
-      AppInfoWithSubtyping appInfo,
+      AppInfoWithLiveness appInfo,
       DexEncodedMethod method,
       IRCode code,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       InlinerAction inliner) {
 
-    // Collect all the new-instance instructions in the code before inlining.
-    List<NewInstance> newInstances = Streams.stream(code.instructionIterator())
-        .filter(Instruction::isNewInstance)
-        .map(Instruction::asNewInstance)
+    // Collect all the new-instance and static-get instructions in the code before inlining.
+    List<Instruction> roots = Streams.stream(code.instructionIterator())
+        .filter(insn -> insn.isNewInstance() || insn.isStaticGet())
         .collect(Collectors.toList());
 
-    for (NewInstance newInstance : newInstances) {
-      Value eligibleInstance = newInstance.outValue();
+    for (Instruction root : roots) {
+      Value eligibleInstance = root.outValue();
       if (eligibleInstance == null) {
         continue;
       }
 
-      DexType eligibleClass = newInstance.clazz;
-      if (!isClassEligible(appInfo, eligibleClass)) {
+      DexType eligibleClass = root.isNewInstance()
+          ? root.asNewInstance().clazz : root.asStaticGet().getField().type;
+      DexClass eligibleClassDefinition = appInfo.definitionFor(eligibleClass);
+      if (eligibleClassDefinition == null) {
         continue;
       }
 
-      Map<InvokeMethodWithReceiver, InliningInfo> methodCalls = checkInstanceUsersEligibility(
-          appInfo, method, isProcessedConcurrently, newInstance, eligibleInstance, eligibleClass);
+      // Check the static initializer of the type.
+      if (!isClassAndUsageEligible(root, eligibleClass,
+          eligibleClassDefinition, isProcessedConcurrently, appInfo)) {
+        continue;
+      }
+
+      Map<InvokeMethodWithReceiver, InliningInfo> methodCalls =
+          checkInstanceUsersEligibility(appInfo, method, isProcessedConcurrently,
+              root, eligibleInstance, eligibleClass, eligibleClassDefinition);
       if (methodCalls == null) {
         continue;
       }
 
-      if (getTotalEstimatedMethodSize(methodCalls) >= totalMethodInstructionLimit) {
+      if (!instructionLimitExempt(eligibleClassDefinition, appInfo) &&
+          getTotalEstimatedMethodSize(methodCalls) >= totalMethodInstructionLimit) {
         continue;
       }
 
       // Inline the class instance.
       forceInlineAllMethodInvocations(inliner, methodCalls);
-      removeSuperClassInitializerAndFieldReads(code, newInstance, eligibleInstance);
+      removeSuperClassInitializerAndFieldReads(code, root, eligibleInstance);
       removeFieldWrites(eligibleInstance, eligibleClass);
-      removeInstruction(newInstance);
+      removeInstruction(root);
 
       // Restore normality.
       code.removeAllTrivialPhis();
@@ -157,10 +188,96 @@ public final class ClassInliner {
     }
   }
 
+  private boolean isClassAndUsageEligible(Instruction root,
+      DexType eligibleClass, DexClass eligibleClassDefinition,
+      Predicate<DexEncodedMethod> isProcessedConcurrently, AppInfoWithLiveness appInfo) {
+    if (!isClassEligible(appInfo, eligibleClass)) {
+      return false;
+    }
+
+    if (root.isNewInstance()) {
+      // There must be no static initializer on the class itself.
+      return !eligibleClassDefinition.hasClassInitializer();
+    }
+
+    assert root.isStaticGet();
+
+    // Checking if we can safely inline class implemented following singleton-like
+    // pattern, by which we assume a static final field holding on to the reference
+    // initialized in class constructor.
+    //
+    // In general we are targeting cases when the class is defined as:
+    //
+    //   class X {
+    //     static final X F;
+    //     static {
+    //       F = new X();
+    //     }
+    //   }
+    //
+    // and being used as follows:
+    //
+    //   void foo() {
+    //     f = X.F;
+    //     f.bar();
+    //   }
+    //
+    // The main difference from the similar case of class inliner with 'new-instance'
+    // instruction is that in this case the instance we inline is not just leaked, but
+    // is actually published via X.F field. There are several risks we need to address
+    // in this case:
+    //
+    //    Risk: instance stored in field X.F has changed after it was initialized in
+    //      class initializer
+    //    Solution: we assume that final field X.F is not modified outside the class
+    //      initializer. In rare cases when it is (e.g. via reflections) it should
+    //      be marked with keep rules
+    //
+    //    Risk: instance stored in field X.F is not initialized yet
+    //    Solution: not initialized instance can only be visible if X.<clinit>
+    //      triggers other class initialization which references X.F. This
+    //      situation should never happen if we:
+    //        -- don't allow any superclasses to have static initializer,
+    //        -- don't allow any subclasses,
+    //        -- guarantee the class has trivial class initializer
+    //           (see CodeRewriter::computeClassInitializerInfo), and
+    //        -- guarantee the instance is initialized with trivial instance
+    //           initializer (see CodeRewriter::computeInstanceInitializerInfo)
+    //
+    //    Risk: instance stored in field X.F was mutated
+    //    Solution: we require that class X does not have any instance fields, and
+    //      if any of its superclasses has instance fields, accessing them will make
+    //      this instance not eligible for inlining. I.e. even though the instance is
+    //      publicized and its state has been mutated, it will not effect the logic
+    //      of class inlining
+    //
+
+    if (eligibleClassDefinition.instanceFields().length > 0 ||
+        !eligibleClassDefinition.accessFlags.isFinal()) {
+      return false;
+    }
+
+    // Singleton instance must be initialized in class constructor.
+    DexEncodedMethod classInitializer = eligibleClassDefinition.getClassInitializer();
+    if (classInitializer == null || isProcessedConcurrently.test(classInitializer)) {
+      return false;
+    }
+
+    TrivialInitializer info =
+        classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
+    assert info == null || info instanceof ClassTrivialInitializer;
+    DexField instanceField = root.asStaticGet().getField();
+    // Singleton instance field must NOT be pinned.
+    return info != null &&
+        ((ClassTrivialInitializer) info).field == instanceField &&
+        !appInfo.isPinned(eligibleClassDefinition.lookupStaticField(instanceField).field);
+  }
+
   private Map<InvokeMethodWithReceiver, InliningInfo> checkInstanceUsersEligibility(
       AppInfoWithSubtyping appInfo, DexEncodedMethod method,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
-      NewInstance newInstanceInsn, Value receiver, DexType clazz) {
+      Instruction root, Value receiver,
+      DexType eligibleClass, DexClass eligibleClassDefinition) {
 
     // No Phi users.
     if (receiver.numberOfPhiUsers() > 0) {
@@ -169,14 +286,13 @@ public final class ClassInliner {
 
     Map<InvokeMethodWithReceiver, InliningInfo> methodCalls = new IdentityHashMap<>();
 
-    DexClass definition = appInfo.definitionFor(clazz);
-
     for (Instruction user : receiver.uniqueUsers()) {
       // Field read/write.
       if (user.isInstanceGet() ||
           (user.isInstancePut() && user.asInstancePut().value() != receiver)) {
         DexField field = user.asFieldInstruction().getField();
-        if (field.clazz == newInstanceInsn.clazz && definition.lookupInstanceField(field) != null) {
+        if (field.clazz == eligibleClass &&
+            eligibleClassDefinition.lookupInstanceField(field) != null) {
           // Since class inliner currently only supports classes directly extending
           // java.lang.Object, we don't need to worry about fields defined in superclasses.
           continue;
@@ -184,10 +300,10 @@ public final class ClassInliner {
         return null; // Not eligible.
       }
 
-      // Eligible constructor call.
-      if (user.isInvokeDirect()) {
+      // Eligible constructor call (for new instance roots only).
+      if (user.isInvokeDirect() && root.isNewInstance()) {
         InliningInfo inliningInfo = isEligibleConstructorCall(appInfo, method,
-            user.asInvokeDirect(), receiver, clazz, isProcessedConcurrently);
+            user.asInvokeDirect(), receiver, eligibleClass, isProcessedConcurrently);
         if (inliningInfo != null) {
           methodCalls.put(user.asInvokeDirect(), inliningInfo);
           continue;
@@ -199,7 +315,7 @@ public final class ClassInliner {
       if (user.isInvokeVirtual() || user.isInvokeInterface()) {
         InliningInfo inliningInfo = isEligibleMethodCall(
             appInfo, method, user.asInvokeMethodWithReceiver(),
-            receiver, clazz, isProcessedConcurrently);
+            receiver, eligibleClass, isProcessedConcurrently);
         if (inliningInfo != null) {
           methodCalls.put(user.asInvokeMethodWithReceiver(), inliningInfo);
           continue;
@@ -215,11 +331,12 @@ public final class ClassInliner {
   // Remove call to superclass initializer, replace field reads with appropriate
   // values, insert phis when needed.
   private void removeSuperClassInitializerAndFieldReads(
-      IRCode code, NewInstance newInstance, Value eligibleInstance) {
+      IRCode code, Instruction root, Value eligibleInstance) {
     Map<DexField, FieldValueHelper> fieldHelpers = new IdentityHashMap<>();
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       // Remove the call to superclass constructor.
-      if (user.isInvokeDirect() &&
+      if (root.isNewInstance() &&
+          user.isInvokeDirect() &&
           user.asInvokeDirect().getInvokedMethod() == factory.objectMethods.constructor) {
         removeInstruction(user);
         continue;
@@ -227,7 +344,7 @@ public final class ClassInliner {
 
       if (user.isInstanceGet()) {
         // Replace a field read with appropriate value.
-        replaceFieldRead(code, newInstance, user.asInstanceGet(), fieldHelpers);
+        replaceFieldRead(code, root, user.asInstanceGet(), fieldHelpers);
         continue;
       }
 
@@ -261,13 +378,24 @@ public final class ClassInliner {
     return totalSize;
   }
 
-  private void replaceFieldRead(IRCode code, NewInstance newInstance,
+  private boolean instructionLimitExempt(
+      DexClass eligibleClassDefinition, AppInfoWithLiveness appInfo) {
+    if (appInfo.isPinned(eligibleClassDefinition.type)) {
+      return false;
+    }
+    KotlinInfo kotlinInfo = eligibleClassDefinition.getKotlinInfo();
+    return kotlinInfo != null &&
+        kotlinInfo.isSyntheticClass() &&
+        kotlinInfo.asSyntheticClass().isLambda();
+  }
+
+  private void replaceFieldRead(IRCode code, Instruction root,
       InstanceGet fieldRead, Map<DexField, FieldValueHelper> fieldHelpers) {
 
     Value value = fieldRead.outValue();
     if (value != null) {
       FieldValueHelper helper = fieldHelpers.computeIfAbsent(
-          fieldRead.getField(), field -> new FieldValueHelper(field, code, newInstance));
+          fieldRead.getField(), field -> new FieldValueHelper(field, code, root));
       Value newValue = helper.getValueForFieldRead(fieldRead.getBlock(), fieldRead);
       value.replaceUsers(newValue);
       for (FieldValueHelper fieldValueHelper : fieldHelpers.values()) {
@@ -282,16 +410,16 @@ public final class ClassInliner {
   private static final class FieldValueHelper {
     final DexField field;
     final IRCode code;
-    final NewInstance newInstance;
+    final Instruction root;
 
     private Value defaultValue = null;
     private final Map<BasicBlock, Value> ins = new IdentityHashMap<>();
     private final Map<BasicBlock, Value> outs = new IdentityHashMap<>();
 
-    private FieldValueHelper(DexField field, IRCode code, NewInstance newInstance) {
+    private FieldValueHelper(DexField field, IRCode code, Instruction root) {
       this.field = field;
       this.code = code;
-      this.newInstance = newInstance;
+      this.root = root;
     }
 
     void replaceValue(Value oldValue, Value newValue) {
@@ -370,10 +498,10 @@ public final class ClassInliner {
         Instruction instruction = iterator.previous();
         assert instruction != null;
 
-        if (instruction == newInstance ||
+        if (instruction == root ||
             (instruction.isInstancePut() &&
                 instruction.asInstancePut().getField() == field &&
-                instruction.asInstancePut().object() == newInstance.outValue())) {
+                instruction.asInstancePut().object() == root.outValue())) {
           valueProducingInsn = instruction;
           break;
         }
@@ -386,14 +514,14 @@ public final class ClassInliner {
         return valueProducingInsn.asInstancePut().value();
       }
 
-      assert newInstance == valueProducingInsn;
+      assert root == valueProducingInsn;
       if (defaultValue == null) {
         // If we met newInstance it means that default value is supposed to be used.
         defaultValue = code.createValue(ValueType.fromDexType(field.type));
         ConstNumber defaultValueInsn = new ConstNumber(defaultValue, 0);
-        defaultValueInsn.setPosition(newInstance.getPosition());
+        defaultValueInsn.setPosition(root.getPosition());
         LinkedList<Instruction> instructions = block.getInstructions();
-        instructions.add(instructions.indexOf(newInstance) + 1, defaultValueInsn);
+        instructions.add(instructions.indexOf(root) + 1, defaultValueInsn);
         defaultValueInsn.setBlock(block);
       }
       return defaultValue;
@@ -539,7 +667,7 @@ public final class ClassInliner {
   //   - is not an abstract class or interface
   //   - directly extends java.lang.Object
   //   - does not declare finalizer
-  //   - does not trigger any static initializers
+  //   - does not trigger any static initializers except for its own
   private boolean computeClassEligible(AppInfo appInfo, DexType clazz) {
     DexClass definition = appInfo.definitionFor(clazz);
     if (definition == null || definition.isLibraryClass() ||
@@ -561,6 +689,6 @@ public final class ClassInliner {
     }
 
     // Check for static initializers in this class or any of interfaces it implements.
-    return !appInfo.canTriggerStaticInitializer(clazz);
+    return !appInfo.canTriggerStaticInitializer(clazz, true);
   }
 }

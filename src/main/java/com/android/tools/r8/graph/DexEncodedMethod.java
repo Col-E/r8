@@ -590,6 +590,24 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
   }
 
+  public static class TrivialInitializer {
+    private TrivialInitializer() {
+    }
+
+    public static final class InstanceClassTrivialInitializer extends TrivialInitializer {
+      public static final InstanceClassTrivialInitializer INSTANCE =
+          new InstanceClassTrivialInitializer();
+    }
+
+    public static final class ClassTrivialInitializer extends TrivialInitializer {
+      public final DexField field;
+
+      public ClassTrivialInitializer(DexField field) {
+        this.field = field;
+      }
+    }
+  }
+
   public static class OptimizationInfo {
 
     private int returnedArgument = -1;
@@ -604,6 +622,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // Stores information about instance methods and constructors for
     // class inliner, null value indicates that the method is not eligible.
     private ClassInlinerEligibility classInlinerEligibility = null;
+    private TrivialInitializer trivialInitializerInfo = null;
 
     private OptimizationInfo() {
       // Intentionally left empty.
@@ -646,6 +665,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     public ClassInlinerEligibility getClassInlinerEligibility() {
       return this.classInlinerEligibility;
+    }
+
+    private void setTrivialInitializer(TrivialInitializer info) {
+      this.trivialInitializerInfo = info;
+    }
+
+    public TrivialInitializer getTrivialInitializerInfo() {
+      return this.trivialInitializerInfo;
     }
 
     public long getReturnedConstant() {
@@ -748,6 +775,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
     ensureMutableOI().setClassInlinerEligibility(eligibility);
+  }
+
+  synchronized public void setTrivialInitializer(TrivialInitializer info) {
+    ensureMutableOI().setTrivialInitializer(info);
   }
 
   synchronized public void markForceInline() {

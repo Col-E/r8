@@ -725,17 +725,20 @@ public class IRConverter {
       interfaceMethodRewriter.rewriteMethodReferences(method, code);
       assert code.isConsistentSSA();
     }
-    if (lambdaMerger != null) {
-      lambdaMerger.processMethodCode(method, code);
+
+    if (classInliner != null) {
+      // Class inliner should work before lambda merger, so if it inlines the
+      // lambda, it is not get collected by merger.
+      assert options.enableInlining && inliner != null;
+      classInliner.processMethodCode(
+          appInfo.withLiveness(), method, code, isProcessedConcurrently,
+          methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline)
+      );
       assert code.isConsistentSSA();
     }
 
-    if (classInliner != null) {
-      assert options.enableInlining && inliner != null;
-      classInliner.processMethodCode(
-          appInfo.withSubtyping(), method, code, isProcessedConcurrently,
-          methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline)
-      );
+    if (lambdaMerger != null) {
+      lambdaMerger.processMethodCode(method, code);
       assert code.isConsistentSSA();
     }
 
@@ -760,6 +763,9 @@ public class IRConverter {
 
     // Analysis must be done after method is rewritten by logArgumentTypes()
     codeRewriter.identifyClassInlinerEligibility(method, code, feedback);
+    if (method.isInstanceInitializer() || method.isClassInitializer()) {
+      codeRewriter.identifyTrivialInitializer(method, code, feedback);
+    }
 
     printMethod(code, "Optimized IR (SSA)");
     finalizeIR(method, code, feedback);
