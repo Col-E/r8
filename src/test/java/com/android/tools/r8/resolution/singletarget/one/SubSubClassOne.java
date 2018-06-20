@@ -5,18 +5,21 @@ package com.android.tools.r8.resolution.singletarget.one;
 
 public class SubSubClassOne extends AbstractSubClass implements IrrelevantInterfaceWithDefault {
 
+  // Avoid SubSubClassOne.class.getCanonicalName() as it may change during shrinking.
+  private static final String TAG = "SubSubClassOne";
+
   @Override
   public void abstractTargetAtTop() {
-    System.out.println(SubSubClassOne.class.getCanonicalName());
+    System.out.println(TAG);
   }
 
   @Override
   public void overriddenInTwoSubTypes() {
-    System.out.println(SubSubClassOne.class.getCanonicalName());
+    System.out.println(TAG);
   }
 
   @Override
   public void definedInTwoSubTypes() {
-    System.out.println(SubSubClassOne.class.getCanonicalName());
+    System.out.println(TAG);
   }
 }

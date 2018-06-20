@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -345,6 +346,9 @@ public class VerticalClassMerger {
         }
         continue;
       }
+      if (methodResolutionMayChange(clazz, targetClass)) {
+        continue;
+      }
       // Field resolution first considers the direct interfaces of [targetClass] before it proceeds
       // to the super class.
       if (fieldResolutionMayChange(clazz, targetClass)) {
@@ -393,6 +397,49 @@ public class VerticalClassMerger {
       Log.debug(getClass(), "Merged %d classes.", numberOfMerges);
     }
     return renamedMembersLense.build(graphLense);
+  }
+
+  private boolean methodResolutionMayChange(DexClass source, DexClass target) {
+    // When merging an interface into a class, all instructions on the form "invoke-interface
+    // [source].m" are changed into "invoke-virtual [target].m". We need to abort the merge if this
+    // transformation could hide IncompatibleClassChangeErrors.
+    if (source.isInterface() && !target.isInterface()) {
+      List<DexEncodedMethod> defaultMethods = new ArrayList<>();
+      for (DexEncodedMethod virtualMethod : source.virtualMethods()) {
+        if (!virtualMethod.accessFlags.isAbstract()) {
+          defaultMethods.add(virtualMethod);
+        }
+      }
+
+      // For each of the default methods, the subclass [target] could inherit another default method
+      // with the same signature from another interface (i.e., there is a conflict). In such cases,
+      // instructions on the form "invoke-interface [source].foo()" will fail with an Incompatible-
+      // ClassChangeError.
+      //
+      // Example:
+      //   interface I1 { default void m() {} }
+      //   interface I2 { default void m() {} }
+      //   class C implements I1, I2 {
+      //     ... invoke-interface I1.m ... <- IncompatibleClassChangeError
+      //   }
+      for (DexEncodedMethod method : defaultMethods) {
+        // Conservatively find all possible targets for this method.
+        Set<DexEncodedMethod> interfaceTargets = appInfo.lookupInterfaceTargets(method.method);
+
+        // If [method] is not even an interface-target, then we can safely merge it. Otherwise we
+        // need to check for a conflict.
+        if (interfaceTargets.remove(method)) {
+          for (DexEncodedMethod interfaceTarget : interfaceTargets) {
+            DexClass enclosingClass = appInfo.definitionFor(interfaceTarget.method.holder);
+            if (enclosingClass != null && enclosingClass.isInterface()) {
+              // Found another default method that is different from the one in [source], aborting.
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   private boolean fieldResolutionMayChange(DexClass source, DexClass target) {
@@ -657,12 +704,13 @@ public class VerticalClassMerger {
 
     // Returns the method that shadows the given method, or null if method is not shadowed.
     private DexEncodedMethod findMethodInTarget(DexEncodedMethod method) {
-      DexEncodedMethod actual = appInfo.resolveMethod(target.type, method.method).asSingleTarget();
-      if (actual == null) {
-        // May happen in case of missing classes.
+      ResolutionResult resolutionResult = appInfo.resolveMethod(target.type, method.method);
+      if (!resolutionResult.hasSingleTarget()) {
+        // May happen in case of missing classes, or if multiple implementations were found.
         abortMerge = true;
         return null;
       }
+      DexEncodedMethod actual = resolutionResult.asSingleTarget();
       if (actual != method) {
         return actual;
       }
