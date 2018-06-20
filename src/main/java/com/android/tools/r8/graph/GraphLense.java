@@ -20,34 +20,10 @@ import java.util.Set;
  * <li>Renaming private methods/fields.</li>
  * <li>Moving methods/fields to a super/subclass.</li>
  * <li>Replacing method/field references by the same method/field on a super/subtype</li>
- * <li>Moved methods might require changed invocation type at the call site</li>
  * </ul>
  * Note that the latter two have to take visibility into account.
  */
 public abstract class GraphLense {
-
-  /**
-   * Result of a method lookup in a GraphLense.
-   *
-   * This provide the new target and the invoke type to use.
-   */
-  public static class GraphLenseLookupResult {
-    private final DexMethod method;
-    private final Type type;
-
-    public GraphLenseLookupResult(DexMethod method, Type type) {
-      this.method = method;
-      this.type = type;
-    }
-
-    public DexMethod getMethod() {
-      return method;
-    }
-
-    public Type getType() {
-      return type;
-    }
-  }
 
   public static class Builder {
 
@@ -92,11 +68,10 @@ public abstract class GraphLense {
   // This overload can be used when the graph lense is known to be context insensitive.
   public DexMethod lookupMethod(DexMethod method) {
     assert isContextFreeForMethod(method);
-    return lookupMethod(method, null, null).getMethod();
+    return lookupMethod(method, null, null);
   }
 
-  public abstract GraphLenseLookupResult lookupMethod(
-      DexMethod method, DexEncodedMethod context, Type type);
+  public abstract DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type);
 
   // Context sensitive graph lenses should override this method.
   public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
@@ -132,9 +107,8 @@ public abstract class GraphLense {
     }
 
     @Override
-    public GraphLenseLookupResult lookupMethod(
-        DexMethod method, DexEncodedMethod context, Type type) {
-      return new GraphLenseLookupResult(method, type);
+    public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type) {
+      return method;
     }
 
     @Override
@@ -148,29 +122,19 @@ public abstract class GraphLense {
     }
   }
 
-  /**
-   * GraphLense implementation with a parent lense using a simple mapping for type, method and
-   * field mapping.
-   *
-   * Subclasses can override the lookup methods.
-   *
-   * For method mapping where invocation type can change just override
-   * {@link #mapInvocationType(DexMethod, DexMethod, DexEncodedMethod, Type)} if
-   * the default name mapping applies, and only invocation type might need to change.
-   */
   public static class NestedGraphLense extends GraphLense {
 
-    protected final GraphLense previousLense;
+    private final GraphLense previousLense;
     protected final DexItemFactory dexItemFactory;
 
-    protected final Map<DexType, DexType> typeMap;
+    private final Map<DexType, DexType> typeMap;
     private final Map<DexType, DexType> arrayTypeCache = new IdentityHashMap<>();
-    protected final Map<DexMethod, DexMethod> methodMap;
-    protected final Map<DexField, DexField> fieldMap;
+    private final Map<DexMethod, DexMethod> methodMap;
+    private final Map<DexField, DexField> fieldMap;
 
     public NestedGraphLense(Map<DexType, DexType> typeMap, Map<DexMethod, DexMethod> methodMap,
         Map<DexField, DexField> fieldMap, GraphLense previousLense, DexItemFactory dexItemFactory) {
-      this.typeMap = typeMap.isEmpty() ? null : typeMap;
+      this.typeMap = typeMap;
       this.methodMap = methodMap;
       this.fieldMap = fieldMap;
       this.previousLense = previousLense;
@@ -197,58 +161,13 @@ public abstract class GraphLense {
         }
       }
       DexType previous = previousLense.lookupType(type);
-      return typeMap != null ? typeMap.getOrDefault(previous, previous) : previous;
+      return typeMap.getOrDefault(previous, previous);
     }
 
     @Override
-    public GraphLenseLookupResult lookupMethod(
-        DexMethod method, DexEncodedMethod context, Type type) {
-      GraphLenseLookupResult previous = previousLense.lookupMethod(method, context, type);
-      DexMethod newMethod = methodMap.get(previous.getMethod());
-      if (newMethod == null) {
-        return previous;
-      }
-      // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
-      // that only subclasses which are known to need it actually do it?
-      return new GraphLenseLookupResult(
-          newMethod, mapInvocationType(newMethod, method, context, type));
-    }
-
-    /**
-     * Default invocation type mapping.
-     *
-     * This is an identity mapping. If a subclass need invocation type mapping either override
-     * this method or {@link #lookupMethod(DexMethod, DexEncodedMethod, Type)}
-     */
-    protected Type mapInvocationType(
-        DexMethod newMethod, DexMethod originalMethod, DexEncodedMethod context, Type type) {
-      return type;
-    }
-
-    /**
-     * Standard mapping between interface and virtual invoke type.
-     *
-     * Handle methods moved from interface to class or class to interface.
-     */
-    final protected Type mapVirtualInterfaceInvocationTypes(
-        AppInfo appInfo, DexMethod newMethod, DexMethod originalMethod,
-        DexEncodedMethod context, Type type) {
-      if (type == Type.VIRTUAL || type == Type.INTERFACE) {
-        // Get the invoke type of the actual definition.
-        DexClass newTargetClass = appInfo.definitionFor(newMethod.holder);
-        if (newTargetClass == null) {
-          return type;
-        }
-        DexClass originalTargetClass = appInfo.definitionFor(originalMethod.holder);
-        if (originalTargetClass != null
-            && (originalTargetClass.isInterface() ^ (type == Type.INTERFACE))) {
-          // The invoke was wrong to start with, so we keep it wrong. This is to ensure we get
-          // the IncompatibleClassChangeError the original invoke would have triggered.
-          return newTargetClass.accessFlags.isInterface() ? Type.VIRTUAL : Type.INTERFACE;
-        }
-        return newTargetClass.accessFlags.isInterface() ? Type.INTERFACE : Type.VIRTUAL;
-      }
-      return type;
+    public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type) {
+      DexMethod previous = previousLense.lookupMethod(method, context, type);
+      return methodMap.getOrDefault(previous, previous);
     }
 
     @Override

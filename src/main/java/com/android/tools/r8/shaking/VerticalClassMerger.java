@@ -308,7 +308,7 @@ public class VerticalClassMerger {
 
     // The resulting graph lense that should be used after class merging.
     VerticalClassMergerGraphLense.Builder renamedMembersLense =
-        VerticalClassMergerGraphLense.builder(appInfo);
+        new VerticalClassMergerGraphLense.Builder();
 
     Iterator<DexProgramClass> classIterator = classes.iterator();
 
@@ -431,7 +431,7 @@ public class VerticalClassMerger {
     private final DexClass source;
     private final DexClass target;
     private final VerticalClassMergerGraphLense.Builder deferredRenamings =
-        VerticalClassMergerGraphLense.builder(appInfo);
+        new VerticalClassMergerGraphLense.Builder();
     private boolean abortMerge = false;
 
     private ClassMerger(DexClass source, DexClass target) {
