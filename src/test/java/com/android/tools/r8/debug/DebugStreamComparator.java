@@ -202,7 +202,10 @@ public class DebugStreamComparator {
       List<DebuggeeState> states = new ArrayList<>(streamStates.size());
       boolean done = false;
       for (StreamState streamState : streamStates) {
-        DebuggeeState state = streamState.next();
+        DebuggeeState state;
+        do {
+          state = streamState.next();
+        } while (state != null && !filter.test(state));
         states.add(state);
         if (state == null) {
           done = true;
@@ -215,11 +218,9 @@ public class DebugStreamComparator {
               states.stream().allMatch(Objects::isNull));
           return;
         } else {
-          if (filter.test(states.get(0))) {
-            verifyStatesEqual(states);
-            if (printOptions.printStates) {
-              System.out.println(prettyPrintState(states.get(0), printOptions));
-            }
+          verifyStatesEqual(states);
+          if (printOptions.printStates) {
+            System.out.println(prettyPrintState(states.get(0), printOptions));
           }
         }
       } catch (AssertionError e) {
