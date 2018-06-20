@@ -501,6 +501,9 @@ static configureRelocations(ShadowJar task) {
     task.relocate('org.apache.commons', 'com.android.tools.r8.org.apache.commons')
     task.relocate('org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm')
     task.relocate('it.unimi.dsi.fastutil', 'com.android.tools.r8.it.unimi.dsi.fastutil')
+    task.relocate('kotlin', 'com.android.tools.r8.jetbrains.kotlin')
+    task.relocate('kotlinx', 'com.android.tools.r8.jetbrains.kotlinx')
+    task.relocate('org.jetbrains', 'com.android.tools.r8.org.jetbrains')
 }
 
 task repackageDeps(type: ShadowJar) {
