@@ -1943,6 +1943,7 @@ public abstract class DebugTestBase {
             .addAll(super.getExcludedClasses())
             .add("libcore.*")
             .add("dalvik.*")
+            .add("com.android.dex.*") // Android 6.0.1 - 7.0.0 use this for reflection.
             .build();
       }
     }
