@@ -699,7 +699,8 @@ public class VerticalClassMerger {
           ParameterAnnotationsList.empty(),
           new SynthesizedCode(
               new ForwardMethodSourceCode(holder, proto, holder, invocationTarget, Type.DIRECT),
-              registry -> registry.registerInvokeDirect(invocationTarget)));
+              registry -> registry.registerInvokeDirect(invocationTarget)),
+          signature.hasClassFileVersion() ? signature.getClassFileVersion() : -1);
     }
 
     // Returns the method that shadows the given method, or null if method is not shadowed.
