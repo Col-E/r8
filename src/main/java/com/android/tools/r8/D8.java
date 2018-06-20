@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -21,11 +22,14 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.VersionProperties;
+import com.google.common.collect.ImmutableList;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -167,11 +171,26 @@ public final class D8 {
         System.out.println("Finished compilation with method filter: ");
         options.methodsFilter.forEach((m) -> System.out.println("  - " + m));
       }
+
+      // Preserve markers from input dex code and add a marker with the current version
+      // if there were class file inputs.
+      boolean hasClassResources = false;
+      for (DexProgramClass dexProgramClass : app.classes()) {
+        if (dexProgramClass.originatesFromClassResource()) {
+          hasClassResources = true;
+          break;
+        }
+      }
       Marker marker = getMarker(options);
+      Set<Marker> markers = new HashSet<>(app.dexItemFactory.extractMarkers());
+      if (marker != null && hasClassResources) {
+        markers.add(marker);
+      }
+
       new ApplicationWriter(
               app,
               options,
-              marker == null ? null : Collections.singletonList(marker),
+              marker == null ? null : ImmutableList.copyOf(markers),
               null,
               NamingLens.getIdentityLens(),
               null,
