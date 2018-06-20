@@ -4,7 +4,7 @@
 
 package classmerging.pkg;
 
-import classmerging.SimpleInterface;
+import classmerging.SimpleInterfaceAccessTest.SimpleInterface;
 
 public class SimpleInterfaceImplRetriever {
 

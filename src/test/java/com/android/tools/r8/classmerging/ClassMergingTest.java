@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import org.junit.Ignore;
 import org.junit.Test;
 
 // TODO(christofferqa): Add tests to check that statically typed invocations on method handles
@@ -270,8 +269,10 @@ public class ClassMergingTest extends TestBase {
     String main = "classmerging.SimpleInterfaceAccessTest";
     Path[] programFiles =
         new Path[] {
-          CF_DIR.resolve("SimpleInterface.class"),
           CF_DIR.resolve("SimpleInterfaceAccessTest.class"),
+          CF_DIR.resolve("SimpleInterfaceAccessTest$SimpleInterface.class"),
+          CF_DIR.resolve("SimpleInterfaceAccessTest$OtherSimpleInterface.class"),
+          CF_DIR.resolve("SimpleInterfaceAccessTest$OtherSimpleInterfaceImpl.class"),
           CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever.class"),
           CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever$SimpleInterfaceImpl.class")
         };
@@ -279,14 +280,15 @@ public class ClassMergingTest extends TestBase {
     // is in a different package and is not public.
     ImmutableSet<String> preservedClassNames =
         ImmutableSet.of(
-            "classmerging.SimpleInterface",
             "classmerging.SimpleInterfaceAccessTest",
+            "classmerging.SimpleInterfaceAccessTest$SimpleInterface",
+            "classmerging.SimpleInterfaceAccessTest$OtherSimpleInterface",
+            "classmerging.SimpleInterfaceAccessTest$OtherSimpleInterfaceImpl",
             "classmerging.pkg.SimpleInterfaceImplRetriever",
             "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
     runTest(main, programFiles, preservedClassNames::contains);
   }
 
-  @Ignore("b/73958515")
   @Test
   public void testNoIllegalClassAccessWithAccessModifications() throws Exception {
     // If access modifications are allowed then SimpleInterface should be merged into
@@ -294,14 +296,20 @@ public class ClassMergingTest extends TestBase {
     String main = "classmerging.SimpleInterfaceAccessTest";
     Path[] programFiles =
         new Path[] {
-          CF_DIR.resolve("SimpleInterface.class"),
           CF_DIR.resolve("SimpleInterfaceAccessTest.class"),
+          CF_DIR.resolve("SimpleInterfaceAccessTest$SimpleInterface.class"),
+          CF_DIR.resolve("SimpleInterfaceAccessTest$OtherSimpleInterface.class"),
+          CF_DIR.resolve("SimpleInterfaceAccessTest$OtherSimpleInterfaceImpl.class"),
           CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever.class"),
           CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever$SimpleInterfaceImpl.class")
         };
     ImmutableSet<String> preservedClassNames =
         ImmutableSet.of(
             "classmerging.SimpleInterfaceAccessTest",
+            // TODO(christofferqa): Should be able to merge SimpleInterface into SimpleInterfaceImpl
+            // when access modifications are allowed.
+            "classmerging.SimpleInterfaceAccessTest$SimpleInterface",
+            "classmerging.SimpleInterfaceAccessTest$OtherSimpleInterfaceImpl",
             "classmerging.pkg.SimpleInterfaceImplRetriever",
             "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
     // Allow access modifications (and prevent SimpleInterfaceImplRetriever from being removed as

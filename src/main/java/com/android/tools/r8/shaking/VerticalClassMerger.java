@@ -207,9 +207,13 @@ public class VerticalClassMerger {
     return true;
   }
 
-  private boolean mergeMayLeadToIllegalAccesses(DexClass clazz, DexClass singleSubclass) {
-    if (clazz.type.isSamePackage(singleSubclass.type)) {
-      return false;
+  private boolean mergeMayLeadToIllegalAccesses(DexClass source, DexClass target) {
+    if (source.type.isSamePackage(target.type)) {
+      int accessLevel =
+          source.accessFlags.isPrivate() ? 0 : (source.accessFlags.isPublic() ? 2 : 1);
+      int otherAccessLevel =
+          target.accessFlags.isPrivate() ? 0 : (target.accessFlags.isPublic() ? 2 : 1);
+      return accessLevel > otherAccessLevel;
     }
     // TODO(christofferqa): To merge [clazz] into a class from another package we need to ensure:
     // (A) All accesses to [clazz] and its members from inside the current package of [clazz] will
