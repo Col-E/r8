@@ -99,6 +99,25 @@ public abstract class GraphLense {
     return this instanceof IdentityGraphLense;
   }
 
+  public boolean assertNotModified(Iterable<DexItem> items) {
+    for (DexItem item : items) {
+      if (item instanceof DexClass) {
+        DexType type = ((DexClass) item).type;
+        assert lookupType(type) == type;
+      } else if (item instanceof DexEncodedMethod) {
+        DexEncodedMethod method = (DexEncodedMethod) item;
+        // We allow changes to bridge methods as these get retargeted even if they are kept.
+        assert method.accessFlags.isBridge() || lookupMethod(method.method) == method.method;
+      } else if (item instanceof DexEncodedField) {
+        DexField field = ((DexEncodedField) item).field;
+        assert lookupField(field) == field;
+      } else {
+        assert false;
+      }
+    }
+    return true;
+  }
+
   private static class IdentityGraphLense extends GraphLense {
 
     @Override

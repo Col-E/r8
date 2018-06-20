@@ -96,8 +96,7 @@ public class VerticalClassMerger {
     extractPinnedItems(appInfo.pinnedItems, pinnedTypes);
 
     // TODO(christofferqa): Remove the invariant that the graph lense should not modify any
-    // methods from the sets alwaysInline and noSideEffects (see use of assertNotModifiedBy-
-    // Lense).
+    // methods from the sets alwaysInline and noSideEffects (see use of assertNotModified).
     extractPinnedItems(appInfo.alwaysInline, pinnedTypes);
     extractPinnedItems(appInfo.noSideEffects.keySet(), pinnedTypes);
 
@@ -139,33 +138,38 @@ public class VerticalClassMerger {
 
   private void extractPinnedItems(Iterable<DexItem> items, Set<DexType> pinnedTypes) {
     for (DexItem item : items) {
-      // Note: Nothing to do for the case where item is a DexType, since we check for this case
-      // using appInfo.isPinned.
-      if (item instanceof DexField) {
-        // Pin the type of the field.
-        DexField field = (DexField) item;
-        DexClass clazz = appInfo.definitionFor(field.type);
-        if (clazz != null && clazz.isProgramClass()) {
-          pinnedTypes.add(clazz.type);
+      if (item instanceof DexType || item instanceof DexClass) {
+        DexType type = item instanceof DexType ? (DexType) item : ((DexClass) item).type;
+        // We check for the case where the type is pinned according to appInfo.isPinned, so only
+        // add it here if it is not the case.
+        if (!appInfo.isPinned(type)) {
+          markTypeAsPinned(type, pinnedTypes);
         }
-      } else if (item instanceof DexMethod) {
-        // Pin the return type and the parameter types of the method.
-        DexMethod method = (DexMethod) item;
-        DexClass clazz = appInfo.definitionFor(method.proto.returnType);
-        if (clazz != null && clazz.isProgramClass()) {
-          // If we were to merge [other] into its sub class, then we would implicitly change the
-          // signature of this method, and therefore break the invariant.
-          pinnedTypes.add(clazz.type);
-        }
+      } else if (item instanceof DexField || item instanceof DexEncodedField) {
+        // Pin the holder and the type of the field.
+        DexField field =
+            item instanceof DexField ? (DexField) item : ((DexEncodedField) item).field;
+        markTypeAsPinned(field.clazz, pinnedTypes);
+        markTypeAsPinned(field.type, pinnedTypes);
+      } else if (item instanceof DexMethod || item instanceof DexEncodedMethod) {
+        // Pin the holder, the return type and the parameter types of the method. If we were to
+        // merge any of these types into their sub classes, then we would implicitly change the
+        // signature of this method.
+        DexMethod method =
+            item instanceof DexMethod ? (DexMethod) item : ((DexEncodedMethod) item).method;
+        markTypeAsPinned(method.holder, pinnedTypes);
+        markTypeAsPinned(method.proto.returnType, pinnedTypes);
         for (DexType parameterType : method.proto.parameters.values) {
-          clazz = appInfo.definitionFor(parameterType);
-          if (clazz != null && clazz.isProgramClass()) {
-            // If we were to merge [other] into its sub class, then we would implicitly change the
-            // signature of this method, and therefore break the invariant.
-            pinnedTypes.add(clazz.type);
-          }
+          markTypeAsPinned(parameterType, pinnedTypes);
         }
       }
+    }
+  }
+
+  private void markTypeAsPinned(DexType type, Set<DexType> pinnedTypes) {
+    DexClass clazz = appInfo.definitionFor(type);
+    if (clazz != null && clazz.isProgramClass()) {
+      pinnedTypes.add(type);
     }
   }
 
@@ -269,6 +273,9 @@ public class VerticalClassMerger {
     timing.begin("fixup");
     GraphLense result = new TreeFixer().fixupTypeReferences(mergingGraphLense);
     timing.end();
+    assert result.assertNotModified(appInfo.alwaysInline);
+    assert result.assertNotModified(appInfo.noSideEffects.keySet());
+    assert result.assertNotModified(appInfo.pinnedItems);
     return result;
   }
 

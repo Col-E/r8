@@ -1659,18 +1659,18 @@ public class Enqueuer {
       this.staticInvokes = rewriteMethodsConservatively(previous.staticInvokes, lense);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
       // TODO(herhut): Migrate these to Descriptors, as well.
-      assert assertNotModifiedByLense(previous.noSideEffects.keySet(), lense);
+      assert lense.assertNotModified(previous.noSideEffects.keySet());
       this.noSideEffects = previous.noSideEffects;
-      assert assertNotModifiedByLense(previous.assumedValues.keySet(), lense);
+      assert lense.assertNotModified(previous.assumedValues.keySet());
       this.assumedValues = previous.assumedValues;
-      assert assertNotModifiedByLense(previous.alwaysInline, lense);
+      assert lense.assertNotModified(previous.alwaysInline);
       this.alwaysInline = previous.alwaysInline;
       this.identifierNameStrings =
           rewriteMixedItemsConservatively(previous.identifierNameStrings, lense);
       // Switchmap classes should never be affected by renaming.
-      assert assertNotModifiedByLense(
+      assert lense.assertNotModified(
           previous.switchMaps.keySet().stream().map(this::definitionFor).filter(Objects::nonNull)
-              .collect(Collectors.toList()), lense);
+              .collect(Collectors.toList()));
       this.switchMaps = previous.switchMaps;
       this.ordinalsMaps = rewriteKeys(previous.ordinalsMaps, lense::lookupType);
       this.protoLiteFields = previous.protoLiteFields;
@@ -1728,27 +1728,6 @@ public class Enqueuer {
           assert !typeSet.contains(((DexMethod) item).getHolder());
         } else if (item instanceof DexField) {
           assert !typeSet.contains(((DexField) item).getHolder());
-        } else {
-          assert false;
-        }
-      }
-      return true;
-    }
-
-    private boolean assertNotModifiedByLense(Iterable<DexItem> items, GraphLense lense) {
-      for (DexItem item : items) {
-        if (item instanceof DexClass) {
-          DexType type = ((DexClass) item).type;
-          assert lense.lookupType(type) == type;
-        } else if (item instanceof DexEncodedMethod) {
-          DexEncodedMethod method = (DexEncodedMethod) item;
-          // We only allow changes to bridge methods, as these get retargeted even if they
-          // are kept.
-          assert method.accessFlags.isBridge()
-              || lense.lookupMethod(method.method) == method.method;
-        } else if (item instanceof DexEncodedField) {
-          DexField field = ((DexEncodedField) item).field;
-          assert lense.lookupField(field) == field;
         } else {
           assert false;
         }
