@@ -141,7 +141,7 @@ public class IRConverter {
       this.memberValuePropagation =
           options.enableValuePropagation ?
               new MemberValuePropagation(appInfo.withLiveness()) : null;
-      this.lensCodeRewriter = new LensCodeRewriter(graphLense, appInfo.withSubtyping(), options);
+      this.lensCodeRewriter = new LensCodeRewriter(graphLense, appInfo.withSubtyping());
       if (appInfo.hasLiveness()) {
         // When disabling the pruner here, also disable the ProtoLiteExtension in R8.java.
         this.protoLiteRewriter =
