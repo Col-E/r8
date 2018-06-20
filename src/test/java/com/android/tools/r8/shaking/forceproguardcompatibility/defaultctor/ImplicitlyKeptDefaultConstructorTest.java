@@ -155,7 +155,8 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
-        keepMainProguardConfiguration(mainClass),
+        // Prevent SuperClass from being merged into SubClass.
+        keepMainProguardConfiguration(mainClass, ImmutableList.of("-keep class **.SuperClass")),
         this::checkAllClassesPresentWithDefaultConstructor);
   }
 
@@ -166,7 +167,8 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
-        keepMainProguardConfiguration(mainClass),
+        // Prevent SuperClass from being merged into SubClass.
+        keepMainProguardConfiguration(mainClass, ImmutableList.of("-keep class **.SuperClass")),
         this::checkAllClassesPresentWithDefaultConstructor);
   }
 
@@ -177,7 +179,8 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
-        keepMainProguardConfiguration(mainClass),
+        // Prevent SuperClass from being merged into SubClass.
+        keepMainProguardConfiguration(mainClass, ImmutableList.of("-keep class **.SuperClass")),
         // TODO(74423424): Proguard eliminates the check-cast on null.
         this::checkAllClassesPresentWithDefaultConstructor,
         this::checkOnlyMainPresent);
@@ -191,7 +194,9 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
-        keepMainProguardConfiguration(mainClass, ImmutableList.of("-dontoptimize")),
+        // Prevent SuperClass from being merged into SubClass.
+        keepMainProguardConfiguration(
+            mainClass, ImmutableList.of("-dontoptimize", "-keep class **.SuperClass")),
         this::checkAllClassesPresentWithDefaultConstructor);
   }
 
@@ -202,7 +207,8 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
-        keepMainProguardConfiguration(mainClass),
+        // Prevent SuperClass from being merged into SubClass.
+        keepMainProguardConfiguration(mainClass, ImmutableList.of("-keep class **.SuperClass")),
         this::checkAllClassesPresentWithDefaultConstructor);
   }
 
