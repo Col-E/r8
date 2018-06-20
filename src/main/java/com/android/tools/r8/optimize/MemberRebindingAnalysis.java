@@ -26,12 +26,13 @@ public class MemberRebindingAnalysis {
 
   private final AppInfoWithLiveness appInfo;
   private final GraphLense lense;
-  private final GraphLense.Builder builder = GraphLense.builder();
+  private final MemberRebindingLense.Builder builder;
 
   public MemberRebindingAnalysis(AppInfoWithLiveness appInfo, GraphLense lense) {
     assert lense.isContextFreeForMethods();
     this.appInfo = appInfo;
     this.lense = lense;
+    this.builder = MemberRebindingLense.builder(appInfo);
   }
 
   private DexMethod validTargetFor(DexMethod target, DexMethod original) {
@@ -250,6 +251,6 @@ public class MemberRebindingAnalysis {
         mergeFieldAccessContexts(appInfo.instanceFieldReads, appInfo.instanceFieldWrites),
         appInfo::resolveFieldOn, DexClass::lookupField);
 
-    return builder.build(appInfo.dexItemFactory, lense);
+    return builder.build(lense);
   }
 }
