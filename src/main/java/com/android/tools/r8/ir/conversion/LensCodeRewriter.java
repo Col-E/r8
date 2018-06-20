@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
@@ -73,6 +74,13 @@ public class LensCodeRewriter {
         if (current.isInvokeCustom()) {
           InvokeCustom invokeCustom = current.asInvokeCustom();
           DexCallSite callSite = invokeCustom.getCallSite();
+          DexType[] newParameters = new DexType[callSite.methodProto.parameters.size()];
+          for (int i = 0; i < callSite.methodProto.parameters.size(); i++) {
+            newParameters[i] = graphLense.lookupType(callSite.methodProto.parameters.values[i]);
+          }
+          DexProto newMethodProto =
+              appInfo.dexItemFactory.createProto(
+                  graphLense.lookupType(callSite.methodProto.returnType), newParameters);
           DexMethodHandle newBootstrapMethod = rewriteDexMethodHandle(method,
               callSite.bootstrapMethod);
           List<DexValue> newArgs = callSite.bootstrapArgs.stream().map(
@@ -85,10 +93,12 @@ public class LensCodeRewriter {
               })
               .collect(Collectors.toList());
 
-          if (newBootstrapMethod != callSite.bootstrapMethod
+          if (!newMethodProto.equals(callSite.methodProto)
+              || newBootstrapMethod != callSite.bootstrapMethod
               || !newArgs.equals(callSite.bootstrapArgs)) {
-            DexCallSite newCallSite = appInfo.dexItemFactory.createCallSite(
-                callSite.methodName, callSite.methodProto, newBootstrapMethod, newArgs);
+            DexCallSite newCallSite =
+                appInfo.dexItemFactory.createCallSite(
+                    callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
             InvokeCustom newInvokeCustom = new InvokeCustom(newCallSite, invokeCustom.outValue(),
                 invokeCustom.inValues());
             iterator.replaceCurrentInstruction(newInvokeCustom);
