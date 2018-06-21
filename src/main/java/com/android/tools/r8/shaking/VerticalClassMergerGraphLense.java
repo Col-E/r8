@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -40,47 +42,57 @@ import java.util.Set;
 // invocation will hit the same implementation as the original super.m() call.
 //
 // For the invocation "invoke-virtual A.m()" in B.m2, this graph lense will return the method B.m.
-public class VerticalClassMergerGraphLense extends GraphLense {
-  private final GraphLense previousLense;
+public class VerticalClassMergerGraphLense extends NestedGraphLense {
+  private final AppInfo appInfo;
 
-  private final Map<DexField, DexField> fieldMap;
-  private final Map<DexMethod, DexMethod> methodMap;
   private final Set<DexMethod> mergedMethods;
   private final Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps;
 
   public VerticalClassMergerGraphLense(
+      AppInfo appInfo,
       Map<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
       Set<DexMethod> mergedMethods,
       Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps,
       GraphLense previousLense) {
-    this.previousLense = previousLense;
-    this.fieldMap = fieldMap;
-    this.methodMap = methodMap;
+    super(ImmutableMap.of(), methodMap, fieldMap, previousLense, appInfo.dexItemFactory);
+    this.appInfo = appInfo;
     this.mergedMethods = mergedMethods;
     this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
   }
 
-  @Override
-  public DexType lookupType(DexType type) {
-    return previousLense.lookupType(type);
+  public static Builder builder(AppInfo appInfo) {
+    return new Builder(appInfo);
   }
 
   @Override
-  public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type) {
+  public GraphLenseLookupResult lookupMethod(
+      DexMethod method, DexEncodedMethod context, Type type) {
     assert isContextFreeForMethod(method) || (context != null && type != null);
-    DexMethod previous = previousLense.lookupMethod(method, context, type);
-    if (type == Type.SUPER && !mergedMethods.contains(context.method)) {
+    GraphLenseLookupResult previous = previousLense.lookupMethod(method, context, type);
+    if (previous.getType() == Type.SUPER && !mergedMethods.contains(context.method)) {
       Map<DexMethod, DexMethod> virtualToDirectMethodMap =
           contextualVirtualToDirectMethodMaps.get(context.method.holder);
       if (virtualToDirectMethodMap != null) {
-        DexMethod directMethod = virtualToDirectMethodMap.get(previous);
+        DexMethod directMethod = virtualToDirectMethodMap.get(previous.getMethod());
         if (directMethod != null) {
-          return directMethod;
+          // If the super class A of the enclosing class B (i.e., context.method.holder)
+          // has been merged into B during vertical class merging, and this invoke-super instruction
+          // was resolving to a method in A, then the target method has been changed to a direct
+          // method and moved into B, so that we need to use an invoke-direct instruction instead of
+          // invoke-super.
+          return new GraphLenseLookupResult(directMethod, Type.DIRECT);
         }
       }
     }
-    return methodMap.getOrDefault(previous, previous);
+    return super.lookupMethod(previous.getMethod(), context, previous.getType());
+  }
+
+  @Override
+  protected Type mapInvocationType(
+      DexMethod newMethod, DexMethod originalMethod, DexEncodedMethod context, Type type) {
+    return super.mapVirtualInterfaceInvocationTypes(
+        appInfo, newMethod, originalMethod, context, type);
   }
 
   @Override
@@ -97,12 +109,6 @@ public class VerticalClassMergerGraphLense extends GraphLense {
       }
     }
     return builder.build();
-  }
-
-  @Override
-  public DexField lookupField(DexField field) {
-    DexField previous = previousLense.lookupField(field);
-    return fieldMap.getOrDefault(previous, previous);
   }
 
   @Override
@@ -126,6 +132,7 @@ public class VerticalClassMergerGraphLense extends GraphLense {
   }
 
   public static class Builder {
+    private final AppInfo appInfo;
 
     private final ImmutableMap.Builder<DexField, DexField> fieldMapBuilder = ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, DexMethod> methodMapBuilder =
@@ -134,7 +141,9 @@ public class VerticalClassMergerGraphLense extends GraphLense {
     private final Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps =
         new HashMap<>();
 
-    public Builder() {}
+    private Builder(AppInfo appInfo) {
+      this.appInfo = appInfo;
+    }
 
     public GraphLense build(GraphLense previousLense) {
       Map<DexField, DexField> fieldMap = fieldMapBuilder.build();
@@ -145,6 +154,7 @@ public class VerticalClassMergerGraphLense extends GraphLense {
         return previousLense;
       }
       return new VerticalClassMergerGraphLense(
+          appInfo,
           fieldMap,
           methodMap,
           mergedMethodsBuilder.build(),

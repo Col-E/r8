@@ -46,14 +46,14 @@ public class BridgeMethodAnalysis {
         assert !method.accessFlags.isPrivate() && !method.accessFlags.isConstructor();
         if (kind == InvokeKind.STATIC) {
           assert method.accessFlags.isStatic();
-          DexMethod actualTarget = lense.lookupMethod(target, method, Type.STATIC);
+          DexMethod actualTarget = lense.lookupMethod(target, method, Type.STATIC).getMethod();
           DexEncodedMethod targetMethod = appInfo.lookupStaticTarget(actualTarget);
           if (targetMethod != null) {
             addForwarding(method, targetMethod);
           }
         } else if (kind == InvokeKind.VIRTUAL) {
           // TODO(herhut): Add support for bridges with multiple targets.
-          DexMethod actualTarget = lense.lookupMethod(target, method, Type.VIRTUAL);
+          DexMethod actualTarget = lense.lookupMethod(target, method, Type.VIRTUAL).getMethod();
           DexEncodedMethod targetMethod = appInfo.lookupSingleVirtualTarget(actualTarget);
           if (targetMethod != null) {
             addForwarding(method, targetMethod);
@@ -93,15 +93,16 @@ public class BridgeMethodAnalysis {
     }
 
     @Override
-    public DexMethod lookupMethod(DexMethod method, DexEncodedMethod context, Type type) {
-      DexMethod previous = previousLense.lookupMethod(method, context, type);
-      DexMethod bridge = bridgeTargetToBridgeMap.get(previous);
+    public GraphLenseLookupResult lookupMethod(
+        DexMethod method, DexEncodedMethod context, Type type) {
+      GraphLenseLookupResult previous = previousLense.lookupMethod(method, context, type);
+      DexMethod bridge = bridgeTargetToBridgeMap.get(previous.getMethod());
       // Do not forward calls from a bridge method to itself while the bridge method is still
       // a bridge.
       if (bridge == null || (context.accessFlags.isBridge() && bridge == context.method)) {
         return previous;
       }
-      return bridge;
+      return new GraphLenseLookupResult(bridge, type);
     }
 
     @Override
