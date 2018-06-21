@@ -504,6 +504,7 @@ static configureRelocations(ShadowJar task) {
     task.relocate('kotlin', 'com.android.tools.r8.jetbrains.kotlin')
     task.relocate('kotlinx', 'com.android.tools.r8.jetbrains.kotlinx')
     task.relocate('org.jetbrains', 'com.android.tools.r8.org.jetbrains')
+    task.relocate('org.intellij', 'com.android.tools.r8.org.intellij')
 }
 
 task repackageDeps(type: ShadowJar) {
