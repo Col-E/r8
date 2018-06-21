@@ -7,6 +7,7 @@ package com.android.tools.r8.dexfilemerger;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexFileMergerHelper;
 import com.android.tools.r8.ExtractMarker;
@@ -60,14 +61,19 @@ public class DexFileMergerTests {
     Marker inputMarker = ExtractMarker.extractMarkerFromDexFile(mergerInputZip);
     assertEquals(addMarkerToInput, inputMarker != null);
 
+    // Test that the DexFileMerger preserves markers.
     Path mergerOutputZip = temp.getRoot().toPath().resolve("merger-out.zip");
     DexFileMerger.main(
         new String[] {
           "--input", mergerInputZip.toString(), "--output", mergerOutputZip.toString()
         });
-
     Marker outputMarker = ExtractMarker.extractMarkerFromDexFile(mergerOutputZip);
     assertEquals(addMarkerToInput, outputMarker != null);
+
+    // Test that D8 when used for merging preserves markers.
+    D8.main(new String[] { mergerInputZip.toString(), "--output", mergerOutputZip.toString() });
+    Marker d8OutputMarker = ExtractMarker.extractMarkerFromDexFile((mergerOutputZip));
+    assertEquals(addMarkerToInput, d8OutputMarker != null);
   }
 
   @Test
