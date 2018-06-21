@@ -187,19 +187,20 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
 
   @Test
   public void ifOnFieldInImplementer_withoutNthWildcard() throws Exception {
-    List<String> config = ImmutableList.of(
-        "-keep class **.MainUsesImpl {",
-        "  public static void main(java.lang.String[]);",
-        "}",
-        "-if class ** implements **.I {",
-        "  private <fields>;",
-        "}",
-        "-keep class **.D1",
-        "-if class ** implements **.I {",
-        "  public <fields>;",
-        "}",
-        "-keep class **.D2"
-    );
+    List<String> config =
+        ImmutableList.of(
+            "-keep class **.MainUsesImpl {",
+            "  public static void main(java.lang.String[]);",
+            "}",
+            "-keep class **.I", // Prevent I from being merged into Impl.
+            "-if class ** implements **.I {",
+            "  private <fields>;",
+            "}",
+            "-keep class **.D1",
+            "-if class ** implements **.I {",
+            "  public <fields>;",
+            "}",
+            "-keep class **.D2");
 
     DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
     verifyClassesAbsent(dexInspector, D2.class);
@@ -209,19 +210,20 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
 
   @Test
   public void ifOnFieldInImplementer_withNthWildcard() throws Exception {
-    List<String> config = ImmutableList.of(
-        "-keep class **.MainUsesImpl {",
-        "  public static void main(java.lang.String[]);",
-        "}",
-        "-if class ** implements **.I {",
-        "  private <fields>;",
-        "}",
-        "-keep class <2>.D1",
-        "-if class ** implements **.I {",
-        "  public <fields>;",
-        "}",
-        "-keep class <2>.D2"
-    );
+    List<String> config =
+        ImmutableList.of(
+            "-keep class **.MainUsesImpl {",
+            "  public static void main(java.lang.String[]);",
+            "}",
+            "-keep class **.I", // Prevent I from being merged into Impl.
+            "-if class ** implements **.I {",
+            "  private <fields>;",
+            "}",
+            "-keep class <2>.D1",
+            "-if class ** implements **.I {",
+            "  public <fields>;",
+            "}",
+            "-keep class <2>.D2");
 
     DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
     verifyClassesAbsent(dexInspector, D2.class);
