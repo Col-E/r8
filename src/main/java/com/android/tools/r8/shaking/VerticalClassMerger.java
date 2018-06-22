@@ -37,6 +37,7 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -67,6 +68,70 @@ import java.util.stream.Collectors;
  * untouched. Fixup of instructions is deferred via a {@link GraphLense} to the IR building phase.
  */
 public class VerticalClassMerger {
+
+  private enum AbortReason {
+    ALREADY_MERGED,
+    ALWAYS_INLINE,
+    CONFLICT,
+    ILLEGAL_ACCESS,
+    NO_SIDE_EFFECTS,
+    PINNED_SOURCE,
+    PINNED_TARGET,
+    RESOLUTION_FOR_FIELDS_MAY_CHANGE,
+    RESOLUTION_FOR_METHODS_MAY_CHANGE,
+    STATIC_INITIALIZERS,
+    UNSAFE_INLINING,
+    UNSUPPORTED_ATTRIBUTES;
+
+    public void printLogMessageForClass(DexClass clazz) {
+      Log.info(VerticalClassMerger.class, getMessageForClass(clazz));
+    }
+
+    private String getMessageForClass(DexClass clazz) {
+      String message = null;
+      switch (this) {
+        case ALREADY_MERGED:
+          message = "it has already been merged with its superclass";
+          break;
+        case ALWAYS_INLINE:
+          message = "it is mentioned in appInfo.alwaysInline";
+          break;
+        case CONFLICT:
+          message = "it is conflicting with its subclass";
+          break;
+        case ILLEGAL_ACCESS:
+          message = "it could lead to illegal accesses";
+          break;
+        case NO_SIDE_EFFECTS:
+          message = "it is mentioned in appInfo.noSideEffects";
+          break;
+        case PINNED_SOURCE:
+          message = "it should be kept";
+          break;
+        case PINNED_TARGET:
+          message = "its target should be kept";
+          break;
+        case RESOLUTION_FOR_FIELDS_MAY_CHANGE:
+          message = "it could affect field resolution";
+          break;
+        case RESOLUTION_FOR_METHODS_MAY_CHANGE:
+          message = "it could affect method resolution";
+          break;
+        case STATIC_INITIALIZERS:
+          message = "merging of static initializers are not supported";
+          break;
+        case UNSAFE_INLINING:
+          message = "force-inlining might fail";
+          break;
+        case UNSUPPORTED_ATTRIBUTES:
+          message = "since inner-class attributes are not supported";
+          break;
+        default:
+          assert false;
+      }
+      return String.format("Cannot merge %s since %s.", clazz.toSourceString(), message);
+    }
+  }
 
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
@@ -102,12 +167,12 @@ public class VerticalClassMerger {
     // For all pinned fields, also pin the type of the field (because changing the type of the field
     // implicitly changes the signature of the field). Similarly, for all pinned methods, also pin
     // the return type and the parameter types of the method.
-    extractPinnedItems(appInfo.pinnedItems, pinnedTypes);
+    extractPinnedItems(appInfo.pinnedItems, pinnedTypes, AbortReason.PINNED_SOURCE);
 
     // TODO(christofferqa): Remove the invariant that the graph lense should not modify any
     // methods from the sets alwaysInline and noSideEffects (see use of assertNotModified).
-    extractPinnedItems(appInfo.alwaysInline, pinnedTypes);
-    extractPinnedItems(appInfo.noSideEffects.keySet(), pinnedTypes);
+    extractPinnedItems(appInfo.alwaysInline, pinnedTypes, AbortReason.ALWAYS_INLINE);
+    extractPinnedItems(appInfo.noSideEffects.keySet(), pinnedTypes, AbortReason.NO_SIDE_EFFECTS);
 
     for (DexProgramClass clazz : classes) {
       for (DexEncodedMethod method : clazz.methods()) {
@@ -145,40 +210,47 @@ public class VerticalClassMerger {
     return pinnedTypes;
   }
 
-  private void extractPinnedItems(Iterable<DexItem> items, Set<DexType> pinnedTypes) {
+  private void extractPinnedItems(
+      Iterable<DexItem> items, Set<DexType> pinnedTypes, AbortReason reason) {
     for (DexItem item : items) {
       if (item instanceof DexType || item instanceof DexClass) {
         DexType type = item instanceof DexType ? (DexType) item : ((DexClass) item).type;
         // We check for the case where the type is pinned according to appInfo.isPinned, so only
         // add it here if it is not the case.
         if (!appInfo.isPinned(type)) {
-          markTypeAsPinned(type, pinnedTypes);
+          markTypeAsPinned(type, pinnedTypes, reason);
         }
       } else if (item instanceof DexField || item instanceof DexEncodedField) {
         // Pin the holder and the type of the field.
         DexField field =
             item instanceof DexField ? (DexField) item : ((DexEncodedField) item).field;
-        markTypeAsPinned(field.clazz, pinnedTypes);
-        markTypeAsPinned(field.type, pinnedTypes);
+        markTypeAsPinned(field.clazz, pinnedTypes, reason);
+        markTypeAsPinned(field.type, pinnedTypes, reason);
       } else if (item instanceof DexMethod || item instanceof DexEncodedMethod) {
         // Pin the holder, the return type and the parameter types of the method. If we were to
         // merge any of these types into their sub classes, then we would implicitly change the
         // signature of this method.
         DexMethod method =
             item instanceof DexMethod ? (DexMethod) item : ((DexEncodedMethod) item).method;
-        markTypeAsPinned(method.holder, pinnedTypes);
-        markTypeAsPinned(method.proto.returnType, pinnedTypes);
+        markTypeAsPinned(method.holder, pinnedTypes, reason);
+        markTypeAsPinned(method.proto.returnType, pinnedTypes, reason);
         for (DexType parameterType : method.proto.parameters.values) {
-          markTypeAsPinned(parameterType, pinnedTypes);
+          markTypeAsPinned(parameterType, pinnedTypes, reason);
         }
       }
     }
   }
 
-  private void markTypeAsPinned(DexType type, Set<DexType> pinnedTypes) {
+  private void markTypeAsPinned(DexType type, Set<DexType> pinnedTypes, AbortReason reason) {
     DexClass clazz = appInfo.definitionFor(type);
     if (clazz != null && clazz.isProgramClass()) {
-      pinnedTypes.add(type);
+      boolean changed = pinnedTypes.add(type);
+
+      if (Log.ENABLED) {
+        if (changed && isMergeCandidate(clazz.asProgramClass(), ImmutableSet.of())) {
+          reason.printLogMessageForClass(clazz);
+        }
+      }
     }
   }
 
@@ -186,6 +258,14 @@ public class VerticalClassMerger {
     if (appInfo.instantiatedTypes.contains(clazz.type)
         || appInfo.isPinned(clazz.type)
         || pinnedTypes.contains(clazz.type)) {
+      return false;
+    }
+    if (mergedClassesInverse.containsKey(clazz.type)) {
+      // Do not allow merging the resulting class into its subclass.
+      // TODO(christofferqa): Get rid of this limitation.
+      if (Log.ENABLED) {
+        AbortReason.ALREADY_MERGED.printLogMessageForClass(clazz);
+      }
       return false;
     }
     DexType singleSubtype = clazz.type.getSingleSubtype();
@@ -197,6 +277,9 @@ public class VerticalClassMerger {
     }
     DexClass targetClass = appInfo.definitionFor(singleSubtype);
     if (mergeMayLeadToIllegalAccesses(clazz, targetClass)) {
+      if (Log.ENABLED) {
+        AbortReason.ILLEGAL_ACCESS.printLogMessageForClass(clazz);
+      }
       return false;
     }
     for (DexEncodedField field : clazz.fields()) {
@@ -210,6 +293,9 @@ public class VerticalClassMerger {
       }
       if (method.isInstanceInitializer() && disallowInlining(method)) {
         // Cannot guarantee that markForceInline() will work.
+        if (Log.ENABLED) {
+          AbortReason.UNSAFE_INLINING.printLogMessageForClass(clazz);
+        }
         return false;
       }
     }
@@ -350,25 +436,30 @@ public class VerticalClassMerger {
       assert !mergedClasses.containsKey(targetClass.type);
       if (appInfo.isPinned(targetClass.type)) {
         // We have to keep the target class intact, so we cannot merge it.
+        if (Log.ENABLED) {
+          AbortReason.PINNED_TARGET.printLogMessageForClass(clazz);
+        }
         continue;
       }
       if (clazz.hasClassInitializer() && targetClass.hasClassInitializer()) {
         // TODO(herhut): Handle class initializers.
         if (Log.ENABLED) {
-          Log.info(
-              getClass(),
-              "Cannot merge %s into %s due to static initializers.",
-              clazz.toSourceString(),
-              targetClass.toSourceString());
+          AbortReason.STATIC_INITIALIZERS.printLogMessageForClass(clazz);
         }
         continue;
       }
       if (methodResolutionMayChange(clazz, targetClass)) {
+        if (Log.ENABLED) {
+          AbortReason.RESOLUTION_FOR_METHODS_MAY_CHANGE.printLogMessageForClass(clazz);
+        }
         continue;
       }
       // Field resolution first considers the direct interfaces of [targetClass] before it proceeds
       // to the super class.
       if (fieldResolutionMayChange(clazz, targetClass)) {
+        if (Log.ENABLED) {
+          AbortReason.RESOLUTION_FOR_FIELDS_MAY_CHANGE.printLogMessageForClass(clazz);
+        }
         continue;
       }
       // Guard against the case where we have two methods that may get the same signature
@@ -376,11 +467,7 @@ public class VerticalClassMerger {
       if (new CollisionDetector(clazz.type, targetClass.type, getInvokes(), mergedClasses)
           .mayCollide()) {
         if (Log.ENABLED) {
-          Log.info(
-              getClass(),
-              "Cannot merge %s into %s due to conflict.",
-              clazz.toSourceString(),
-              targetClass.toSourceString());
+          AbortReason.CONFLICT.printLogMessageForClass(clazz);
         }
         continue;
       }
@@ -389,9 +476,6 @@ public class VerticalClassMerger {
       if (merged) {
         // Commit the changes to the graph lense.
         renamedMembersLense.merge(merger.getRenamings());
-        // Do not allow merging the resulting class into its subclass.
-        // TODO(christofferqa): Get rid of this limitation.
-        pinnedTypes.add(targetClass.type);
       }
       if (Log.ENABLED) {
         if (merged) {
@@ -507,6 +591,9 @@ public class VerticalClassMerger {
       if (source.getEnclosingMethod() != null || !source.getInnerClasses().isEmpty()
           || target.getEnclosingMethod() != null || !target.getInnerClasses().isEmpty()) {
         // TODO(herhut): Consider supporting merging of inner-class attributes.
+        if (Log.ENABLED) {
+          AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(source);
+        }
         return false;
       }
       // Merge the class [clazz] into [targetClass] by adding all methods to
