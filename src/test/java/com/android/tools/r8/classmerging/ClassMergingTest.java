@@ -283,9 +283,11 @@ public class ClassMergingTest extends TestBase {
     // Class A deliberately has no method m. We need to make sure that the "invoke-super A.m()"
     // instruction in class F is not rewritten into something that does not throw.
     smaliBuilder.addClass("classmerging.A");
+    smaliBuilder.addDefaultConstructor();
 
     // Class B declares a virtual method m() that prints "In B.m()".
     smaliBuilder.addClass("classmerging.B", "classmerging.A");
+    smaliBuilder.addDefaultConstructor();
     smaliBuilder.addInstanceMethod(
         "void", "m", 2, smaliCodeForPrinting("In B.m()", 0, 1), "return-void");
 
@@ -296,6 +298,7 @@ public class ClassMergingTest extends TestBase {
     for (String[] pair : pairs) {
       String name = pair[0], superName = pair[1];
       smaliBuilder.addClass("classmerging." + name, "classmerging." + superName);
+      smaliBuilder.addDefaultConstructor();
       smaliBuilder.addInstanceMethod(
           "void",
           "m",
@@ -306,6 +309,7 @@ public class ClassMergingTest extends TestBase {
 
     // Class F declares a virtual method m that throws an exception (it is expected to be dead).
     smaliBuilder.addClass("classmerging.F", "classmerging.E");
+    smaliBuilder.addDefaultConstructor();
     smaliBuilder.addInstanceMethod(
         "void",
         "m",
