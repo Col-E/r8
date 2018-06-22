@@ -625,6 +625,10 @@ public class IRCode {
     return new ConstNumber(createValue(from.outType()), 0);
   }
 
+  public ConstNumber createConstNull() {
+    return new ConstNumber(createValue(ValueType.OBJECT), 0);
+  }
+
   public boolean doAllThrowingInstructionsHavePositions() {
     return allThrowingInstructionsHavePositions;
   }

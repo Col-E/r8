@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -376,7 +375,7 @@ public class Inliner {
   public void performForcedInlining(
       DexEncodedMethod method,
       IRCode code,
-      Map<InvokeMethodWithReceiver, InliningInfo> invokesToInline) {
+      Map<InvokeMethod, InliningInfo> invokesToInline) {
 
     ForcedInliningOracle oracle = new ForcedInliningOracle(method, invokesToInline);
     performInliningImpl(oracle, oracle, method, code);
@@ -389,18 +388,33 @@ public class Inliner {
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation) {
 
-    DefaultInliningOracle oracle =
-        new DefaultInliningOracle(
-            this,
-            method,
-            code,
-            typeEnvironment,
-            callSiteInformation,
-            isProcessedConcurrently,
-            options.inliningInstructionLimit,
-            INITIAL_INLINING_INSTRUCTION_ALLOWANCE - numberOfInstructions(code));
+    DefaultInliningOracle oracle = createDefaultOracle(
+        method, code, typeEnvironment,
+        isProcessedConcurrently, callSiteInformation,
+        options.inliningInstructionLimit,
+        INITIAL_INLINING_INSTRUCTION_ALLOWANCE - numberOfInstructions(code));
 
     performInliningImpl(oracle, oracle, method, code);
+  }
+
+  public DefaultInliningOracle createDefaultOracle(
+      DexEncodedMethod method,
+      IRCode code,
+      TypeEnvironment typeEnvironment,
+      Predicate<DexEncodedMethod> isProcessedConcurrently,
+      CallSiteInformation callSiteInformation,
+      int inliningInstructionLimit,
+      int inliningInstructionAllowance) {
+
+    return new DefaultInliningOracle(
+        this,
+        method,
+        code,
+        typeEnvironment,
+        callSiteInformation,
+        isProcessedConcurrently,
+        inliningInstructionLimit,
+        inliningInstructionAllowance);
   }
 
   private void performInliningImpl(

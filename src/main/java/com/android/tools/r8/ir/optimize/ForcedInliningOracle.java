@@ -19,10 +19,10 @@ import java.util.Map;
 
 final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   private final DexEncodedMethod method;
-  private final Map<InvokeMethodWithReceiver, Inliner.InliningInfo> invokesToInline;
+  private final Map<InvokeMethod, Inliner.InliningInfo> invokesToInline;
 
   ForcedInliningOracle(DexEncodedMethod method,
-      Map<InvokeMethodWithReceiver, Inliner.InliningInfo> invokesToInline) {
+      Map<InvokeMethod, Inliner.InliningInfo> invokesToInline) {
     this.method = method;
     this.invokesToInline = invokesToInline;
   }
@@ -34,6 +34,15 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   @Override
   public InlineAction computeForInvokeWithReceiver(
       InvokeMethodWithReceiver invoke, DexType invocationContext) {
+    return computeForInvoke(invoke);
+  }
+
+  @Override
+  public InlineAction computeForInvokeStatic(InvokeStatic invoke, DexType invocationContext) {
+    return computeForInvoke(invoke);
+  }
+
+  private InlineAction computeForInvoke(InvokeMethod invoke) {
     Inliner.InliningInfo info = invokesToInline.get(invoke);
     if (info == null) {
       return null;
@@ -41,12 +50,6 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
     assert method != info.target;
     return new InlineAction(info.target, invoke, Reason.FORCE);
-  }
-
-  @Override
-  public InlineAction computeForInvokeStatic(
-      InvokeStatic invoke, DexType invocationContext) {
-    return null; // Not yet supported.
   }
 
   @Override

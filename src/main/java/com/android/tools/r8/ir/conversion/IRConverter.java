@@ -61,6 +61,7 @@ import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
@@ -730,9 +731,15 @@ public class IRConverter {
       // Class inliner should work before lambda merger, so if it inlines the
       // lambda, it is not get collected by merger.
       assert options.enableInlining && inliner != null;
+      TypeEnvironment effectivelyFinalTypeEnvironment = typeEnvironment;
       classInliner.processMethodCode(
           appInfo.withLiveness(), method, code, isProcessedConcurrently,
-          methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline)
+          methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline),
+          Suppliers.memoize(() -> inliner.createDefaultOracle(
+              method, code, effectivelyFinalTypeEnvironment,
+              isProcessedConcurrently, callSiteInformation,
+              Integer.MAX_VALUE, Integer.MAX_VALUE)
+          )
       );
       assert code.isConsistentSSA();
     }
@@ -766,6 +773,7 @@ public class IRConverter {
     if (method.isInstanceInitializer() || method.isClassInitializer()) {
       codeRewriter.identifyTrivialInitializer(method, code, feedback);
     }
+    codeRewriter.identifyParameterUsages(method, code, feedback);
 
     printMethod(code, "Optimized IR (SSA)");
     finalizeIR(method, code, feedback);

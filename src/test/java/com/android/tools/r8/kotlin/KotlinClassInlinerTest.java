@@ -59,22 +59,25 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
           collectAccessedLambdaTypes(lambdaCheck, clazz, "testStateless"));
 
       assertEquals(
-          Sets.newHashSet(
-              "class_inliner_lambda_j_style.MainKt$testStateful$3"),
+          Sets.newHashSet(),
           collectAccessedLambdaTypes(lambdaCheck, clazz, "testStateful"));
 
       assertFalse(
           inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1").isPresent());
 
       assertEquals(
-          Sets.newHashSet(
-              "class_inliner_lambda_j_style.MainKt$testStateful2$1"),
+          Sets.newHashSet(),
           collectAccessedLambdaTypes(lambdaCheck, clazz, "testStateful2"));
 
+      assertFalse(
+          inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful2$1").isPresent());
+
       assertEquals(
-          Sets.newHashSet(
-              "class_inliner_lambda_j_style.MainKt$testStateful3$1"),
+          Sets.newHashSet(),
           collectAccessedLambdaTypes(lambdaCheck, clazz, "testStateful3"));
+
+      assertFalse(
+          inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful3$1").isPresent());
     });
   }
 

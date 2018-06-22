@@ -163,8 +163,10 @@ public abstract class Instruction {
   }
 
   public void replaceValue(int index, Value newValue) {
+    Value oldValue = inValues.get(index);
     inValues.set(index, newValue);
     newValue.addUser(this);
+    oldValue.removeUser(this);
   }
 
   public void replaceDebugValue(Value oldValue, Value newValue) {

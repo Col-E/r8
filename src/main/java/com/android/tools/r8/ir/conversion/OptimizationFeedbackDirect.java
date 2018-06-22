@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
+import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 
@@ -55,5 +56,10 @@ public class OptimizationFeedbackDirect implements OptimizationFeedback {
   @Override
   public void setTrivialInitializer(DexEncodedMethod method, TrivialInitializer info) {
     method.setTrivialInitializer(info);
+  }
+
+  @Override
+  public void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo) {
+    method.setParameterUsages(parameterUsagesInfo);
   }
 }

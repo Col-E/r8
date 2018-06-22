@@ -13,8 +13,8 @@ public interface SamIface {
     }
 
     public static void consumeBig(SamIface iface) {
-      System.out.println("Bigger than inline limit, class name: " + iface.getClass().getName());
-      System.out.println("Bigger than inline limit, result: '" + iface.foo() + "'");
+      System.out.println("Bigger than inline limit, class name: " + Consumer.class.getName());
+      System.out.println("Bigger than inline limit, result: '" + SamIface.class.getName() + "'");
       consume(iface);
     }
   }

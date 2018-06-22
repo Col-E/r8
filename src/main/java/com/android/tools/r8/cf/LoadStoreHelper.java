@@ -93,7 +93,6 @@ public class LoadStoreHelper {
       Value value = instruction.inValues().get(i);
       StackValue stackValue = createStackValue(value, topOfStack++);
       add(load(stackValue, value), instruction, it);
-      value.removeUser(instruction);
       instruction.replaceValue(i, stackValue);
     }
     it.next();

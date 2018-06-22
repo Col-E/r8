@@ -249,6 +249,11 @@ public class Value {
     return uniqueUsers = ImmutableSet.copyOf(users);
   }
 
+  public Instruction singleUniqueUser() {
+    assert ImmutableSet.copyOf(users).size() == 1;
+    return users.getFirst();
+  }
+
   public Set<Phi> uniquePhiUsers() {
     if (uniquePhiUsers != null) {
       return uniquePhiUsers;

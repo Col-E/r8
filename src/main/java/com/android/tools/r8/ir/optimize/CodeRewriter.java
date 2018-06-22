@@ -13,9 +13,13 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
+import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo;
+import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.NotUsed;
+import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.SingleCallOfArgumentMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.ClassTrivialInitializer;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.InstanceClassTrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialInstanceInitializer;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -836,6 +840,34 @@ public class CodeRewriter {
             : computeClassInitializerInfo(code, clazz));
   }
 
+  public void identifyParameterUsages(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    List<ParameterUsage> usages = new ArrayList<>();
+    List<Value> values = code.collectArguments(true);
+    for (int i = 0; i < values.size(); i++) {
+      Value value = values.get(i);
+
+      int numberOfAllUsages = value.numberOfAllUsers();
+      if (numberOfAllUsages == 0) {
+        usages.add(new NotUsed(i));
+        continue;
+      }
+
+      if (numberOfAllUsages == 1 && value.numberOfUsers() == 1) {
+        Instruction instruction = value.singleUniqueUser();
+        if (instruction.isInvokeMethodWithReceiver() &&
+            instruction.inValues().lastIndexOf(value) == 0) {
+          usages.add(new SingleCallOfArgumentMethod(i,
+              instruction.asInvokeMethodWithReceiver().getType(),
+              instruction.asInvokeMethodWithReceiver().getInvokedMethod()));
+        }
+        continue;
+      }
+    }
+
+    feedback.setParameterUsages(method, usages.isEmpty() ? null : new ParameterUsagesInfo(usages));
+  }
+
   // This method defines trivial instance initializer as follows:
   //
   // ** The initializer may only call the initializer of the base class, which
@@ -922,7 +954,7 @@ public class CodeRewriter {
       return null;
     }
 
-    return InstanceClassTrivialInitializer.INSTANCE;
+    return TrivialInstanceInitializer.INSTANCE;
   }
 
   // This method defines trivial class initializer as follows:
@@ -994,7 +1026,7 @@ public class CodeRewriter {
       return null;
     }
 
-    return singletonField == null ? null : new ClassTrivialInitializer(singletonField);
+    return singletonField == null ? null : new TrivialClassInitializer(singletonField);
   }
 
   /**
@@ -2059,7 +2091,7 @@ public class CodeRewriter {
     for (BasicBlock block : code.blocks) {
       for (Phi phi : block.getPhis()) {
         if (!phi.hasLocalInfo() && phi.numberOfUsers() == 1 && phi.numberOfAllUsers() == 1) {
-          Instruction instruction = phi.uniqueUsers().iterator().next();
+          Instruction instruction = phi.singleUniqueUser();
           if (instruction.isDebugLocalWrite()) {
             removeDebugWriteOfPhi(phi, instruction.asDebugLocalWrite());
           }

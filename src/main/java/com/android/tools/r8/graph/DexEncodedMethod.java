@@ -25,8 +25,10 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
+import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
@@ -43,10 +45,12 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements ResolutionResult {
 
@@ -594,17 +598,66 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private TrivialInitializer() {
     }
 
-    public static final class InstanceClassTrivialInitializer extends TrivialInitializer {
-      public static final InstanceClassTrivialInitializer INSTANCE =
-          new InstanceClassTrivialInitializer();
+    // Defines instance trivial initialized, see details in comments
+    // to CodeRewriter::computeInstanceInitializerInfo(...)
+    public static final class TrivialInstanceInitializer extends TrivialInitializer {
+      public static final TrivialInstanceInitializer INSTANCE =
+          new TrivialInstanceInitializer();
     }
 
-    public static final class ClassTrivialInitializer extends TrivialInitializer {
+    // Defines class trivial initialized, see details in comments
+    // to CodeRewriter::computeClassInitializerInfo(...)
+    public static final class TrivialClassInitializer extends TrivialInitializer {
       public final DexField field;
 
-      public ClassTrivialInitializer(DexField field) {
+      public TrivialClassInitializer(DexField field) {
         this.field = field;
       }
+    }
+  }
+
+  public static final class ParameterUsagesInfo {
+    private ImmutableList<ParameterUsage> parametersUsages;
+
+    public ParameterUsagesInfo(List<ParameterUsage> usages) {
+      assert !usages.isEmpty();
+      parametersUsages = ImmutableList.copyOf(usages);
+      assert parametersUsages.size() ==
+          parametersUsages.stream().map(usage -> usage.index).collect(Collectors.toSet()).size();
+    }
+
+    public static abstract class ParameterUsage {
+      public final int index;
+
+      ParameterUsage(int index) {
+        this.index = index;
+      }
+    }
+
+    public static class SingleCallOfArgumentMethod extends ParameterUsage {
+      public final Invoke.Type type;
+      public final DexMethod method;
+
+      public SingleCallOfArgumentMethod(int index, Type type, DexMethod method) {
+        super(index);
+        this.type = type;
+        this.method = method;
+      }
+    }
+
+    public static class NotUsed extends ParameterUsage {
+      public NotUsed(int index) {
+        super(index);
+      }
+    }
+
+    ParameterUsage getParameterUsage(int parameter) {
+      for (ParameterUsage usage : parametersUsages) {
+        if (usage.index == parameter) {
+          return usage;
+        }
+      }
+      return null;
     }
   }
 
@@ -623,6 +676,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // class inliner, null value indicates that the method is not eligible.
     private ClassInlinerEligibility classInlinerEligibility = null;
     private TrivialInitializer trivialInitializerInfo = null;
+    private ParameterUsagesInfo parametersUsages = null;
 
     private OptimizationInfo() {
       // Intentionally left empty.
@@ -636,6 +690,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       forceInline = template.forceInline;
       useIdentifierNameString = template.useIdentifierNameString;
       checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
+    }
+
+    public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
+      this.parametersUsages = parametersUsages;
+    }
+
+    public ParameterUsage getParameterUsages(int parameter) {
+      return parametersUsages == null ? null : parametersUsages.getParameterUsage(parameter);
     }
 
     public boolean returnsArgument() {
@@ -775,6 +837,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
     ensureMutableOI().setClassInlinerEligibility(eligibility);
+  }
+
+  synchronized public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
+    ensureMutableOI().setParameterUsages(parametersUsages);
   }
 
   synchronized public void setTrivialInitializer(TrivialInitializer info) {

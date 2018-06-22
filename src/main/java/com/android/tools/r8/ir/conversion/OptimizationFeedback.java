@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
+import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 
@@ -19,4 +20,5 @@ public interface OptimizationFeedback {
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
   void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibility eligibility);
   void setTrivialInitializer(DexEncodedMethod method, TrivialInitializer info);
+  void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo);
 }
