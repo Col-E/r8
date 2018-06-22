@@ -71,9 +71,17 @@ public class VerticalClassMerger {
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
   private final GraphLense graphLense;
-  private final Map<DexType, DexType> mergedClasses = new HashMap<>();
   private final Timing timing;
   private Collection<DexMethod> invokes;
+
+  // Map from source class to target class.
+  private final Map<DexType, DexType> mergedClasses = new HashMap<>();
+
+  // Map from target class to the super classes that have been merged into the target class.
+  private final Map<DexType, Set<DexType>> mergedClassesInverse = new HashMap<>();
+
+  // The resulting graph lense that should be used after class merging.
+  private final VerticalClassMergerGraphLense.Builder renamedMembersLense;
 
   public VerticalClassMerger(
       DexApplication application,
@@ -83,6 +91,7 @@ public class VerticalClassMerger {
     this.application = application;
     this.appInfo = appInfo;
     this.graphLense = graphLense;
+    this.renamedMembersLense = VerticalClassMergerGraphLense.builder(appInfo);
     this.timing = timing;
   }
 
@@ -319,10 +328,6 @@ public class VerticalClassMerger {
     // Types that are pinned (in addition to those where appInfo.isPinned returns true).
     Set<DexType> pinnedTypes = getPinnedTypes(classes);
 
-    // The resulting graph lense that should be used after class merging.
-    VerticalClassMergerGraphLense.Builder renamedMembersLense =
-        VerticalClassMergerGraphLense.builder(appInfo);
-
     Iterator<DexProgramClass> classIterator = classes.iterator();
 
     // Visit the program classes in a top-down order according to the class hierarchy.
@@ -533,7 +538,7 @@ public class VerticalClassMerger {
             continue;
           }
         } else {
-          // The method is shadowed. If it is abstract, we can simply move it to the subclass.
+          // The method is not shadowed. If it is abstract, we can simply move it to the subclass.
           // Non-abstract methods are handled below (they cannot simply be moved to the subclass as
           // a virtual method, because they might be the target of an invoke-super instruction).
           if (virtualMethod.accessFlags.isAbstract()) {
@@ -638,6 +643,8 @@ public class VerticalClassMerger {
       source.interfaces = DexTypeList.empty();
       // Step 4: Record merging.
       mergedClasses.put(source.type, target.type);
+      mergedClassesInverse.computeIfAbsent(target.type, key -> new HashSet<>()).add(source.type);
+      assert !abortMerge;
       return true;
     }
 
@@ -658,13 +665,38 @@ public class VerticalClassMerger {
         DexMethod signatureInHolder =
             application.dexItemFactory.createMethod(holder.type, oldTarget.proto, oldTarget.name);
         // Only rewrite the invoke-super call if it does not lead to a NoSuchMethodError.
-        if (resolutionSucceeds(signatureInHolder)) {
+        boolean resolutionSucceeds =
+            holder.lookupVirtualMethod(signatureInHolder) != null
+                || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
+        if (resolutionSucceeds) {
           deferredRenamings.mapVirtualMethodToDirectInType(
               signatureInHolder, newTarget, target.type);
-          holder = holder.superType != null ? appInfo.definitionFor(holder.superType) : null;
         } else {
           break;
         }
+
+        // Consider that A gets merged into B and B's subclass C gets merged into D. Instructions
+        // on the form "invoke-super {B,C,D}.m()" in D are changed into "invoke-direct D.m$C()" by
+        // the code above. However, instructions on the form "invoke-super A.m()" should also be
+        // changed into "invoke-direct D.m$C()". This is achieved by also considering the classes
+        // that have been merged into [holder].
+        Set<DexType> mergedTypes = mergedClassesInverse.get(holder.type);
+        if (mergedTypes != null) {
+          for (DexType type : mergedTypes) {
+            DexMethod signatureInType =
+                application.dexItemFactory.createMethod(type, oldTarget.proto, oldTarget.name);
+            // Resolution would have succeeded if the method used to be in [type], or if one of
+            // its super classes declared the method.
+            boolean resolutionSucceededBeforeMerge =
+                renamedMembersLense.hasMappingForSignatureInContext(holder.type, signatureInType)
+                    || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
+            if (resolutionSucceededBeforeMerge) {
+              deferredRenamings.mapVirtualMethodToDirectInType(
+                  signatureInType, newTarget, target.type);
+            }
+          }
+        }
+        holder = holder.superType != null ? appInfo.definitionFor(holder.superType) : null;
       }
     }
 
@@ -686,13 +718,6 @@ public class VerticalClassMerger {
       //     public void m() { super.m(); } <- invoke needs to be rewritten to invoke-direct
       //   }
       deferredRenamings.markMethodAsMerged(method);
-    }
-
-    private boolean resolutionSucceeds(DexMethod targetMethod) {
-      DexClass enclosingClass = appInfo.definitionFor(targetMethod.holder);
-      return enclosingClass != null
-          && (enclosingClass.lookupVirtualMethod(targetMethod) != null
-              || appInfo.lookupSuperTarget(targetMethod, enclosingClass.type) != null);
     }
 
     private DexEncodedMethod buildBridgeMethod(

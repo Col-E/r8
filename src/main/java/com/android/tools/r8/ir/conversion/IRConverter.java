@@ -630,7 +630,7 @@ public class IRConverter {
     printMethod(code, "Initial IR (SSA)");
 
     if (options.canHaveArtStringNewInitBug()) {
-      codeRewriter.ensureDirectStringNewToInit(code);
+      CodeRewriter.ensureDirectStringNewToInit(code);
     }
 
     if (options.debug) {
