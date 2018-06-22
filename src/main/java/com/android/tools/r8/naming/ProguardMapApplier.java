@@ -209,32 +209,8 @@ public class ProguardMapApplier {
     }
 
     private DexProto applyClassMappingOnTheFly(DexProto proto) {
-      DexProto result = protoFixupCache.get(proto);
-      if (result == null) {
-        DexType returnType = applyClassMappingOnTheFly(proto.returnType);
-        DexType[] arguments = applyClassMappingOnTheFly(proto.parameters.values);
-        if (arguments != null || returnType != proto.returnType) {
-          arguments = arguments == null ? proto.parameters.values : arguments;
-          result = appInfo.dexItemFactory.createProto(returnType, arguments);
-        } else {
-          result = proto;
-        }
-        protoFixupCache.put(proto, result);
-      }
-      return result;
-    }
-
-    private DexType[] applyClassMappingOnTheFly(DexType[] types) {
-      Map<Integer, DexType> changed = new Int2ObjectArrayMap<>();
-      for (int i = 0; i < types.length; i++) {
-        DexType applied = applyClassMappingOnTheFly(types[i]);
-        if (applied != types[i]) {
-          changed.put(i, applied);
-        }
-      }
-      return changed.isEmpty()
-          ? null
-          : ArrayUtils.copyWithSparseChanges(DexType[].class, types, changed);
+      return appInfo.dexItemFactory.applyClassMappingToProto(
+          proto, this::applyClassMappingOnTheFly, protoFixupCache);
     }
   }
 

@@ -413,7 +413,7 @@ public class VerticalClassMerger {
     if (Log.ENABLED) {
       Log.debug(getClass(), "Merged %d classes.", numberOfMerges);
     }
-    return renamedMembersLense.build(graphLense);
+    return renamedMembersLense.build(graphLense, mergedClasses, application.dexItemFactory);
   }
 
   private boolean methodResolutionMayChange(DexClass source, DexClass target) {

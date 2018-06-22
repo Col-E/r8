@@ -7,7 +7,9 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
@@ -145,7 +147,10 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       this.appInfo = appInfo;
     }
 
-    public GraphLense build(GraphLense previousLense) {
+    public GraphLense build(
+        GraphLense previousLense,
+        Map<DexType, DexType> mergedClasses,
+        DexItemFactory dexItemFactory) {
       Map<DexField, DexField> fieldMap = fieldMapBuilder.build();
       Map<DexMethod, DexMethod> methodMap = methodMapBuilder.build();
       if (fieldMap.isEmpty()
@@ -157,9 +162,33 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
           appInfo,
           fieldMap,
           methodMap,
-          mergedMethodsBuilder.build(),
+          getMergedMethodSignaturesAfterClassMerging(
+              mergedMethodsBuilder.build(), mergedClasses, dexItemFactory),
           contextualVirtualToDirectMethodMaps,
           previousLense);
+    }
+
+    // After we have recorded that a method "a.b.c.Foo;->m(A, B, C)V" was merged into another class,
+    // it could be that the class B was merged into its subclass B'. In that case we update the
+    // signature to "a.b.c.Foo;->m(A, B', C)V".
+    private Set<DexMethod> getMergedMethodSignaturesAfterClassMerging(
+        Set<DexMethod> mergedMethods,
+        Map<DexType, DexType> mergedClasses,
+        DexItemFactory dexItemFactory) {
+      ImmutableSet.Builder<DexMethod> result = ImmutableSet.builder();
+      Map<DexProto, DexProto> cache = new HashMap<>();
+      for (DexMethod signature : mergedMethods) {
+        DexType newHolder = mergedClasses.getOrDefault(signature.holder, signature.holder);
+        DexProto newProto =
+            dexItemFactory.applyClassMappingToProto(
+                signature.proto, type -> mergedClasses.getOrDefault(type, type), cache);
+        if (signature.holder.equals(newHolder) && signature.proto.equals(newProto)) {
+          result.add(signature);
+        } else {
+          result.add(dexItemFactory.createMethod(newHolder, newProto, signature.name));
+        }
+      }
+      return result.build();
     }
 
     public boolean hasMappingForSignatureInContext(DexType context, DexMethod signature) {

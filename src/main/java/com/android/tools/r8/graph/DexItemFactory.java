@@ -18,12 +18,15 @@ import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -32,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class DexItemFactory {
 
@@ -660,6 +664,41 @@ public class DexItemFactory {
     assert !sorted;
     return createProto(returnType, createShorty(returnType, parameters),
         parameters.length == 0 ? DexTypeList.empty() : new DexTypeList(parameters));
+  }
+
+  public DexProto applyClassMappingToProto(
+      DexProto proto, Function<DexType, DexType> mapping, Map<DexProto, DexProto> cache) {
+    assert cache != null;
+    DexProto result = cache.get(proto);
+    if (result == null) {
+      DexType returnType = mapping.apply(proto.returnType);
+      DexType[] parameters = applyClassMappingToDexTypes(proto.parameters.values, mapping);
+      if (returnType == proto.returnType && parameters == proto.parameters.values) {
+        result = proto;
+      } else {
+        // Should be different if reference has changed.
+        assert returnType == proto.returnType || !returnType.equals(proto.returnType);
+        assert parameters == proto.parameters.values
+            || !Arrays.equals(parameters, proto.parameters.values);
+        result = createProto(returnType, parameters);
+      }
+      cache.put(proto, result);
+    }
+    return result;
+  }
+
+  private static DexType[] applyClassMappingToDexTypes(
+      DexType[] types, Function<DexType, DexType> mapping) {
+    Map<Integer, DexType> changed = new Int2ObjectArrayMap<>();
+    for (int i = 0; i < types.length; i++) {
+      DexType applied = mapping.apply(types[i]);
+      if (applied != types[i]) {
+        changed.put(i, applied);
+      }
+    }
+    return changed.isEmpty()
+        ? types
+        : ArrayUtils.copyWithSparseChanges(DexType[].class, types, changed);
   }
 
   private DexString createShorty(DexType returnType, DexType[] argumentTypes) {

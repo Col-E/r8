@@ -36,14 +36,18 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class LensCodeRewriter {
 
   private final GraphLense graphLense;
   private final AppInfoWithSubtyping appInfo;
+
+  private final Map<DexProto, DexProto> protoFixupCache = new HashMap<>();
 
   public LensCodeRewriter(GraphLense graphLense, AppInfoWithSubtyping appInfo) {
     this.graphLense = graphLense;
@@ -71,13 +75,9 @@ public class LensCodeRewriter {
         if (current.isInvokeCustom()) {
           InvokeCustom invokeCustom = current.asInvokeCustom();
           DexCallSite callSite = invokeCustom.getCallSite();
-          DexType[] newParameters = new DexType[callSite.methodProto.parameters.size()];
-          for (int i = 0; i < callSite.methodProto.parameters.size(); i++) {
-            newParameters[i] = graphLense.lookupType(callSite.methodProto.parameters.values[i]);
-          }
           DexProto newMethodProto =
-              appInfo.dexItemFactory.createProto(
-                  graphLense.lookupType(callSite.methodProto.returnType), newParameters);
+              appInfo.dexItemFactory.applyClassMappingToProto(
+                  callSite.methodProto, graphLense::lookupType, protoFixupCache);
           DexMethodHandle newBootstrapMethod = rewriteDexMethodHandle(method,
               callSite.bootstrapMethod);
           List<DexValue> newArgs = callSite.bootstrapArgs.stream().map(
