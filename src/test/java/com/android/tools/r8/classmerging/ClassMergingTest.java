@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import org.junit.Ignore;
 import org.junit.Test;
 
 // TODO(christofferqa): Add tests to check that statically typed invocations on method handles
@@ -238,6 +239,7 @@ public class ClassMergingTest extends TestBase {
   //     public void invokeMethodOnE() { "invoke-super E.m()" }
   //     public void invokeMethodOnF() { "invoke-super F.m()" }
   //   }
+  @Ignore
   @Test
   public void testSuperCallToMergedClassIsRewritten() throws Exception {
     String main = "classmerging.SuperCallToMergedClassIsRewrittenTest";
