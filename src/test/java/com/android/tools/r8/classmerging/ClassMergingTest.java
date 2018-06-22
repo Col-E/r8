@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.classmerging;
 
+import static com.android.tools.r8.smali.SmaliBuilder.buildCode;
 import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -178,14 +179,12 @@ public class ClassMergingTest extends TestBase {
             "classmerging.SubClassThatReferencesSuperMethod",
             "classmerging.SuperClassWithReferencedMethod");
     smaliBuilder.addInitializer(
-        ImmutableList.of(),
         0,
         "invoke-direct {p0}, Lclassmerging/SuperClassWithReferencedMethod;-><init>()V",
         "return-void");
     smaliBuilder.addInstanceMethod(
         "java.lang.String",
         "referencedMethod",
-        ImmutableList.of(),
         2,
         "sget-object v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "const-string v1, \"In referencedMethod on SubClassThatReferencesSuperMethod\"",
@@ -207,6 +206,140 @@ public class ClassMergingTest extends TestBase {
         // Prevent class merging, such that the generated code would be invalid if we rewrite the
         // invoke-super instruction into an invoke-direct instruction.
         getProguardConfig(EXAMPLE_KEEP, "-keep class *"));
+  }
+
+  // The following test checks that our rewriting of invoke-super instructions in a class F works
+  // if a super type of F has previously been merged into its sub class.
+  //
+  //   class A {}                                               <- A is kept to preserve the error
+  //   class B extends A {                                         in F.invokeMethodOnA().
+  //     public void m() {}
+  //   }
+  //   class C extends B {                                      <- C will be merged into D.
+  //     @Override
+  //     public void m() { "invoke-super B.m()" }
+  //   }
+  //   class D extends C {
+  //     @Override
+  //     public void m() { "invoke-super C.m()" }
+  //   }
+  //   class E extends D {                                      <- E will be merged into F.
+  //     @Override
+  //     public void m() { "invoke-super D.m()" }
+  //   }
+  //   class F extends E {
+  //     @Override
+  //     public void m() { throw new Exception() }              <- Should be dead code.
+  //
+  //     public void invokeMethodOnA() { "invoke-super A.m()" } <- Should yield NoSuchMethodError.
+  //     public void invokeMethodOnB() { "invoke-super B.m()" }
+  //     public void invokeMethodOnC() { "invoke-super C.m()" }
+  //     public void invokeMethodOnD() { "invoke-super D.m()" }
+  //     public void invokeMethodOnE() { "invoke-super E.m()" }
+  //     public void invokeMethodOnF() { "invoke-super F.m()" }
+  //   }
+  @Test
+  public void testSuperCallToMergedClassIsRewritten() throws Exception {
+    String main = "classmerging.SuperCallToMergedClassIsRewrittenTest";
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.SuperCallToMergedClassIsRewrittenTest",
+            "classmerging.A",
+            "classmerging.B",
+            "classmerging.D",
+            "classmerging.F");
+
+    SmaliBuilder smaliBuilder = new SmaliBuilder();
+
+    smaliBuilder.addClass(main);
+    smaliBuilder.addMainMethod(
+        2,
+        // Instantiate B so that it is not merged into C.
+        "new-instance v1, Lclassmerging/B;",
+        "invoke-direct {v1}, Lclassmerging/B;-><init>()V",
+        "invoke-virtual {v1}, Lclassmerging/B;->m()V",
+        // Instantiate D so that it is not merged into E.
+        "new-instance v1, Lclassmerging/D;",
+        "invoke-direct {v1}, Lclassmerging/D;-><init>()V",
+        "invoke-virtual {v1}, Lclassmerging/D;->m()V",
+        // Start the actual testing.
+        "new-instance v1, Lclassmerging/F;",
+        "invoke-direct {v1}, Lclassmerging/F;-><init>()V",
+        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnB()V",
+        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnC()V",
+        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnD()V",
+        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnE()V",
+        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnF()V",
+        // The method invokeMethodOnA() should yield a NoSuchMethodError.
+        ":try_start",
+        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnA()V",
+        ":try_end",
+        "return-void",
+        ".catch Ljava/lang/NoSuchMethodError; {:try_start .. :try_end} :catch",
+        ":catch",
+        smaliCodeForPrinting("NoSuchMethodError", 0, 1),
+        "return-void");
+
+    // Class A deliberately has no method m. We need to make sure that the "invoke-super A.m()"
+    // instruction in class F is not rewritten into something that does not throw.
+    smaliBuilder.addClass("classmerging.A");
+
+    // Class B declares a virtual method m() that prints "In B.m()".
+    smaliBuilder.addClass("classmerging.B", "classmerging.A");
+    smaliBuilder.addInstanceMethod(
+        "void", "m", 2, smaliCodeForPrinting("In B.m()", 0, 1), "return-void");
+
+    // Class C, D, and E declare a virtual method m() that prints "In C.m()", "In D.m()", and
+    // "In E.m()", respectively.
+    String[][] pairs =
+        new String[][] {new String[] {"C", "B"}, new String[] {"D", "C"}, new String[] {"E", "D"}};
+    for (String[] pair : pairs) {
+      String name = pair[0], superName = pair[1];
+      smaliBuilder.addClass("classmerging." + name, "classmerging." + superName);
+      smaliBuilder.addInstanceMethod(
+          "void",
+          "m",
+          2,
+          smaliCodeForPrinting("In " + name + ".m()", 0, 1),
+          buildCode("invoke-super {p0}, Lclassmerging/" + superName + ";->m()V", "return-void"));
+    }
+
+    // Class F declares a virtual method m that throws an exception (it is expected to be dead).
+    smaliBuilder.addClass("classmerging.F", "classmerging.E");
+    smaliBuilder.addInstanceMethod(
+        "void",
+        "m",
+        1,
+        "new-instance v1, Ljava/lang/Exception;",
+        "invoke-direct {v1}, Ljava/lang/Exception;-><init>()V",
+        "throw v1");
+
+    // Add methods to F with an "invoke-super X.m()" instruction for X in {A, B, C, D, E, F}.
+    for (String type : ImmutableList.of("A", "B", "C", "D", "E", "F")) {
+      String code =
+          buildCode("invoke-super {p0}, Lclassmerging/" + type + ";->m()V", "return-void");
+      smaliBuilder.addInstanceMethod("void", "invokeMethodOn" + type, 0, code);
+    }
+
+    // Build app.
+    AndroidApp.Builder builder = AndroidApp.builder();
+    builder.addDexProgramData(smaliBuilder.compile(), Origin.unknown());
+
+    // Run test.
+    runTestOnInput(
+        main,
+        builder.build(),
+        preservedClassNames::contains,
+        String.format("-keep class %s { public static void main(...); }", main));
+  }
+
+  private static String smaliCodeForPrinting(String message, int reg0, int reg1) {
+    return buildCode(
+        String.format("sget-object v%d, Ljava/lang/System;->out:Ljava/io/PrintStream;", reg0),
+        String.format("const-string v1, \"%s\"", message),
+        String.format(
+            "invoke-virtual {v%d, v%d}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V",
+            reg0, reg1));
   }
 
   @Test

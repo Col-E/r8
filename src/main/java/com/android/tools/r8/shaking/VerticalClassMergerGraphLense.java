@@ -162,6 +162,15 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
           previousLense);
     }
 
+    public boolean hasMappingForSignatureInContext(DexType context, DexMethod signature) {
+      Map<DexMethod, DexMethod> virtualToDirectMethodMap =
+          contextualVirtualToDirectMethodMaps.get(context);
+      if (virtualToDirectMethodMap != null) {
+        return virtualToDirectMethodMap.containsKey(signature);
+      }
+      return false;
+    }
+
     public void markMethodAsMerged(DexMethod method) {
       mergedMethodsBuilder.add(method);
     }

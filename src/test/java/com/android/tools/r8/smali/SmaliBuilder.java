@@ -285,10 +285,25 @@ public class SmaliBuilder {
     return addMethod("public abstract", returnType, name, parameters, -1, null);
   }
 
+  public MethodSignature addInitializer(int locals, String... instructions) {
+    return addMethod(
+        "public constructor",
+        "void",
+        "<init>",
+        ImmutableList.of(),
+        locals,
+        buildCode(instructions));
+  }
+
   public MethodSignature addInitializer(
       List<String> parameters, int locals, String... instructions) {
     return addMethod(
         "public constructor", "void", "<init>", parameters, locals, buildCode(instructions));
+  }
+
+  public MethodSignature addInstanceMethod(
+      String returnType, String name, int locals, String... instructions) {
+    return addInstanceMethod(returnType, name, ImmutableList.of(), locals, buildCode(instructions));
   }
 
   public MethodSignature addInstanceMethod(
@@ -315,7 +330,7 @@ public class SmaliBuilder {
     getSource(currentClassName).add(builder.toString());
   }
 
-  private static String buildCode(String... instructions) {
+  public static String buildCode(String... instructions) {
     StringBuilder builder = new StringBuilder();
     for (String instruction : instructions) {
       builder.append(instruction);
