@@ -127,8 +127,8 @@ public class CfBuilder {
     types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
     splitExceptionalBlocks();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
-    loadStoreHelper.insertLoadsAndStores();
     DeadCodeRemover.removeDeadCode(code, rewriter, graphLense, options);
+    loadStoreHelper.insertLoadsAndStores();
     removeUnneededLoadsAndStores();
     registerAllocator = new CfRegisterAllocator(code, options);
     registerAllocator.allocateRegisters();
