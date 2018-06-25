@@ -121,6 +121,7 @@ public class ClassMergingTest extends TestBase {
         new Path[] {
           JAVA8_CF_DIR.resolve("LambdaRewritingTest.class"),
           JAVA8_CF_DIR.resolve("LambdaRewritingTest$Function.class"),
+          JAVA8_CF_DIR.resolve("LambdaRewritingTest$FunctionImpl.class"),
           JAVA8_CF_DIR.resolve("LambdaRewritingTest$Interface.class"),
           JAVA8_CF_DIR.resolve("LambdaRewritingTest$InterfaceImpl.class")
         };
