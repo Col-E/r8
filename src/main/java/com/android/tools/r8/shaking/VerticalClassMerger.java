@@ -283,13 +283,6 @@ public class VerticalClassMerger {
       // lead to members being duplicated.
       return false;
     }
-    DexClass targetClass = appInfo.definitionFor(singleSubtype);
-    if (mergeMayLeadToIllegalAccesses(clazz, targetClass)) {
-      if (Log.ENABLED) {
-        AbortReason.ILLEGAL_ACCESS.printLogMessageForClass(clazz);
-      }
-      return false;
-    }
     for (DexEncodedField field : clazz.fields()) {
       if (appInfo.isPinned(field.field)) {
         return false;
@@ -307,25 +300,59 @@ public class VerticalClassMerger {
         return false;
       }
     }
+    DexClass targetClass = appInfo.definitionFor(singleSubtype);
+    if (mergeMayLeadToIllegalAccesses(clazz, targetClass)) {
+      if (Log.ENABLED) {
+        AbortReason.ILLEGAL_ACCESS.printLogMessageForClass(clazz);
+      }
+      return false;
+    }
     return true;
   }
 
   private boolean mergeMayLeadToIllegalAccesses(DexClass source, DexClass target) {
     if (source.type.isSamePackage(target.type)) {
+      // When merging two classes from the same package, we only need to make sure that [source]
+      // does not get less visible, since that could make a valid access to [source] from another
+      // package illegal after [source] has been merged into [target].
       int accessLevel =
           source.accessFlags.isPrivate() ? 0 : (source.accessFlags.isPublic() ? 2 : 1);
       int otherAccessLevel =
           target.accessFlags.isPrivate() ? 0 : (target.accessFlags.isPublic() ? 2 : 1);
       return accessLevel > otherAccessLevel;
     }
-    // TODO(christofferqa): To merge [clazz] into a class from another package we need to ensure:
-    // (A) All accesses to [clazz] and its members from inside the current package of [clazz] will
-    //     continue to work. This is guaranteed if [clazz] is public and all members of [clazz] are
-    //     either private or public.
-    // (B) All accesses from [clazz] to classes or members from the current package of [clazz] will
-    //     continue to work. This is guaranteed if the methods of [clazz] do not access any private
-    //     or protected classes or members from the current package of [clazz].
-    return true;
+
+    // Check that all accesses to [source] and its members from inside the current package of
+    // [source] will continue to work. This is guaranteed if [source] is public and all members of
+    // [source] are either private or public.
+    //
+    // (Deliberately not checking all accesses to [source] since that would be expensive.)
+    if (!source.accessFlags.isPublic()) {
+      return true;
+    }
+    for (DexEncodedField field : source.fields()) {
+      if (!(field.accessFlags.isPublic() || field.accessFlags.isPrivate())) {
+        return true;
+      }
+    }
+    for (DexEncodedMethod method : source.methods()) {
+      if (!(method.accessFlags.isPublic() || method.accessFlags.isPrivate())) {
+        return true;
+      }
+    }
+
+    // Check that all accesses from [source] to classes or members from the current package of
+    // [source] will continue to work. This is guaranteed if the methods of [source] do not access
+    // any private or protected classes or members from the current package of [source].
+    IllegalAccessDetector registry = new IllegalAccessDetector(source);
+    for (DexEncodedMethod method : source.methods()) {
+      method.registerCodeReferences(registry);
+      if (registry.foundIllegalAccess()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private void addProgramMethods(Set<Wrapper<DexMethod>> set, DexMethod method,
@@ -1347,6 +1374,120 @@ public class VerticalClassMerger {
     @Override
     public boolean registerTypeReference(DexType type) {
       return allowInlining();
+    }
+  }
+
+  // Searches for a reference to a non-public class, field or method declared in the same package
+  // as [source].
+  private class IllegalAccessDetector extends UseRegistry {
+    private boolean foundIllegalAccess = false;
+    private DexClass source;
+
+    public IllegalAccessDetector(DexClass source) {
+      this.source = source;
+    }
+
+    public boolean foundIllegalAccess() {
+      return foundIllegalAccess;
+    }
+
+    private boolean checkFieldReference(DexField field) {
+      if (!foundIllegalAccess) {
+        if (field.clazz.isSamePackage(source.type)) {
+          checkTypeReference(field.clazz);
+          checkTypeReference(field.type);
+
+          DexEncodedField definition = appInfo.definitionFor(field);
+          if (definition == null || !definition.accessFlags.isPublic()) {
+            foundIllegalAccess = true;
+          }
+        }
+      }
+      return true;
+    }
+
+    private boolean checkMethodReference(DexMethod method) {
+      if (!foundIllegalAccess) {
+        if (method.holder.isSamePackage(source.type)) {
+          checkTypeReference(method.holder);
+          checkTypeReference(method.proto.returnType);
+          for (DexType type : method.proto.parameters.values) {
+            checkTypeReference(type);
+          }
+          DexEncodedMethod definition = appInfo.definitionFor(method);
+          if (definition == null || !definition.accessFlags.isPublic()) {
+            foundIllegalAccess = true;
+          }
+        }
+      }
+      return true;
+    }
+
+    private boolean checkTypeReference(DexType type) {
+      if (!foundIllegalAccess) {
+        if (type.isClassType() && type.isSamePackage(source.type)) {
+          DexClass clazz = appInfo.definitionFor(type);
+          if (clazz == null || !clazz.accessFlags.isPublic()) {
+            foundIllegalAccess = true;
+          }
+        }
+      }
+      return true;
+    }
+
+    @Override
+    public boolean registerInvokeVirtual(DexMethod method) {
+      return checkMethodReference(method);
+    }
+
+    @Override
+    public boolean registerInvokeDirect(DexMethod method) {
+      return checkMethodReference(method);
+    }
+
+    @Override
+    public boolean registerInvokeStatic(DexMethod method) {
+      return checkMethodReference(method);
+    }
+
+    @Override
+    public boolean registerInvokeInterface(DexMethod method) {
+      return checkMethodReference(method);
+    }
+
+    @Override
+    public boolean registerInvokeSuper(DexMethod method) {
+      return checkMethodReference(method);
+    }
+
+    @Override
+    public boolean registerInstanceFieldWrite(DexField field) {
+      return checkFieldReference(field);
+    }
+
+    @Override
+    public boolean registerInstanceFieldRead(DexField field) {
+      return checkFieldReference(field);
+    }
+
+    @Override
+    public boolean registerNewInstance(DexType type) {
+      return checkTypeReference(type);
+    }
+
+    @Override
+    public boolean registerStaticFieldRead(DexField field) {
+      return checkFieldReference(field);
+    }
+
+    @Override
+    public boolean registerStaticFieldWrite(DexField field) {
+      return checkFieldReference(field);
+    }
+
+    @Override
+    public boolean registerTypeReference(DexType type) {
+      return checkTypeReference(type);
     }
   }
 
