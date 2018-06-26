@@ -13,6 +13,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.NewInstance;
@@ -31,11 +32,9 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class ApplyMappingTest {
+public class ApplyMappingTest extends TestBase {
 
   private static final String MAPPING = "test-mapping.txt";
 
@@ -50,9 +49,6 @@ public class ApplyMappingTest {
 
   private static final Path APPLYMAPPING044_JAR =
       Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "applymapping044" + FileUtils.JAR_EXTENSION);
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   private Path out;
 
