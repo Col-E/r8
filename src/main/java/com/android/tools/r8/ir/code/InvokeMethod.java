@@ -116,7 +116,7 @@ public abstract class InvokeMethod extends Invoke {
       return Constraint.ALWAYS;
     }
     Collection<DexEncodedMethod> targets = lookupTargets(info, invocationContext);
-    if (targets == null || targets.isEmpty()) {
+    if (targets == null) {
       return Constraint.NEVER;
     }
 
