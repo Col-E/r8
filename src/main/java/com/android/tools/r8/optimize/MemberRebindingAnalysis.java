@@ -116,7 +116,6 @@ public class MemberRebindingAnalysis {
   private void computeMethodRebinding(Set<DexMethod> methods,
       Function<DexMethod, DexEncodedMethod> lookupTarget) {
     for (DexMethod method : methods) {
-      method = lense.lookupMethod(method);
       // We can safely ignore array types, as the corresponding methods are defined in a library.
       if (!method.getHolder().isClassType()) {
         continue;
@@ -150,7 +149,7 @@ public class MemberRebindingAnalysis {
             target = bridgeMethod;
           }
         }
-        builder.map(method, validTargetFor(target.method, method));
+        builder.map(method, lense.lookupMethod(validTargetFor(target.method, method)));
       }
     }
   }
@@ -189,7 +188,6 @@ public class MemberRebindingAnalysis {
       BiFunction<DexClass, DexField, DexEncodedField> lookupTargetOnClass) {
     for (Map.Entry<DexField, Set<DexEncodedMethod>> entry : fields.entrySet()) {
       DexField field = entry.getKey();
-      field = lense.lookupField(field);
       DexEncodedField target = lookup.apply(field.getHolder(), field);
       // Rebind to the lowest library class or program class. Do not rebind accesses to fields that
       // are not visible from the access context.
@@ -197,7 +195,8 @@ public class MemberRebindingAnalysis {
       if (target != null && target.field != field
           && contexts.stream().allMatch(context ->
               isVisibleFromOriginalContext(context.method.getHolder(), target))) {
-        builder.map(field, validTargetFor(target.field, field, lookupTargetOnClass));
+        builder.map(field,
+            lense.lookupField(validTargetFor(target.field, field, lookupTargetOnClass)));
       }
     }
   }
