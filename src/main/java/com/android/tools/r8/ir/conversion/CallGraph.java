@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -363,7 +364,9 @@ public class CallGraph extends CallSiteInformation {
 
     private void processInvoke(Type type, DexMethod method) {
       DexEncodedMethod source = caller.method;
-      method = graphLense.lookupMethod(method, source, type).getMethod();
+      GraphLenseLookupResult result = graphLense.lookupMethod(method, source, type);
+      method = result.getMethod();
+      type = result.getType();
       DexEncodedMethod definition = appInfo.lookup(type, method, source.method.holder);
       if (definition != null) {
         assert !source.accessFlags.isBridge() || definition != caller.method;
