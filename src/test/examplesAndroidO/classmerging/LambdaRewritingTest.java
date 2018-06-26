@@ -17,9 +17,18 @@ public class LambdaRewritingTest {
     f.accept();
   }
 
+  // Must not be merged into FunctionImpl as it is instantiated by a lambda.
   public interface Function {
 
     void accept();
+  }
+
+  public static class FunctionImpl implements Function {
+
+    @Override
+    public void accept() {
+      System.out.println("In FunctionImpl.accept()");
+    }
   }
 
   // Will be merged into InterfaceImpl.

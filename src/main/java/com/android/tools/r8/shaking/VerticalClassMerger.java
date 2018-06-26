@@ -256,6 +256,7 @@ public class VerticalClassMerger {
 
   private boolean isMergeCandidate(DexProgramClass clazz, Set<DexType> pinnedTypes) {
     if (appInfo.instantiatedTypes.contains(clazz.type)
+        || appInfo.instantiatedLambdas.contains(clazz.type)
         || appInfo.isPinned(clazz.type)
         || pinnedTypes.contains(clazz.type)) {
       return false;
