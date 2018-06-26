@@ -515,9 +515,6 @@ public class ClassMergingTest extends TestBase {
     ImmutableSet<String> preservedClassNames =
         ImmutableSet.of(
             "classmerging.SimpleInterfaceAccessTest",
-            // TODO(christofferqa): Should be able to merge SimpleInterface into SimpleInterfaceImpl
-            // when access modifications are allowed.
-            "classmerging.SimpleInterfaceAccessTest$SimpleInterface",
             "classmerging.SimpleInterfaceAccessTest$OtherSimpleInterfaceImpl",
             "classmerging.pkg.SimpleInterfaceImplRetriever",
             "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");

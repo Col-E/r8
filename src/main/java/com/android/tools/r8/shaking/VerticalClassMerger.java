@@ -323,11 +323,11 @@ public class VerticalClassMerger {
     }
 
     // Check that all accesses to [source] and its members from inside the current package of
-    // [source] will continue to work. This is guaranteed if [source] is public and all members of
+    // [source] will continue to work. This is guaranteed if [target] is public and all members of
     // [source] are either private or public.
     //
     // (Deliberately not checking all accesses to [source] since that would be expensive.)
-    if (!source.accessFlags.isPublic()) {
+    if (!target.accessFlags.isPublic()) {
       return true;
     }
     for (DexEncodedField field : source.fields()) {
