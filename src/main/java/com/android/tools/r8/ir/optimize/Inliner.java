@@ -413,6 +413,7 @@ public class Inliner {
         typeEnvironment,
         callSiteInformation,
         isProcessedConcurrently,
+        options,
         inliningInstructionLimit,
         inliningInstructionAllowance);
   }

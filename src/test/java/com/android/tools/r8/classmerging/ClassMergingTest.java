@@ -15,9 +15,13 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.MoveException;
 import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
@@ -37,12 +41,13 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 // TODO(christofferqa): Add tests to check that statically typed invocations on method handles
 // continue to work after class merging. Rewriting of method handles should be carried out by
 // LensCodeRewriter.rewriteDexMethodHandle.
+@RunWith(VmTestRunner.class)
 public class ClassMergingTest extends TestBase {
 
   private static final Path CF_DIR =
@@ -105,6 +110,70 @@ public class ClassMergingTest extends TestBase {
     for (String candidate : CAN_BE_MERGED) {
       assertTrue(inspector.clazz(candidate).isPresent());
     }
+  }
+
+  @Test
+  public void testConflictInGeneratedName() throws Exception {
+    String main = "classmerging.ConflictInGeneratedNameTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("ConflictInGeneratedNameTest.class"),
+          CF_DIR.resolve("ConflictInGeneratedNameTest$A.class"),
+          CF_DIR.resolve("ConflictInGeneratedNameTest$B.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.ConflictInGeneratedNameTest",
+            "classmerging.ConflictInGeneratedNameTest$B");
+    DexInspector inspector =
+        runTestOnInput(
+            main,
+            readProgramFiles(programFiles),
+            preservedClassNames::contains,
+            getProguardConfig(EXAMPLE_KEEP),
+            options -> {
+              configure(options);
+              // Avoid that direct methods in B get inlined.
+              options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+            });
+
+    ClassSubject clazzSubject = inspector.clazz("classmerging.ConflictInGeneratedNameTest$B");
+    assertThat(clazzSubject, isPresent());
+
+    String suffix = "$classmerging$ConflictInGeneratedNameTest$A";
+    List<String> EMPTY = ImmutableList.of();
+
+    // There should be three fields.
+    assertThat(clazzSubject.field("java.lang.String", "name"), isPresent());
+    assertThat(clazzSubject.field("java.lang.String", "name" + suffix), isPresent());
+    assertThat(clazzSubject.field("java.lang.String", "name" + suffix + "2"), isPresent());
+
+    // The direct method "constructor$classmerging$ConflictInGeneratedNameTest$A" is processed after
+    // the method "<init>" is renamed to exactly that name. Therefore the conflict should have been
+    // resolved by appending [suffix] to it.
+    assertThat(clazzSubject.method("void", "constructor" + suffix + suffix, EMPTY), isPresent());
+
+    // There should be two foo's.
+    assertThat(clazzSubject.method("void", "foo", EMPTY), isPresent());
+    assertThat(clazzSubject.method("void", "foo" + suffix, EMPTY), isPresent());
+
+    // There should be two bar's.
+    assertThat(clazzSubject.method("void", "bar", EMPTY), isPresent());
+    assertThat(clazzSubject.method("void", "bar" + suffix, EMPTY), isPresent());
+
+    // There should be three baz's.
+    assertThat(clazzSubject.method("void", "baz", EMPTY), isPresent());
+    assertThat(clazzSubject.method("void", "baz" + suffix, EMPTY), isPresent());
+    assertThat(clazzSubject.method("void", "baz" + suffix + "2", EMPTY), isPresent());
+
+    // There should be three boo's.
+    assertThat(clazzSubject.method("void", "boo", EMPTY), isPresent());
+    assertThat(clazzSubject.method("void", "boo" + suffix, EMPTY), isPresent());
+    assertThat(clazzSubject.method("void", "boo" + suffix + "2", EMPTY), isPresent());
+
+    // There should be two getName's.
+    assertThat(clazzSubject.method("java.lang.String", "getName", EMPTY), isPresent());
+    assertThat(clazzSubject.method("java.lang.String", "getName" + suffix, EMPTY), isPresent());
   }
 
   @Test
@@ -240,8 +309,8 @@ public class ClassMergingTest extends TestBase {
   //     public void invokeMethodOnE() { "invoke-super E.m()" }
   //     public void invokeMethodOnF() { "invoke-super F.m()" }
   //   }
-  @Ignore
   @Test
+  @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V6_0_1)
   public void testSuperCallToMergedClassIsRewritten() throws Exception {
     String main = "classmerging.SuperCallToMergedClassIsRewrittenTest";
     Set<String> preservedClassNames =
@@ -523,7 +592,17 @@ public class ClassMergingTest extends TestBase {
   private DexInspector runTestOnInput(
       String main, AndroidApp input, Predicate<String> preservedClassNames, String proguardConfig)
       throws Exception {
-    AndroidApp output = compileWithR8(input, proguardConfig, this::configure);
+    return runTestOnInput(main, input, preservedClassNames, proguardConfig, this::configure);
+  }
+
+  private DexInspector runTestOnInput(
+      String main,
+      AndroidApp input,
+      Predicate<String> preservedClassNames,
+      String proguardConfig,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    AndroidApp output = compileWithR8(input, proguardConfig, optionsConsumer);
     DexInspector inputInspector = new DexInspector(input);
     DexInspector outputInspector = new DexInspector(output);
     // Check that all classes in [preservedClassNames] are in fact preserved.

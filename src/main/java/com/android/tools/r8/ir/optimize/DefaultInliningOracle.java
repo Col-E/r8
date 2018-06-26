@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.ListIterator;
 import java.util.function.Predicate;
 
@@ -30,6 +31,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   private final CallSiteInformation callSiteInformation;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final InliningInfo info;
+  private final InternalOptions options;
   private final int inliningInstructionLimit;
   private int instructionAllowance;
 
@@ -40,6 +42,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       TypeEnvironment typeEnvironment,
       CallSiteInformation callSiteInformation,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
+      InternalOptions options,
       int inliningInstructionLimit,
       int inliningInstructionAllowance) {
     this.inliner = inliner;
@@ -49,6 +52,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
     this.callSiteInformation = callSiteInformation;
     this.isProcessedConcurrently = isProcessedConcurrently;
     info = Log.ENABLED ? new InliningInfo(method) : null;
+    this.options = options;
     this.inliningInstructionLimit = inliningInstructionLimit;
     this.instructionAllowance = inliningInstructionAllowance;
   }
@@ -164,6 +168,11 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       if (info != null) {
         info.exclude(invoke, "is processed in parallel");
       }
+      return false;
+    }
+
+    if (options.testing.validInliningReasons != null
+        && !options.testing.validInliningReasons.contains(reason)) {
       return false;
     }
 
