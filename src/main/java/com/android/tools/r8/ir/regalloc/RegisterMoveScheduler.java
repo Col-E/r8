@@ -14,6 +14,8 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import it.unimi.dsi.fastutil.ints.IntArraySet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
@@ -59,6 +61,8 @@ public class RegisterMoveScheduler {
   }
 
   public void schedule() {
+    assert everyDestinationOnlyWrittenOnce();
+
     // Worklist of moves that are ready to be inserted.
     Deque<RegisterMove> worklist = new LinkedList<>();
 
@@ -195,5 +199,14 @@ public class RegisterMoveScheduler {
     }
     iterator.remove();
     return move;
+  }
+
+  private boolean everyDestinationOnlyWrittenOnce() {
+    IntSet destinations = new IntArraySet(moveSet.size());
+    for (RegisterMove move : moveSet) {
+      boolean changed = destinations.add(move.dst);
+      assert changed;
+    }
+    return true;
   }
 }

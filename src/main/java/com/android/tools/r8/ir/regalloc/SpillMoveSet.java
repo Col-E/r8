@@ -61,7 +61,46 @@ class SpillMoveSet {
     assert to.getSplitParent() == from.getSplitParent();
     BasicBlock atEntryToBlock = blockStartMap.get(i + 1);
     if (atEntryToBlock == null) {
-      addInMove(i, to, from);
+      Value value = from.getValue();
+      if (value.definition != null
+          && value.definition.isMoveException()
+          && to.getStart() == value.definition.asMoveException().getNumber() + 1) {
+        // Consider the following IR code.
+        //   40: ...
+        //   42: v0 <- move-exception
+        //   44: ...
+        //   ...
+        //   50: ... v0 ... // 4-bit constrained use of v0
+        //
+        // Initially, the liveness interval of v0 is [42; 50[. If the method has overlapping move-
+        // exception intervals (and the register allocator needs more than 16 registers), then the
+        // intervals of v0 will be split immediately after its definition. Therefore, v0 will have
+        // two liveness intervals: I1=[42; 43[ and I2=[43;50[.
+        //
+        // When allocating a register for the interval I2, we may need to spill an existing value v1
+        // that is currently active. As a result, we will split the liveness interval of v1 before
+        // the start of I2 (i.e., at position 43). The live intervals of v1 after the split
+        // therefore becomes J1=[x, y[, J2=[41, 43[, J3=[43, z[.
+        //
+        // If the registers assigned to J1 and J2 are different, we will create an in-move at
+        // position 43 in resolveControlFlow() (not position 41, since the first instruction of the
+        // target block is a move-exception instruction). If the the registers assigned to I1 and I2
+        // are also different, then an in-move will also be created at position 43 by the call to
+        // addSpillOrRestoreMove() in insertMoves().
+        //
+        // If the registers of I2 and J2 are the same (which is a valid assignment), then we will
+        // do parallel move scheduling for the following two in-moves:
+        //   move X, reg(I2)
+        //   move X, reg(J2)
+        //
+        // Therefore, there is a risk that we end up with the value that has been spilled instead of
+        // the exception object in register X at position 44. To avoid this situation, we schedule
+        // the move of the exception object (in this case, "move X, reg(I2)") as an out-move, such
+        // that it always gets inserted *after* the resolution moves of the current block.
+        addOutMove(i, to, from);
+      } else {
+        addInMove(i, to, from);
+      }
     }
   }
 
