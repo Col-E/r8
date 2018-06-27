@@ -77,7 +77,6 @@ public class VerticalClassMerger {
     ILLEGAL_ACCESS,
     NO_SIDE_EFFECTS,
     PINNED_SOURCE,
-    PINNED_TARGET,
     RESOLUTION_FOR_FIELDS_MAY_CHANGE,
     RESOLUTION_FOR_METHODS_MAY_CHANGE,
     STATIC_INITIALIZERS,
@@ -108,9 +107,6 @@ public class VerticalClassMerger {
           break;
         case PINNED_SOURCE:
           message = "it should be kept";
-          break;
-        case PINNED_TARGET:
-          message = "its target should be kept";
           break;
         case RESOLUTION_FOR_FIELDS_MAY_CHANGE:
           message = "it could affect field resolution";
@@ -469,13 +465,6 @@ public class VerticalClassMerger {
 
       DexClass targetClass = appInfo.definitionFor(clazz.type.getSingleSubtype());
       assert !mergedClasses.containsKey(targetClass.type);
-      if (appInfo.isPinned(targetClass.type)) {
-        // We have to keep the target class intact, so we cannot merge it.
-        if (Log.ENABLED) {
-          AbortReason.PINNED_TARGET.printLogMessageForClass(clazz);
-        }
-        continue;
-      }
       if (clazz.hasClassInitializer() && targetClass.hasClassInitializer()) {
         // TODO(herhut): Handle class initializers.
         if (Log.ENABLED) {
