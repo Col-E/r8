@@ -12,6 +12,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -30,7 +31,29 @@ public abstract class Invoke extends Instruction {
     NEW_ARRAY,
     MULTI_NEW_ARRAY,
     CUSTOM,
-    POLYMORPHIC
+    POLYMORPHIC;
+
+    public MethodHandleType toMethodHandle(DexMethod targetMethod) {
+      switch (this) {
+        case STATIC:
+          return MethodHandleType.INVOKE_STATIC;
+        case VIRTUAL:
+          return MethodHandleType.INVOKE_INSTANCE;
+        case DIRECT:
+          if (targetMethod.name.toString().equals("<init>")) {
+            return MethodHandleType.INVOKE_CONSTRUCTOR;
+          } else {
+            return MethodHandleType.INVOKE_DIRECT;
+          }
+        case INTERFACE:
+          return MethodHandleType.INVOKE_INTERFACE;
+        case SUPER:
+          return MethodHandleType.INVOKE_SUPER;
+        default:
+          throw new Unreachable(
+              "Conversion to method handle with unexpected invoke type: " + this);
+      }
+    }
   }
 
   public Invoke(Value result, List<Value> arguments) {

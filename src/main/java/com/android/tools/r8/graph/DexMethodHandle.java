@@ -177,7 +177,8 @@ public class DexMethodHandle extends IndexedDexItem implements
         case INVOKE_SUPER:
           return Type.SUPER;
         default:
-          throw new Unreachable("DexMethodHandle with unexpected type: " + this);
+          throw new Unreachable(
+              "Conversion to invoke type with unexpected method handle: " + this);
       }
     }
   }
