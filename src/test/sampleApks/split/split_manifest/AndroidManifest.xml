@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+for details. All rights reserved. Use of this source code is governed by a
+BSD-style license that can be found in the LICENSE file.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.android.tools.r8.sample.split"
+    split="featuresplit"
+    android:versionCode="1"
+    android:versionName="0.1" >
+
+  <uses-sdk android:minSdkVersion="21" />
+
+</manifest>

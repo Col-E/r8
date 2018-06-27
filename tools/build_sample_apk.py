@@ -18,12 +18,14 @@ import utils
 ANDROID_JAR = 'third_party/android_jar/lib-v{api}/android.jar'
 DEFAULT_AAPT = 'aapt' # Assume in path.
 DEFAULT_D8 = os.path.join(utils.REPO_ROOT, 'tools', 'd8.py')
+DEFAULT_DEXSPLITTER = os.path.join(utils.REPO_ROOT, 'tools', 'dexsplitter.py')
 DEFAULT_JAVAC = 'javac'
 SRC_LOCATION = 'src/com/android/tools/r8/sample/{app}/*.java'
 DEFAULT_KEYSTORE = os.path.join(os.getenv('HOME'), '.android', 'debug.keystore')
 
 SAMPLE_APKS = [
-    'simple'
+    'simple',
+    'split'
 ]
 
 def parse_options():
@@ -38,6 +40,9 @@ def parse_options():
   result.add_option('--keystore',
                     help='Keystore used for signing',
                     default=DEFAULT_KEYSTORE)
+  result.add_option('--split',
+                    help='Split the app using the split.spec file',
+                    default=False, action='store_true')
   result.add_option('--app',
                     help='Which app to build',
                     default='simple',
@@ -72,6 +77,12 @@ def get_sample_dir(app):
 def get_src_path(app):
   return os.path.join(get_sample_dir(app), 'src')
 
+def get_dex_path(app):
+  return os.path.join(get_bin_path(app), 'classes.dex')
+
+def get_split_path(app, split):
+  return os.path.join(get_bin_path(app), split, 'classes.dex')
+
 def run_aapt_pack(aapt, api, app):
   with utils.ChangedWorkingDirectory(get_sample_dir(app)):
     args = ['package',
@@ -84,6 +95,16 @@ def run_aapt_pack(aapt, api, app):
             '-J', get_gen_path(app),
             '-F', os.path.join(get_bin_path(app), 'resources.ap_'),
             '-G', os.path.join(get_build_dir(app), 'proguard_options')]
+    run_aapt(aapt, args)
+
+def run_aapt_split_pack(aapt, api, app):
+  with utils.ChangedWorkingDirectory(get_sample_dir(app)):
+    args = ['package',
+            '-v', '-f',
+            '-I', get_android_jar(api),
+            '-M', 'split_manifest/AndroidManifest.xml',
+            '-S', 'res',
+            '-F', os.path.join(get_bin_path(app), 'split_resources.ap_')]
     run_aapt(aapt, args)
 
 def compile_with_javac(api, app):
@@ -110,28 +131,57 @@ def dex(app, api):
   utils.PrintCmd(command)
   subprocess.check_call(command)
 
-def create_temp_apk(app):
+def split(app):
+  split_spec = os.path.join(get_sample_dir(app), 'split.spec')
+  command = [DEFAULT_DEXSPLITTER,
+             '--input', get_dex_path(app),
+             '--output', get_bin_path(app),
+             '--feature-splits', split_spec]
+  utils.PrintCmd(command)
+  subprocess.check_call(command)
+
+def create_temp_apk(app, prefix):
   temp_apk_path = os.path.join(get_bin_path(app), '%s.ap_' % app)
-  shutil.move(os.path.join(get_bin_path(app), 'resources.ap_'),
-              temp_apk_path)
+  shutil.copyfile(os.path.join(get_bin_path(app), '%sresources.ap_' % prefix),
+                  temp_apk_path)
   return temp_apk_path
 
-def aapt_add_dex(aapt, app, temp_apk_path):
+def aapt_add_dex(aapt, dex, temp_apk_path):
   args = ['add',
           '-k', temp_apk_path,
-          os.path.join(get_bin_path(app), 'classes.dex')]
+          dex]
   run_aapt(aapt, args)
 
 def Main():
   (options, args) = parse_options()
+  is_split = options.split
   run_aapt_pack(options.aapt, options.api, options.app)
+  if is_split:
+    run_aapt_split_pack(options.aapt, options.api, options.app)
   compile_with_javac(options.api, options.app)
   dex(options.app, options.api)
-  temp_apk_path = create_temp_apk(options.app)
-  aapt_add_dex(options.aapt, options.app, temp_apk_path)
+  dex_files = { options.app: get_dex_path(options.app)}
+  dex_path = get_dex_path(options.app)
+  if is_split:
+    split(options.app)
+    dex_path = get_split_path(options.app, 'base')
+
+  temp_apk_path = create_temp_apk(options.app, '')
+  aapt_add_dex(options.aapt, dex_path, temp_apk_path)
   apk_path = os.path.join(get_bin_path(options.app), '%s.apk' % options.app)
   apk_utils.sign(temp_apk_path, apk_path,  options.keystore)
   print('Apk available at: %s' % apk_path)
+
+  if split:
+    split_temp_apk_path = create_temp_apk(options.app, 'split_')
+    aapt_add_dex(options.aapt,
+                 get_split_path(options.app, 'split'),
+                 temp_apk_path)
+    split_apk_path = os.path.join(get_bin_path(options.app), 'featuresplit.apk')
+    apk_utils.sign(temp_apk_path, split_apk_path,  options.keystore)
+    print('Feature split available at: %s' % split_apk_path)
+
+
 
 if __name__ == '__main__':
   sys.exit(Main())
