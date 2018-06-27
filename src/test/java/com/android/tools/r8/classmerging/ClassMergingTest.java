@@ -207,6 +207,29 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
+  public void testPinnedParameterTypes() throws Exception {
+    String main = "classmerging.PinnedParameterTypesTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("PinnedParameterTypesTest.class"),
+          CF_DIR.resolve("PinnedParameterTypesTest$Interface.class"),
+          CF_DIR.resolve("PinnedParameterTypesTest$InterfaceImpl.class"),
+          CF_DIR.resolve("PinnedParameterTypesTest$TestClass.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.PinnedParameterTypesTest",
+            "classmerging.PinnedParameterTypesTest$Interface",
+            "classmerging.PinnedParameterTypesTest$InterfaceImpl",
+            "classmerging.PinnedParameterTypesTest$TestClass");
+    runTest(
+        main,
+        programFiles,
+        preservedClassNames::contains,
+        getProguardConfig(EXAMPLE_KEEP, "-keepparameternames"));
+  }
+
+  @Test
   public void testSuperCallWasDetected() throws Exception {
     String main = "classmerging.SuperCallRewritingTest";
     Path[] programFiles =

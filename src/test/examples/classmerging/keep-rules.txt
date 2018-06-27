@@ -19,6 +19,12 @@
 -keep public class classmerging.RewritePinnedMethodTest {
   public static void main(...);
 }
+-keep public class classmerging.PinnedParameterTypesTest {
+  public static void main(...);
+}
+-keep public class classmerging.PinnedParameterTypesTest$TestClass {
+  public static void method(...);
+}
 -keep public class classmerging.SimpleInterfaceAccessTest {
   public static void main(...);
 }
