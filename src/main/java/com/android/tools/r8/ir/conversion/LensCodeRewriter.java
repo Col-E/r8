@@ -78,13 +78,13 @@ public class LensCodeRewriter {
           DexProto newMethodProto =
               appInfo.dexItemFactory.applyClassMappingToProto(
                   callSite.methodProto, graphLense::lookupType, protoFixupCache);
-          DexMethodHandle newBootstrapMethod = rewriteDexMethodHandle(method,
-              callSite.bootstrapMethod);
+          DexMethodHandle newBootstrapMethod =
+              rewriteDexMethodHandle(callSite.bootstrapMethod, method);
           List<DexValue> newArgs = callSite.bootstrapArgs.stream().map(
               (arg) -> {
                 if (arg instanceof DexValueMethodHandle) {
                   return new DexValueMethodHandle(
-                      rewriteDexMethodHandle(method, ((DexValueMethodHandle) arg).value));
+                      rewriteDexMethodHandle(((DexValueMethodHandle) arg).value, method));
                 }
                 return arg;
               })
@@ -226,21 +226,25 @@ public class LensCodeRewriter {
   }
 
   private DexMethodHandle rewriteDexMethodHandle(
-      DexEncodedMethod method, DexMethodHandle methodHandle) {
+      DexMethodHandle methodHandle, DexEncodedMethod context) {
     if (methodHandle.isMethodHandle()) {
       DexMethod invokedMethod = methodHandle.asMethod();
+      MethodHandleType oldType = methodHandle.type;
       GraphLenseLookupResult lenseLookup =
-          graphLense.lookupMethod(invokedMethod, method, methodHandle.type.toInvokeType());
+          graphLense.lookupMethod(invokedMethod, context, oldType.toInvokeType());
       DexMethod actualTarget = lenseLookup.getMethod();
+      MethodHandleType newType = lenseLookup.getType().toMethodHandle(actualTarget);
       if (actualTarget != invokedMethod) {
-        MethodHandleType newType = methodHandle.type;
         DexClass clazz = appInfo.definitionFor(actualTarget.holder);
-        if (clazz != null && (newType.isInvokeInterface() || newType.isInvokeInstance())) {
+        if (clazz != null && (oldType.isInvokeInterface() || oldType.isInvokeInstance())) {
           newType =
               lenseLookup.getType() == Type.INTERFACE
                   ? MethodHandleType.INVOKE_INTERFACE
                   : MethodHandleType.INVOKE_INSTANCE;
         }
+        return new DexMethodHandle(newType, actualTarget);
+      }
+      if (oldType != newType) {
         return new DexMethodHandle(newType, actualTarget);
       }
     } else {

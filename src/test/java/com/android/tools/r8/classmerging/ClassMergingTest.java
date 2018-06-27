@@ -45,8 +45,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 // TODO(christofferqa): Add tests to check that statically typed invocations on method handles
-// continue to work after class merging. Rewriting of method handles should be carried out by
-// LensCodeRewriter.rewriteDexMethodHandle.
+// continue to work after class merging.
 @RunWith(VmTestRunner.class)
 public class ClassMergingTest extends TestBase {
 
