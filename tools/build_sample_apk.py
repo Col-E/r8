@@ -43,6 +43,9 @@ def parse_options():
   result.add_option('--split',
                     help='Split the app using the split.spec file',
                     default=False, action='store_true')
+  result.add_option('--install',
+                    help='Install the app (including featuresplit)',
+                    default=False, action='store_true')
   result.add_option('--app',
                     help='Which app to build',
                     default='simple',
@@ -140,6 +143,20 @@ def split(app):
   utils.PrintCmd(command)
   subprocess.check_call(command)
 
+def run_adb(args):
+  command = ['adb']
+  command.extend(args)
+  utils.PrintCmd(command)
+  subprocess.check_call(command)
+
+def adb_install(apks):
+  args = [
+      'install-multiple' if len(apks) > 1 else 'install',
+      '-r',
+      '-d']
+  args.extend(apks)
+  run_adb(args)
+
 def create_temp_apk(app, prefix):
   temp_apk_path = os.path.join(get_bin_path(app), '%s.ap_' % app)
   shutil.copyfile(os.path.join(get_bin_path(app), '%sresources.ap_' % prefix),
@@ -154,6 +171,7 @@ def aapt_add_dex(aapt, dex, temp_apk_path):
 
 def Main():
   (options, args) = parse_options()
+  apks = []
   is_split = options.split
   run_aapt_pack(options.aapt, options.api, options.app)
   if is_split:
@@ -170,17 +188,20 @@ def Main():
   aapt_add_dex(options.aapt, dex_path, temp_apk_path)
   apk_path = os.path.join(get_bin_path(options.app), '%s.apk' % options.app)
   apk_utils.sign(temp_apk_path, apk_path,  options.keystore)
-  print('Apk available at: %s' % apk_path)
+  apks.append(apk_path)
 
-  if split:
+  if is_split:
     split_temp_apk_path = create_temp_apk(options.app, 'split_')
     aapt_add_dex(options.aapt,
                  get_split_path(options.app, 'split'),
                  temp_apk_path)
     split_apk_path = os.path.join(get_bin_path(options.app), 'featuresplit.apk')
     apk_utils.sign(temp_apk_path, split_apk_path,  options.keystore)
-    print('Feature split available at: %s' % split_apk_path)
+    apks.append(split_apk_path)
 
+  print('Generated apks available at: %s' % ' '.join(apks))
+  if options.install:
+    adb_install(apks)
 
 
 if __name__ == '__main__':
