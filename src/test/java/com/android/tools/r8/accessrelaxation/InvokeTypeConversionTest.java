@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.code.InvokeDirect;
@@ -101,7 +102,10 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
   public void invokeDirectToAlreadyStaticMethod() throws Exception {
     SmaliBuilder builder = buildTestClass(
         "invoke-direct { v1 }, L" + CLASS_NAME + ";->bar()I");
-    run(builder, "IncompatibleClassChangeError", dexInspector -> {
+    String expectedError =
+        ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)
+            ? "VerifyError" : "IncompatibleClassChangeError";
+    run(builder, expectedError, dexInspector -> {
       ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
       assertThat(clazz, isPresent());
       DexEncodedMethod method = getMethod(dexInspector, main);
