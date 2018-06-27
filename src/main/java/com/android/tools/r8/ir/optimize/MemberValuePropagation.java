@@ -7,6 +7,8 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
@@ -23,6 +25,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
+import java.util.function.Predicate;
 
 public class MemberValuePropagation {
 
@@ -113,7 +116,8 @@ public class MemberValuePropagation {
    * <p>
    * Also assigns value ranges to values where possible.
    */
-  public void rewriteWithConstantValues(IRCode code, DexType callingContext) {
+  public void rewriteWithConstantValues(
+      IRCode code, DexType callingContext, Predicate<DexEncodedMethod> isProcessedConcurrently) {
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -155,7 +159,7 @@ public class MemberValuePropagation {
         if (!invokeReplaced && invoke.outValue() != null) {
           DexEncodedMethod target = invoke.computeSingleTarget(appInfo);
           if (target != null) {
-            if (target.getOptimizationInfo().neverReturnsNull()) {
+            if (target.getOptimizationInfo().neverReturnsNull() && invoke.outValue().canBeNull()) {
               invoke.outValue().markNeverNull();
             }
             if (target.getOptimizationInfo().returnsConstant()) {
@@ -182,12 +186,11 @@ public class MemberValuePropagation {
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
         DexField field = staticGet.getField();
-        Instruction replacement = null;
         DexEncodedField target = appInfo.lookupStaticTarget(field.getHolder(), field);
         ProguardMemberRuleLookup lookup = null;
         if (target != null) {
           // Check if a this value is known const.
-          replacement = target.valueAsConstInstruction(appInfo, staticGet.dest());
+          Instruction replacement = target.valueAsConstInstruction(appInfo, staticGet.dest());
           if (replacement == null) {
             lookup = lookupMemberRule(target);
             if (lookup != null) {
@@ -206,6 +209,37 @@ public class MemberValuePropagation {
               replaceInstructionFromProguardRule(lookup.type, iterator, current, replacement);
             } else {
               iterator.replaceCurrentInstruction(replacement);
+            }
+          } else if (staticGet.dest() != null) {
+            // In case the class holder of this static field satisfying following criteria:
+            //   -- cannot trigger other static initializer except for its own
+            //   -- is final
+            //   -- has a class initializer which is classified as trivial
+            //      (see CodeRewriter::computeClassInitializerInfo) and
+            //      initializes the field being accessed
+            //
+            // ... and the field itself is not pinned by keep rules (in which case it might
+            // be updated outside the class constructor, e.g. via reflections), it is safe
+            // to assume that the static-get instruction reads the value it initialized value
+            // in class initializer and is never null.
+            //
+            DexClass holderDefinition = appInfo.definitionFor(field.getHolder());
+            if (holderDefinition != null &&
+                holderDefinition.accessFlags.isFinal() &&
+                !appInfo.canTriggerStaticInitializer(field.getHolder(), true)) {
+
+              Value outValue = staticGet.dest();
+              DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
+              if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
+                TrivialInitializer info =
+                    classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
+                if (info != null &&
+                    ((TrivialClassInitializer) info).field == field &&
+                    !appInfo.isPinned(field) &&
+                    outValue.canBeNull()) {
+                  outValue.markNeverNull();
+                }
+              }
             }
           }
         }

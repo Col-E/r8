@@ -68,6 +68,12 @@ public abstract class Instruction {
     this.position = position;
   }
 
+  boolean computeNeverNull() {
+    // By default just return the flag from the out value since it never changes.
+    assert outValue != null;
+    return outValue.isNeverNull();
+  }
+
   public final void forceSetPosition(Position position) {
     this.position = position;
   }

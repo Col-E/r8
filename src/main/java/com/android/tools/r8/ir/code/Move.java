@@ -29,6 +29,11 @@ public class Move extends Instruction {
     }
   }
 
+  @Override
+  boolean computeNeverNull() {
+    return src().isNeverNull();
+  }
+
   public Value dest() {
     return outValue;
   }

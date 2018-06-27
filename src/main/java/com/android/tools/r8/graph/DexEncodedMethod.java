@@ -47,6 +47,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -677,6 +678,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private ClassInlinerEligibility classInlinerEligibility = null;
     private TrivialInitializer trivialInitializerInfo = null;
     private ParameterUsagesInfo parametersUsages = null;
+    private BitSet kotlinNotNullParamHints = null;
 
     private OptimizationInfo() {
       // Intentionally left empty.
@@ -698,6 +700,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     public ParameterUsage getParameterUsages(int parameter) {
       return parametersUsages == null ? null : parametersUsages.getParameterUsage(parameter);
+    }
+
+    public BitSet getKotlinNotNullParamHints() {
+      return kotlinNotNullParamHints;
+    }
+
+    public void setKotlinNotNullParamHints(BitSet hints) {
+      this.kotlinNotNullParamHints = hints;
     }
 
     public boolean returnsArgument() {
@@ -841,6 +851,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
     ensureMutableOI().setParameterUsages(parametersUsages);
+  }
+
+  synchronized public void setKotlinNotNullParamHints(BitSet hints) {
+    ensureMutableOI().setKotlinNotNullParamHints(hints);
   }
 
   synchronized public void setTrivialInitializer(TrivialInitializer info) {

@@ -14,12 +14,14 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.lambda.CaptureSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import org.junit.Test;
 
 public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
@@ -29,6 +31,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
       "-keepattributes InnerClasses,EnclosingMethod\n";
   private static final String KEEP_SIGNATURE_INNER_ENCLOSING =
       "-keepattributes Signature,InnerClasses,EnclosingMethod\n";
+  private Consumer<InternalOptions> optionsModifier = opts -> opts.enableClassInlining = false;
 
   abstract static class LambdaOrGroup {
     abstract boolean match(DexClass clazz);
@@ -252,7 +255,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testTrivialKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_trivial.MainKt";
-    runTest("lambdas_kstyle_trivial", mainClassName, (app) -> {
+    runTest("lambdas_kstyle_trivial", mainClassName, optionsModifier, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_kstyle_trivial";
 
@@ -293,7 +296,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testCapturesKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_captures.MainKt";
-    runTest("lambdas_kstyle_captures", mainClassName, (app) -> {
+    runTest("lambdas_kstyle_captures", mainClassName, optionsModifier, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_kstyle_captures";
       String grpPkg = allowAccessModification ? "" : pkg;
@@ -318,7 +321,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testGenericsNoSignatureKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_generics.MainKt";
-    runTest("lambdas_kstyle_generics", mainClassName, (app) -> {
+    runTest("lambdas_kstyle_generics", mainClassName, optionsModifier, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_kstyle_generics";
       String grpPkg = allowAccessModification ? "" : pkg;
@@ -339,55 +342,57 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testInnerClassesAndEnclosingMethodsKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_generics.MainKt";
-    runTest("lambdas_kstyle_generics", mainClassName, KEEP_INNER_AND_ENCLOSING, (app) -> {
-      Verifier verifier = new Verifier(app);
-      String pkg = "lambdas_kstyle_generics";
-      String grpPkg = allowAccessModification ? "" : pkg;
+    runTest("lambdas_kstyle_generics", mainClassName,
+        KEEP_INNER_AND_ENCLOSING, optionsModifier, (app) -> {
+          Verifier verifier = new Verifier(app);
+          String pkg = "lambdas_kstyle_generics";
+          String grpPkg = allowAccessModification ? "" : pkg;
 
-      verifier.assertLambdaGroups(
-          kstyle(grpPkg, 1, 3), // Group for Any
-          kstyle(grpPkg, "L", 1), // Group for Beta   // First
-          kstyle(grpPkg, "L", 1), // Group for Beta   // Second
-          kstyle(grpPkg, "LS", 1), // Group for Gamma // First
-          kstyle(grpPkg, "LS", 1), // Group for Gamma // Second
-          kstyle(grpPkg, 1, 2)  // Group for int
-      );
+          verifier.assertLambdaGroups(
+              kstyle(grpPkg, 1, 3), // Group for Any
+              kstyle(grpPkg, "L", 1), // Group for Beta   // First
+              kstyle(grpPkg, "L", 1), // Group for Beta   // Second
+              kstyle(grpPkg, "LS", 1), // Group for Gamma // First
+              kstyle(grpPkg, "LS", 1), // Group for Gamma // Second
+              kstyle(grpPkg, 1, 2)  // Group for int
+          );
 
-      verifier.assertLambdas(
-          new Lambda(pkg, "MainKt$main$4", 1)
-      );
-    });
+          verifier.assertLambdas(
+              new Lambda(pkg, "MainKt$main$4", 1)
+          );
+        });
   }
 
   @Test
   public void testGenericsSignatureInnerEnclosingKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_generics.MainKt";
-    runTest("lambdas_kstyle_generics", mainClassName, KEEP_SIGNATURE_INNER_ENCLOSING, (app) -> {
-      Verifier verifier = new Verifier(app);
-      String pkg = "lambdas_kstyle_generics";
-      String grpPkg = allowAccessModification ? "" : pkg;
+    runTest("lambdas_kstyle_generics", mainClassName,
+        KEEP_SIGNATURE_INNER_ENCLOSING, optionsModifier, (app) -> {
+          Verifier verifier = new Verifier(app);
+          String pkg = "lambdas_kstyle_generics";
+          String grpPkg = allowAccessModification ? "" : pkg;
 
-      verifier.assertLambdaGroups(
-          kstyle(grpPkg, 1, 3), // Group for Any
-          kstyle(grpPkg, "L", 1), // Group for Beta in First
-          kstyle(grpPkg, "L", 1), // Group for Beta in Second
-          kstyle(grpPkg, "LS", 1), // Group for Gamma<String> in First
-          kstyle(grpPkg, "LS", 1), // Group for Gamma<Integer> in First
-          kstyle(grpPkg, "LS", 1), // Group for Gamma<String> in Second
-          kstyle(grpPkg, "LS", 1), // Group for Gamma<Integer> in Second
-          kstyle(grpPkg, 1, 2)  // Group for int
-      );
+          verifier.assertLambdaGroups(
+              kstyle(grpPkg, 1, 3), // Group for Any
+              kstyle(grpPkg, "L", 1), // Group for Beta in First
+              kstyle(grpPkg, "L", 1), // Group for Beta in Second
+              kstyle(grpPkg, "LS", 1), // Group for Gamma<String> in First
+              kstyle(grpPkg, "LS", 1), // Group for Gamma<Integer> in First
+              kstyle(grpPkg, "LS", 1), // Group for Gamma<String> in Second
+              kstyle(grpPkg, "LS", 1), // Group for Gamma<Integer> in Second
+              kstyle(grpPkg, 1, 2)  // Group for int
+          );
 
-      verifier.assertLambdas(
-          new Lambda(pkg, "MainKt$main$4", 1)
-      );
-    });
+          verifier.assertLambdas(
+              new Lambda(pkg, "MainKt$main$4", 1)
+          );
+        });
   }
 
   @Test
   public void testTrivialJs() throws Exception {
     final String mainClassName = "lambdas_jstyle_trivial.MainKt";
-    runTest("lambdas_jstyle_trivial", mainClassName, (app) -> {
+    runTest("lambdas_jstyle_trivial", mainClassName, optionsModifier, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_jstyle_trivial";
       String grp = allowAccessModification ? "" : pkg;
@@ -435,7 +440,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testSingleton() throws Exception {
     final String mainClassName = "lambdas_singleton.MainKt";
-    runTest("lambdas_singleton", mainClassName, (app) -> {
+    runTest("lambdas_singleton", mainClassName, optionsModifier, (app) -> {
       Verifier verifier = new Verifier(app);
       String pkg = "lambdas_singleton";
       String grp = allowAccessModification ? "" : pkg;

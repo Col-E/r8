@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.Parameter
 import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.SingleCallOfArgumentMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialInstanceInitializer;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -21,6 +22,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -114,6 +116,10 @@ final class InlineCandidateProcessor {
     }
 
     if (isNewInstance()) {
+      // NOTE: if the eligible class does not directly extend java.lang.Object,
+      // we also have to guarantee that it is initialized with initializer classified as
+      // TrivialInstanceInitializer. This will be checked in areInstanceUsersEligible(...).
+
       // There must be no static initializer on the class itself.
       return !eligibleClassDefinition.hasClassInitializer();
     }
@@ -238,6 +244,16 @@ final class InlineCandidateProcessor {
         }
       }
 
+      // Allow some IF instructions.
+      if (user.isIf()) {
+        If ifInsn = user.asIf();
+        If.Type type = ifInsn.getType();
+        if (ifInsn.isZeroTest() && (type == If.Type.EQ || type == If.Type.NE)) {
+          // Allow ==/!= null tests, we know that the instance is a non-null value.
+          continue;
+        }
+      }
+
       return false;  // Not eligible.
     }
     return true;
@@ -256,7 +272,8 @@ final class InlineCandidateProcessor {
     replaceUsagesAsUnusedArgument(code);
     forceInlineExtraMethodInvocations(inliner);
     forceInlineDirectMethodInvocations(inliner);
-    removeSuperClassInitializerAndFieldReads(code);
+    removeMiscUsages(code);
+    removeFieldReads(code);
     removeFieldWrites();
     removeInstruction(root);
   }
@@ -308,19 +325,58 @@ final class InlineCandidateProcessor {
     }
   }
 
-  // Remove call to superclass initializer, replace field reads with appropriate
-  // values, insert phis when needed.
-  private void removeSuperClassInitializerAndFieldReads(IRCode code) {
-    Map<DexField, FieldValueHelper> fieldHelpers = new IdentityHashMap<>();
+  // Remove miscellaneous users before handling field reads.
+  private void removeMiscUsages(IRCode code) {
+    boolean needToRemoveUnreachableBlocks = false;
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       // Remove the call to superclass constructor.
       if (root.isNewInstance() &&
           user.isInvokeDirect() &&
-          user.asInvokeDirect().getInvokedMethod() == factory.objectMethods.constructor) {
+          factory.isConstructor(user.asInvokeDirect().getInvokedMethod()) &&
+          user.asInvokeDirect().getInvokedMethod().holder == eligibleClassDefinition.superType) {
         removeInstruction(user);
         continue;
       }
 
+      if (user.isIf()) {
+        If ifInsn = user.asIf();
+        assert ifInsn.isZeroTest()
+            : "Unexpected usage in non-zero-test IF instruction: " + user;
+        BasicBlock block = user.getBlock();
+        If.Type type = ifInsn.getType();
+        assert type == If.Type.EQ || type == If.Type.NE
+            : "Unexpected type in zero-test IF instruction: " + user;
+        BasicBlock newBlock = type == If.Type.EQ
+            ? ifInsn.fallthroughBlock() : ifInsn.getTrueTarget();
+        BasicBlock blockToRemove = type == If.Type.EQ
+            ? ifInsn.getTrueTarget() : ifInsn.fallthroughBlock();
+        assert newBlock != blockToRemove;
+
+        block.replaceSuccessor(blockToRemove, newBlock);
+        blockToRemove.removePredecessor(block);
+        assert block.exit().isGoto();
+        assert block.exit().asGoto().getTarget() == newBlock;
+        needToRemoveUnreachableBlocks = true;
+        continue;
+      }
+
+      if (user.isInstanceGet() || user.isInstancePut()) {
+        // Leave field reads/writes until next steps.
+        continue;
+      }
+
+      throw new Unreachable("Unexpected usage left after method inlining: " + user);
+    }
+
+    if (needToRemoveUnreachableBlocks) {
+      code.removeUnreachableBlocks();
+    }
+  }
+
+  // Replace field reads with appropriate values, insert phis when needed.
+  private void removeFieldReads(IRCode code) {
+    Map<DexField, FieldValueHelper> fieldHelpers = new IdentityHashMap<>();
+    for (Instruction user : eligibleInstance.uniqueUsers()) {
       if (user.isInstanceGet()) {
         // Replace a field read with appropriate value.
         replaceFieldRead(code, user.asInstanceGet(), fieldHelpers);
@@ -383,6 +439,19 @@ final class InlineCandidateProcessor {
     DexEncodedMethod definition = appInfo.definitionFor(init);
     if (definition == null || isProcessedConcurrently.test(definition)) {
       return null;
+    }
+
+    // If the superclass of the initializer is NOT java.lang.Object, the super class
+    // initializer being called must be classified as TrivialInstanceInitializer.
+    //
+    // NOTE: since we already classified the class as eligible, it does not have
+    //       any class initializers in superclass chain or in superinterfaces, see
+    //       details in ClassInliner::computeClassEligible(...).
+    if (eligibleClassDefinition.superType != factory.objectType) {
+      TrivialInitializer info = definition.getOptimizationInfo().getTrivialInitializerInfo();
+      if (!(info instanceof TrivialInstanceInitializer)) {
+        return null;
+      }
     }
 
     if (!definition.isInliningCandidate(method, Reason.SIMPLE, appInfo)) {

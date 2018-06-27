@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import java.util.BitSet;
 
 public class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
@@ -44,5 +45,9 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
   @Override
   public void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo) {
+  }
+
+  @Override
+  public void setKotlinNotNullParamHints(DexEncodedMethod method, BitSet hints) {
   }
 }

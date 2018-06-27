@@ -89,7 +89,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "-keep class B { *; }",
         "-keep class C { *; }",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, opts -> opts.enableClassInlining = false);
 
     DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
     assertNotNull(method);

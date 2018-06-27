@@ -14,11 +14,14 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.BitSet;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Predicate;
 
@@ -218,11 +221,31 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
     if (reason == Reason.SIMPLE) {
       // If we are looking for a simple method, only inline if actually simple.
       Code code = candidate.getCode();
-      if (!code.estimatedSizeForInliningAtMost(inliningInstructionLimit)) {
+      int instructionLimit = computeInstructionLimit(invoke, candidate);
+      if (!code.estimatedSizeForInliningAtMost(instructionLimit)) {
         return false;
       }
     }
     return true;
+  }
+
+  private int computeInstructionLimit(InvokeMethod invoke, DexEncodedMethod candidate) {
+    int instructionLimit = inliningInstructionLimit;
+    BitSet hints = candidate.getOptimizationInfo().getKotlinNotNullParamHints();
+    if (hints != null) {
+      List<Value> arguments = invoke.inValues();
+      if (invoke.isInvokeMethodWithReceiver()) {
+        arguments = arguments.subList(1, arguments.size());
+      }
+      for (int index = 0; index < arguments.size(); index++) {
+        Value argument = arguments.get(index);
+        if (argument.isNeverNull() && hints.get(index)) {
+          // 5-4 instructions per parameter check are expected to be removed.
+          instructionLimit += 4;
+        }
+      }
+    }
+    return instructionLimit;
   }
 
   @Override

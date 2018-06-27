@@ -628,6 +628,17 @@ public class Value {
   public void markNeverNull() {
     assert !neverNull;
     neverNull = true;
+
+    // Propagate never null flag change.
+    for (Instruction user : users) {
+      Value value = user.outValue;
+      if (value != null && value.canBeNull() && user.computeNeverNull()) {
+        value.markNeverNull();
+      }
+    }
+    for (Phi phi : phiUsers) {
+      phi.recomputeNeverNull();
+    }
   }
 
   /**

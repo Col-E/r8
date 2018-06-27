@@ -231,7 +231,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     }
 
     // Build classpath for compilation (and java execution)
-    assert classpath.isEmpty();
+    classpath.clear();
     classpath.add(getKotlinJarFile(folder));
     classpath.add(getJavaJarFile(folder));
     classpath.addAll(extraClasspath);

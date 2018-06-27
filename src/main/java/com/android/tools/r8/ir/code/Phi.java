@@ -57,7 +57,6 @@ public class Phi extends Value {
     // period of time to break cycles. When the cycle has been resolved they are completed
     // exactly once by adding the operands.
     assert operands.isEmpty();
-    boolean canBeNull = false;
     if (block.getPredecessors().size() == 0) {
       throwUndefinedValueError();
     }
@@ -66,13 +65,10 @@ public class Phi extends Value {
       // Since this read has been delayed we must provide the local info for the value.
       Value operand = builder.readRegister(register, type, pred, edgeType, getLocalInfo());
       operand.constrainType(type);
-      canBeNull |= operand.canBeNull();
       appendOperand(operand);
     }
-    if (!canBeNull) {
-      markNeverNull();
-    }
     removeTrivialPhi();
+    recomputeNeverNull();
   }
 
   public void addOperands(List<Value> operands) {
@@ -84,19 +80,23 @@ public class Phi extends Value {
     // period of time to break cycles. When the cycle has been resolved they are completed
     // exactly once by adding the operands.
     assert this.operands.isEmpty();
-    boolean canBeNull = false;
     if (operands.size() == 0) {
       throwUndefinedValueError();
     }
     for (Value operand : operands) {
-      canBeNull |= operand.canBeNull();
       appendOperand(operand);
-    }
-    if (!canBeNull) {
-      markNeverNull();
     }
     if (removeTrivialPhi) {
       removeTrivialPhi();
+    }
+    recomputeNeverNull();
+  }
+
+  // Implementation assumes that canBeNull may change to neverNull, but
+  // not other way around. This will need to be revised later.
+  void recomputeNeverNull() {
+    if (canBeNull() && operands.stream().allMatch(Value::isNeverNull)) {
+      markNeverNull();
     }
   }
 
@@ -131,7 +131,10 @@ public class Phi extends Value {
 
   public void removeOperand(int index) {
     operands.get(index).removePhiUser(this);
-    operands.remove(index);
+    Value value = operands.remove(index);
+    if (value.canBeNull()) {
+      recomputeNeverNull();
+    }
   }
 
   public void removeOperandsByIndex(List<Integer> operandsToRemove) {
@@ -147,6 +150,7 @@ public class Phi extends Value {
       current = i + 1;
     }
     operands.addAll(copy.subList(current, copy.size()));
+    recomputeNeverNull();
   }
 
   public void replaceOperandAt(int predIndex, Value newValue) {
@@ -154,6 +158,9 @@ public class Phi extends Value {
     operands.set(predIndex, newValue);
     newValue.addPhiUser(this);
     current.removePhiUser(this);
+    if (current.canBeNull() && newValue.isNeverNull()) {
+      recomputeNeverNull();
+    }
   }
 
   void replaceOperand(Value current, Value newValue) {
@@ -162,6 +169,9 @@ public class Phi extends Value {
         operands.set(i, newValue);
         newValue.addPhiUser(this);
       }
+    }
+    if (current.canBeNull() && newValue.isNeverNull()) {
+      recomputeNeverNull();
     }
   }
 

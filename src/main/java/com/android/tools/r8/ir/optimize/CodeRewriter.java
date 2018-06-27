@@ -755,7 +755,9 @@ public class CodeRewriter {
     //
     //  (1) as a receiver of reads/writes of instance fields of the holder class
     //  (2) as a return value
-    //  (3) as a receiver of a call to the superclass initializer
+    //  (3) as a receiver of a call to the superclass initializer. Note that we don't
+    //      check what is passed to superclass initializer as arguments, only check
+    //      that it is not the instance being initialized.
     //
     boolean instanceInitializer = method.isInstanceInitializer();
     if (method.accessFlags.isNative() ||
@@ -787,23 +789,25 @@ public class CodeRewriter {
           (insn.isInstancePut() && insn.asInstancePut().object() == receiver)) {
         DexField field = insn.asFieldInstruction().getField();
         if (field.clazz == clazz.type && clazz.lookupInstanceField(field) != null) {
-          // Since class inliner currently only supports classes directly extending
-          // java.lang.Object, we don't need to worry about fields defined in superclasses.
+          // Require only accessing instance fields of the *current* class.
           continue;
         }
         return;
       }
 
-      // If this is an instance initializer allow one call
-      // to java.lang.Object.<init>() on 'this'.
-      if (instanceInitializer && insn.isInvokeDirect()) {
+      // If this is an instance initializer allow one call to superclass instance initializer.
+      if (insn.isInvokeDirect()) {
         InvokeDirect invokedDirect = insn.asInvokeDirect();
-        if (invokedDirect.getInvokedMethod() == dexItemFactory.objectMethods.constructor &&
-            invokedDirect.getReceiver() == receiver &&
-            !seenSuperInitCall) {
+        DexMethod invokedMethod = invokedDirect.getInvokedMethod();
+        if (dexItemFactory.isConstructor(invokedMethod) &&
+            invokedMethod.holder == clazz.superType &&
+            invokedDirect.inValues().lastIndexOf(receiver) == 0 &&
+            !seenSuperInitCall &&
+            instanceInitializer) {
           seenSuperInitCall = true;
           continue;
         }
+        // We don't support other direct calls yet.
         return;
       }
 
@@ -870,7 +874,7 @@ public class CodeRewriter {
 
   // This method defines trivial instance initializer as follows:
   //
-  // ** The initializer may only call the initializer of the base class, which
+  // ** The initializer may call the initializer of the base class, which
   //    itself must be trivial.
   //
   // ** java.lang.Object.<init>() is considered trivial.

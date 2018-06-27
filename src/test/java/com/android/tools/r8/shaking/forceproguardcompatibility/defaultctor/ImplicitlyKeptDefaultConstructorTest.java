@@ -155,8 +155,10 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
-        // Prevent SuperClass from being merged into SubClass.
-        keepMainProguardConfiguration(mainClass, ImmutableList.of("-keep class **.SuperClass")),
+        // Prevent SuperClass from being merged into SubClass and keep both
+        // SuperClass and SubClass after instantiation is inlined.
+        keepMainProguardConfiguration(mainClass, ImmutableList.of(
+            "-keep class **.SuperClass", "-keep class **.SubClass")),
         this::checkAllClassesPresentWithDefaultConstructor);
   }
 

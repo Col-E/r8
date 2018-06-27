@@ -65,6 +65,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -630,6 +631,11 @@ public class IRConverter {
     printC1VisualizerHeader(method);
     printMethod(code, "Initial IR (SSA)");
 
+    if (method.getCode() != null && method.getCode().isJarCode() &&
+        appInfo.definitionFor(method.method.holder).hasKotlinInfo()) {
+      computeKotlinNotNullParamHints(feedback, method, code);
+    }
+
     if (options.canHaveArtStringNewInitBug()) {
       CodeRewriter.ensureDirectStringNewToInit(code);
     }
@@ -655,7 +661,8 @@ public class IRConverter {
     }
 
     if (memberValuePropagation != null) {
-      memberValuePropagation.rewriteWithConstantValues(code, method.method.holder);
+      memberValuePropagation.rewriteWithConstantValues(
+          code, method.method.holder, isProcessedConcurrently);
     }
     if (options.enableSwitchMapRemoval && appInfo.hasLiveness()) {
       codeRewriter.removeSwitchMaps(code);
@@ -777,6 +784,36 @@ public class IRConverter {
 
     printMethod(code, "Optimized IR (SSA)");
     finalizeIR(method, code, feedback);
+  }
+
+  private void computeKotlinNotNullParamHints(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+    // Try to infer Kotlin non-null parameter check to use it as a hint.
+    List<Value> arguments = code.collectArguments(true);
+    BitSet paramsCheckedForNull = new BitSet();
+    DexMethod checkParameterIsNotNull =
+        code.options.itemFactory.kotlin.intrinsics.checkParameterIsNotNull;
+    for (int index = 0; index < arguments.size(); index++) {
+      Value argument = arguments.get(index);
+      for (Instruction user : argument.uniqueUsers()) {
+        // To enforce parameter non-null requirement Kotlin uses intrinsic:
+        //    kotlin.jvm.internal.Intrinsics.checkParameterIsNotNull(param, message)
+        //
+        // with the following we simply look if the parameter is ever passed
+        // to the mentioned intrinsic as the first argument. We do it only for
+        // code coming from Java classfile, since after the method is rewritten
+        // by R8 this call gets inlined.
+        if (!user.isInvokeStatic() ||
+            user.asInvokeMethod().getInvokedMethod() != checkParameterIsNotNull ||
+            user.inValues().indexOf(argument) != 0) {
+          continue;
+        }
+        paramsCheckedForNull.set(index);
+      }
+    }
+    if (paramsCheckedForNull.length() > 0) {
+      feedback.setKotlinNotNullParamHints(method, paramsCheckedForNull);
+    }
   }
 
   private void finalizeIR(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {

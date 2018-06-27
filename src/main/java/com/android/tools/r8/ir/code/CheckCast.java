@@ -35,6 +35,11 @@ public class CheckCast extends Instruction {
     this.type = type;
   }
 
+  @Override
+  boolean computeNeverNull() {
+    return object().isNeverNull();
+  }
+
   public DexType getType() {
     return type;
   }

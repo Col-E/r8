@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.Streams;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -127,31 +128,51 @@ public final class ClassInliner {
         .filter(insn -> insn.isNewInstance() || insn.isStaticGet())
         .collect(Collectors.toList());
 
-    for (Instruction root : roots) {
-      InlineCandidateProcessor processor =
-          new InlineCandidateProcessor(factory, appInfo,
-              type -> isClassEligible(appInfo, type),
-              isProcessedConcurrently, method, root);
+    // We loop inlining iterations until there was no inlining, but still use same set
+    // of roots to avoid infinite inlining. Looping makes possible for some roots to
+    // become eligible after other roots are inlined.
 
-      // Assess eligibility and compute inlining of direct calls and extra methods needed.
-      if (!processor.isInstanceEligible() ||
-          !processor.isClassAndUsageEligible() ||
-          !processor.areInstanceUsersEligible(defaultOracle)) {
-        continue;
+    boolean repeat;
+    do {
+      repeat = false;
+
+      Iterator<Instruction> rootsIterator = roots.iterator();
+      while (rootsIterator.hasNext()) {
+        Instruction root = rootsIterator.next();
+        InlineCandidateProcessor processor =
+            new InlineCandidateProcessor(factory, appInfo,
+                type -> isClassEligible(appInfo, type),
+                isProcessedConcurrently, method, root);
+
+        // Assess eligibility of instance and class.
+        if (!processor.isInstanceEligible() ||
+            !processor.isClassAndUsageEligible()) {
+          // This root will never be inlined.
+          rootsIterator.remove();
+          continue;
+        }
+
+        // Assess users eligibility and compute inlining of direct calls and extra methods needed.
+        if (!processor.areInstanceUsersEligible(defaultOracle)) {
+          // This root may succeed if users change in future.
+          continue;
+        }
+
+        // Is inlining allowed.
+        if (processor.getEstimatedCombinedSizeForInlining() >= totalMethodInstructionLimit) {
+          continue;
+        }
+
+        // Inline the class instance.
+        processor.processInlining(code, inliner);
+
+        // Restore normality.
+        code.removeAllTrivialPhis();
+        assert code.isConsistentSSA();
+        rootsIterator.remove();
+        repeat = true;
       }
-
-      // Is inlining allowed.
-      if (processor.getEstimatedCombinedSizeForInlining() >= totalMethodInstructionLimit) {
-        continue;
-      }
-
-      // Inline the class instance.
-      processor.processInlining(code, inliner);
-
-      // Restore normality.
-      code.removeAllTrivialPhis();
-      assert code.isConsistentSSA();
-    }
+    } while (repeat);
   }
 
   private boolean isClassEligible(AppInfo appInfo, DexType clazz) {
@@ -167,18 +188,12 @@ public final class ClassInliner {
 
   // Class is eligible for this optimization. Eligibility implementation:
   //   - is not an abstract class or interface
-  //   - directly extends java.lang.Object
   //   - does not declare finalizer
   //   - does not trigger any static initializers except for its own
   private boolean computeClassEligible(AppInfo appInfo, DexType clazz) {
     DexClass definition = appInfo.definitionFor(clazz);
     if (definition == null || definition.isLibraryClass() ||
         definition.accessFlags.isAbstract() || definition.accessFlags.isInterface()) {
-      return false;
-    }
-
-    // Must directly extend Object.
-    if (definition.superType != factory.objectType) {
       return false;
     }
 
