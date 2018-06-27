@@ -149,27 +149,25 @@ public class ProguardMapApplier {
         }
       });
 
-      // We need to handle a lib class that extends another lib class where some members are not
-      // overridden, resulting in absence of definitions. References to those members need to be
-      // redirected via lense as well.
-      if (clazz.isLibraryClass()) {
-        classNaming.forAllFieldNaming(memberNaming -> {
-          if (!appliedMemberNaming.contains(memberNaming)) {
-            DexField pretendedOriginalField =
-                ((FieldSignature) memberNaming.getOriginalSignature())
-                    .toDexField(appInfo.dexItemFactory, from);
-            applyFieldMapping(pretendedOriginalField, memberNaming);
-          }
-        });
-        classNaming.forAllMethodNaming(memberNaming -> {
-          if (!appliedMemberNaming.contains(memberNaming)) {
-            DexMethod pretendedOriginalMethod =
-                ((MethodSignature) memberNaming.getOriginalSignature())
-                    .toDexMethod(appInfo.dexItemFactory, from);
-            applyMethodMapping(pretendedOriginalMethod, memberNaming);
-          }
-        });
-      }
+      // We need to handle a class that extends another class where some members are not overridden,
+      // resulting in absence of definitions. References to those members need to be redirected via
+      // the lense as well.
+      classNaming.forAllFieldNaming(memberNaming -> {
+        if (!appliedMemberNaming.contains(memberNaming)) {
+          DexField pretendedOriginalField =
+              ((FieldSignature) memberNaming.getOriginalSignature())
+                  .toDexField(appInfo.dexItemFactory, from);
+          applyFieldMapping(pretendedOriginalField, memberNaming);
+        }
+      });
+      classNaming.forAllMethodNaming(memberNaming -> {
+        if (!appliedMemberNaming.contains(memberNaming)) {
+          DexMethod pretendedOriginalMethod =
+              ((MethodSignature) memberNaming.getOriginalSignature())
+                  .toDexMethod(appInfo.dexItemFactory, from);
+          applyMethodMapping(pretendedOriginalMethod, memberNaming);
+        }
+      });
     }
 
     private void applyFieldMapping(DexField originalField, MemberNaming memberNaming) {

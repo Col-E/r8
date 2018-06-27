@@ -331,6 +331,16 @@ public class R8 {
       GraphLense graphLense = GraphLense.getIdentityLense();
 
       if (appInfo.hasLiveness()) {
+        if (options.proguardConfiguration.hasApplyMappingFile()) {
+          SeedMapper seedMapper =
+              SeedMapper.seedMapperFromFile(options.proguardConfiguration.getApplyMappingFile());
+          timing.begin("apply-mapping");
+          graphLense =
+              new ProguardMapApplier(appInfo.withLiveness(), graphLense, seedMapper).run(timing);
+          application = application.asDirect().rewrittenWithLense(graphLense);
+          appInfo = appInfo.withLiveness().rewrittenWithLense(application.asDirect(), graphLense);
+          timing.end();
+        }
         graphLense = new MemberRebindingAnalysis(appInfo.withLiveness(), graphLense).run();
         // Class merging requires inlining.
         if (options.enableClassMerging && options.enableInlining) {
@@ -339,20 +349,11 @@ public class R8 {
               new VerticalClassMerger(application, appInfo.withLiveness(), graphLense, timing);
           graphLense = classMerger.run();
           timing.end();
-
+          application = application.asDirect().rewrittenWithLense(graphLense);
           appInfo = appInfo.withLiveness()
-              .prunedCopyFrom(application, classMerger.getRemovedClasses());
+              .prunedCopyFrom(application, classMerger.getRemovedClasses())
+              .rewrittenWithLense(application.asDirect(), graphLense);
         }
-        if (options.proguardConfiguration.hasApplyMappingFile()) {
-          SeedMapper seedMapper =
-              SeedMapper.seedMapperFromFile(options.proguardConfiguration.getApplyMappingFile());
-          timing.begin("apply-mapping");
-          graphLense =
-              new ProguardMapApplier(appInfo.withLiveness(), graphLense, seedMapper).run(timing);
-          timing.end();
-        }
-        application = application.asDirect().rewrittenWithLense(graphLense);
-        appInfo = appInfo.withLiveness().rewrittenWithLense(application.asDirect(), graphLense);
         // Collect switch maps and ordinals maps.
         appInfo = new SwitchMapCollector(appInfo.withLiveness(), options).run();
         appInfo = new EnumOrdinalMapCollector(appInfo.withLiveness(), options).run();
