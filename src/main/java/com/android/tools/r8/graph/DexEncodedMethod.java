@@ -160,6 +160,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return isVirtualMethod() && !accessFlags.isAbstract();
   }
 
+  public boolean isPublicized() {
+    return optimizationInfo.isPublicized();
+  }
+
   public boolean isPublicMethod() {
     return accessFlags.isPublic();
   }
@@ -669,6 +673,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private boolean neverReturnsNormally = false;
     private boolean returnsConstant = false;
     private long returnedConstant = 0;
+    private boolean publicized = false;
     private boolean forceInline = false;
     private boolean useIdentifierNameString = false;
     private boolean checksNullReceiverBeforeAnySideEffect = false;
@@ -689,6 +694,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       neverReturnsNull = template.neverReturnsNull;
       returnsConstant = template.returnsConstant;
       returnedConstant = template.returnedConstant;
+      publicized = template.publicized;
       forceInline = template.forceInline;
       useIdentifierNameString = template.useIdentifierNameString;
       checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
@@ -752,6 +758,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return returnedConstant;
     }
 
+    public boolean isPublicized() {
+      return publicized;
+    }
+
     public boolean forceInline() {
       return forceInline;
     }
@@ -790,6 +800,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     private void markForceInline() {
       forceInline = true;
+    }
+
+    private void markPublicized() {
+      publicized = true;
     }
 
     private void markUseIdentifierNameString() {
@@ -863,6 +877,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void markForceInline() {
     ensureMutableOI().markForceInline();
+  }
+
+  synchronized public void markPublicized() {
+    ensureMutableOI().markPublicized();
   }
 
   synchronized public void markUseIdentifierNameString() {

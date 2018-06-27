@@ -98,10 +98,10 @@ public class MinifierTest extends NamingTestBase {
     // method naming001.A.m should be kept, according to the keep rule.
     assertEquals("m", naming.lookupName(m).toSourceString());
 
+    // method naming001.A.privateFunc is transformed to a public method, and then kept.
     DexMethod p = dexItemFactory.createMethod(
         a, dexItemFactory.createProto(dexItemFactory.voidType), "privateFunc");
-    // method naming001.A.privateFunc would be renamed.
-    assertNotEquals("privateFunc", naming.lookupName(p).toSourceString());
+    assertEquals("privateFunc", naming.lookupName(p).toSourceString());
   }
 
   private static void test001_rule005(DexItemFactory dexItemFactory, NamingLens naming) {

@@ -715,6 +715,8 @@ public class DexInspector {
 
   public abstract class MemberSubject extends Subject {
 
+    public abstract boolean isPublic();
+
     public abstract boolean isStatic();
 
     public abstract boolean isFinal();
@@ -769,6 +771,11 @@ public class DexInspector {
 
     @Override
     public boolean isRenamed() {
+      return false;
+    }
+
+    @Override
+    public boolean isPublic() {
       return false;
     }
 
@@ -846,6 +853,11 @@ public class DexInspector {
     @Override
     public boolean isRenamed() {
       return clazz.naming != null && !getFinalSignature().name.equals(getOriginalSignature().name);
+    }
+
+    @Override
+    public boolean isPublic() {
+      return dexMethod.accessFlags.isPublic();
     }
 
     @Override
@@ -966,6 +978,11 @@ public class DexInspector {
   public class AbsentFieldSubject extends FieldSubject {
 
     @Override
+    public boolean isPublic() {
+      return false;
+    }
+
+    @Override
     public boolean isStatic() {
       return false;
     }
@@ -1029,6 +1046,11 @@ public class DexInspector {
     public FoundFieldSubject(DexEncodedField dexField, FoundClassSubject clazz) {
       this.clazz = clazz;
       this.dexField = dexField;
+    }
+
+    @Override
+    public boolean isPublic() {
+      return dexField.accessFlags.isPublic();
     }
 
     @Override

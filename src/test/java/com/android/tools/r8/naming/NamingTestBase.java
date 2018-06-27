@@ -7,6 +7,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -57,7 +58,7 @@ abstract class NamingTestBase {
   }
 
   @Before
-  public void readApp() throws IOException, ExecutionException, ProguardRuleParserException {
+  public void readApp() throws IOException, ExecutionException {
     program = ToolHelper.buildApplication(ImmutableList.of(appFileName));
     dexItemFactory = program.dexItemFactory;
     appInfo = new AppInfoWithSubtyping(program);
@@ -70,13 +71,18 @@ abstract class NamingTestBase {
     InternalOptions options = new InternalOptions(configuration,
         new Reporter(new DefaultDiagnosticsHandler()));
 
-    if (options.proguardConfiguration.isAccessModificationAllowed()) {
-      ClassAndMemberPublicizer.run(program, dexItemFactory);
-    }
-
     ExecutorService executor = ThreadUtils.getExecutorService(1);
+
     RootSet rootSet = new RootSetBuilder(appInfo, program, configuration.getRules(), options)
         .run(executor);
+
+    if (options.proguardConfiguration.isAccessModificationAllowed()) {
+      ClassAndMemberPublicizer.run(
+          executor, timing, program, appInfo, rootSet, GraphLense.getIdentityLense());
+      rootSet =
+          new RootSetBuilder(appInfo, program, configuration.getRules(), options).run(executor);
+    }
+
     Enqueuer enqueuer = new Enqueuer(appInfo, options, options.forceProguardCompatibility);
     appInfo = enqueuer.traceApplication(rootSet, executor, timing);
     return new Minifier(appInfo.withLiveness(), rootSet, options).run(timing);
