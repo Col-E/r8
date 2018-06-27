@@ -1009,6 +1009,11 @@ public abstract class R8RunArtTestsTest {
   );
 
   private static List<String> requireClassInliningToBeDisabled = ImmutableList.of(
+      // Test is registered to be failing (failingRunWithArt), it fails only on 4.0.4
+      // (because of a bug in this version of dalvik) but succeeds on later versions.
+      // If class inliner us enabled it actually works fine on 4.0.4 since the class
+      // instantiation is properly inlined.
+      "301-abstract-protected",
       // Test depends on exception produced for missing method or similar cases, but
       // after class inlining removes class instantiations and references the exception
       // is not produced.
