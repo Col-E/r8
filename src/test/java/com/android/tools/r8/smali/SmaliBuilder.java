@@ -257,6 +257,12 @@ public class SmaliBuilder {
     return addStaticMethod(returnType, name, parameters, locals, buildCode(instructions));
   }
 
+  public MethodSignature addPrivateStaticMethod(
+      String returnType, String name, List<String> parameters, int locals, String... instructions) {
+    return addMethod(
+        "private static", returnType, name, parameters, locals, buildCode(instructions));
+  }
+
   public MethodSignature addStaticMethod(
       String returnType, String name, List<String> parameters, int locals, String code) {
     return addStaticMethod("", returnType, name, parameters, locals, code);
@@ -299,6 +305,11 @@ public class SmaliBuilder {
       List<String> parameters, int locals, String... instructions) {
     return addMethod(
         "public constructor", "void", "<init>", parameters, locals, buildCode(instructions));
+  }
+
+  public MethodSignature addPrivateInstanceMethod(
+      String returnType, String name, List<String> parameters, int locals, String... instructions) {
+    return addMethod("private", returnType, name, parameters, locals, buildCode(instructions));
   }
 
   public MethodSignature addInstanceMethod(

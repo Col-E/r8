@@ -138,4 +138,24 @@ public class DexInspectorMatchers {
       }
     };
   }
+
+  public static Matcher<MethodSubject> isPublic() {
+    return new TypeSafeMatcher<MethodSubject>() {
+      @Override
+      public boolean matchesSafely(final MethodSubject method) {
+        return method.isPresent() && method.isPublic();
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("method public");
+      }
+
+      @Override
+      public void describeMismatchSafely(final MethodSubject method, Description description) {
+        description
+            .appendText("method ").appendValue(method.getOriginalName()).appendText(" was not");
+      }
+    };
+  }
 }

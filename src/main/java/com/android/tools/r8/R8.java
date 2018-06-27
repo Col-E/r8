@@ -320,15 +320,16 @@ public class R8 {
         timing.end();
       }
 
+      GraphLense graphLense = GraphLense.getIdentityLense();
+
       if (options.proguardConfiguration.isAccessModificationAllowed()) {
-        ClassAndMemberPublicizer.run(application, appInfo.dexItemFactory);
+        graphLense = ClassAndMemberPublicizer.run(
+            executorService, timing, application, appInfo, rootSet, graphLense);
         // We can now remove visibility bridges. Note that we do not need to update the
         // invoke-targets here, as the existing invokes will simply dispatch to the now
         // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
         application = new VisibilityBridgeRemover(appInfo, application).run();
       }
-
-      GraphLense graphLense = GraphLense.getIdentityLense();
 
       if (appInfo.hasLiveness()) {
         if (options.proguardConfiguration.hasApplyMappingFile()) {

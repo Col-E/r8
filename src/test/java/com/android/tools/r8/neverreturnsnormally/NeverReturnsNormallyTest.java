@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class NeverReturnsNormallyTest extends TestBase {
@@ -127,6 +128,7 @@ public class NeverReturnsNormallyTest extends TestBase {
     return instructions.next();
   }
 
+  @Ignore("b/110736241")
   @Test
   public void test() throws Exception {
     runTest(this::validate, CompilationMode.DEBUG);
