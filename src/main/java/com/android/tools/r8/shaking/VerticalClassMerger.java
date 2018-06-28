@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
-import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -177,37 +176,24 @@ public class VerticalClassMerger {
     extractPinnedItems(appInfo.alwaysInline, pinnedTypes, AbortReason.ALWAYS_INLINE);
     extractPinnedItems(appInfo.noSideEffects.keySet(), pinnedTypes, AbortReason.NO_SIDE_EFFECTS);
 
-    for (DexProgramClass clazz : classes) {
-      for (DexEncodedMethod method : clazz.methods()) {
-        // Avoid merging two types if this could remove a NoSuchMethodError, as illustrated by the
-        // following example. (Alternatively, it would be possible to merge A and B and rewrite the
-        // "invoke-super A.m" instruction into "invoke-super Object.m" to preserve the error. This
-        // situation should generally not occur in practice, though.)
-        //
-        //   class A {}
-        //   class B extends A {
-        //     public void m() {}
-        //   }
-        //   class C extends A {
-        //     public void m() {
-        //       invoke-super "A.m" <- should yield NoSuchMethodError, cannot merge A and B
-        //     }
-        //   }
-        if (!method.isStaticMethod()) {
-          method.registerCodeReferences(
-              new DefaultUseRegistry() {
-                @Override
-                public boolean registerInvokeSuper(DexMethod target) {
-                  DexClass targetClass = appInfo.definitionFor(target.getHolder());
-                  if (targetClass != null
-                      && targetClass.isProgramClass()
-                      && targetClass.lookupVirtualMethod(target) == null) {
-                    pinnedTypes.add(target.getHolder());
-                  }
-                  return true;
-                }
-              });
-        }
+    // Avoid merging two types if this could remove a NoSuchMethodError, as illustrated by the
+    // following example. (Alternatively, it would be possible to merge A and B and rewrite the
+    // "invoke-super A.m" instruction into "invoke-super Object.m" to preserve the error. This
+    // situation should generally not occur in practice, though.)
+    //
+    //   class A {}
+    //   class B extends A {
+    //     public void m() {}
+    //   }
+    //   class C extends A {
+    //     public void m() {
+    //       invoke-super "A.m" <- should yield NoSuchMethodError, cannot merge A and B
+    //     }
+    //   }
+    for (DexMethod signature : appInfo.brokenSuperInvokes) {
+      DexClass targetClass = appInfo.definitionFor(signature.holder);
+      if (targetClass != null && targetClass.isProgramClass()) {
+        pinnedTypes.add(signature.holder);
       }
     }
     return pinnedTypes;
