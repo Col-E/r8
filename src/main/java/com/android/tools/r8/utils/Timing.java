@@ -13,6 +13,8 @@ package com.android.tools.r8.utils;
 // Finally a report is printed by:
 //     t.report();
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Stack;
 
 public class Timing {
@@ -27,23 +29,28 @@ public class Timing {
   static class Node {
     final String title;
 
-    final Stack<Node> sons = new Stack<>();
-    final long start_time;
-    long stop_time;
+    final Map<String, Node> children = new LinkedHashMap<>();
+    long duration = 0;
+    long start_time;
 
     Node(String title) {
       this.title = title;
       this.start_time = System.nanoTime();
-      this.stop_time = -1;
+    }
+
+    void restart() {
+      assert start_time == -1;
+      start_time = System.nanoTime();
     }
 
     void end() {
-      stop_time = System.nanoTime();
+      duration += System.nanoTime() - start_time;
+      start_time = -1;
       assert duration() >= 0;
     }
 
     long duration() {
-      return stop_time - start_time;
+      return duration;
     }
 
     @Override
@@ -66,15 +73,22 @@ public class Timing {
         System.out.print("- ");
       }
       System.out.println(toString(top));
-      sons.forEach(p -> { p.report(depth + 1, top); });
+      children.values().forEach(p -> p.report(depth + 1, top));
     }
   }
 
 
   public void begin(String title) {
-    Node n = new Node(title);
-    stack.peek().sons.add(n);
-    stack.push(n);
+    Node parent = stack.peek();
+    Node child;
+    if (parent.children.containsKey(title)) {
+      child = parent.children.get(title);
+      child.restart();
+    } else {
+      child = new Node(title);
+      parent.children.put(title, child);
+    }
+    stack.push(child);
   }
 
   public void end() {
