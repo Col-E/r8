@@ -631,4 +631,12 @@ public class InternalOptions {
   public boolean canHaveArtStringNewInitBug() {
     return minApiLevel <= AndroidApiLevel.P.getLevel();
   }
+
+  // Dalvik tracing JIT may perform invalid optimizations when int/float values are converted to
+  // double and used in arithmetic operations.
+  //
+  // See b/77496850.
+  public boolean canHaveNumberConversionRegisterAllocationBug() {
+    return minApiLevel <= AndroidApiLevel.K.getLevel();
+  }
 }
