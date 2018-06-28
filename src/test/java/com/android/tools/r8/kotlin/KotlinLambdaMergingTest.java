@@ -31,7 +31,13 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
       "-keepattributes InnerClasses,EnclosingMethod\n";
   private static final String KEEP_SIGNATURE_INNER_ENCLOSING =
       "-keepattributes Signature,InnerClasses,EnclosingMethod\n";
-  private Consumer<InternalOptions> optionsModifier = opts -> opts.enableClassInlining = false;
+  private Consumer<InternalOptions> optionsModifier =
+      opts -> {
+        opts.enableClassInlining = false;
+        // Ensure that enclosing method and inner class attributes are kept even on classes that are
+        // not explicitly mentioned by a keep rule.
+        opts.forceProguardCompatibility = true;
+      };
 
   abstract static class LambdaOrGroup {
     abstract boolean match(DexClass clazz);
