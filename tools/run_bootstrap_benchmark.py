@@ -49,7 +49,7 @@ if __name__ == '__main__':
     print "BootstrapR8Dex(CodeSize):", os.path.getsize(d8_r8_output)
 
     dex(PINNED_PGR8_JAR, d8_pg_output)
-    print "BootstrapPG(CodeSize):", os.path.getsize(PINNED_PGR8_JAR)
-    print "BootstrapPGDex(CodeSize):", os.path.getsize(d8_pg_output)
+    print "BootstrapR8PG(CodeSize):", os.path.getsize(PINNED_PGR8_JAR)
+    print "BootstrapR8PGDex(CodeSize):", os.path.getsize(d8_pg_output)
 
   sys.exit(0)
