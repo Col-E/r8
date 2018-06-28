@@ -13,7 +13,9 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import utils
+import uuid
 
 ANDROID_JAR = 'third_party/android_jar/lib-v{api}/android.jar'
 DEFAULT_AAPT = 'aapt' # Assume in path.
@@ -22,6 +24,9 @@ DEFAULT_DEXSPLITTER = os.path.join(utils.REPO_ROOT, 'tools', 'dexsplitter.py')
 DEFAULT_JAVAC = 'javac'
 SRC_LOCATION = 'src/com/android/tools/r8/sample/{app}/*.java'
 DEFAULT_KEYSTORE = os.path.join(os.getenv('HOME'), '.android', 'debug.keystore')
+PACKAGE_PREFIX = 'com.android.tools.r8.sample'
+STANDARD_ACTIVITY = "R8Activity"
+BENCHMARK_ITERATIONS = 100
 
 SAMPLE_APKS = [
     'simple',
@@ -46,6 +51,12 @@ def parse_options():
   result.add_option('--install',
                     help='Install the app (including featuresplit)',
                     default=False, action='store_true')
+  result.add_option('--benchmark',
+                    help='Benchmark the app on the phone with specialized markers',
+                    default=False, action='store_true')
+  result.add_option('--benchmark-output-dir',
+                    help='Store benchmark results here.',
+                    default=None)
   result.add_option('--app',
                     help='Which app to build',
                     default='simple',
@@ -85,6 +96,13 @@ def get_dex_path(app):
 
 def get_split_path(app, split):
   return os.path.join(get_bin_path(app), split, 'classes.dex')
+
+def get_package_name(app):
+  return '%s.%s' % (PACKAGE_PREFIX, app)
+
+def get_qualified_activity(app):
+  # The activity specified to adb start is PACKAGE_NAME/.ACTIVITY
+  return '%s/.%s' % (get_package_name(app), STANDARD_ACTIVITY)
 
 def run_aapt_pack(aapt, api, app):
   with utils.ChangedWorkingDirectory(get_sample_dir(app)):
@@ -169,6 +187,71 @@ def aapt_add_dex(aapt, dex, temp_apk_path):
           dex]
   run_aapt(aapt, args)
 
+def kill(app):
+  args = ['shell', 'am', 'force-stop', get_package_name(app)]
+  run_adb(args)
+
+def start_logcat():
+  return subprocess.Popen(['adb', 'logcat'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+def start(app):
+  args = ['shell', 'am', 'start', '-n', get_qualified_activity(app)]
+  run_adb(args)
+
+def clear_logcat():
+  args = ['logcat', '-c']
+  run_adb(args)
+
+def stop_logcat(popen):
+  popen.terminate()
+  lines = []
+  for l in popen.stdout:
+    if 'System.out' in l:
+      lines.append(l)
+  return lines
+
+def store_or_print_benchmarks(lines, output):
+  single_runs = []
+  total_time = None
+  # We assume that the individual runs are prefixed with 'Took: ' and the total time is
+  # prefixed with 'Total: '. The logcat lines looks like:
+  # 06-28 12:22:00.991 13698 13698 I System.out: Took: 61614
+  for l in lines:
+    if 'Took: ' in l:
+      timing = l.split('Took: ')[1]
+      single_runs.append(timing)
+    if 'Total: ' in l:
+      timing = l.split('Total: ')[1]
+      total_time = timing
+  assert len(single_runs) > 0
+  assert total_time
+  if not output:
+    print 'Individual timings: \n%s' % ''.join(single_runs)
+    print 'Total time: \n%s' % total_time
+    return
+
+  output_dir = os.path.join(output, str(uuid.uuid4()))
+  os.makedirs(output_dir)
+  single_run_file = os.path.join(output_dir, 'single_runs')
+  with open(single_run_file, 'w') as f:
+    f.writelines(single_runs)
+  total_file = os.path.join(output_dir, 'total')
+  with open(total_file, 'w') as f:
+    f.write(total_time)
+  print 'Result stored in %s and %s' % (single_run_file, total_file)
+
+def benchmark(app, output_dir):
+  # Ensure app is not running
+  kill(app)
+  clear_logcat()
+  logcat = start_logcat()
+  start(app)
+  # We could do better here by continiously parsing the logcat for a marker, but
+  # this works nicely with the current setup.
+  time.sleep(3)
+  kill(app)
+  store_or_print_benchmarks(stop_logcat(logcat), output_dir)
+
 def Main():
   (options, args) = parse_options()
   apks = []
@@ -202,7 +285,9 @@ def Main():
   print('Generated apks available at: %s' % ' '.join(apks))
   if options.install:
     adb_install(apks)
-
+  if options.benchmark:
+    for _ in range(BENCHMARK_ITERATIONS):
+      benchmark(options.app, options.benchmark_output_dir)
 
 if __name__ == '__main__':
   sys.exit(Main())
