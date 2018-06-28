@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FoundFieldSubject;
 import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
@@ -94,7 +95,8 @@ public abstract class TreeShakingTest {
       String programFile,
       List<Path> jarLibraries,
       MinifyMode minify,
-      List<String> keepRulesFiles)
+      List<String> keepRulesFiles,
+      Consumer<InternalOptions> optionsConsumer)
       throws Exception {
     out = temp.getRoot().toPath().resolve("out.zip");
     proguardMap = temp.getRoot().toPath().resolve(DEFAULT_PROGUARD_MAP_FILE);
@@ -125,7 +127,14 @@ public abstract class TreeShakingTest {
         throw new Unreachable();
     }
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(programFile));
-    ToolHelper.runR8(builder.build(), options -> options.enableInlining = inline);
+    ToolHelper.runR8(
+        builder.build(),
+        options -> {
+          options.enableInlining = inline;
+          if (optionsConsumer != null) {
+            optionsConsumer.accept(options);
+          }
+        });
   }
 
   protected static void checkSameStructure(DexInspector ref, DexInspector inspector) {
@@ -163,6 +172,16 @@ public abstract class TreeShakingTest {
       BiConsumer<DexInspector, DexInspector> dexComparator,
       List<String> keepRulesFiles)
       throws Exception {
+    runTest(inspection, outputComparator, dexComparator, keepRulesFiles, null);
+  }
+
+  protected void runTest(
+      Consumer<DexInspector> inspection,
+      BiConsumer<String, String> outputComparator,
+      BiConsumer<DexInspector, DexInspector> dexComparator,
+      List<String> keepRulesFiles,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
     String originalDex = ToolHelper.TESTS_BUILD_DIR + name + "/classes.dex";
     String programFile;
     if (frontend == Frontend.DEX) {
@@ -183,7 +202,8 @@ public abstract class TreeShakingTest {
               Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"));
     }
 
-    generateTreeShakedVersion(backend, programFile, jarLibraries, minify, keepRulesFiles);
+    generateTreeShakedVersion(
+        backend, programFile, jarLibraries, minify, keepRulesFiles, optionsConsumer);
 
     if (backend == Backend.CF) {
       Path shakinglib = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "shakinglib.jar");

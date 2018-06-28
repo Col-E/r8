@@ -46,7 +46,12 @@ public class TreeShakingAnnotationremovalTest extends TreeShakingTest {
         TreeShakingAnnotationremovalTest::annotationRemovalHasNoInnerClassAnnotations,
         null,
         null,
-        ImmutableList.of("src/test/examples/annotationremoval/keep-rules.txt"));
+        ImmutableList.of("src/test/examples/annotationremoval/keep-rules.txt"),
+        options -> {
+          // To ensure that enclosing method and inner class attributes are kept even on classes
+          // that are not explicitly mentioned by a keep rule.
+          options.forceProguardCompatibility = true;
+        });
   }
 
   @Test
@@ -55,8 +60,12 @@ public class TreeShakingAnnotationremovalTest extends TreeShakingTest {
         TreeShakingAnnotationremovalTest::annotationRemovalHasAllInnerClassAnnotations,
         null,
         null,
-        ImmutableList.of(
-            "src/test/examples/annotationremoval/keep-rules-keep-innerannotation.txt"));
+        ImmutableList.of("src/test/examples/annotationremoval/keep-rules-keep-innerannotation.txt"),
+        options -> {
+          // To ensure that enclosing method and inner class attributes are kept even on classes
+          // that are not explicitly mentioned by a keep rule.
+          options.forceProguardCompatibility = true;
+        });
   }
 
   private static void annotationRemovalHasNoInnerClassAnnotations(DexInspector inspector) {
