@@ -1168,7 +1168,7 @@ public class VerticalClassMerger {
     }
   }
 
-  private static class CollisionDetector {
+  private class CollisionDetector {
 
     private static final int NOT_FOUND = 1 << (Integer.SIZE - 1);
 
@@ -1193,27 +1193,30 @@ public class VerticalClassMerger {
     }
 
     boolean mayCollide() {
+      timing.begin("collision detection");
       fillSeenPositions(invokes);
+      boolean result = false;
       // If the type is not used in methods at all, there cannot be any conflict.
-      if (seenPositions.isEmpty()) {
-        return false;
-      }
-      for (DexMethod method : invokes) {
-        Int2IntMap positionsMap = seenPositions.get(method.name);
-        if (positionsMap != null) {
-          int arity = method.getArity();
-          int previous = positionsMap.get(arity);
-          if (previous != NOT_FOUND) {
-            assert previous != 0;
-            int positions = computePositionsFor(method.proto, source, sourceProtoCache,
-                substituions);
-            if ((positions & previous) != 0) {
-              return true;
+      if (!seenPositions.isEmpty()) {
+        for (DexMethod method : invokes) {
+          Int2IntMap positionsMap = seenPositions.get(method.name);
+          if (positionsMap != null) {
+            int arity = method.getArity();
+            int previous = positionsMap.get(arity);
+            if (previous != NOT_FOUND) {
+              assert previous != 0;
+              int positions =
+                  computePositionsFor(method.proto, source, sourceProtoCache, substituions);
+              if ((positions & previous) != 0) {
+                result = true;
+                break;
+              }
             }
           }
         }
       }
-      return false;
+      timing.end();
+      return result;
     }
 
     private void fillSeenPositions(Collection<DexMethod> invokes) {
