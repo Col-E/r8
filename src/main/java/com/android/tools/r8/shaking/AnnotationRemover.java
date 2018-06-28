@@ -139,10 +139,20 @@ public class AnnotationRemover {
   }
 
   private void stripAttributes(DexProgramClass clazz) {
-    if (!keep.enclosingMethod && clazz.getEnclosingMethod() != null) {
+    // If [clazz] is mentioned by a keep rule, it could be used for reflection, and we therefore
+    // need to keep the enclosing method and inner classes attributes, if requested. In Proguard
+    // compatibility mode we keep these attributes independent of whether the given class is kept.
+    if (appInfo.isPinned(clazz.type) || options.forceProguardCompatibility) {
+      if (!keep.enclosingMethod) {
+        clazz.clearEnclosingMethod();
+      }
+      if (!keep.innerClasses) {
+        clazz.clearInnerClasses();
+      }
+    } else {
+      // These attributes are only relevant for reflection, and this class is not used for
+      // reflection. (Note that clearing these attributes can enable more vertical class merging.)
       clazz.clearEnclosingMethod();
-    }
-    if (!keep.innerClasses && !clazz.getInnerClasses().isEmpty()) {
       clazz.clearInnerClasses();
     }
   }
