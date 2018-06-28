@@ -21,12 +21,12 @@ import com.android.tools.r8.code.InvokeSuper;
 import com.android.tools.r8.code.InvokeSuperRange;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.InvokeVirtualRange;
+import com.android.tools.r8.code.MoveException;
 import com.android.tools.r8.code.MoveResult;
 import com.android.tools.r8.code.MoveResultObject;
 import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.code.SwitchPayload;
 import com.android.tools.r8.code.Throw;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
@@ -185,14 +185,19 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
-  public int getMoveExceptionRegister() {
-    // No register, move-exception is manually entered during construction.
+  public int getMoveExceptionRegister(int instructionIndex) {
+    Instruction instruction = code.instructions[instructionIndex];
+    if (instruction instanceof MoveException) {
+      MoveException moveException = (MoveException) instruction;
+      return moveException.AA;
+    }
     return -1;
   }
 
   @Override
   public Position getDebugPositionAtOffset(int offset) {
-    throw new Unreachable();
+    DexDebugEntry entry = getDebugEntryAtOffset(offset);
+    return entry == null ? preamblePosition : getCanonicalPositionAppendCaller(entry);
   }
 
   @Override
@@ -225,23 +230,30 @@ public class DexSourceCode implements SourceCode {
     }
   }
 
+  private DexDebugEntry getDebugEntryAtOffset(int offset) {
+    DexDebugEntry current = null;
+    if (debugEntries != null) {
+      for (DexDebugEntry entry : debugEntries) {
+        if (entry.address > offset) {
+          break;
+        }
+        current = entry;
+      }
+    }
+    return current;
+  }
+
   private void updateDebugPosition(int instructionIndex, IRBuilder builder) {
     if (debugEntries == null || debugEntries.isEmpty()) {
       return;
     }
-    DexDebugEntry current = null;
     int offset = instructionOffset(instructionIndex);
-    for (DexDebugEntry entry : debugEntries) {
-      if (entry.address > offset) {
-        break;
-      }
-      current = entry;
-    }
-    if (current == null) {
+    DexDebugEntry entry = getDebugEntryAtOffset(offset);
+    if (entry == null) {
       currentPosition = preamblePosition;
     } else {
-      currentPosition = getCanonicalPositionAppendCaller(current);
-      if (current.lineEntry && current.address == offset) {
+      currentPosition = getCanonicalPositionAppendCaller(entry);
+      if (entry.lineEntry && entry.address == offset) {
         builder.addDebugPosition(currentPosition);
       }
     }

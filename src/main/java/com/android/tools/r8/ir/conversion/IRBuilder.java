@@ -296,7 +296,6 @@ public class IRBuilder {
   private final LinkedList<BasicBlock> blocks = new LinkedList<>();
 
   private BasicBlock currentBlock = null;
-  private final List<BasicBlock.Pair> needGotoToCatchBlocks = new ArrayList<>();
   final private ValueNumberGenerator valueNumberGenerator;
   private final DexEncodedMethod method;
   private final AppInfo appInfo;
@@ -410,9 +409,6 @@ public class IRBuilder {
 
     // Check that the last block is closed and does not fall off the end.
     assert currentBlock == null;
-
-    // Handle where a catch handler hits the same block as the fallthrough.
-    handleFallthroughToCatchBlock();
 
     // Verify that we have properly filled all blocks
     // Must be after handle-catch (which has delayed edges),
@@ -571,14 +567,15 @@ public class IRBuilder {
 
   private void processMoveExceptionItem(MoveExceptionWorklistItem moveExceptionItem) {
     // TODO(zerny): Link with outer try-block handlers, if any. b/65203529
-    int moveExceptionDest = source.getMoveExceptionRegister();
-    assert moveExceptionDest >= 0;
     int targetIndex = source.instructionIndex(moveExceptionItem.targetOffset);
-    Value out = writeRegister(moveExceptionDest, ValueType.OBJECT, ThrowingInfo.NO_THROW, null);
-    Position position = source.getDebugPositionAtOffset(moveExceptionItem.targetOffset);
-    MoveException moveException = new MoveException(out);
-    moveException.setPosition(position);
-    currentBlock.add(moveException);
+    int moveExceptionDest = source.getMoveExceptionRegister(targetIndex);
+    if (moveExceptionDest >= 0) {
+      Value out = writeRegister(moveExceptionDest, ValueType.OBJECT, ThrowingInfo.NO_THROW, null);
+      Position position = source.getDebugPositionAtOffset(moveExceptionItem.targetOffset);
+      MoveException moveException = new MoveException(out);
+      moveException.setPosition(position);
+      currentBlock.add(moveException);
+    }
     Goto exit = new Goto();
     currentBlock.add(exit);
     BasicBlock targetBlock = getTarget(moveExceptionItem.targetOffset);
@@ -976,11 +973,8 @@ public class IRBuilder {
   public void addGoto(int targetOffset) {
     addInstruction(new Goto());
     BasicBlock targetBlock = getTarget(targetOffset);
-    if (currentBlock.hasCatchSuccessor(targetBlock)) {
-      needGotoToCatchBlocks.add(new BasicBlock.Pair(currentBlock, targetBlock));
-    } else {
-      currentBlock.link(targetBlock);
-    }
+    assert !currentBlock.hasCatchSuccessor(targetBlock);
+    currentBlock.link(targetBlock);
     addToWorklist(targetBlock, source.instructionIndex(targetOffset));
     closeCurrentBlock();
   }
@@ -1292,25 +1286,20 @@ public class IRBuilder {
   }
 
   public void addMoveException(int dest) {
-    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.NO_THROW);
-    assert !out.hasLocalInfo();
-    MoveException instruction = new MoveException(out);
-    assert !instruction.instructionTypeCanThrow();
-    if (currentBlock.getInstructions().size() == 1 && currentBlock.entry().isDebugPosition()) {
-      InstructionListIterator it = currentBlock.listIterator();
-      Instruction entry = it.next();
-      assert entry.getPosition().equals(source.getCurrentPosition());
-      attachLocalValues(instruction);
-      it.replaceCurrentInstruction(instruction);
-      return;
+    assert !currentBlock.getPredecessors().isEmpty();
+    assert currentBlock.getPredecessors().stream().allMatch(b -> b.entry().isMoveException());
+    assert verifyValueIsMoveException(readRegister(dest, ValueType.OBJECT));
+  }
+
+  private static boolean verifyValueIsMoveException(Value value) {
+    if (value.isPhi()) {
+      for (Value operand : value.asPhi().getOperands()) {
+        assert operand.definition.isMoveException();
+      }
+    } else {
+      assert value.definition.isMoveException();
     }
-    if (!currentBlock.getInstructions().isEmpty()) {
-      throw new CompilationError("Invalid MoveException instruction encountered. "
-          + "The MoveException instruction is not the first instruction in the block in "
-          + method.qualifiedName()
-          + ".");
-    }
-    addInstruction(instruction);
+    return true;
   }
 
   public void addMoveResult(int dest) {
@@ -1843,29 +1832,19 @@ public class IRBuilder {
         assert !throwingInstructionInCurrentBlock;
         throwingInstructionInCurrentBlock = true;
         List<BasicBlock> targets = new ArrayList<>(catchHandlers.getAllTargets().size());
-        int moveExceptionDest = source.getMoveExceptionRegister();
-        if (moveExceptionDest < 0) {
-          for (int targetOffset : catchHandlers.getAllTargets()) {
-            BasicBlock target = getTarget(targetOffset);
-            addToWorklist(target, source.instructionIndex(targetOffset));
-            targets.add(target);
+        // Construct unique move-exception header blocks for each unique target.
+        Map<BasicBlock, BasicBlock> moveExceptionHeaders =
+            new IdentityHashMap<>(catchHandlers.getUniqueTargets().size());
+        for (int targetOffset : catchHandlers.getAllTargets()) {
+          BasicBlock target = getTarget(targetOffset);
+          BasicBlock header = moveExceptionHeaders.get(target);
+          if (header == null) {
+            header = new BasicBlock();
+            header.incrementUnfilledPredecessorCount();
+            moveExceptionHeaders.put(target, header);
+            ssaWorklist.add(new MoveExceptionWorklistItem(header, targetOffset));
           }
-        } else {
-          // If there is a well-defined move-exception destination register (eg, compiling from
-          // Java-bytecode) then we construct move-exception header blocks for each unique target.
-          Map<BasicBlock, BasicBlock> moveExceptionHeaders =
-              new IdentityHashMap<>(catchHandlers.getUniqueTargets().size());
-          for (int targetOffset : catchHandlers.getAllTargets()) {
-            BasicBlock target = getTarget(targetOffset);
-            BasicBlock header = moveExceptionHeaders.get(target);
-            if (header == null) {
-              header = new BasicBlock();
-              header.incrementUnfilledPredecessorCount();
-              moveExceptionHeaders.put(target, header);
-              ssaWorklist.add(new MoveExceptionWorklistItem(header, targetOffset));
-            }
-            targets.add(header);
-          }
+          targets.add(header);
         }
         currentBlock.linkCatchSuccessors(catchHandlers.getGuards(), targets);
       }
@@ -1997,43 +1976,9 @@ public class IRBuilder {
   private void closeCurrentBlockWithFallThrough(BasicBlock nextBlock) {
     assert currentBlock != null;
     addInstruction(new Goto());
-    if (currentBlock.hasCatchSuccessor(nextBlock)) {
-      needGotoToCatchBlocks.add(new BasicBlock.Pair(currentBlock, nextBlock));
-    } else {
-      currentBlock.link(nextBlock);
-    }
+    assert !currentBlock.hasCatchSuccessor(nextBlock);
+    currentBlock.link(nextBlock);
     closeCurrentBlock();
-  }
-
-  private void handleFallthroughToCatchBlock() {
-    // When a catch handler for a block goes to the same block as the fallthrough for that
-    // block the graph only has one edge there. In these cases we add an additional block so the
-    // catch edge goes through that and then make the fallthrough go through a new direct edge.
-    for (BasicBlock.Pair pair : needGotoToCatchBlocks) {
-      BasicBlock source = pair.first;
-      BasicBlock target = pair.second;
-
-      // New block with one unfilled predecessor.
-      BasicBlock newBlock = BasicBlock.createGotoBlock(nextBlockNumber++, target);
-      blocks.add(newBlock);
-      newBlock.incrementUnfilledPredecessorCount();
-
-      // Link blocks.
-      source.replaceSuccessor(target, newBlock);
-      newBlock.getPredecessors().add(source);
-      source.getSuccessors().add(target);
-      target.getPredecessors().add(newBlock);
-
-      // Check that the successor indexes are correct.
-      assert source.hasCatchSuccessor(newBlock);
-      assert !source.hasCatchSuccessor(target);
-
-      // Mark the filled predecessors to the blocks.
-      if (source.isFilled()) {
-        newBlock.filledPredecessor(this);
-      }
-      target.filledPredecessor(this);
-    }
   }
 
   /**

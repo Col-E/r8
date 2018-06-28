@@ -209,7 +209,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
   }
 
   @Override
-  public int getMoveExceptionRegister() {
+  public int getMoveExceptionRegister(int instructionIndex) {
     throw new Unreachable();
   }
 

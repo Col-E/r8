@@ -766,7 +766,7 @@ public class MainDexListTests extends TestBase {
     }
 
     @Override
-    public int getMoveExceptionRegister() {
+    public int getMoveExceptionRegister(int instructionIndex) {
       throw new Unreachable();
     }
 

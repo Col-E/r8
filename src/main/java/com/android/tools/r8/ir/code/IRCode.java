@@ -138,13 +138,10 @@ public class IRCode {
       if (predecessors.size() <= 1) {
         continue;
       }
-      // If any of the edges to the block are critical, we need to insert new blocks on each
-      // containing the move-exception instruction which must remain the first instruction.
-      if (block.entry() instanceof MoveException) {
-        nextBlockNumber = block.splitCriticalExceptionEdges(
-            nextBlockNumber, valueNumberGenerator, newBlocks::add);
-        continue;
-      }
+
+      // Exceptional edges are given unique header blocks and can have at most one predecessor.
+      assert !block.entry().isMoveException();
+
       for (int predIndex = 0; predIndex < predecessors.size(); predIndex++) {
         BasicBlock pred = predecessors.get(predIndex);
         if (!pred.hasOneNormalExit()) {

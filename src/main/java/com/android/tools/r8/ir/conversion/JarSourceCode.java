@@ -594,7 +594,12 @@ public class JarSourceCode implements SourceCode {
   }
 
   @Override
-  public int getMoveExceptionRegister() {
+  public int getMoveExceptionRegister(int instructionIndex) {
+    return getMoveExceptionRegister();
+  }
+
+  // In classfiles the register is always on top of stack.
+  private int getMoveExceptionRegister() {
     return state.startOfStack;
   }
 

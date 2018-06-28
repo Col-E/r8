@@ -59,7 +59,8 @@ public interface SourceCode {
   void resolveAndBuildNewArrayFilledData(int arrayRef, int payloadOffset, IRBuilder builder);
 
   CatchHandlers<Integer> getCurrentCatchHandlers();
-  int getMoveExceptionRegister();
+
+  int getMoveExceptionRegister(int instructionIndex);
 
   // For debugging/verification purpose.
   boolean verifyRegister(int register);

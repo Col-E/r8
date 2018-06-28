@@ -586,7 +586,7 @@ public class CfSourceCode implements SourceCode {
   }
 
   @Override
-  public int getMoveExceptionRegister() {
+  public int getMoveExceptionRegister(int instructionIndex) {
     return CfState.Slot.STACK_OFFSET;
   }
 
