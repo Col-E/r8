@@ -112,7 +112,10 @@ public class Enqueuer {
   private final Set<DexField> protoLiteFields = Sets.newIdentityHashSet();
   private final Set<DexItem> identifierNameStrings = Sets.newIdentityHashSet();
 
-  /** Set of method signatures used in invoke-super instructions that cannot be resolved. */
+  /**
+   * Set of method signatures used in invoke-super instructions that either cannot be resolved or
+   * resolve to a private method (leading to an IllegalAccessError).
+   */
   private final Set<DexMethod> brokenSuperInvokes = Sets.newIdentityHashSet();
   /**
    * This map keeps a view of all virtual methods that are reachable from virtual invokes. A method
@@ -1032,6 +1035,9 @@ public class Enqueuer {
       reportMissingMethod(method);
       return;
     }
+    if (target.accessFlags.isPrivate()) {
+      brokenSuperInvokes.add(method);
+    }
     assert !superInvokeDependencies.containsKey(from) || !superInvokeDependencies.get(from)
         .contains(target);
     if (Log.ENABLED) {
@@ -1520,7 +1526,10 @@ public class Enqueuer {
      * Set of all methods referenced in static invokes;
      */
     public final SortedSet<DexMethod> staticInvokes;
-    /** Set of method signatures used in invoke-super instructions that cannot be resolved. */
+    /**
+     * Set of method signatures used in invoke-super instructions that either cannot be resolved or
+     * resolve to a private method (leading to an IllegalAccessError).
+     */
     public final SortedSet<DexMethod> brokenSuperInvokes;
     /**
      * Set of all items that have to be kept independent of whether they are used.
