@@ -323,7 +323,7 @@ public class InternalOptions {
     boolean printOutdatedToolchain = false;
     if (warningInvalidParameterAnnotations.size() > 0) {
       // TODO(b/67626202): Add a regression test with a program that hits this issue.
-      reporter.warning(
+      reporter.info(
           new StringDiagnostic(
               "Invalid parameter counts in MethodParameter attributes. "
                   + "This is likely due to Proguard having removed a parameter."));
@@ -348,7 +348,7 @@ public class InternalOptions {
       for (List<Pair<DexEncodedMethod, String>> methods : warningInvalidDebugInfo.values()) {
         count += methods.size();
       }
-      reporter.warning(
+      reporter.info(
           new StringDiagnostic(
               "Stripped invalid locals information from "
                   + count
@@ -359,13 +359,13 @@ public class InternalOptions {
           builder.append("\n  ").append(method.getFirst().toSourceString());
           builder.append("\n  ").append(method.getSecond());
         }
-        reporter.warning(new StringDiagnostic(builder.toString(), origin));
+        reporter.info(new StringDiagnostic(builder.toString(), origin));
       }
       printed = true;
       printOutdatedToolchain = true;
     }
     if (missingEnclosingMembers.size() > 0) {
-      reporter.warning(
+      reporter.info(
           new StringDiagnostic(
               "InnerClass annotations are missing corresponding EnclosingMember annotations."
                   + " Such InnerClass annotations are ignored."));
