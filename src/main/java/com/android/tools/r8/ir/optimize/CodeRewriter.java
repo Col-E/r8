@@ -63,6 +63,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
@@ -3005,6 +3006,63 @@ public class CodeRewriter {
           }
         }
         preorderStack.pop();
+      }
+    }
+  }
+
+  // See comment for InternalOptions.canHaveNumberConversionRegisterAllocationBug().
+  public void workaroundNumberConversionRegisterAllocationBug(IRCode code) {
+    final Supplier<DexMethod> javaLangDoubleisNaN = Suppliers.memoize(() ->
+     dexItemFactory.createMethod(
+        dexItemFactory.createString("Ljava/lang/Double;"),
+        dexItemFactory.createString("isNaN"),
+        dexItemFactory.booleanDescriptor,
+        new DexString[]{dexItemFactory.doubleDescriptor}));
+
+    ListIterator<BasicBlock> blocks = code.listIterator();
+    while (blocks.hasNext()) {
+      BasicBlock block = blocks.next();
+      InstructionListIterator it = block.listIterator();
+      while (it.hasNext()) {
+        Instruction instruction = it.next();
+        if (instruction.isArithmeticBinop() || instruction.isNeg()) {
+          for (Value value : instruction.inValues()) {
+            // Insert a call to Double.isNaN on each value which come from a number conversion
+            // to double and flows into an arithmetic instruction. This seems to break the traces
+            // in the Dalvik JIT and avoid the bug where the generated ARM code can clobber float
+            // values in a single-precision registers with double values written to
+            // double-precision registers. See b/77496850 for examples.
+            if (!value.isPhi()
+                && value.definition.isNumberConversion()
+                && value.definition.asNumberConversion().to == NumericType.DOUBLE) {
+              Value newValue = code.createValue(
+                  instruction.outValue().outType(), instruction.getLocalInfo());
+              InvokeStatic invokeIsNaN =
+                  new InvokeStatic(javaLangDoubleisNaN.get(), newValue, ImmutableList.of(value));
+              invokeIsNaN.setPosition(instruction.getPosition());
+
+              // Insert the invoke before the current instruction.
+              it.previous();
+              BasicBlock blockWithInvokeNaN =
+                  block.hasCatchHandlers() ? it.split(code, blocks) : block;
+              if (blockWithInvokeNaN != block) {
+                // If we split, add the invoke at the end of the original block.
+                it = block.listIterator(block.getInstructions().size());
+                it.previous();
+                it.add(invokeIsNaN);
+                // Continue iteration in the split block.
+                block = blockWithInvokeNaN;
+                it = block.listIterator();
+              } else {
+                // Otherwise, add it to the current block.
+                it.add(invokeIsNaN);
+              }
+              // Skip over the instruction causing the invoke to be inserted.
+              Instruction temp = it.next();
+              assert temp == instruction;
+            }
+          }
+        }
       }
     }
   }

@@ -782,6 +782,10 @@ public class IRConverter {
     }
     codeRewriter.identifyParameterUsages(method, code, feedback);
 
+    if (options.canHaveNumberConversionRegisterAllocationBug()) {
+      codeRewriter.workaroundNumberConversionRegisterAllocationBug(code);
+    }
+
     printMethod(code, "Optimized IR (SSA)");
     finalizeIR(method, code, feedback);
   }
