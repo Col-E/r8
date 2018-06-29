@@ -114,6 +114,21 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
           "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateless$1").isPresent());
       assertTrue(inspector.clazz(
           "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateful$1").isPresent());
+      assertTrue(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1").isPresent());
+      assertTrue(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod2$1").isPresent());
+      assertTrue(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod3$1").isPresent());
+      assertTrue(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1")
+          .isPresent());
+      assertTrue(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda2$1")
+          .isPresent());
+      assertTrue(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda3$1")
+          .isPresent());
     });
 
     runTest("class_inliner_lambda_k_style", mainClassName, true, (app) -> {
@@ -136,6 +151,31 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
       assertFalse(inspector.clazz(
           "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateful$1").isPresent());
+
+      assertEquals(
+          Sets.newHashSet(),
+          collectAccessedLambdaTypes(lambdaCheck, clazz, "testBigExtraMethod"));
+
+      assertFalse(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1").isPresent());
+      assertFalse(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod2$1").isPresent());
+      assertFalse(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod3$1").isPresent());
+
+      assertEquals(
+          Sets.newHashSet(),
+          collectAccessedLambdaTypes(lambdaCheck, clazz, "testBigExtraMethodReturningLambda"));
+
+      assertFalse(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1")
+          .isPresent());
+      assertFalse(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda2$1")
+          .isPresent());
+      assertFalse(inspector.clazz(
+          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda3$1")
+          .isPresent());
     });
   }
 

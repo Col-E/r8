@@ -11,6 +11,8 @@ fun next() = "${COUNT++}".padStart(3, '0')
 fun main(args: Array<String>) {
     testKotlinSequencesStateless(produceSequence(10))
     testKotlinSequencesStateful(5, 2, produceSequence(10))
+    testBigExtraMethod()
+    testBigExtraMethodReturningLambda()
 }
 
 data class Record(val foo: String, val good: Boolean)
@@ -38,12 +40,57 @@ fun testKotlinSequencesStateful(a: Int, b: Int, strings: Sequence<String>) {
     }
 }
 
-private fun produceSequence(size: Int): Sequence<String> {
+@Synchronized
+fun testBigExtraMethod() {
+    useRecord()
+    bigUserWithNotNullChecksAndTwoCalls(next()) { next() }
+    testBigExtraMethod2()
+    testBigExtraMethod3()
+}
+
+fun testBigExtraMethod2() {
+    bigUserWithNotNullChecksAndTwoCalls(next()) { next() }
+}
+
+fun testBigExtraMethod3() {
+    bigUserWithNotNullChecksAndTwoCalls(next()) { next() }
+}
+
+fun bigUserWithNotNullChecksAndTwoCalls(id: String, lambda: () -> String): String {
+    useRecord()
+    println("[A] logging call#$id returning ${lambda()}")
+    return "$id: ${lambda()}"
+}
+
+@Synchronized
+fun testBigExtraMethodReturningLambda() {
+    useRecord()
+    bigUserReturningLambda(next()) { next() } // Not used
+    testBigExtraMethodReturningLambda2()
+    testBigExtraMethodReturningLambda3()
+}
+
+fun testBigExtraMethodReturningLambda2() {
+    bigUserReturningLambda(next()) { next() } // Not used
+}
+
+fun testBigExtraMethodReturningLambda3() {
+    bigUserReturningLambda(next()) { next() } // Not used
+}
+
+fun bigUserReturningLambda(id: String, lambda: () -> String): () -> String {
+    useRecord()
+    println("[B] logging call#$id returning ${lambda()}")
+    println("[C] logging call#$id returning ${lambda()}")
+    return lambda
+}
+
+fun produceSequence(size: Int): Sequence<String> {
     var count = size
     return generateSequence { if (count-- > 0) next() else null }
 }
 
 // Need this to make sure testKotlinSequenceXXX is not processed
 // concurrently with invoke() on lambdas.
-fun useRecord() = useRecord2()
-fun useRecord2() = Record("", true)
+@Synchronized fun useRecord() = useRecord2()
+@Synchronized fun useRecord2() = Record("", true)

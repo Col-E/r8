@@ -13,10 +13,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo;
-import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.NotUsed;
-import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.ParameterUsage;
-import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.SingleCallOfArgumentMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialInstanceInitializer;
@@ -37,6 +33,9 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.ParameterUsagesInfo;
+import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsageBuilder;
 import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -851,26 +850,25 @@ public class CodeRewriter {
     List<Value> values = code.collectArguments(true);
     for (int i = 0; i < values.size(); i++) {
       Value value = values.get(i);
-
-      int numberOfAllUsages = value.numberOfAllUsers();
-      if (numberOfAllUsages == 0) {
-        usages.add(new NotUsed(i));
+      if (value.numberOfPhiUsers() > 0) {
         continue;
       }
-
-      if (numberOfAllUsages == 1 && value.numberOfUsers() == 1) {
-        Instruction instruction = value.singleUniqueUser();
-        if (instruction.isInvokeMethodWithReceiver() &&
-            instruction.inValues().lastIndexOf(value) == 0) {
-          usages.add(new SingleCallOfArgumentMethod(i,
-              instruction.asInvokeMethodWithReceiver().getType(),
-              instruction.asInvokeMethodWithReceiver().getInvokedMethod()));
-        }
-        continue;
+      ParameterUsage usage = collectParameterUsages(i, value);
+      if (usage != null) {
+        usages.add(usage);
       }
     }
-
     feedback.setParameterUsages(method, usages.isEmpty() ? null : new ParameterUsagesInfo(usages));
+  }
+
+  private ParameterUsage collectParameterUsages(int i, Value value) {
+    ParameterUsageBuilder builder = new ParameterUsageBuilder(value, i);
+    for (Instruction user : value.uniqueUsers()) {
+      if (!builder.note(user)) {
+        return null;
+      }
+    }
+    return builder.build();
   }
 
   // This method defines trivial instance initializer as follows:

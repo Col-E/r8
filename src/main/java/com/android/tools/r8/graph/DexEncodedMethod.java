@@ -25,10 +25,9 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
-import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
@@ -45,13 +44,11 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements ResolutionResult {
 
@@ -618,51 +615,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       public TrivialClassInitializer(DexField field) {
         this.field = field;
       }
-    }
-  }
-
-  public static final class ParameterUsagesInfo {
-    private ImmutableList<ParameterUsage> parametersUsages;
-
-    public ParameterUsagesInfo(List<ParameterUsage> usages) {
-      assert !usages.isEmpty();
-      parametersUsages = ImmutableList.copyOf(usages);
-      assert parametersUsages.size() ==
-          parametersUsages.stream().map(usage -> usage.index).collect(Collectors.toSet()).size();
-    }
-
-    public static abstract class ParameterUsage {
-      public final int index;
-
-      ParameterUsage(int index) {
-        this.index = index;
-      }
-    }
-
-    public static class SingleCallOfArgumentMethod extends ParameterUsage {
-      public final Invoke.Type type;
-      public final DexMethod method;
-
-      public SingleCallOfArgumentMethod(int index, Type type, DexMethod method) {
-        super(index);
-        this.type = type;
-        this.method = method;
-      }
-    }
-
-    public static class NotUsed extends ParameterUsage {
-      public NotUsed(int index) {
-        super(index);
-      }
-    }
-
-    ParameterUsage getParameterUsage(int parameter) {
-      for (ParameterUsage usage : parametersUsages) {
-        if (usage.index == parameter) {
-          return usage;
-        }
-      }
-      return null;
     }
   }
 

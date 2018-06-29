@@ -9,9 +9,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.OptimizationInfo;
-import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.NotUsed;
-import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.ParameterUsage;
-import com.android.tools.r8.graph.DexEncodedMethod.ParameterUsagesInfo.SingleCallOfArgumentMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialInstanceInitializer;
@@ -19,6 +16,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -38,7 +36,9 @@ import com.android.tools.r8.ir.optimize.classinliner.ClassInliner.InlinerAction;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Pair;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
@@ -48,6 +48,9 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 final class InlineCandidateProcessor {
+  private static final ImmutableSet<If.Type> ALLOWED_ZERO_TEST_TYPES =
+      ImmutableSet.of(If.Type.EQ, If.Type.NE);
+
   private final DexItemFactory factory;
   private final AppInfoWithLiveness appInfo;
   private final Predicate<DexType> isClassEligible;
@@ -532,12 +535,23 @@ final class InlineCandidateProcessor {
   //      eligible according to the same rules defined for direct method call eligibility
   //      (except we require the method receiver to not be used in return instruction)
   //
+  //   -- eligible instance is used in zero-test 'if' instructions testing if the value
+  //      is null/not-null (since we know the instance is not null, those checks can
+  //      be rewritten)
+  //
   //   -- method itself can be inlined
   //
-  private synchronized boolean isExtraMethodCallEligible(
+  private boolean isExtraMethodCallEligible(
       Supplier<InliningOracle> defaultOracle, InvokeMethod invokeMethod) {
 
     List<Value> arguments = Lists.newArrayList(invokeMethod.inValues());
+
+    // Don't consider constructor invocations and super calls, since
+    // we don't want to forcibly inline them.
+    if (invokeMethod.isInvokeSuper() ||
+        (invokeMethod.isInvokeDirect() && factory.isConstructor(invokeMethod.getInvokedMethod()))) {
+      return false;
+    }
 
     // Remove receiver from arguments.
     if (invokeMethod.isInvokeMethodWithReceiver()) {
@@ -569,35 +583,44 @@ final class InlineCandidateProcessor {
         return false;  // Don't know anything.
       }
 
-      if (parameterUsage instanceof NotUsed) {
+      if (parameterUsage.notUsed()) {
         // Reference can be removed since it's not used.
         unusedArguments.add(new Pair<>(invokeMethod, argIndex));
         continue;
       }
 
-      if (parameterUsage instanceof SingleCallOfArgumentMethod) {
-        // Method exactly one time calls a method on passed eligibleInstance.
-        SingleCallOfArgumentMethod info = (SingleCallOfArgumentMethod) parameterUsage;
-        if (info.type != Type.VIRTUAL && info.type != Type.INTERFACE) {
-          return false; // Don't support direct and super calls yet.
-        }
-
-        // Is the method called indirectly still eligible?
-        InliningInfo potentialInliningInfo = isEligibleIndirectMethodCall(info.method);
-        if (potentialInliningInfo != null) {
-          // Check if the method is inline-able by standard inliner.
-          InlineAction inlineAction =
-              invokeMethod.computeInlining(defaultOracle.get(), method.method.holder);
-          if (inlineAction != null) {
-            extraMethodCalls.put(invokeMethod, new InliningInfo(singleTarget, null));
-            continue;
-          }
-        }
-
+      if (parameterUsage.returnValue &&
+          !(invokeMethod.outValue() == null || invokeMethod.outValue().numberOfAllUsers() == 0)) {
+        // Used as return value which is not ignored.
         return false;
       }
 
-      return false; // All other argument usages are not eligible.
+      if (!Sets.difference(parameterUsage.ifZeroTest, ALLOWED_ZERO_TEST_TYPES).isEmpty()) {
+        // Used in unsupported zero-check-if kinds.
+        return false;
+      }
+
+      for (Pair<Type, DexMethod> call : parameterUsage.callsReceiver) {
+        if (call.getFirst() != Type.VIRTUAL && call.getFirst() != Type.INTERFACE) {
+          // Don't support direct and super calls yet.
+          return false;
+        }
+
+        // Is the method called indirectly still eligible?
+        InliningInfo potentialInliningInfo = isEligibleIndirectMethodCall(call.getSecond());
+        if (potentialInliningInfo == null) {
+          return false;
+        }
+
+        // Check if the method is inline-able by standard inliner.
+        InlineAction inlineAction =
+            invokeMethod.computeInlining(defaultOracle.get(), method.method.holder);
+        if (inlineAction == null) {
+          return false;
+        }
+      }
+
+      extraMethodCalls.put(invokeMethod, new InliningInfo(singleTarget, null));
     }
 
     // Looks good.

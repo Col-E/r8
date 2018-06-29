@@ -745,7 +745,7 @@ public class IRConverter {
           Suppliers.memoize(() -> inliner.createDefaultOracle(
               method, code, effectivelyFinalTypeEnvironment,
               isProcessedConcurrently, callSiteInformation,
-              Integer.MAX_VALUE, Integer.MAX_VALUE)
+              Integer.MAX_VALUE / 2, Integer.MAX_VALUE / 2)
           )
       );
       assert code.isConsistentSSA();
