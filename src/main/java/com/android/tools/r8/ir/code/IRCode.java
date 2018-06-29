@@ -161,6 +161,27 @@ public class IRCode {
     blocks.addAll(newBlocks);
   }
 
+  public boolean verifySplitCriticalEdges() {
+    for (BasicBlock block : blocks) {
+      // If there are multiple incoming edges, check each has a split block.
+      List<BasicBlock> predecessors = block.getPredecessors();
+      if (predecessors.size() > 1) {
+        for (BasicBlock predecessor : predecessors) {
+          assert predecessor.hasOneNormalExit();
+          assert predecessor.getSuccessors().get(0) == block;
+        }
+      }
+      // If there are outgoing exceptional edges, check that each has a split block.
+      if (block.hasCatchHandlers()) {
+        for (BasicBlock handler : block.getCatchHandlers().getUniqueTargets()) {
+          assert handler.getPredecessors().size() == 1;
+          assert handler.getPredecessors().get(0) == block;
+        }
+      }
+    }
+    return true;
+  }
+
   /**
    * Trace blocks and attempt to put fallthrough blocks immediately after the block that
    * falls through. When we fail to do that we create a new fallthrough block with an explicit

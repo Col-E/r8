@@ -93,6 +93,8 @@ import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -139,6 +141,13 @@ public class IRBuilder {
     private MoveExceptionWorklistItem(BasicBlock block, int targetOffset) {
       super(block, -1);
       this.targetOffset = targetOffset;
+    }
+  }
+
+  private static class SplitBlockWorklistItem extends WorklistItem {
+
+    public SplitBlockWorklistItem(BasicBlock block) {
+      super(block, -1);
     }
   }
 
@@ -224,6 +233,10 @@ public class IRBuilder {
       return all;
     }
 
+    boolean hasJustOneNormalExit() {
+      return normalSuccessors.size() == 1 && exceptionalSuccessors.isEmpty();
+    }
+
     BlockInfo split(
         int blockStartOffset, int fallthroughOffset, Int2ReferenceMap<BlockInfo> targets) {
       BlockInfo fallthroughInfo = new BlockInfo();
@@ -279,6 +292,7 @@ public class IRBuilder {
 
   // Mapping from instruction offsets to basic-block targets.
   private final Int2ReferenceSortedMap<BlockInfo> targets = new Int2ReferenceAVLTreeMap<>();
+  private final Reference2IntMap<BasicBlock> offsets = new Reference2IntOpenHashMap<>();
 
   // Worklist of reachable blocks.
   private final Queue<Integer> traceBlocksWorklist = new LinkedList<>();
@@ -364,7 +378,9 @@ public class IRBuilder {
     source.setUp();
 
     // Create entry block (at a non-targetable address).
-    targets.put(INITIAL_BLOCK_OFFSET, new BlockInfo());
+    BlockInfo initialBlockInfo = new BlockInfo();
+    targets.put(INITIAL_BLOCK_OFFSET, initialBlockInfo);
+    offsets.put(initialBlockInfo.block, INITIAL_BLOCK_OFFSET);
 
     // Process reachable code paths starting from instruction 0.
     int instCount = source.instructionCount();
@@ -430,9 +446,8 @@ public class IRBuilder {
     // Package up the IR code.
     IRCode ir = new IRCode(options, method, blocks, valueNumberGenerator, hasDebugPositions);
 
-    // Split critical edges to make sure that we have a place to insert phi moves if
-    // necessary.
-    ir.splitCriticalEdges();
+    // Verify critical edges are split so we have a place to insert phi moves if necessary.
+    assert ir.verifySplitCriticalEdges();
 
     for (BasicBlock block : blocks) {
       block.deduplicatePhis();
@@ -546,6 +561,12 @@ public class IRBuilder {
       // Process synthesized move-exception block specially.
       if (item instanceof MoveExceptionWorklistItem) {
         processMoveExceptionItem((MoveExceptionWorklistItem) item);
+        closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
+        continue;
+      }
+      // Split blocks are just pending close.
+      if (item instanceof SplitBlockWorklistItem) {
+        closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
         continue;
       }
       // Build IR for each dex instruction in the block.
@@ -581,7 +602,6 @@ public class IRBuilder {
     BasicBlock targetBlock = getTarget(moveExceptionItem.targetOffset);
     currentBlock.link(targetBlock);
     addToWorklist(targetBlock, targetIndex);
-    closeCurrentBlock();
   }
 
   // Helper to resolve switch payloads and build switch instructions (dex code only).
@@ -1502,7 +1522,7 @@ public class IRBuilder {
   public void addThrow(int value) {
     Value in = readRegister(value, ValueType.OBJECT);
     addInstruction(new Throw(in));
-    closeCurrentBlock();
+    closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
   }
 
   public void addOr(NumericType type, int dest, int left, int right) {
@@ -1794,24 +1814,47 @@ public class IRBuilder {
     if (!throwingInstructionInCurrentBlock) {
       return;
     }
-    BasicBlock block = new BasicBlock();
+    // Note that when splitting the block in two we must update the CFG information so that we can
+    // correctly identify if the normal exits of the constructed block must be split once it is
+    // closed.
+    int currentBlockOffset = getOffset(currentBlock);
+    BlockInfo currentBlockInfo = getBlockInfo(currentBlockOffset);
+
+    BlockInfo info = new BlockInfo();
+    BasicBlock block = info.block;
     block.setNumber(nextBlockNumber++);
     blocks.add(block);
-    block.incrementUnfilledPredecessorCount();
+
+    // Compute some unused offset for the new block and link it in the CFG.
     int freshOffset = INITIAL_BLOCK_OFFSET - 1;
     while (targets.containsKey(freshOffset)) {
       freshOffset--;
     }
-    targets.put(freshOffset, null);
+    targets.put(freshOffset, info);
+    offsets.put(block, freshOffset);
+
+    // Copy over the exceptional successors.
     for (int offset : source.getCurrentCatchHandlers().getUniqueTargets()) {
+      info.addExceptionalSuccessor(offset);
       BlockInfo target = targets.get(offset);
       assert !target.block.isSealed();
       target.block.incrementUnfilledPredecessorCount();
       target.addExceptionalPredecessor(freshOffset);
     }
+
+    // Move all normal successors to the new block.
+    currentBlockInfo.normalSuccessors.forEach(info::addNormalSuccessor);
+    currentBlockInfo.normalSuccessors.clear();
+
+    // Link the two blocks.
     addInstruction(new Goto());
     currentBlock.link(block);
-    closeCurrentBlock();
+    block.incrementUnfilledPredecessorCount();
+    currentBlockInfo.addNormalSuccessor(freshOffset);
+    info.addNormalPredecessor(currentBlockOffset);
+
+    // The new block can only have a single predecessor and so we don't need to split between them.
+    closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
     setCurrentBlock(block);
   }
 
@@ -1886,6 +1929,7 @@ public class IRBuilder {
         info = new BlockInfo();
       }
       targets.put(offset, info);
+      offsets.put(info.block, offset);
     }
     return info;
   }
@@ -1959,11 +2003,23 @@ public class IRBuilder {
 
   // Private block helpers.
 
+  private BlockInfo getBlockInfo(int offset) {
+    return targets.get(offset);
+  }
+
+  private BlockInfo getBlockInfo(BasicBlock block) {
+    return getBlockInfo(getOffset(block));
+  }
+
   private BasicBlock getTarget(int offset) {
     return targets.get(offset).block;
   }
 
-  private void closeCurrentBlock() {
+  private int getOffset(BasicBlock block) {
+    return offsets.getInt(block);
+  }
+
+  private void closeCurrentBlockGuaranteedNotToNeedEdgeSplitting() {
     // TODO(zerny): To ensure liveness of locals throughout the entire block, we might want to
     // insert reads before closing the block. It is unclear if we can rely on a local-end to ensure
     // liveness in all blocks where the local should be live.
@@ -1971,6 +2027,33 @@ public class IRBuilder {
     currentBlock.close(this);
     setCurrentBlock(null);
     throwingInstructionInCurrentBlock = false;
+  }
+
+  private void closeCurrentBlock() {
+    assert currentBlock != null;
+    BlockInfo info = getBlockInfo(currentBlock);
+    if (!info.hasJustOneNormalExit()) {
+      // Exceptional edges are always split on construction, so no need to split edges to them.
+      for (int successorOffset : info.normalSuccessors) {
+        BlockInfo successorInfo = getBlockInfo(successorOffset);
+        if (successorInfo.predecessorCount() > 1) {
+          BasicBlock splitBlock = createSplitEdgeBlock(currentBlock, successorInfo.block);
+          ssaWorklist.add(new SplitBlockWorklistItem(splitBlock));
+        }
+      }
+    }
+    closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
+  }
+
+  private static BasicBlock createSplitEdgeBlock(BasicBlock source, BasicBlock target) {
+    BasicBlock splitBlock = new BasicBlock();
+    splitBlock.add(new Goto());
+    splitBlock.incrementUnfilledPredecessorCount();
+    splitBlock.getPredecessors().add(source);
+    splitBlock.getSuccessors().add(target);
+    source.replaceSuccessor(target, splitBlock);
+    target.replacePredecessor(source, splitBlock);
+    return splitBlock;
   }
 
   private void closeCurrentBlockWithFallThrough(BasicBlock nextBlock) {
