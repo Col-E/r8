@@ -22,12 +22,12 @@ import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class NeverReturnsNormallyTest extends TestBase {
   private void runTest(
-      BiConsumer<DexInspector, CompilationMode> inspection, CompilationMode mode) throws Exception {
+      BiConsumer<DexInspector, CompilationMode> inspection,
+      boolean enableClassInliner, CompilationMode mode) throws Exception {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
@@ -49,7 +49,8 @@ public class NeverReturnsNormallyTest extends TestBase {
             "-allowaccessmodification"
         ),
         Origin.unknown());
-    AndroidApp app = ToolHelper.runR8(builder.build());
+    AndroidApp app = ToolHelper.runR8(builder.build(),
+        opts -> opts.enableClassInlining = enableClassInliner);
     inspection.accept(new DexInspector(app), mode);
 
     // Run on Art to check generated code against verifier.
@@ -128,10 +129,11 @@ public class NeverReturnsNormallyTest extends TestBase {
     return instructions.next();
   }
 
-  @Ignore("b/110736241")
   @Test
   public void test() throws Exception {
-    runTest(this::validate, CompilationMode.DEBUG);
-    runTest(this::validate, CompilationMode.RELEASE);
+    runTest(this::validate, true, CompilationMode.DEBUG);
+    runTest(this::validate, true, CompilationMode.RELEASE);
+    runTest(this::validate, false, CompilationMode.DEBUG);
+    runTest(this::validate, false, CompilationMode.RELEASE);
   }
 }

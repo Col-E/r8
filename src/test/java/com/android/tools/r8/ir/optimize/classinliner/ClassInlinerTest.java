@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.OutputMode;
@@ -27,6 +28,7 @@ import com.android.tools.r8.ir.optimize.classinliner.builders.PairBuilder;
 import com.android.tools.r8.ir.optimize.classinliner.builders.Tuple;
 import com.android.tools.r8.ir.optimize.classinliner.code.C;
 import com.android.tools.r8.ir.optimize.classinliner.code.CodeTestClass;
+import com.android.tools.r8.ir.optimize.classinliner.invalidroot.InvalidRootsTestClass;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.ClassWithFinal;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceAB;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceBA;
@@ -252,6 +254,51 @@ public class ClassInlinerTest extends TestBase {
 
     assertFalse(inspector.clazz(C.L.class).isPresent());
     assertFalse(inspector.clazz(C.F.class).isPresent());
+  }
+
+  @Test
+  public void testInvalidatedRoot() throws Exception {
+    String prefix = "com.android.tools.r8.ir.optimize.classinliner.invalidroot.";
+
+    byte[][] classes = {
+        ToolHelper.getClassAsBytes(InvalidRootsTestClass.class),
+        ToolHelper.getClassAsBytes(InvalidRootsTestClass.A.class),
+        ToolHelper.getClassAsBytes(InvalidRootsTestClass.B.class),
+        ToolHelper.getClassAsBytes(InvalidRootsTestClass.NeverReturnsNormally.class),
+        ToolHelper.getClassAsBytes(InvalidRootsTestClass.InitNeverReturnsNormally.class)
+    };
+    AndroidApp app = runR8(buildAndroidApp(classes), InvalidRootsTestClass.class);
+
+    String javaOutput = runOnJava(InvalidRootsTestClass.class);
+    String artOutput = runOnArt(app, InvalidRootsTestClass.class);
+    assertEquals(javaOutput, artOutput);
+
+    DexInspector inspector = new DexInspector(app);
+    ClassSubject clazz = inspector.clazz(InvalidRootsTestClass.class);
+
+    assertEquals(
+        Sets.newHashSet(prefix + "InvalidRootsTestClass$NeverReturnsNormally"),
+        collectTypes(clazz, "testExtraNeverReturnsNormally", "void"));
+
+    assertEquals(
+        Sets.newHashSet(prefix + "InvalidRootsTestClass$NeverReturnsNormally"),
+        collectTypes(clazz, "testDirectNeverReturnsNormally", "void"));
+
+    assertEquals(
+        Sets.newHashSet(prefix + "InvalidRootsTestClass$InitNeverReturnsNormally"),
+        collectTypes(clazz, "testInitNeverReturnsNormally", "void"));
+
+    assertTrue(inspector.clazz(InvalidRootsTestClass.NeverReturnsNormally.class).isPresent());
+    assertTrue(inspector.clazz(InvalidRootsTestClass.InitNeverReturnsNormally.class).isPresent());
+
+    assertEquals(
+        Sets.newHashSet(
+            "java.lang.StringBuilder",
+            "java.lang.RuntimeException"),
+        collectTypes(clazz, "testRootInvalidatesAfterInlining", "void"));
+
+    assertFalse(inspector.clazz(InvalidRootsTestClass.A.class).isPresent());
+    assertFalse(inspector.clazz(InvalidRootsTestClass.B.class).isPresent());
   }
 
   private Set<String> collectTypes(

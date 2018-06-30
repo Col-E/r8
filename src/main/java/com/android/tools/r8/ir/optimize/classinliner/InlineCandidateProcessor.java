@@ -444,6 +444,12 @@ final class InlineCandidateProcessor {
       return null;
     }
 
+    // Don't inline code w/o normal returns into block with catch handlers (b/64432527).
+    if (initInvoke.getBlock().hasCatchHandlers() &&
+        definition.getOptimizationInfo().neverReturnsNormally()) {
+      return null;
+    }
+
     // If the superclass of the initializer is NOT java.lang.Object, the super class
     // initializer being called must be classified as TrivialInstanceInitializer.
     //
@@ -476,16 +482,16 @@ final class InlineCandidateProcessor {
     if (invoke.inValues().lastIndexOf(eligibleInstance) > 0) {
       return null; // Instance passed as an argument.
     }
-    return isEligibleMethodCall(invoke.getInvokedMethod(),
+    return isEligibleMethodCall(!invoke.getBlock().hasCatchHandlers(), invoke.getInvokedMethod(),
         eligibility -> !eligibility.returnsReceiver ||
             invoke.outValue() == null || invoke.outValue().numberOfAllUsers() == 0);
   }
 
   private InliningInfo isEligibleIndirectMethodCall(DexMethod callee) {
-    return isEligibleMethodCall(callee, eligibility -> !eligibility.returnsReceiver);
+    return isEligibleMethodCall(false, callee, eligibility -> !eligibility.returnsReceiver);
   }
 
-  private InliningInfo isEligibleMethodCall(
+  private InliningInfo isEligibleMethodCall(boolean allowMethodsWithoutNormalReturns,
       DexMethod callee, Predicate<ClassInlinerEligibility> eligibilityAcceptanceCheck) {
 
     DexEncodedMethod singleTarget = findSingleTarget(callee);
@@ -496,8 +502,9 @@ final class InlineCandidateProcessor {
       return null; // Don't inline itself.
     }
 
-    ClassInlinerEligibility eligibility =
-        singleTarget.getOptimizationInfo().getClassInlinerEligibility();
+    OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+
+    ClassInlinerEligibility eligibility = optimizationInfo.getClassInlinerEligibility();
     if (eligibility == null) {
       return null;
     }
@@ -505,6 +512,11 @@ final class InlineCandidateProcessor {
     // If the method returns receiver and the return value is actually
     // used in the code the method is not eligible.
     if (!eligibilityAcceptanceCheck.test(eligibility)) {
+      return null;
+    }
+
+    // Don't inline code w/o normal returns into block with catch handlers (b/64432527).
+    if (!allowMethodsWithoutNormalReturns && optimizationInfo.neverReturnsNormally()) {
       return null;
     }
 
@@ -569,6 +581,11 @@ final class InlineCandidateProcessor {
     }
 
     OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+
+    // Don't inline code w/o normal returns into block with catch handlers (b/64432527).
+    if (invokeMethod.getBlock().hasCatchHandlers() && optimizationInfo.neverReturnsNormally()) {
+      return false;
+    }
 
     // Go through all arguments, see if all usages of eligibleInstance are good.
     for (int argIndex = 0; argIndex < arguments.size(); argIndex++) {

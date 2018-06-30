@@ -659,6 +659,7 @@ public class BasicBlock {
     for (Instruction instruction : getInstructions()) {
       if (instruction.outValue != null) {
         instruction.outValue.clearUsers();
+        instruction.setOutValue(null);
       }
       for (Value value : instruction.inValues) {
         value.removeUser(instruction);

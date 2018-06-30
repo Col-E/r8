@@ -390,7 +390,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     ImmutableList<BasicBlock> normalExits = inlinee.computeNormalExitBlocks();
     if (normalExits.isEmpty()) {
       assert inlineeCanThrow;
-      // TODO(sgjesse): Remove this restriction.
+      // TODO(sgjesse): Remove this restriction (see b/64432527).
       assert !invokeBlock.hasCatchHandlers();
       blocksToRemove.addAll(
           invokePredecessor.unlink(invokeBlock, new DominatorTree(code)));
