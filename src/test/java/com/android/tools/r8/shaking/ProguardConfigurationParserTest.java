@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.DiagnosticsChecker.checkDiagnostics;
 import static com.android.tools.r8.shaking.ProguardConfigurationSourceStrings.createConfigurationForTesting;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -14,9 +16,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import static org.hamcrest.core.StringContains.containsString;
-
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -25,10 +24,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.position.TextPosition;
-import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
@@ -694,7 +689,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path path = Paths.get(PACKAGE_OBFUSCATION_5);
     parser.parse(path);
-    checkDiagnostic(handler.warnings, path, 6, 1,
+    checkDiagnostics(handler.warnings, path, 6, 1,
         "repackageclasses", "overrides", "flattenpackagehierarchy");
     ProguardConfiguration config = parser.getConfig();
     assertEquals(PackageObfuscationMode.REPACKAGE, config.getPackageObfuscationMode());
@@ -708,7 +703,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path path = Paths.get(PACKAGE_OBFUSCATION_6);
     parser.parse(path);
-    checkDiagnostic(handler.warnings, path, 6, 1,
+    checkDiagnostics(handler.warnings, path, 6, 1,
         "repackageclasses", "overrides", "flattenpackagehierarchy");
     ProguardConfiguration config = parser.getConfig();
     assertEquals(PackageObfuscationMode.REPACKAGE, config.getPackageObfuscationMode());
@@ -735,7 +730,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(path);
       fail("Expect to fail due to the lack of file name.");
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, path, 6, 14, "File name expected");
+      checkDiagnostics(handler.errors, path, 6, 14, "File name expected");
     }
   }
 
@@ -755,7 +750,7 @@ public class ProguardConfigurationParserTest extends TestBase {
           .parse(path);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, path, 6, 10,"does-not-exist.flags");
+      checkDiagnostics(handler.errors, path, 6, 10,"does-not-exist.flags");
     }
   }
 
@@ -767,7 +762,7 @@ public class ProguardConfigurationParserTest extends TestBase {
           .parse(path);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, path, 6,2, "does-not-exist.flags");
+      checkDiagnostics(handler.errors, path, 6,2, "does-not-exist.flags");
     }
   }
 
@@ -930,7 +925,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path path = Paths.get(DONT_OPTIMIZE_OVERRIDES_PASSES);
     parser.parse(path);
-    checkDiagnostic(handler.warnings, path, 7, 1,
+    checkDiagnostics(handler.warnings, path, 7, 1,
         "Ignoring", "-optimizationpasses");
     ProguardConfiguration config = parser.getConfig();
     assertFalse(config.isOptimizing());
@@ -942,7 +937,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path path = Paths.get(OPTIMIZATION_PASSES);
     parser.parse(path);
-    checkDiagnostic(handler.warnings, path, 5, 1,
+    checkDiagnostics(handler.warnings, path, 5, 1,
         "Ignoring", "-optimizationpasses");
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isOptimizing());
@@ -957,7 +952,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(path);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, path, 6, 1, "Missing n");
+      checkDiagnostics(handler.errors, path, 6, 1, "Missing n");
     }
   }
 
@@ -970,8 +965,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(path);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, path, 5, 1, "Unsupported option",
-          "-skipnonpubliclibraryclasses");
+      checkDiagnostics(handler.errors, path, 5, 1,
+          "Unsupported option", "-skipnonpubliclibraryclasses");
     }
   }
 
@@ -1052,7 +1047,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 1, 1, "Unknown option", "-keepclassx");
+      checkDiagnostics(handler.errors, proguardConfig, 1, 1,
+          "Unknown option", "-keepclassx");
     }
   }
 
@@ -1325,7 +1321,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " ,")));
         fail("Expect to fail due to the lack of path filter.");
       } catch (AbortException e) {
-        checkDiagnostic(handler.errors, null, 1, option.length() + 2, "Path filter expected");
+        checkDiagnostics(handler.errors, null, 1, option.length() + 2, "Path filter expected");
       }
     }
   }
@@ -1340,7 +1336,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " xxx,,yyy")));
         fail("Expect to fail due to the lack of path filter.");
       } catch (AbortException e) {
-        checkDiagnostic(handler.errors, null, 1, option.length() + 6, "Path filter expected");
+        checkDiagnostics(handler.errors, null, 1, option.length() + 6, "Path filter expected");
       }
     }
   }
@@ -1355,7 +1351,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " xxx,")));
         fail("Expect to fail due to the lack of path filter.");
       } catch (AbortException e) {
-        checkDiagnostic(handler.errors, null, 1, option.length() + 6, "Path filter expected");
+        checkDiagnostics(handler.errors, null, 1, option.length() + 6, "Path filter expected");
       }
     }
   }
@@ -1438,7 +1434,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 2, 13,
+      checkDiagnostics(handler.errors, proguardConfig, 2, 13,
           "Use of generics not allowed for java type");
     }
     verifyFailWithProguard6(proguardConfig, "Use of generics not allowed for java type");
@@ -1456,7 +1452,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 2, 13,
+      checkDiagnostics(handler.errors, proguardConfig, 2, 13,
           "Use of generics not allowed for java type");
     }
     verifyFailWithProguard6(proguardConfig, "Use of generics not allowed for java type");
@@ -1508,7 +1504,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 4, 2,
+      checkDiagnostics(handler.errors, proguardConfig, 4, 2,
           "Wildcard", "<4>", "invalid");
     }
     verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (4,");
@@ -1526,7 +1522,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 2, 13,
+      checkDiagnostics(handler.errors, proguardConfig, 2, 13,
           "Wildcard", "<0>", "invalid");
     }
     verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (0,");
@@ -1544,7 +1540,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 3, 1,
+      checkDiagnostics(handler.errors, proguardConfig, 3, 1,
           "Wildcard", "<4>", "invalid");
     }
     verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (4,");
@@ -1562,7 +1558,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 3, 1,
+      checkDiagnostics(handler.errors, proguardConfig, 3, 1,
           "Wildcard", "<2>", "invalid");
     }
     verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (2,");
@@ -1584,7 +1580,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 6, 2,
+      checkDiagnostics(handler.errors, proguardConfig, 6, 2,
           "Wildcard", "<3>", "invalid");
     }
     verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (3,");
@@ -1602,7 +1598,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
+      checkDiagnostics(handler.errors, proguardConfig, 1, 1,
           "Expecting", "'-keep'", "after", "'-if'");
     }
     verifyFailWithProguard6(proguardConfig, "Expecting '-keep' option after '-if' option");
@@ -1619,7 +1615,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(proguardConfig);
       fail();
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, proguardConfig, 1, 1,
+      checkDiagnostics(handler.errors, proguardConfig, 1, 1,
           "Expecting", "'-keep'", "after", "'-if'");
     }
     verifyFailWithProguard6(proguardConfig, "Expecting '-keep' option after '-if' option");
@@ -1649,7 +1645,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
-    checkDiagnostic(handler.warnings, proguardConfig, 1, 1,
+    checkDiagnostics(handler.warnings, proguardConfig, 1, 1,
         "Ignoring", "-assumenoexternalsideeffects");
   }
 
@@ -1663,7 +1659,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
-    checkDiagnostic(handler.warnings, proguardConfig, 1, 1,
+    checkDiagnostics(handler.warnings, proguardConfig, 1, 1,
         "Ignoring", "-assumenoescapingparameters");
   }
 
@@ -1687,7 +1683,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
-    checkDiagnostic(handler.warnings, proguardConfig, 1, 1,
+    checkDiagnostics(handler.warnings, proguardConfig, 1, 1,
         "Ignoring", "-assumenoexternalreturnvalues");
   }
 
@@ -1721,7 +1717,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
-    checkDiagnostic(handler.warnings, proguardConfig, 1, 1,
+    checkDiagnostics(handler.warnings, proguardConfig, 1, 1,
         "Ignoring", "-addconfigurationdebugging");
   }
 
@@ -1763,7 +1759,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(createConfigurationForTesting(ImmutableList.of(option)));
       fail("Expect to fail due to unsupported option.");
     } catch (AbortException e) {
-      checkDiagnostic(handler.errors, null, 1, 1, "Option " + option + " currently not supported");
+      checkDiagnostics(handler.errors, null, 1, 1, "Option " + option + " currently not supported");
     }
   }
 
@@ -1785,31 +1781,6 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(0, handler.infos.size());
     assertEquals(0, handler.warnings.size());
     assertEquals(0, handler.errors.size());
-  }
-
-  // TODO(sgjesse): Change to use DiagnosticsChecker.
-  private Diagnostic checkDiagnostic(List<Diagnostic> diagnostics, Path path, int lineStart,
-      int columnStart, String... messageParts) {
-    assertEquals(1, diagnostics.size());
-    Diagnostic diagnostic = diagnostics.get(0);
-    if (path != null) {
-      assertEquals(path, ((PathOrigin) diagnostic.getOrigin()).getPath());
-    } else {
-      assertSame(Origin.unknown(), diagnostic.getOrigin());
-    }
-    TextPosition position;
-    if (diagnostic.getPosition() instanceof TextRange) {
-      position = ((TextRange) diagnostic.getPosition()).getStart();
-    } else {
-      position = ((TextPosition) diagnostic.getPosition());
-    }
-    assertEquals(lineStart, position.getLine());
-    assertEquals(columnStart, position.getColumn());
-    for (String part : messageParts) {
-      assertTrue(diagnostic.getDiagnosticMessage() + " doesn't contain \"" + part + "\"",
-          diagnostic.getDiagnosticMessage().contains(part));
-    }
-    return diagnostic;
   }
 
   private void verifyWithProguard(Path proguardConfig) throws Exception {
