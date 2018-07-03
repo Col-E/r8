@@ -98,9 +98,10 @@ public final class LambdaDescriptor {
         if (target == null) {
           target = appInfo.lookupDirectTarget(method);
         }
-        assert target == null ||
-            (implHandle.type.isInvokeInstance() && isInstanceMethod(target)) ||
-            (implHandle.type.isInvokeDirect() && isPrivateInstanceMethod(target));
+        assert target == null
+            || (implHandle.type.isInvokeInstance() && isInstanceMethod(target))
+            || (implHandle.type.isInvokeDirect() && isPrivateInstanceMethod(target))
+            || (implHandle.type.isInvokeDirect() && isPublicizedInstanceMethod(target));
         return target;
       }
 
@@ -129,12 +130,17 @@ public final class LambdaDescriptor {
 
   private boolean isInstanceMethod(DexEncodedMethod encodedMethod) {
     assert encodedMethod != null;
-    return !encodedMethod.accessFlags.isConstructor() && !encodedMethod.accessFlags.isStatic();
+    return !encodedMethod.accessFlags.isConstructor() && !encodedMethod.isStaticMethod();
   }
 
   private boolean isPrivateInstanceMethod(DexEncodedMethod encodedMethod) {
     assert encodedMethod != null;
-    return encodedMethod.accessFlags.isPrivate() && isInstanceMethod(encodedMethod);
+    return encodedMethod.isPrivateMethod() && isInstanceMethod(encodedMethod);
+  }
+
+  private boolean isPublicizedInstanceMethod(DexEncodedMethod encodedMethod) {
+    assert encodedMethod != null;
+    return encodedMethod.isPublicized() && isInstanceMethod(encodedMethod);
   }
 
   final MethodAccessFlags getAccessibility() {

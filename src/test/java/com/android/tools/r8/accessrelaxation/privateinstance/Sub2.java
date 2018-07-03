@@ -10,6 +10,14 @@ public class Sub2 extends Base implements Itf2 {
     return "Sub2::foo2()";
   }
 
+  private synchronized String bar1(int i) {
+    return "Sub2::bar1(" + i + ")";
+  }
+
+  public String pBar1() {
+    return bar1(1);
+  }
+
   private synchronized String bar2(int i) {
     return "Sub2::bar2(" + i + ")";
   }
@@ -23,6 +31,11 @@ public class Sub2 extends Base implements Itf2 {
     System.out.println(foo2());
     System.out.println(foo2(0));
     System.out.println(bar2(0));
+    try {
+      bar1(0);
+    } catch (AssertionError e) {
+      // expected
+    }
   }
 
 }

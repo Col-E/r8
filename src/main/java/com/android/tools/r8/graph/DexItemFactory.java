@@ -729,8 +729,10 @@ public class DexItemFactory {
   }
 
   public DexCallSite createCallSite(
-      DexString methodName, DexProto methodProto,
-      DexMethodHandle bootstrapMethod, List<DexValue> bootstrapArgs) {
+      DexString methodName,
+      DexProto methodProto,
+      DexMethodHandle bootstrapMethod,
+      List<DexValue> bootstrapArgs) {
     // Call sites are never equal and therefore we do not canonicalize.
     assert !sorted;
     DexCallSite callSite = new DexCallSite(methodName, methodProto, bootstrapMethod, bootstrapArgs);

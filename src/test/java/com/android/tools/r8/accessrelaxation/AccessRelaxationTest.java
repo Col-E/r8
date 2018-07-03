@@ -171,10 +171,13 @@ public class AccessRelaxationTest extends TestBase {
     assertNotPublic(dexInspector, Base.class,
         new MethodSignature("foo2", STRING, ImmutableList.of()));
 
-    // Sub1#bar1(int) can't be publicized due to Base#bar1(int).
-    assertNotPublic(dexInspector, Sub1.class,
+    // Sub?#bar1(int) can be publicized as they don't bother each other.
+    assertPublic(dexInspector, Sub1.class,
+        new MethodSignature("bar1", STRING, ImmutableList.of("int")));
+    assertPublic(dexInspector, Sub2.class,
         new MethodSignature("bar1", STRING, ImmutableList.of("int")));
 
+    // Sub2#bar2(int) is unique throughout the hierarchy, hence publicized.
     assertPublic(dexInspector, Sub2.class,
         new MethodSignature("bar2", STRING, ImmutableList.of("int")));
   }

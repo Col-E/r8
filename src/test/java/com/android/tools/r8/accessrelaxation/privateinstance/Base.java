@@ -30,19 +30,10 @@ public class Base {
     return foo2();
   }
 
-  private synchronized String bar1(int i) {
-    throw new AssertionError("Sub1#bar1(int) will not use this signature.");
-  }
-
   public void dump() {
     System.out.println(foo());
     System.out.println(foo1());
     System.out.println(foo2());
-    try {
-      bar1(0);
-    } catch (AssertionError e) {
-      // expected
-    }
   }
 
 }
