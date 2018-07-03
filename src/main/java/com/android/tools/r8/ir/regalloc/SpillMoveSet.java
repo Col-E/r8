@@ -354,7 +354,8 @@ class SpillMoveSet {
         // avoid a bug where the index variable could end up being uninitialized.
         if (code.options.canHaveBoundsCheckEliminationBug()
             && move.from.getValue().isConstNumber()
-            && move.type == MoveType.SINGLE) {
+            && move.type == MoveType.SINGLE
+            && allocator.unadjustedRealRegisterFromAllocated(move.to.getRegister()) < 256) {
           scheduler.addMove(
               new RegisterMove(move.to.getRegister(), move.type, move.from.getValue().definition));
         } else {
