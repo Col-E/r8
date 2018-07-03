@@ -116,9 +116,14 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
         messageParts);
   }
 
+  public static Diagnostic checkDiagnostics(List<Diagnostic> diagnostics, int index, Path path,
+      int lineStart, int columnStart, String... messageParts) {
+    return checkDiagnostic(diagnostics.get(index), path, lineStart, columnStart, messageParts);
+  }
+
   public static Diagnostic checkDiagnostics(List<Diagnostic> diagnostics, Path path,
       int lineStart, int columnStart, String... messageParts) {
     assertEquals(1, diagnostics.size());
-    return checkDiagnostic(diagnostics.get(0), path, lineStart, columnStart, messageParts);
+    return checkDiagnostics(diagnostics, 0, path, lineStart, columnStart, messageParts);
   }
 }

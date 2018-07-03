@@ -873,6 +873,7 @@ public class ProguardConfigurationParser {
         ruleBuilder.setName(IdentifierPatternWithWildcards.withoutWildcards("<init>"));
         ruleBuilder.setArguments(parseArgumentList());
       } else {
+        TextPosition firstStart = getPosition();
         IdentifierPatternWithWildcards first =
             acceptIdentifierWithBackreference(IdentifierType.ANY);
         if (first != null) {
@@ -885,6 +886,7 @@ public class ProguardConfigurationParser {
               ruleBuilder.setName(first);
               ruleBuilder.setArguments(parseArgumentList());
             } else {
+              TextPosition secondStart = getPosition();
               IdentifierPatternWithWildcards second =
                   acceptIdentifierWithBackreference(IdentifierType.ANY);
               if (second != null) {
@@ -897,6 +899,12 @@ public class ProguardConfigurationParser {
                           ProguardTypeMatcher.create(first, ClassOrType.TYPE, dexItemFactory));
                   ruleBuilder.setArguments(parseArgumentList());
                 } else {
+                  if (first.hasUnusualCharacters()) {
+                    warnUnusualCharacters("type", first.pattern, "field", firstStart);
+                  }
+                  if (second.hasUnusualCharacters()) {
+                    warnUnusualCharacters("field name", second.pattern, "field", secondStart);
+                  }
                   ruleBuilder.setRuleType(ProguardMemberType.FIELD);
                   ruleBuilder.setName(second);
                   ruleBuilder
@@ -1490,6 +1498,16 @@ public class ProguardConfigurationParser {
           "Option -" + optionName + " overrides -" + victim, origin, getPosition(start)));
     }
 
+    private void warnUnusualCharacters(
+        String kind, String pattern, String ruleType, TextPosition start) {
+      reporter.warning(new StringDiagnostic(
+          "The " + kind + " \"" + pattern + "\" is used in a " + ruleType + " rule. The "
+              + "characters in this " + kind + " are legal for the JVM, "
+              + "but unlikely to originate from a source language. "
+              + "Maybe this is not the rule you are looking for.",
+          origin, getPosition(start)));
+    }
+
     private void failPartiallyImplementedOption(String optionName, TextPosition start) {
       throw reporter.fatalError(new StringDiagnostic(
           "Option " + optionName + " currently not supported", origin, getPosition(start)));
@@ -1527,6 +1545,26 @@ public class ProguardConfigurationParser {
 
     boolean isMatchAllNames() {
       return pattern.equals("*");
+    }
+
+    boolean hasUnusualCharacters() {
+      if (pattern.contains("<") || pattern.contains(">")) {
+        int angleStartCount = 0;
+        int angleEndCount = 0;
+        for (int i = 0; i < pattern.length(); i++) {
+          char c = pattern.charAt(i);
+          if (c == '<') {
+            angleStartCount++;
+          }
+          if (c == '>') {
+            angleEndCount++;
+          }
+        }
+        // Check that start/end angles are matched, and *only* used for well-formed wildcard
+        // backreferences (e.g. '<1>', but not '<<1>>', '<<*>>' or '>1<').
+        return !(angleStartCount == angleEndCount && angleStartCount == wildcards.size());
+      }
+      return false;
     }
   }
 }

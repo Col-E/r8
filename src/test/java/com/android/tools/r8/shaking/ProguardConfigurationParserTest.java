@@ -1485,7 +1485,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
-    verifyParserEndsCleanly();
+    checkDiagnostics(handler.warnings, proguardConfig, 3, 7, "The field name \"id<<*>>\" is");
 
     verifyWithProguard6(proguardConfig);
   }
@@ -1731,7 +1731,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
-    verifyParserEndsCleanly();
+    checkDiagnostics(handler.warnings, proguardConfig, 2, 5, "The field name \"<fields>\" is");
     verifyWithProguard(proguardConfig);
   }
 
@@ -1749,6 +1749,26 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(1, config.getRules().size());
     ProguardKeepRule rule = (ProguardKeepRule) config.getRules().get(0);
     assertEquals(ProguardClassType.ANNOTATION_INTERFACE, rule.getClassType());
+
+    verifyWithProguard(proguardConfig);
+  }
+
+  @Test
+  public void parse_regress110021323() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+      "-keepclassmembernames class A {",
+      "  <public methods>;",
+      "  <public fields>;",
+      "}"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    assertEquals(4, handler.warnings.size());
+    checkDiagnostics(handler.warnings, 0, proguardConfig, 2, 3, "The type \"<public\" is");
+    checkDiagnostics(handler.warnings, 1, proguardConfig, 2, 11, "The field name \"methods>\" is");
+    checkDiagnostics(handler.warnings, 2, proguardConfig, 3, 3, "The type \"<public\" is");
+    checkDiagnostics(handler.warnings, 3, proguardConfig, 3, 11, "The field name \"fields>\" is");
 
     verifyWithProguard(proguardConfig);
   }
