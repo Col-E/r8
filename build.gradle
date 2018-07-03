@@ -7,24 +7,6 @@ import org.gradle.internal.os.OperatingSystem
 import tasks.GetJarsFromConfiguration
 import utils.Utils
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'com.google.protobuf'
-apply plugin: 'com.cookpad.android.licensetools'
-apply plugin: 'net.ltgt.errorprone-base'
-apply plugin: "net.ltgt.apt"
-
-// Ensure importing into IntelliJ IDEA use the same output directories as Gradle. In tests we
-// use the output path for tests (ultimately through ToolHelper.getClassPathForTests()) and
-// therefore these paths need to be the same. See https://youtrack.jetbrains.com/issue/IDEA-175172
-// for context.
-idea {
-    module {
-        outputDir file('build/classes/main')
-        testOutputDir file('build/classes/test')
-    }
-}
-
 ext {
     androidSupportVersion = '25.4.0'
     apacheCommonsVersion = '1.12'
@@ -68,11 +50,6 @@ def errorProneConfiguration = [
 
 apply from: 'copyAdditionalJctfCommonFiles.gradle'
 
-
-if (project.hasProperty('with_code_coverage')) {
-    apply plugin: 'jacoco'
-}
-
 repositories {
     maven { url 'https://maven.google.com' }
     maven { url 'https://kotlin.bintray.com/kotlinx' }
@@ -93,7 +70,37 @@ buildscript {
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.3'
         classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
         classpath "net.ltgt.gradle:gradle-apt-plugin:0.12"
+        classpath "com.gradle:build-scan-plugin:1.14"
     }
+}
+
+apply plugin: "com.gradle.build-scan"
+
+buildScan {
+    licenseAgreementUrl = 'https://gradle.com/terms-of-service'
+    licenseAgree = 'yes'
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'com.google.protobuf'
+apply plugin: 'com.cookpad.android.licensetools'
+apply plugin: 'net.ltgt.errorprone-base'
+apply plugin: "net.ltgt.apt"
+
+// Ensure importing into IntelliJ IDEA use the same output directories as Gradle. In tests we
+// use the output path for tests (ultimately through ToolHelper.getClassPathForTests()) and
+// therefore these paths need to be the same. See https://youtrack.jetbrains.com/issue/IDEA-175172
+// for context.
+idea {
+    module {
+        outputDir file('build/classes/main')
+        testOutputDir file('build/classes/test')
+    }
+}
+
+if (project.hasProperty('with_code_coverage')) {
+    apply plugin: 'jacoco'
 }
 
 // Custom source set for example tests and generated tests.
