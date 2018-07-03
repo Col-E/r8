@@ -37,7 +37,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -55,7 +54,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -697,34 +695,36 @@ public class VerticalClassMerger {
         deferredRenamings.map(virtualMethod.method, shadowedBy.method);
       }
 
-      Collection<DexEncodedMethod> mergedDirectMethods =
-          mergeItems(
-              directMethods.values().iterator(),
-              target.directMethods(),
-              MethodSignatureEquivalence.get(),
-              this::resolveMethodConflict);
-      Collection<DexEncodedMethod> mergedVirtualMethods =
-          mergeItems(
-              virtualMethods.values().iterator(),
-              target.virtualMethods(),
-              MethodSignatureEquivalence.get(),
-              this::resolveMethodConflict);
       if (abortMerge) {
         return false;
       }
+
+      DexEncodedMethod[] mergedDirectMethods =
+          mergeMethods(directMethods.values(), target.directMethods());
+      DexEncodedMethod[] mergedVirtualMethods =
+          mergeMethods(virtualMethods.values(), target.virtualMethods());
+
       // Step 2: Merge fields
-      Collection<DexEncodedField> mergedStaticFields =
-          mergeItems(
-              Iterators.forArray(source.staticFields()),
-              target.staticFields(),
-              FieldSignatureEquivalence.get(),
-              this::resolveFieldConflict);
-      Collection<DexEncodedField> mergedInstanceFields =
-          mergeItems(
-              Iterators.forArray(source.instanceFields()),
+      Set<Wrapper<DexField>> existingFieldSignatures = new HashSet<>();
+      addAll(existingFieldSignatures, target.fields(), FieldSignatureEquivalence.get());
+
+      Predicate<DexField> availableFieldSignatures =
+          field -> !existingFieldSignatures.contains(FieldSignatureEquivalence.get().wrap(field));
+
+      DexEncodedField[] mergedInstanceFields =
+          mergeFields(
+              source.instanceFields(),
               target.instanceFields(),
-              FieldSignatureEquivalence.get(),
-              this::resolveFieldConflict);
+              availableFieldSignatures,
+              existingFieldSignatures);
+
+      DexEncodedField[] mergedStaticFields =
+          mergeFields(
+              source.staticFields(),
+              target.staticFields(),
+              availableFieldSignatures,
+              existingFieldSignatures);
+
       // Step 3: Merge interfaces
       Set<DexType> interfaces = mergeArrays(target.interfaces.values, source.interfaces.values);
       // Now destructively update the class.
@@ -739,14 +739,10 @@ public class VerticalClassMerger {
           ? DexTypeList.empty()
           : new DexTypeList(interfaces.toArray(new DexType[interfaces.size()]));
       // Step 2: replace fields and methods.
-      target.setDirectMethods(mergedDirectMethods
-          .toArray(new DexEncodedMethod[mergedDirectMethods.size()]));
-      target.setVirtualMethods(mergedVirtualMethods
-          .toArray(new DexEncodedMethod[mergedVirtualMethods.size()]));
-      target.setStaticFields(mergedStaticFields
-          .toArray(new DexEncodedField[mergedStaticFields.size()]));
-      target.setInstanceFields(mergedInstanceFields
-          .toArray(new DexEncodedField[mergedInstanceFields.size()]));
+      target.setDirectMethods(mergedDirectMethods);
+      target.setVirtualMethods(mergedVirtualMethods);
+      target.setInstanceFields(mergedInstanceFields);
+      target.setStaticFields(mergedStaticFields);
       // Step 3: Unlink old class to ease tree shaking.
       source.superType = application.dexItemFactory.objectType;
       source.setDirectMethods(null);
@@ -889,41 +885,38 @@ public class VerticalClassMerger {
       return merged;
     }
 
-    private <T extends PresortedComparable<T>, S extends KeyedDexItem<T>> Collection<S> mergeItems(
-        Iterator<S> fromItems,
-        S[] toItems,
-        Equivalence<T> equivalence,
-        BiFunction<S, Predicate<T>, S> onConflict) {
-      Map<Wrapper<T>, S> map = new HashMap<>();
-      // First add everything from the target class. These items are not preprocessed.
-      for (S item : toItems) {
-        map.put(equivalence.wrap(item.getKey()), item);
+    private DexEncodedField[] mergeFields(
+        DexEncodedField[] sourceFields,
+        DexEncodedField[] targetFields,
+        Predicate<DexField> availableFieldSignatures,
+        Set<Wrapper<DexField>> existingFieldSignatures) {
+      DexEncodedField[] result = new DexEncodedField[sourceFields.length + targetFields.length];
+      // Add fields from source
+      int i = 0;
+      for (DexEncodedField field : sourceFields) {
+        DexEncodedField resultingField = renameFieldIfNeeded(field, availableFieldSignatures);
+        existingFieldSignatures.add(FieldSignatureEquivalence.get().wrap(resultingField.field));
+        deferredRenamings.map(field.field, resultingField.field);
+        result[i] = resultingField;
+        i++;
       }
-      // Now add the new items, resolving shadowing.
-      addNonShadowed(fromItems, map, equivalence, onConflict);
-      return map.values();
+      // Add fields from target.
+      System.arraycopy(targetFields, 0, result, i, targetFields.length);
+      return result;
     }
 
-    private <T extends PresortedComparable<T>, S extends KeyedDexItem<T>> void addNonShadowed(
-        Iterator<S> items,
-        Map<Wrapper<T>, S> map,
-        Equivalence<T> equivalence,
-        BiFunction<S, Predicate<T>, S> onConflict) {
-      Predicate<T> availableSignatures = key -> !map.containsKey(equivalence.wrap(key));
-      while (items.hasNext()) {
-        S item = items.next();
-        assert item != null;
-        Wrapper<T> wrapped = equivalence.wrap(item.getKey());
-        if (map.containsKey(wrapped)) {
-          S resolved = onConflict.apply(item, availableSignatures);
-          assert availableSignatures.test(resolved.getKey());
-          wrapped = equivalence.wrap(resolved.getKey());
-          map.put(wrapped, resolved);
-          assert !availableSignatures.test(resolved.getKey());
-        } else {
-          map.put(wrapped, item);
-        }
+    private DexEncodedMethod[] mergeMethods(
+        Collection<DexEncodedMethod> sourceMethods, DexEncodedMethod[] targetMethods) {
+      DexEncodedMethod[] result = new DexEncodedMethod[sourceMethods.size() + targetMethods.length];
+      // Add methods from source.
+      int i = 0;
+      for (DexEncodedMethod method : sourceMethods) {
+        result[i] = method;
+        i++;
       }
+      // Add methods from target.
+      System.arraycopy(targetMethods, 0, result, i, targetMethods.length);
+      return result;
     }
 
     // Note that names returned by this function are not necessarily unique. Clients should
@@ -934,13 +927,6 @@ public class VerticalClassMerger {
         freshName += index;
       }
       return application.dexItemFactory.createString(freshName);
-    }
-
-    private DexEncodedMethod resolveMethodConflict(
-        DexEncodedMethod method, Predicate<DexMethod> availableMethodSignatures) {
-      assert false;
-      abortMerge = true;
-      return method;
     }
 
     private DexEncodedMethod renameConstructor(
@@ -1008,23 +994,24 @@ public class VerticalClassMerger {
       return method.toTypeSubstitutedMethod(newSignature);
     }
 
-    private DexEncodedField resolveFieldConflict(
+    private DexEncodedField renameFieldIfNeeded(
         DexEncodedField field, Predicate<DexField> availableFieldSignatures) {
       DexString oldName = field.field.name;
       DexType oldHolder = field.field.clazz;
 
-      DexField newSignature;
-      int count = 1;
-      do {
-        DexString newName = getFreshName(oldName.toSourceString(), count, oldHolder);
-        newSignature =
-            application.dexItemFactory.createField(target.type, field.field.type, newName);
-        count++;
-      } while (!availableFieldSignatures.test(newSignature));
+      DexField newSignature =
+          application.dexItemFactory.createField(target.type, field.field.type, oldName);
+      if (!availableFieldSignatures.test(newSignature)) {
+        int count = 1;
+        do {
+          DexString newName = getFreshName(oldName.toSourceString(), count, oldHolder);
+          newSignature =
+              application.dexItemFactory.createField(target.type, field.field.type, newName);
+          count++;
+        } while (!availableFieldSignatures.test(newSignature));
+      }
 
-      DexEncodedField result = field.toTypeSubstitutedField(newSignature);
-      deferredRenamings.map(field.field, result.field);
-      return result;
+      return field.toTypeSubstitutedField(newSignature);
     }
   }
 
