@@ -86,18 +86,24 @@ public class DefaultMethodsTest extends TestBase {
         "  public int method();",
         "}"
     ), this::defaultMethodKept);
-    runTest(ImmutableList.of(
-        "-keep class " + ClassImplementingInterface.class.getCanonicalName() + "{",
-        "  <methods>;",
-        "}"
-    ), this::defaultMethodNotKept);
-    runTest(ImmutableList.of(
-        "-keep class " + ClassImplementingInterface.class.getCanonicalName() + "{",
-        "  <methods>;",
-        "}",
-        "-keep class " + TestClass.class.getCanonicalName() + "{",
-        "  public void useInterfaceMethod();",
-        "}"
-    ), this::defaultMethodAbstract);
+    runTest(
+        ImmutableList.of(
+            "-keep class " + ClassImplementingInterface.class.getCanonicalName() + "{",
+            "  <methods>;",
+            "}",
+            // Prevent InterfaceWithDefaultMethods from being merged into ClassImplementingInterface
+            "-keep class " + InterfaceWithDefaultMethods.class.getCanonicalName()),
+        this::defaultMethodNotKept);
+    runTest(
+        ImmutableList.of(
+            "-keep class " + ClassImplementingInterface.class.getCanonicalName() + "{",
+            "  <methods>;",
+            "}",
+            "-keep class " + TestClass.class.getCanonicalName() + "{",
+            "  public void useInterfaceMethod();",
+            "}",
+            // Prevent InterfaceWithDefaultMethods from being merged into ClassImplementingInterface
+            "-keep class " + InterfaceWithDefaultMethods.class.getCanonicalName()),
+        this::defaultMethodAbstract);
   }
 }
