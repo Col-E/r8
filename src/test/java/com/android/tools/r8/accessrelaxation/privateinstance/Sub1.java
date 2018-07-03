@@ -22,11 +22,7 @@ public class Sub1 extends Base implements Itf1 {
   public void dump() {
     System.out.println(foo1());
     System.out.println(foo1(0));
-    try {
-      System.out.println(bar1(0));
-    } catch (Throwable e) {
-      System.out.println(e.getClass().getName());
-    }
+    System.out.println(bar1(0));
   }
 
 }
