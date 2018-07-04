@@ -3033,10 +3033,8 @@ public class CodeRewriter {
             if (!value.isPhi()
                 && value.definition.isNumberConversion()
                 && value.definition.asNumberConversion().to == NumericType.DOUBLE) {
-              Value newValue = code.createValue(
-                  instruction.outValue().outType(), instruction.getLocalInfo());
               InvokeStatic invokeIsNaN =
-                  new InvokeStatic(javaLangDoubleisNaN.get(), newValue, ImmutableList.of(value));
+                  new InvokeStatic(javaLangDoubleisNaN.get(), null, ImmutableList.of(value));
               invokeIsNaN.setPosition(instruction.getPosition());
 
               // Insert the invoke before the current instruction.
