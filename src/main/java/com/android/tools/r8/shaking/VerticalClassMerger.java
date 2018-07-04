@@ -72,6 +72,7 @@ public class VerticalClassMerger {
     ALWAYS_INLINE,
     CONFLICT,
     ILLEGAL_ACCESS,
+    NATIVE_METHOD,
     NO_SIDE_EFFECTS,
     PINNED_SOURCE,
     RESOLUTION_FOR_FIELDS_MAY_CHANGE,
@@ -98,6 +99,9 @@ public class VerticalClassMerger {
           break;
         case ILLEGAL_ACCESS:
           message = "it could lead to illegal accesses";
+          break;
+        case NATIVE_METHOD:
+          message = "it has a native method";
           break;
         case NO_SIDE_EFFECTS:
           message = "it is mentioned in appInfo.noSideEffects";
@@ -174,6 +178,14 @@ public class VerticalClassMerger {
     extractPinnedItems(appInfo.alwaysInline, pinnedTypes, AbortReason.ALWAYS_INLINE);
     extractPinnedItems(appInfo.noSideEffects.keySet(), pinnedTypes, AbortReason.NO_SIDE_EFFECTS);
 
+    for (DexProgramClass clazz : classes) {
+      for (DexEncodedMethod method : clazz.methods()) {
+        if (method.accessFlags.isNative()) {
+          markTypeAsPinned(clazz.type, pinnedTypes, AbortReason.NATIVE_METHOD);
+        }
+      }
+    }
+
     // Avoid merging two types if this could remove a NoSuchMethodError, as illustrated by the
     // following example. (Alternatively, it would be possible to merge A and B and rewrite the
     // "invoke-super A.m" instruction into "invoke-super Object.m" to preserve the error. This
@@ -202,11 +214,7 @@ public class VerticalClassMerger {
     for (DexItem item : items) {
       if (item instanceof DexType || item instanceof DexClass) {
         DexType type = item instanceof DexType ? (DexType) item : ((DexClass) item).type;
-        // We check for the case where the type is pinned according to appInfo.isPinned, so only
-        // add it here if it is not the case.
-        if (!appInfo.isPinned(type)) {
-          markTypeAsPinned(type, pinnedTypes, reason);
-        }
+        markTypeAsPinned(type, pinnedTypes, reason);
       } else if (item instanceof DexField || item instanceof DexEncodedField) {
         // Pin the holder and the type of the field.
         DexField field =
@@ -229,6 +237,12 @@ public class VerticalClassMerger {
   }
 
   private void markTypeAsPinned(DexType type, Set<DexType> pinnedTypes, AbortReason reason) {
+    if (appInfo.isPinned(type)) {
+      // We check for the case where the type is pinned according to appInfo.isPinned,
+      // so we only need to add it here if it is not the case.
+      return;
+    }
+
     DexClass clazz = appInfo.definitionFor(type);
     if (clazz != null && clazz.isProgramClass()) {
       boolean changed = pinnedTypes.add(type);
