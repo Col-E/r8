@@ -56,7 +56,7 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     if (!(o instanceof ProguardConfigurationRule)) {
       return false;
     }
-    ProguardKeepRule that = (ProguardKeepRule) o;
+    ProguardConfigurationRule that = (ProguardConfigurationRule) o;
     return super.equals(that);
   }
 

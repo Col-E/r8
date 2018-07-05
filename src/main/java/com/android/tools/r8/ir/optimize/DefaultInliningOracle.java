@@ -91,7 +91,9 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   private Reason computeInliningReason(DexEncodedMethod target) {
-    if (target.getOptimizationInfo().forceInline()) {
+    if (target.getOptimizationInfo().forceInline()
+        || (inliner.appInfo.hasLiveness()
+            && inliner.appInfo.withLiveness().forceInline.contains(target))) {
       return Reason.FORCE;
     }
     if (inliner.appInfo.hasLiveness()
@@ -252,7 +254,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   public InlineAction computeForInvokeWithReceiver(
       InvokeMethodWithReceiver invoke, DexType invocationContext) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null || inliner.isBlackListed(candidate.method)) {
+    if (candidate == null || inliner.isBlackListed(candidate)) {
       return null;
     }
 
@@ -268,6 +270,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       if (info != null) {
         info.exclude(invoke, "receiver for candidate can be null");
       }
+      assert !inliner.appInfo.forceInline.contains(candidate.method);
       return null;
     }
 
@@ -293,7 +296,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   @Override
   public InlineAction computeForInvokeStatic(InvokeStatic invoke, DexType invocationContext) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null || inliner.isBlackListed(candidate.method)) {
+    if (candidate == null || inliner.isBlackListed(candidate)) {
       return null;
     }
 

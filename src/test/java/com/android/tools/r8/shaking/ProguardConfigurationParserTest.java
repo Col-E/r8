@@ -148,7 +148,14 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void resetAllowPartiallyImplementedOptions() {
     handler = new KeepingDiagnosticHandler();
     reporter = new Reporter(handler);
-    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter, false);
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter, false, false);
+  }
+
+  @Before
+  public void resetAllowTestOptions() {
+    handler = new KeepingDiagnosticHandler();
+    reporter = new Reporter(handler);
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter, true, true);
   }
 
   @Test
@@ -861,7 +868,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parseKeepdirectories() throws Exception {
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), reporter, false);
+        new ProguardConfigurationParser(new DexItemFactory(), reporter, false, false);
     parser.parse(Paths.get(KEEPDIRECTORIES));
     verifyParserEndsCleanly();
   }
@@ -1352,6 +1359,22 @@ public class ProguardConfigurationParserTest extends TestBase {
         fail("Expect to fail due to the lack of path filter.");
       } catch (AbortException e) {
         checkDiagnostics(handler.errors, null, 1, option.length() + 6, "Path filter expected");
+      }
+    }
+  }
+
+  @Test
+  public void parse_testInlineOptions() {
+    List<String> options = ImmutableList.of(
+        "-neverinline", "-forceinline");
+    for (String option : options) {
+      try {
+        reset();
+        parser.parse(createConfigurationForTesting(ImmutableList.of(option + " class A { *; }")));
+        fail("Expect to fail due to testing option being turned off.");
+      } catch (AbortException e) {
+        assertEquals(2, handler.errors.size());
+        checkDiagnostics(handler.errors, 0, null, 1, 1, "Unknown option \"" + option + "\"");
       }
     }
   }

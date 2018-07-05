@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
+import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -15,6 +16,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
+import com.android.tools.r8.shaking.InlineRule.Type;
 import com.android.tools.r8.shaking.ProguardConfiguration.Builder;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
@@ -48,6 +50,7 @@ public class ProguardConfigurationParser {
 
   private final Reporter reporter;
   private final boolean failOnPartiallyImplementedOptions;
+  private final boolean allowTestOptions;
 
   private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList.of(
       "protomapping",
@@ -97,16 +100,18 @@ public class ProguardConfigurationParser {
 
   public ProguardConfigurationParser(
       DexItemFactory dexItemFactory, Reporter reporter) {
-    this(dexItemFactory, reporter, true);
+    this(dexItemFactory, reporter, true, false);
   }
 
   public ProguardConfigurationParser(
-      DexItemFactory dexItemFactory, Reporter reporter, boolean failOnPartiallyImplementedOptions) {
+      DexItemFactory dexItemFactory, Reporter reporter, boolean failOnPartiallyImplementedOptions,
+      boolean allowTestOptions) {
     this.dexItemFactory = dexItemFactory;
     configurationBuilder = ProguardConfiguration.builder(dexItemFactory, reporter);
 
     this.reporter = reporter;
     this.failOnPartiallyImplementedOptions = failOnPartiallyImplementedOptions;
+    this.allowTestOptions = allowTestOptions;
   }
 
   public ProguardConfiguration.Builder getConfigurationBuilder() {
@@ -343,7 +348,16 @@ public class ProguardConfigurationParser {
       } else if (acceptString("packageobfuscationdictionary")) {
         configurationBuilder.setPackageObfuscationDictionary(parseFileName());
       } else if (acceptString("alwaysinline")) {
-        ProguardAlwaysInlineRule rule = parseAlwaysInlineRule();
+        InlineRule rule = parseInlineRule(Type.ALWAYS);
+        configurationBuilder.addRule(rule);
+      } else if (allowTestOptions && acceptString("forceinline")) {
+        InlineRule rule = parseInlineRule(Type.FORCE);
+        configurationBuilder.addRule(rule);
+        // Insert a matching -checkdiscard rule to ensure force inlining happens.
+        ProguardCheckDiscardRule ruled = rule.asProguardCheckDiscardRule();
+        configurationBuilder.addRule(ruled);
+      } else if (allowTestOptions && acceptString("neverinline")) {
+        InlineRule rule = parseInlineRule(Type.NEVER);
         configurationBuilder.addRule(rule);
       } else if (acceptString("useuniqueclassmembernames")) {
         configurationBuilder.setUseUniqueClassMemberNames(true);
@@ -367,8 +381,15 @@ public class ProguardConfigurationParser {
         configurationBuilder.addRule(parseIfRule(optionStart));
       } else {
         String unknownOption = acceptString();
+        String devMessage = "";
+        if (Version.isDev()
+            && unknownOption != null
+            && (unknownOption.equals("forceinline") || unknownOption.equals("neverinline"))) {
+          devMessage = ", this option needs to be turned on explicitly if used for tests.";
+        }
         reporter.error(new StringDiagnostic(
-            "Unknown option \"-" + unknownOption + "\"", origin, getPosition(optionStart)));
+            "Unknown option \"-" + unknownOption + "\"" + devMessage,
+            origin, getPosition(optionStart)));
       }
       return true;
     }
@@ -563,9 +584,9 @@ public class ProguardConfigurationParser {
       return keepRuleBuilder.build();
     }
 
-    private ProguardAlwaysInlineRule parseAlwaysInlineRule()
+    private InlineRule parseInlineRule(InlineRule.Type type)
         throws ProguardRuleParserException {
-      ProguardAlwaysInlineRule.Builder keepRuleBuilder = ProguardAlwaysInlineRule.builder();
+      InlineRule.Builder keepRuleBuilder = InlineRule.builder().setType(type);
       parseClassSpec(keepRuleBuilder, false);
       return keepRuleBuilder.build();
     }
