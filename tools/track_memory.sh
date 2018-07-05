@@ -16,7 +16,7 @@ function Logger() {
 
 function Exit {
   kill $lid
-  exit 0
+  exit $code
 }
 
 function Kill {
@@ -41,3 +41,4 @@ lid=$!
 trap "Exit" EXIT
 trap "Kill" SIGINT
 wait $pid
+code=$?
