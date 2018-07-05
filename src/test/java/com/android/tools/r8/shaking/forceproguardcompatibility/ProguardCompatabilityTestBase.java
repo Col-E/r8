@@ -99,6 +99,7 @@ public class ProguardCompatabilityTestBase extends TestBase {
       throws Exception {
     AndroidApp app = readClassesAndAndriodJar(programClasses);
     R8Command.Builder builder = ToolHelper.prepareR8CommandBuilder(app);
+    ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
     return ToolHelper.runR8(builder.build(), configure);
   }

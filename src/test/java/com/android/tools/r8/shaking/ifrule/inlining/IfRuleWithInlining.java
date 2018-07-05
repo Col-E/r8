@@ -33,13 +33,6 @@ class A {
   }
 }
 
-class B {
-  // Depending on inlining option, this method is kept to make inlining of A.a() infeasible.
-  void x() {
-    System.out.print("" + A.a() + A.a() + A.a() + A.a() + A.a() + A.a() + A.a() + A.a());
-  }
-}
-
 class D {
 }
 
@@ -52,7 +45,7 @@ class Main {
 @RunWith(Parameterized.class)
 public class IfRuleWithInlining extends ProguardCompatabilityTestBase {
   private final static List<Class> CLASSES = ImmutableList.of(
-      A.class, B.class, D.class, Main.class);
+      A.class, D.class, Main.class);
 
   private final Shrinker shrinker;
   private final boolean inlineMethod;
@@ -90,11 +83,8 @@ public class IfRuleWithInlining extends ProguardCompatabilityTestBase {
     List<String> config = ImmutableList.of(
         "-keep class **.Main { public static void main(java.lang.String[]); }",
         inlineMethod
-            ? "-alwaysinline class **.A { int a(); }"
-            : "-keep class **.B { *; }",
-        inlineMethod
-            ? "-checkdiscard class **.A { int a(); }"
-            : "",
+            ? "-forceinline class **.A { int a(); }"
+            : "-neverinline class **.A { int a(); }",
         "-if class **.A { static int a(); }",
         "-keep class **.D",
         "-dontobfuscate"
