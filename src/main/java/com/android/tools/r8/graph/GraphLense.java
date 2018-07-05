@@ -230,7 +230,7 @@ public abstract class GraphLense {
       // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
       // that only subclasses which are known to need it actually do it?
       return new GraphLenseLookupResult(
-          newMethod, mapInvocationType(newMethod, method, context, type));
+          newMethod, mapInvocationType(newMethod, method, context, previous.getType()));
     }
 
     /**
