@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -15,16 +15,19 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 
 final class PublicizerLense extends NestedGraphLense {
-  private final AppInfo appInfo;
+  private final AppView appView;
   private final Set<DexMethod> publicizedMethods;
 
-  PublicizerLense(
-      AppInfo appInfo, GraphLense previousLense, Set<DexMethod> publicizedMethods) {
+  PublicizerLense(AppView appView, Set<DexMethod> publicizedMethods) {
     // This lense does not map any DexItem's at all.
     // It will just tweak invoke type for publicized methods from invoke-direct to invoke-virtual.
-    super(ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of(),
-        previousLense, appInfo.dexItemFactory);
-    this.appInfo = appInfo;
+    super(
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        appView.getGraphLense(),
+        appView.getAppInfo().dexItemFactory);
+    this.appView = appView;
     this.publicizedMethods = publicizedMethods;
   }
 
@@ -35,16 +38,22 @@ final class PublicizerLense extends NestedGraphLense {
     method = previous.getMethod();
     type = previous.getType();
     if (type == Type.DIRECT && publicizedMethods.contains(method)) {
-      DexClass holderClass = appInfo.definitionFor(method.holder);
-      if (holderClass != null) {
-        DexEncodedMethod actualEncodedTarget = holderClass.lookupVirtualMethod(method);
-        if (actualEncodedTarget != null
-            && actualEncodedTarget.isPublicized()) {
-          return new GraphLenseLookupResult(method, Type.VIRTUAL);
-        }
-      }
+      assert publicizedMethodIsPresentOnHolder(method, context);
+      return new GraphLenseLookupResult(method, Type.VIRTUAL);
     }
     return super.lookupMethod(method, context, type);
+  }
+
+  private boolean publicizedMethodIsPresentOnHolder(DexMethod method, DexEncodedMethod context) {
+    GraphLenseLookupResult lookup =
+        appView.getGraphLense().lookupMethod(method, context, Type.VIRTUAL);
+    DexMethod signatureInCurrentWorld = lookup.getMethod();
+    DexClass clazz = appView.getAppInfo().definitionFor(signatureInCurrentWorld.holder);
+    assert clazz != null;
+    DexEncodedMethod actualEncodedTarget = clazz.lookupVirtualMethod(signatureInCurrentWorld);
+    assert actualEncodedTarget != null;
+    assert actualEncodedTarget.isPublicized();
+    return true;
   }
 
   static PublicizedLenseBuilder createBuilder() {
@@ -57,8 +66,8 @@ final class PublicizerLense extends NestedGraphLense {
     private PublicizedLenseBuilder() {
     }
 
-    public GraphLense build(AppInfo appInfo, GraphLense previousLense) {
-      return new PublicizerLense(appInfo, previousLense, methodSetBuilder.build());
+    public GraphLense build(AppView appView) {
+      return new PublicizerLense(appView, methodSetBuilder.build());
     }
 
     public void add(DexMethod publicizedMethod) {
