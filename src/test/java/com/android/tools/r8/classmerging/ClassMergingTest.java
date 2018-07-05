@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -335,6 +336,7 @@ public class ClassMergingTest extends TestBase {
   //   }
   @Test
   @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V6_0_1)
+  @Ignore // TODO(christofferqa): Need to use jasmin for the classes that are merge candidates.
   public void testSuperCallToMergedClassIsRewritten() throws Exception {
     String main = "classmerging.SuperCallToMergedClassIsRewrittenTest";
     Set<String> preservedClassNames =

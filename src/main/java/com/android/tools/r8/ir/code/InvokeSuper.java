@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
@@ -112,7 +113,6 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
 
   @Override
   public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    // The semantics of invoke super depend on the context.
-    return Constraint.SAMECLASS;
+    return new InliningConstraints(info).forInvokeSuper(getInvokedMethod(), invocationContext);
   }
 }

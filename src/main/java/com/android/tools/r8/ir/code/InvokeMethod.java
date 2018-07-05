@@ -5,9 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
-import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -85,85 +83,11 @@ public abstract class InvokeMethod extends Invoke {
     return lookupSingleTarget(appInfo, appInfo.dexItemFactory.objectType);
   }
 
+  // TODO(christofferqa): Pass an instance of InliningConstraints instead of [info] when
+  // InliningConstraints is complete.
   @Override
-  public abstract Constraint inliningConstraint(AppInfoWithLiveness info,
-      DexType invocationContext);
-
-  protected Constraint inliningConstraintForSinlgeTargetInvoke(AppInfoWithLiveness info,
-      DexType invocationContext) {
-    if (method.holder.isArrayType()) {
-      return Constraint.ALWAYS;
-    }
-    DexEncodedMethod target = lookupSingleTarget(info, invocationContext);
-    if (target != null) {
-      DexType methodHolder = target.method.holder;
-      DexClass methodClass = info.definitionFor(methodHolder);
-      if ((methodClass != null)) {
-        Constraint methodConstraint = Constraint
-            .deriveConstraint(invocationContext, methodHolder, target.accessFlags, info);
-        // We also have to take the constraint of the enclosing class into account.
-        Constraint classConstraint = Constraint
-            .deriveConstraint(invocationContext, methodHolder, methodClass.accessFlags, info);
-        return Constraint.min(methodConstraint, classConstraint);
-      }
-    }
-    return Constraint.NEVER;
-  }
-
-  protected Constraint inliningConstraintForVirtualInvoke(AppInfoWithSubtyping info,
-      DexType invocationContext) {
-    if (method.holder.isArrayType()) {
-      return Constraint.ALWAYS;
-    }
-    Collection<DexEncodedMethod> targets = lookupTargets(info, invocationContext);
-    if (targets == null) {
-      return Constraint.NEVER;
-    }
-
-    Constraint result = Constraint.ALWAYS;
-
-    // Perform resolution and derive inlining constraints based on the accessibility of the
-    // resolution result.
-    ResolutionResult resolutionResult = info.resolveMethod(method.holder, method);
-    DexEncodedMethod resolutionTarget = resolutionResult.asResultOfResolve();
-    if (resolutionTarget == null) {
-      // This will fail at runtime.
-      return Constraint.NEVER;
-    }
-    DexType methodHolder = resolutionTarget.method.holder;
-    DexClass methodClass = info.definitionFor(methodHolder);
-    assert methodClass != null;
-    Constraint methodConstraint = Constraint
-        .deriveConstraint(invocationContext, methodHolder, resolutionTarget.accessFlags, info);
-    result = Constraint.min(result, methodConstraint);
-    // We also have to take the constraint of the enclosing class of the resolution result
-    // into account. We do not allow inlining this method if it is calling something that
-    // is inaccessible. Inlining in that case could move the code to another package making a
-    // call succeed that should not succeed. Conversely, if the resolution result is accessible,
-    // we have to make sure that inlining cannot make it inaccessible.
-    Constraint classConstraint = Constraint
-        .deriveConstraint(invocationContext, methodHolder, methodClass.accessFlags, info);
-    result = Constraint.min(result, classConstraint);
-    if (result == Constraint.NEVER) {
-      return result;
-    }
-
-    // For each of the actual potential targets, derive constraints based on the accessibility
-    // of the method itself.
-    for (DexEncodedMethod target : targets) {
-      methodHolder = target.method.holder;
-      methodClass = info.definitionFor(methodHolder);
-      assert methodClass != null;
-      methodConstraint = Constraint
-          .deriveConstraint(invocationContext, methodHolder, target.accessFlags, info);
-      result = Constraint.min(result, methodConstraint);
-      if (result == Constraint.NEVER) {
-        return result;
-      }
-    }
-
-    return result;
-  }
+  public abstract Constraint inliningConstraint(
+      AppInfoWithLiveness info, DexType invocationContext);
 
   public abstract InlineAction computeInlining(InliningOracle decider, DexType invocationContext);
 

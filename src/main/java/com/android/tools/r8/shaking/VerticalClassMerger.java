@@ -22,12 +22,14 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.Builder;
+import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.logging.Log;
@@ -294,8 +296,7 @@ public class VerticalClassMerger {
       if (appInfo.isPinned(method.method)) {
         return false;
       }
-      // TODO(christofferqa): We should always be able to force inline initializers.
-      if (method.isInstanceInitializer() && disallowInlining(method)) {
+      if (method.isInstanceInitializer() && disallowInlining(method, singleSubtype)) {
         // Cannot guarantee that markForceInline() will work.
         if (Log.ENABLED) {
           AbortReason.UNSAFE_INLINING.printLogMessageForClass(clazz);
@@ -1358,83 +1359,52 @@ public class VerticalClassMerger {
     }
   }
 
-  private static boolean disallowInlining(DexEncodedMethod method) {
+  private boolean disallowInlining(DexEncodedMethod method, DexType invocationContext) {
     // TODO(christofferqa): Determine the situations where markForceInline() may fail, and ensure
     // that we always return true here in these cases.
-    MethodInlineDecision registry = new MethodInlineDecision();
-    method.getCode().registerCodeReferences(registry);
-    return registry.isInliningDisallowed();
+    if (method.getCode().isJarCode()) {
+      JarCode jarCode = method.getCode().asJarCode();
+      Constraint constraint =
+          jarCode.computeInliningConstraint(
+              appInfo,
+              new SingleTypeMapperGraphLense(method.method.holder, invocationContext),
+              invocationContext);
+      return constraint == Constraint.NEVER;
+    }
+    // TODO(christofferqa): For non-jar code we currently cannot guarantee that markForceInline()
+    // will succeed.
+    return true;
   }
 
-  private static class MethodInlineDecision extends UseRegistry {
-    private boolean disallowInlining = false;
+  private static class SingleTypeMapperGraphLense extends GraphLense {
 
-    public boolean isInliningDisallowed() {
-      return disallowInlining;
-    }
+    private final DexType source;
+    private final DexType target;
 
-    private boolean allowInlining() {
-      return true;
-    }
-
-    private boolean disallowInlining() {
-      disallowInlining = true;
-      return true;
+    public SingleTypeMapperGraphLense(DexType source, DexType target) {
+      this.source = source;
+      this.target = target;
     }
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
-      return disallowInlining();
+    public DexType lookupType(DexType type) {
+      return type == source ? target : type;
     }
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
-      return disallowInlining();
+    public GraphLenseLookupResult lookupMethod(
+        DexMethod method, DexEncodedMethod context, Type type) {
+      throw new Unreachable();
     }
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
-      return allowInlining();
+    public DexField lookupField(DexField field) {
+      throw new Unreachable();
     }
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
-      return allowInlining();
-    }
-
-    @Override
-    public boolean registerInvokeSuper(DexMethod method) {
-      return allowInlining();
-    }
-
-    @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      return allowInlining();
-    }
-
-    @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      return allowInlining();
-    }
-
-    @Override
-    public boolean registerNewInstance(DexType type) {
-      return allowInlining();
-    }
-
-    @Override
-    public boolean registerStaticFieldRead(DexField field) {
-      return allowInlining();
-    }
-
-    @Override
-    public boolean registerStaticFieldWrite(DexField field) {
-      return allowInlining();
-    }
-
-    @Override
-    public boolean registerTypeReference(DexType type) {
-      return allowInlining();
+    public boolean isContextFreeForMethods() {
+      throw new Unreachable();
     }
   }
 

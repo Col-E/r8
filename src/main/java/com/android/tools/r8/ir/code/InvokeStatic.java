@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
@@ -103,7 +104,7 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    return inliningConstraintForSinlgeTargetInvoke(info, invocationContext);
+    return new InliningConstraints(info).forInvokeStatic(getInvokedMethod(), invocationContext);
   }
 
   @Override

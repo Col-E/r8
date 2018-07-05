@@ -10,9 +10,12 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.JarSourceCode;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.jar.InliningConstraintVisitor;
 import com.android.tools.r8.jar.JarRegisterEffectsVisitor;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.PrintWriter;
@@ -167,6 +170,21 @@ public class JarCode extends Code {
     node.tryCatchBlocks.forEach(tryCatchBlockNode ->
         registry.registerTypeReference(application.getTypeFromDescriptor(
             DescriptorUtils.getDescriptorFromClassBinaryName(tryCatchBlockNode.type))));
+  }
+
+  public Constraint computeInliningConstraint(
+      AppInfoWithLiveness appInfo, GraphLense graphLense, DexType invocationContext) {
+    InliningConstraintVisitor visitor =
+        new InliningConstraintVisitor(application, appInfo, graphLense, method, invocationContext);
+    AbstractInsnNode insn = node.instructions.getFirst();
+    while (insn != null) {
+      insn.accept(visitor);
+      if (visitor.isFinished()) {
+        break;
+      }
+      insn = insn.getNext();
+    }
+    return visitor.getConstraint();
   }
 
   @Override
