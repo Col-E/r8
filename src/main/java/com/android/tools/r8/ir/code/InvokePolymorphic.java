@@ -126,9 +126,9 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    return new InliningConstraints(info)
-        .forInvokePolymorphic(getInvokedMethod(), invocationContext);
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forInvokePolymorphic(getInvokedMethod(), invocationContext);
   }
 
   @Override

@@ -113,8 +113,9 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    return new InliningConstraints(info).forInvokeDirect(getInvokedMethod(), invocationContext);
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forInvokeDirect(getInvokedMethod(), invocationContext);
   }
 
   @Override

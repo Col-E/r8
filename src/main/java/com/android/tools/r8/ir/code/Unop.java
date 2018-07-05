@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import java.util.function.Function;
 
 abstract public class Unop extends Instruction {
@@ -48,8 +48,9 @@ abstract public class Unop extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    return Constraint.ALWAYS;
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forUnop();
   }
 
   @Override

@@ -14,12 +14,12 @@ import com.android.tools.r8.code.SputShort;
 import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import org.objectweb.asm.Opcodes;
 
 public class StaticPut extends FieldInstruction {
@@ -107,8 +107,9 @@ public class StaticPut extends FieldInstruction {
   }
 
   @Override
-  DexEncodedField lookupTarget(DexType type, AppInfo appInfo) {
-    return appInfo.lookupStaticTarget(type, field);
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forStaticPut(field, invocationContext);
   }
 
   @Override

@@ -95,8 +95,9 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    return new InliningConstraints(info).forInvokeVirtual(getInvokedMethod(), invocationContext);
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forInvokeVirtual(getInvokedMethod(), invocationContext);
   }
 
   @Override

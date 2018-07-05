@@ -17,8 +17,8 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -1056,11 +1056,11 @@ public abstract class Instruction {
 
   /**
    * Returns the inlining constraint for this method when used in the context of the given type.
-   * <p>
-   * The type is used to judge visibility constraints and also for dispatch decisions.
+   *
+   * <p>The type is used to judge visibility constraints and also for dispatch decisions.
    */
-  public abstract Constraint inliningConstraint(AppInfoWithLiveness info,
-      DexType invocationContext);
+  public abstract Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext);
 
   public abstract void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper);
 

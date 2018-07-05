@@ -107,6 +107,7 @@ public class Outliner {
 
   final private AppInfoWithLiveness appInfo;
   final private DexItemFactory dexItemFactory;
+  private final InliningConstraints inliningConstraints;
 
   // Representation of an outline.
   // This includes the instructions in the outline, and a map from the arguments of this outline
@@ -475,7 +476,7 @@ public class Outliner {
 
       // See whether we could move this invoke somewhere else. We reuse the logic from inlining
       // here, as the constraints are the same.
-      Constraint constraint = invoke.inliningConstraint(appInfo, method.method.holder);
+      Constraint constraint = invoke.inliningConstraint(inliningConstraints, method.method.holder);
       if (constraint != Constraint.ALWAYS) {
         return false;
       }
@@ -818,6 +819,7 @@ public class Outliner {
   public Outliner(AppInfoWithLiveness appInfo, InternalOptions options) {
     this.appInfo = appInfo;
     this.dexItemFactory = appInfo.dexItemFactory;
+    this.inliningConstraints = new InliningConstraints(appInfo);
     this.options = options;
   }
 
