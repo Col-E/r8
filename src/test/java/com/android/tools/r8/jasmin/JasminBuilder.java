@@ -131,6 +131,10 @@ public class JasminBuilder {
       return addMethod("public final", name, argumentTypes, returnType, lines);
     }
 
+    public MethodSignature addVirtualMethod(String name, String returnType, String... lines) {
+      return addVirtualMethod(name, ImmutableList.of(), returnType, lines);
+    }
+
     public MethodSignature addVirtualMethod(
         String name,
         List<String> argumentTypes,

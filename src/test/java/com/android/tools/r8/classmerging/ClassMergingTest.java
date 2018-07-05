@@ -23,6 +23,8 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.MoveException;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.jasmin.JasminBuilder;
+import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -43,7 +45,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -336,7 +337,6 @@ public class ClassMergingTest extends TestBase {
   //   }
   @Test
   @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V6_0_1)
-  @Ignore // TODO(christofferqa): Need to use jasmin for the classes that are merge candidates.
   public void testSuperCallToMergedClassIsRewritten() throws Exception {
     String main = "classmerging.SuperCallToMergedClassIsRewrittenTest";
     Set<String> preservedClassNames =
@@ -347,47 +347,57 @@ public class ClassMergingTest extends TestBase {
             "classmerging.D",
             "classmerging.F");
 
-    SmaliBuilder smaliBuilder = new SmaliBuilder();
+    JasminBuilder jasminBuilder = new JasminBuilder();
 
-    smaliBuilder.addClass(main);
-    smaliBuilder.addMainMethod(
-        2,
+    ClassBuilder classBuilder = jasminBuilder.addClass(main);
+    classBuilder.addMainMethod(
+        ".limit locals 1",
+        ".limit stack 2",
         // Instantiate B so that it is not merged into C.
-        "new-instance v1, Lclassmerging/B;",
-        "invoke-direct {v1}, Lclassmerging/B;-><init>()V",
-        "invoke-virtual {v1}, Lclassmerging/B;->m()V",
+        "new classmerging/B",
+        "dup",
+        "invokespecial classmerging/B/<init>()V",
+        "invokevirtual classmerging/B/m()V",
         // Instantiate D so that it is not merged into E.
-        "new-instance v1, Lclassmerging/D;",
-        "invoke-direct {v1}, Lclassmerging/D;-><init>()V",
-        "invoke-virtual {v1}, Lclassmerging/D;->m()V",
+        "new classmerging/D",
+        "dup",
+        "invokespecial classmerging/D/<init>()V",
+        "invokevirtual classmerging/D/m()V",
         // Start the actual testing.
-        "new-instance v1, Lclassmerging/F;",
-        "invoke-direct {v1}, Lclassmerging/F;-><init>()V",
-        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnB()V",
-        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnC()V",
-        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnD()V",
-        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnE()V",
-        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnF()V",
+        "new classmerging/F",
+        "dup",
+        "invokespecial classmerging/F/<init>()V",
+        "dup",
+        "invokevirtual classmerging/F/invokeMethodOnB()V",
+        "dup",
+        "invokevirtual classmerging/F/invokeMethodOnC()V",
+        "dup",
+        "invokevirtual classmerging/F/invokeMethodOnD()V",
+        "dup",
+        "invokevirtual classmerging/F/invokeMethodOnE()V",
+        "dup",
+        "invokevirtual classmerging/F/invokeMethodOnF()V",
+        "dup",
         // The method invokeMethodOnA() should yield a NoSuchMethodError.
-        ":try_start",
-        "invoke-virtual {v1}, Lclassmerging/F;->invokeMethodOnA()V",
-        ":try_end",
-        "return-void",
-        ".catch Ljava/lang/NoSuchMethodError; {:try_start .. :try_end} :catch",
-        ":catch",
-        smaliCodeForPrinting("NoSuchMethodError", 0, 1),
-        "return-void");
+        "try_start:",
+        "invokevirtual classmerging/F/invokeMethodOnA()V",
+        "try_end:",
+        "return",
+        "catch:",
+        jasminCodeForPrinting("NoSuchMethodError"),
+        "return",
+        ".catch java/lang/NoSuchMethodError from try_start to try_end using catch");
 
     // Class A deliberately has no method m. We need to make sure that the "invoke-super A.m()"
     // instruction in class F is not rewritten into something that does not throw.
-    smaliBuilder.addClass("classmerging.A");
-    smaliBuilder.addDefaultConstructor();
+    classBuilder = jasminBuilder.addClass("classmerging.A");
+    classBuilder.addDefaultConstructor();
 
     // Class B declares a virtual method m() that prints "In B.m()".
-    smaliBuilder.addClass("classmerging.B", "classmerging.A");
-    smaliBuilder.addDefaultConstructor();
-    smaliBuilder.addInstanceMethod(
-        "void", "m", 2, smaliCodeForPrinting("In B.m()", 0, 1), "return-void");
+    classBuilder = jasminBuilder.addClass("classmerging.B", "classmerging.A");
+    classBuilder.addDefaultConstructor();
+    classBuilder.addVirtualMethod(
+        "m", "V", ".limit locals 1", ".limit stack 2", jasminCodeForPrinting("In B.m()"), "return");
 
     // Class C, D, and E declare a virtual method m() that prints "In C.m()", "In D.m()", and
     // "In E.m()", respectively.
@@ -395,17 +405,24 @@ public class ClassMergingTest extends TestBase {
         new String[][] {new String[] {"C", "B"}, new String[] {"D", "C"}, new String[] {"E", "D"}};
     for (String[] pair : pairs) {
       String name = pair[0], superName = pair[1];
-      smaliBuilder.addClass("classmerging." + name, "classmerging." + superName);
-      smaliBuilder.addDefaultConstructor();
-      smaliBuilder.addInstanceMethod(
-          "void",
+      classBuilder = jasminBuilder.addClass("classmerging." + name, "classmerging." + superName);
+      classBuilder.addDefaultConstructor();
+      classBuilder.addVirtualMethod(
           "m",
-          2,
-          smaliCodeForPrinting("In " + name + ".m()", 0, 1),
-          buildCode("invoke-super {p0}, Lclassmerging/" + superName + ";->m()V", "return-void"));
+          "V",
+          ".limit locals 1",
+          ".limit stack 2",
+          jasminCodeForPrinting("In " + name + ".m()"),
+          "aload_0",
+          "invokespecial classmerging/" + superName + "/m()V",
+          "return");
     }
 
     // Class F declares a virtual method m that throws an exception (it is expected to be dead).
+    //
+    // Note that F is generated from smali since it is the only way to generate an instruction on
+    // the form "invoke-super F.m()".
+    SmaliBuilder smaliBuilder = new SmaliBuilder();
     smaliBuilder.addClass("classmerging.F", "classmerging.E");
     smaliBuilder.addDefaultConstructor();
     smaliBuilder.addInstanceMethod(
@@ -415,7 +432,6 @@ public class ClassMergingTest extends TestBase {
         "new-instance v1, Ljava/lang/Exception;",
         "invoke-direct {v1}, Ljava/lang/Exception;-><init>()V",
         "throw v1");
-
     // Add methods to F with an "invoke-super X.m()" instruction for X in {A, B, C, D, E, F}.
     for (String type : ImmutableList.of("A", "B", "C", "D", "E", "F")) {
       String code =
@@ -424,24 +440,23 @@ public class ClassMergingTest extends TestBase {
     }
 
     // Build app.
-    AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addDexProgramData(smaliBuilder.compile(), Origin.unknown());
+    AndroidApp.Builder appBuilder = AndroidApp.builder();
+    appBuilder.addClassProgramData(jasminBuilder.buildClasses());
+    appBuilder.addDexProgramData(smaliBuilder.compile(), Origin.unknown());
 
     // Run test.
     runTestOnInput(
         main,
-        builder.build(),
+        appBuilder.build(),
         preservedClassNames::contains,
         String.format("-keep class %s { public static void main(...); }", main));
   }
 
-  private static String smaliCodeForPrinting(String message, int reg0, int reg1) {
+  private static String jasminCodeForPrinting(String message) {
     return buildCode(
-        String.format("sget-object v%d, Ljava/lang/System;->out:Ljava/io/PrintStream;", reg0),
-        String.format("const-string v1, \"%s\"", message),
-        String.format(
-            "invoke-virtual {v%d, v%d}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V",
-            reg0, reg1));
+        "getstatic java/lang/System/out Ljava/io/PrintStream;",
+        String.format("ldc \"%s\"", message),
+        "invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
   }
 
   @Test
