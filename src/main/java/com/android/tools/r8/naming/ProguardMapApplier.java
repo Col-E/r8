@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
@@ -33,13 +34,10 @@ public class ProguardMapApplier {
   private final GraphLense previousLense;
   private final SeedMapper seedMapper;
 
-  public ProguardMapApplier(
-      AppInfoWithLiveness appInfo,
-      GraphLense previousLense,
-      SeedMapper seedMapper) {
-    assert previousLense.isContextFreeForMethods();
-    this.appInfo = appInfo;
-    this.previousLense = previousLense;
+  public ProguardMapApplier(AppView<AppInfoWithLiveness> appView, SeedMapper seedMapper) {
+    assert appView.getGraphLense().isContextFreeForMethods();
+    this.appInfo = appView.getAppInfo();
+    this.previousLense = appView.getGraphLense();
     this.seedMapper = seedMapper;
   }
 

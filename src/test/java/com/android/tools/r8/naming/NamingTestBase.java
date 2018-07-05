@@ -5,6 +5,7 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLense;
@@ -44,7 +45,7 @@ abstract class NamingTestBase {
 
   private DexApplication program;
   DexItemFactory dexItemFactory;
-  private AppInfoWithSubtyping appInfo;
+  private AppView<AppInfoWithSubtyping> appView;
 
   NamingTestBase(
       String test,
@@ -61,7 +62,7 @@ abstract class NamingTestBase {
   public void readApp() throws IOException, ExecutionException {
     program = ToolHelper.buildApplication(ImmutableList.of(appFileName));
     dexItemFactory = program.dexItemFactory;
-    appInfo = new AppInfoWithSubtyping(program);
+    appView = new AppView<>(new AppInfoWithSubtyping(program), GraphLense.getIdentityLense());
   }
 
   NamingLens runMinifier(List<Path> configPaths)
@@ -73,12 +74,12 @@ abstract class NamingTestBase {
 
     ExecutorService executor = ThreadUtils.getExecutorService(1);
 
+    AppInfoWithSubtyping appInfo = appView.getAppInfo();
     RootSet rootSet = new RootSetBuilder(appInfo, program, configuration.getRules(), options)
         .run(executor);
 
     if (options.proguardConfiguration.isAccessModificationAllowed()) {
-      ClassAndMemberPublicizer.run(
-          executor, timing, program, appInfo, rootSet, GraphLense.getIdentityLense());
+      ClassAndMemberPublicizer.run(executor, timing, program, appView, rootSet);
       rootSet =
           new RootSetBuilder(appInfo, program, configuration.getRules(), options).run(executor);
     }

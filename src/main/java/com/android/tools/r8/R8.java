@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -249,12 +250,13 @@ public class R8 {
       DexApplication application =
           new ApplicationReader(inputApp, options, timing).read(executorService).toDirect();
 
-      AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
+      AppView<AppInfoWithSubtyping> appView =
+          new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
       RootSet rootSet;
       String proguardSeedsData = null;
       timing.begin("Strip unused code");
       try {
-        Set<DexType> missingClasses = appInfo.getMissingClasses();
+        Set<DexType> missingClasses = appView.getAppInfo().getMissingClasses();
         missingClasses = filterMissingClasses(
             missingClasses, options.proguardConfiguration.getDontWarnPatterns());
         if (!missingClasses.isEmpty()) {
@@ -271,34 +273,50 @@ public class R8 {
 
         // Compute kotlin info before setting the roots and before
         // kotlin metadata annotation is removed.
-        computeKotlinInfoForProgramClasses(application, appInfo);
+        computeKotlinInfoForProgramClasses(application, appView.getAppInfo());
 
         final ProguardConfiguration.Builder compatibility =
             ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
 
-        rootSet = new RootSetBuilder(
-                    appInfo, application, options.proguardConfiguration.getRules(), options)
+        rootSet =
+            new RootSetBuilder(
+                    appView.getAppInfo(),
+                    application,
+                    options.proguardConfiguration.getRules(),
+                    options)
                 .run(executorService);
         ProtoLiteExtension protoLiteExtension =
-            options.forceProguardCompatibility ? null : new ProtoLiteExtension(appInfo);
-        Enqueuer enqueuer = new Enqueuer(appInfo, options, options.forceProguardCompatibility,
-            compatibility, protoLiteExtension);
-        appInfo = enqueuer.traceApplication(rootSet, executorService, timing);
+            options.forceProguardCompatibility
+                ? null
+                : new ProtoLiteExtension(appView.getAppInfo());
+        Enqueuer enqueuer =
+            new Enqueuer(
+                appView.getAppInfo(),
+                options,
+                options.forceProguardCompatibility,
+                compatibility,
+                protoLiteExtension);
+        appView.setAppInfo(enqueuer.traceApplication(rootSet, executorService, timing));
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
-          RootSetBuilder.writeSeeds(appInfo.withLiveness(), out, type -> true);
+          RootSetBuilder.writeSeeds(appView.getAppInfo().withLiveness(), out, type -> true);
           out.flush();
           proguardSeedsData = bytes.toString();
         }
         if (options.enableTreeShaking) {
-          TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);
+          TreePruner pruner =
+              new TreePruner(application, appView.getAppInfo().withLiveness(), options);
           application = pruner.run();
           // Recompute the subtyping information.
-          appInfo = appInfo.withLiveness().prunedCopyFrom(application, pruner.getRemovedClasses());
-          new AbstractMethodRemover(appInfo).run();
+          appView.setAppInfo(
+              appView
+                  .getAppInfo()
+                  .withLiveness()
+                  .prunedCopyFrom(application, pruner.getRemovedClasses()));
+          new AbstractMethodRemover(appView.getAppInfo()).run();
         }
-        new AnnotationRemover(appInfo.withLiveness(), compatibility, options).run();
+        new AnnotationRemover(appView.getAppInfo().withLiveness(), compatibility, options).run();
 
         // TODO(69445518): This is still work in progress, and this file writing is currently used
         // for testing.
@@ -320,44 +338,52 @@ public class R8 {
         timing.end();
       }
 
-      GraphLense graphLense = GraphLense.getIdentityLense();
-
       if (options.proguardConfiguration.isAccessModificationAllowed()) {
-        graphLense = ClassAndMemberPublicizer.run(
-            executorService, timing, application, appInfo, rootSet, graphLense);
+        appView.setGraphLense(
+            ClassAndMemberPublicizer.run(executorService, timing, application, appView, rootSet));
         // We can now remove visibility bridges. Note that we do not need to update the
         // invoke-targets here, as the existing invokes will simply dispatch to the now
         // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
-        application = new VisibilityBridgeRemover(appInfo, application).run();
+        application = new VisibilityBridgeRemover(appView.getAppInfo(), application).run();
       }
 
-      if (appInfo.hasLiveness()) {
+      if (appView.getAppInfo().hasLiveness()) {
+        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
         if (options.proguardConfiguration.hasApplyMappingFile()) {
           SeedMapper seedMapper =
               SeedMapper.seedMapperFromFile(options.proguardConfiguration.getApplyMappingFile());
           timing.begin("apply-mapping");
-          graphLense =
-              new ProguardMapApplier(appInfo.withLiveness(), graphLense, seedMapper).run(timing);
-          application = application.asDirect().rewrittenWithLense(graphLense);
-          appInfo = appInfo.withLiveness().rewrittenWithLense(application.asDirect(), graphLense);
+          appView.setGraphLense(
+              new ProguardMapApplier(appView.withLiveness(), seedMapper).run(timing));
+          application = application.asDirect().rewrittenWithLense(appView.getGraphLense());
+          appView.setAppInfo(
+              appView
+                  .getAppInfo()
+                  .withLiveness()
+                  .rewrittenWithLense(application.asDirect(), appView.getGraphLense()));
           timing.end();
         }
-        graphLense = new MemberRebindingAnalysis(appInfo.withLiveness(), graphLense).run();
+        appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
         // Class merging requires inlining.
         if (options.enableClassMerging && options.enableInlining) {
           timing.begin("ClassMerger");
           VerticalClassMerger classMerger =
-              new VerticalClassMerger(application, appInfo.withLiveness(), graphLense, timing);
-          graphLense = classMerger.run();
+              new VerticalClassMerger(application, appViewWithLiveness, timing);
+          appView.setGraphLense(classMerger.run());
           timing.end();
-          application = application.asDirect().rewrittenWithLense(graphLense);
-          appInfo = appInfo.withLiveness()
-              .prunedCopyFrom(application, classMerger.getRemovedClasses())
-              .rewrittenWithLense(application.asDirect(), graphLense);
+          application = application.asDirect().rewrittenWithLense(appView.getGraphLense());
+          appViewWithLiveness.setAppInfo(
+              appViewWithLiveness
+                  .getAppInfo()
+                  .prunedCopyFrom(application, classMerger.getRemovedClasses())
+                  .rewrittenWithLense(application.asDirect(), appView.getGraphLense()));
         }
         // Collect switch maps and ordinals maps.
-        appInfo = new SwitchMapCollector(appInfo.withLiveness(), options).run();
-        appInfo = new EnumOrdinalMapCollector(appInfo.withLiveness(), options).run();
+        appViewWithLiveness.setAppInfo(
+            new SwitchMapCollector(appViewWithLiveness.getAppInfo(), options).run());
+        appViewWithLiveness.setAppInfo(
+            new EnumOrdinalMapCollector(appViewWithLiveness.getAppInfo(), options).run());
 
         // TODO(b/79143143): re-enable once fixed.
         // graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withLiveness()).run();
@@ -366,7 +392,9 @@ public class R8 {
       timing.begin("Create IR");
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
-        IRConverter converter = new IRConverter(appInfo, options, timing, printer, graphLense);
+        IRConverter converter =
+            new IRConverter(
+                appView.getAppInfo(), options, timing, printer, appView.getGraphLense());
         application = converter.optimize(application, executorService);
       } finally {
         timing.end();
@@ -386,15 +414,15 @@ public class R8 {
 
       // Overwrite SourceFile if specified. This step should be done after IR conversion.
       timing.begin("Rename SourceFile");
-      new SourceFileRewriter(appInfo, options).run();
+      new SourceFileRewriter(appView.getAppInfo(), options).run();
       timing.end();
 
       if (!options.mainDexKeepRules.isEmpty()) {
-        appInfo = new AppInfoWithSubtyping(application);
-        Enqueuer enqueuer = new Enqueuer(appInfo, options, true);
+        appView.setAppInfo(new AppInfoWithSubtyping(application));
+        Enqueuer enqueuer = new Enqueuer(appView.getAppInfo(), options, true);
         // Lets find classes which may have code executed before secondary dex files installation.
         RootSet mainDexRootSet =
-            new RootSetBuilder(appInfo, application, options.mainDexKeepRules, options)
+            new RootSetBuilder(appView.getAppInfo(), application, options.mainDexKeepRules, options)
                 .run(executorService);
         AppInfoWithLiveness mainDexAppInfo =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
@@ -409,18 +437,24 @@ public class R8 {
             .build();
       }
 
-      appInfo = new AppInfoWithSubtyping(application);
+      appView.setAppInfo(new AppInfoWithSubtyping(application));
 
       if (options.enableTreeShaking || options.enableMinification) {
         timing.begin("Post optimization code stripping");
         try {
-          Enqueuer enqueuer = new Enqueuer(appInfo, options, options.forceProguardCompatibility);
-          appInfo = enqueuer.traceApplication(rootSet, executorService, timing);
+          Enqueuer enqueuer =
+              new Enqueuer(appView.getAppInfo(), options, options.forceProguardCompatibility);
+          appView.setAppInfo(enqueuer.traceApplication(rootSet, executorService, timing));
+
+          AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
           if (options.enableTreeShaking) {
-            TreePruner pruner = new TreePruner(application, appInfo.withLiveness(), options);
+            TreePruner pruner =
+                new TreePruner(application, appViewWithLiveness.getAppInfo(), options);
             application = pruner.run();
-            appInfo = appInfo.withLiveness()
-                .prunedCopyFrom(application, pruner.getRemovedClasses());
+            appViewWithLiveness.setAppInfo(
+                appViewWithLiveness
+                    .getAppInfo()
+                    .prunedCopyFrom(application, pruner.getRemovedClasses()));
             // Print reasons on the application after pruning, so that we reflect the actual result.
             ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(rootSet.reasonAsked);
             reasonPrinter.run(application);
@@ -440,7 +474,7 @@ public class R8 {
       // will happen. Just avoid the overhead.
       NamingLens namingLens =
           options.enableMinification
-              ? new Minifier(appInfo.withLiveness(), rootSet, options).run(timing)
+              ? new Minifier(appView.getAppInfo().withLiveness(), rootSet, options).run(timing)
               : NamingLens.getIdentityLens();
       timing.end();
 

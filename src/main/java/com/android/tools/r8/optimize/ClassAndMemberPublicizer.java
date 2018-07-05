@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -31,42 +31,34 @@ import java.util.concurrent.Future;
 
 public final class ClassAndMemberPublicizer {
   private final DexApplication application;
-  private final AppInfo appInfo;
+  private final AppView appView;
   private final RootSet rootSet;
-  private final GraphLense previousLense;
   private final PublicizedLenseBuilder lenseBuilder;
 
   private final Equivalence<DexMethod> equivalence = MethodSignatureEquivalence.get();
   private final Map<DexClass, MethodPool> methodPools = new ConcurrentHashMap<>();
 
-  private ClassAndMemberPublicizer(
-      DexApplication application,
-      AppInfo appInfo,
-      RootSet rootSet,
-      GraphLense previousLense) {
+  private ClassAndMemberPublicizer(DexApplication application, AppView appView, RootSet rootSet) {
     this.application = application;
-    this.appInfo = appInfo;
+    this.appView = appView;
     this.rootSet = rootSet;
-    this.previousLense = previousLense;
     lenseBuilder = PublicizerLense.createBuilder();
   }
 
   /**
-   * Marks all package private and protected methods and fields as public.
-   * Makes all private static methods public.
-   * Makes private instance methods public final instance methods, if possible.
-   * <p>
-   * This will destructively update the DexApplication passed in as argument.
+   * Marks all package private and protected methods and fields as public. Makes all private static
+   * methods public. Makes private instance methods public final instance methods, if possible.
+   *
+   * <p>This will destructively update the DexApplication passed in as argument.
    */
   public static GraphLense run(
       ExecutorService executorService,
       Timing timing,
       DexApplication application,
-      AppInfo appInfo,
-      RootSet rootSet,
-      GraphLense previousLense) throws ExecutionException {
-    return new ClassAndMemberPublicizer(application, appInfo, rootSet, previousLense)
-        .run(executorService, timing);
+      AppView appView,
+      RootSet rootSet)
+      throws ExecutionException {
+    return new ClassAndMemberPublicizer(application, appView, rootSet).run(executorService, timing);
   }
 
   private GraphLense run(ExecutorService executorService, Timing timing)
@@ -84,11 +76,11 @@ public final class ClassAndMemberPublicizer {
 
     // Phase 2: Visit classes and promote class/member to public if possible.
     timing.begin("Phase 2: promoteToPublic");
-    DexType.forAllInterfaces(appInfo.dexItemFactory, this::publicizeType);
-    publicizeType(appInfo.dexItemFactory.objectType);
+    DexType.forAllInterfaces(appView.getDexItemFactory(), this::publicizeType);
+    publicizeType(appView.getDexItemFactory().objectType);
     timing.end();
 
-    return lenseBuilder.build(appInfo, previousLense);
+    return lenseBuilder.build(appView);
   }
 
   private Runnable computeMethodPoolPerClass(DexClass clazz) {
@@ -145,7 +137,7 @@ public final class ClassAndMemberPublicizer {
       return false;
     }
 
-    if (appInfo.dexItemFactory.isClassConstructor(encodedMethod.method)) {
+    if (appView.getDexItemFactory().isClassConstructor(encodedMethod.method)) {
       return false;
     }
 
@@ -156,7 +148,7 @@ public final class ClassAndMemberPublicizer {
     }
     assert accessFlags.isPrivate();
 
-    if (appInfo.dexItemFactory.isConstructor(encodedMethod.method)) {
+    if (appView.getDexItemFactory().isConstructor(encodedMethod.method)) {
       // TODO(b/72211928)
       return false;
     }

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -28,10 +29,10 @@ public class MemberRebindingAnalysis {
   private final GraphLense lense;
   private final MemberRebindingLense.Builder builder;
 
-  public MemberRebindingAnalysis(AppInfoWithLiveness appInfo, GraphLense lense) {
-    assert lense.isContextFreeForMethods();
-    this.appInfo = appInfo;
-    this.lense = lense;
+  public MemberRebindingAnalysis(AppView<AppInfoWithLiveness> appView) {
+    assert appView.getGraphLense().isContextFreeForMethods();
+    this.appInfo = appView.getAppInfo();
+    this.lense = appView.getGraphLense();
     this.builder = MemberRebindingLense.builder(appInfo);
   }
 

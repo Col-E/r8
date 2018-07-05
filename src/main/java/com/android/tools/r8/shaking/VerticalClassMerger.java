@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -153,13 +154,10 @@ public class VerticalClassMerger {
   private final VerticalClassMergerGraphLense.Builder renamedMembersLense;
 
   public VerticalClassMerger(
-      DexApplication application,
-      AppInfoWithLiveness appInfo,
-      GraphLense graphLense,
-      Timing timing) {
+      DexApplication application, AppView<AppInfoWithLiveness> appView, Timing timing) {
     this.application = application;
-    this.appInfo = appInfo;
-    this.graphLense = graphLense;
+    this.appInfo = appView.getAppInfo();
+    this.graphLense = appView.getGraphLense();
     this.renamedMembersLense = VerticalClassMergerGraphLense.builder(appInfo);
     this.timing = timing;
   }
