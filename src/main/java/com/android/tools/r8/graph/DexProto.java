@@ -8,6 +8,8 @@ import com.android.tools.r8.naming.NamingLens;
 
 public class DexProto extends IndexedDexItem implements PresortedComparable<DexProto> {
 
+  public static final DexProto SENTINEL = new DexProto(null, null, null);
+
   public final DexString shorty;
   public final DexType returnType;
   public final DexTypeList parameters;
