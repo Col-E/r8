@@ -4,16 +4,14 @@
 
 package com.android.tools.r8.sample.split;
 
-import com.android.tools.r8.sample.split.R8Activity;
 
-public class SplitClass {
+public class BaseClass {
+
   int initialValue;
 
-  public SplitClass(int initialValue) {
+  public BaseClass(int initialValue) {
     this.initialValue = initialValue;
   }
-
-
 
   public int calculate(int x) {
     int result = 2;
@@ -23,7 +21,7 @@ public class SplitClass {
     return result;
   }
 
-  public int largeMethod(int x, int y) {
+   public int largeMethod(int x, int y) {
     int a = x + y;
     int b;
     int c;
@@ -103,23 +101,4 @@ public class SplitClass {
 
     return a + b - c * x;
   }
-
-  public int callBase() {
-    BaseClass base = new BaseClass(initialValue);
-    for (int i = 0; i < R8Activity.ITERATIONS / R8Activity.SPLITS; i++) {
-      // Ensure no dead code elimination.
-      initialValue = base.calculate(i);
-    }
-    return initialValue;
-  }
-
-  public int callBaseLarge() {
-    BaseClass base = new BaseClass(initialValue);
-    for (int i = 0; i < R8Activity.ITERATIONS / R8Activity.SPLITS; i++) {
-      // Ensure no dead code elimination.
-      initialValue = base.largeMethod(i, i + 1);
-    }
-    return initialValue;
-  }
-
 }

@@ -26,7 +26,7 @@ SRC_LOCATION = 'src/com/android/tools/r8/sample/{app}/*.java'
 DEFAULT_KEYSTORE = os.path.join(os.getenv('HOME'), '.android', 'debug.keystore')
 PACKAGE_PREFIX = 'com.android.tools.r8.sample'
 STANDARD_ACTIVITY = "R8Activity"
-BENCHMARK_ITERATIONS = 100
+BENCHMARK_ITERATIONS = 30
 
 SAMPLE_APKS = [
     'simple',
@@ -161,11 +161,15 @@ def split(app):
   utils.PrintCmd(command)
   subprocess.check_call(command)
 
-def run_adb(args):
+def run_adb(args, ignore_exit=False):
   command = ['adb']
   command.extend(args)
   utils.PrintCmd(command)
-  subprocess.check_call(command)
+  # On M adb install-multiple exits 0 but succeed in installing.
+  if ignore_exit:
+    subprocess.call(command)
+  else:
+    subprocess.check_call(command)
 
 def adb_install(apks):
   args = [
@@ -173,7 +177,7 @@ def adb_install(apks):
       '-r',
       '-d']
   args.extend(apks)
-  run_adb(args)
+  run_adb(args, ignore_exit=True)
 
 def create_temp_apk(app, prefix):
   temp_apk_path = os.path.join(get_bin_path(app), '%s.ap_' % app)
@@ -192,7 +196,7 @@ def kill(app):
   run_adb(args)
 
 def start_logcat():
-  return subprocess.Popen(['adb', 'logcat'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  return subprocess.Popen(['adb', 'logcat'], bufsize=1024*1024, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 def start(app):
   args = ['shell', 'am', 'start', '-n', get_qualified_activity(app)]
@@ -211,34 +215,35 @@ def stop_logcat(popen):
   return lines
 
 def store_or_print_benchmarks(lines, output):
-  single_runs = []
-  total_time = None
-  # We assume that the individual runs are prefixed with 'Took: ' and the total time is
-  # prefixed with 'Total: '. The logcat lines looks like:
-  # 06-28 12:22:00.991 13698 13698 I System.out: Took: 61614
+  results = {}
+  overall_total = 0
+  # We assume that the total times are
+  # prefixed with 'NAME Total: '. The logcat lines looks like:
+  # 06-28 12:22:00.991 13698 13698 I System.out: Call Total: 61614
   for l in lines:
-    if 'Took: ' in l:
-      timing = l.split('Took: ')[1]
-      single_runs.append(timing)
     if 'Total: ' in l:
-      timing = l.split('Total: ')[1]
-      total_time = timing
-  assert len(single_runs) > 0
-  assert total_time
-  if not output:
-    print 'Individual timings: \n%s' % ''.join(single_runs)
-    print 'Total time: \n%s' % total_time
-    return
+      split = l.split('Total: ')
+      time = split[1]
+      name = split[0].split()[-1]
+      overall_total += int(time)
+      print '%s: %s' % (name, time)
+      results[name] = time
 
+  print 'Total: %s' % overall_total
+  if not output:
+    return overall_total
+  results['total'] = str(overall_total)
   output_dir = os.path.join(output, str(uuid.uuid4()))
   os.makedirs(output_dir)
-  single_run_file = os.path.join(output_dir, 'single_runs')
-  with open(single_run_file, 'w') as f:
-    f.writelines(single_runs)
-  total_file = os.path.join(output_dir, 'total')
-  with open(total_file, 'w') as f:
-    f.write(total_time)
-  print 'Result stored in %s and %s' % (single_run_file, total_file)
+  written_files = []
+  for name, time in results.iteritems():
+    total_file = os.path.join(output_dir, name)
+    written_files.append(total_file)
+    with open(total_file, 'w') as f:
+      f.write(time)
+
+  print 'Result stored in: \n%s' % ('\n'.join(written_files))
+  return overall_total
 
 def benchmark(app, output_dir):
   # Ensure app is not running
@@ -248,9 +253,14 @@ def benchmark(app, output_dir):
   start(app)
   # We could do better here by continiously parsing the logcat for a marker, but
   # this works nicely with the current setup.
-  time.sleep(3)
+  time.sleep(8)
   kill(app)
-  store_or_print_benchmarks(stop_logcat(logcat), output_dir)
+  return float(store_or_print_benchmarks(stop_logcat(logcat), output_dir))
+
+def ensure_no_logcat():
+  output = subprocess.check_output(['ps', 'aux'])
+  if 'adb logcat' in output:
+    raise Exception('You have adb logcat running, please close it and rerun')
 
 def Main():
   (options, args) = parse_options()
@@ -285,9 +295,12 @@ def Main():
   print('Generated apks available at: %s' % ' '.join(apks))
   if options.install:
     adb_install(apks)
+  grand_total = 0
   if options.benchmark:
+    ensure_no_logcat()
     for _ in range(BENCHMARK_ITERATIONS):
-      benchmark(options.app, options.benchmark_output_dir)
+      grand_total += benchmark(options.app, options.benchmark_output_dir)
+  print 'Combined average: %s' % (grand_total/BENCHMARK_ITERATIONS)
 
 if __name__ == '__main__':
   sys.exit(Main())
