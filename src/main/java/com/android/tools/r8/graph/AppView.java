@@ -14,7 +14,7 @@ public class AppView<T extends AppInfo> {
 
   public AppView(T appInfo, GraphLense graphLense) {
     this.appInfo = appInfo;
-    this.dexItemFactory = appInfo.dexItemFactory;
+    this.dexItemFactory = appInfo != null ? appInfo.dexItemFactory : null;
     this.graphLense = graphLense;
   }
 
@@ -58,6 +58,11 @@ public class AppView<T extends AppInfo> {
       @SuppressWarnings("unchecked")
       T appInfo = (T) appInfoWithLiveness;
       AppView.this.setAppInfo(appInfo);
+    }
+
+    @Override
+    public DexItemFactory getDexItemFactory() {
+      return AppView.this.dexItemFactory;
     }
 
     @Override
