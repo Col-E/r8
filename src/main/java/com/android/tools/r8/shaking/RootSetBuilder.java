@@ -60,6 +60,8 @@ public class RootSetBuilder {
       Sets.newIdentityHashSet();
   private final Set<DexItem> checkDiscarded = Sets.newIdentityHashSet();
   private final Set<DexItem> alwaysInline = Sets.newIdentityHashSet();
+  private final Set<DexItem> forceInline = Sets.newIdentityHashSet();
+  private final Set<DexItem> neverInline = Sets.newIdentityHashSet();
   private final Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking =
       new IdentityHashMap<>();
   private final Map<DexItem, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
@@ -240,7 +242,7 @@ public class RootSetBuilder {
       } else if (rule instanceof ProguardAssumeNoSideEffectRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
         markMatchingFields(clazz, memberKeepRules, rule, null);
-      } else if (rule instanceof ProguardAlwaysInlineRule) {
+      } else if (rule instanceof InlineRule) {
         markMatchingMethods(clazz, memberKeepRules, rule, null);
       } else if (rule instanceof ProguardAssumeValuesRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
@@ -310,6 +312,8 @@ public class RootSetBuilder {
         keepPackageName,
         checkDiscarded,
         alwaysInline,
+        forceInline,
+        neverInline,
         noSideEffects,
         assumedValues,
         dependentNoShrinking,
@@ -720,8 +724,20 @@ public class RootSetBuilder {
       assumedValues.put(item, rule);
     } else if (context instanceof ProguardCheckDiscardRule) {
       checkDiscarded.add(item);
-    } else if (context instanceof ProguardAlwaysInlineRule) {
-      alwaysInline.add(item);
+    } else if (context instanceof InlineRule) {
+      switch (((InlineRule) context).getType()) {
+        case ALWAYS:
+          alwaysInline.add(item);
+          break;
+        case FORCE:
+          forceInline.add(item);
+          break;
+        case NEVER:
+          neverInline.add(item);
+          break;
+        default:
+          throw new Unreachable();
+      }
     } else if (context instanceof ProguardIdentifierNameStringRule) {
       if (item instanceof DexEncodedField) {
         identifierNameStrings.add(((DexEncodedField) item).field);
@@ -740,6 +756,8 @@ public class RootSetBuilder {
     public final Set<DexItem> keepPackageName;
     public final Set<DexItem> checkDiscarded;
     public final Set<DexItem> alwaysInline;
+    public final Set<DexItem> forceInline;
+    public final Set<DexItem> neverInline;
     public final Map<DexItem, ProguardMemberRule> noSideEffects;
     public final Map<DexItem, ProguardMemberRule> assumedValues;
     private final Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking;
@@ -775,6 +793,8 @@ public class RootSetBuilder {
         Set<DexItem> keepPackageName,
         Set<DexItem> checkDiscarded,
         Set<DexItem> alwaysInline,
+        Set<DexItem> forceInline,
+        Set<DexItem> neverInline,
         Map<DexItem, ProguardMemberRule> noSideEffects,
         Map<DexItem, ProguardMemberRule> assumedValues,
         Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking,
@@ -787,6 +807,8 @@ public class RootSetBuilder {
       this.keepPackageName = Collections.unmodifiableSet(keepPackageName);
       this.checkDiscarded = Collections.unmodifiableSet(checkDiscarded);
       this.alwaysInline = Collections.unmodifiableSet(alwaysInline);
+      this.forceInline = Collections.unmodifiableSet(forceInline);
+      this.neverInline = Collections.unmodifiableSet(neverInline);
       this.noSideEffects = Collections.unmodifiableMap(noSideEffects);
       this.assumedValues = Collections.unmodifiableMap(assumedValues);
       this.dependentNoShrinking = dependentNoShrinking;

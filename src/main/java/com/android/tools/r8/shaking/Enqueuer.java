@@ -1544,9 +1544,17 @@ public class Enqueuer {
      */
     public final Map<DexItem, ProguardMemberRule> assumedValues;
     /**
-     * All methods that have to be inlined due to a configuration directive.
+     * All methods that should be inlined if possible due to a configuration directive.
      */
     public final Set<DexItem> alwaysInline;
+    /**
+     * All methods that *must* be inlined due to a configuration directive (testing only).
+     */
+    public final Set<DexItem> forceInline;
+    /**
+     * All methods that *must* never be inlined due to a configuration directive (testing only).
+     */
+    public final Set<DexItem> neverInline;
     /**
      * All items with -identifiernamestring rule.
      */
@@ -1602,6 +1610,8 @@ public class Enqueuer {
       this.noSideEffects = enqueuer.rootSet.noSideEffects;
       this.assumedValues = enqueuer.rootSet.assumedValues;
       this.alwaysInline = enqueuer.rootSet.alwaysInline;
+      this.forceInline = enqueuer.rootSet.forceInline;
+      this.neverInline = enqueuer.rootSet.neverInline;
       this.identifierNameStrings =
           Sets.union(enqueuer.rootSet.identifierNameStrings, enqueuer.identifierNameStrings);
       this.protoLiteFields = enqueuer.protoLiteFields;
@@ -1640,6 +1650,8 @@ public class Enqueuer {
       this.brokenSuperInvokes = previous.brokenSuperInvokes;
       this.protoLiteFields = previous.protoLiteFields;
       this.alwaysInline = previous.alwaysInline;
+      this.forceInline = previous.forceInline;
+      this.neverInline = previous.neverInline;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
       this.switchMaps = previous.switchMaps;
@@ -1683,6 +1695,8 @@ public class Enqueuer {
       this.assumedValues = previous.assumedValues;
       assert lense.assertNotModified(previous.alwaysInline);
       this.alwaysInline = previous.alwaysInline;
+      this.forceInline = previous.forceInline;
+      this.neverInline = previous.neverInline;
       this.identifierNameStrings =
           rewriteMixedItemsConservatively(previous.identifierNameStrings, lense);
       // Switchmap classes should never be affected by renaming.
@@ -1724,6 +1738,8 @@ public class Enqueuer {
       this.brokenSuperInvokes = previous.brokenSuperInvokes;
       this.protoLiteFields = previous.protoLiteFields;
       this.alwaysInline = previous.alwaysInline;
+      this.forceInline = previous.forceInline;
+      this.neverInline = previous.neverInline;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = previous.prunedTypes;
       this.switchMaps = switchMaps;

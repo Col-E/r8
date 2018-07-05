@@ -70,8 +70,8 @@ public class Inliner {
     blackList.add(appInfo.dexItemFactory.kotlin.intrinsics.throwNpe);
   }
 
-  public boolean isBlackListed(DexMethod method) {
-    return blackList.contains(method);
+  public boolean isBlackListed(DexEncodedMethod method) {
+    return blackList.contains(method.method) || appInfo.neverInline.contains(method);
   }
 
   private Constraint instructionAllowedForInlining(

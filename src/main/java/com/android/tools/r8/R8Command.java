@@ -68,6 +68,7 @@ public final class R8Command extends BaseCompilerCommand {
     Path proguardCompatibilityRulesOutput = null;
 
     private boolean allowPartiallyImplementedProguardOptions = false;
+    private boolean allowTestProguardOptions = false;
 
     private StringConsumer mainDexListConsumer = null;
 
@@ -290,7 +291,8 @@ public final class R8Command extends BaseCompilerCommand {
       }
 
       ProguardConfigurationParser parser = new ProguardConfigurationParser(
-          factory, reporter, !allowPartiallyImplementedProguardOptions);
+          factory, reporter,
+          !allowPartiallyImplementedProguardOptions, allowTestProguardOptions);
       if (!proguardConfigs.isEmpty()) {
         parser.parse(proguardConfigs);
       }
@@ -392,6 +394,11 @@ public final class R8Command extends BaseCompilerCommand {
     // Internal for-testing method to add post-processors of the proguard configuration.
     void allowPartiallyImplementedProguardOptions() {
       allowPartiallyImplementedProguardOptions = true;
+    }
+
+    // Internal for-testing method to allow proguard options only available for testing.
+    void allowTestProguardOptions() {
+      allowTestProguardOptions = true;
     }
   }
 

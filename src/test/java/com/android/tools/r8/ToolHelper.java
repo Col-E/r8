@@ -1546,6 +1546,12 @@ public class ToolHelper {
     return builder;
   }
 
+  public static R8Command.Builder allowTestProguardOptions(
+      R8Command.Builder builder) {
+    builder.allowTestProguardOptions();
+    return builder;
+  }
+
   public static AndroidApp getApp(BaseCommand command) {
     return command.getInputApp();
   }
