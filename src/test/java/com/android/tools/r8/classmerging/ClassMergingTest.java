@@ -5,6 +5,7 @@ package com.android.tools.r8.classmerging;
 
 import static com.android.tools.r8.smali.SmaliBuilder.buildCode;
 import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -24,6 +25,7 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -493,6 +495,58 @@ public class ClassMergingTest extends TestBase {
       }
     }
     assertEquals(2, numberOfMoveExceptionInstructions);
+  }
+
+  @Test
+  public void testMergeDefaultMethodIntoClass() throws Exception {
+    String main = "classmerging.MergeDefaultMethodIntoClassTest";
+    Path[] programFiles =
+        new Path[] {
+          JAVA8_CF_DIR.resolve("MergeDefaultMethodIntoClassTest.class"),
+          JAVA8_CF_DIR.resolve("MergeDefaultMethodIntoClassTest$A.class"),
+          JAVA8_CF_DIR.resolve("MergeDefaultMethodIntoClassTest$B.class")
+        };
+    ImmutableSet<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.MergeDefaultMethodIntoClassTest",
+            "classmerging.MergeDefaultMethodIntoClassTest$B");
+    AndroidApp app =
+        AndroidApp.builder()
+            .addProgramFiles(programFiles)
+            .addLibraryFile(ToolHelper.getAndroidJar(AndroidApiLevel.O))
+            .build();
+
+    // Sanity check that there is actually an invoke-interface instruction in the input. We need
+    // to make sure that this invoke-interface instruction is translated to invoke-virtual after
+    // the classes A and B are merged.
+    DexInspector inputInspector = new DexInspector(app);
+    ClassSubject clazz = inputInspector.clazz("classmerging.MergeDefaultMethodIntoClassTest");
+    assertThat(clazz, isPresent());
+    MethodSubject method = clazz.method("void", "main", ImmutableList.of("java.lang.String[]"));
+    assertThat(method, isPresent());
+    assertThat(
+        method.getMethod().getCode().asJarCode().toString(),
+        containsString("INVOKEINTERFACE classmerging/MergeDefaultMethodIntoClassTest$A.f"));
+
+    runTestOnInput(main, app, preservedClassNames::contains, getProguardConfig(JAVA8_EXAMPLE_KEEP));
+  }
+
+  @Test
+  public void testNativeMethod() throws Exception {
+    String main = "classmerging.ClassWithNativeMethodTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("ClassWithNativeMethodTest.class"),
+          CF_DIR.resolve("ClassWithNativeMethodTest$A.class"),
+          CF_DIR.resolve("ClassWithNativeMethodTest$B.class")
+        };
+    // Ensures that the class A with a native method has not been merged into its subclass B.
+    ImmutableSet<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.ClassWithNativeMethodTest",
+            "classmerging.ClassWithNativeMethodTest$A",
+            "classmerging.ClassWithNativeMethodTest$B");
+    runTest(main, programFiles, preservedClassNames::contains);
   }
 
   @Test

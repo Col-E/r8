@@ -7,6 +7,9 @@
 -keep public class classmerging.Test {
   public static void main(...);
 }
+-keep public class classmerging.ClassWithNativeMethodTest {
+  public static void main(...);
+}
 -keep public class classmerging.ConflictInGeneratedNameTest {
   public static void main(...);
 }
