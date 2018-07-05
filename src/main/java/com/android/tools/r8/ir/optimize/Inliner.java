@@ -75,9 +75,9 @@ public class Inliner {
   }
 
   private Constraint instructionAllowedForInlining(
-      DexEncodedMethod method, Instruction instruction) {
-    Constraint result = instruction.inliningConstraint(appInfo, method.method.holder);
-    if ((result == Constraint.NEVER) && instruction.isDebugInstruction()) {
+      Instruction instruction, InliningConstraints inliningConstraints, DexType invocationContext) {
+    Constraint result = instruction.inliningConstraint(inliningConstraints, invocationContext);
+    if (result == Constraint.NEVER && instruction.isDebugInstruction()) {
       return Constraint.ALWAYS;
     }
     return result;
@@ -85,10 +85,12 @@ public class Inliner {
 
   public Constraint computeInliningConstraint(IRCode code, DexEncodedMethod method) {
     Constraint result = Constraint.ALWAYS;
+    InliningConstraints inliningConstraints = new InliningConstraints(appInfo);
     InstructionIterator it = code.instructionIterator();
     while (it.hasNext()) {
       Instruction instruction = it.next();
-      Constraint state = instructionAllowedForInlining(method, instruction);
+      Constraint state =
+          instructionAllowedForInlining(instruction, inliningConstraints, method.method.holder);
       result = Constraint.min(result, state);
       if (result == Constraint.NEVER) {
         break;

@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class Monitor extends Instruction {
 
@@ -89,9 +89,9 @@ public class Monitor extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    // Conservative choice.
-    return Constraint.NEVER;
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forMonitor();
   }
 
   @Override

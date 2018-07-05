@@ -103,8 +103,9 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    return new InliningConstraints(info).forInvokeStatic(getInvokedMethod(), invocationContext);
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forInvokeStatic(getInvokedMethod(), invocationContext);
   }
 
   @Override

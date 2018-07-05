@@ -11,7 +11,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import java.util.function.Function;
 
 public class NonNull extends Instruction {
@@ -85,8 +85,9 @@ public class NonNull extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    return Constraint.ALWAYS;
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forNonNull();
   }
 
   @Override

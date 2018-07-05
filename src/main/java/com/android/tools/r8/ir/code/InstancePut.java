@@ -15,12 +15,12 @@ import com.android.tools.r8.code.IputShort;
 import com.android.tools.r8.code.IputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import java.util.Arrays;
 import org.objectweb.asm.Opcodes;
 
@@ -113,8 +113,9 @@ public class InstancePut extends FieldInstruction {
   }
 
   @Override
-  DexEncodedField lookupTarget(DexType type, AppInfo appInfo) {
-    return appInfo.lookupInstanceTarget(type, field);
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forInstancePut(field, invocationContext);
   }
 
   @Override

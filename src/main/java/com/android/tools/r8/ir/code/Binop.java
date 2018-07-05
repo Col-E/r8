@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.function.Function;
 
 public abstract class Binop extends Instruction {
@@ -124,8 +124,9 @@ public abstract class Binop extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    return Constraint.ALWAYS;
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forBinop();
   }
 
   @Override

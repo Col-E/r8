@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -82,12 +81,6 @@ public abstract class InvokeMethod extends Invoke {
     // receiver type and type environment or invocation context---where the current invoke is.
     return lookupSingleTarget(appInfo, appInfo.dexItemFactory.objectType);
   }
-
-  // TODO(christofferqa): Pass an instance of InliningConstraints instead of [info] when
-  // InliningConstraints is complete.
-  @Override
-  public abstract Constraint inliningConstraint(
-      AppInfoWithLiveness info, DexType invocationContext);
 
   public abstract InlineAction computeInlining(InliningOracle decider, DexType invocationContext);
 

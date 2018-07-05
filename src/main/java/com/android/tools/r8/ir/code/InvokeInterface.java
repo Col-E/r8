@@ -95,8 +95,9 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public Constraint inliningConstraint(AppInfoWithLiveness info, DexType invocationContext) {
-    return new InliningConstraints(info).forInvokeInterface(getInvokedMethod(), invocationContext);
+  public Constraint inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forInvokeInterface(getInvokedMethod(), invocationContext);
   }
 
   @Override
