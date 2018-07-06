@@ -758,6 +758,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       publicized = true;
     }
 
+    private void unsetPublicized() {
+      publicized = false;
+    }
+
     private void markUseIdentifierNameString() {
       useIdentifierNameString = true;
     }
@@ -833,6 +837,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void markPublicized() {
     ensureMutableOI().markPublicized();
+  }
+
+  synchronized public void unsetPublicized() {
+    ensureMutableOI().unsetPublicized();
   }
 
   synchronized public void markUseIdentifierNameString() {

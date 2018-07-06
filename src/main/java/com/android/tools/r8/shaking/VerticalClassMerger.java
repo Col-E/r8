@@ -940,15 +940,15 @@ public class VerticalClassMerger {
     }
 
     private DexEncodedMethod buildBridgeMethod(
-        DexEncodedMethod signature, DexMethod invocationTarget) {
+        DexEncodedMethod method, DexMethod invocationTarget) {
       DexType holder = target.type;
       DexProto proto = invocationTarget.proto;
-      DexString name = signature.method.name;
-      MethodAccessFlags accessFlags = signature.accessFlags.copy();
+      DexString name = method.method.name;
+      MethodAccessFlags accessFlags = method.accessFlags.copy();
       accessFlags.setBridge();
       accessFlags.setSynthetic();
       accessFlags.unsetAbstract();
-      return new DexEncodedMethod(
+      DexEncodedMethod bridge = new DexEncodedMethod(
           application.dexItemFactory.createMethod(holder, proto, name),
           accessFlags,
           DexAnnotationSet.empty(),
@@ -956,7 +956,14 @@ public class VerticalClassMerger {
           new SynthesizedCode(
               new ForwardMethodSourceCode(holder, proto, holder, invocationTarget, Type.DIRECT),
               registry -> registry.registerInvokeDirect(invocationTarget)),
-          signature.hasClassFileVersion() ? signature.getClassFileVersion() : -1);
+          method.hasClassFileVersion() ? method.getClassFileVersion() : -1);
+      if (method.getOptimizationInfo().isPublicized()) {
+        // The bridge is now the public method serving the role of the original method, and should
+        // reflect that this method was publicized.
+        bridge.markPublicized();
+        method.unsetPublicized();
+      }
+      return bridge;
     }
 
     // Returns the method that shadows the given method, or null if method is not shadowed.
