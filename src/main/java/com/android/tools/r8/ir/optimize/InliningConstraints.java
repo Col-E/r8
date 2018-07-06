@@ -17,8 +17,6 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 
 // Computes the inlining constraint for a given instruction.
-//
-// TODO(christofferqa): This class is incomplete.
 public class InliningConstraints {
 
   private AppInfoWithLiveness appInfo;
@@ -40,6 +38,7 @@ public class InliningConstraints {
   }
 
   public InliningConstraints(AppInfoWithLiveness appInfo, GraphLense graphLense) {
+    assert graphLense.isContextFreeForMethods();
     this.appInfo = appInfo;
     this.graphLense = graphLense;
   }
@@ -93,8 +92,9 @@ public class InliningConstraints {
   }
 
   public Constraint forInstanceGet(DexField field, DexType invocationContext) {
+    DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        field, appInfo.lookupInstanceTarget(field.clazz, field), invocationContext);
+        lookup, appInfo.lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
   }
 
   public Constraint forInstanceOf(DexType type, DexType invocationContext) {
@@ -106,16 +106,19 @@ public class InliningConstraints {
   }
 
   public Constraint forInstancePut(DexField field, DexType invocationContext) {
+    DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        field, appInfo.lookupInstanceTarget(field.clazz, field), invocationContext);
+        lookup, appInfo.lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
   }
 
   public Constraint forInvokeDirect(DexMethod method, DexType invocationContext) {
-    return forSingleTargetInvoke(method, appInfo.lookupDirectTarget(method), invocationContext);
+    DexMethod lookup = graphLense.lookupMethod(method);
+    return forSingleTargetInvoke(lookup, appInfo.lookupDirectTarget(lookup), invocationContext);
   }
 
   public Constraint forInvokeInterface(DexMethod method, DexType invocationContext) {
-    return forVirtualInvoke(method, appInfo.lookupInterfaceTargets(method), invocationContext);
+    DexMethod lookup = graphLense.lookupMethod(method);
+    return forVirtualInvoke(lookup, appInfo.lookupInterfaceTargets(lookup), invocationContext);
   }
 
   public Constraint forInvokeMultiNewArray(DexType type, DexType invocationContext) {
@@ -131,7 +134,8 @@ public class InliningConstraints {
   }
 
   public Constraint forInvokeStatic(DexMethod method, DexType invocationContext) {
-    return forSingleTargetInvoke(method, appInfo.lookupStaticTarget(method), invocationContext);
+    DexMethod lookup = graphLense.lookupMethod(method);
+    return forSingleTargetInvoke(lookup, appInfo.lookupStaticTarget(lookup), invocationContext);
   }
 
   public Constraint forInvokeSuper(DexMethod method, DexType invocationContext) {
@@ -140,7 +144,8 @@ public class InliningConstraints {
   }
 
   public Constraint forInvokeVirtual(DexMethod method, DexType invocationContext) {
-    return forVirtualInvoke(method, appInfo.lookupVirtualTargets(method), invocationContext);
+    DexMethod lookup = graphLense.lookupMethod(method);
+    return forVirtualInvoke(lookup, appInfo.lookupVirtualTargets(lookup), invocationContext);
   }
 
   public Constraint forJumpInstruction() {
@@ -190,13 +195,15 @@ public class InliningConstraints {
   }
 
   public Constraint forStaticGet(DexField field, DexType invocationContext) {
+    DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        field, appInfo.lookupStaticTarget(field.clazz, field), invocationContext);
+        lookup, appInfo.lookupStaticTarget(lookup.clazz, lookup), invocationContext);
   }
 
   public Constraint forStaticPut(DexField field, DexType invocationContext) {
+    DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        field, appInfo.lookupStaticTarget(field.clazz, field), invocationContext);
+        lookup, appInfo.lookupStaticTarget(lookup.clazz, lookup), invocationContext);
   }
 
   public Constraint forStore() {

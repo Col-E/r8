@@ -1383,7 +1383,7 @@ public class VerticalClassMerger {
     return true;
   }
 
-  private static class SingleTypeMapperGraphLense extends GraphLense {
+  private class SingleTypeMapperGraphLense extends GraphLense {
 
     private final DexType source;
     private final DexType target;
@@ -1401,17 +1401,18 @@ public class VerticalClassMerger {
     @Override
     public GraphLenseLookupResult lookupMethod(
         DexMethod method, DexEncodedMethod context, Type type) {
-      throw new Unreachable();
+      return new GraphLenseLookupResult(
+          renamedMembersLense.methodMap.getOrDefault(method, method), type);
     }
 
     @Override
     public DexField lookupField(DexField field) {
-      throw new Unreachable();
+      return renamedMembersLense.fieldMap.getOrDefault(field, field);
     }
 
     @Override
     public boolean isContextFreeForMethods() {
-      throw new Unreachable();
+      return true;
     }
   }
 

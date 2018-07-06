@@ -136,9 +136,8 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   public static class Builder {
     private final AppInfo appInfo;
 
-    private final ImmutableMap.Builder<DexField, DexField> fieldMapBuilder = ImmutableMap.builder();
-    private final ImmutableMap.Builder<DexMethod, DexMethod> methodMapBuilder =
-        ImmutableMap.builder();
+    protected final Map<DexField, DexField> fieldMap = new HashMap<>();
+    protected final Map<DexMethod, DexMethod> methodMap = new HashMap<>();
     private final ImmutableSet.Builder<DexMethod> mergedMethodsBuilder = ImmutableSet.builder();
     private final Map<DexType, Map<DexMethod, DexMethod>> contextualVirtualToDirectMethodMaps =
         new HashMap<>();
@@ -151,8 +150,6 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
         GraphLense previousLense,
         Map<DexType, DexType> mergedClasses,
         DexItemFactory dexItemFactory) {
-      Map<DexField, DexField> fieldMap = fieldMapBuilder.build();
-      Map<DexMethod, DexMethod> methodMap = methodMapBuilder.build();
       if (fieldMap.isEmpty()
           && methodMap.isEmpty()
           && contextualVirtualToDirectMethodMaps.isEmpty()) {
@@ -205,11 +202,11 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
     }
 
     public void map(DexField from, DexField to) {
-      fieldMapBuilder.put(from, to);
+      fieldMap.put(from, to);
     }
 
     public void map(DexMethod from, DexMethod to) {
-      methodMapBuilder.put(from, to);
+      methodMap.put(from, to);
     }
 
     public void mapVirtualMethodToDirectInType(DexMethod from, DexMethod to, DexType type) {
@@ -219,8 +216,8 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
     }
 
     public void merge(VerticalClassMergerGraphLense.Builder builder) {
-      fieldMapBuilder.putAll(builder.fieldMapBuilder.build());
-      methodMapBuilder.putAll(builder.methodMapBuilder.build());
+      fieldMap.putAll(builder.fieldMap);
+      methodMap.putAll(builder.methodMap);
       mergedMethodsBuilder.addAll(builder.mergedMethodsBuilder.build());
       for (DexType context : builder.contextualVirtualToDirectMethodMaps.keySet()) {
         Map<DexMethod, DexMethod> current = contextualVirtualToDirectMethodMaps.get(context);
