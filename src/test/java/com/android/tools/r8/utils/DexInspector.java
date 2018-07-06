@@ -413,6 +413,8 @@ public class DexInspector {
 
     public abstract String getOriginalDescriptor();
 
+    public abstract String getFinalName();
+
     public abstract String getFinalDescriptor();
 
     public abstract boolean isMemberClass();
@@ -478,6 +480,11 @@ public class DexInspector {
 
     @Override
     public String getOriginalDescriptor() {
+      return null;
+    }
+
+    @Override
+    public String getFinalName() {
       return null;
     }
 
@@ -639,7 +646,7 @@ public class DexInspector {
       if (naming != null) {
         return naming.originalName;
       } else {
-        return DescriptorUtils.descriptorToJavaType(getFinalDescriptor());
+        return getFinalName();
       }
     }
 
@@ -650,6 +657,11 @@ public class DexInspector {
       } else {
         return getFinalDescriptor();
       }
+    }
+
+    @Override
+    public String getFinalName() {
+      return DescriptorUtils.descriptorToJavaType(getFinalDescriptor());
     }
 
     @Override

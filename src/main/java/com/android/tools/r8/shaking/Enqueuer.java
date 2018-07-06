@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentiferNameString;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
+import static com.android.tools.r8.naming.IdentifierNameStringUtils.warnUndeterminedIdentifier;
 import static com.android.tools.r8.shaking.ProguardConfigurationUtils.buildIdentifierNameStringRule;
 
 import com.android.tools.r8.Diagnostic;
@@ -39,6 +40,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
@@ -1357,11 +1359,13 @@ public class Enqueuer {
   }
 
   private void handleProguardReflectiveBehavior(DexEncodedMethod method) {
-    IRCode code = method.buildIR(appInfo, options, appInfo.originFor(method.method.holder));
-    code.instructionIterator().forEachRemaining(this::handleProguardReflectiveBehavior);
+    Origin origin = appInfo.originFor(method.method.holder);
+    IRCode code = method.buildIR(appInfo, options, origin);
+    code.instructionIterator().forEachRemaining(instr ->
+        handleProguardReflectiveBehavior(instr, origin));
   }
 
-  private void handleProguardReflectiveBehavior(Instruction instruction) {
+  private void handleProguardReflectiveBehavior(Instruction instruction, Origin origin) {
     if (!instruction.isInvokeMethod()) {
       return;
     }
@@ -1372,6 +1376,9 @@ public class Enqueuer {
     }
     DexItemBasedString itemBasedString = identifyIdentiferNameString(appInfo, invoke);
     if (itemBasedString == null) {
+      if (options.proguardConfiguration.isObfuscating()) {
+        warnUndeterminedIdentifier(options.reporter, invokedMethod, origin, instruction, null);
+      }
       return;
     }
     if (itemBasedString.basedOn instanceof DexType) {

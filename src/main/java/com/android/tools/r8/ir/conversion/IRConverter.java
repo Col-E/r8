@@ -149,7 +149,8 @@ public class IRConverter {
         this.protoLiteRewriter =
             options.forceProguardCompatibility ? null : new ProtoLitePruner(appInfo.withLiveness());
         if (!appInfo.withLiveness().identifierNameStrings.isEmpty() && options.enableMinification) {
-          this.identifierNameStringMarker = new IdentifierNameStringMarker(appInfo.withLiveness());
+          this.identifierNameStringMarker =
+              new IdentifierNameStringMarker(appInfo.withLiveness(), options);
         } else {
           this.identifierNameStringMarker = null;
         }
