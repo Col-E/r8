@@ -449,7 +449,7 @@ public class VerticalClassMerger {
           // different proto, it could be the case that a method with the given name is overloaded.
           DexProto existing =
               overloadingInfo.computeIfAbsent(signature.name, key -> signature.proto);
-          if (!existing.equals(signature.proto)) {
+          if (existing != DexProto.SENTINEL && !existing.equals(signature.proto)) {
             // Mark that this signature is overloaded by mapping it to SENTINEL.
             overloadingInfo.put(signature.name, DexProto.SENTINEL);
           }
@@ -815,25 +815,35 @@ public class VerticalClassMerger {
           mergeMethods(virtualMethods.values(), target.virtualMethods());
 
       // Step 2: Merge fields
-      Set<Wrapper<DexField>> existingFieldSignatures = new HashSet<>();
-      addAll(existingFieldSignatures, target.fields(), FieldSignatureEquivalence.get());
+      Set<DexString> existingFieldNames = new HashSet<>();
+      for (DexEncodedField field : target.fields()) {
+        existingFieldNames.add(field.field.name);
+      }
 
+      // In principle, we could allow multiple fields with the same name, and then only rename the
+      // field in the end when we are done merging all the classes, if it it turns out that the two
+      // fields ended up having the same type. This would not be too expensive, since we visit the
+      // entire program using VerticalClassMerger.TreeFixer anyway.
+      //
+      // For now, we conservatively report that a signature is already taken if there is a field
+      // with the same name. If minification is used with -overloadaggressively, this is solved
+      // later anyway.
       Predicate<DexField> availableFieldSignatures =
-          field -> !existingFieldSignatures.contains(FieldSignatureEquivalence.get().wrap(field));
+          field -> !existingFieldNames.contains(field.name);
 
       DexEncodedField[] mergedInstanceFields =
           mergeFields(
               source.instanceFields(),
               target.instanceFields(),
               availableFieldSignatures,
-              existingFieldSignatures);
+              existingFieldNames);
 
       DexEncodedField[] mergedStaticFields =
           mergeFields(
               source.staticFields(),
               target.staticFields(),
               availableFieldSignatures,
-              existingFieldSignatures);
+              existingFieldNames);
 
       // Step 3: Merge interfaces
       Set<DexType> interfaces = mergeArrays(target.interfaces.values, source.interfaces.values);
@@ -999,13 +1009,13 @@ public class VerticalClassMerger {
         DexEncodedField[] sourceFields,
         DexEncodedField[] targetFields,
         Predicate<DexField> availableFieldSignatures,
-        Set<Wrapper<DexField>> existingFieldSignatures) {
+        Set<DexString> existingFieldNames) {
       DexEncodedField[] result = new DexEncodedField[sourceFields.length + targetFields.length];
       // Add fields from source
       int i = 0;
       for (DexEncodedField field : sourceFields) {
         DexEncodedField resultingField = renameFieldIfNeeded(field, availableFieldSignatures);
-        existingFieldSignatures.add(FieldSignatureEquivalence.get().wrap(resultingField.field));
+        existingFieldNames.add(resultingField.field.name);
         deferredRenamings.map(field.field, resultingField.field);
         result[i] = resultingField;
         i++;
