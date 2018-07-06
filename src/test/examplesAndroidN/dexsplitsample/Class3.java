@@ -5,6 +5,9 @@
 package dexsplitsample;
 
 public class Class3 extends Class1 {
+  // Instantiate Class1 to prevent it from being merged into Class3.
+  private static final Class1 obj = new Class1();
+
   public static void main(String[] args) {
     Class3 clazz = new Class3();
     if (clazz.getClass1String() != "Class1String") {
