@@ -165,7 +165,7 @@ def run_adb(args, ignore_exit=False):
   command = ['adb']
   command.extend(args)
   utils.PrintCmd(command)
-  # On M adb install-multiple exits 0 but succeed in installing.
+  # On M adb install-multiple exits 1 but succeed in installing.
   if ignore_exit:
     subprocess.call(command)
   else:
@@ -293,7 +293,7 @@ def Main():
     apks.append(split_apk_path)
 
   print('Generated apks available at: %s' % ' '.join(apks))
-  if options.install:
+  if options.install or options.benchmark:
     adb_install(apks)
   grand_total = 0
   if options.benchmark:
