@@ -187,6 +187,22 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
+  public void testFieldCollision() throws Exception {
+    String main = "classmerging.FieldCollisionTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("FieldCollisionTest.class"),
+          CF_DIR.resolve("FieldCollisionTest$A.class"),
+          CF_DIR.resolve("FieldCollisionTest$B.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.FieldCollisionTest",
+            "classmerging.FieldCollisionTest$B");
+    runTest(main, programFiles, preservedClassNames::contains);
+  }
+
+  @Test
   public void testLambdaRewriting() throws Exception {
     String main = "classmerging.LambdaRewritingTest";
     Path[] programFiles =
@@ -207,6 +223,31 @@ public class ClassMergingTest extends TestBase {
         programFiles,
         name -> preservedClassNames.contains(name) || name.contains("$Lambda$"),
         getProguardConfig(JAVA8_EXAMPLE_KEEP));
+  }
+
+  @Test
+  public void testMethodCollision() throws Exception {
+    String main = "classmerging.MethodCollisionTest";
+    Path[] programFiles =
+        new Path[] {
+            CF_DIR.resolve("MethodCollisionTest.class"),
+            CF_DIR.resolve("MethodCollisionTest$A.class"),
+            CF_DIR.resolve("MethodCollisionTest$B.class"),
+            CF_DIR.resolve("MethodCollisionTest$C.class"),
+            CF_DIR.resolve("MethodCollisionTest$D.class")
+        };
+    // TODO(christofferqa): Currently we do not allow merging A into B because we find a collision.
+    // However, we are free to change the names of private methods, so we should handle them similar
+    // to fields (i.e., we should allow merging A into B). This would also improve the performance
+    // of the collision detector, because it would only have to consider non-private methods.
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.MethodCollisionTest",
+            "classmerging.MethodCollisionTest$A",
+            "classmerging.MethodCollisionTest$B",
+            "classmerging.MethodCollisionTest$C",
+            "classmerging.MethodCollisionTest$D");
+    runTest(main, programFiles, preservedClassNames::contains);
   }
 
   @Test

@@ -19,6 +19,12 @@
 -keep public class classmerging.ExceptionTest {
   public static void main(...);
 }
+-keep public class classmerging.FieldCollisionTest {
+  public static void main(...);
+}
+-keep public class classmerging.MethodCollisionTest {
+  public static void main(...);
+}
 -keep public class classmerging.RewritePinnedMethodTest {
   public static void main(...);
 }
