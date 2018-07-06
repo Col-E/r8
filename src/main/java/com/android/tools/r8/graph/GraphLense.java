@@ -110,6 +110,16 @@ public abstract class GraphLense {
 
   public abstract DexField lookupField(DexField field);
 
+  // The method lookupMethod() maps a pair INVOKE=(method signature, invoke type) to a new pair
+  // INVOKE'=(method signature', invoke type'). This mapping can be context sensitive, meaning that
+  // the result INVOKE' depends on where the invocation INVOKE is in the program. This is, for
+  // example, used by the vertical class merger to translate invoke-super instructions that hit
+  // a method in the direct super class to invoke-direct instructions after class merging.
+  //
+  // This method can be used to determine if a graph lense is context sensitive. If a graph lense
+  // is context insensitive, it is safe to invoke lookupMethod() without a context (or to pass null
+  // as context). Trying to invoke a context sensitive graph lense without a context will lead to
+  // an assertion error.
   public abstract boolean isContextFreeForMethods();
 
   public boolean isContextFreeForMethod(DexMethod method) {
