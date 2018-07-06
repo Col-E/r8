@@ -382,12 +382,16 @@ public final class IdentifierNameStringUtils {
     String kind = member instanceof DexField ? "field" : "method";
     String originalMessage = original == null ? "what identifier string flows to "
         : "what '" + original.toString() + "' refers to, which flows to ";
-    reporter.warning(new StringDiagnostic(
+    String message =
         "Cannot determine " + originalMessage + member.toSourceString()
             + " that is specified in -identifiernamestring rules."
             + " Thus, not all identifier strings flowing to that " + kind
-            + " are renamed, which can cause resolution failures at runtime.",
-        origin,
-        new TextPosition(0L, instruction.getPosition().line, 1)));
+            + " are renamed, which can cause resolution failures at runtime.";
+    StringDiagnostic diagnostic =
+        instruction.getPosition().line >= 1
+            ? new StringDiagnostic(message, origin,
+                new TextPosition(0L, instruction.getPosition().line, 1))
+            : new StringDiagnostic(message, origin);
+    reporter.warning(diagnostic);
   }
 }
