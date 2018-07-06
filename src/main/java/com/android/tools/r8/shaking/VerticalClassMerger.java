@@ -146,8 +146,8 @@ public class VerticalClassMerger {
   private final Timing timing;
   private Collection<DexMethod> invokes;
 
-  // Set of merge candidates.
-  private final Set<DexProgramClass> mergeCandidates = new HashSet<>();
+  // Set of merge candidates. Note that this must have a deterministic iteration order.
+  private final Set<DexProgramClass> mergeCandidates = new LinkedHashSet<>();
 
   // Map from source class to target class.
   private final Map<DexType, DexType> mergedClasses = new HashMap<>();
