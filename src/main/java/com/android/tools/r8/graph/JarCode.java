@@ -30,6 +30,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceMethodVisitor;
 
@@ -173,16 +174,26 @@ public class JarCode extends Code {
   }
 
   public Constraint computeInliningConstraint(
-      AppInfoWithLiveness appInfo, GraphLense graphLense, DexType invocationContext) {
+      DexEncodedMethod encodedMethod,
+      AppInfoWithLiveness appInfo,
+      GraphLense graphLense,
+      DexType invocationContext) {
     InliningConstraintVisitor visitor =
-        new InliningConstraintVisitor(application, appInfo, graphLense, method, invocationContext);
+        new InliningConstraintVisitor(
+            application, appInfo, graphLense, encodedMethod, invocationContext);
     AbstractInsnNode insn = node.instructions.getFirst();
     while (insn != null) {
       insn.accept(visitor);
       if (visitor.isFinished()) {
-        break;
+        return visitor.getConstraint();
       }
       insn = insn.getNext();
+    }
+    for (TryCatchBlockNode block : node.tryCatchBlocks) {
+      visitor.accept(block);
+      if (visitor.isFinished()) {
+        return visitor.getConstraint();
+      }
     }
     return visitor.getConstraint();
   }

@@ -959,7 +959,7 @@ public class JarSourceCode implements SourceCode {
   private Invoke.Type invokeType(MethodInsnNode method) {
     switch (method.getOpcode()) {
       case Opcodes.INVOKEVIRTUAL:
-        if (isCallToPolymorphicSignatureMethod(method)) {
+        if (isCallToPolymorphicSignatureMethod(method.owner, method.name)) {
           return Invoke.Type.POLYMORPHIC;
         }
         return Invoke.Type.VIRTUAL;
@@ -2954,17 +2954,17 @@ public class JarSourceCode implements SourceCode {
     return writer.toString();
   }
 
-  private boolean isCallToPolymorphicSignatureMethod(MethodInsnNode method) {
-    if (method.owner.equals("java/lang/invoke/MethodHandle")) {
-      switch (method.name) {
+  public static boolean isCallToPolymorphicSignatureMethod(String owner, String name) {
+    if (owner.equals("java/lang/invoke/MethodHandle")) {
+      switch (name) {
         case "invoke":
         case "invokeExact":
           return true;
         default :
           return false;
       }
-    } else if (method.owner.equals("java/lang/invoke/VarHandle")) {
-      switch (method.name) {
+    } else if (owner.equals("java/lang/invoke/VarHandle")) {
+      switch (name) {
         case "compareAndExchange":
         case "compareAndExchangeAcquire":
         case "compareAndExchangeRelease":

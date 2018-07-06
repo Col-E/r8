@@ -1373,6 +1373,7 @@ public class VerticalClassMerger {
       JarCode jarCode = method.getCode().asJarCode();
       Constraint constraint =
           jarCode.computeInliningConstraint(
+              method,
               appInfo,
               new SingleTypeMapperGraphLense(method.method.holder, invocationContext),
               invocationContext);
