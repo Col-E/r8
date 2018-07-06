@@ -1406,14 +1406,32 @@ public class VerticalClassMerger {
 
     @Override
     public DexType lookupType(DexType type) {
-      return type == source ? target : type;
+      return type == source ? target : mergedClasses.getOrDefault(type, type);
     }
 
     @Override
     public GraphLenseLookupResult lookupMethod(
         DexMethod method, DexEncodedMethod context, Type type) {
-      return new GraphLenseLookupResult(
-          renamedMembersLense.methodMap.getOrDefault(method, method), type);
+      // First look up the method using the existing graph lense (for example, the type will have
+      // changed if the method was publicized by ClassAndMemberPublicizer).
+      GraphLenseLookupResult lookup = graphLense.lookupMethod(method, context, type);
+      DexMethod previousMethod = lookup.getMethod();
+      Type previousType = lookup.getType();
+      // Then check if there is a renaming due to the vertical class merger.
+      DexMethod newMethod = renamedMembersLense.methodMap.get(previousMethod);
+      if (newMethod != null) {
+        if (previousType == Type.INTERFACE) {
+          // If an interface has been merged into a class, invoke-interface needs to be translated
+          // to invoke-virtual.
+          DexClass clazz = appInfo.definitionFor(newMethod.holder);
+          if (clazz != null && !clazz.accessFlags.isInterface()) {
+            assert appInfo.definitionFor(method.holder).accessFlags.isInterface();
+            return new GraphLenseLookupResult(newMethod, Type.VIRTUAL);
+          }
+        }
+        return new GraphLenseLookupResult(newMethod, previousType);
+      }
+      return new GraphLenseLookupResult(previousMethod, previousType);
     }
 
     @Override

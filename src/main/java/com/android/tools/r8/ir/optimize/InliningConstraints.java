@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -12,6 +13,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
@@ -101,14 +103,35 @@ public class InliningConstraints {
     return Constraint.classIsVisible(invocationContext, type, appInfo);
   }
 
-  public Constraint forInvokeCustom() {
-    return Constraint.NEVER;
-  }
-
   public Constraint forInstancePut(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
         lookup, appInfo.lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
+  }
+
+  public Constraint forInvoke(DexMethod method, Type type, DexType invocationContext) {
+    switch (type) {
+      case DIRECT:
+        return forInvokeDirect(method, invocationContext);
+      case INTERFACE:
+        return forInvokeInterface(method, invocationContext);
+      case STATIC:
+        return forInvokeStatic(method, invocationContext);
+      case SUPER:
+        return forInvokeSuper(method, invocationContext);
+      case VIRTUAL:
+        return forInvokeVirtual(method, invocationContext);
+      case CUSTOM:
+        return forInvokeCustom();
+      case POLYMORPHIC:
+        return forInvokePolymorphic(method, invocationContext);
+      default:
+        throw new Unreachable("Unexpected type: " + type);
+    }
+  }
+
+  public Constraint forInvokeCustom() {
+    return Constraint.NEVER;
   }
 
   public Constraint forInvokeDirect(DexMethod method, DexType invocationContext) {
