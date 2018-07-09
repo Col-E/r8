@@ -56,6 +56,8 @@ public class TestBase {
 
   // Actually running Proguard should only be during development.
   private static final boolean RUN_PROGUARD = System.getProperty("run_proguard") != null;
+  // Actually running r8.jar in a forked process.
+  private static final boolean RUN_R8_JAR = System.getProperty("run_r8_jar") != null;
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -68,6 +70,13 @@ public class TestBase {
    */
   protected boolean isRunProguard() {
     return RUN_PROGUARD;
+  }
+
+  /**
+   * Check if tests should run R8 in a forked process when applicable.
+   */
+  protected boolean isRunR8Jar() {
+    return RUN_R8_JAR;
   }
 
   /**
