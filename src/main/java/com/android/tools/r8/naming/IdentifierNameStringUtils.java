@@ -26,7 +26,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.TextPosition;
-import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import java.util.List;
@@ -372,13 +372,24 @@ public final class IdentifierNameStringUtils {
     return new DexTypeList(types);
   }
 
-  public static void warnUndeterminedIdentifier(
-      Reporter reporter,
+  public static void warnUndeterminedIdentifierIfNecessary(
+      AppInfo appInfo,
+      InternalOptions options,
       DexItem member,
-      Origin origin,
+      DexType originHolder,
       Instruction instruction,
       DexString original) {
     assert member instanceof DexField || member instanceof DexMethod;
+    DexClass originClass = appInfo.definitionFor(originHolder);
+    // If the origin is a library class, it is out of developers' control.
+    if (originClass != null && originClass.isLibraryClass()) {
+      return;
+    }
+    // Undetermined identifiers matter only if minification is enabled.
+    if (!options.proguardConfiguration.isObfuscating()) {
+      return;
+    }
+    Origin origin = appInfo.originFor(originHolder);
     String kind = member instanceof DexField ? "field" : "method";
     String originalMessage = original == null ? "what identifier string flows to "
         : "what '" + original.toString() + "' refers to, which flows to ";
@@ -392,6 +403,6 @@ public final class IdentifierNameStringUtils {
             ? new StringDiagnostic(message, origin,
                 new TextPosition(0L, instruction.getPosition().line, 1))
             : new StringDiagnostic(message, origin);
-    reporter.warning(diagnostic);
+    options.reporter.warning(diagnostic);
   }
 }

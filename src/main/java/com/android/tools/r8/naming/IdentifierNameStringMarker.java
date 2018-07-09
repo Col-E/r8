@@ -6,7 +6,7 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentiferNameString;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.inferMemberOrTypeFromNameString;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
-import static com.android.tools.r8.naming.IdentifierNameStringUtils.warnUndeterminedIdentifier;
+import static com.android.tools.r8.naming.IdentifierNameStringUtils.warnUndeterminedIdentifierIfNecessary;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -32,7 +32,6 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Streams;
@@ -82,7 +81,7 @@ public class IdentifierNameStringMarker {
   }
 
   public void decoupleIdentifierNameStringsInMethod(DexEncodedMethod encodedMethod, IRCode code) {
-    Origin origin = appInfo.originFor(code.method.method.getHolder());
+    DexType originHolder = code.method.method.getHolder();
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -110,17 +109,15 @@ public class IdentifierNameStringMarker {
               ? instruction.asStaticPut().inValue()
               : instruction.asInstancePut().value();
           if (!in.isConstString()) {
-            if (options.proguardConfiguration.isObfuscating()) {
-              warnUndeterminedIdentifier(options.reporter, field, origin, instruction, null);
-            }
+            warnUndeterminedIdentifierIfNecessary(
+                appInfo, options, field, originHolder, instruction, null);
             continue;
           }
           DexString original = in.getConstInstruction().asConstString().getValue();
           DexItemBasedString itemBasedString = inferMemberOrTypeFromNameString(appInfo, original);
           if (itemBasedString == null) {
-            if (options.proguardConfiguration.isObfuscating()) {
-              warnUndeterminedIdentifier(options.reporter, field, origin, instruction, original);
-            }
+            warnUndeterminedIdentifierIfNecessary(
+                appInfo, options, field, originHolder, instruction, original);
             continue;
           }
           // Move the cursor back to $fieldPut
@@ -174,10 +171,8 @@ public class IdentifierNameStringMarker {
           if (isReflectionMethod(dexItemFactory, invokedMethod)) {
             DexItemBasedString itemBasedString = identifyIdentiferNameString(appInfo, invoke);
             if (itemBasedString == null) {
-              if (options.proguardConfiguration.isObfuscating()) {
-                warnUndeterminedIdentifier(
-                    options.reporter, invokedMethod, origin, instruction, null);
-              }
+              warnUndeterminedIdentifierIfNecessary(
+                  appInfo, options, invokedMethod, originHolder, instruction, null);
               continue;
             }
             DexType returnType = invoke.getReturnType();
@@ -222,20 +217,16 @@ public class IdentifierNameStringMarker {
             for (int i = 0; i < ins.size(); i++) {
               Value in = ins.get(i);
               if (!in.isConstString()) {
-                if (options.proguardConfiguration.isObfuscating()) {
-                  warnUndeterminedIdentifier(
-                      options.reporter, invokedMethod, origin, instruction, null);
-                }
+                warnUndeterminedIdentifierIfNecessary(
+                    appInfo, options, invokedMethod, originHolder, instruction, null);
                 continue;
               }
               DexString original = in.getConstInstruction().asConstString().getValue();
               DexItemBasedString itemBasedString =
                   inferMemberOrTypeFromNameString(appInfo, original);
               if (itemBasedString == null) {
-                if (options.proguardConfiguration.isObfuscating()) {
-                  warnUndeterminedIdentifier(
-                      options.reporter, invokedMethod, origin, instruction, original);
-                }
+                warnUndeterminedIdentifierIfNecessary(
+                    appInfo, options, invokedMethod, originHolder, instruction, original);
                 continue;
               }
               // Move the cursor back to $invoke
