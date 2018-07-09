@@ -517,6 +517,7 @@ static configureRelocations(ShadowJar task) {
 task repackageDeps(type: ShadowJar) {
     configurations = [project.configurations.compile]
     configureRelocations(it)
+    exclude { it.getRelativePath().getPathString() == "module-info.class" }
     baseName 'deps'
 }
 
