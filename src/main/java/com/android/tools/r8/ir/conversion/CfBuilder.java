@@ -87,6 +87,8 @@ public class CfBuilder {
   private List<InvokeDirect> thisInitializers;
   private Map<NewInstance, CfLabel> newInstanceLabels;
 
+  private InternalOptions options;
+
   // Internal abstraction of the stack values and height.
   private static class Stack {
     int maxHeight = 0;
@@ -123,6 +125,7 @@ public class CfBuilder {
       GraphLense graphLense,
       InternalOptions options,
       AppInfoWithSubtyping appInfo) {
+    this.options = options;
     computeInitializers();
     types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
     splitExceptionalBlocks();
@@ -379,7 +382,10 @@ public class CfBuilder {
   private void updatePositionAndLocals(Instruction instruction) {
     Position position = instruction.getPosition();
     boolean didLocalsChange = localsChanged();
-    boolean didPositionChange = position.isSome() && position != currentPosition;
+    boolean didPositionChange =
+        position.isSome()
+            && position != currentPosition
+            && (options.debug || instruction.instructionTypeCanThrow());
     if (!didLocalsChange && !didPositionChange) {
       return;
     }

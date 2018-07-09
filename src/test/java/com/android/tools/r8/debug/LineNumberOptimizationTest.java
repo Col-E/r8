@@ -7,12 +7,18 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.debug.DebugTestConfig.RuntimeKind;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.Collection;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /** Tests source file and line numbers on inlined methods. */
+@RunWith(Parameterized.class)
 public class LineNumberOptimizationTest extends DebugTestBase {
 
   private static final int[] ORIGINAL_LINE_NUMBERS = {20, 7, 8, 28, 8, 20, 21, 12, 21, 22, 16, 22};
@@ -26,25 +32,53 @@ public class LineNumberOptimizationTest extends DebugTestBase {
   private static final String FILE2 = CLASS2 + ".java";
   private static final String MAIN_SIGNATURE = "([Ljava/lang/String;)V";
 
+  private RuntimeKind runtimeKind;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Object[]> setup() {
+    return ImmutableList.of(
+        new Object[] {"CF", RuntimeKind.CF}, new Object[] {"DEX", RuntimeKind.DEX});
+  }
+
+  public LineNumberOptimizationTest(String name, RuntimeKind runtimeKind) {
+    this.runtimeKind = runtimeKind;
+  }
+
   private static DebugTestConfig makeConfig(
       LineNumberOptimization lineNumberOptimization,
       boolean writeProguardMap,
-      boolean dontOptimizeByEnablingDebug)
+      boolean dontOptimizeByEnablingDebug,
+      RuntimeKind runtimeKind)
       throws Exception {
-    AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
     Path outdir = temp.newFolder().toPath();
     Path outjar = outdir.resolve("r8_compiled.jar");
-    Path proguardMapPath = writeProguardMap ? outdir.resolve("proguard.map") : null;
+
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
-            .setMinApiLevel(minSdk.getLevel())
-            .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
-            .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
-            .setOutput(outjar, OutputMode.DexIndexed);
-    if (proguardMapPath != null) {
-      builder.setProguardMapOutputPath(proguardMapPath);
+            .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE);
+    DebugTestConfig config = null;
+
+    if (runtimeKind == RuntimeKind.CF) {
+      builder.setOutput(outjar, OutputMode.ClassFile);
+      config = new CfDebugTestConfig(outjar);
+    } else {
+      assert (runtimeKind == RuntimeKind.DEX);
+      AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
+      builder
+          .setMinApiLevel(minSdk.getLevel())
+          .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
+          .setOutput(outjar, OutputMode.DexIndexed);
+      config = new D8DebugTestConfig();
     }
+
+    config.addPaths(outjar);
+    if (writeProguardMap) {
+      Path proguardMapPath = outdir.resolve("proguard.map");
+      builder.setProguardMapOutputPath(proguardMapPath);
+      config.setProguardMap(proguardMapPath);
+    }
+
     ToolHelper.runR8(
         builder.build(),
         options -> {
@@ -53,46 +87,52 @@ public class LineNumberOptimizationTest extends DebugTestBase {
           }
           options.enableInlining = false;
         });
-    DebugTestConfig config = new D8DebugTestConfig();
-    config.addPaths(outjar);
-    config.setProguardMap(proguardMapPath);
+
     return config;
   }
 
   @Test
   public void testIdentityCompilation() throws Throwable {
     // Compilation will fail if the identity translation does.
-    makeConfig(LineNumberOptimization.IDENTITY_MAPPING, true, false);
+    makeConfig(LineNumberOptimization.IDENTITY_MAPPING, true, false, runtimeKind);
   }
 
   @Test
   public void testNotOptimized() throws Throwable {
-    testRelease(makeConfig(LineNumberOptimization.OFF, false, false), ORIGINAL_LINE_NUMBERS);
+    testRelease(
+        makeConfig(LineNumberOptimization.OFF, false, false, runtimeKind), ORIGINAL_LINE_NUMBERS);
   }
 
   @Test
   public void testNotOptimizedWithMap() throws Throwable {
-    testRelease(makeConfig(LineNumberOptimization.OFF, true, false), ORIGINAL_LINE_NUMBERS);
+    testRelease(
+        makeConfig(LineNumberOptimization.OFF, true, false, runtimeKind), ORIGINAL_LINE_NUMBERS);
   }
 
   @Test
   public void testNotOptimizedByEnablingDebug() throws Throwable {
-    testDebug(makeConfig(LineNumberOptimization.OFF, false, true), ORIGINAL_LINE_NUMBERS_DEBUG);
+    testDebug(
+        makeConfig(LineNumberOptimization.OFF, false, true, runtimeKind),
+        ORIGINAL_LINE_NUMBERS_DEBUG);
   }
 
   @Test
   public void testNotOptimizedByEnablingDebugWithMap() throws Throwable {
-    testDebug(makeConfig(LineNumberOptimization.OFF, true, true), ORIGINAL_LINE_NUMBERS_DEBUG);
+    testDebug(
+        makeConfig(LineNumberOptimization.OFF, true, true, runtimeKind),
+        ORIGINAL_LINE_NUMBERS_DEBUG);
   }
 
   @Test
   public void testOptimized() throws Throwable {
-    testRelease(makeConfig(LineNumberOptimization.ON, false, false), OPTIMIZED_LINE_NUMBERS);
+    testRelease(
+        makeConfig(LineNumberOptimization.ON, false, false, runtimeKind), OPTIMIZED_LINE_NUMBERS);
   }
 
   @Test
   public void testOptimizedWithMap() throws Throwable {
-    testRelease(makeConfig(LineNumberOptimization.ON, true, false), ORIGINAL_LINE_NUMBERS);
+    testRelease(
+        makeConfig(LineNumberOptimization.ON, true, false, runtimeKind), ORIGINAL_LINE_NUMBERS);
   }
 
   private void testDebug(DebugTestConfig config, int[] lineNumbers) throws Throwable {

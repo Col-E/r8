@@ -35,6 +35,10 @@ public class CfPosition extends CfInstruction {
     return position;
   }
 
+  public CfLabel getLabel() {
+    return label;
+  }
+
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     state.setPosition(position);

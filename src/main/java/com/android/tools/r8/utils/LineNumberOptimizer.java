@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
@@ -119,17 +122,15 @@ public class LineNumberOptimizer {
   // PositionRemapper is a stateful function which takes a position (represented by a
   // DexDebugPositionState) and returns a remapped Position.
   private interface PositionRemapper {
-    Position createRemappedPosition(DexDebugPositionState positionState);
+    Position createRemappedPosition(
+        int line, DexString file, DexMethod method, Position callerPosition);
   }
 
   private static class IdentityPositionRemapper implements PositionRemapper {
     @Override
-    public Position createRemappedPosition(DexDebugPositionState positionState) {
-      return new Position(
-          positionState.getCurrentLine(),
-          positionState.getCurrentFile(),
-          positionState.getCurrentMethod(),
-          positionState.getCurrentCallerPosition());
+    public Position createRemappedPosition(
+        int line, DexString file, DexMethod method, Position callerPosition) {
+      return new Position(line, file, method, callerPosition);
     }
   }
 
@@ -137,13 +138,9 @@ public class LineNumberOptimizer {
     private int nextLineNumber = 1;
 
     @Override
-    public Position createRemappedPosition(DexDebugPositionState positionState) {
-      Position newPosition =
-          new Position(
-              nextLineNumber,
-              positionState.getCurrentFile(),
-              positionState.getCurrentMethod(),
-              null);
+    public Position createRemappedPosition(
+        int line, DexString file, DexMethod method, Position callerPosition) {
+      Position newPosition = new Position(nextLineNumber, file, method, null);
       ++nextLineNumber;
       return newPosition;
     }
@@ -252,57 +249,14 @@ public class LineNumberOptimizer {
         for (DexEncodedMethod method : methods) {
           List<MappedPosition> mappedPositions = new ArrayList<>();
 
-          if (doesContainPositions(method)) {
-            // Do the actual processing for each method.
-            DexCode dexCode = method.getCode().asDexCode();
-            DexDebugInfo debugInfo = dexCode.getDebugInfo();
-            List<DexDebugEvent> processedEvents = new ArrayList<>();
-
-            // Our pipeline will be:
-            // [debugInfo.events] -> eventFilter -> positionRemapper -> positionEventEmitter ->
-            // [processedEvents]
-            PositionEventEmitter positionEventEmitter =
-                new PositionEventEmitter(
-                    application.dexItemFactory, method.method, processedEvents);
-
-            EventFilter eventFilter =
-                new EventFilter(
-                    debugInfo.startLine,
-                    method.method,
-                    processedEvents::add,
-                    positionState -> {
-                      int currentLine = positionState.getCurrentLine();
-                      assert currentLine >= 0;
-                      Position position = positionRemapper.createRemappedPosition(positionState);
-                      mappedPositions.add(
-                          new MappedPosition(
-                              positionState.getCurrentMethod(),
-                              currentLine,
-                              positionState.getCurrentCallerPosition(),
-                              position.line));
-                      positionEventEmitter.emitPositionEvents(
-                          positionState.getCurrentPc(), position);
-                    });
-            for (DexDebugEvent event : debugInfo.events) {
-              event.accept(eventFilter);
+          Code code = method.getCode();
+          if (code != null) {
+            if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
+              optimizeDexCodePositions(
+                  method, application, positionRemapper, mappedPositions, identityMapping);
+            } else if (code.isCfCode() && doesContainPositions(code.asCfCode())) {
+              optimizeCfCodePositions(method, positionRemapper, mappedPositions);
             }
-
-            DexDebugInfo optimizedDebugInfo =
-                new DexDebugInfo(
-                    positionEventEmitter.getStartLine(),
-                    debugInfo.parameters,
-                    processedEvents.toArray(new DexDebugEvent[processedEvents.size()]));
-
-            // TODO(tamaskenez) Remove this as soon as we have external tests testing not only the
-            // remapping but whether the non-positional debug events remain intact.
-            if (identityMapping) {
-              assert optimizedDebugInfo.startLine == debugInfo.startLine;
-              assert optimizedDebugInfo.events.length == debugInfo.events.length;
-              for (int i = 0; i < debugInfo.events.length; ++i) {
-                assert optimizedDebugInfo.events[i].equals(debugInfo.events[i]);
-              }
-            }
-            dexCode.setDebugInfo(optimizedDebugInfo);
           }
 
           MethodSignature originalSignature = MethodSignature.fromDexMethod(method.method);
@@ -382,21 +336,33 @@ public class LineNumberOptimizer {
     return classNameMapperBuilder.build();
   }
 
+  private static int getMethodStartLine(DexEncodedMethod method) {
+    Code code = method.getCode();
+    if (code == null) {
+      return 0;
+    }
+    if (code.isDexCode()) {
+      DexDebugInfo dexDebugInfo = code.asDexCode().getDebugInfo();
+      return dexDebugInfo == null ? 0 : dexDebugInfo.startLine;
+    } else if (code.isCfCode()) {
+      List<CfInstruction> instructions = code.asCfCode().getInstructions();
+      for (CfInstruction instruction : instructions) {
+        if (!(instruction instanceof CfPosition)) {
+          continue;
+        }
+        return ((CfPosition) instruction).getPosition().line;
+      }
+    }
+    return 0;
+  }
+
   // Sort by startline, then DexEncodedMethod.slowCompare.
   // Use startLine = 0 if no debuginfo.
   private static void sortMethods(List<DexEncodedMethod> methods) {
     methods.sort(
         (lhs, rhs) -> {
-          Code lhsCode = lhs.getCode();
-          Code rhsCode = rhs.getCode();
-          DexCode lhsDexCode =
-              lhsCode == null || !lhsCode.isDexCode() ? null : lhsCode.asDexCode();
-          DexCode rhsDexCode =
-              rhsCode == null || !rhsCode.isDexCode() ? null : rhsCode.asDexCode();
-          DexDebugInfo lhsDebugInfo = lhsDexCode == null ? null : lhsDexCode.getDebugInfo();
-          DexDebugInfo rhsDebugInfo = rhsDexCode == null ? null : rhsDexCode.getDebugInfo();
-          int lhsStartLine = lhsDebugInfo == null ? 0 : lhsDebugInfo.startLine;
-          int rhsStartLine = rhsDebugInfo == null ? 0 : rhsDebugInfo.startLine;
+          int lhsStartLine = getMethodStartLine(lhs);
+          int rhsStartLine = getMethodStartLine(rhs);
           int startLineDiff = lhsStartLine - rhsStartLine;
           if (startLineDiff != 0) return startLineDiff;
           return DexEncodedMethod.slowCompare(lhs, rhs);
@@ -453,10 +419,19 @@ public class LineNumberOptimizer {
 
   private static boolean doesContainPositions(DexEncodedMethod method) {
     Code code = method.getCode();
-    if (code == null || !code.isDexCode()) {
+    if (code == null) {
       return false;
     }
-    DexDebugInfo debugInfo = code.asDexCode().getDebugInfo();
+    if (code.isDexCode()) {
+      return doesContainPositions(code.asDexCode());
+    } else if (code.isCfCode()) {
+      return doesContainPositions(code.asCfCode());
+    }
+    return false;
+  }
+
+  private static boolean doesContainPositions(DexCode dexCode) {
+    DexDebugInfo debugInfo = dexCode.getDebugInfo();
     if (debugInfo == null) {
       return false;
     }
@@ -466,5 +441,115 @@ public class LineNumberOptimizer {
       }
     }
     return false;
+  }
+
+  private static boolean doesContainPositions(CfCode cfCode) {
+    List<CfInstruction> instructions = cfCode.getInstructions();
+    for (CfInstruction instruction : instructions) {
+      if (instruction instanceof CfPosition) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static void optimizeDexCodePositions(
+      DexEncodedMethod method,
+      DexApplication application,
+      PositionRemapper positionRemapper,
+      List<MappedPosition> mappedPositions,
+      boolean identityMapping) {
+    // Do the actual processing for each method.
+    DexCode dexCode = method.getCode().asDexCode();
+    DexDebugInfo debugInfo = dexCode.getDebugInfo();
+    List<DexDebugEvent> processedEvents = new ArrayList<>();
+
+    // Our pipeline will be:
+    // [debugInfo.events] -> eventFilter -> positionRemapper -> positionEventEmitter ->
+    // [processedEvents]
+    PositionEventEmitter positionEventEmitter =
+        new PositionEventEmitter(application.dexItemFactory, method.method, processedEvents);
+
+    EventFilter eventFilter =
+        new EventFilter(
+            debugInfo.startLine,
+            method.method,
+            processedEvents::add,
+            positionState -> {
+              int currentLine = positionState.getCurrentLine();
+              assert currentLine >= 0;
+              Position position =
+                  positionRemapper.createRemappedPosition(
+                      positionState.getCurrentLine(),
+                      positionState.getCurrentFile(),
+                      positionState.getCurrentMethod(),
+                      positionState.getCurrentCallerPosition());
+              mappedPositions.add(
+                  new MappedPosition(
+                      positionState.getCurrentMethod(),
+                      currentLine,
+                      positionState.getCurrentCallerPosition(),
+                      position.line));
+              positionEventEmitter.emitPositionEvents(positionState.getCurrentPc(), position);
+            });
+    for (DexDebugEvent event : debugInfo.events) {
+      event.accept(eventFilter);
+    }
+
+    DexDebugInfo optimizedDebugInfo =
+        new DexDebugInfo(
+            positionEventEmitter.getStartLine(),
+            debugInfo.parameters,
+            processedEvents.toArray(new DexDebugEvent[processedEvents.size()]));
+
+    // TODO(b/111253214) Remove this as soon as we have external tests testing not only the
+    // remapping but whether the non-positional debug events remain intact.
+    if (identityMapping) {
+      assert optimizedDebugInfo.startLine == debugInfo.startLine;
+      assert optimizedDebugInfo.events.length == debugInfo.events.length;
+      for (int i = 0; i < debugInfo.events.length; ++i) {
+        assert optimizedDebugInfo.events[i].equals(debugInfo.events[i]);
+      }
+    }
+    dexCode.setDebugInfo(optimizedDebugInfo);
+  }
+
+  private static void optimizeCfCodePositions(
+      DexEncodedMethod method,
+      PositionRemapper positionRemapper,
+      List<MappedPosition> mappedPositions) {
+    // Do the actual processing for each method.
+    CfCode oldCode = method.getCode().asCfCode();
+    List<CfInstruction> oldInstructions = oldCode.getInstructions();
+    List<CfInstruction> newInstructions = new ArrayList<>(oldInstructions.size());
+    for (int i = 0; i < oldInstructions.size(); ++i) {
+      CfInstruction oldInstruction = oldInstructions.get(i);
+      CfInstruction newInstruction;
+      if (oldInstruction instanceof CfPosition) {
+        CfPosition cfPosition = (CfPosition) oldInstruction;
+        Position oldPosition = cfPosition.getPosition();
+        Position newPosition =
+            positionRemapper.createRemappedPosition(
+                oldPosition.line, oldPosition.file, oldPosition.method, oldPosition.callerPosition);
+        mappedPositions.add(
+            new MappedPosition(
+                oldPosition.method,
+                oldPosition.line,
+                oldPosition.callerPosition,
+                newPosition.line));
+        newInstruction = new CfPosition(cfPosition.getLabel(), newPosition);
+      } else {
+        newInstruction = oldInstruction;
+      }
+      newInstructions.add(newInstruction);
+    }
+    method.setCode(
+        new CfCode(
+            oldCode.getMethod(),
+            oldCode.getMaxStack(),
+            oldCode.getMaxLocals(),
+            newInstructions,
+            oldCode.getTryCatchRanges(),
+            oldCode.getLocalVariables()));
   }
 }
