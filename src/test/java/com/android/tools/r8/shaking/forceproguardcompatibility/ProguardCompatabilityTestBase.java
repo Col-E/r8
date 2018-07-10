@@ -44,7 +44,7 @@ public class ProguardCompatabilityTestBase extends TestBase {
   }
 
   protected AndroidApp runShrinkerRaw(
-      Shrinker mode, List<Class> programClasses, List<String> proguadConfigs) throws Exception {
+      Shrinker mode, List<Class> programClasses, Iterable<String> proguadConfigs) throws Exception {
     return runShrinkerRaw(
         mode, programClasses, String.join(System.lineSeparator(), proguadConfigs));
   }
@@ -111,10 +111,11 @@ public class ProguardCompatabilityTestBase extends TestBase {
   protected AndroidApp runR8CompatRaw(
       List<Class> programClasses, String proguardConfig) throws Exception {
     CompatProguardCommandBuilder builder = new CompatProguardCommandBuilder(true);
+    ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
     programClasses.forEach(
         clazz -> builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz)));
-    builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+    builder.addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()));
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     return ToolHelper.runR8(builder.build());
   }

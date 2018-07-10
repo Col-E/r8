@@ -21,8 +21,8 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -46,7 +46,7 @@ public class B72391662 extends ProguardCompatabilityTestBase {
         allowAccessModification ? "-allowaccessmodification" : "",
         !minify ? "-dontobfuscate" : "",
         "-keep class " + mainClass.getCanonicalName() + " {",
-        "  public void main(java.lang.String[]);",
+        "  public static void main(java.lang.String[]);",
         "}",
         keep + " class " + TestClass.class.getCanonicalName() + " {",
         "  *;",
@@ -97,7 +97,6 @@ public class B72391662 extends ProguardCompatabilityTestBase {
     doTest_keepAll(Shrinker.R8, null, false, false);
   }
 
-  @Ignore("b/92236970")
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void test_keepAll_R8Compat() throws Exception {
@@ -137,7 +136,7 @@ public class B72391662 extends ProguardCompatabilityTestBase {
         allowAccessModification ? "-allowaccessmodification" : "",
         !minify ? "-dontobfuscate" : "",
         "-keep class " + mainClass.getCanonicalName() + " {",
-        "  public void main(java.lang.String[]);",
+        "  public static void main(java.lang.String[]);",
         "}",
         keep + " class " + TestClass.class.getCanonicalName() + " {",
         "  !public <methods>;",
@@ -188,7 +187,6 @@ public class B72391662 extends ProguardCompatabilityTestBase {
     doTest_keepNonPublic(Shrinker.R8, null, false, false);
   }
 
-  @Ignore("b/92236970")
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void test_keepNonPublic_R8Compat() throws Exception {
@@ -222,13 +220,13 @@ public class B72391662 extends ProguardCompatabilityTestBase {
       boolean minify) throws Exception {
     Class mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
-    List<String> config = ImmutableList.of(
+    Iterable<String> config = ImmutableList.of(
         "-printmapping",
         repackagePrefix != null ? "-repackageclasses '" + repackagePrefix + "'" : "",
         allowAccessModification ? "-allowaccessmodification" : "",
         !minify ? "-dontobfuscate" : "",
         "-keep class " + mainClass.getCanonicalName() + " {",
-        "  public void main(java.lang.String[]);",
+        "  public static void main(java.lang.String[]);",
         "}",
         keep + " class " + TestClass.class.getCanonicalName() + " {",
         "  public <methods>;",
@@ -238,6 +236,13 @@ public class B72391662 extends ProguardCompatabilityTestBase {
         "}",
         "-dontwarn java.lang.invoke.*"
     );
+    if (isR8(shrinker)) {
+      config = Iterables.concat(config, ImmutableList.of(
+          "-neverinline class " + TestClass.class.getCanonicalName() + " {",
+          "  * staticMethod();",
+          "}"
+      ));
+    }
 
     AndroidApp app = runShrinkerRaw(shrinker, CLASSES, config);
     assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
@@ -253,15 +258,11 @@ public class B72391662 extends ProguardCompatabilityTestBase {
 
     // Test an indirectly referred method.
     staticMethod = testClass.method("java.lang.String", "staticMethod", ImmutableList.of());
-    if (isR8(shrinker)) {
-      // Inlined.
-      assertThat(staticMethod, not(isPresent()));
-    } else {
-      assertThat(staticMethod, isPresent());
-      assertEquals(minify, staticMethod.isRenamed());
-      boolean publicizeCondition = minify && repackagePrefix != null && allowAccessModification;
-      assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
-    }
+    assertThat(staticMethod, isPresent());
+    assertEquals(minify, staticMethod.isRenamed());
+    boolean publicizeCondition = isR8(shrinker) ? allowAccessModification
+        : minify && repackagePrefix != null && allowAccessModification;
+    assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
   }
 
   @Test
@@ -277,7 +278,6 @@ public class B72391662 extends ProguardCompatabilityTestBase {
     doTest_keepPublic(Shrinker.R8, null, false, false);
   }
 
-  @Ignore("b/92236970")
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void test_keepPublic_R8Compat() throws Exception {
