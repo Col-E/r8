@@ -81,6 +81,8 @@ public class VerticalClassMerger {
     RESOLUTION_FOR_FIELDS_MAY_CHANGE,
     RESOLUTION_FOR_METHODS_MAY_CHANGE,
     STATIC_INITIALIZERS,
+    UNHANDLED_INVOKE_DIRECT,
+    UNHANDLED_INVOKE_SUPER,
     UNSAFE_INLINING,
     UNSUPPORTED_ATTRIBUTES;
 
@@ -120,6 +122,12 @@ public class VerticalClassMerger {
           break;
         case STATIC_INITIALIZERS:
           message = "merging of static initializers are not supported";
+          break;
+        case UNHANDLED_INVOKE_DIRECT:
+          message = "a virtual method is targeted by an invoke-direct instruction";
+          break;
+        case UNHANDLED_INVOKE_SUPER:
+          message = "it may change the semantics of an invoke-super instruction";
           break;
         case UNSAFE_INLINING:
           message = "force-inlining might fail";
@@ -217,10 +225,15 @@ public class VerticalClassMerger {
     //     }
     //   }
     for (DexMethod signature : appInfo.brokenSuperInvokes) {
-      DexClass targetClass = appInfo.definitionFor(signature.holder);
-      if (targetClass != null && targetClass.isProgramClass()) {
-        pinnedTypes.add(signature.holder);
-      }
+      markTypeAsPinned(signature.holder, AbortReason.UNHANDLED_INVOKE_SUPER);
+    }
+
+    // It is valid to have an invoke-direct instruction in a default interface method that targets
+    // another default method in the same interface (see InterfaceMethodDesugaringTests.testInvoke-
+    // SpecialToDefaultMethod). However, in a class, that would lead to a verification error.
+    // Therefore, we disallow merging such interfaces into their subtypes.
+    for (DexMethod signature : appInfo.virtualMethodsTargetedByInvokeDirect) {
+      markTypeAsPinned(signature.holder, AbortReason.UNHANDLED_INVOKE_DIRECT);
     }
   }
 
