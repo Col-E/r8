@@ -19,7 +19,7 @@ ext {
     gsonVersion = '2.7'
     junitVersion = '4.12'
     kotlinVersion = '1.2.30'
-    kotlinExtMetadataJVMVersion = '0.0.2'
+    kotlinExtMetadataJVMVersion = '0.0.3'
     protobufVersion = '3.0.0'
     smaliVersion = '2.2b4'
 }
@@ -67,7 +67,7 @@ buildscript {
     dependencies {
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.1'
         classpath 'com.cookpad.android.licensetools:license-tools-plugin:0.23.0'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.3'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
         classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
         classpath "net.ltgt.gradle:gradle-apt-plugin:0.12"
         classpath "com.gradle:build-scan-plugin:1.14"
@@ -501,6 +501,12 @@ task consolidatedLicense {
 }
 
 static configureRelocations(ShadowJar task) {
+    // Everything under META-INF is not included by default.
+    // Should include before 'relocate' so that the service file path and its content
+    // are properly relocated as well.
+    task.mergeServiceFiles {
+        include 'META-INF/services/*'
+    }
     task.relocate('com.google.common', 'com.android.tools.r8.com.google.common')
     task.relocate('com.google.gson', 'com.android.tools.r8.com.google.gson')
     task.relocate('com.google.thirdparty', 'com.android.tools.r8.com.google.thirdparty')
@@ -518,6 +524,7 @@ task repackageDeps(type: ShadowJar) {
     configurations = [project.configurations.compile]
     configureRelocations(it)
     exclude { it.getRelativePath().getPathString() == "module-info.class" }
+    exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
     baseName 'deps'
 }
 
@@ -529,9 +536,6 @@ task repackageSources(type: ShadowJar) {
 
 task R8(type: ShadowJar) {
     from consolidatedLicense.outputs.files
-    exclude { path ->
-      path.getRelativePath().getPathString().startsWith("META-INF")
-    }
     baseName 'r8'
     classifier = null
     version = null
