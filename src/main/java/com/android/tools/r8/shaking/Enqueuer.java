@@ -155,6 +155,8 @@ public class Enqueuer {
    * its implementation may be removed and it may be marked abstract.
    */
   private final SetWithReason<DexEncodedMethod> targetedMethods = new SetWithReason<>();
+  /** Set of virtual methods that are the immediate target of an invoke-direct. */
+  private final Set<DexMethod> virtualMethodsTargetedByInvokeDirect = Sets.newIdentityHashSet();
   /**
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
    * kept.
@@ -709,6 +711,13 @@ public class Enqueuer {
     DexEncodedMethod target = appInfo.dispatchDirectInvoke(resolutionResult);
     if (target != null) {
       markDirectStaticOrConstructorMethodAsLive(target, reason);
+
+      // It is valid to have an invoke-direct instruction in a default interface method that
+      // targets another default method in the same interface (see testInvokeSpecialToDefault-
+      // Method). In a class, that would lead to a verification error.
+      if (target.isVirtualMethod()) {
+        virtualMethodsTargetedByInvokeDirect.add(target.method);
+      }
     }
   }
 
@@ -1587,6 +1596,8 @@ public class Enqueuer {
      * removed.
      */
     final SortedSet<DexMethod> targetedMethods;
+    /** Set of virtual methods that are the immediate target of an invoke-direct. */
+    final SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect;
     /**
      * Set of methods that belong to live classes and can be reached by invokes. These need to be
      * kept.
@@ -1704,6 +1715,9 @@ public class Enqueuer {
           ImmutableSortedSet.copyOf(
               PresortedComparable<DexType>::slowCompareTo, enqueuer.instantiatedLambdas.getItems());
       this.targetedMethods = toSortedDescriptorSet(enqueuer.targetedMethods.getItems());
+      this.virtualMethodsTargetedByInvokeDirect =
+          ImmutableSortedSet.copyOf(
+              DexMethod::slowCompareTo, enqueuer.virtualMethodsTargetedByInvokeDirect);
       this.liveMethods = toSortedDescriptorSet(enqueuer.liveMethods.getItems());
       this.liveFields = toSortedDescriptorSet(enqueuer.liveFields.getItems());
       this.instanceFieldReads = enqueuer.collectInstanceFieldsRead();
@@ -1744,6 +1758,7 @@ public class Enqueuer {
       this.instantiatedTypes = previous.instantiatedTypes;
       this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;
+      this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
       this.liveMethods = previous.liveMethods;
       this.liveFields = previous.liveFields;
       this.instanceFieldReads = previous.instanceFieldReads;
@@ -1783,6 +1798,8 @@ public class Enqueuer {
       this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
       this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
       this.targetedMethods = rewriteMethodsConservatively(previous.targetedMethods, lense);
+      this.virtualMethodsTargetedByInvokeDirect =
+          rewriteMethodsConservatively(previous.virtualMethodsTargetedByInvokeDirect, lense);
       this.liveMethods = rewriteMethodsConservatively(previous.liveMethods, lense);
       this.liveFields = rewriteItems(previous.liveFields, lense::lookupField);
       this.instanceFieldReads =
@@ -1834,6 +1851,7 @@ public class Enqueuer {
       this.instantiatedTypes = previous.instantiatedTypes;
       this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;
+      this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
       this.liveMethods = previous.liveMethods;
       this.liveFields = previous.liveFields;
       this.instanceFieldReads = previous.instanceFieldReads;
