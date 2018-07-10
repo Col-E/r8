@@ -46,7 +46,6 @@ import com.android.tools.r8.ir.optimize.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
-import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -696,7 +695,6 @@ public class IRConverter {
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
     codeRewriter.simplifyIf(code, typeEnvironment);
-    new RedundantFieldLoadElimination(code).run();
 
     if (options.testing.invertConditionals) {
       invertConditionalsForTesting(code);
