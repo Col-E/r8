@@ -5,7 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentiferNameString;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
-import static com.android.tools.r8.naming.IdentifierNameStringUtils.warnUndeterminedIdentifier;
+import static com.android.tools.r8.naming.IdentifierNameStringUtils.warnUndeterminedIdentifierIfNecessary;
 import static com.android.tools.r8.shaking.ProguardConfigurationUtils.buildIdentifierNameStringRule;
 
 import com.android.tools.r8.Diagnostic;
@@ -1359,13 +1359,14 @@ public class Enqueuer {
   }
 
   private void handleProguardReflectiveBehavior(DexEncodedMethod method) {
-    Origin origin = appInfo.originFor(method.method.holder);
+    DexType originHolder = method.method.holder;
+    Origin origin = appInfo.originFor(originHolder);
     IRCode code = method.buildIR(appInfo, options, origin);
     code.instructionIterator().forEachRemaining(instr ->
-        handleProguardReflectiveBehavior(instr, origin));
+        handleProguardReflectiveBehavior(instr, originHolder));
   }
 
-  private void handleProguardReflectiveBehavior(Instruction instruction, Origin origin) {
+  private void handleProguardReflectiveBehavior(Instruction instruction, DexType originHolder) {
     if (!instruction.isInvokeMethod()) {
       return;
     }
@@ -1376,9 +1377,8 @@ public class Enqueuer {
     }
     DexItemBasedString itemBasedString = identifyIdentiferNameString(appInfo, invoke);
     if (itemBasedString == null) {
-      if (options.proguardConfiguration.isObfuscating()) {
-        warnUndeterminedIdentifier(options.reporter, invokedMethod, origin, instruction, null);
-      }
+      warnUndeterminedIdentifierIfNecessary(
+          appInfo, options, invokedMethod, originHolder, instruction, null);
       return;
     }
     if (itemBasedString.basedOn instanceof DexType) {
