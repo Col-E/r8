@@ -739,7 +739,7 @@ public class IRConverter {
       assert options.enableInlining && inliner != null;
       TypeEnvironment effectivelyFinalTypeEnvironment = typeEnvironment;
       classInliner.processMethodCode(
-          appInfo.withLiveness(), method, code, isProcessedConcurrently,
+          appInfo.withLiveness(), codeRewriter, method, code, isProcessedConcurrently,
           methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline),
           Suppliers.memoize(() -> inliner.createDefaultOracle(
               method, code, effectivelyFinalTypeEnvironment,

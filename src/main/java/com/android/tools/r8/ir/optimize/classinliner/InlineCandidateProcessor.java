@@ -271,14 +271,16 @@ final class InlineCandidateProcessor {
   //  * remove field writes
   //  * remove root instruction
   //
-  void processInlining(IRCode code, InlinerAction inliner) {
+  // Returns `true` if at least one method was inlined.
+  boolean processInlining(IRCode code, InlinerAction inliner) {
     replaceUsagesAsUnusedArgument(code);
-    forceInlineExtraMethodInvocations(inliner);
-    forceInlineDirectMethodInvocations(inliner);
+    boolean anyInlinedMethods = forceInlineExtraMethodInvocations(inliner);
+    anyInlinedMethods |= forceInlineDirectMethodInvocations(inliner);
     removeMiscUsages(code);
     removeFieldReads(code);
     removeFieldWrites();
     removeInstruction(root);
+    return anyInlinedMethods;
   }
 
   private void replaceUsagesAsUnusedArgument(IRCode code) {
@@ -298,9 +300,9 @@ final class InlineCandidateProcessor {
     unusedArguments.clear();
   }
 
-  private void forceInlineExtraMethodInvocations(InlinerAction inliner) {
+  private boolean forceInlineExtraMethodInvocations(InlinerAction inliner) {
     if (extraMethodCalls.isEmpty()) {
-      return;
+      return false;
     }
 
     // Inline extra methods.
@@ -320,12 +322,15 @@ final class InlineCandidateProcessor {
     }
     assert extraMethodCalls.isEmpty();
     assert unusedArguments.isEmpty();
+    return true;
   }
 
-  private void forceInlineDirectMethodInvocations(InlinerAction inliner) {
-    if (!methodCallsOnInstance.isEmpty()) {
-      inliner.inline(methodCallsOnInstance);
+  private boolean forceInlineDirectMethodInvocations(InlinerAction inliner) {
+    if (methodCallsOnInstance.isEmpty()) {
+      return false;
     }
+    inliner.inline(methodCallsOnInstance);
+    return true;
   }
 
   // Remove miscellaneous users before handling field reads.

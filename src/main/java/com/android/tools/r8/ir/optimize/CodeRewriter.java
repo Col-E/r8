@@ -2362,7 +2362,7 @@ public class CodeRewriter {
             && (theIf.getType() == Type.EQ || theIf.getType() == Type.NE)) {
           if (inValues.get(0).isNeverNull()) {
             simplifyIfWithKnownCondition(code, block, theIf, 1);
-          } else {
+          } else if (typeEnvironment != null) {
             // TODO(b/72693244): annotate type lattice to value
             TypeLatticeElement l = typeEnvironment.getLatticeElement(inValues.get(0));
             if (!l.isPrimitive() && !l.isNullable()) {

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.graph.DexClass;
@@ -19,8 +20,10 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -80,25 +83,25 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
       assertEquals(
           Sets.newHashSet(),
-          collectAccessedLambdaTypes(lambdaCheck, clazz, "testStateless"));
+          collectAccessedTypes(lambdaCheck, clazz, "testStateless"));
 
       assertEquals(
           Sets.newHashSet(),
-          collectAccessedLambdaTypes(lambdaCheck, clazz, "testStateful"));
+          collectAccessedTypes(lambdaCheck, clazz, "testStateful"));
 
       assertFalse(
           inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1").isPresent());
 
       assertEquals(
           Sets.newHashSet(),
-          collectAccessedLambdaTypes(lambdaCheck, clazz, "testStateful2"));
+          collectAccessedTypes(lambdaCheck, clazz, "testStateful2"));
 
       assertFalse(
           inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful2$1").isPresent());
 
       assertEquals(
           Sets.newHashSet(),
-          collectAccessedLambdaTypes(lambdaCheck, clazz, "testStateful3"));
+          collectAccessedTypes(lambdaCheck, clazz, "testStateful3"));
 
       assertFalse(
           inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful3$1").isPresent());
@@ -138,7 +141,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
       assertEquals(
           Sets.newHashSet(),
-          collectAccessedLambdaTypes(lambdaCheck, clazz,
+          collectAccessedTypes(lambdaCheck, clazz,
               "testKotlinSequencesStateless", "kotlin.sequences.Sequence"));
 
       assertFalse(inspector.clazz(
@@ -146,7 +149,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
       assertEquals(
           Sets.newHashSet(),
-          collectAccessedLambdaTypes(lambdaCheck, clazz,
+          collectAccessedTypes(lambdaCheck, clazz,
               "testKotlinSequencesStateful", "int", "int", "kotlin.sequences.Sequence"));
 
       assertFalse(inspector.clazz(
@@ -154,7 +157,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
       assertEquals(
           Sets.newHashSet(),
-          collectAccessedLambdaTypes(lambdaCheck, clazz, "testBigExtraMethod"));
+          collectAccessedTypes(lambdaCheck, clazz, "testBigExtraMethod"));
 
       assertFalse(inspector.clazz(
           "class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1").isPresent());
@@ -165,7 +168,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
       assertEquals(
           Sets.newHashSet(),
-          collectAccessedLambdaTypes(lambdaCheck, clazz, "testBigExtraMethodReturningLambda"));
+          collectAccessedTypes(lambdaCheck, clazz, "testBigExtraMethodReturningLambda"));
 
       assertFalse(inspector.clazz(
           "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1")
@@ -179,8 +182,25 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
     });
   }
 
-  private Set<String> collectAccessedLambdaTypes(
-      Predicate<DexType> isLambdaType, ClassSubject clazz, String methodName, String... params) {
+  @Test
+  public void testDataClass() throws Exception {
+    final String mainClassName = "class_inliner_data_class.MainKt";
+    runTest("class_inliner_data_class", mainClassName, true, (app) -> {
+      DexInspector inspector = new DexInspector(app);
+      ClassSubject clazz = inspector.clazz(mainClassName);
+      assertTrue(collectAccessedTypes(
+          type -> !type.toSourceString().startsWith("java."),
+          clazz, "main", String[].class.getCanonicalName()).isEmpty());
+      assertEquals(
+          Lists.newArrayList(
+              "void kotlin.jvm.internal.Intrinsics.throwParameterIsNullException(java.lang.String)"
+          ),
+          collectStaticCalls(clazz, "main", String[].class.getCanonicalName()));
+    });
+  }
+
+  private Set<String> collectAccessedTypes(Predicate<DexType> isTypeOfInterest,
+      ClassSubject clazz, String methodName, String... params) {
     assertNotNull(clazz);
     MethodSignature signature = new MethodSignature(methodName, "void", params);
     DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
@@ -190,7 +210,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
         filterInstructionKind(code, SgetObject.class)
             .map(insn -> insn.getField().getHolder())
     )
-        .filter(isLambdaType)
+        .filter(isTypeOfInterest)
         .map(DexType::toSourceString)
         .collect(Collectors.toSet());
   }
@@ -204,5 +224,15 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
           options.enableClassInlining = enabled;
           options.enableLambdaMerging = false;
         }, inspector);
+  }
+
+  private List<String> collectStaticCalls(ClassSubject clazz, String methodName, String... params) {
+    assertNotNull(clazz);
+    MethodSignature signature = new MethodSignature(methodName, "void", params);
+    DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
+    return filterInstructionKind(code, InvokeStatic.class)
+        .map(insn -> insn.getMethod().toSourceString())
+        .sorted()
+        .collect(Collectors.toList());
   }
 }

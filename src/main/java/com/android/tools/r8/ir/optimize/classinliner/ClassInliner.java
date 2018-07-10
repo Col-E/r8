@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -117,6 +118,7 @@ public final class ClassInliner {
   //
   public final void processMethodCode(
       AppInfoWithLiveness appInfo,
+      CodeRewriter codeRewriter,
       DexEncodedMethod method,
       IRCode code,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
@@ -164,11 +166,14 @@ public final class ClassInliner {
         }
 
         // Inline the class instance.
-        processor.processInlining(code, inliner);
+        boolean anyInlinedMethods = processor.processInlining(code, inliner);
 
         // Restore normality.
         code.removeAllTrivialPhis();
         assert code.isConsistentSSA();
+        if (anyInlinedMethods) {
+          codeRewriter.simplifyIf(code, null);
+        }
         rootsIterator.remove();
         repeat = true;
       }
