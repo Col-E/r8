@@ -327,6 +327,7 @@ public class LambdasWithStaticAndDefaultMethods {
 
       @SomeAnnotation(4)
       static void annotatedStaticMethod() {
+        synchronized (AnnotatedInterface.class) { } // Do not inline
       }
     }
 
@@ -365,6 +366,9 @@ public class LambdasWithStaticAndDefaultMethods {
         System.out.println("Check 3: NOT OK");
       }
 
+      // I don't know how to keep this method moved to the companion class
+      // without the direct call.
+      AnnotatedInterface.annotatedStaticMethod();
       if (checkAnnotationValue(
           getCompanionClassOrInterface().getMethod("annotatedStaticMethod").getAnnotations(), 4)) {
         System.out.println("Check 4: OK");

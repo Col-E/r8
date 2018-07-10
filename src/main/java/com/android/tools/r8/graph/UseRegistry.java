@@ -86,6 +86,10 @@ public abstract class UseRegistry {
   public void registerCallSite(DexCallSite callSite) {
     registerMethodHandle(callSite.bootstrapMethod);
 
+    // Lambda metafactory will use this type as the main SAM
+    // interface for the dynamically created lambda class.
+    registerTypeReference(callSite.methodProto.returnType);
+
     // Register bootstrap method arguments.
     // Only Type, MethodHandle, and MethodType need to be registered.
     for (DexValue arg : callSite.bootstrapArgs) {

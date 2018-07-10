@@ -37,7 +37,7 @@ public final class LambdaDescriptor {
   final DexString name;
   final DexProto erasedProto;
   final DexProto enforcedProto;
-  final DexMethodHandle implHandle;
+  public final DexMethodHandle implHandle;
 
   final List<DexType> interfaces = new ArrayList<>();
   final Set<DexProto> bridges = Sets.newIdentityHashSet();
@@ -173,7 +173,6 @@ public final class LambdaDescriptor {
       return false;
     }
 
-
     boolean staticTarget = implHandle.type.isInvokeStatic();
     boolean instanceTarget = implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect();
     boolean initTarget = implHandle.type.isInvokeConstructor();
@@ -222,13 +221,23 @@ public final class LambdaDescriptor {
    * Matches call site for lambda metafactory invocation pattern and
    * returns extracted match information, or null if match failed.
    */
-  static LambdaDescriptor infer(DexCallSite callSite, AppInfo appInfo, DexItemFactory factory) {
+  public static LambdaDescriptor tryInfer(DexCallSite callSite, AppInfo appInfo) {
+    LambdaDescriptor descriptor = infer(callSite, appInfo);
+    return descriptor == MATCH_FAILED ? null : descriptor;
+  }
+
+  /**
+   * Matches call site for lambda metafactory invocation pattern and
+   * returns extracted match information, or MATCH_FAILED if match failed.
+   */
+  static LambdaDescriptor infer(DexCallSite callSite, AppInfo appInfo) {
     // We expect bootstrap method to be either `metafactory` or `altMetafactory` method
     // of `java.lang.invoke.LambdaMetafactory` class. Both methods are static.
     if (!callSite.bootstrapMethod.type.isInvokeStatic()) {
       return LambdaDescriptor.MATCH_FAILED;
     }
 
+    DexItemFactory factory = appInfo.dexItemFactory;
     DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
     boolean isMetafactoryMethod = bootstrapMethod == factory.metafactoryMethod;
     boolean isAltMetafactoryMethod = bootstrapMethod == factory.metafactoryAltMethod;
@@ -335,13 +344,11 @@ public final class LambdaDescriptor {
     }
   }
 
-  public static List<DexType> getInterfaces(
-      DexCallSite callSite, AppInfo appInfo, DexItemFactory factory) {
-    LambdaDescriptor descriptor = infer(callSite, appInfo, factory);
+  public static List<DexType> getInterfaces(DexCallSite callSite, AppInfo appInfo) {
+    LambdaDescriptor descriptor = infer(callSite, appInfo);
     if (descriptor == LambdaDescriptor.MATCH_FAILED) {
       return null;
     }
-    assert descriptor.interfaces != null;
     return descriptor.interfaces;
   }
 

@@ -104,6 +104,6 @@ public class DefaultMethodsTest extends TestBase {
             "}",
             // Prevent InterfaceWithDefaultMethods from being merged into ClassImplementingInterface
             "-keep class " + InterfaceWithDefaultMethods.class.getCanonicalName()),
-        this::defaultMethodAbstract);
+        this::defaultMethodKept);
   }
 }

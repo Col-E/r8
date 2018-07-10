@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
@@ -65,6 +66,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -296,6 +298,10 @@ public class Enqueuer {
 
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
+      return registerInvokeVirtual(method, KeepReason.invokedFrom(currentMethod));
+    }
+
+    boolean registerInvokeVirtual(DexMethod method, KeepReason keepReason) {
       if (appInfo.dexItemFactory.classMethods.isReflectiveMemberLookup(method)) {
         if (forceProguardCompatibility) {
           // TODO(b/76181966): whether or not add this rule in normal mode.
@@ -311,24 +317,32 @@ public class Enqueuer {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Register invokeVirtual `%s`.", method);
       }
-      workList.add(Action.markReachableVirtual(method, KeepReason.invokedFrom(currentMethod)));
+      workList.add(Action.markReachableVirtual(method, keepReason));
       return true;
     }
 
     @Override
     public boolean registerInvokeDirect(DexMethod method) {
+      return registerInvokeDirect(method, KeepReason.invokedFrom(currentMethod));
+    }
+
+    boolean registerInvokeDirect(DexMethod method, KeepReason keepReason) {
       if (!registerItemWithTarget(directInvokes, method)) {
         return false;
       }
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Register invokeDirect `%s`.", method);
       }
-      handleInvokeOfDirectTarget(method, KeepReason.invokedFrom(currentMethod));
+      handleInvokeOfDirectTarget(method, keepReason);
       return true;
     }
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
+      return registerInvokeStatic(method, KeepReason.invokedFrom(currentMethod));
+    }
+
+    boolean registerInvokeStatic(DexMethod method, KeepReason keepReason) {
       if (method == appInfo.dexItemFactory.classMethods.forName
           || appInfo.dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method)) {
         if (forceProguardCompatibility) {
@@ -345,19 +359,23 @@ public class Enqueuer {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Register invokeStatic `%s`.", method);
       }
-      handleInvokeOfStaticTarget(method, KeepReason.invokedFrom(currentMethod));
+      handleInvokeOfStaticTarget(method, keepReason);
       return true;
     }
 
     @Override
     public boolean registerInvokeInterface(DexMethod method) {
+      return registerInvokeInterface(method, KeepReason.invokedFrom(currentMethod));
+    }
+
+    boolean registerInvokeInterface(DexMethod method, KeepReason keepReason) {
       if (!registerItemWithTarget(interfaceInvokes, method)) {
         return false;
       }
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Register invokeInterface `%s`.", method);
       }
-      workList.add(Action.markReachableInterface(method, KeepReason.invokedFrom(currentMethod)));
+      workList.add(Action.markReachableInterface(method, keepReason));
       return true;
     }
 
@@ -403,7 +421,11 @@ public class Enqueuer {
 
     @Override
     public boolean registerNewInstance(DexType type) {
-      markInstantiated(type, currentMethod);
+      return registerNewInstance(type, KeepReason.instantiatedIn(currentMethod));
+    }
+
+    public boolean registerNewInstance(DexType type, KeepReason keepReason) {
+      markInstantiated(type, keepReason);
       return true;
     }
 
@@ -459,6 +481,88 @@ public class Enqueuer {
           appInfo.lookupLambdaImplementedMethods(callSite, options.reporter)) {
         markLambdaInstantiated(method.method.holder, currentMethod);
       }
+
+      LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo);
+      if (descriptor == null) {
+        return;
+      }
+
+      // For call sites representing a lambda, we link the targeted method
+      // or field as if it were referenced from the current method.
+
+      DexMethodHandle implHandle = descriptor.implHandle;
+      assert implHandle != null;
+      switch (implHandle.type) {
+        case INVOKE_STATIC:
+          registerInvokeStatic(implHandle.asMethod(),
+              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          break;
+        case INVOKE_INTERFACE:
+          registerInvokeInterface(implHandle.asMethod(),
+              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          break;
+        case INVOKE_INSTANCE:
+          registerInvokeVirtual(implHandle.asMethod(),
+              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          break;
+        case INVOKE_DIRECT:
+          registerInvokeDirect(implHandle.asMethod(),
+              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          break;
+        case INVOKE_CONSTRUCTOR:
+          registerNewInstance(implHandle.asMethod().holder,
+              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          break;
+        default:
+          throw new Unreachable();
+      }
+
+      // In similar way as what transitionMethodsForInstantiatedClass does for existing
+      // classes we need to process classes dynamically created by runtime for lambdas.
+      // We make an assumption that such classes are inherited directly from java.lang.Object
+      // and implement all lambda interfaces.
+
+      ScopedDexMethodSet seen = new ScopedDexMethodSet();
+      List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
+      if (directInterfaces == null) {
+        return;
+      }
+
+      Set<DexType> allInterfaces = Sets.newHashSet(directInterfaces);
+      DexType instantiatedType = appInfo.dexItemFactory.objectType;
+      DexClass clazz = appInfo.definitionFor(instantiatedType);
+      if (clazz == null) {
+        reportMissingClass(instantiatedType);
+        return;
+      }
+
+      // We only have to look at virtual methods here, as only those can actually be executed at
+      // runtime. Illegal dispatch situations and the corresponding exceptions are already handled
+      // by the reachability logic.
+      SetWithReason<DexEncodedMethod> reachableMethods =
+          reachableVirtualMethods.get(instantiatedType);
+      if (reachableMethods != null) {
+        transitionNonAbstractMethodsToLiveAndShadow(
+            reachableMethods.getItems(), instantiatedType, seen);
+      }
+      Collections.addAll(allInterfaces, clazz.interfaces.values);
+
+      // The set now contains all virtual methods on the type and its supertype that are reachable.
+      // In a second step, we now look at interfaces. We have to do this in this order due to JVM
+      // semantics for default methods. A default method is only reachable if it is not overridden
+      // in any superclass. Also, it is not defined which default method is chosen if multiple
+      // interfaces define the same default method. Hence, for every interface (direct or indirect),
+      // we have to look at the interface chain and mark default methods as reachable, not taking
+      // the shadowing of other interface chains into account.
+      // See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3
+      for (DexType iface : allInterfaces) {
+        DexClass ifaceClazz = appInfo.definitionFor(iface);
+        if (ifaceClazz == null) {
+          reportMissingClass(iface);
+          return;
+        }
+        transitionDefaultMethodsForInstantiatedClass(iface, instantiatedType, seen);
+      }
     }
 
     private boolean registerConstClassOrCheckCast(DexType type) {
@@ -483,9 +587,13 @@ public class Enqueuer {
   }
 
   private DexMethod getInvokeSuperTarget(DexMethod method, DexEncodedMethod currentMethod) {
+    DexClass methodHolderClass = appInfo.definitionFor(method.getHolder());
+    if (methodHolderClass != null && methodHolderClass.isInterface()) {
+      return method;
+    }
     DexClass holderClass = appInfo.definitionFor(currentMethod.method.getHolder());
-    if (holderClass == null || holderClass.superType == null) {
-      // We do not know better.
+    if (holderClass == null || holderClass.superType == null || holderClass.isInterface()) {
+      // We do not know better or this call is made from an interface.
       return method;
     }
     // Return the invoked method on the supertype.
@@ -836,7 +944,7 @@ public class Enqueuer {
     enqueueRootItems(rootSet.getDependentItems(field));
   }
 
-  private void markInstantiated(DexType type, DexEncodedMethod method) {
+  private void markInstantiated(DexType type, KeepReason keepReason) {
     if (instantiatedTypes.contains(type)) {
       return;
     }
@@ -848,7 +956,7 @@ public class Enqueuer {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Register new instantiation of `%s`.", clazz);
     }
-    workList.add(Action.markInstantiated(clazz, KeepReason.instantiatedIn(method)));
+    workList.add(Action.markInstantiated(clazz, keepReason));
   }
 
   private void markLambdaInstantiated(DexType itf, DexEncodedMethod method) {
@@ -1040,17 +1148,17 @@ public class Enqueuer {
     if (target.accessFlags.isPrivate()) {
       brokenSuperInvokes.add(method);
     }
-    assert !superInvokeDependencies.containsKey(from) || !superInvokeDependencies.get(from)
-        .contains(target);
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Adding super constraint from `%s` to `%s`", from.method,
           target.method);
     }
-    superInvokeDependencies.computeIfAbsent(from, ignore -> Sets.newIdentityHashSet()).add(target);
-    if (liveMethods.contains(from)) {
-      markMethodAsTargeted(target, KeepReason.invokedViaSuperFrom(from));
-      if (!target.accessFlags.isAbstract()) {
-        markVirtualMethodAsLive(target, KeepReason.invokedViaSuperFrom(from));
+    if (superInvokeDependencies.computeIfAbsent(
+        from, ignore -> Sets.newIdentityHashSet()).add(target)) {
+      if (liveMethods.contains(from)) {
+        markMethodAsTargeted(target, KeepReason.invokedViaSuperFrom(from));
+        if (!target.accessFlags.isAbstract()) {
+          markVirtualMethodAsLive(target, KeepReason.invokedViaSuperFrom(from));
+        }
       }
     }
   }
@@ -1835,6 +1943,11 @@ public class Enqueuer {
         }
       }
       return builder.build();
+    }
+
+    @Override
+    protected boolean hasAnyInstantiatedLambdas(DexType type) {
+      return instantiatedLambdas.contains(type);
     }
 
     private static <T extends PresortedComparable<T>> ImmutableSortedSet<T> rewriteItems(

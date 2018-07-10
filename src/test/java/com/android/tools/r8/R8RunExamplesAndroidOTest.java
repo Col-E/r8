@@ -6,35 +6,66 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(VmTestRunner.class)
 public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command.Builder> {
+  private static final ArrayList<String> PROGUARD_OPTIONS = Lists.newArrayList(
+      "-keepclasseswithmembers public class * {",
+      "    public static void main(java.lang.String[]);",
+      "}",
+      "",
+      "-dontobfuscate",
+      "-allowaccessmodification"
+  );
+
+
+  private static final ArrayList<String> PROGUARD_OPTIONS_N_PLUS = Lists.newArrayList(
+      "-keepclasseswithmembers public class * {",
+      "    public static void main(java.lang.String[]);",
+      "}",
+      "",
+      "-keepclasseswithmembers interface lambdadesugaringnplus."
+          + "LambdasWithStaticAndDefaultMethods$B38302860$AnnotatedInterface{",
+      "    *;",
+      "} ",
+      "",
+      "-keepattributes *Annotation*",
+      "-dontobfuscate",
+      "-allowaccessmodification"
+  );
 
   private static Map<DexVm.Version, List<String>> alsoFailsOn =
       ImmutableMap.<DexVm.Version, List<String>>builder()
           .put(Version.V4_0_4,
               ImmutableList.of(
-              "invokecustom-with-shrinking"
+                  "invokecustom-with-shrinking"
               ))
           .put(Version.V4_4_4,
               ImmutableList.of(
-              "invokecustom-with-shrinking"
+                  "invokecustom-with-shrinking"
               ))
           .put(Version.V5_1_1,
               ImmutableList.of(
-              "invokecustom-with-shrinking"
+                  "invokecustom-with-shrinking"
               ))
           .put(Version.V6_0_1,
               ImmutableList.of(
-              "invokecustom-with-shrinking"
+                  "invokecustom-with-shrinking"
               ))
           .put(Version.V7_0_0,
               ImmutableList.of(
@@ -52,6 +83,82 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(builder ->
             builder.addProguardConfigurationFiles(
                 Paths.get(ToolHelper.EXAMPLES_ANDROID_O_DIR, "invokecustom/keep-rules.txt")))
+        .run();
+  }
+
+  @Override
+  @Test
+  public void lambdaDesugaring() throws Throwable {
+    test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
+        .withMinApiLevel(AndroidApiLevel.K)
+        .withOptionConsumer(opts -> opts.enableClassInlining = false)
+        .withBuilderTransformation(
+            b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .run();
+
+    test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
+        .withMinApiLevel(AndroidApiLevel.K)
+        .withOptionConsumer(opts -> opts.enableClassInlining = true)
+        .withBuilderTransformation(
+            b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .run();
+  }
+
+  @Test
+  @IgnoreIfVmOlderThan(Version.V7_0_0)
+  public void lambdaDesugaringWithDefaultMethods() throws Throwable {
+    test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
+        .withMinApiLevel(AndroidApiLevel.N)
+        .withOptionConsumer(opts -> opts.enableClassInlining = false)
+        .withBuilderTransformation(
+            b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .run();
+
+    test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
+        .withMinApiLevel(AndroidApiLevel.N)
+        .withOptionConsumer(opts -> opts.enableClassInlining = true)
+        .withBuilderTransformation(
+            b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .run();
+  }
+
+  @Override
+  @Test
+  public void lambdaDesugaringNPlus() throws Throwable {
+    test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
+        .withMinApiLevel(AndroidApiLevel.K)
+        .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withOptionConsumer(opts -> opts.enableClassInlining = false)
+        .withBuilderTransformation(
+            b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+        .run();
+
+    test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
+        .withMinApiLevel(AndroidApiLevel.K)
+        .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withOptionConsumer(opts -> opts.enableClassInlining = true)
+        .withBuilderTransformation(
+            b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+        .run();
+  }
+
+  @Test
+  @IgnoreIfVmOlderThan(Version.V7_0_0)
+  public void lambdaDesugaringNPlusWithDefaultMethods() throws Throwable {
+    test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
+        .withMinApiLevel(AndroidApiLevel.N)
+        .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withOptionConsumer(opts -> opts.enableClassInlining = false)
+        .withBuilderTransformation(
+            b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+        .run();
+
+    test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
+        .withMinApiLevel(AndroidApiLevel.N)
+        .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withOptionConsumer(opts -> opts.enableClassInlining = true)
+        .withBuilderTransformation(
+            b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
         .run();
   }
 

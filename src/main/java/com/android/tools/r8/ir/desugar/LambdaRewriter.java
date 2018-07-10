@@ -194,7 +194,7 @@ public class LambdaRewriter {
         : putIfAbsent(
             knownCallSites,
             callSite,
-            LambdaDescriptor.infer(callSite, this.converter.appInfo, this.factory));
+            LambdaDescriptor.infer(callSite, this.converter.appInfo));
   }
 
   private boolean isInMainDexList(DexType type) {

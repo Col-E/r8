@@ -169,6 +169,10 @@ public class AppInfoWithSubtyping extends AppInfo {
     return super.lookupSuperTarget(method, invocationContext);
   }
 
+  protected boolean hasAnyInstantiatedLambdas(DexType type) {
+    return true; // Don't know, there might be.
+  }
+
   // For mapping invoke interface instruction to target methods.
   public Set<DexEncodedMethod> lookupInterfaceTargets(DexMethod method) {
     // First check that there is a target for this invoke-interface to hit. If there is none,
@@ -177,11 +181,38 @@ public class AppInfoWithSubtyping extends AppInfo {
     if (topTarget.asResultOfResolve() == null) {
       return null;
     }
-    Set<DexType> set = subtypes(method.holder);
-    if (set.isEmpty()) {
-      return Collections.emptySet();
-    }
+
     Set<DexEncodedMethod> result = new HashSet<>();
+    if (topTarget.hasSingleTarget()) {
+      // Add default interface methods to the list of targets.
+      //
+      // This helps to make sure we take into account synthesized lambda classes
+      // that we are not aware of. Like in the following example, we know that all
+      // classes, XX in this case, override B::bar(), but there are also synthesized
+      // classes for lambda which don't, so we still need default method to be live.
+      //
+      //   public static void main(String[] args) {
+      //     X x = () -> {};
+      //     x.bar();
+      //   }
+      //
+      //   interface X {
+      //     void foo();
+      //     default void bar() { }
+      //   }
+      //
+      //   class XX implements X {
+      //     public void foo() { }
+      //     public void bar() { }
+      //   }
+      //
+      DexEncodedMethod singleTarget = topTarget.asSingleTarget();
+      if (singleTarget.getCode() != null && hasAnyInstantiatedLambdas(singleTarget.method.holder)) {
+        result.add(singleTarget);
+      }
+    }
+
+    Set<DexType> set = subtypes(method.holder);
     for (DexType type : set) {
       DexClass clazz = definitionFor(type);
       // Default methods are looked up when looking at a specific subtype that does not
@@ -212,8 +243,7 @@ public class AppInfoWithSubtyping extends AppInfo {
    */
   public Set<DexEncodedMethod> lookupLambdaImplementedMethods(
       DexCallSite callSite, Reporter reporter) {
-    List<DexType> callSiteInterfaces =
-        LambdaDescriptor.getInterfaces(callSite, this, dexItemFactory);
+    List<DexType> callSiteInterfaces = LambdaDescriptor.getInterfaces(callSite, this);
     if (callSiteInterfaces == null) {
       if (!isStringConcat(callSite.bootstrapMethod)) {
         Diagnostic message =

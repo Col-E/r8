@@ -35,6 +35,10 @@ abstract class KeepReason {
     return new InvokedFrom(method);
   }
 
+  public static KeepReason invokedFromLambdaCreatedIn(DexEncodedMethod method) {
+    return new InvokedFromLambdaCreatedIn(method);
+  }
+
   public static KeepReason isLibraryMethod() {
     return new IsLibraryMethod();
   }
@@ -164,6 +168,18 @@ abstract class KeepReason {
     @Override
     String getKind() {
       return "invoked from";
+    }
+  }
+
+  private static class InvokedFromLambdaCreatedIn extends BasedOnOtherMethod {
+
+    private InvokedFromLambdaCreatedIn(DexEncodedMethod method) {
+      super(method);
+    }
+
+    @Override
+    String getKind() {
+      return "invoked from lambda created in";
     }
   }
 

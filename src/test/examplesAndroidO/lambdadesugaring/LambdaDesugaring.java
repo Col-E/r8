@@ -231,7 +231,7 @@ public class LambdaDesugaring {
         System.out.println(PrivateInit.testPrivate());
         System.out.println(g(PrivateInit::new));
 
-        System.out.println(p1(D[]::new));
+        System.out.println(p1(LambdaDesugaring[]::new));
         System.out.println(p1(Integer::new));
         System.out.println(p1(B::staticArray));
 

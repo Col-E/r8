@@ -9,6 +9,7 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -124,6 +125,12 @@ public class AppInfo {
     ResolutionResult resolutionResult = resolveMethod(method.holder, method);
     if (resolutionResult.asListOfTargets().isEmpty()) {
       return null;
+    }
+    // According to
+    // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-6.html#jvms-6.5.invokespecial, use
+    // the "symbolic reference" if the "symbolic reference" does not name a class.
+    if (definitionFor(method.holder).isInterface()) {
+      return resolveMethodOnInterface(method.holder, method).asSingleTarget();
     }
     // Then, resume on the search, but this time, starting from the holder of the caller.
     DexClass contextClass = definitionFor(invocationContext);
@@ -536,14 +543,14 @@ public class AppInfo {
 
   private static class MultiResultBuilder {
 
-    private ImmutableList.Builder<DexEncodedMethod> builder;
+    private ImmutableSet.Builder<DexEncodedMethod> builder;
     private DexEncodedMethod singleResult;
 
     void add(DexEncodedMethod result) {
       if (builder != null) {
         builder.add(result);
-      } else if (singleResult != null) {
-        builder = ImmutableList.builder();
+      } else if (singleResult != null && !singleResult.equals(result)) {
+        builder = ImmutableSet.builder();
         builder.add(singleResult, result);
         singleResult = null;
       } else {
@@ -553,7 +560,7 @@ public class AppInfo {
 
     ResolutionResult build() {
       if (builder != null) {
-        return new MultiResult(builder.build());
+        return new MultiResult(builder.build().asList());
       } else {
         return singleResult;
       }
