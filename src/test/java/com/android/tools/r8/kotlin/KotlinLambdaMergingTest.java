@@ -43,7 +43,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     abstract boolean match(DexClass clazz);
   }
 
-  private static class Group extends LambdaOrGroup {
+  static class Group extends LambdaOrGroup {
     final String pkg;
     final String capture;
     final int arity;
@@ -83,31 +83,32 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     }
   }
 
-  private Group kstyleImpl(String pkg, String capture, int arity, int singletons) {
+  private static Group kstyleImpl(String pkg, String capture, int arity, int singletons) {
     assertEquals(capture.isEmpty(), singletons != 0);
     return new Group(pkg, capture, arity, KOTLIN_FUNCTION_IFACE_STR + arity, singletons);
   }
 
-  private Group kstyle(String pkg, int arity, int singletons) {
+  static Group kstyle(String pkg, int arity, int singletons) {
     assertTrue(singletons != 0);
     return kstyleImpl(pkg, "", arity, singletons);
   }
 
-  private Group kstyle(String pkg, String capture, int arity) {
+  private static Group kstyle(String pkg, String capture, int arity) {
     assertFalse(capture.isEmpty());
     return kstyleImpl(pkg, capture, arity, 0);
   }
 
-  private Group jstyleImpl(String pkg, String capture, int arity, String sam, int singletons) {
+  private static Group jstyleImpl(
+      String pkg, String capture, int arity, String sam, int singletons) {
     assertTrue(capture.isEmpty() || singletons == 0);
     return new Group(pkg, capture, arity, sam, singletons);
   }
 
-  private Group jstyle(String pkg, String capture, int arity, String sam) {
+  private static Group jstyle(String pkg, String capture, int arity, String sam) {
     return jstyleImpl(pkg, capture, arity, sam, 0);
   }
 
-  private Group jstyle(String pkg, int arity, String sam, int singletons) {
+  private static Group jstyle(String pkg, int arity, String sam, int singletons) {
     return jstyleImpl(pkg, "", arity, sam, singletons);
   }
 
@@ -116,7 +117,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     final String name;
     final int arity;
 
-    private Lambda(String pkg, String name, int arity) {
+    Lambda(String pkg, String name, int arity) {
       this.pkg = pkg;
       this.name = name;
       this.arity = arity;
@@ -143,7 +144,15 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     final List<DexClass> groups = new ArrayList<>();
 
     Verifier(AndroidApp app) throws IOException, ExecutionException {
-      this.dexInspector = new DexInspector(app);
+      this(new DexInspector(app));
+    }
+
+    Verifier(DexInspector dexInspector) {
+      this.dexInspector = dexInspector;
+      initGroupsAndLambdas();
+    }
+
+    private void initGroupsAndLambdas() {
       dexInspector.forAllClasses(clazz -> {
         DexClass dexClass = clazz.getDexClass();
         if (isLambdaOrGroup(dexClass)) {

@@ -70,6 +70,7 @@ import org.junit.rules.TemporaryFolder;
 public class ToolHelper {
 
   public static final String BUILD_DIR = "build/";
+  public static final String LIBS_DIR = BUILD_DIR + "libs/";
   public static final String TESTS_DIR = "src/test/";
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
   public static final String EXAMPLES_ANDROID_O_DIR = TESTS_DIR + "examplesAndroidO/";
@@ -78,6 +79,8 @@ public class ToolHelper {
   public static final String TESTS_BUILD_DIR = BUILD_DIR + "test/";
   public static final String EXAMPLES_BUILD_DIR = TESTS_BUILD_DIR + "examples/";
   public static final String EXAMPLES_KOTLIN_BUILD_DIR = TESTS_BUILD_DIR + "examplesKotlin/";
+  public static final String EXAMPLES_KOTLIN_RESOURCE_DIR =
+      TESTS_BUILD_DIR + "kotlinR8TestResources/";
   public static final String EXAMPLES_ANDROID_N_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidN/";
   public static final String EXAMPLES_ANDROID_O_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidO/";
   public static final String EXAMPLES_ANDROID_P_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidP/";
@@ -979,6 +982,12 @@ public class ToolHelper {
     return forkJava(dir, R8.class, args);
   }
 
+  public static ProcessResult forkR8Jar(Path dir, String... args)
+      throws IOException, InterruptedException {
+    String r8Jar = Paths.get(LIBS_DIR,  "r8.jar").toAbsolutePath().toString();
+    return forkJavaWithJar(dir, r8Jar, Arrays.asList(args));
+  }
+
   public static ProcessResult forkGenerateMainDexList(Path dir, List<String> args1, String... args2)
       throws IOException, InterruptedException {
     List<String> args = new ArrayList<>();
@@ -997,8 +1006,18 @@ public class ToolHelper {
     return forkJava(dir, clazz, Arrays.asList(args));
   }
 
+  private static ProcessResult forkJavaWithJar(Path dir, String jarPath, List<String> args)
+      throws IOException {
+    List<String> command = new ImmutableList.Builder<String>()
+        .add(getJavaExecutable())
+        .add("-jar").add(jarPath)
+        .addAll(args)
+        .build();
+    return runProcess(new ProcessBuilder(command).directory(dir.toFile()));
+  }
+
   private static ProcessResult forkJava(Path dir, Class clazz, List<String> args)
-      throws IOException, InterruptedException {
+      throws IOException {
     List<String> command = new ImmutableList.Builder<String>()
         .add(getJavaExecutable())
         .add("-cp").add(System.getProperty("java.class.path"))
