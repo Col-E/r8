@@ -10,11 +10,22 @@ import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.graph.invokesuper2.C0;
+import com.android.tools.r8.graph.invokesuper2.C1;
+import com.android.tools.r8.graph.invokesuper2.C2;
+import com.android.tools.r8.graph.invokesuper2.I0;
+import com.android.tools.r8.graph.invokesuper2.I1;
+import com.android.tools.r8.graph.invokesuper2.I2;
+import com.android.tools.r8.graph.invokesuper2.I3;
+import com.android.tools.r8.graph.invokesuper2.I4;
+import com.android.tools.r8.graph.invokesuper2.Main;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.Collections;
 import org.junit.Test;
 
@@ -199,6 +210,63 @@ public class TargetLookupTest extends SmaliTestBase {
 
     AndroidApp processedApp = processApplication(application);
     assertEquals("42", runArt(processedApp));
+  }
+
+  @Test
+  public void testLookupSuperTarget() throws Exception {
+    String pkg = Main.class.getPackage().getName().replace('.', '/');
+
+    AndroidApp.Builder builder = AndroidApp.builder();
+    for (Class clazz : new Class[]{
+        I0.class, I1.class, I2.class, I3.class, I4.class,
+        C0.class, C1.class, C2.class,
+        Main.class}) {
+      builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
+      // At least java.lang.Object is needed as interface method lookup have special handling
+      // of methods on java.lang.Object.
+      builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+    }
+    AndroidApp application = builder.build();
+    AppInfo appInfo = getAppInfo(application);
+    DexItemFactory factory = appInfo.dexItemFactory;
+
+    DexType i0 = factory.createType("L" + pkg + "/I0;");
+    DexType i1 = factory.createType("L" + pkg + "/I1;");
+    DexType i2 = factory.createType("L" + pkg + "/I2;");
+    DexType i3 = factory.createType("L" + pkg + "/I3;");
+    DexType i4 = factory.createType("L" + pkg + "/I4;");
+    DexType c0 = factory.createType("L" + pkg + "/C0;");
+    DexType c1 = factory.createType("L" + pkg + "/C1;");
+    DexType c2 = factory.createType("L" + pkg + "/C2;");
+
+    DexProto mProto = factory.createProto(factory.intType);
+    DexString m = factory.createString("m");
+    DexMethod mOnC0 = factory.createMethod(c0, mProto, m);
+    DexMethod mOnC1 = factory.createMethod(c1, mProto, m);
+    DexMethod mOnI0 = factory.createMethod(i0, mProto, m);
+    DexMethod mOnI1 = factory.createMethod(i1, mProto, m);
+    DexMethod mOnI2 = factory.createMethod(i2, mProto, m);
+    DexMethod mOnI3 = factory.createMethod(i3, mProto, m);
+    DexMethod mOnI4 = factory.createMethod(i4, mProto, m);
+
+    assertEquals(mOnI0, appInfo.lookupSuperTarget(mOnC0, c1).method);
+    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI1, c1).method);
+    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI2, c1).method);
+
+    assertEquals(mOnI0, appInfo.lookupSuperTarget(mOnC1, c2).method);
+    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI3, c2).method);
+    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI4, c2).method);
+
+    // Copy classes to run on the Java VM.
+    Path out = temp.newFolder().toPath();
+    copyTestClasses(out, I0.class, I1.class, I2.class, I3.class, I4.class);
+    copyTestClasses(out, C0.class, C1.class, C2.class, Main.class);
+    ProcessResult result = ToolHelper.runJava(out, Main.class.getCanonicalName());
+    assertEquals(0, result.exitCode);
+
+    // Process the application and expect the same result on Art.
+    AndroidApp processedApp = processApplication(application);
+    assertEquals(result.stdout, runArt(processedApp, Main.class.getCanonicalName()));
   }
 }
 

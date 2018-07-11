@@ -745,10 +745,6 @@ public class ToolHelper {
     return parts;
   }
 
-  public static Path getPackageDirectoryForTestClass(Class clazz) {
-    return getPackageDirectoryForTestPackage(clazz.getPackage());
-  }
-
   public static List<Path> getClassFilesForTestPackage(Package pkg) throws IOException {
     Path dir = ToolHelper.getPackageDirectoryForTestPackage(pkg);
     return Files.walk(dir)
@@ -760,6 +756,11 @@ public class ToolHelper {
     List<String> parts = getNamePartsForTestClass(clazz);
     return getClassPathForTests().resolve(
         Paths.get("", parts.toArray(new String[parts.size() - 1])));
+  }
+
+  public static Path getFileNameForTestClass(Class clazz) {
+    List<String> parts = getNamePartsForTestClass(clazz);
+    return Paths.get("", parts.toArray(new String[parts.size() - 1]));
   }
 
   public static String getJarEntryForTestClass(Class clazz) {

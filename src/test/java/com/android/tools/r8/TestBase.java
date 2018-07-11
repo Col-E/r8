@@ -166,6 +166,17 @@ public class TestBase {
   }
 
   /**
+   * Copy test classes to the specified directory.
+   */
+  protected void copyTestClasses(Path dest, Class... classes) throws IOException {
+    for (Class clazz : classes) {
+      Path path = dest.resolve(clazz.getCanonicalName().replace('.', '/') + ".class");
+      Files.createDirectories(path.getParent());
+      Files.copy(ToolHelper.getClassFileForTestClass(clazz), path);
+    }
+  }
+
+  /**
    * Create a temporary JAR file containing the specified test classes.
    */
   protected Path jarTestClasses(Class... classes) throws IOException {
@@ -518,7 +529,11 @@ public class TestBase {
   }
 
   protected ProcessResult runOnJavaRaw(String main, byte[]... classes) throws IOException {
-    Path file = writeToZip(Arrays.asList(classes));
+    return runOnJavaRaw(main, Arrays.asList(classes));
+  }
+
+  protected ProcessResult runOnJavaRaw(String main, List<byte[]> classes) throws IOException {
+    Path file = writeToZip(classes);
     return ToolHelper.runJavaNoVerify(file, main);
   }
 

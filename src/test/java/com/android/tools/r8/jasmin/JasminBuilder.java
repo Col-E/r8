@@ -353,12 +353,16 @@ public class JasminBuilder {
     return out.toByteArray();
   }
 
-  public List<byte[]> buildClasses() throws Exception {
-    List<byte[]> result = new ArrayList<>();
+  public ImmutableList.Builder<byte[]> buildClasses(ImmutableList.Builder<byte[]> builder)
+      throws Exception {
     for (ClassBuilder clazz : classes) {
-      result.add(compile(clazz));
+      builder.add(compile(clazz));
     }
-    return result;
+    return builder;
+  }
+
+  public List<byte[]> buildClasses() throws Exception {
+    return buildClasses(ImmutableList.builder()).build();
   }
 
   public AndroidApp build() throws Exception {
