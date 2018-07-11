@@ -36,7 +36,7 @@ final class KotlinClassMetadataReader {
             new StringDiagnostic("Class " + clazz.type.toSourceString()
                 + " has malformed kotlin.Metadata: " + e.getMessage()));
       } catch (Throwable e) {
-         reporter.warning(
+        reporter.warning(
             new StringDiagnostic("Unexpected error while reading " + clazz.type.toSourceString()
                 + "'s kotlin.Metadata: " + e.getMessage()));
       }

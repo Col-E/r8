@@ -10,11 +10,20 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
 /** Class provides basic information about symbols related to Kotlin support. */
 public final class Kotlin {
+  // Simply "Lkotlin/", but to avoid being renamed by Shadow.relocate
+  private static final String KOTLIN =
+      String.join("", ImmutableList.of("L", "k", "o", "t", "l", "i", "n", "/"));
+
+  static String addKotlinPrefix(String str) {
+    return KOTLIN + str;
+  }
+
   public final DexItemFactory factory;
 
   public final Functional functional;
@@ -44,14 +53,15 @@ public final class Kotlin {
       //
       // This implementation just ignores lambdas with arity > 22.
       for (int i = 0; i <= 22; i++) {
-        functions.add(factory.createType("Lkotlin/jvm/functions/Function" + i + ";"));
+        functions.add(factory.createType(addKotlinPrefix("jvm/functions/Function") + i + ";"));
       }
     }
 
     public final DexString kotlinStyleLambdaInstanceName = factory.createString("INSTANCE");
 
-    public final DexType functionBase = factory.createType("Lkotlin/jvm/internal/FunctionBase;");
-    public final DexType lambdaType = factory.createType("Lkotlin/jvm/internal/Lambda;");
+    public final DexType functionBase =
+        factory.createType(addKotlinPrefix("jvm/internal/FunctionBase;"));
+    public final DexType lambdaType = factory.createType(addKotlinPrefix("jvm/internal/Lambda;"));
 
     public final DexMethod lambdaInitializerMethod = factory.createMethod(
         lambdaType,
@@ -64,7 +74,7 @@ public final class Kotlin {
   }
 
   public final class Metadata {
-    public final DexType kotlinMetadataType = factory.createType("Lkotlin/Metadata;");
+    public final DexType kotlinMetadataType = factory.createType(addKotlinPrefix("Metadata;"));
     public final DexString kind = factory.createString("k");
     public final DexString metadataVersion = factory.createString("mv");
     public final DexString bytecodeVersion = factory.createString("bv");
@@ -77,7 +87,7 @@ public final class Kotlin {
 
   // kotlin.jvm.internal.Intrinsics class
   public final class Intrinsics {
-    public final DexType type = factory.createType("Lkotlin/jvm/internal/Intrinsics;");
+    public final DexType type = factory.createType(addKotlinPrefix("jvm/internal/Intrinsics;"));
     public final DexMethod throwParameterIsNullException = factory.createMethod(type,
         factory.createProto(factory.voidType, factory.stringType), "throwParameterIsNullException");
     public final DexMethod checkParameterIsNotNull = factory.createMethod(type,
