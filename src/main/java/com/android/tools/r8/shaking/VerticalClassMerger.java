@@ -895,50 +895,61 @@ public class VerticalClassMerger {
     }
 
     private void redirectSuperCallsInTarget(DexMethod oldTarget, DexMethod newTarget) {
-      // If we merge class B into class C, and class C contains an invocation super.m(), then it
-      // is insufficient to rewrite "invoke-super B.m()" to "invoke-direct C.m$B()" (the method
-      // C.m$B denotes the direct method that has been created in C for B.m). In particular, there
-      // might be an instruction "invoke-super A.m()" in C that resolves to B.m at runtime (A is
-      // a superclass of B), which also needs to be rewritten to "invoke-direct C.m$B()".
-      //
-      // We handle this by adding a mapping for [target] and all of its supertypes.
-      DexClass holder = target;
-      while (holder != null && holder.isProgramClass()) {
-        DexMethod signatureInHolder =
-            application.dexItemFactory.createMethod(holder.type, oldTarget.proto, oldTarget.name);
-        // Only rewrite the invoke-super call if it does not lead to a NoSuchMethodError.
-        boolean resolutionSucceeds =
-            holder.lookupVirtualMethod(signatureInHolder) != null
-                || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
-        if (resolutionSucceeds) {
-          deferredRenamings.mapVirtualMethodToDirectInType(
-              signatureInHolder, newTarget, target.type);
-        } else {
-          break;
-        }
+      if (source.accessFlags.isInterface()) {
+        // If we merge a default interface method from interface I to its subtype C, then we need
+        // to rewrite invocations on the form "invoke-super I.m()" to "invoke-direct C.m$I()".
+        //
+        // Unlike when we merge a class into its subclass (the else-branch below), we should *not*
+        // rewrite any invocations on the form "invoke-super J.m()" to "invoke-direct C.m$I()",
+        // if I has a supertype J. This is due to the fact that invoke-super instructions that
+        // resolve to a method on an interface never hit an implementation below that interface.
+        deferredRenamings.mapVirtualMethodToDirectInType(oldTarget, newTarget, target.type);
+      } else {
+        // If we merge class B into class C, and class C contains an invocation super.m(), then it
+        // is insufficient to rewrite "invoke-super B.m()" to "invoke-direct C.m$B()" (the method
+        // C.m$B denotes the direct method that has been created in C for B.m). In particular, there
+        // might be an instruction "invoke-super A.m()" in C that resolves to B.m at runtime (A is
+        // a superclass of B), which also needs to be rewritten to "invoke-direct C.m$B()".
+        //
+        // We handle this by adding a mapping for [target] and all of its supertypes.
+        DexClass holder = target;
+        while (holder != null && holder.isProgramClass()) {
+          DexMethod signatureInHolder =
+              application.dexItemFactory.createMethod(holder.type, oldTarget.proto, oldTarget.name);
+          // Only rewrite the invoke-super call if it does not lead to a NoSuchMethodError.
+          boolean resolutionSucceeds =
+              holder.lookupVirtualMethod(signatureInHolder) != null
+                  || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
+          if (resolutionSucceeds) {
+            deferredRenamings.mapVirtualMethodToDirectInType(
+                signatureInHolder, newTarget, target.type);
+          } else {
+            break;
+          }
 
-        // Consider that A gets merged into B and B's subclass C gets merged into D. Instructions
-        // on the form "invoke-super {B,C,D}.m()" in D are changed into "invoke-direct D.m$C()" by
-        // the code above. However, instructions on the form "invoke-super A.m()" should also be
-        // changed into "invoke-direct D.m$C()". This is achieved by also considering the classes
-        // that have been merged into [holder].
-        Set<DexType> mergedTypes = mergedClassesInverse.get(holder.type);
-        if (mergedTypes != null) {
-          for (DexType type : mergedTypes) {
-            DexMethod signatureInType =
-                application.dexItemFactory.createMethod(type, oldTarget.proto, oldTarget.name);
-            // Resolution would have succeeded if the method used to be in [type], or if one of
-            // its super classes declared the method.
-            boolean resolutionSucceededBeforeMerge =
-                renamedMembersLense.hasMappingForSignatureInContext(holder.type, signatureInType)
-                    || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
-            if (resolutionSucceededBeforeMerge) {
-              deferredRenamings.mapVirtualMethodToDirectInType(
-                  signatureInType, newTarget, target.type);
+          // Consider that A gets merged into B and B's subclass C gets merged into D. Instructions
+          // on the form "invoke-super {B,C,D}.m()" in D are changed into "invoke-direct D.m$C()" by
+          // the code above. However, instructions on the form "invoke-super A.m()" should also be
+          // changed into "invoke-direct D.m$C()". This is achieved by also considering the classes
+          // that have been merged into [holder].
+          Set<DexType> mergedTypes = mergedClassesInverse.get(holder.type);
+          if (mergedTypes != null) {
+            for (DexType type : mergedTypes) {
+              DexMethod signatureInType =
+                  application.dexItemFactory.createMethod(type, oldTarget.proto, oldTarget.name);
+              // Resolution would have succeeded if the method used to be in [type], or if one of
+              // its super classes declared the method.
+              boolean resolutionSucceededBeforeMerge =
+                  renamedMembersLense.hasMappingForSignatureInContext(holder.type, signatureInType)
+                      || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
+              if (resolutionSucceededBeforeMerge) {
+                deferredRenamings.mapVirtualMethodToDirectInType(
+                    signatureInType, newTarget, target.type);
+              }
             }
           }
+          holder = holder.superType != null ? appInfo.definitionFor(holder.superType) : null;
         }
-        holder = holder.superType != null ? appInfo.definitionFor(holder.superType) : null;
       }
     }
 

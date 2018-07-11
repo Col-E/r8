@@ -251,6 +251,50 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
+  public void testNestedDefaultInterfaceMethodsTest() throws Exception {
+    String main = "classmerging.NestedDefaultInterfaceMethodsTest";
+    Path[] programFiles =
+        new Path[] {
+          JAVA8_CF_DIR.resolve("NestedDefaultInterfaceMethodsTest.class"),
+          JAVA8_CF_DIR.resolve("NestedDefaultInterfaceMethodsTest$A.class"),
+          JAVA8_CF_DIR.resolve("NestedDefaultInterfaceMethodsTest$B.class"),
+          JAVA8_CF_DIR.resolve("NestedDefaultInterfaceMethodsTest$C.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.NestedDefaultInterfaceMethodsTest",
+            "classmerging.NestedDefaultInterfaceMethodsTest$B",
+            "classmerging.NestedDefaultInterfaceMethodsTest$C");
+    runTest(
+        main, programFiles, preservedClassNames::contains, getProguardConfig(JAVA8_EXAMPLE_KEEP));
+  }
+
+  @Test
+  public void testNestedDefaultInterfaceMethodsWithCDumpTest() throws Exception {
+    String main = "classmerging.NestedDefaultInterfaceMethodsTest";
+    Path[] programFiles =
+        new Path[] {
+          JAVA8_CF_DIR.resolve("NestedDefaultInterfaceMethodsTest.class"),
+          JAVA8_CF_DIR.resolve("NestedDefaultInterfaceMethodsTest$A.class"),
+          JAVA8_CF_DIR.resolve("NestedDefaultInterfaceMethodsTest$B.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.NestedDefaultInterfaceMethodsTest",
+            "classmerging.NestedDefaultInterfaceMethodsTest$B",
+            "classmerging.NestedDefaultInterfaceMethodsTest$C");
+    runTestOnInput(
+        main,
+        AndroidApp.builder()
+            .addProgramFiles(programFiles)
+            .addClassProgramData(
+                NestedDefaultInterfaceMethodsTestDump.CDump.dump(), Origin.unknown())
+            .build(),
+        preservedClassNames::contains,
+        getProguardConfig(JAVA8_EXAMPLE_KEEP));
+  }
+
+  @Test
   public void testPinnedParameterTypes() throws Exception {
     String main = "classmerging.PinnedParameterTypesTest";
     Path[] programFiles =

@@ -10,6 +10,9 @@
 -keep public class classmerging.MergeDefaultMethodIntoClassTest {
   public static void main(...);
 }
+-keep public class classmerging.NestedDefaultInterfaceMethodsTest {
+  public static void main(...);
+}
 
 # TODO(herhut): Consider supporting merging of inner-class attributes.
 # -keepattributes *
