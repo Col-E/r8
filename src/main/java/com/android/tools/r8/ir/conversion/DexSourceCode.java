@@ -40,6 +40,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
@@ -68,25 +69,20 @@ public class DexSourceCode implements SourceCode {
   private Instruction currentDexInstruction = null;
 
   private Position currentPosition = null;
-  private Map<Position, Position> canonicalPositions = null;
+  private final CanonicalPositions canonicalPositions;
 
   private final List<ValueType> argumentTypes;
 
   private List<DexDebugEntry> debugEntries = null;
   // In case of inlining the position of the invoke in the caller.
-  private final Position callerPosition;
   private final DexMethod method;
-  private final boolean preserveCaller;
-  private final Position preamblePosition;
 
   public DexSourceCode(
       DexCode code, DexEncodedMethod method, Position callerPosition, boolean preserveCaller) {
     this.code = code;
     this.proto = method.method.proto;
     this.accessFlags = method.accessFlags;
-    this.callerPosition = callerPosition;
     this.method = method.method;
-    this.preserveCaller = preserveCaller;
 
     argumentTypes = computeArgumentTypes();
     DexDebugInfo info = code.getDebugInfo();
@@ -94,18 +90,11 @@ public class DexSourceCode implements SourceCode {
       debugEntries = info.computeEntries(method.method);
     }
     canonicalPositions =
-        new HashMap<>(
-            1
-                + (callerPosition == null ? 0 : 1)
-                + (debugEntries == null ? 0 : debugEntries.size()));
-    if (callerPosition != null) {
-      canonicalPositions.put(callerPosition, callerPosition);
-    }
-    preamblePosition =
-        callerPosition == null
-            ? Position.synthetic(0, this.method, null)
-            : new Position(0, null, this.method, callerPosition);
-    canonicalPositions.put(preamblePosition, preamblePosition);
+        new CanonicalPositions(
+            callerPosition,
+            preserveCaller,
+            1 + (callerPosition == null ? 0 : 1) + (debugEntries == null ? 0 : debugEntries.size()),
+            this.method);
   }
 
   @Override
@@ -148,7 +137,7 @@ public class DexSourceCode implements SourceCode {
 
   @Override
   public void buildPrelude(IRBuilder builder) {
-    currentPosition = preamblePosition;
+    currentPosition = canonicalPositions.getPreamblePosition();
     if (code.incomingRegisterSize == 0) {
       return;
     }
@@ -197,7 +186,9 @@ public class DexSourceCode implements SourceCode {
   @Override
   public Position getDebugPositionAtOffset(int offset) {
     DexDebugEntry entry = getDebugEntryAtOffset(offset);
-    return entry == null ? preamblePosition : getCanonicalPositionAppendCaller(entry);
+    return entry == null
+        ? canonicalPositions.getPreamblePosition()
+        : getCanonicalPositionAppendCaller(entry);
   }
 
   @Override
@@ -250,7 +241,7 @@ public class DexSourceCode implements SourceCode {
     int offset = instructionOffset(instructionIndex);
     DexDebugEntry entry = getDebugEntryAtOffset(offset);
     if (entry == null) {
-      currentPosition = preamblePosition;
+      currentPosition = canonicalPositions.getPreamblePosition();
     } else {
       currentPosition = getCanonicalPositionAppendCaller(entry);
       if (entry.lineEntry && entry.address == offset) {
@@ -259,39 +250,17 @@ public class DexSourceCode implements SourceCode {
     }
   }
 
-  private Position getCanonicalPosition(Position position) {
-    Position canonical = canonicalPositions.putIfAbsent(position, position);
-    return canonical != null ? canonical : position;
-  }
-
-  private Position canonicalizeCallerPosition(Position caller) {
-    // We are not supposed to get here from getCanonicalPositionAppendCaller if !preserveCaller.
-    assert preserveCaller;
-
-    if (caller == null) {
-      return callerPosition;
-    }
-    if (caller.callerPosition == null && callerPosition == null) {
-      return getCanonicalPosition(caller);
-    }
-    Position callerOfCaller = canonicalizeCallerPosition(caller.callerPosition);
-    return getCanonicalPosition(
-        caller.isNone()
-            ? Position.noneWithMethod(caller.method, callerOfCaller)
-            : new Position(caller.line, caller.file, caller.method, callerOfCaller));
-  }
-
   private Position getCanonicalPositionAppendCaller(DexDebugEntry entry) {
     // If this instruction has already been inlined then this.method must be the outermost caller.
     assert entry.callerPosition == null
         || entry.callerPosition.getOutermostCaller().method == method;
 
-    return getCanonicalPosition(
+    return canonicalPositions.getCanonical(
         new Position(
             entry.line,
             entry.sourceFile,
             entry.method,
-            preserveCaller ? canonicalizeCallerPosition(entry.callerPosition) : null));
+            canonicalPositions.canonicalizeCallerPosition(entry.callerPosition)));
   }
 
   @Override
