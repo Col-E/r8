@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
@@ -184,8 +185,6 @@ public class CfSourceCode implements SourceCode {
   private final Position callerPosition;
   private final Origin origin;
 
-  // Synthetic position with line = 0.
-  private final Position preamblePosition;
   private final Reference2IntMap<CfLabel> labelOffsets = new Reference2IntOpenHashMap<>();
   private TryHandlerList cachedTryHandlerList;
   private LocalVariableList cachedLocalVariableList;
@@ -196,21 +195,31 @@ public class CfSourceCode implements SourceCode {
   private Int2ReferenceMap<Int2ObjectMap<DebugLocalInfo>> definitelyLiveIncomingLocals =
       new Int2ReferenceOpenHashMap<>();
   private Int2ReferenceMap<CfState.Snapshot> incomingState = new Int2ReferenceOpenHashMap<>();
+  private final CanonicalPositions canonicalPositions;
 
   public CfSourceCode(
-      CfCode code, DexEncodedMethod method, Position callerPosition, Origin origin) {
+      CfCode code,
+      DexEncodedMethod method,
+      Position callerPosition,
+      Origin origin,
+      boolean preserveCaller) {
     this.code = code;
     this.method = method;
     this.callerPosition = callerPosition;
     this.origin = origin;
-    preamblePosition = Position.synthetic(0, method.method, null);
+    int cfPositionCount = 0;
     for (int i = 0; i < code.getInstructions().size(); i++) {
       CfInstruction instruction = code.getInstructions().get(i);
       if (instruction instanceof CfLabel) {
         labelOffsets.put((CfLabel) instruction, instructionOffset(i));
       }
+      if (instruction instanceof CfPosition) {
+        ++cfPositionCount;
+      }
     }
     this.state = new CfState(origin);
+    canonicalPositions =
+        new CanonicalPositions(callerPosition, preserveCaller, cfPositionCount, this.method.method);
   }
 
   @Override
@@ -383,7 +392,21 @@ public class CfSourceCode implements SourceCode {
       }
       state.clear();
     } else {
-      instruction.buildIR(builder, state, this);
+      if (instruction instanceof CfPosition) {
+        CfPosition cfPosition = (CfPosition) instruction;
+        Position position = cfPosition.getPosition();
+        Position newPosition =
+            canonicalPositions.getCanonical(
+                new Position(
+                    position.line,
+                    position.file,
+                    position.method,
+                    canonicalPositions.canonicalizeCallerPosition(position.callerPosition)));
+        CfPosition newCfPosition = new CfPosition(cfPosition.getLabel(), newPosition);
+        newCfPosition.buildIR(builder, state, this);
+      } else {
+        instruction.buildIR(builder, state, this);
+      }
       ensureDebugValueLiveness(builder);
       if (builder.getCFG().containsKey(currentInstructionIndex + 1)) {
         recordStateForTarget(currentInstructionIndex + 1, state.getSnapshot());

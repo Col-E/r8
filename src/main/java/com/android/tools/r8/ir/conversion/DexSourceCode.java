@@ -93,7 +93,7 @@ public class DexSourceCode implements SourceCode {
         new CanonicalPositions(
             callerPosition,
             preserveCaller,
-            1 + (callerPosition == null ? 0 : 1) + (debugEntries == null ? 0 : debugEntries.size()),
+            debugEntries == null ? 0 : debugEntries.size(),
             this.method);
   }
 

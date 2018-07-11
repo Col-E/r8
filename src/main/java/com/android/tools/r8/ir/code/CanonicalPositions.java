@@ -18,13 +18,14 @@ public class CanonicalPositions {
   private final Map<Position, Position> canonicalPositions;
   private final Position preamblePosition;
 
-  /**
-   * For callerPosition and preserveCaller see canonicalizeCallerPosition. initialCapacity will be
-   * passed to the HashMap constructor.
-   */
+  /** For callerPosition and preserveCaller see canonicalizeCallerPosition. */
   public CanonicalPositions(
-      Position callerPosition, boolean preserveCaller, int initialCapacity, DexMethod method) {
-    canonicalPositions = new HashMap<>(initialCapacity);
+      Position callerPosition,
+      boolean preserveCaller,
+      int expectedPositionsCount,
+      DexMethod method) {
+    canonicalPositions =
+        new HashMap<>(1 + (callerPosition == null ? 0 : 1) + expectedPositionsCount);
     this.preserveCaller = preserveCaller;
     this.callerPosition = callerPosition;
     if (callerPosition != null) {

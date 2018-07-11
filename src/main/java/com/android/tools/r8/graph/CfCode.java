@@ -19,6 +19,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import java.util.Collections;
 import java.util.List;
 import org.objectweb.asm.Label;
@@ -230,7 +231,13 @@ public class CfCode extends Code {
       throw new Unimplemented(
           "Converting CfCode to IR not supported for DEX output of synchronized methods.");
     }
-    CfSourceCode source = new CfSourceCode(this, encodedMethod, callerPosition, origin);
+    CfSourceCode source =
+        new CfSourceCode(
+            this,
+            encodedMethod,
+            callerPosition,
+            origin,
+            options.lineNumberOptimization == LineNumberOptimization.ON);
     IRBuilder builder =
         (generator == null)
             ? new IRBuilder(encodedMethod, appInfo, source, options)
