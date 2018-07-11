@@ -4,17 +4,8 @@
 
 package com.android.tools.r8.accessrelaxation;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPublic;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.accessrelaxation.privateinstance.Base;
 import com.android.tools.r8.accessrelaxation.privateinstance.Sub1;
 import com.android.tools.r8.accessrelaxation.privateinstance.Sub2;
@@ -27,54 +18,11 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-@RunWith(VmTestRunner.class)
-public class AccessRelaxationTest extends TestBase {
+public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase {
   private static final String STRING = "java.lang.String";
-
-  private static R8Command.Builder loadProgramFiles(Package p, Class... classes) throws Exception {
-    R8Command.Builder builder = R8Command.builder();
-    builder.addProgramFiles(ToolHelper.getClassFilesForTestPackage(p));
-    for (Class clazz : classes) {
-      builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
-    }
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-    return builder;
-  }
-
-  private void compareJvmAndArt(AndroidApp app, Class mainClass) throws Exception {
-    // Run on Jvm.
-    String jvmOutput = runOnJava(mainClass);
-
-    // Run on Art to check generated code against verifier.
-    String artOutput = runOnArt(app, mainClass);
-
-    String adjustedArtOutput = artOutput.replace(
-        "java.lang.IncompatibleClassChangeError", "java.lang.IllegalAccessError");
-    assertEquals(jvmOutput, adjustedArtOutput);
-  }
-
-  private static void assertPublic(
-      DexInspector dexInspector, Class clazz, MethodSignature signature) {
-    ClassSubject classSubject = dexInspector.clazz(clazz);
-    assertThat(classSubject, isPresent());
-    MethodSubject methodSubject = classSubject.method(signature);
-    assertThat(methodSubject, isPublic());
-  }
-
-  private static void assertNotPublic(
-      DexInspector dexInspector, Class clazz, MethodSignature signature) {
-    ClassSubject classSubject = dexInspector.clazz(clazz);
-    assertThat(classSubject, isPresent());
-    MethodSubject methodSubject = classSubject.method(signature);
-    assertThat(methodSubject, not(isPublic()));
-  }
 
   @Test
   public void testStaticMethodRelaxation() throws Exception {

@@ -149,7 +149,8 @@ public final class ClassAndMemberPublicizer {
     assert accessFlags.isPrivate();
 
     if (appView.getDexItemFactory().isConstructor(encodedMethod.method)) {
-      // TODO(b/72211928)
+      accessFlags.unsetPrivate();
+      accessFlags.setPublic();
       return false;
     }
 
