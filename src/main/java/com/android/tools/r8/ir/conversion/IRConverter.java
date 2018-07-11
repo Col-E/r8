@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.optimize.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
+import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -104,6 +105,8 @@ public class IRConverter {
   private final Devirtualizer devirtualizer;
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
 
+  private final boolean enableWholeProgramOptimizations;
+
   private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private DexString highestSortingString;
 
@@ -134,6 +137,7 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
             : null;
+    this.enableWholeProgramOptimizations = enableWholeProgramOptimizations;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
       this.nonNullTracker = new NonNullTracker();
@@ -695,6 +699,7 @@ public class IRConverter {
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
     codeRewriter.simplifyIf(code, typeEnvironment);
+    new RedundantFieldLoadElimination(appInfo, code, enableWholeProgramOptimizations).run();
 
     if (options.testing.invertConditionals) {
       invertConditionalsForTesting(code);
