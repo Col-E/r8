@@ -15,14 +15,14 @@ import utils
 PROGUARD_JAR = os.path.join(utils.REPO_ROOT, 'third_party', 'proguard',
     'proguard_internal_159423826', 'ProGuard_deploy.jar')
 
-def run(args, track_memory_file = None):
+def run(args, track_memory_file = None, stdout=None, stderr=None):
   cmd = []
   if track_memory_file:
     cmd.extend(['tools/track_memory.sh', track_memory_file])
   cmd.extend(['java', '-jar', PROGUARD_JAR])
   cmd.extend(args)
   utils.PrintCmd(cmd)
-  subprocess.check_call(cmd)
+  subprocess.call(cmd, stdout=stdout, stderr=stderr)
 
 def Main():
   run(sys.argv[1:])
