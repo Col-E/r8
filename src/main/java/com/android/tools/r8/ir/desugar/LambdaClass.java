@@ -29,11 +29,13 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.google.common.base.Suppliers;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 /**
  * Represents lambda class generated for a lambda descriptor in context
@@ -64,6 +66,8 @@ final class LambdaClass {
   final Target target;
   final AtomicBoolean addToMainDexList = new AtomicBoolean(false);
   private final Collection<DexProgramClass> synthesizedFrom = new ArrayList<DexProgramClass>(1);
+  private final Supplier<DexProgramClass> lazyDexClass =
+      Suppliers.memoize(this::synthesizeLambdaClass); // NOTE: thread-safe.
 
   LambdaClass(LambdaRewriter rewriter, DexType accessedFrom,
       DexType lambdaClassType, LambdaDescriptor descriptor) {
@@ -119,7 +123,11 @@ final class LambdaClass {
     return rewriter.factory.createType(lambdaClassDescriptor.toString());
   }
 
-  final DexProgramClass synthesizeLambdaClass() {
+  final DexProgramClass getLambdaClass() {
+    return lazyDexClass.get();
+  }
+
+  private DexProgramClass synthesizeLambdaClass() {
     return new DexProgramClass(
         type,
         null,
@@ -171,7 +179,7 @@ final class LambdaClass {
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new SynthesizedCode(new LambdaMainMethodSourceCode(this, mainMethod)));
+            new SynthesizedCode(() -> new LambdaMainMethodSourceCode(this, mainMethod)));
 
     // Synthesize bridge methods.
     for (DexProto bridgeProto : descriptor.bridges) {
@@ -188,7 +196,7 @@ final class LambdaClass {
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               new SynthesizedCode(
-                  new LambdaBridgeMethodSourceCode(this, mainMethod, bridgeMethod)));
+                  () -> new LambdaBridgeMethodSourceCode(this, mainMethod, bridgeMethod)));
     }
     return methods;
   }
@@ -208,7 +216,7 @@ final class LambdaClass {
                 true),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new SynthesizedCode(new LambdaConstructorSourceCode(this)));
+            new SynthesizedCode(() -> new LambdaConstructorSourceCode(this)));
 
     // Class constructor for stateless lambda classes.
     if (stateless) {

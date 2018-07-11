@@ -489,17 +489,22 @@ public class AppInfo {
   }
 
   public boolean canTriggerStaticInitializer(DexType type, boolean ignoreTypeItself) {
+    DexClass clazz = definitionFor(type);
+    assert clazz != null;
+    return canTriggerStaticInitializer(clazz, ignoreTypeItself);
+  }
+
+  public boolean canTriggerStaticInitializer(DexClass clazz, boolean ignoreTypeItself) {
     Set<DexType> knownInterfaces = Sets.newIdentityHashSet();
 
     // Process superclass chain.
-    DexType clazz = type;
-    while (clazz != null && clazz != dexItemFactory.objectType) {
-      DexClass definition = definitionFor(clazz);
-      if (canTriggerStaticInitializer(definition) && (!ignoreTypeItself || clazz != type)) {
+    DexClass current = clazz;
+    while (current != null && current.type != dexItemFactory.objectType) {
+      if (canTriggerStaticInitializer(current) && (!ignoreTypeItself || current != clazz)) {
         return true;
       }
-      knownInterfaces.addAll(Arrays.asList(definition.interfaces.values));
-      clazz = definition.superType;
+      knownInterfaces.addAll(Arrays.asList(current.interfaces.values));
+      current = current.superType != null ? definitionFor(current.superType) : null;
     }
 
     // Process interfaces.

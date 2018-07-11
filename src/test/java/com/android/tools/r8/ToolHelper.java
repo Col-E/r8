@@ -474,8 +474,9 @@ public class ToolHelper {
   public static byte[] getClassAsBytes(Class clazz) throws IOException {
     String s = clazz.getSimpleName() + ".class";
     Class outer = clazz.getEnclosingClass();
-    if (outer != null) {
+    while (outer != null) {
       s = outer.getSimpleName() + '$' + s;
+      outer = outer.getEnclosingClass();
     }
     return ByteStreams.toByteArray(clazz.getResourceAsStream(s));
   }

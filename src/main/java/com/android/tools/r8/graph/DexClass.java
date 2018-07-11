@@ -8,7 +8,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterators;
 import java.util.Arrays;
@@ -130,16 +129,6 @@ public abstract class DexClass extends DexItem {
   }
 
   public void forEachMethod(Consumer<DexEncodedMethod> consumer) {
-    for (DexEncodedMethod method : directMethods()) {
-      consumer.accept(method);
-    }
-    for (DexEncodedMethod method : virtualMethods()) {
-      consumer.accept(method);
-    }
-  }
-
-  public <E extends Throwable> void forEachMethodThrowing(
-      ThrowingConsumer<DexEncodedMethod, E> consumer) throws E {
     for (DexEncodedMethod method : directMethods()) {
       consumer.accept(method);
     }

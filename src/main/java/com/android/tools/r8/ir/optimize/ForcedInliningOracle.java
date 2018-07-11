@@ -60,7 +60,8 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public void ensureMethodProcessed(DexEncodedMethod target, IRCode inlinee) {
-    assert target.isProcessed();
+    // Do nothing. If the method is not yet processed, we still should
+    // be able to build IR for inlining, though.
   }
 
   @Override

@@ -10,25 +10,33 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public final class SynthesizedCode extends Code {
 
-  private final SourceCode sourceCode;
+  private final Supplier<SourceCode> sourceCodeProvider;
   private final Consumer<UseRegistry> registryCallback;
 
-  public SynthesizedCode(SourceCode sourceCode) {
-    this.sourceCode = sourceCode;
+  public SynthesizedCode(SourceCode sourceCodeProvider) {
+    this(() -> sourceCodeProvider);
+  }
+
+  public SynthesizedCode(Supplier<SourceCode> sourceCodeProvider) {
+    this.sourceCodeProvider = sourceCodeProvider;
     this.registryCallback = SynthesizedCode::registerReachableDefinitionsDefault;
   }
 
-  public SynthesizedCode(SourceCode sourceCode, Consumer<UseRegistry> callback) {
-    this.sourceCode = sourceCode;
+  public SynthesizedCode(
+      SourceCode sourceCode, Consumer<UseRegistry> callback) {
+    this.sourceCodeProvider = () -> sourceCode;
     this.registryCallback = callback;
   }
 
@@ -40,7 +48,15 @@ public final class SynthesizedCode extends Code {
   @Override
   public final IRCode buildIR(
       DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
-    return new IRBuilder(encodedMethod, appInfo, sourceCode, options).build();
+    return new IRBuilder(encodedMethod, appInfo, sourceCodeProvider.get(), options).build();
+  }
+
+  @Override
+  public IRCode buildInliningIR(
+      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options,
+      ValueNumberGenerator valueNumberGenerator, Position callerPosition, Origin origin) {
+    return new IRBuilder(encodedMethod, appInfo,
+        sourceCodeProvider.get(), options, valueNumberGenerator).build();
   }
 
   @Override
@@ -59,17 +75,16 @@ public final class SynthesizedCode extends Code {
 
   @Override
   protected final int computeHashCode() {
-    return sourceCode.hashCode();
+    throw new Unreachable();
   }
 
   @Override
   protected final boolean computeEquals(Object other) {
-    return other instanceof SynthesizedCode &&
-        this.sourceCode.equals(((SynthesizedCode) other).sourceCode);
+    throw new Unreachable();
   }
 
   @Override
   public final String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return "SynthesizedCode: " + sourceCode.toString();
+    return "SynthesizedCode";
   }
 }

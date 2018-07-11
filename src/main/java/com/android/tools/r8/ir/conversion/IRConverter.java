@@ -176,7 +176,8 @@ public class IRConverter {
     }
     this.classInliner =
         (options.enableClassInlining && options.enableInlining && inliner != null)
-            ? new ClassInliner(appInfo.dexItemFactory, options.classInliningInstructionLimit)
+            ? new ClassInliner(
+            appInfo.dexItemFactory, lambdaRewriter, options.classInliningInstructionLimit)
             : null;
   }
 
@@ -356,12 +357,7 @@ public class IRConverter {
       ExecutorService executor) throws ExecutionException {
     List<Future<?>> futures = new ArrayList<>();
     for (DexProgramClass clazz : classes) {
-      futures.add(
-          executor.submit(
-              () -> {
-                clazz.forEachMethodThrowing(this::convertMethodToDex);
-                return null; // we want a Callable not a Runnable to be able to throw
-              }));
+      futures.add(executor.submit(() -> clazz.forEachMethod(this::convertMethodToDex)));
     }
     ThreadUtils.awaitFutures(futures);
   }
@@ -565,7 +561,7 @@ public class IRConverter {
     try {
       codeRewriter.enterCachedClass(clazz);
       // Process the generated class, but don't apply any outlining.
-      clazz.forEachMethodThrowing(this::optimizeSynthesizedMethod);
+      clazz.forEachMethod(this::optimizeSynthesizedMethod);
     } finally {
       codeRewriter.leaveCachedClass(clazz);
     }
@@ -733,11 +729,6 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
-    if (interfaceMethodRewriter != null) {
-      interfaceMethodRewriter.rewriteMethodReferences(method, code);
-      assert code.isConsistentSSA();
-    }
-
     if (classInliner != null) {
       // Class inliner should work before lambda merger, so if it inlines the
       // lambda, it is not get collected by merger.
@@ -752,6 +743,11 @@ public class IRConverter {
               Integer.MAX_VALUE / 2, Integer.MAX_VALUE / 2)
           )
       );
+      assert code.isConsistentSSA();
+    }
+
+    if (interfaceMethodRewriter != null) {
+      interfaceMethodRewriter.rewriteMethodReferences(method, code);
       assert code.isConsistentSSA();
     }
 

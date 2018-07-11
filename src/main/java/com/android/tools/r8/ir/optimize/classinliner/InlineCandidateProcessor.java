@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -53,7 +54,8 @@ final class InlineCandidateProcessor {
 
   private final DexItemFactory factory;
   private final AppInfoWithLiveness appInfo;
-  private final Predicate<DexType> isClassEligible;
+  private final LambdaRewriter lambdaRewriter;
+  private final Predicate<DexClass> isClassEligible;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final DexEncodedMethod method;
   private final Instruction root;
@@ -61,6 +63,7 @@ final class InlineCandidateProcessor {
   private Value eligibleInstance;
   private DexType eligibleClass;
   private DexClass eligibleClassDefinition;
+  private boolean isDesugaredLambda;
 
   private final Map<InvokeMethod, InliningInfo> methodCallsOnInstance
       = new IdentityHashMap<>();
@@ -73,10 +76,11 @@ final class InlineCandidateProcessor {
 
   InlineCandidateProcessor(
       DexItemFactory factory, AppInfoWithLiveness appInfo,
-      Predicate<DexType> isClassEligible,
+      LambdaRewriter lambdaRewriter, Predicate<DexClass> isClassEligible,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       DexEncodedMethod method, Instruction root) {
     this.factory = factory;
+    this.lambdaRewriter = lambdaRewriter;
     this.isClassEligible = isClassEligible;
     this.method = method;
     this.root = root;
@@ -99,6 +103,11 @@ final class InlineCandidateProcessor {
     eligibleClass = isNewInstance() ?
         root.asNewInstance().clazz : root.asStaticGet().getField().type;
     eligibleClassDefinition = appInfo.definitionFor(eligibleClass);
+    if (eligibleClassDefinition == null && lambdaRewriter != null) {
+      // Check if the class is synthesized for a desugared lambda
+      eligibleClassDefinition = lambdaRewriter.getLambdaClass(eligibleClass);
+      isDesugaredLambda = eligibleClassDefinition != null;
+    }
     return eligibleClassDefinition != null;
   }
 
@@ -114,7 +123,7 @@ final class InlineCandidateProcessor {
   //      * class has class initializer marked as TrivialClassInitializer, and
   //        class initializer initializes the field we are reading here.
   boolean isClassAndUsageEligible() {
-    if (!isClassEligible.test(eligibleClass)) {
+    if (!isClassEligible.test(eligibleClassDefinition)) {
       return false;
     }
 
@@ -128,6 +137,11 @@ final class InlineCandidateProcessor {
     }
 
     assert root.isStaticGet();
+
+    // We know that desugared lambda classes satisfy eligibility requirements.
+    if (isDesugaredLambda) {
+      return true;
+    }
 
     // Checking if we can safely inline class implemented following singleton-like
     // pattern, by which we assume a static final field holding on to the reference
@@ -444,7 +458,7 @@ final class InlineCandidateProcessor {
         : "Inlined constructor? [invoke: " + initInvoke +
         ", expected class: " + eligibleClass + "]";
 
-    DexEncodedMethod definition = appInfo.definitionFor(init);
+    DexEncodedMethod definition = findSingleTarget(init, true);
     if (definition == null || isProcessedConcurrently.test(definition)) {
       return null;
     }
@@ -453,6 +467,12 @@ final class InlineCandidateProcessor {
     if (initInvoke.getBlock().hasCatchHandlers() &&
         definition.getOptimizationInfo().neverReturnsNormally()) {
       return null;
+    }
+
+    if (isDesugaredLambda) {
+      // Lambda desugaring synthesizes eligible constructors.
+      markSizeForInlining(definition);
+      return new InliningInfo(definition, eligibleClass);
     }
 
     // If the superclass of the initializer is NOT java.lang.Object, the super class
@@ -499,12 +519,22 @@ final class InlineCandidateProcessor {
   private InliningInfo isEligibleMethodCall(boolean allowMethodsWithoutNormalReturns,
       DexMethod callee, Predicate<ClassInlinerEligibility> eligibilityAcceptanceCheck) {
 
-    DexEncodedMethod singleTarget = findSingleTarget(callee);
+    DexEncodedMethod singleTarget = findSingleTarget(callee, false);
     if (singleTarget == null || isProcessedConcurrently.test(singleTarget)) {
       return null;
     }
     if (method == singleTarget) {
       return null; // Don't inline itself.
+    }
+
+    if (isDesugaredLambda) {
+      // If this is the call to method of the desugared lambda, we consider only calls
+      // to main lambda method eligible (for both direct and indirect calls).
+      if (singleTarget.accessFlags.isBridge()) {
+        return null;
+      }
+      markSizeForInlining(singleTarget);
+      return new InliningInfo(singleTarget, eligibleClass);
     }
 
     OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
@@ -652,6 +682,9 @@ final class InlineCandidateProcessor {
 
   private boolean exemptFromInstructionLimit(DexEncodedMethod inlinee) {
     DexType inlineeHolder = inlinee.method.holder;
+    if (isDesugaredLambda && inlineeHolder == eligibleClass) {
+      return true;
+    }
     if (appInfo.isPinned(inlineeHolder)) {
       return false;
     }
@@ -674,14 +707,16 @@ final class InlineCandidateProcessor {
     return root.isNewInstance();
   }
 
-  private DexEncodedMethod findSingleTarget(DexMethod callee) {
+  private DexEncodedMethod findSingleTarget(DexMethod callee, boolean isDirect) {
     // We don't use computeSingleTarget(...) on invoke since it sometimes fails to
     // find the single target, while this code may be more successful since we exactly
     // know what is the actual type of the receiver.
 
     // Note that we also intentionally limit ourselves to methods directly defined in
     // the instance's class. This may be improved later.
-    return eligibleClassDefinition.lookupVirtualMethod(callee);
+    return isDirect
+        ? eligibleClassDefinition.lookupDirectMethod(callee)
+        : eligibleClassDefinition.lookupVirtualMethod(callee);
   }
 
   private void removeInstruction(Instruction instruction) {

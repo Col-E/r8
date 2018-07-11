@@ -4,11 +4,15 @@
 
 package com.android.tools.r8;
 
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -94,6 +98,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 179, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
@@ -101,6 +106,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 23, "lambdadesugaring"))
         .run();
   }
 
@@ -112,6 +118,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 179, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
@@ -119,6 +126,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 23, "lambdadesugaring"))
         .run();
   }
 
@@ -131,6 +139,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 40, "lambdadesugaringnplus"))
         .run();
 
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
@@ -139,6 +148,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 5, "lambdadesugaringnplus"))
         .run();
   }
 
@@ -151,6 +161,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 40, "lambdadesugaringnplus"))
         .run();
 
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
@@ -159,7 +170,19 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 5, "lambdadesugaringnplus"))
         .run();
+  }
+
+  private void checkLambdaCount(DexInspector inspector, int expectedCount, String prefix) {
+    int count = 0;
+    for (FoundClassSubject clazz : inspector.allClasses()) {
+      if (clazz.isSynthesizedJavaLambdaClass() &&
+          clazz.getOriginalName().startsWith(prefix)) {
+        count++;
+      }
+    }
+    assertEquals(expectedCount, count);
   }
 
   class R8TestRunner extends TestRunner<R8TestRunner> {

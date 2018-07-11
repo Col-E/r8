@@ -141,7 +141,6 @@ public class LambdaRewriter {
           if (method.name == deserializeLambdaMethodName &&
               method.proto == deserializeLambdaMethodProto) {
             assert encoded.accessFlags.isStatic();
-            assert encoded.accessFlags.isPrivate();
             assert encoded.accessFlags.isSynthetic();
 
             DexEncodedMethod[] newMethods = new DexEncodedMethod[methodCount - 1];
@@ -170,10 +169,19 @@ public class LambdaRewriter {
     }
   }
 
+  /**
+   * Returns a synthetic class for desugared lambda or `null` if the `type`
+   * does not represent one. Method can be called concurrently.
+   */
+  public DexProgramClass getLambdaClass(DexType type) {
+    LambdaClass lambdaClass = getKnown(knownLambdaClasses, type);
+    return lambdaClass == null ? null : lambdaClass.getLambdaClass();
+  }
+
   /** Generates lambda classes and adds them to the builder. */
   public void synthesizeLambdaClasses(Builder<?> builder) {
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
-      DexProgramClass synthesizedClass = lambdaClass.synthesizeLambdaClass();
+      DexProgramClass synthesizedClass = lambdaClass.getLambdaClass();
       converter.optimizeSynthesizedClass(synthesizedClass);
       builder.addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
     }

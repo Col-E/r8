@@ -423,6 +423,8 @@ public class DexInspector {
 
     public abstract boolean isAnonymousClass();
 
+    public abstract boolean isSynthesizedJavaLambdaClass();
+
     public abstract String getOriginalSignatureAttribute();
 
     public abstract String getFinalSignatureAttribute();
@@ -510,6 +512,11 @@ public class DexInspector {
 
     @Override
     public boolean isAnonymousClass() {
+      return false;
+    }
+
+    @Override
+    public boolean isSynthesizedJavaLambdaClass() {
       return false;
     }
 
@@ -706,6 +713,11 @@ public class DexInspector {
       return innerClass != null
           && innerClass.isAnonymous()
           && dexClass.getEnclosingMethod() != null;
+    }
+
+    @Override
+    public boolean isSynthesizedJavaLambdaClass() {
+      return dexClass.type.getName().contains("$Lambda$");
     }
 
     @Override

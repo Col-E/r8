@@ -8,10 +8,10 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -27,15 +27,18 @@ import java.util.stream.Collectors;
 
 public final class ClassInliner {
   private final DexItemFactory factory;
+  private final LambdaRewriter lambdaRewriter;
   private final int totalMethodInstructionLimit;
-  private final ConcurrentHashMap<DexType, Boolean> knownClasses = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<DexClass, Boolean> knownClasses = new ConcurrentHashMap<>();
 
   public interface InlinerAction {
     void inline(Map<InvokeMethod, InliningInfo> methods);
   }
 
-  public ClassInliner(DexItemFactory factory, int totalMethodInstructionLimit) {
+  public ClassInliner(DexItemFactory factory,
+      LambdaRewriter lambdaRewriter, int totalMethodInstructionLimit) {
     this.factory = factory;
+    this.lambdaRewriter = lambdaRewriter;
     this.totalMethodInstructionLimit = totalMethodInstructionLimit;
   }
 
@@ -142,8 +145,8 @@ public final class ClassInliner {
       while (rootsIterator.hasNext()) {
         Instruction root = rootsIterator.next();
         InlineCandidateProcessor processor =
-            new InlineCandidateProcessor(factory, appInfo,
-                type -> isClassEligible(appInfo, type),
+            new InlineCandidateProcessor(factory, appInfo, lambdaRewriter,
+                clazz -> isClassEligible(appInfo, clazz),
                 isProcessedConcurrently, method, root);
 
         // Assess eligibility of instance and class.
@@ -180,7 +183,7 @@ public final class ClassInliner {
     } while (repeat);
   }
 
-  private boolean isClassEligible(AppInfo appInfo, DexType clazz) {
+  private boolean isClassEligible(AppInfo appInfo, DexClass clazz) {
     Boolean eligible = knownClasses.get(clazz);
     if (eligible == null) {
       Boolean computed = computeClassEligible(appInfo, clazz);
@@ -195,15 +198,14 @@ public final class ClassInliner {
   //   - is not an abstract class or interface
   //   - does not declare finalizer
   //   - does not trigger any static initializers except for its own
-  private boolean computeClassEligible(AppInfo appInfo, DexType clazz) {
-    DexClass definition = appInfo.definitionFor(clazz);
-    if (definition == null || definition.isLibraryClass() ||
-        definition.accessFlags.isAbstract() || definition.accessFlags.isInterface()) {
+  private boolean computeClassEligible(AppInfo appInfo, DexClass clazz) {
+    if (clazz == null || clazz.isLibraryClass() ||
+        clazz.accessFlags.isAbstract() || clazz.accessFlags.isInterface()) {
       return false;
     }
 
     // Class must not define finalizer.
-    for (DexEncodedMethod method : definition.virtualMethods()) {
+    for (DexEncodedMethod method : clazz.virtualMethods()) {
       if (method.method.name == factory.finalizeMethodName &&
           method.method.proto == factory.objectMethods.finalize.proto) {
         return false;

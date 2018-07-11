@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.optimize.classinliner.builders.Tuple;
 import com.android.tools.r8.ir.optimize.classinliner.code.C;
 import com.android.tools.r8.ir.optimize.classinliner.code.CodeTestClass;
 import com.android.tools.r8.ir.optimize.classinliner.invalidroot.InvalidRootsTestClass;
+import com.android.tools.r8.ir.optimize.classinliner.lambdas.LambdasTestClass;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.ClassWithFinal;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceAB;
 import com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceBA;
@@ -299,6 +300,37 @@ public class ClassInlinerTest extends TestBase {
 
     assertFalse(inspector.clazz(InvalidRootsTestClass.A.class).isPresent());
     assertFalse(inspector.clazz(InvalidRootsTestClass.B.class).isPresent());
+  }
+
+  @Test
+  public void testDesugaredLambdas() throws Exception {
+    byte[][] classes = {
+        ToolHelper.getClassAsBytes(LambdasTestClass.class),
+        ToolHelper.getClassAsBytes(LambdasTestClass.Iface.class),
+        ToolHelper.getClassAsBytes(LambdasTestClass.IfaceUtil.class),
+    };
+    AndroidApp app = runR8(buildAndroidApp(classes), LambdasTestClass.class);
+
+    String javaOutput = runOnJava(LambdasTestClass.class);
+    String artOutput = runOnArt(app, LambdasTestClass.class);
+    assertEquals(javaOutput, artOutput);
+
+    DexInspector inspector = new DexInspector(app);
+    ClassSubject clazz = inspector.clazz(LambdasTestClass.class);
+
+    assertEquals(
+        Sets.newHashSet(
+            "java.lang.StringBuilder"),
+        collectTypes(clazz, "testStatelessLambda", "void"));
+
+    assertEquals(
+        Sets.newHashSet(
+            "java.lang.StringBuilder"),
+        collectTypes(clazz, "testStatefulLambda", "void", "java.lang.String", "java.lang.String"));
+
+    assertEquals(0,
+        inspector.allClasses().stream()
+            .filter(ClassSubject::isSynthesizedJavaLambdaClass).count());
   }
 
   private Set<String> collectTypes(
