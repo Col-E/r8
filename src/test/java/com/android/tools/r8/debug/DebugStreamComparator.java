@@ -214,7 +214,8 @@ public class DebugStreamComparator {
       try {
         if (done) {
           assertTrue(
-              "Not all streams completed at the same time",
+              "Not all streams completed at the same time. "
+                  + "Set 'DebugTestBase.DEBUG_TEST = true' to aid in diagnosing the issue.",
               states.stream().allMatch(Objects::isNull));
           return;
         } else {
