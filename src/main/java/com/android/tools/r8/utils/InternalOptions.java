@@ -448,6 +448,7 @@ public class InternalOptions {
     public boolean dontCreateMarkerInD8 = false;
     public boolean forceJumboStringProcessing = false;
     public Set<Inliner.Reason> validInliningReasons = null;
+    public boolean suppressExperimentalCfBackendWarning = false;
   }
 
   public boolean canUseInvokePolymorphicOnVarHandle() {

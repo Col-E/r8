@@ -7,7 +7,6 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
 import static com.android.tools.r8.utils.DexInspectorMatchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -21,6 +20,7 @@ import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.V1_8;
 
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsChecker;
 import com.android.tools.r8.R8Command;
@@ -33,11 +33,17 @@ import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
+import java.util.Collection;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 
+@RunWith(Parameterized.class)
 public class MinifierClassSignatureTest extends TestBase {
   /*
 
@@ -62,6 +68,16 @@ public class MinifierClassSignatureTest extends TestBase {
   String outerSignature = "<T:Ljava/lang/Object;>Ljava/lang/Object;";
   String extendsInnerSignature = "LOuter<TT;>.Inner;";
   String extendsInnerInnerSignature = "LOuter<TT;>.Inner.InnerInner;";
+  Backend backend;
+
+  @Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public MinifierClassSignatureTest(Backend backend) {
+    this.backend = backend;
+  }
 
   private byte[] dumpSimple(String classSignature) throws Exception {
 
@@ -290,26 +306,36 @@ public class MinifierClassSignatureTest extends TestBase {
       Consumer<DexInspector> inspect)
       throws Exception {
     DiagnosticsChecker checker = new DiagnosticsChecker();
-    DexInspector inspector = new DexInspector(
-      ToolHelper.runR8(R8Command.builder(checker)
-          .addClassProgramData(dumpSimple(signatures.get("Simple")), Origin.unknown())
-          .addClassProgramData(dumpBase(signatures.get("Base")), Origin.unknown())
-          .addClassProgramData(dumpOuter(signatures.get("Outer")), Origin.unknown())
-          .addClassProgramData(dumpInner(signatures.get("Outer$Inner")), Origin.unknown())
-          .addClassProgramData(
-              dumpExtendsInner(signatures.get("Outer$ExtendsInner")), Origin.unknown())
-          .addClassProgramData(
-              dumpInnerInner(signatures.get("Outer$Inner$InnerInner")), Origin.unknown())
-          .addClassProgramData(
-              dumpExtendsInnerInner(
-                  signatures.get("Outer$Inner$ExtendsInnerInner")), Origin.unknown())
-          .addProguardConfiguration(ImmutableList.of(
-              "-keepattributes InnerClasses,EnclosingMethod,Signature",
-              "-keep,allowobfuscation class **"
-          ), Origin.unknown())
-          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-          .setProguardMapConsumer(StringConsumer.emptyConsumer())
-          .build()));
+    assert (backend == Backend.CF || backend == Backend.DEX);
+    DexInspector inspector =
+        new DexInspector(
+            ToolHelper.runR8(
+                R8Command.builder(checker)
+                    .addClassProgramData(dumpSimple(signatures.get("Simple")), Origin.unknown())
+                    .addClassProgramData(dumpBase(signatures.get("Base")), Origin.unknown())
+                    .addClassProgramData(dumpOuter(signatures.get("Outer")), Origin.unknown())
+                    .addClassProgramData(dumpInner(signatures.get("Outer$Inner")), Origin.unknown())
+                    .addClassProgramData(
+                        dumpExtendsInner(signatures.get("Outer$ExtendsInner")), Origin.unknown())
+                    .addClassProgramData(
+                        dumpInnerInner(signatures.get("Outer$Inner$InnerInner")), Origin.unknown())
+                    .addClassProgramData(
+                        dumpExtendsInnerInner(signatures.get("Outer$Inner$ExtendsInnerInner")),
+                        Origin.unknown())
+                    .addProguardConfiguration(
+                        ImmutableList.of(
+                            "-keepattributes InnerClasses,EnclosingMethod,Signature",
+                            "-keep,allowobfuscation class **"),
+                        Origin.unknown())
+                    .setProgramConsumer(
+                        backend == Backend.DEX
+                            ? DexIndexedConsumer.emptyConsumer()
+                            : ClassFileConsumer.emptyConsumer())
+                    .setProguardMapConsumer(StringConsumer.emptyConsumer())
+                    .build(),
+                options -> {
+                  options.testing.suppressExperimentalCfBackendWarning = true;
+                }));
     // All classes are kept, and renamed.
     assertThat(inspector.clazz("Simple"), isRenamed());
     assertThat(inspector.clazz("Base"), isRenamed());

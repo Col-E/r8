@@ -21,6 +21,7 @@ import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.V1_8;
 
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsChecker;
 import com.android.tools.r8.R8Command;
@@ -34,13 +35,18 @@ import com.android.tools.r8.utils.DexInspector.ClassSubject;
 import com.android.tools.r8.utils.DexInspector.FieldSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 
-
+@RunWith(Parameterized.class)
 public class MinifierFieldSignatureTest extends TestBase {
   /*
 
@@ -59,6 +65,16 @@ public class MinifierFieldSignatureTest extends TestBase {
   private String anArrayOfXSignature = "[TX;";
   private String aFieldsOfXSignature = "LFields<TX;>;";
   private String aFieldsOfXInnerSignature = "LFields<TX;>.Inner;";
+  private Backend backend;
+
+  @Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public MinifierFieldSignatureTest(Backend backend) {
+    this.backend = backend;
+  }
 
   public byte[] dumpFields(Map<String, String> signatures) throws Exception {
 
@@ -164,17 +180,27 @@ public class MinifierFieldSignatureTest extends TestBase {
       Consumer<DexInspector> inspect)
       throws Exception {
     DiagnosticsChecker checker = new DiagnosticsChecker();
-    DexInspector inspector = new DexInspector(
-      ToolHelper.runR8(R8Command.builder(checker)
-          .addClassProgramData(dumpFields(signatures), Origin.unknown())
-          .addClassProgramData(dumpInner(), Origin.unknown())
-          .addProguardConfiguration(ImmutableList.of(
-              "-keepattributes InnerClasses,EnclosingMethod,Signature",
-              "-keep,allowobfuscation class ** { *; }"
-          ), Origin.unknown())
-          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-          .setProguardMapConsumer(StringConsumer.emptyConsumer())
-          .build()));
+    assert (backend == Backend.CF || backend == Backend.DEX);
+    DexInspector inspector =
+        new DexInspector(
+            ToolHelper.runR8(
+                R8Command.builder(checker)
+                    .addClassProgramData(dumpFields(signatures), Origin.unknown())
+                    .addClassProgramData(dumpInner(), Origin.unknown())
+                    .addProguardConfiguration(
+                        ImmutableList.of(
+                            "-keepattributes InnerClasses,EnclosingMethod,Signature",
+                            "-keep,allowobfuscation class ** { *; }"),
+                        Origin.unknown())
+                    .setProgramConsumer(
+                        backend == Backend.DEX
+                            ? DexIndexedConsumer.emptyConsumer()
+                            : ClassFileConsumer.emptyConsumer())
+                    .setProguardMapConsumer(StringConsumer.emptyConsumer())
+                    .build(),
+                options -> {
+                  options.testing.suppressExperimentalCfBackendWarning = true;
+                }));
     // All classes are kept, and renamed.
     ClassSubject clazz = inspector.clazz("Fields");
     assertThat(clazz, isRenamed());

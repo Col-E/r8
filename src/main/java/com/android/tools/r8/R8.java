@@ -235,7 +235,7 @@ public class R8 {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
     // TODO(b/65390962): Remove this warning once the CF backend is complete.
-    if (options.isGeneratingClassFiles()) {
+    if (options.isGeneratingClassFiles() && !options.testing.suppressExperimentalCfBackendWarning) {
       options.reporter.warning(new StringDiagnostic(
           "R8 support for generating Java classfiles is incomplete and experimental. "
               + "Even if R8 appears to succeed, the generated output is likely incorrect."));
