@@ -11,12 +11,14 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -87,6 +89,11 @@ public class R8RunSmaliTestsTest {
   // Tests where the original smali code runs on Art, but fails after R8 processing
   private static Map<String, List<String>> failingOnArtVersions = ImmutableMap.of(
       // This list is currently empty!
+  );
+
+  private Set<String> failingOnX8 = ImmutableSet.of(
+      // Contains use of register as both an int and a float.
+      "regression/33336471"
   );
 
   @Rule
@@ -161,6 +168,10 @@ public class R8RunSmaliTestsTest {
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .setOutput(Paths.get(outputPath), OutputMode.DexIndexed);
     ToolHelper.getAppBuilder(builder).addProgramFiles(originalDexFile);
+
+    if (failingOnX8.contains(directoryName)) {
+      thrown.expect(CompilationFailedException.class);
+    }
     R8.run(builder.build());
 
     if (!ToolHelper.artSupported()) {

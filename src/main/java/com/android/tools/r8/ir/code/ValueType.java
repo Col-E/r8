@@ -48,6 +48,10 @@ public enum ValueType {
     if (other == INT_OR_FLOAT_OR_NULL) {
       return other.meet(this);
     }
+    if (isPreciseType() && other.isPreciseType()) {
+      // Precise types must be identical, hitting the first check above.
+      throw new CompilationError("Cannot compute meet of types: " + this + " and " + other);
+    }
     switch (this) {
       case OBJECT:
         {
