@@ -16,7 +16,9 @@ public class ClassWithAssertions {
   }
 
   int getX() {
+    System.out.println("1");
     assert condition();
+    System.out.println("2");
     return x;
   }
 

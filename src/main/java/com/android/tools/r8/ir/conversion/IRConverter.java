@@ -108,6 +108,7 @@ public class IRConverter {
   private final boolean enableWholeProgramOptimizations;
 
   private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
+  private final OptimizationFeedback simpleOptimizationFeedback = new OptimizationFeedbackSimple();
   private DexString highestSortingString;
 
   private IRConverter(
@@ -357,19 +358,34 @@ public class IRConverter {
       ExecutorService executor) throws ExecutionException {
     List<Future<?>> futures = new ArrayList<>();
     for (DexProgramClass clazz : classes) {
-      futures.add(executor.submit(() -> clazz.forEachMethod(this::convertMethodToDex)));
+      futures.add(executor.submit(() -> convertMethodsToDex(clazz)));
     }
     ThreadUtils.awaitFutures(futures);
   }
 
-  void convertMethodToDex(DexEncodedMethod method) {
+  private void convertMethodsToDex(DexProgramClass clazz) {
+    // When converting all methods on a class always convert <clinit> first.
+    for (DexEncodedMethod method : clazz.directMethods()) {
+      if (method.isClassInitializer()) {
+        convertMethodToDex(method);
+        break;
+      }
+    }
+    clazz.forEachMethod(method -> {
+      if (!method.isClassInitializer()) {
+        convertMethodToDex(method);
+      }
+    });
+  }
+
+  private void convertMethodToDex(DexEncodedMethod method) {
     assert options.isGeneratingDex();
     if (method.getCode() != null) {
       boolean matchesMethodFilter = options.methodMatchesFilter(method);
       if (matchesMethodFilter) {
         if (!(options.passthroughDexCode && method.getCode().isDexCode())) {
           // We do not process in call graph order, so anything could be a leaf.
-          rewriteCode(method, ignoreOptimizationFeedback, x -> true, CallSiteInformation.empty(),
+          rewriteCode(method, simpleOptimizationFeedback, x -> true, CallSiteInformation.empty(),
               Outliner::noProcessing);
         }
         updateHighestSortingStrings(method);
@@ -668,7 +684,7 @@ public class IRConverter {
       codeRewriter.removeSwitchMaps(code);
     }
     if (options.disableAssertions) {
-      codeRewriter.disableAssertions(code);
+      codeRewriter.disableAssertions(appInfo, method, code, feedback);
     }
     if (options.enableNonNullTracking && nonNullTracker != null) {
       nonNullTracker.addNonNull(code);

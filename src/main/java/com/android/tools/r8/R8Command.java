@@ -618,6 +618,13 @@ public final class R8Command extends BaseCompilerCommand {
     internal.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
     internal.dataResourceConsumer = internal.programConsumer.getDataResourceConsumer();
 
+    // Default is to remove Java assertion code as Dalvik and Art does not reliable support
+    // Java assertions. When generation class file output always keep the Java assertions code.
+    assert internal.disableAssertions;
+    if (internal.isGeneratingClassFiles()) {
+      internal.disableAssertions = false;
+    }
+
     // EXPERIMENTAL flags.
     assert !internal.forceProguardCompatibility;
     internal.forceProguardCompatibility = forceProguardCompatibility;

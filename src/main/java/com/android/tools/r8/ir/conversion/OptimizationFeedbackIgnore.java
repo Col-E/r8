@@ -44,6 +44,10 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
   }
 
   @Override
+  public void setInitializerEnablingJavaAssertions(DexEncodedMethod method) {
+  }
+
+  @Override
   public void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo) {
   }
 

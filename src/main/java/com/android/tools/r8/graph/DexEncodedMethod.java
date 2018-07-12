@@ -634,6 +634,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // class inliner, null value indicates that the method is not eligible.
     private ClassInlinerEligibility classInlinerEligibility = null;
     private TrivialInitializer trivialInitializerInfo = null;
+    private boolean initializerEnablingJavaAssertions = false;
     private ParameterUsagesInfo parametersUsages = null;
     private BitSet kotlinNotNullParamHints = null;
 
@@ -703,6 +704,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     public TrivialInitializer getTrivialInitializerInfo() {
       return this.trivialInitializerInfo;
+    }
+
+    private void setInitializerEnablingJavaAssertions() {
+      this.initializerEnablingJavaAssertions = true;
+    }
+
+    public boolean isInitializerEnablingJavaAssertions() {
+      return initializerEnablingJavaAssertions;
     }
 
     public long getReturnedConstant() {
@@ -829,6 +838,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void setTrivialInitializer(TrivialInitializer info) {
     ensureMutableOI().setTrivialInitializer(info);
+  }
+
+  synchronized public void setInitializerEnablingJavaAssertions() {
+    ensureMutableOI().setInitializerEnablingJavaAssertions();
   }
 
   synchronized public void markForceInline() {

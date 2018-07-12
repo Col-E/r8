@@ -21,6 +21,7 @@ public interface OptimizationFeedback {
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
   void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibility eligibility);
   void setTrivialInitializer(DexEncodedMethod method, TrivialInitializer info);
+  void setInitializerEnablingJavaAssertions(DexEncodedMethod method);
   void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo);
   void setKotlinNotNullParamHints(DexEncodedMethod method, BitSet hints);
 }

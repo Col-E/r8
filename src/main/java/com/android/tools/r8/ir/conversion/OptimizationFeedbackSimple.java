@@ -6,57 +6,58 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import java.util.BitSet;
 
-public class OptimizationFeedbackDirect implements OptimizationFeedback {
+public class OptimizationFeedbackSimple implements OptimizationFeedback {
 
   @Override
   public void methodReturnsArgument(DexEncodedMethod method, int argument) {
-    method.markReturnsArgument(argument);
+    // Ignored.
   }
 
   @Override
   public void methodReturnsConstant(DexEncodedMethod method, long value) {
-    method.markReturnsConstant(value);
+    // Ignored.
   }
 
   @Override
   public void methodNeverReturnsNull(DexEncodedMethod method) {
-    method.markNeverReturnsNull();
+    // Ignored.
   }
 
   @Override
   public void methodNeverReturnsNormally(DexEncodedMethod method) {
-    method.markNeverReturnsNormally();
+    // Ignored.
   }
 
   @Override
   public void markProcessed(DexEncodedMethod method, Constraint state) {
-    method.markProcessed(state);
+    // Just as processed, don't provide any inlining constraints.
+    method.markProcessed(Constraint.NEVER);
   }
 
   @Override
   public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {
-    method.markCheckNullReceiverBeforeAnySideEffect(mark);
+    // Ignored.
   }
 
   @Override
   public void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {
-    method.markTriggerClassInitBeforeAnySideEffect(mark);
+    // Ignored.
   }
 
   @Override
   public void setClassInlinerEligibility(
       DexEncodedMethod method, ClassInlinerEligibility eligibility) {
-    method.setClassInlinerEligibility(eligibility);
+    // Ignored.
   }
 
   @Override
   public void setTrivialInitializer(DexEncodedMethod method, TrivialInitializer info) {
-    method.setTrivialInitializer(info);
+    // Ignored.
   }
 
   @Override
@@ -66,11 +67,11 @@ public class OptimizationFeedbackDirect implements OptimizationFeedback {
 
   @Override
   public void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo) {
-    method.setParameterUsages(parameterUsagesInfo);
+    // Ignored.
   }
 
   @Override
   public void setKotlinNotNullParamHints(DexEncodedMethod method, BitSet hints) {
-    method.setKotlinNotNullParamHints(hints);
+    // Ignored.
   }
 }
