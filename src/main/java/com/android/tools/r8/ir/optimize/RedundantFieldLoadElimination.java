@@ -132,7 +132,8 @@ public class RedundantFieldLoadElimination {
             }
           }
         }
-        if (instruction.isMonitor() || instruction.isInvokeMethod()) {
+        if ((instruction.isMonitor() && instruction.asMonitor().isEnter())
+            || instruction.isInvokeMethod()) {
           killAllActiveFields();
         }
       }
