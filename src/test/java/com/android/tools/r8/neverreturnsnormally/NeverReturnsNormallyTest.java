@@ -16,6 +16,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.DexInspector.DexInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InstructionSubject;
 import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.DexInspector.MethodSubject;
@@ -82,7 +83,8 @@ public class NeverReturnsNormallyTest extends TestBase {
     assertTrue(insn.isInvoke());
     assertTrue(((InvokeInstructionSubject) insn)
         .invokedMethod().name.toString().equals("throwNpe"));
-    assertTrue(nextInstruction(instructions).isConst4());
+    insn = nextInstruction(instructions);
+    assertTrue(insn instanceof DexInstructionSubject && ((DexInstructionSubject) insn).isConst4());
     assertTrue(nextInstruction(instructions).isThrow());
     assertFalse(instructions.hasNext());
 
@@ -105,7 +107,8 @@ public class NeverReturnsNormallyTest extends TestBase {
       assertTrue(((InvokeInstructionSubject) insn)
           .invokedMethod().name.toString().equals("throwNpe"));
     }
-    assertTrue(nextInstruction(instructions).isConst4());
+    insn = nextInstruction(instructions);
+    assertTrue(insn instanceof DexInstructionSubject && ((DexInstructionSubject) insn).isConst4());
     assertTrue(nextInstruction(instructions).isThrow());
     assertFalse(instructions.hasNext());
 
@@ -119,7 +122,8 @@ public class NeverReturnsNormallyTest extends TestBase {
     assertTrue(insn.isInvoke());
     assertTrue(((InvokeInstructionSubject) insn)
         .invokedMethod().name.toString().equals("innerNotReachable"));
-    assertTrue(nextInstruction(instructions).isConst4());
+    insn = nextInstruction(instructions);
+    assertTrue(insn instanceof DexInstructionSubject && ((DexInstructionSubject) insn).isConst4());
     assertTrue(nextInstruction(instructions).isThrow());
     assertFalse(instructions.hasNext());
   }

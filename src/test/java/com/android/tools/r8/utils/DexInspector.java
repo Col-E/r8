@@ -54,6 +54,7 @@ import com.android.tools.r8.code.SputShort;
 import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -81,6 +82,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.smali.SmaliBuilder;
+import com.android.tools.r8.utils.DexInspector.FieldAccessInstructionSubject;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -105,8 +107,6 @@ public class DexInspector {
   private final DexItemFactory dexItemFactory;
   private final ClassNameMapper mapping;
   private final BiMap<String, String> originalToObfuscatedMapping;
-
-  private final InstructionSubjectFactory factory = new InstructionSubjectFactory();
 
   public static MethodSignature MAIN =
       new MethodSignature("main", "void", new String[]{"java.lang.String[]"});
@@ -304,18 +304,18 @@ public class DexInspector {
     return obfuscatedType;
   }
 
-  public abstract class Subject {
+  public abstract static class Subject {
 
     public abstract boolean isPresent();
     public abstract boolean isRenamed();
   }
 
-  public abstract class AnnotationSubject extends Subject {
+  public abstract static class AnnotationSubject extends Subject {
 
     public abstract DexEncodedAnnotation getAnnotation();
   }
 
-  public class FoundAnnotationSubject extends AnnotationSubject {
+  public static class FoundAnnotationSubject extends AnnotationSubject {
 
     private final DexAnnotation annotation;
 
@@ -339,7 +339,7 @@ public class DexInspector {
     }
   }
 
-  public class AbsentAnnotationSubject extends AnnotationSubject {
+  public static class AbsentAnnotationSubject extends AnnotationSubject {
 
     @Override
     public boolean isPresent() {
@@ -357,8 +357,7 @@ public class DexInspector {
     }
   }
 
-
-  public abstract class ClassSubject extends Subject {
+  public abstract static class ClassSubject extends Subject {
 
     public abstract void forAllMethods(Consumer<FoundMethodSubject> inspection);
 
@@ -737,7 +736,7 @@ public class DexInspector {
     }
   }
 
-  public abstract class MemberSubject extends Subject {
+  public abstract static class MemberSubject extends Subject {
 
     public abstract boolean isPublic();
 
@@ -760,7 +759,7 @@ public class DexInspector {
     }
   }
 
-  public abstract class MethodSubject extends MemberSubject {
+  public abstract static class MethodSubject extends MemberSubject {
 
     public abstract boolean isAbstract();
 
@@ -970,7 +969,7 @@ public class DexInspector {
 
     @Override
     public Iterator<InstructionSubject> iterateInstructions() {
-      return new InstructionIterator(this);
+      return createInstructionIterator(this);
     }
 
     @Override
@@ -985,7 +984,7 @@ public class DexInspector {
     }
   }
 
-  public abstract class FieldSubject extends MemberSubject {
+  public abstract static class FieldSubject extends MemberSubject {
     public abstract boolean hasExplicitStaticValue();
 
     public abstract DexEncodedField getField();
@@ -999,7 +998,7 @@ public class DexInspector {
     public abstract String getFinalSignatureAttribute();
   }
 
-  public class AbsentFieldSubject extends FieldSubject {
+  public static class AbsentFieldSubject extends FieldSubject {
 
     @Override
     public boolean isPublic() {
@@ -1192,91 +1191,139 @@ public class DexInspector {
     }
   }
 
-  private class InstructionSubjectFactory {
+  public interface InstructionSubject {
+    boolean isFieldAccess();
 
-    InstructionSubject create(Instruction instruction) {
-      if (isInvoke(instruction)) {
-        return new InvokeInstructionSubject(this, instruction);
-      } else if (isFieldAccess(instruction)) {
-        return new FieldAccessInstructionSubject(this, instruction);
-      } else {
-        return new InstructionSubject(this, instruction);
-      }
+    boolean isInvokeVirtual();
+
+    boolean isInvokeInterface();
+
+    boolean isInvokeDirect();
+
+    boolean isInvokeSuper();
+
+    boolean isInvokeStatic();
+
+    boolean isNop();
+
+    boolean isConstString();
+
+    boolean isConstString(String value);
+
+    boolean isGoto();
+
+    boolean isIfNez();
+
+    boolean isIfEqz();
+
+    boolean isReturnVoid();
+
+    boolean isThrow();
+
+    default boolean isInvoke() {
+      return isInvokeVirtual()
+          || isInvokeInterface()
+          || isInvokeDirect()
+          || isInvokeSuper()
+          || isInvokeStatic();
+    }
+  }
+
+  public InstructionSubject createInstructionSubject(Instruction instruction) {
+    DexInstructionSubject dexInst = new DexInstructionSubject(instruction);
+    if (dexInst.isInvoke()) {
+      return new InvokeDexInstructionSubject(instruction);
+    } else if (dexInst.isFieldAccess()) {
+      return new FieldAccessDexInstructionSubject(instruction);
+    } else {
+      return dexInst;
+    }
+  }
+
+  public class DexInstructionSubject implements InstructionSubject {
+    protected Instruction instruction;
+
+    public DexInstructionSubject(Instruction instruction) {
+      this.instruction = instruction;
     }
 
-    boolean isInvoke(Instruction instruction) {
-      return isInvokeVirtual(instruction)
-          || isInvokeInterface(instruction)
-          || isInvokeDirect(instruction)
-          || isInvokeSuper(instruction)
-          || isInvokeStatic(instruction);
+    @Override
+    public boolean isFieldAccess() {
+      return isInstanceGet() || isInstancePut() || isStaticGet() || isStaticSet();
     }
 
-    boolean isInvokeVirtual(Instruction instruction) {
+    @Override
+    public boolean isInvokeVirtual() {
       return instruction instanceof InvokeVirtual || instruction instanceof InvokeVirtualRange;
     }
 
-    boolean isInvokeInterface(Instruction instruction) {
+    @Override
+    public boolean isInvokeInterface() {
       return instruction instanceof InvokeInterface || instruction instanceof InvokeInterfaceRange;
     }
 
-    boolean isInvokeDirect(Instruction instruction) {
+    @Override
+    public boolean isInvokeDirect() {
       return instruction instanceof InvokeDirect || instruction instanceof InvokeDirectRange;
     }
 
-    boolean isInvokeSuper(Instruction instruction) {
+    @Override
+    public boolean isInvokeSuper() {
       return instruction instanceof InvokeSuper || instruction instanceof InvokeSuperRange;
     }
 
-    boolean isInvokeStatic(Instruction instruction) {
+    @Override
+    public boolean isInvokeStatic() {
       return instruction instanceof InvokeStatic || instruction instanceof InvokeStaticRange;
     }
 
-    boolean isNop(Instruction instruction) {
+    @Override
+    public boolean isNop() {
       return instruction instanceof Nop;
     }
 
-    boolean isGoto(Instruction instruction) {
-      return instruction instanceof Goto;
-    }
-
-    boolean isReturnVoid(Instruction instruction) {
-      return instruction instanceof ReturnVoid;
-    }
-
-    boolean isConst4(Instruction instruction) {
-      return instruction instanceof Const4;
-    }
-
-    boolean isThrow(Instruction instruction) {
-      return instruction instanceof Throw;
-    }
-
-    boolean isConstString(Instruction instruction) {
+    @Override
+    public boolean isConstString() {
       return instruction instanceof ConstString;
     }
 
-    boolean isConstString(Instruction instruction, String value) {
+    @Override
+    public boolean isConstString(String value) {
       return instruction instanceof ConstString
           && ((ConstString) instruction).BBBB.toSourceString().equals(value);
     }
 
-    boolean isIfNez(Instruction instruction) {
+    @Override
+    public boolean isGoto() {
+
+      return instruction instanceof Goto;
+    }
+
+    @Override
+    public boolean isIfNez() {
       return instruction instanceof IfNez;
     }
 
-    boolean isIfEqz(Instruction instruction) {
+    @Override
+    public boolean isIfEqz() {
       return instruction instanceof IfEqz;
     }
 
-    boolean isFieldAccess(Instruction instruction) {
-      return isInstanceGet(instruction)
-          || isInstancePut(instruction)
-          || isStaticGet(instruction)
-          || isStaticSet(instruction);
+    @Override
+    public boolean isReturnVoid() {
+      return instruction instanceof ReturnVoid;
     }
 
-    boolean isInstanceGet(Instruction instruction) {
+    @Override
+    public boolean isThrow() {
+      return instruction instanceof Throw;
+    }
+
+    public boolean isConst4() {
+      return instruction instanceof Const4;
+    }
+
+    public boolean isInstanceGet() {
       return instruction instanceof Iget
           || instruction instanceof IgetBoolean
           || instruction instanceof IgetByte
@@ -1286,7 +1333,7 @@ public class DexInspector {
           || instruction instanceof IgetObject;
     }
 
-    boolean isInstancePut(Instruction instruction) {
+    public boolean isInstancePut() {
       return instruction instanceof Iput
           || instruction instanceof IputBoolean
           || instruction instanceof IputByte
@@ -1296,7 +1343,7 @@ public class DexInspector {
           || instruction instanceof IputObject;
     }
 
-    boolean isStaticGet(Instruction instruction) {
+    public boolean isStaticGet() {
       return instruction instanceof Sget
           || instruction instanceof SgetBoolean
           || instruction instanceof SgetByte
@@ -1306,7 +1353,7 @@ public class DexInspector {
           || instruction instanceof SgetObject;
     }
 
-    boolean isStaticSet(Instruction instruction) {
+    public boolean isStaticSet() {
       return instruction instanceof Sput
           || instruction instanceof SputBoolean
           || instruction instanceof SputByte
@@ -1317,89 +1364,21 @@ public class DexInspector {
     }
   }
 
-  public class InstructionSubject {
+  public interface InvokeInstructionSubject extends InstructionSubject {
+    TypeSubject holder();
 
-    protected final InstructionSubjectFactory factory;
-    protected final Instruction instruction;
-
-    protected InstructionSubject(InstructionSubjectFactory factory, Instruction instruction) {
-      this.factory = factory;
-      this.instruction = instruction;
-    }
-
-    public boolean isInvoke() {
-      return factory.isInvoke(instruction);
-    }
-
-    public boolean isFieldAccess() {
-      return factory.isFieldAccess(instruction);
-    }
-
-    public boolean isInvokeVirtual() {
-      return factory.isInvokeVirtual(instruction);
-    }
-
-    public boolean isInvokeInterface() {
-      return factory.isInvokeInterface(instruction);
-    }
-
-    public boolean isInvokeDirect() {
-      return factory.isInvokeDirect(instruction);
-    }
-
-    public boolean isInvokeSuper() {
-      return factory.isInvokeSuper(instruction);
-    }
-
-    public boolean isInvokeStatic() {
-      return factory.isInvokeStatic(instruction);
-    }
-
-    boolean isFieldAccess(Instruction instruction) {
-      return factory.isFieldAccess(instruction);
-    }
-
-    public boolean isNop() {
-      return factory.isNop(instruction);
-    }
-
-    public boolean isConstString() {
-      return factory.isConstString(instruction);
-    }
-
-    public boolean isConstString(String value) {
-      return factory.isConstString(instruction, value);
-    }
-
-    public boolean isGoto() {
-      return factory.isGoto(instruction);
-    }
-
-    public boolean isIfNez() {
-      return factory.isIfNez(instruction);
-    }
-
-    public boolean isIfEqz() {
-      return factory.isIfEqz(instruction);
-    }
-
-    public boolean isReturnVoid() {
-      return factory.isReturnVoid(instruction);
-    }
-
-    public boolean isConst4() {
-      return factory.isConst4(instruction);
-    }
-
-    public boolean isThrow() {
-      return factory.isThrow(instruction);
-    }
+    DexMethod invokedMethod();
   }
 
-  public class InvokeInstructionSubject extends InstructionSubject {
+  public interface FieldAccessInstructionSubject extends InstructionSubject {
+    TypeSubject holder();
+  }
 
-    InvokeInstructionSubject(InstructionSubjectFactory factory, Instruction instruction) {
-      super(factory, instruction);
+  public class InvokeDexInstructionSubject extends DexInstructionSubject
+      implements InvokeInstructionSubject {
+
+    public InvokeDexInstructionSubject(Instruction instruction) {
+      super(instruction);
       assert isInvoke();
     }
 
@@ -1408,156 +1387,41 @@ public class DexInspector {
     }
 
     public DexMethod invokedMethod() {
-      if (instruction instanceof InvokeVirtual) {
-        return ((InvokeVirtual) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeVirtualRange) {
-        return ((InvokeVirtualRange) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeInterface) {
-        return ((InvokeInterface) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeInterfaceRange) {
-        return ((InvokeInterfaceRange) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeDirect) {
-        return ((InvokeDirect) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeDirectRange) {
-        return ((InvokeDirectRange) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeSuper) {
-        return ((InvokeSuper) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeSuperRange) {
-        return ((InvokeSuperRange) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeDirect) {
-        return ((InvokeDirect) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeDirectRange) {
-        return ((InvokeDirectRange) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeStatic) {
-        return ((InvokeStatic) instruction).getMethod();
-      }
-      if (instruction instanceof InvokeStaticRange) {
-        return ((InvokeStaticRange) instruction).getMethod();
-      }
-      assert false;
-      return null;
+      return instruction.getMethod();
     }
   }
 
-  public class FieldAccessInstructionSubject extends InstructionSubject {
+  public class FieldAccessDexInstructionSubject extends DexInstructionSubject
+      implements FieldAccessInstructionSubject {
 
-    FieldAccessInstructionSubject(InstructionSubjectFactory factory, Instruction instruction) {
-      super(factory, instruction);
+    public FieldAccessDexInstructionSubject(Instruction instruction) {
+      super(instruction);
       assert isFieldAccess();
     }
 
     public TypeSubject holder() {
-      return new TypeSubject(accessedField().getHolder());
-    }
-
-    public DexField accessedField() {
-      if (instruction instanceof Iget) {
-        return ((Iget) instruction).getField();
-      }
-      if (instruction instanceof IgetBoolean) {
-        return ((IgetBoolean) instruction).getField();
-      }
-      if (instruction instanceof IgetByte) {
-        return ((IgetByte) instruction).getField();
-      }
-      if (instruction instanceof IgetShort) {
-        return ((IgetShort) instruction).getField();
-      }
-      if (instruction instanceof IgetChar) {
-        return ((IgetChar) instruction).getField();
-      }
-      if (instruction instanceof IgetWide) {
-        return ((IgetWide) instruction).getField();
-      }
-      if (instruction instanceof IgetObject) {
-        return ((IgetObject) instruction).getField();
-      }
-      if (instruction instanceof Iput) {
-        return ((Iput) instruction).getField();
-      }
-      if (instruction instanceof IputBoolean) {
-        return ((IputBoolean) instruction).getField();
-      }
-      if (instruction instanceof IputByte) {
-        return ((IputByte) instruction).getField();
-      }
-      if (instruction instanceof IputShort) {
-        return ((IputShort) instruction).getField();
-      }
-      if (instruction instanceof IputChar) {
-        return ((IputChar) instruction).getField();
-      }
-      if (instruction instanceof IputWide) {
-        return ((IputWide) instruction).getField();
-      }
-      if (instruction instanceof IputObject) {
-        return ((IputObject) instruction).getField();
-      }
-      if (instruction instanceof Sget) {
-        return ((Sget) instruction).getField();
-      }
-      if (instruction instanceof SgetBoolean) {
-        return ((SgetBoolean) instruction).getField();
-      }
-      if (instruction instanceof SgetByte) {
-        return ((SgetByte) instruction).getField();
-      }
-      if (instruction instanceof SgetShort) {
-        return ((SgetShort) instruction).getField();
-      }
-      if (instruction instanceof SgetChar) {
-        return ((SgetChar) instruction).getField();
-      }
-      if (instruction instanceof SgetWide) {
-        return ((SgetWide) instruction).getField();
-      }
-      if (instruction instanceof SgetObject) {
-        return ((SgetObject) instruction).getField();
-      }
-      if (instruction instanceof Sput) {
-        return ((Sput) instruction).getField();
-      }
-      if (instruction instanceof SputBoolean) {
-        return ((SputBoolean) instruction).getField();
-      }
-      if (instruction instanceof SputByte) {
-        return ((SputByte) instruction).getField();
-      }
-      if (instruction instanceof SputShort) {
-        return ((SputShort) instruction).getField();
-      }
-      if (instruction instanceof SputChar) {
-        return ((SputChar) instruction).getField();
-      }
-      if (instruction instanceof SputWide) {
-        return ((SputWide) instruction).getField();
-      }
-      if (instruction instanceof SputObject) {
-        return ((SputObject) instruction).getField();
-      }
-      assert false;
-      return null;
+      return new TypeSubject(instruction.getField().getHolder());
     }
   }
 
-  private class InstructionIterator implements Iterator<InstructionSubject> {
+  private interface InstructionIterator extends Iterator<InstructionSubject> {}
+
+  private InstructionIterator createInstructionIterator(MethodSubject method) {
+    Code code = method.getMethod().getCode();
+    assert code != null && code.isDexCode();
+    return new DexInstructionIterator(method);
+  }
+
+  private class DexInstructionIterator implements InstructionIterator {
 
     private final DexCode code;
     private int index;
 
-    InstructionIterator(MethodSubject method) {
+    DexInstructionIterator(MethodSubject method) {
       assert method.isPresent();
-      this.code = method.getMethod().getCode().asDexCode();
+      Code code = method.getMethod().getCode();
+      assert code != null && code.isDexCode();
+      this.code = code.asDexCode();
       this.index = 0;
     }
 
@@ -1571,7 +1435,7 @@ public class DexInspector {
       if (index == code.instructions.length) {
         throw new NoSuchElementException();
       }
-      return factory.create(code.instructions[index++]);
+      return createInstructionSubject(code.instructions[index++]);
     }
   }
 
@@ -1582,7 +1446,7 @@ public class DexInspector {
     private InstructionSubject pendingNext = null;
 
     FilteredInstructionIterator(MethodSubject method, Predicate<InstructionSubject> predicate) {
-      this.iterator = new InstructionIterator(method);
+      this.iterator = createInstructionIterator(method);
       this.predicate = predicate;
       hasNext();
     }
