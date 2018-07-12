@@ -179,17 +179,17 @@ public class RemoveAssertionsTest extends TestBase {
     // Assertion is hit.
     result = ToolHelper.runJava(buildTestToCf(options -> {}), "-ea", main, "0");
     assertEquals(1, result.exitCode);
-    assertEquals("1\n", result.stdout);
+    assertEquals("1\n".replace("\n", System.lineSeparator()), result.stdout);
     // Assertion is not hit.
     result = ToolHelper.runJava(buildTestToCf(options -> {}), "-ea", main, "1");
     assertEquals(0, result.exitCode);
-    assertEquals("1\n2\n", result.stdout);
+    assertEquals("1\n2\n".replace("\n", System.lineSeparator()), result.stdout);
     // Assertion is hit, but removed.
     result = ToolHelper.runJava(
         buildTestToCf(
             options -> options.disableAssertions = true), "-ea", main, "0");
     assertEquals(0, result.exitCode);
-    assertEquals("1\n2\n", result.stdout);
+    assertEquals("1\n2\n".replace("\n", System.lineSeparator()), result.stdout);
   }
 
   private byte[] identity(byte[] classBytes) {
@@ -225,8 +225,10 @@ public class RemoveAssertionsTest extends TestBase {
     // Assertions not removed when default assertion code is not present.
     app = runRegress110887293(this::chromiumAssertionEnabler);
     assertEquals(
-        "1\nGot AssertionError java.lang.AssertionError\n2\n",
+        "1\nGot AssertionError java.lang.AssertionError\n2\n".replace("\n", System.lineSeparator()),
         runOnArt(app, ClassWithAssertions.class.getCanonicalName(), "0"));
-    assertEquals("1\n2\n", runOnArt(app, ClassWithAssertions.class.getCanonicalName(), "1"));
+    assertEquals(
+        "1\n2\n".replace("\n", System.lineSeparator()),
+        runOnArt(app, ClassWithAssertions.class.getCanonicalName(), "1"));
   }
 }
