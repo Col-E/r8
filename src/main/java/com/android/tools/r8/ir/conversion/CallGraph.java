@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -15,16 +16,23 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +64,7 @@ public class CallGraph extends CallSiteInformation {
     this.shuffle = options.testing.irOrdering;
   }
 
-  private static class Node {
+  public static class Node {
 
     public final DexEncodedMethod method;
     private int invokeCount = 0;
@@ -68,7 +76,7 @@ public class CallGraph extends CallSiteInformation {
     // Incoming calls to this method.
     private final Set<Node> callers = new LinkedHashSet<>();
 
-    private Node(DexEncodedMethod method) {
+    public Node(DexEncodedMethod method) {
       this.method = method;
     }
 
@@ -76,19 +84,20 @@ public class CallGraph extends CallSiteInformation {
       return method.accessFlags.isBridge();
     }
 
-    private void addCallee(Node method) {
+    public void addCallee(Node method) {
       callees.add(method);
+      method.callers.add(this);
     }
 
-    private void addCaller(Node method) {
-      callers.add(method);
+    public boolean hasCallee(Node method) {
+      return callees.contains(method);
     }
 
     boolean isSelfRecursive() {
       return isSelfRecursive;
     }
 
-    boolean isLeaf() {
+    public boolean isLeaf() {
       return callees.isEmpty();
     }
 
@@ -96,7 +105,7 @@ public class CallGraph extends CallSiteInformation {
     public String toString() {
       StringBuilder builder = new StringBuilder();
       builder.append("MethodNode for: ");
-      builder.append(method.qualifiedName());
+      builder.append(method.toSourceString());
       builder.append(" (");
       builder.append(callees.size());
       builder.append(" callees, ");
@@ -114,7 +123,7 @@ public class CallGraph extends CallSiteInformation {
         builder.append("Callees:\n");
         for (Node call : callees) {
           builder.append("  ");
-          builder.append(call.method.qualifiedName());
+          builder.append(call.method.toSourceString());
           builder.append("\n");
         }
       }
@@ -122,7 +131,7 @@ public class CallGraph extends CallSiteInformation {
         builder.append("Callers:\n");
         for (Node caller : callers) {
           builder.append("  ");
-          builder.append(caller.method.qualifiedName());
+          builder.append(caller.method.toSourceString());
           builder.append("\n");
         }
       }
@@ -136,8 +145,12 @@ public class CallGraph extends CallSiteInformation {
   private final Set<DexEncodedMethod> singleCallSite = Sets.newIdentityHashSet();
   private final Set<DexEncodedMethod> doubleCallSite = Sets.newIdentityHashSet();
 
-  public static CallGraph build(DexApplication application, AppInfoWithLiveness appInfo,
-      GraphLense graphLense, InternalOptions options) {
+  public static CallGraph build(
+      DexApplication application,
+      AppInfoWithLiveness appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
+      Timing timing) {
     CallGraph graph = new CallGraph(options);
     DexClass[] classes = application.classes().toArray(new DexClass[application.classes().size()]);
     Arrays.sort(classes, (DexClass a, DexClass b) -> a.type.slowCompareTo(b.type));
@@ -149,8 +162,13 @@ public class CallGraph extends CallSiteInformation {
       }
     }
     assert allMethodsExists(application, graph);
-    graph.breakCycles();
-    assert graph.breakCycles() == 0;  // This time the cycles should be gone.
+
+    timing.begin("Cycle elimination");
+    CycleEliminator cycleEliminator = new CycleEliminator(graph.nodes.values(), options);
+    cycleEliminator.breakCycles();
+    timing.end();
+    assert cycleEliminator.breakCycles() == 0; // This time the cycles should be gone.
+
     graph.fillCallSiteSets(appInfo);
     return graph;
   }
@@ -196,9 +214,10 @@ public class CallGraph extends CallSiteInformation {
 
   /**
    * Extract the next set of leaves (nodes with an call (outgoing) degree of 0) if any.
-   * <p>
-   * All nodes in the graph are extracted if called repeatedly until null is returned.
-   * Please note that there are no cycles in this graph (see {@link #breakCycles}).
+   *
+   * <p>All nodes in the graph are extracted if called repeatedly until null is returned. Please
+   * note that there are no cycles in this graph (see {@link CycleEliminator#breakCycles}).
+   *
    * <p>
    */
   private Set<DexEncodedMethod> extractLeaves() {
@@ -215,48 +234,197 @@ public class CallGraph extends CallSiteInformation {
         .collect(Collectors.toCollection(LinkedHashSet::new)));
   }
 
-  private int traverse(Node node, Set<Node> stack, Set<Node> marked) {
-    int numberOfCycles = 0;
-    if (!marked.contains(node)) {
-      assert !stack.contains(node);
-      stack.add(node);
-      ArrayList<Node> toBeRemoved = null;
-      // Sort the callees before calling traverse recursively.
-      // This will ensure cycles are broken the same way across
-      // multiple invocations of the R8 compiler.
+  public static class CycleEliminator {
+
+    public static final String CYCLIC_FORCE_INLINING_MESSAGE =
+        "Unable to satisfy force inlining constraints due to cyclic force inlining";
+
+    private static class CallEdge {
+
+      private final Node caller;
+      private final Node callee;
+
+      public CallEdge(Node caller, Node callee) {
+        this.caller = caller;
+        this.callee = callee;
+      }
+    }
+
+    private final Collection<Node> nodes;
+    private final InternalOptions options;
+
+    // DFS stack.
+    private Deque<Node> stack = new ArrayDeque<>();
+
+    // Set of nodes on the DFS stack.
+    private Set<Node> stackSet = Sets.newIdentityHashSet();
+
+    // Set of nodes that have been visited entirely.
+    private Set<Node> marked = Sets.newIdentityHashSet();
+
+    private int numberOfCycles = 0;
+
+    public CycleEliminator(Collection<Node> nodes, InternalOptions options) {
+      this.options = options;
+
+      // Call to reorderNodes must happen after assigning options.
+      this.nodes =
+          options.testing.nondeterministicCycleElimination
+              ? reorderNodes(new ArrayList<>(nodes))
+              : nodes;
+    }
+
+    public int breakCycles() {
+      // Break cycles in this call graph by removing edges causing cycles.
+      for (Node node : nodes) {
+        traverse(node);
+      }
+      int result = numberOfCycles;
+      reset();
+      return result;
+    }
+
+    private void reset() {
+      assert stack.isEmpty();
+      assert stackSet.isEmpty();
+      marked.clear();
+      numberOfCycles = 0;
+    }
+
+    private void traverse(Node node) {
+      if (marked.contains(node)) {
+        // Already visited all nodes that can be reached from this node.
+        return;
+      }
+
+      push(node);
+
+      // Sort the callees before calling traverse recursively. This will ensure cycles are broken
+      // the same way across multiple invocations of the R8 compiler.
       Node[] callees = node.callees.toArray(new Node[node.callees.size()]);
       Arrays.sort(callees, (Node a, Node b) -> a.method.method.slowCompareTo(b.method.method));
+      if (options.testing.nondeterministicCycleElimination) {
+        reorderNodes(Arrays.asList(callees));
+      }
+
       for (Node callee : callees) {
-        if (stack.contains(callee)) {
-          if (toBeRemoved == null) {
-            toBeRemoved = new ArrayList<>();
+        if (stackSet.contains(callee)) {
+          // Found a cycle that needs to be eliminated.
+          numberOfCycles++;
+
+          if (edgeRemovalIsSafe(node, callee)) {
+            // Break the cycle by removing the edge node->callee.
+            callee.callers.remove(node);
+            node.callees.remove(callee);
+
+            if (Log.ENABLED) {
+              Log.info(
+                  CallGraph.class,
+                  "Removed call edge from method '%s' to '%s'",
+                  node.method.toSourceString(),
+                  callee.method.toSourceString());
+            }
+          } else {
+            // The cycle has a method that is marked as force inline.
+            LinkedList<Node> cycle = extractCycle(callee);
+
+            if (Log.ENABLED) {
+              Log.info(
+                  CallGraph.class, "Extracted cycle to find an edge that can safely be removed");
+            }
+
+            // Break the cycle by finding an edge that can be removed without breaking force
+            // inlining. If that is not possible, this call fails with a compilation error.
+            CallEdge edge = findCallEdgeForRemoval(cycle);
+
+            // The edge will be null if this cycle has already been eliminated as a result of
+            // another cycle elimination.
+            if (edge != null) {
+              assert edgeRemovalIsSafe(edge.caller, edge.callee);
+
+              // Break the cycle by removing the edge caller->callee.
+              edge.caller.callees.remove(edge.callee);
+              edge.callee.callers.remove(edge.caller);
+
+              if (Log.ENABLED) {
+                Log.info(
+                    CallGraph.class,
+                    "Removed call edge from force inlined method '%s' to '%s' to ensure that "
+                        + "force inlining will succeed",
+                    node.method.toSourceString(),
+                    callee.method.toSourceString());
+              }
+            }
+
+            // Recover the stack.
+            recoverStack(cycle);
           }
-          // We have a cycle; break it by removing node->callee.
-          toBeRemoved.add(callee);
-          callee.callers.remove(node);
         } else {
-          numberOfCycles += traverse(callee, stack, marked);
+          traverse(callee);
         }
       }
-      if (toBeRemoved != null) {
-        numberOfCycles += toBeRemoved.size();
-        node.callees.removeAll(toBeRemoved);
-      }
-      stack.remove(node);
+      pop(node);
       marked.add(node);
     }
-    return numberOfCycles;
-  }
 
-  private int breakCycles() {
-    // Break cycles in this call graph by removing edges causing cycles.
-    int numberOfCycles = 0;
-    Set<Node> stack = Sets.newIdentityHashSet();
-    Set<Node> marked = Sets.newIdentityHashSet();
-    for (Node node : nodes.values()) {
-      numberOfCycles += traverse(node, stack, marked);
+    private void push(Node node) {
+      stack.push(node);
+      boolean changed = stackSet.add(node);
+      assert changed;
     }
-    return numberOfCycles;
+
+    private void pop(Node node) {
+      Node popped = stack.pop();
+      assert popped == node;
+      boolean changed = stackSet.remove(node);
+      assert changed;
+    }
+
+    private LinkedList<Node> extractCycle(Node entry) {
+      LinkedList<Node> cycle = new LinkedList<>();
+      do {
+        assert !stack.isEmpty();
+        cycle.add(stack.pop());
+      } while (cycle.getLast() != entry);
+      return cycle;
+    }
+
+    private CallEdge findCallEdgeForRemoval(LinkedList<Node> extractedCycle) {
+      Node callee = extractedCycle.getLast();
+      for (Node caller : extractedCycle) {
+        if (!caller.callees.contains(callee)) {
+          // No need to break any edges since this cycle has already been broken previously.
+          assert !callee.callers.contains(caller);
+          return null;
+        }
+        if (edgeRemovalIsSafe(caller, callee)) {
+          return new CallEdge(caller, callee);
+        }
+        callee = caller;
+      }
+      throw new CompilationError(CYCLIC_FORCE_INLINING_MESSAGE);
+    }
+
+    private static boolean edgeRemovalIsSafe(Node caller, Node callee) {
+      // All call edges where the callee is a method that should be force inlined must be kept,
+      // to guarantee that the IR converter will process the callee before the caller.
+      return !callee.method.getOptimizationInfo().forceInline();
+    }
+
+    private void recoverStack(LinkedList<Node> extractedCycle) {
+      Iterator<Node> descendingIt = extractedCycle.descendingIterator();
+      while (descendingIt.hasNext()) {
+        stack.push(descendingIt.next());
+      }
+    }
+
+    private Collection<Node> reorderNodes(List<Node> nodes) {
+      assert options.testing.nondeterministicCycleElimination;
+      if (!InternalOptions.DETERMINISTIC_DEBUGGING) {
+        Collections.shuffle(nodes);
+      }
+      return nodes;
+    }
   }
 
   synchronized private Node ensureMethodNode(DexEncodedMethod method) {
@@ -268,7 +436,6 @@ public class CallGraph extends CallSiteInformation {
     assert callee != null;
     if (caller != callee) {
       caller.addCallee(callee);
-      callee.addCaller(caller);
     } else {
       caller.isSelfRecursive = true;
     }
