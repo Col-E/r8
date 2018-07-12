@@ -447,6 +447,7 @@ public class InternalOptions {
     public boolean placeExceptionalBlocksLast = false;
     public boolean dontCreateMarkerInD8 = false;
     public boolean forceJumboStringProcessing = false;
+    public boolean nondeterministicCycleElimination = false;
     public Set<Inliner.Reason> validInliningReasons = null;
     public boolean suppressExperimentalCfBackendWarning = false;
   }

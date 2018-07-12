@@ -70,6 +70,7 @@ public class ClassMergingTest extends TestBase {
     options.enableClassMerging = true;
     options.enableClassInlining = false;
     options.enableMinification = false;
+    options.testing.nondeterministicCycleElimination = true;
   }
 
   private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
@@ -112,6 +113,29 @@ public class ClassMergingTest extends TestBase {
     runR8(DONT_OPTIMIZE, null);
     for (String candidate : CAN_BE_MERGED) {
       assertTrue(inspector.clazz(candidate).isPresent());
+    }
+  }
+
+  // This test has a cycle in the call graph consisting of the methods A.<init> and B.<init>.
+  // When nondeterministicCycleElimination is enabled, we shuffle the nodes in the call graph
+  // before the cycle elimination. Therefore, it is nondeterministic if the cycle detector will
+  // detect the cycle upon the call edge A.<init> to B.<init>, or B.<init> to A.<init>. In order
+  // increase the likelihood that this test encounters both orderings, the test is repeated 5 times.
+  // Assuming that the chance of observing one of the two orderings is 50%, this test therefore has
+  // approximately 3% chance of succeeding although there is an issue.
+  @Test
+  public void testCallGraphCycle() throws Exception {
+    String main = "classmerging.CallGraphCycleTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("CallGraphCycleTest.class"),
+          CF_DIR.resolve("CallGraphCycleTest$A.class"),
+          CF_DIR.resolve("CallGraphCycleTest$B.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of("classmerging.CallGraphCycleTest", "classmerging.CallGraphCycleTest$B");
+    for (int i = 0; i < 5; i++) {
+      runTest(main, programFiles, preservedClassNames::contains);
     }
   }
 

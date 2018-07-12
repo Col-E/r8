@@ -763,6 +763,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       forceInline = true;
     }
 
+    private void unsetForceInline() {
+      forceInline = false;
+    }
+
     private void markPublicized() {
       publicized = true;
     }
@@ -846,6 +850,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void markForceInline() {
     ensureMutableOI().markForceInline();
+  }
+
+  public synchronized void unsetForceInline() {
+    ensureMutableOI().unsetForceInline();
   }
 
   synchronized public void markPublicized() {

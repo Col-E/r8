@@ -417,8 +417,8 @@ public class IRConverter {
     OptimizationFeedback directFeedback = new OptimizationFeedbackDirect();
     {
       timing.begin("Build call graph");
-      CallGraph callGraph = CallGraph
-          .build(application, appInfo.withLiveness(), graphLense, options);
+      CallGraph callGraph =
+          CallGraph.build(application, appInfo.withLiveness(), graphLense, options, timing);
       timing.end();
       timing.begin("IR conversion phase 1");
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler =
