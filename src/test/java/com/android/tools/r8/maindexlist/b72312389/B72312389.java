@@ -23,7 +23,7 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
 import java.util.ArrayList;

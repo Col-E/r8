@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
@@ -11,8 +11,8 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import java.util.List;
 import java.util.Map;
 import org.junit.Test;

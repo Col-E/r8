@@ -9,7 +9,7 @@ import com.android.tools.r8.shaking.classkinds.Class;
 import com.android.tools.r8.shaking.classkinds.Enum;
 import com.android.tools.r8.shaking.classkinds.Interface;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Collection;

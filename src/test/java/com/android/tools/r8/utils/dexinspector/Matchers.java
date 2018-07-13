@@ -2,18 +2,14 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.utils;
+package com.android.tools.r8.utils.dexinspector;
 
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.FieldSubject;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
-import com.android.tools.r8.utils.DexInspector.Subject;
 import com.google.common.collect.ImmutableList;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
-public class DexInspectorMatchers {
+public class Matchers {
 
   private static String type(Subject subject) {
     String type = "<unknown subject type>";

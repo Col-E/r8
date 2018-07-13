@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.accessrelaxation;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPublic;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPublic;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -16,9 +16,9 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)

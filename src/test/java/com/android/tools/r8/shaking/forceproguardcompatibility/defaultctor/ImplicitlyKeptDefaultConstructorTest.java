@@ -4,16 +4,16 @@
 
 package com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.hasDefaultConstructor;
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
+import static com.android.tools.r8.utils.dexinspector.Matchers.hasDefaultConstructor;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
 import com.android.tools.r8.smali.ConstantFoldingTest.TriConsumer;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;

@@ -26,7 +26,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import java.nio.file.Path;

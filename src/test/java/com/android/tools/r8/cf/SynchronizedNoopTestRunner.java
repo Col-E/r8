@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import java.util.ArrayList;
 import java.util.Collections;
 import org.junit.Test;

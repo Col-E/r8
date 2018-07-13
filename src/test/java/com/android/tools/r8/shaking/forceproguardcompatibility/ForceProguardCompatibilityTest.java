@@ -36,12 +36,12 @@ import com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes.Te
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.FieldSubject;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.FieldSubject;
+import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;

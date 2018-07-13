@@ -4,14 +4,16 @@
 
 package com.android.tools.r8.ir.desugar.annotations;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
@@ -156,44 +158,44 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
     DexInspector inspector = new DexInspector(output);
 
     // Get classes A, B, and C.
-    DexInspector.ClassSubject clazzA = inspector.clazz(A.class.getCanonicalName());
+    ClassSubject clazzA = inspector.clazz(A.class.getCanonicalName());
     assertThat(clazzA, isPresent());
 
-    DexInspector.ClassSubject clazzB = inspector.clazz(B.class.getCanonicalName());
+    ClassSubject clazzB = inspector.clazz(B.class.getCanonicalName());
     assertThat(clazzB, isPresent());
 
-    DexInspector.ClassSubject clazzC = inspector.clazz(C.class.getCanonicalName());
+    ClassSubject clazzC = inspector.clazz(C.class.getCanonicalName());
     assertThat(clazzC, isPresent());
 
     // Check that the original methods are there, and that they are not synthetic.
-    DexInspector.MethodSubject methodA =
+    MethodSubject methodA =
         clazzB.method(A.class.getCanonicalName(), "method", Collections.emptyList());
     assertThat(methodA, isPresent());
     Assert.assertTrue(!methodA.getMethod().isSyntheticMethod());
 
-    DexInspector.MethodSubject methodB =
+    MethodSubject methodB =
         clazzB.method(A.class.getCanonicalName(), "method", Collections.emptyList());
     assertThat(methodB, isPresent());
     Assert.assertTrue(!methodB.getMethod().isSyntheticMethod());
 
-    DexInspector.MethodSubject methodC =
+    MethodSubject methodC =
         clazzC.method(A.class.getCanonicalName(), "method", Collections.emptyList());
     assertThat(methodC, isPresent());
     Assert.assertTrue(!methodC.getMethod().isSyntheticMethod());
 
     // Check that a synthetic method has been added to class B.
-    DexInspector.MethodSubject methodB2 =
+    MethodSubject methodB2 =
         clazzB.method(B.class.getCanonicalName(), "method", Collections.emptyList());
     assertThat(methodB2, isPresent());
     Assert.assertTrue(methodB2.getMethod().isSyntheticMethod());
 
     // Check that two synthetic methods have been added to class C.
-    DexInspector.MethodSubject methodC2 =
+    MethodSubject methodC2 =
         clazzC.method(B.class.getCanonicalName(), "method", Collections.emptyList());
     assertThat(methodC2, isPresent());
     Assert.assertTrue(methodC2.getMethod().isSyntheticMethod());
 
-    DexInspector.MethodSubject methodC3 =
+    MethodSubject methodC3 =
         clazzC.method(C.class.getCanonicalName(), "method", Collections.emptyList());
     assertThat(methodC3, isPresent());
     Assert.assertTrue(methodC3.getMethod().isSyntheticMethod());

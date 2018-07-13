@@ -4,8 +4,9 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import java.util.ArrayList;
 import java.util.List;
 

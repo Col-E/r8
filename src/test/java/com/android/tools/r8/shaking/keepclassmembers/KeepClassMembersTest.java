@@ -4,18 +4,18 @@
 
 package com.android.tools.r8.shaking.keepclassmembers;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.isAbstract;
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isAbstract;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.FieldSubject;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.FieldSubject;
+import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 

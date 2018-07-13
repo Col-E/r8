@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;

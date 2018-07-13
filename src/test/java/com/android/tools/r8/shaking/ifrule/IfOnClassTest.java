@@ -3,18 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.ifrule;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
-import static com.android.tools.r8.utils.DexInspectorMatchers.isNotRenamed;
-import static com.android.tools.r8.utils.DexInspectorMatchers.isRenamed;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isNotRenamed;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.FieldSubject;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.FieldSubject;
+import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;

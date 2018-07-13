@@ -25,9 +25,9 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import org.junit.Test;
 
 public class StaticValuesTest extends SmaliTestBase {

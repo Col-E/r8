@@ -7,8 +7,8 @@ package com.android.tools.r8.bridgeremoval.bridgestokeep;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.List;

@@ -4,9 +4,9 @@
 
 package com.android.tools.r8;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -14,15 +14,15 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
-import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
-import com.android.tools.r8.utils.DexInspector.InstructionSubject;
-import com.android.tools.r8.utils.DexInspector.MethodSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.FoundClassSubject;
+import com.android.tools.r8.utils.dexinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.dexinspector.InstructionSubject;
+import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;

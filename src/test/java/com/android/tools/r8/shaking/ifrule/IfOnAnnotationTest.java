@@ -4,7 +4,7 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
-import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;

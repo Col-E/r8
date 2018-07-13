@@ -14,14 +14,14 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.FoundClassSubject;
-import com.android.tools.r8.utils.DexInspector.FoundMethodSubject;
-import com.android.tools.r8.utils.DexInspector.InstructionSubject;
-import com.android.tools.r8.utils.DexInspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.FoundClassSubject;
+import com.android.tools.r8.utils.dexinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.dexinspector.InstructionSubject;
+import com.android.tools.r8.utils.dexinspector.InvokeInstructionSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -49,7 +49,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestWatcher;
 
 public abstract class RunExamplesAndroidOTest
       <B extends BaseCommand.Builder<? extends BaseCommand, B>> {

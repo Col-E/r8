@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
-import static com.android.tools.r8.utils.DexInspectorMatchers.isRenamed;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -30,9 +30,9 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.DexInspector;
-import com.android.tools.r8.utils.DexInspector.ClassSubject;
-import com.android.tools.r8.utils.DexInspector.FieldSubject;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.FieldSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.accessrelaxation;
 
+
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.accessrelaxation.privateinstance.Base;
@@ -17,7 +18,7 @@ import com.android.tools.r8.accessrelaxation.privatestatic.C;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 

@@ -4,12 +4,13 @@
 
 package com.android.tools.r8.ir.regalloc;
 
-import static com.android.tools.r8.utils.DexInspectorMatchers.isPresent;
+import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DexInspector;
+import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.DexInspector;
 import org.junit.Test;
 
 public class B79405526 extends TestBase {
@@ -17,7 +18,7 @@ public class B79405526 extends TestBase {
   public void test() throws Exception {
     AndroidApp app = compileWithD8(readClasses(TestClass.class));
     DexInspector inspector = new DexInspector(app);
-    DexInspector.ClassSubject clazz = inspector.clazz(TestClass.class);
+    ClassSubject clazz = inspector.clazz(TestClass.class);
     assertThat(clazz, isPresent());
     // Throws if a method in TestClass does not verify.
     runOnArt(app, TestClass.class.getName());
