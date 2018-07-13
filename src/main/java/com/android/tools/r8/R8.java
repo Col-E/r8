@@ -369,7 +369,7 @@ public class R8 {
         if (options.enableClassMerging && options.enableInlining) {
           timing.begin("ClassMerger");
           VerticalClassMerger classMerger =
-              new VerticalClassMerger(application, appViewWithLiveness, timing);
+              new VerticalClassMerger(application, appViewWithLiveness, executorService, timing);
           appView.setGraphLense(classMerger.run());
           timing.end();
           application = application.asDirect().rewrittenWithLense(appView.getGraphLense());
