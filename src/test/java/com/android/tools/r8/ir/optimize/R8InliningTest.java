@@ -27,6 +27,7 @@ import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexInspector;
 import com.android.tools.r8.utils.DexInspector.ClassSubject;
@@ -55,17 +56,26 @@ public class R8InliningTest extends TestBase {
   private static final String DEFAULT_DEX_FILENAME = "classes.dex";
   private static final String DEFAULT_MAP_FILENAME = "proguard.map";
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{0}, minification={1}, allowaccessmodification={2}")
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][]{{"Inlining"}});
+    return Arrays.asList(new Object[][]{
+        {"Inlining", false, false},
+        {"Inlining", false, true},
+        {"Inlining", true, false},
+        {"Inlining", true, true}
+    });
   }
 
   private final String name;
   private final String keepRulesFile;
+  private final boolean minification;
+  private final boolean allowAccessModification;
 
-  public R8InliningTest(String name) {
+  public R8InliningTest(String name, boolean minification, boolean allowAccessModification) {
     this.name = name.toLowerCase();
     this.keepRulesFile = ToolHelper.EXAMPLES_DIR + this.name + "/keep-rules.txt";
+    this.minification = minification;
+    this.allowAccessModification = allowAccessModification;
   }
 
   private Path getInputFile() {
@@ -81,7 +91,7 @@ public class R8InliningTest extends TestBase {
   }
 
   private String getGeneratedProguardMap() throws IOException {
-    Path mapFile = Paths.get(temp.getRoot().getCanonicalPath(), DEFAULT_MAP_FILENAME);
+    Path mapFile = temp.getRoot().toPath().resolve(DEFAULT_MAP_FILENAME);
     if (Files.exists(mapFile)) {
       return mapFile.toAbsolutePath().toString();
     }
@@ -94,19 +104,23 @@ public class R8InliningTest extends TestBase {
   @Before
   public void generateR8Version() throws Exception {
     Path out = temp.getRoot().toPath();
-    R8Command command =
+    Path mapFile = out.resolve(DEFAULT_MAP_FILENAME);
+    R8Command.Builder commandBuilder =
         R8Command.builder()
             .addProgramFiles(getInputFile())
             .setMinApiLevel(AndroidApiLevel.M.getLevel())
             .setOutput(out, OutputMode.DexIndexed)
-            .addProguardConfigurationFiles(Paths.get(keepRulesFile))
-            .build();
-    // TODO(62048823): Enable minification.
-    ToolHelper.runR8(command, o -> {
-      o.enableMinification = false;
+            .setProguardMapOutputPath(mapFile)
+            .addProguardConfigurationFiles(Paths.get(keepRulesFile));
+    if (allowAccessModification) {
+      commandBuilder.addProguardConfiguration(
+          ImmutableList.of("-allowaccessmodification"), Origin.unknown());
+    }
+    ToolHelper.runR8(commandBuilder.build(), o -> {
+      o.enableMinification = minification;
     });
-    String artOutput = ToolHelper.runArtNoVerificationErrors(out + "/classes.dex",
-        "inlining.Inlining");
+    String artOutput =
+        ToolHelper.runArtNoVerificationErrors(out + "/classes.dex", "inlining.Inlining");
 
     // Compare result with Java to make sure we have the same behavior.
     ProcessResult javaResult = ToolHelper.runJava(getInputFile(), "inlining.Inlining");
@@ -179,17 +193,21 @@ public class R8InliningTest extends TestBase {
         new DexInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
     ClassSubject clazz = inspector.clazz("inlining.Nullability");
     MethodSubject m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
-    assertTrue(m.isPresent());
-    DexCode code = m.getMethod().getCode().asDexCode();
-    checkInstructions(
-        code,
-        ImmutableList.of(
-            Iget.class,
-            // TODO(b/70572176): below two could be replaced with Iget via inlining
-            InvokeVirtual.class,
-            MoveResult.class,
-            AddInt2Addr.class,
-            Return.class));
+    DexCode code;
+    if (allowAccessModification) {
+      assertFalse(m.isPresent());
+    } else {
+      assertTrue(m.isPresent());
+      code = m.getMethod().getCode().asDexCode();
+      checkInstructions(
+          code,
+          ImmutableList.of(
+              Iget.class,
+              InvokeVirtual.class,
+              MoveResult.class,
+              AddInt2Addr.class,
+              Return.class));
+    }
 
     m = clazz.method("int", "notInlinable", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
@@ -249,10 +267,7 @@ public class R8InliningTest extends TestBase {
         code,
         ImmutableList.of(
             IfEqz.class,
-            // TODO(b/70794661): below two could be replaced with Iget via inlining if access
-            // modification is allowed.
-            InvokeVirtual.class,
-            MoveResult.class,
+            Iget.class,
             Goto.class,
             Const4.class,
             Return.class));
@@ -273,9 +288,7 @@ public class R8InliningTest extends TestBase {
     builder.add(Const4.class);
     builder.add(IfEqz.class);
     builder.add(IfEqz.class);
-    // TODO(b/70794661): below two could be replaced with Iget via inlining
-    builder.add(InvokeVirtual.class);
-    builder.add(MoveResult.class);
+    builder.add(Iget.class);
     builder.add(MulInt2Addr.class);
     builder.add(Return.class);
     builder.add(PackedSwitchPayload.class);

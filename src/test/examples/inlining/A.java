@@ -6,13 +6,19 @@ package inlining;
 class A {
 
   int a;
+  int b;
 
   A(int a) {
     this.a = a;
+    this.b = a + 1;
   }
 
   int a() {
     return a;
+  }
+
+  int b() {
+    return b;
   }
 
   int cannotInline(int v) {
