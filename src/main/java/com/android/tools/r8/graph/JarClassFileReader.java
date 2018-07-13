@@ -27,15 +27,21 @@ import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.base.Equivalence.Wrapper;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.objectweb.asm.AnnotationVisitor;
@@ -148,8 +154,10 @@ public class JarClassFileReader {
     private List<DexAnnotationElement> defaultAnnotations = null;
     private final List<DexEncodedField> staticFields = new ArrayList<>();
     private final List<DexEncodedField> instanceFields = new ArrayList<>();
+    private final Set<Wrapper<DexField>> fieldSignatures = new HashSet<>();
     private final List<DexEncodedMethod> directMethods = new ArrayList<>();
     private final List<DexEncodedMethod> virtualMethods = new ArrayList<>();
+    private final Set<Wrapper<DexMethod>> methodSignatures = new HashSet<>();
 
     public CreateDexClassVisitor(
         Origin origin,
@@ -380,13 +388,20 @@ public class JarClassFileReader {
     public void visitEnd() {
       FieldAccessFlags flags = FieldAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
       DexField dexField = parent.application.getField(parent.type, name, desc);
-      DexAnnotationSet annotationSet = createAnnotationSet(annotations);
-      DexValue staticValue = flags.isStatic() ? getStaticValue(value, dexField.type) : null;
-      DexEncodedField field = new DexEncodedField(dexField, flags, annotationSet, staticValue);
-      if (flags.isStatic()) {
-        parent.staticFields.add(field);
+      Wrapper<DexField> signature = FieldSignatureEquivalence.get().wrap(dexField);
+      if (parent.fieldSignatures.add(signature)) {
+        DexAnnotationSet annotationSet = createAnnotationSet(annotations);
+        DexValue staticValue = flags.isStatic() ? getStaticValue(value, dexField.type) : null;
+        DexEncodedField field = new DexEncodedField(dexField, flags, annotationSet, staticValue);
+        if (flags.isStatic()) {
+          parent.staticFields.add(field);
+        } else {
+          parent.instanceFields.add(field);
+        }
       } else {
-        parent.instanceFields.add(field);
+        parent.application.options.reporter.warning(
+            new StringDiagnostic(
+                String.format("Field `%s` has multiple definitions", dexField.toSourceString())));
       }
     }
 
@@ -603,10 +618,20 @@ public class JarClassFileReader {
               annotationsList,
               code,
               parent.version);
-      if (flags.isStatic() || flags.isConstructor() || flags.isPrivate()) {
-        parent.directMethods.add(dexMethod);
+      Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
+      if (parent.methodSignatures.add(signature)) {
+        if (flags.isStatic() || flags.isConstructor() || flags.isPrivate()) {
+          parent.directMethods.add(dexMethod);
+        } else {
+          parent.virtualMethods.add(dexMethod);
+        }
       } else {
-        parent.virtualMethods.add(dexMethod);
+        internalOptions.reporter.warning(
+            new StringDiagnostic(
+                String.format(
+                    "Ignoring an implementation of the method `%s` because it has multiple "
+                        + "definitions",
+                    method.toSourceString())));
       }
       if (defaultAnnotation != null) {
         parent.addDefaultAnnotation(name, defaultAnnotation);
