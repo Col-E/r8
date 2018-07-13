@@ -43,8 +43,8 @@ class Nullability {
   }
 
   int conditionalOperator(A a) {
-    // a is not null when a.a() is invoked.
-    return a != null ? a.a() : -1;
+    // a is not null when a.b() is invoked.
+    return a != null ? a.b() : -1;
   }
 
   int notInlinableOnThrow(Throwable t) throws Throwable {
@@ -97,8 +97,8 @@ class Nullability {
     // instructions with side effects.
     if (a != null && result != 0) {
       // Thus, the invocation below is the first instruction with side effect.
-      // Also, a is not null here, hence a.a() is inlinable.
-      result *= a.a();
+      // Also, a is not null here, hence a.b() is inlinable.
+      result *= a.b();
     }
     return result;
   }
