@@ -12,7 +12,7 @@ import com.android.tools.r8.naming.signature.GenericSignatureParser;
 
 public class FoundFieldSubject extends FieldSubject {
 
-  private DexInspector dexInspector;
+  private final DexInspector dexInspector;
   private final FoundClassSubject clazz;
   private final DexEncodedField dexField;
 

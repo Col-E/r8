@@ -4,20 +4,20 @@
 
 package com.android.tools.r8.utils.dexinspector;
 
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInstruction;
 
-public class FieldAccessDexInstructionSubject extends DexInstructionSubject
+public class FieldAccessCfInstructionSubject extends CfInstructionSubject
     implements FieldAccessInstructionSubject {
-
   private final DexInspector dexInspector;
 
-  public FieldAccessDexInstructionSubject(DexInspector dexInspector, Instruction instruction) {
+  public FieldAccessCfInstructionSubject(DexInspector dexInspector, CfInstruction instruction) {
     super(instruction);
     this.dexInspector = dexInspector;
     assert isFieldAccess();
   }
 
   public TypeSubject holder() {
-    return new TypeSubject(dexInspector, instruction.getField().getHolder());
+    return new TypeSubject(dexInspector, ((CfFieldInstruction) instruction).getField().getHolder());
   }
 }

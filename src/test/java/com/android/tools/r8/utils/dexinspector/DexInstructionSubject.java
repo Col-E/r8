@@ -34,6 +34,7 @@ import com.android.tools.r8.code.IputChar;
 import com.android.tools.r8.code.IputObject;
 import com.android.tools.r8.code.IputShort;
 import com.android.tools.r8.code.IputWide;
+import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.Sget;
@@ -53,7 +54,7 @@ import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.code.Throw;
 
 public class DexInstructionSubject implements InstructionSubject {
-  protected Instruction instruction;
+  protected final Instruction instruction;
 
   public DexInstructionSubject(Instruction instruction) {
     this.instruction = instruction;
@@ -72,16 +73,6 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isInvokeInterface() {
     return instruction instanceof InvokeInterface || instruction instanceof InvokeInterfaceRange;
-  }
-
-  @Override
-  public boolean isInvokeDirect() {
-    return instruction instanceof InvokeDirect || instruction instanceof InvokeDirectRange;
-  }
-
-  @Override
-  public boolean isInvokeSuper() {
-    return instruction instanceof InvokeSuper || instruction instanceof InvokeSuperRange;
   }
 
   @Override
@@ -129,6 +120,28 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isThrow() {
     return instruction instanceof Throw;
+  }
+
+  @Override
+  public boolean isInvoke() {
+    return isInvokeVirtual()
+        || isInvokeInterface()
+        || isInvokeDirect()
+        || isInvokeSuper()
+        || isInvokeStatic();
+  }
+
+  @Override
+  public boolean isNewInstance() {
+    return instruction instanceof NewInstance;
+  }
+
+  public boolean isInvokeSuper() {
+    return instruction instanceof InvokeSuper || instruction instanceof InvokeSuperRange;
+  }
+
+  public boolean isInvokeDirect() {
+    return instruction instanceof InvokeDirect || instruction instanceof InvokeDirectRange;
   }
 
   public boolean isConst4() {

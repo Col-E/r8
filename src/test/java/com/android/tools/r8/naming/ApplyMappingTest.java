@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -15,8 +16,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
@@ -26,14 +25,21 @@ import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.android.tools.r8.utils.dexinspector.InstructionSubject;
 import com.android.tools.r8.utils.dexinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.dexinspector.NewInstanceInstructionSubject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class ApplyMappingTest extends TestBase {
 
   private static final String MAPPING = "test-mapping.txt";
@@ -52,9 +58,20 @@ public class ApplyMappingTest extends TestBase {
 
   private Path out;
 
+  private Backend backend;
+
+  @Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public ApplyMappingTest(Backend backend) {
+    this.backend = backend;
+  }
+
   @Before
   public void setup() throws IOException {
-    out = temp.newFolder("outdex").toPath();
+    out = temp.newFolder("out").toPath();
   }
 
   @Test
@@ -97,7 +114,7 @@ public class ApplyMappingTest extends TestBase {
                     pgConfig -> pgConfig.setApplyMappingFile(proguardMap))
                 .build());
 
-    DexInspector inspector = new DexInspector(instrApp);
+    DexInspector inspector = createDexInspector(instrApp);
     MethodSubject main = inspector.clazz("applymapping044.Main").method(DexInspector.MAIN);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
@@ -152,7 +169,7 @@ public class ApplyMappingTest extends TestBase {
                 .build());
 
     // Make sure the given proguard map is indeed applied.
-    DexInspector inspector = new DexInspector(outputApp);
+    DexInspector inspector = createDexInspector(outputApp);
     MethodSubject main = inspector.clazz("applymapping044.Main").method(DexInspector.MAIN);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
@@ -194,6 +211,15 @@ public class ApplyMappingTest extends TestBase {
     assertEquals("p", original_f.invokedMethod().name.toString());
   }
 
+  private static DexInspector createDexInspector(AndroidApp outputApp)
+      throws IOException, ExecutionException {
+    return new DexInspector(
+        outputApp,
+        o -> {
+          o.enableCfFrontend = true;
+        });
+  }
+
   @Test
   public void test_naming001_rule105() throws Exception {
     // keep rules to reserve D and E, along with a proguard map.
@@ -210,7 +236,7 @@ public class ApplyMappingTest extends TestBase {
                 .build());
 
     // Make sure the given proguard map is indeed applied.
-    DexInspector inspector = new DexInspector(outputApp);
+    DexInspector inspector = createDexInspector(outputApp);
     MethodSubject main = inspector.clazz("naming001.D").method(DexInspector.MAIN);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
@@ -242,13 +268,20 @@ public class ApplyMappingTest extends TestBase {
                 .build());
 
     // Make sure the given proguard map is indeed applied.
-    DexInspector inspector = new DexInspector(outputApp);
+    DexInspector inspector = createDexInspector(outputApp);
     MethodSubject main = inspector.clazz("naming001.D").method(DexInspector.MAIN);
 
+    Iterator<InstructionSubject> iterator = main.iterateInstructions();
     // naming001.E is renamed to a.a, so first instruction must be: new-instance La/a;
-    Instruction[] instructions = main.getMethod().getCode().asDexCode().instructions;
-    assertTrue(instructions[0] instanceof NewInstance);
-    NewInstance newInstance = (NewInstance) instructions[0];
+    NewInstanceInstructionSubject newInstance = null;
+    while (iterator.hasNext()) {
+      InstructionSubject instruction = iterator.next();
+      if (instruction.isNewInstance()) {
+        newInstance = (NewInstanceInstructionSubject) instruction;
+        break;
+      }
+    }
+    assertNotNull(newInstance);
     assertEquals( "La/a;", newInstance.getType().toSmaliString());
   }
 
@@ -269,7 +302,7 @@ public class ApplyMappingTest extends TestBase {
     return R8Command.builder()
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), mainApp)
         .addProgramFiles(instrApp)
-        .setOutput(out, OutputMode.DexIndexed)
+        .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
         .addProguardConfigurationFiles(flag);
   }
 
@@ -278,15 +311,17 @@ public class ApplyMappingTest extends TestBase {
     return R8Command.builder()
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
         .addProgramFiles(jars)
-        .setOutput(out, OutputMode.DexIndexed)
+        .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
         .addProguardConfigurationFiles(flag);
   }
 
   private static AndroidApp runR8(R8Command command)
       throws ProguardRuleParserException, ExecutionException, IOException {
-    return ToolHelper.runR8(command, options -> {
-      // Disable inlining to make this test not depend on inlining decisions.
-      options.enableInlining = false;
-    });
+    return ToolHelper.runR8(
+        command,
+        options -> {
+          // Disable inlining to make this test not depend on inlining decisions.
+          options.enableInlining = false;
+        });
   }
 }

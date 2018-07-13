@@ -6,8 +6,10 @@ package com.android.tools.r8.utils.dexinspector;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -205,7 +207,7 @@ public class DexInspector {
     }
     DexClass clazz = application.definitionFor(toDexTypeIgnorePrimitives(name));
     if (clazz == null) {
-      return new AbsentClassSubject(this);
+      return new AbsentClassSubject();
     }
     return new FoundClassSubject(this, clazz, naming);
   }
@@ -250,15 +252,36 @@ public class DexInspector {
       return new InvokeDexInstructionSubject(this, instruction);
     } else if (dexInst.isFieldAccess()) {
       return new FieldAccessDexInstructionSubject(this, instruction);
+    } else if (dexInst.isNewInstance()) {
+      return new NewInstanceDexInstructionSubject(instruction);
     } else {
       return dexInst;
     }
   }
 
+  InstructionSubject createInstructionSubject(CfInstruction instruction) {
+    CfInstructionSubject cfInst = new CfInstructionSubject(instruction);
+    if (cfInst.isInvoke()) {
+      return new InvokeCfInstructionSubject(this, instruction);
+    } else if (cfInst.isFieldAccess()) {
+      return new FieldAccessCfInstructionSubject(this, instruction);
+    } else if (cfInst.isNewInstance()) {
+      return new NewInstanceCfInstructionSubject(instruction);
+    } else {
+      return cfInst;
+    }
+  }
+
   InstructionIterator createInstructionIterator(MethodSubject method) {
     Code code = method.getMethod().getCode();
-    assert code != null && code.isDexCode();
-    return new DexInstructionIterator(this, method);
+    assert code != null;
+    if (code.isDexCode()) {
+      return new DexInstructionIterator(this, method);
+    } else if (code.isCfCode()) {
+      return new CfInstructionIterator(this, method);
+    } else {
+      throw new Unimplemented("InstructionIterator is implemented for DexCode and CfCode only.");
+    }
   }
 
   // Build the generic signature using the current mapping if any.

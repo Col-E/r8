@@ -10,7 +10,7 @@ import java.util.NoSuchElementException;
 
 class DexInstructionIterator implements InstructionIterator {
 
-  private DexInspector dexInspector;
+  private final DexInspector dexInspector;
   private final DexCode code;
   private int index;
 

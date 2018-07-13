@@ -13,7 +13,7 @@ import java.util.function.Predicate;
 
 public class FoundMethodSubject extends MethodSubject {
 
-  private DexInspector dexInspector;
+  private final DexInspector dexInspector;
   private final FoundClassSubject clazz;
   private final DexEncodedMethod dexMethod;
 

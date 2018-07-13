@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.DexType;
 
 public class TypeSubject extends Subject {
 
-  private DexInspector dexInspector;
+  private final DexInspector dexInspector;
   private final DexType dexType;
 
   TypeSubject(DexInspector dexInspector, DexType dexType) {

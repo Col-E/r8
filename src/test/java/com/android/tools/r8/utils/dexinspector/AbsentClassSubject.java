@@ -10,12 +10,6 @@ import java.util.function.Consumer;
 
 public class AbsentClassSubject extends ClassSubject {
 
-  private DexInspector dexInspector;
-
-  public AbsentClassSubject(DexInspector dexInspector) {
-    this.dexInspector = dexInspector;
-  }
-
   @Override
   public boolean isPresent() {
     return false;

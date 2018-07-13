@@ -10,14 +10,12 @@ import java.util.function.Predicate;
 
 class FilteredInstructionIterator<T extends InstructionSubject> implements Iterator<T> {
 
-  private DexInspector dexInspector;
   private final InstructionIterator iterator;
   private final Predicate<InstructionSubject> predicate;
   private InstructionSubject pendingNext = null;
 
   FilteredInstructionIterator(
       DexInspector dexInspector, MethodSubject method, Predicate<InstructionSubject> predicate) {
-    this.dexInspector = dexInspector;
     this.iterator = dexInspector.createInstructionIterator(method);
     this.predicate = predicate;
     hasNext();

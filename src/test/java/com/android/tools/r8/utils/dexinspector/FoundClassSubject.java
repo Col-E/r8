@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 
 public class FoundClassSubject extends ClassSubject {
 
-  private DexInspector dexInspector;
+  private final DexInspector dexInspector;
   private final DexClass dexClass;
   final ClassNamingForNameMapper naming;
 

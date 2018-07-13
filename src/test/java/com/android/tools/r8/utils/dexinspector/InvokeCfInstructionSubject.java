@@ -4,18 +4,19 @@
 
 package com.android.tools.r8.utils.dexinspector;
 
-import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexMethod;
 
-public class InvokeDexInstructionSubject extends DexInstructionSubject
+public class InvokeCfInstructionSubject extends CfInstructionSubject
     implements InvokeInstructionSubject {
-
   private final DexInspector dexInspector;
 
-  public InvokeDexInstructionSubject(DexInspector dexInspector, Instruction instruction) {
+  public InvokeCfInstructionSubject(DexInspector dexInspector, CfInstruction instruction) {
     super(instruction);
-    this.dexInspector = dexInspector;
     assert isInvoke();
+    this.dexInspector = dexInspector;
   }
 
   public TypeSubject holder() {
@@ -23,6 +24,10 @@ public class InvokeDexInstructionSubject extends DexInstructionSubject
   }
 
   public DexMethod invokedMethod() {
-    return instruction.getMethod();
+    if (isInvokeDynamic()) {
+      throw new Unimplemented(
+          "invokeMethod is not implemented for the INVOKEDYNAMIC CF instruction.");
+    }
+    return ((CfInvoke) instruction).getMethod();
   }
 }

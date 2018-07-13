@@ -11,10 +11,6 @@ public interface InstructionSubject {
 
   boolean isInvokeInterface();
 
-  boolean isInvokeDirect();
-
-  boolean isInvokeSuper();
-
   boolean isInvokeStatic();
 
   boolean isNop();
@@ -33,11 +29,7 @@ public interface InstructionSubject {
 
   boolean isThrow();
 
-  default boolean isInvoke() {
-    return isInvokeVirtual()
-        || isInvokeInterface()
-        || isInvokeDirect()
-        || isInvokeSuper()
-        || isInvokeStatic();
-  }
+  boolean isInvoke();
+
+  boolean isNewInstance();
 }
