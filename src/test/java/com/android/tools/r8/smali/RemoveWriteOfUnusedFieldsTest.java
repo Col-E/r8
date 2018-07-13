@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -36,23 +37,28 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
     builder.addStaticField("stringField", "Ljava/lang/String;");
     builder.addStaticField("testField", "LTest;");
 
+    boolean isDalvik = ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST);
+    String additionalConstZero = isDalvik ? "const v0, 0" : "";
+    String additionalConstZeroWide = isDalvik ? "const-wide v0, 0" : "";
+
     builder.addStaticMethod("void", "test", ImmutableList.of(),
         2,
-        "const               v0, 0", // single non-float typed zero (ie, int type)
+        "const               v0, 0",
         "sput-boolean        v0, LTest;->booleanField:Z",
         "sput-byte           v0, LTest;->byteField:B",
-        "sput-char           v0, LTest;->charField:C",
         "sput-short          v0, LTest;->shortField:S",
         "sput                v0, LTest;->intField:I",
-        "const               v0, 0", // float typed zero
+        // Dalvik 4.x. does not require a new const 0 here.
         "sput                v0, LTest;->floatField:F",
-        "const               v0, 0", // reference typed null
+        additionalConstZero,  // Required for Dalvik 4.x.
+        "sput-char           v0, LTest;->charField:C",
+        "const               v0, 0",
         "sput-object         v0, LTest;->objectField:Ljava/lang/Object;",
         "sput-object         v0, LTest;->stringField:Ljava/lang/String;",
         "sput-object         v0, LTest;->testField:LTest;",
-        "const-wide          v0, 0", // wide typed long
+        "const-wide          v0, 0",
         "sput-wide           v0, LTest;->longField:J",
-        "const-wide          v0, 0", // wide typed double
+        additionalConstZeroWide,  // Required for Dalvik 4.x.
         "sput-wide           v0, LTest;->doubleField:D",
         "return-void");
 
@@ -97,23 +103,28 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
     builder.addInstanceField("stringField", "Ljava/lang/String;");
     builder.addInstanceField("testField", "LTest;");
 
+    boolean isDalvik = ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST);
+    String additionalConstZero = isDalvik ? "const v0, 0" : "";
+    String additionalConstZeroWide = isDalvik ? "const-wide v0, 0" : "";
+
     builder.addInstanceMethod("void", "test", ImmutableList.of(),
         2,
         "const               v0, 0",
         "iput-boolean        v0, p0, LTest;->booleanField:Z",
         "iput-byte           v0, p0, LTest;->byteField:B",
-        "iput-char           v0, p0, LTest;->charField:C",
         "iput-short          v0, p0, LTest;->shortField:S",
         "iput                v0, p0, LTest;->intField:I",
-        "const               v0, 0",
+        // Dalvik 4.x. does not require a new const 0 here.
         "iput                v0, p0, LTest;->floatField:F",
+        additionalConstZero,  // Required for Dalvik 4.x.
+        "iput-char           v0, p0, LTest;->charField:C",
         "const               v0, 0",
         "iput-object         v0, p0, LTest;->objectField:Ljava/lang/Object;",
         "iput-object         v0, p0, LTest;->stringField:Ljava/lang/String;",
         "iput-object         v0, p0, LTest;->testField:LTest;",
         "const-wide          v0, 0",
         "iput-wide           v0, p0, LTest;->longField:J",
-        "const-wide          v0, 0",
+        additionalConstZeroWide,  // Required for Dalvik 4.x.
         "iput-wide           v0, p0, LTest;->doubleField:D",
         "return-void");
 
