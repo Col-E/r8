@@ -497,15 +497,20 @@ final class LambdaClass {
         if (implMethod.match(encodedMethod)) {
           // We need to create a new static method with the same code to be able to safely
           // relax its accessibility without making it virtual.
-          DexEncodedMethod newMethod = new DexEncodedMethod(
-              callTarget, encodedMethod.accessFlags, encodedMethod.annotations,
-              encodedMethod.parameterAnnotationsList, encodedMethod.getCode());
-          // TODO(ager): Should we give the new first parameter an actual name? Maybe 'this'?
-          encodedMethod.accessFlags.setStatic();
-          encodedMethod.accessFlags.unsetPrivate();
+          MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
+          newAccessFlags.setStatic();
+          newAccessFlags.unsetPrivate();
           // Always make the method public to provide access when r8 minification is allowed to move
           // the lambda class accessing this method to another package (-allowaccessmodification).
-          encodedMethod.accessFlags.setPublic();
+          newAccessFlags.setPublic();
+          DexEncodedMethod newMethod =
+              new DexEncodedMethod(
+                  callTarget,
+                  newAccessFlags,
+                  encodedMethod.annotations,
+                  encodedMethod.parameterAnnotationsList,
+                  encodedMethod.getCode());
+          // TODO(ager): Should we give the new first parameter an actual name? Maybe 'this'?
           DexCode dexCode = newMethod.getCode().asDexCode();
           dexCode.setDebugInfo(dexCode.debugInfoWithAdditionalFirstParameter(null));
           assert (dexCode.getDebugInfo() == null)
