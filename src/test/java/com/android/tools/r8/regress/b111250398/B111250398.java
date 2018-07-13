@@ -302,9 +302,7 @@ public class B111250398 extends TestBase {
   public void testWholeProgram() throws Exception {
     DexInspector inspector =
         new DexInspector(compileWithR8(readClasses(A.class, B.class), this::releaseMode));
-    // The reason for getting two Igets in B.mf is that the first Iget inserts a NonNull
-    // instruction which creates a new value for the remaining Igets.
-    check(inspector, 2, 1);
+    check(inspector, 1, 1);
   }
 
   private void checkMixed(AndroidApp app) throws Exception{
