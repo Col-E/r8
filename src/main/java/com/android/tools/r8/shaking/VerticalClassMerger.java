@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -22,6 +23,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.Builder;
+import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -30,6 +32,8 @@ import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.MethodPoolCollection;
+import com.android.tools.r8.ir.optimize.MethodPoolCollection.MethodPool;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.logging.Log;
@@ -58,7 +62,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.MethodNode;
 
 /**
  * Merges Supertypes with a single implementation into their single subtype.
@@ -150,7 +158,9 @@ public class VerticalClassMerger {
 
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
+  private final ExecutorService executorService;
   private final GraphLense graphLense;
+  private final MethodPoolCollection methodPoolCollection;
   private final Timing timing;
   private Collection<DexMethod> invokes;
 
@@ -170,10 +180,15 @@ public class VerticalClassMerger {
   private final VerticalClassMergerGraphLense.Builder renamedMembersLense;
 
   public VerticalClassMerger(
-      DexApplication application, AppView<AppInfoWithLiveness> appView, Timing timing) {
+      DexApplication application,
+      AppView<AppInfoWithLiveness> appView,
+      ExecutorService executorService,
+      Timing timing) {
     this.application = application;
     this.appInfo = appView.getAppInfo();
+    this.executorService = executorService;
     this.graphLense = appView.getGraphLense();
+    this.methodPoolCollection = new MethodPoolCollection(application);
     this.renamedMembersLense = VerticalClassMergerGraphLense.builder(appInfo);
     this.timing = timing;
 
@@ -520,7 +535,7 @@ public class VerticalClassMerger {
     }
   }
 
-  public GraphLense run() {
+  public GraphLense run() throws ExecutionException {
     timing.begin("merge");
     GraphLense mergingGraphLense = mergeClasses(graphLense);
     timing.end();
@@ -561,7 +576,7 @@ public class VerticalClassMerger {
     }
   }
 
-  private GraphLense mergeClasses(GraphLense graphLense) {
+  private GraphLense mergeClasses(GraphLense graphLense) throws ExecutionException {
     Deque<DexProgramClass> worklist = new ArrayDeque<>();
     Set<DexProgramClass> seenBefore = new HashSet<>();
 
@@ -726,7 +741,7 @@ public class VerticalClassMerger {
       this.target = target;
     }
 
-    public boolean merge() {
+    public boolean merge() throws ExecutionException {
       // Merge the class [clazz] into [targetClass] by adding all methods to
       // targetClass that are not currently contained.
       // Step 1: Merge methods
@@ -792,12 +807,37 @@ public class VerticalClassMerger {
           }
         }
 
-        // This virtual method could be called directly from a sub class via an invoke-super
-        // instruction. Therefore, we translate this virtual method into a direct method, such that
-        // relevant invoke-super instructions can be rewritten into invoke-direct instructions.
-        DexEncodedMethod resultingDirectMethod =
-            renameMethod(virtualMethod, availableMethodSignatures, Rename.ALWAYS);
-        makePrivate(resultingDirectMethod);
+        DexEncodedMethod resultingDirectMethod;
+        if (source.accessFlags.isInterface()) {
+          // Moving a default interface method into its subtype. This method could be hit directly
+          // via an invoke-super instruction from any of the transitive subtypes of this interface,
+          // due to the way invoke-super works on default interface methods. In order to be able
+          // to hit this method directly after the merge, we need to make it public, and find a
+          // method name that does not collide with one in the hierarchy of this class.
+          MethodPool methodPoolForTarget =
+              methodPoolCollection.buildForHierarchy(target, executorService, timing);
+          resultingDirectMethod =
+              renameMethod(
+                  virtualMethod,
+                  method ->
+                      availableMethodSignatures.test(method)
+                          && !methodPoolForTarget.hasSeen(
+                              MethodSignatureEquivalence.get().wrap(method)),
+                  Rename.ALWAYS,
+                  getStaticProto(virtualMethod.method.holder, virtualMethod.method.proto));
+          makeStatic(resultingDirectMethod);
+
+          // Update method pool collection now that we are adding a new public method.
+          methodPoolForTarget.seen(resultingDirectMethod.method);
+        } else {
+          // This virtual method could be called directly from a sub class via an invoke-super in-
+          // struction. Therefore, we translate this virtual method into a direct method, such that
+          // relevant invoke-super instructions can be rewritten into invoke-direct instructions.
+          resultingDirectMethod =
+              renameMethod(virtualMethod, availableMethodSignatures, Rename.ALWAYS);
+          makePrivate(resultingDirectMethod);
+        }
+
         add(directMethods, resultingDirectMethod, MethodSignatureEquivalence.get());
 
         // Record that invoke-super instructions in the target class should be redirected to the
@@ -811,7 +851,7 @@ public class VerticalClassMerger {
           // Note that this method is added independently of whether it will actually be used. If
           // it turns out that the method is never used, it will be removed by the final round
           // of tree shaking.
-          shadowedBy = buildBridgeMethod(virtualMethod, resultingDirectMethod.method);
+          shadowedBy = buildBridgeMethod(virtualMethod, resultingDirectMethod);
           add(virtualMethods, shadowedBy, MethodSignatureEquivalence.get());
         }
 
@@ -903,7 +943,8 @@ public class VerticalClassMerger {
         // rewrite any invocations on the form "invoke-super J.m()" to "invoke-direct C.m$I()",
         // if I has a supertype J. This is due to the fact that invoke-super instructions that
         // resolve to a method on an interface never hit an implementation below that interface.
-        deferredRenamings.mapVirtualMethodToDirectInType(oldTarget, newTarget, target.type);
+        deferredRenamings.mapVirtualMethodToDirectInType(
+            oldTarget, new GraphLenseLookupResult(newTarget, Type.STATIC), target.type);
       } else {
         // If we merge class B into class C, and class C contains an invocation super.m(), then it
         // is insufficient to rewrite "invoke-super B.m()" to "invoke-direct C.m$B()" (the method
@@ -922,7 +963,7 @@ public class VerticalClassMerger {
                   || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
           if (resolutionSucceeds) {
             deferredRenamings.mapVirtualMethodToDirectInType(
-                signatureInHolder, newTarget, target.type);
+                signatureInHolder, new GraphLenseLookupResult(newTarget, Type.DIRECT), target.type);
           } else {
             break;
           }
@@ -944,7 +985,9 @@ public class VerticalClassMerger {
                       || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
               if (resolutionSucceededBeforeMerge) {
                 deferredRenamings.mapVirtualMethodToDirectInType(
-                    signatureInType, newTarget, target.type);
+                    signatureInType,
+                    new GraphLenseLookupResult(newTarget, Type.DIRECT),
+                    target.type);
               }
             }
           }
@@ -974,23 +1017,38 @@ public class VerticalClassMerger {
     }
 
     private DexEncodedMethod buildBridgeMethod(
-        DexEncodedMethod method, DexMethod invocationTarget) {
+        DexEncodedMethod method, DexEncodedMethod invocationTarget) {
       DexType holder = target.type;
-      DexProto proto = invocationTarget.proto;
+      DexProto proto = method.method.proto;
       DexString name = method.method.name;
       MethodAccessFlags accessFlags = method.accessFlags.copy();
       accessFlags.setBridge();
       accessFlags.setSynthetic();
       accessFlags.unsetAbstract();
-      DexEncodedMethod bridge = new DexEncodedMethod(
-          application.dexItemFactory.createMethod(holder, proto, name),
-          accessFlags,
-          DexAnnotationSet.empty(),
-          ParameterAnnotationsList.empty(),
-          new SynthesizedCode(
-              new ForwardMethodSourceCode(holder, proto, holder, invocationTarget, Type.DIRECT),
-              registry -> registry.registerInvokeDirect(invocationTarget)),
-          method.hasClassFileVersion() ? method.getClassFileVersion() : -1);
+      SynthesizedCode code;
+      if (invocationTarget.isPrivateMethod()) {
+        assert !invocationTarget.isStaticMethod();
+        code =
+            new SynthesizedCode(
+                new ForwardMethodSourceCode(
+                    holder, proto, holder, invocationTarget.method, Type.DIRECT),
+                registry -> registry.registerInvokeDirect(invocationTarget.method));
+      } else {
+        assert invocationTarget.isStaticMethod();
+        code =
+            new SynthesizedCode(
+                new ForwardMethodSourceCode(
+                    holder, proto, null, invocationTarget.method, Type.STATIC),
+                registry -> registry.registerInvokeStatic(invocationTarget.method));
+      }
+      DexEncodedMethod bridge =
+          new DexEncodedMethod(
+              application.dexItemFactory.createMethod(holder, proto, name),
+              accessFlags,
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              code,
+              method.hasClassFileVersion() ? method.getClassFileVersion() : -1);
       if (method.getOptimizationInfo().isPublicized()) {
         // The bridge is now the public method serving the role of the original method, and should
         // reflect that this method was publicized.
@@ -1106,6 +1164,14 @@ public class VerticalClassMerger {
 
     private DexEncodedMethod renameMethod(
         DexEncodedMethod method, Predicate<DexMethod> availableMethodSignatures, Rename strategy) {
+      return renameMethod(method, availableMethodSignatures, strategy, method.method.proto);
+    }
+
+    private DexEncodedMethod renameMethod(
+        DexEncodedMethod method,
+        Predicate<DexMethod> availableMethodSignatures,
+        Rename strategy,
+        DexProto newProto) {
       // We cannot handle renaming static initializers yet and constructors should have been
       // renamed already.
       assert !method.accessFlags.isConstructor() || strategy == Rename.NEVER;
@@ -1115,8 +1181,7 @@ public class VerticalClassMerger {
       DexMethod newSignature;
       switch (strategy) {
         case IF_NEEDED:
-          newSignature =
-              application.dexItemFactory.createMethod(target.type, method.method.proto, oldName);
+          newSignature = application.dexItemFactory.createMethod(target.type, newProto, oldName);
           if (availableMethodSignatures.test(newSignature)) {
             break;
           }
@@ -1126,15 +1191,13 @@ public class VerticalClassMerger {
           int count = 1;
           do {
             DexString newName = getFreshName(oldName.toSourceString(), count, oldHolder);
-            newSignature =
-                application.dexItemFactory.createMethod(target.type, method.method.proto, newName);
+            newSignature = application.dexItemFactory.createMethod(target.type, newProto, newName);
             count++;
           } while (!availableMethodSignatures.test(newSignature));
           break;
 
         case NEVER:
-          newSignature =
-              application.dexItemFactory.createMethod(target.type, method.method.proto, oldName);
+          newSignature = application.dexItemFactory.createMethod(target.type, newProto, oldName);
           assert availableMethodSignatures.test(newSignature);
           break;
 
@@ -1171,6 +1234,24 @@ public class VerticalClassMerger {
     method.accessFlags.unsetPublic();
     method.accessFlags.unsetProtected();
     method.accessFlags.setPrivate();
+  }
+
+  private static void makeStatic(DexEncodedMethod method) {
+    method.accessFlags.setStatic();
+
+    Code code = method.getCode();
+    if (code.isJarCode()) {
+      MethodNode node = code.asJarCode().getNode();
+      node.access |= Opcodes.ACC_STATIC;
+      node.desc = method.method.proto.toDescriptorString();
+    }
+  }
+
+  private DexProto getStaticProto(DexType receiverType, DexProto proto) {
+    DexType[] parameterTypes = new DexType[proto.parameters.size() + 1];
+    parameterTypes[0] = receiverType;
+    System.arraycopy(proto.parameters.values, 0, parameterTypes, 1, proto.parameters.size());
+    return appInfo.dexItemFactory.createProto(proto.returnType, parameterTypes);
   }
 
   private class TreeFixer {

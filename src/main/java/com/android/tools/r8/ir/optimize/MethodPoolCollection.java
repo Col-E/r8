@@ -7,13 +7,16 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Predicate;
 
 // Per-class collection of method signatures.
 //
@@ -41,11 +45,28 @@ public class MethodPoolCollection {
     timing.begin("Building method pool collection");
     try {
       List<Future<?>> futures = new ArrayList<>();
-      submitAll(application.classes(), futures, executorService);
+      @SuppressWarnings("unchecked")
+      List<DexClass> classes = (List) application.classes();
+      submitAll(classes, futures, executorService);
       ThreadUtils.awaitFutures(futures);
     } finally {
       timing.end();
     }
+  }
+
+  public MethodPool buildForHierarchy(
+      DexClass clazz, ExecutorService executorService, Timing timing) throws ExecutionException {
+    timing.begin("Building method pool collection");
+    try {
+      List<Future<?>> futures = new ArrayList<>();
+      submitAll(
+          getAllSuperTypesInclusive(clazz, methodPools::containsKey), futures, executorService);
+      submitAll(getAllSubTypesExclusive(clazz, methodPools::containsKey), futures, executorService);
+      ThreadUtils.awaitFutures(futures);
+    } finally {
+      timing.end();
+    }
+    return get(clazz);
   }
 
   public MethodPool get(DexClass clazz) {
@@ -64,8 +85,8 @@ public class MethodPoolCollection {
   }
 
   private void submitAll(
-      Iterable<DexProgramClass> classes, List<Future<?>> futures, ExecutorService executorService) {
-    for (DexProgramClass clazz : classes) {
+      Iterable<DexClass> classes, List<Future<?>> futures, ExecutorService executorService) {
+    for (DexClass clazz : classes) {
       futures.add(executorService.submit(computeMethodPoolPerClass(clazz)));
     }
   }
@@ -101,6 +122,51 @@ public class MethodPoolCollection {
     };
   }
 
+  private Set<DexClass> getAllSuperTypesInclusive(
+      DexClass subject, Predicate<DexClass> stoppingCriterion) {
+    Set<DexClass> superTypes = new HashSet<>();
+    Deque<DexClass> worklist = new ArrayDeque<>();
+    worklist.add(subject);
+    while (!worklist.isEmpty()) {
+      DexClass clazz = worklist.pop();
+      if (stoppingCriterion.test(clazz)) {
+        continue;
+      }
+      if (superTypes.add(clazz)) {
+        if (clazz.superType != null) {
+          addNonNull(worklist, application.definitionFor(clazz.superType));
+        }
+        for (DexType interfaceType : clazz.interfaces.values) {
+          addNonNull(worklist, application.definitionFor(interfaceType));
+        }
+      }
+    }
+    return superTypes;
+  }
+
+  private Set<DexClass> getAllSubTypesExclusive(
+      DexClass subject, Predicate<DexClass> stoppingCriterion) {
+    Set<DexClass> subTypes = new HashSet<>();
+    Deque<DexClass> worklist = new ArrayDeque<>();
+    subject.type.forAllExtendsSubtypes(
+        type -> addNonNull(worklist, application.definitionFor(type)));
+    subject.type.forAllImplementsSubtypes(
+        type -> addNonNull(worklist, application.definitionFor(type)));
+    while (!worklist.isEmpty()) {
+      DexClass clazz = worklist.pop();
+      if (stoppingCriterion.test(clazz)) {
+        continue;
+      }
+      if (subTypes.add(clazz)) {
+        clazz.type.forAllExtendsSubtypes(
+            type -> addNonNull(worklist, application.definitionFor(type)));
+        clazz.type.forAllImplementsSubtypes(
+            type -> addNonNull(worklist, application.definitionFor(type)));
+      }
+    }
+    return subTypes;
+  }
+
   public static class MethodPool {
     private MethodPool superType;
     private final Set<MethodPool> interfaces = new HashSet<>();
@@ -124,6 +190,10 @@ public class MethodPoolCollection {
       assert added;
     }
 
+    public void seen(DexMethod method) {
+      seen(MethodSignatureEquivalence.get().wrap(method));
+    }
+
     public synchronized void seen(Wrapper<DexMethod> method) {
       boolean added = methodPool.add(method);
       assert added;
@@ -142,6 +212,12 @@ public class MethodPoolCollection {
     private boolean hasSeenDownwardRecursive(Wrapper<DexMethod> method) {
       return methodPool.contains(method)
           || subTypes.stream().anyMatch(subType -> subType.hasSeenDownwardRecursive(method));
+    }
+  }
+
+  private static <T> void addNonNull(Collection<T> collection, T item) {
+    if (item != null) {
+      collection.add(item);
     }
   }
 }
