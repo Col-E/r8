@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -18,11 +19,15 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 // Default and static method interface desugaring processor for interfaces.
 //
@@ -78,7 +83,7 @@ final class InterfaceProcessor {
       }
 
       // Remove bridge methods.
-      if (!virtual.accessFlags.isBridge()) {
+      if (interfaceMethodRemovalChangesApi(virtual, iface)) {
         remainingMethods.add(virtual);
       }
     }
@@ -178,6 +183,38 @@ final class InterfaceProcessor {
             rewriter.factory.getSkipNameValidationForTesting(),
             Collections.singletonList(iface));
     companionClasses.put(iface, companionClass);
+  }
+
+  // Returns true if the given interface method must be kept on [iface] after moving its
+  // implementation to the companion class of [iface]. This is always the case for non-bridge
+  // methods. Bridge methods that does not override an implementation in a super-interface must
+  // also be kept (such a situation can happen if the vertical class merger merges two interfaces).
+  private boolean interfaceMethodRemovalChangesApi(DexEncodedMethod method, DexClass iface) {
+    if (method.accessFlags.isBridge()) {
+      Deque<DexType> worklist = new ArrayDeque<>();
+      Set<DexType> seenBefore = new HashSet<>();
+      if (iface.superType != null) {
+        worklist.add(iface.superType);
+      }
+      Collections.addAll(worklist, iface.interfaces.values);
+      while (!worklist.isEmpty()) {
+        DexType superType = worklist.pop();
+        if (!seenBefore.add(superType)) {
+          continue;
+        }
+        DexClass clazz = rewriter.findDefinitionFor(superType);
+        if (clazz != null) {
+          if (clazz.lookupVirtualMethod(method.method) != null) {
+            return false;
+          }
+          if (clazz.superType != null) {
+            worklist.add(clazz.superType);
+          }
+          Collections.addAll(worklist, clazz.interfaces.values);
+        }
+      }
+    }
+    return true;
   }
 
   private boolean isStaticMethod(DexEncodedMethod method) {
