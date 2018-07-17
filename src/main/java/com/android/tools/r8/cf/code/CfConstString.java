@@ -13,7 +13,7 @@ import org.objectweb.asm.MethodVisitor;
 
 public class CfConstString extends CfInstruction {
 
-  private final DexString string;
+  private DexString string;
 
   public CfConstString(DexString string) {
     this.string = string;
@@ -21,6 +21,10 @@ public class CfConstString extends CfInstruction {
 
   public DexString getString() {
     return string;
+  }
+
+  public void setString(DexString string) {
+    this.string = string;
   }
 
   @Override

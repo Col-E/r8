@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.dexinspector.ClassSubject;
 import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.android.tools.r8.utils.dexinspector.InstructionSubject;
+import com.android.tools.r8.utils.dexinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
@@ -53,26 +54,26 @@ public class MoveStringConstantsTest extends TestBase {
         clazz.method("void", "foo", ImmutableList.of(
             "java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String"));
     assertTrue(methodThrowToBeInlined.isPresent());
-    validateSequence(methodThrowToBeInlined.iterateInstructions(),
+    validateSequence(
+        methodThrowToBeInlined.iterateInstructions(),
         // 'if' with "foo#1" is flipped.
         InstructionSubject::isIfEqz,
 
         // 'if' with "foo#2" is removed along with the constant.
 
         // 'if' with "foo#3" is removed so now we have unconditional call.
-        insn -> insn.isConstString("StringConstants::foo#3"),
+        insn -> insn.isConstString("StringConstants::foo#3", JumboStringMode.DISALLOW),
         InstructionSubject::isInvokeStatic,
         InstructionSubject::isThrow,
 
         // 'if's with "foo#4" and "foo#5" are flipped, but their throwing branches
         // are not moved to the end of the code (area for improvement?).
-        insn -> insn.isConstString("StringConstants::foo#4"),
+        insn -> insn.isConstString("StringConstants::foo#4", JumboStringMode.DISALLOW),
         InstructionSubject::isIfEqz, // Flipped if
         InstructionSubject::isGoto, // Jump around throwing branch.
         InstructionSubject::isInvokeStatic, // Throwing branch.
         InstructionSubject::isThrow,
-
-        insn -> insn.isConstString("StringConstants::foo#5"),
+        insn -> insn.isConstString("StringConstants::foo#5", JumboStringMode.DISALLOW),
         InstructionSubject::isIfEqz, // Flipped if
         InstructionSubject::isReturnVoid, // Final return statement.
         InstructionSubject::isInvokeStatic, // Throwing branch.
@@ -80,10 +81,9 @@ public class MoveStringConstantsTest extends TestBase {
 
         // After 'if' with "foo#1" flipped, always throwing branch
         // moved here along with the constant.
-        insn -> insn.isConstString("StringConstants::foo#1"),
+        insn -> insn.isConstString("StringConstants::foo#1", JumboStringMode.DISALLOW),
         InstructionSubject::isInvokeStatic,
-        InstructionSubject::isThrow
-    );
+        InstructionSubject::isThrow);
   }
 
   @SafeVarargs

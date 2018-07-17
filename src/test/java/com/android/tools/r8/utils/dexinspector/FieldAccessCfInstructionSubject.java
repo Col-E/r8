@@ -17,6 +17,7 @@ public class FieldAccessCfInstructionSubject extends CfInstructionSubject
     assert isFieldAccess();
   }
 
+  @Override
   public TypeSubject holder() {
     return new TypeSubject(dexInspector, ((CfFieldInstruction) instruction).getField().getHolder());
   }

@@ -30,6 +30,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.dexinspector.InstructionSubject.JumboStringMode;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -254,6 +255,8 @@ public class DexInspector {
       return new FieldAccessDexInstructionSubject(this, instruction);
     } else if (dexInst.isNewInstance()) {
       return new NewInstanceDexInstructionSubject(instruction);
+    } else if (dexInst.isConstString(JumboStringMode.ALLOW)) {
+      return new ConstStringDexInstructionSubject(instruction);
     } else {
       return dexInst;
     }
@@ -267,6 +270,8 @@ public class DexInspector {
       return new FieldAccessCfInstructionSubject(this, instruction);
     } else if (cfInst.isNewInstance()) {
       return new NewInstanceCfInstructionSubject(instruction);
+    } else if (cfInst.isConstString(JumboStringMode.ALLOW)) {
+      return new ConstStringCfInstructionSubject(instruction);
     } else {
       return cfInst;
     }

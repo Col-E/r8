@@ -493,7 +493,7 @@ public class JarSourceCode implements SourceCode {
       // Don't include line changes when processing a label. Doing so will end up emitting local
       // writes after the line has changed and thus causing locals to become visible too late.
       currentPosition =
-          getDebugPositionAtOffset(
+          getCanonicalDebugPositionAtOffset(
               ((instructionIndex > 0) && (insn instanceof LabelNode))
                   ? instructionIndex - 1
                   : instructionIndex);
@@ -2832,7 +2832,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   @Override
-  public Position getDebugPositionAtOffset(int offset) {
+  public Position getCanonicalDebugPositionAtOffset(int offset) {
     if (offset == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
       return getExceptionalExitPosition();
     }

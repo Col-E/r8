@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.dexinspector.ClassSubject;
 import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.android.tools.r8.utils.dexinspector.DexInstructionSubject;
 import com.android.tools.r8.utils.dexinspector.InstructionSubject;
+import com.android.tools.r8.utils.dexinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.dexinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
@@ -78,7 +79,7 @@ public class NeverReturnsNormallyTest extends TestBase {
     assertTrue(methodThrowToBeInlined.isPresent());
     Iterator<InstructionSubject> instructions = methodThrowToBeInlined.iterateInstructions();
     // Call, followed by throw null.
-    assertTrue(nextInstruction(instructions).isConstString());
+    assertTrue(nextInstruction(instructions).isConstString(JumboStringMode.ALLOW));
     InstructionSubject insn = nextInstruction(instructions);
     assertTrue(insn.isInvoke());
     assertTrue(((InvokeInstructionSubject) insn)
@@ -101,7 +102,7 @@ public class NeverReturnsNormallyTest extends TestBase {
           .invokedMethod().name.toString().equals("throwToBeInlined"));
     } else {
       // Inlined code from throwToBeInlined.
-      assertTrue(nextInstruction(instructions).isConstString());
+      assertTrue(nextInstruction(instructions).isConstString(JumboStringMode.ALLOW));
       insn = nextInstruction(instructions);
       assertTrue(insn.isInvoke());
       assertTrue(((InvokeInstructionSubject) insn)

@@ -771,7 +771,7 @@ public class MainDexListTests extends TestBase {
     }
 
     @Override
-    public Position getDebugPositionAtOffset(int offset) {
+    public Position getCanonicalDebugPositionAtOffset(int offset) {
       throw new Unreachable();
     }
 

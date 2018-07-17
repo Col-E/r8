@@ -5,9 +5,12 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 
+import com.android.tools.r8.cf.code.CfConstString;
+import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -34,9 +37,7 @@ class IdentifierMinifier {
   private final Set<DexItem> identifierNameStrings;
 
   IdentifierMinifier(
-      AppInfoWithLiveness appInfo,
-      ProguardClassFilter adaptClassStrings,
-      NamingLens lens) {
+      AppInfoWithLiveness appInfo, ProguardClassFilter adaptClassStrings, NamingLens lens) {
     this.appInfo = appInfo;
     this.adaptClassStrings = adaptClassStrings;
     this.lens = lens;
@@ -86,17 +87,29 @@ class IdentifierMinifier {
     if (code == null) {
       return;
     }
-    assert code.isDexCode();
-    DexCode dexCode = code.asDexCode();
-    for (Instruction instr : dexCode.instructions) {
-      if (instr instanceof ConstString) {
-        ConstString cnst = (ConstString) instr;
-        DexString dexString = cnst.getString();
-        cnst.BBBB = getRenamedStringLiteral(dexString);
-      } else if (instr instanceof ConstStringJumbo) {
-        ConstStringJumbo cnst = (ConstStringJumbo) instr;
-        DexString dexString = cnst.getString();
-        cnst.BBBBBBBB = getRenamedStringLiteral(dexString);
+    if (code.isDexCode()) {
+      DexCode dexCode = code.asDexCode();
+      for (Instruction instr : dexCode.instructions) {
+        if (instr instanceof ConstString) {
+          ConstString cnst = (ConstString) instr;
+          DexString dexString = cnst.getString();
+          cnst.BBBB = getRenamedStringLiteral(dexString);
+        } else if (instr instanceof ConstStringJumbo) {
+          ConstStringJumbo cnst = (ConstStringJumbo) instr;
+          DexString dexString = cnst.getString();
+          cnst.BBBBBBBB = getRenamedStringLiteral(dexString);
+        }
+      }
+    } else {
+      assert code.isCfCode();
+      CfCode cfCode = code.asCfCode();
+
+      for (CfInstruction instr : cfCode.getInstructions()) {
+        if (instr instanceof CfConstString) {
+          CfConstString cnst = (CfConstString) instr;
+          DexString dexString = cnst.getString();
+          cnst.setString(getRenamedStringLiteral(dexString));
+        }
       }
     }
   }
@@ -153,19 +166,32 @@ class IdentifierMinifier {
     if (code == null) {
       return;
     }
-    assert code.isDexCode();
-    DexCode dexCode = code.asDexCode();
-    for (Instruction instr : dexCode.instructions) {
-      if (instr instanceof ConstString
-          && ((ConstString) instr).getString() instanceof DexItemBasedString) {
-        ConstString cnst = (ConstString) instr;
-        DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
-        cnst.BBBB = materialize(itemBasedString);
-      } else if (instr instanceof ConstStringJumbo
-          && ((ConstStringJumbo) instr).getString() instanceof DexItemBasedString) {
-        ConstStringJumbo cnst = (ConstStringJumbo) instr;
-        DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
-        cnst.BBBBBBBB = materialize(itemBasedString);
+    if (code.isDexCode()) {
+      DexCode dexCode = code.asDexCode();
+      for (Instruction instr : dexCode.instructions) {
+        if (instr instanceof ConstString
+            && ((ConstString) instr).getString() instanceof DexItemBasedString) {
+          ConstString cnst = (ConstString) instr;
+          DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
+          cnst.BBBB = materialize(itemBasedString);
+        } else if (instr instanceof ConstStringJumbo
+            && ((ConstStringJumbo) instr).getString() instanceof DexItemBasedString) {
+          ConstStringJumbo cnst = (ConstStringJumbo) instr;
+          DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
+          cnst.BBBBBBBB = materialize(itemBasedString);
+        }
+      }
+    } else {
+      assert code.isCfCode();
+      CfCode cfCode = code.asCfCode();
+
+      for (CfInstruction instr : cfCode.getInstructions()) {
+        if (instr instanceof CfConstString
+            && ((CfConstString) instr).getString() instanceof DexItemBasedString) {
+          CfConstString cnst = (CfConstString) instr;
+          DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
+          cnst.setString(materialize(itemBasedString));
+        }
       }
     }
   }
@@ -184,5 +210,4 @@ class IdentifierMinifier {
       return lens.lookupName((DexField) itemBasedString.basedOn);
     }
   }
-
 }

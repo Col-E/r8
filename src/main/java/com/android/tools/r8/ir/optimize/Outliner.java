@@ -1106,7 +1106,7 @@ public class Outliner {
     }
 
     @Override
-    public Position getDebugPositionAtOffset(int offset) {
+    public Position getCanonicalDebugPositionAtOffset(int offset) {
       throw new Unreachable();
     }
 

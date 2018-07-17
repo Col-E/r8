@@ -18,10 +18,12 @@ public class InvokeDexInstructionSubject extends DexInstructionSubject
     assert isInvoke();
   }
 
+  @Override
   public TypeSubject holder() {
     return new TypeSubject(dexInspector, invokedMethod().getHolder());
   }
 
+  @Override
   public DexMethod invokedMethod() {
     return instruction.getMethod();
   }

@@ -5,6 +5,12 @@
 package com.android.tools.r8.utils.dexinspector;
 
 public interface InstructionSubject {
+
+  enum JumboStringMode {
+    ALLOW,
+    DISALLOW
+  };
+
   boolean isFieldAccess();
 
   boolean isInvokeVirtual();
@@ -15,9 +21,9 @@ public interface InstructionSubject {
 
   boolean isNop();
 
-  boolean isConstString();
+  boolean isConstString(JumboStringMode jumboStringMode);
 
-  boolean isConstString(String value);
+  boolean isConstString(String value, JumboStringMode jumboStringMode);
 
   boolean isGoto();
 

@@ -395,14 +395,8 @@ public class CfSourceCode implements SourceCode {
       if (instruction instanceof CfPosition) {
         CfPosition cfPosition = (CfPosition) instruction;
         Position position = cfPosition.getPosition();
-        Position newPosition =
-            canonicalPositions.getCanonical(
-                new Position(
-                    position.line,
-                    position.file,
-                    position.method,
-                    canonicalPositions.canonicalizeCallerPosition(position.callerPosition)));
-        CfPosition newCfPosition = new CfPosition(cfPosition.getLabel(), newPosition);
+        CfPosition newCfPosition =
+            new CfPosition(cfPosition.getLabel(), getCanonicalPosition(position));
         newCfPosition.buildIR(builder, state, this);
       } else {
         instruction.buildIR(builder, state, this);
@@ -441,7 +435,8 @@ public class CfSourceCode implements SourceCode {
     for (int i = 0; i < stack.length; i++) {
       stack[i] = convertUninitialized(frame.getStack().get(i));
     }
-    state.setStateFromFrame(locals, stack, getDebugPositionAtOffset(currentInstructionIndex));
+    state.setStateFromFrame(
+        locals, stack, getCanonicalDebugPositionAtOffset(currentInstructionIndex));
   }
 
   private DexType convertUninitialized(FrameType type) {
@@ -624,7 +619,7 @@ public class CfSourceCode implements SourceCode {
   }
 
   @Override
-  public Position getDebugPositionAtOffset(int offset) {
+  public Position getCanonicalDebugPositionAtOffset(int offset) {
     while (offset + 1 < code.getInstructions().size()) {
       CfInstruction insn = code.getInstructions().get(offset);
       if (!(insn instanceof CfLabel) && !(insn instanceof CfFrame)) {
@@ -636,13 +631,22 @@ public class CfSourceCode implements SourceCode {
       offset -= 1;
     }
     if (offset < 0) {
-      return Position.noneWithMethod(method.method, callerPosition);
+      return canonicalPositions.getPreamblePosition();
     }
-    return ((CfPosition) code.getInstructions().get(offset)).getPosition();
+    return getCanonicalPosition(((CfPosition) code.getInstructions().get(offset)).getPosition());
   }
 
   @Override
   public Position getCurrentPosition() {
     return state.getPosition();
+  }
+
+  private Position getCanonicalPosition(Position position) {
+    return canonicalPositions.getCanonical(
+        new Position(
+            position.line,
+            position.file,
+            position.method,
+            canonicalPositions.canonicalizeCallerPosition(position.callerPosition)));
   }
 }

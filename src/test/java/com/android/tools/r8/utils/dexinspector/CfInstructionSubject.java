@@ -55,13 +55,14 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
-  public boolean isConstString() {
+  public boolean isConstString(JumboStringMode jumboStringMode) {
     return instruction instanceof CfConstString;
   }
 
   @Override
-  public boolean isConstString(String value) {
-    return isConstString() && ((CfConstString) instruction).getString().toString().equals(value);
+  public boolean isConstString(String value, JumboStringMode jumboStringMode) {
+    return isConstString(jumboStringMode)
+        && ((CfConstString) instruction).getString().toSourceString().equals(value);
   }
 
   @Override

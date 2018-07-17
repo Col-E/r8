@@ -6,28 +6,29 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.DescriptorUtils.isValidJavaType;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.ConstStringJumbo;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.dexinspector.ClassSubject;
+import com.android.tools.r8.utils.dexinspector.ConstStringInstructionSubject;
 import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.dexinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.dexinspector.InstructionSubject;
+import com.android.tools.r8.utils.dexinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -48,14 +49,19 @@ public class IdentifierMinifierTest extends TestBase {
   private final String appFileName;
   private final List<String> keepRulesFiles;
   private final Consumer<DexInspector> inspection;
+  private final Backend backend;
 
   public IdentifierMinifierTest(
+      Backend backend,
       String test,
       List<String> keepRulesFiles,
       Consumer<DexInspector> inspection) {
-    this.appFileName = ToolHelper.EXAMPLES_BUILD_DIR + test + "/classes.dex";
+    assert backend == Backend.DEX || backend == Backend.CF;
+    this.appFileName =
+        ToolHelper.EXAMPLES_BUILD_DIR + test + (backend == Backend.DEX ? "/classes.dex" : ".jar");
     this.keepRulesFiles = keepRulesFiles;
     this.inspection = inspection;
+    this.backend = backend;
   }
 
   private AndroidApp processedApp;
@@ -65,25 +71,34 @@ public class IdentifierMinifierTest extends TestBase {
     Path out = temp.getRoot().toPath();
     R8Command.Builder builder =
         ToolHelper.addProguardConfigurationConsumer(
-            R8Command.builder(),
-            pgConfig -> {
-              pgConfig.setPrintMapping(true);
-              pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
-            })
-            .setOutput(out, OutputMode.DexIndexed)
-            .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+                R8Command.builder(),
+                pgConfig -> {
+                  pgConfig.setPrintMapping(true);
+                  pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
+                })
+            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get));
+    if (backend == Backend.DEX) {
+      builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+    } else if (backend == Backend.CF) {
+      builder.addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME));
+    }
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(appFileName));
     processedApp = ToolHelper.runR8(builder.build(), o -> o.debug = false);
   }
 
   @Test
   public void identiferMinifierTest() throws Exception {
-    DexInspector dexInspector = new DexInspector(processedApp);
+    DexInspector dexInspector =
+        new DexInspector(
+            processedApp,
+            options -> {
+              options.enableCfFrontend = true;
+            });
     inspection.accept(dexInspector);
   }
 
-  @Parameters(name = "test: {0} keep: {1}")
+  @Parameters(name = "[{0}] test: {1} keep: {2}")
   public static Collection<Object[]> data() {
     List<String> tests = Arrays.asList(
         "adaptclassstrings",
@@ -103,25 +118,38 @@ public class IdentifierMinifierTest extends TestBase {
     inspections.put("identifiernamestring:keep-rules-2.txt", IdentifierMinifierTest::test2_rule2);
     inspections.put("identifiernamestring:keep-rules-3.txt", IdentifierMinifierTest::test2_rule3);
 
-    return NamingTestBase.createTests(tests, inspections);
+    Collection<Object[]> parameters = NamingTestBase.createTests(tests, inspections);
+
+    // Duplicate parameters for each backend.
+    List<Object[]> parametersWithBackend = new ArrayList<>();
+    for (Backend backend : Backend.values()) {
+      for (Object[] row : parameters) {
+        Object[] newRow = new Object[row.length + 1];
+        newRow[0] = backend;
+        System.arraycopy(row, 0, newRow, 1, row.length);
+        parametersWithBackend.add(newRow);
+      }
+    }
+
+    return parametersWithBackend;
   }
 
   // Without -adaptclassstrings
   private static void test1_rule1(DexInspector inspector) {
     ClassSubject mainClass = inspector.clazz("adaptclassstrings.Main");
     MethodSubject main = mainClass.method(DexInspector.MAIN);
-    Code mainCode = main.getMethod().getCode();
-    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
-    int renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, mainCode.asDexCode().instructions);
+    assertTrue(main instanceof FoundMethodSubject);
+    FoundMethodSubject foundMain = (FoundMethodSubject) main;
+    verifyPresenceOfConstString(foundMain);
+    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
     assertEquals(0, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
     MethodSubject bar = aClass.method("void", "bar", ImmutableList.of());
-    Code barCode = bar.getMethod().getCode();
-    verifyPresenceOfConstString(barCode.asDexCode().instructions);
-    renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, barCode.asDexCode().instructions);
+    assertTrue(bar instanceof FoundMethodSubject);
+    FoundMethodSubject foundBar = (FoundMethodSubject) bar;
+    verifyPresenceOfConstString(foundBar);
+    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundBar);
     assertEquals(0, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
@@ -133,18 +161,18 @@ public class IdentifierMinifierTest extends TestBase {
   private static void test1_rule2(DexInspector inspector) {
     ClassSubject mainClass = inspector.clazz("adaptclassstrings.Main");
     MethodSubject main = mainClass.method(DexInspector.MAIN);
-    Code mainCode = main.getMethod().getCode();
-    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
-    int renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, mainCode.asDexCode().instructions);
+    assertTrue(main instanceof FoundMethodSubject);
+    FoundMethodSubject foundMain = (FoundMethodSubject) main;
+    verifyPresenceOfConstString(foundMain);
+    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
     assertEquals(0, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
     MethodSubject bar = aClass.method("void", "bar", ImmutableList.of());
-    Code barCode = bar.getMethod().getCode();
-    verifyPresenceOfConstString(barCode.asDexCode().instructions);
-    renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, barCode.asDexCode().instructions);
+    assertTrue(bar instanceof FoundMethodSubject);
+    FoundMethodSubject foundBar = (FoundMethodSubject) bar;
+    verifyPresenceOfConstString(foundBar);
+    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundBar);
     assertEquals(1, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
@@ -155,41 +183,43 @@ public class IdentifierMinifierTest extends TestBase {
   private static void test_atomicfieldupdater(DexInspector inspector) {
     ClassSubject mainClass = inspector.clazz("atomicfieldupdater.Main");
     MethodSubject main = mainClass.method(DexInspector.MAIN);
-    Code mainCode = main.getMethod().getCode();
-    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
+    assertTrue(main instanceof FoundMethodSubject);
+    FoundMethodSubject foundMain = (FoundMethodSubject) main;
+    verifyPresenceOfConstString(foundMain);
 
     ClassSubject a = inspector.clazz("atomicfieldupdater.A");
-    Set<Instruction> constStringInstructions =
-        getRenamedMemberIdentifierConstStrings(a, mainCode.asDexCode().instructions);
+    Set<InstructionSubject> constStringInstructions =
+        getRenamedMemberIdentifierConstStrings(a, foundMain);
     assertEquals(3, constStringInstructions.size());
   }
 
   private static void test_forname(DexInspector inspector) {
     ClassSubject mainClass = inspector.clazz("forname.Main");
     MethodSubject main = mainClass.method(DexInspector.MAIN);
-    Code mainCode = main.getMethod().getCode();
-    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
-    int renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, mainCode.asDexCode().instructions);
+    assertTrue(main instanceof FoundMethodSubject);
+    FoundMethodSubject foundMain = (FoundMethodSubject) main;
+    verifyPresenceOfConstString(foundMain);
+    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
     assertEquals(1, renamedYetFoundIdentifierCount);
   }
 
   private static void test_getmembers(DexInspector inspector) {
     ClassSubject mainClass = inspector.clazz("getmembers.Main");
     MethodSubject main = mainClass.method(DexInspector.MAIN);
-    Code mainCode = main.getMethod().getCode();
-    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
+    assertTrue(main instanceof FoundMethodSubject);
+    FoundMethodSubject foundMain = (FoundMethodSubject) main;
+    verifyPresenceOfConstString(foundMain);
 
     ClassSubject a = inspector.clazz("getmembers.A");
-    Set<Instruction> constStringInstructions =
-        getRenamedMemberIdentifierConstStrings(a, mainCode.asDexCode().instructions);
+    Set<InstructionSubject> constStringInstructions =
+        getRenamedMemberIdentifierConstStrings(a, foundMain);
     assertEquals(2, constStringInstructions.size());
 
     ClassSubject b = inspector.clazz("getmembers.B");
     MethodSubject inliner = b.method("java.lang.String", "inliner", ImmutableList.of());
-    Code inlinerCode = inliner.getMethod().getCode();
-    constStringInstructions =
-        getRenamedMemberIdentifierConstStrings(a, inlinerCode.asDexCode().instructions);
+    assertTrue(inliner instanceof FoundMethodSubject);
+    FoundMethodSubject foundInliner = (FoundMethodSubject) inliner;
+    constStringInstructions = getRenamedMemberIdentifierConstStrings(a, foundInliner);
     assertEquals(1, constStringInstructions.size());
   }
 
@@ -197,19 +227,19 @@ public class IdentifierMinifierTest extends TestBase {
   private static void test2_rule1(DexInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
     MethodSubject main = mainClass.method(DexInspector.MAIN);
-    Code mainCode = main.getMethod().getCode();
-    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
-    int renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, mainCode.asDexCode().instructions);
+    assertTrue(main instanceof FoundMethodSubject);
+    FoundMethodSubject foundMain = (FoundMethodSubject) main;
+    verifyPresenceOfConstString(foundMain);
+    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
     assertEquals(0, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("identifiernamestring.A");
     MethodSubject aInit =
         aClass.method("void", "<init>", ImmutableList.of());
-    Code initCode = aInit.getMethod().getCode();
-    verifyPresenceOfConstString(initCode.asDexCode().instructions);
-    renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, initCode.asDexCode().instructions);
+    assertTrue(aInit instanceof FoundMethodSubject);
+    FoundMethodSubject foundAInit = (FoundMethodSubject) aInit;
+    verifyPresenceOfConstString(foundAInit);
+    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundAInit);
     assertEquals(0, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
@@ -221,21 +251,19 @@ public class IdentifierMinifierTest extends TestBase {
   private static void test2_rule2(DexInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
     MethodSubject main = mainClass.method(DexInspector.MAIN);
-    assertTrue(main.isPresent());
-    Code mainCode = main.getMethod().getCode();
-    assertTrue(mainCode.isDexCode());
-    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
-    int renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, mainCode.asDexCode().instructions);
+    assertTrue(main instanceof FoundMethodSubject);
+    FoundMethodSubject foundMain = (FoundMethodSubject) main;
+    verifyPresenceOfConstString(foundMain);
+    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
     assertEquals(1, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("identifiernamestring.A");
     MethodSubject aInit =
         aClass.method("void", "<init>", ImmutableList.of());
-    Code initCode = aInit.getMethod().getCode();
-    verifyPresenceOfConstString(initCode.asDexCode().instructions);
-    renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, initCode.asDexCode().instructions);
+    assertTrue(aInit instanceof FoundMethodSubject);
+    FoundMethodSubject foundAInit = (FoundMethodSubject) aInit;
+    verifyPresenceOfConstString(foundAInit);
+    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundAInit);
     assertEquals(1, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
@@ -247,55 +275,47 @@ public class IdentifierMinifierTest extends TestBase {
   private static void test2_rule3(DexInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
     MethodSubject main = mainClass.method(DexInspector.MAIN);
-    assertTrue(main.isPresent());
-    Code mainCode = main.getMethod().getCode();
-    assertTrue(mainCode.isDexCode());
-    verifyPresenceOfConstString(mainCode.asDexCode().instructions);
+    assertTrue(main instanceof FoundMethodSubject);
+    FoundMethodSubject foundMain = (FoundMethodSubject) main;
+    verifyPresenceOfConstString(foundMain);
 
     ClassSubject b = inspector.clazz("identifiernamestring.B");
-    Set<Instruction> constStringInstructions =
-        getRenamedMemberIdentifierConstStrings(b, mainCode.asDexCode().instructions);
+    Set<InstructionSubject> constStringInstructions =
+        getRenamedMemberIdentifierConstStrings(b, foundMain);
     assertEquals(2, constStringInstructions.size());
   }
 
-  private static void verifyPresenceOfConstString(Instruction[] instructions) {
-    boolean presence =
-        Arrays.stream(instructions)
-            .anyMatch(instr -> instr instanceof ConstString || instr instanceof ConstStringJumbo);
-    assertTrue(presence);
+  private static void verifyPresenceOfConstString(FoundMethodSubject method) {
+    assertTrue(
+        method
+            .iterateInstructions(instruction -> instruction.isConstString(JumboStringMode.ALLOW))
+            .hasNext());
   }
 
-  private static String retrieveString(Instruction instr) {
-    if (instr instanceof ConstString) {
-      ConstString cnst = (ConstString) instr;
-      return cnst.getString().toString();
-    } else if (instr instanceof ConstStringJumbo) {
-      ConstStringJumbo cnst = (ConstStringJumbo) instr;
-      return cnst.getString().toString();
-    }
-    return null;
-  }
-
-  private static Stream<Instruction> getConstStringInstructions(Instruction[] instructions) {
-    return Arrays.stream(instructions)
-        .filter(instr -> instr instanceof ConstString || instr instanceof ConstStringJumbo);
+  private static Stream<InstructionSubject> getConstStringInstructions(FoundMethodSubject method) {
+    return Streams.stream(method.iterateInstructions())
+        .filter(instr -> instr.isConstString(JumboStringMode.ALLOW));
   }
 
   private static int countRenamedClassIdentifier(
-      DexInspector inspector, Instruction[] instructions) {
-    return getConstStringInstructions(instructions)
-        .reduce(0, (cnt, instr) -> {
-          String cnstString = retrieveString(instr);
-          assertNotNull(cnstString);
-          if (isValidJavaType(cnstString)) {
-            ClassSubject classSubject = inspector.clazz(cnstString);
-            if (classSubject.isRenamed()
-                && descriptorToJavaType(classSubject.getFinalDescriptor()).equals(cnstString)) {
-              return cnt + 1;
-            }
-          }
-          return cnt;
-        }, Integer::sum);
+      DexInspector inspector, FoundMethodSubject method) {
+    return getConstStringInstructions(method)
+        .reduce(
+            0,
+            (cnt, instr) -> {
+              assert (instr instanceof ConstStringInstructionSubject);
+              String cnstString =
+                  ((ConstStringInstructionSubject) instr).getString().toSourceString();
+              if (isValidJavaType(cnstString)) {
+                ClassSubject classSubject = inspector.clazz(cnstString);
+                if (classSubject.isRenamed()
+                    && descriptorToJavaType(classSubject.getFinalDescriptor()).equals(cnstString)) {
+                  return cnt + 1;
+                }
+              }
+              return cnt;
+            },
+            Integer::sum);
   }
 
   private static int countRenamedClassIdentifier(
@@ -316,22 +336,27 @@ public class IdentifierMinifierTest extends TestBase {
         }, Integer::sum);
   }
 
-  private static Set<Instruction> getRenamedMemberIdentifierConstStrings(
-      ClassSubject clazz, Instruction[] instructions) {
-    Set<Instruction> result = Sets.newIdentityHashSet();
-    getConstStringInstructions(instructions).forEach(instr -> {
-      String cnstString = retrieveString(instr);
-      clazz.forAllMethods(foundMethodSubject -> {
-        if (foundMethodSubject.getFinalSignature().name.equals(cnstString)) {
-          result.add(instr);
-        }
-      });
-      clazz.forAllFields(foundFieldSubject -> {
-        if (foundFieldSubject.getFinalSignature().name.equals(cnstString)) {
-          result.add(instr);
-        }
-      });
-    });
+  private static Set<InstructionSubject> getRenamedMemberIdentifierConstStrings(
+      ClassSubject clazz, FoundMethodSubject method) {
+    Set<InstructionSubject> result = Sets.newIdentityHashSet();
+    getConstStringInstructions(method)
+        .forEach(
+            instr -> {
+              String cnstString =
+                  ((ConstStringInstructionSubject) instr).getString().toSourceString();
+              clazz.forAllMethods(
+                  foundMethodSubject -> {
+                    if (foundMethodSubject.getFinalSignature().name.equals(cnstString)) {
+                      result.add(instr);
+                    }
+                  });
+              clazz.forAllFields(
+                  foundFieldSubject -> {
+                    if (foundFieldSubject.getFinalSignature().name.equals(cnstString)) {
+                      result.add(instr);
+                    }
+                  });
+            });
     return result;
   }
 

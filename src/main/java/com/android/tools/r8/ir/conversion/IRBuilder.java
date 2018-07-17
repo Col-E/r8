@@ -592,7 +592,7 @@ public class IRBuilder {
     int moveExceptionDest = source.getMoveExceptionRegister(targetIndex);
     if (moveExceptionDest >= 0) {
       Value out = writeRegister(moveExceptionDest, ValueType.OBJECT, ThrowingInfo.NO_THROW, null);
-      Position position = source.getDebugPositionAtOffset(moveExceptionItem.targetOffset);
+      Position position = source.getCanonicalDebugPositionAtOffset(moveExceptionItem.targetOffset);
       MoveException moveException = new MoveException(out);
       moveException.setPosition(position);
       currentBlock.add(moveException);

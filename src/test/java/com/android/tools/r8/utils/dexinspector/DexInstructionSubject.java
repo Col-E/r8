@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.dexinspector;
 
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
+import com.android.tools.r8.code.ConstStringJumbo;
 import com.android.tools.r8.code.Goto;
 import com.android.tools.r8.code.IfEqz;
 import com.android.tools.r8.code.IfNez;
@@ -86,14 +87,18 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
-  public boolean isConstString() {
-    return instruction instanceof ConstString;
+  public boolean isConstString(JumboStringMode jumboStringMode) {
+    return instruction instanceof ConstString
+        || (jumboStringMode == JumboStringMode.ALLOW && instruction instanceof ConstStringJumbo);
   }
 
   @Override
-  public boolean isConstString(String value) {
-    return instruction instanceof ConstString
-        && ((ConstString) instruction).BBBB.toSourceString().equals(value);
+  public boolean isConstString(String value, JumboStringMode jumboStringMode) {
+    return (instruction instanceof ConstString
+            && ((ConstString) instruction).BBBB.toSourceString().equals(value))
+        || (jumboStringMode == JumboStringMode.ALLOW
+            && instruction instanceof ConstStringJumbo
+            && ((ConstStringJumbo) instruction).BBBBBBBB.toSourceString().equals(value));
   }
 
   @Override

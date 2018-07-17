@@ -27,7 +27,7 @@ public interface SourceCode {
 
   Position getCurrentPosition();
 
-  Position getDebugPositionAtOffset(int offset);
+  Position getCanonicalDebugPositionAtOffset(int offset);
 
   /**
    * Trace block structure of the source-program.

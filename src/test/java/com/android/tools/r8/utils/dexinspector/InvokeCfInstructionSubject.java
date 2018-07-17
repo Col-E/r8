@@ -19,10 +19,12 @@ public class InvokeCfInstructionSubject extends CfInstructionSubject
     this.dexInspector = dexInspector;
   }
 
+  @Override
   public TypeSubject holder() {
     return new TypeSubject(dexInspector, invokedMethod().getHolder());
   }
 
+  @Override
   public DexMethod invokedMethod() {
     if (isInvokeDynamic()) {
       throw new Unimplemented(

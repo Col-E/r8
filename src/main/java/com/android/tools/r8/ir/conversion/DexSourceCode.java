@@ -184,7 +184,7 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
-  public Position getDebugPositionAtOffset(int offset) {
+  public Position getCanonicalDebugPositionAtOffset(int offset) {
     DexDebugEntry entry = getDebugEntryAtOffset(offset);
     return entry == null
         ? canonicalPositions.getPreamblePosition()

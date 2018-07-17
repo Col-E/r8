@@ -17,6 +17,7 @@ public class FieldAccessDexInstructionSubject extends DexInstructionSubject
     assert isFieldAccess();
   }
 
+  @Override
   public TypeSubject holder() {
     return new TypeSubject(dexInspector, instruction.getField().getHolder());
   }
