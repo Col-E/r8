@@ -39,17 +39,17 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class LensCodeRewriter {
 
   private final GraphLense graphLense;
   private final AppInfoWithSubtyping appInfo;
 
-  private final Map<DexProto, DexProto> protoFixupCache = new HashMap<>();
+  private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
 
   public LensCodeRewriter(GraphLense graphLense, AppInfoWithSubtyping appInfo) {
     this.graphLense = graphLense;
