@@ -20,13 +20,11 @@ import com.android.tools.r8.regress.b111080693.a.Observable;
 import com.android.tools.r8.regress.b111080693.b.RecyclerView;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
 public class B111080693 extends TestBase {
-  @Ignore("b/111080693")
   @Test
   public void test() throws Exception {
     R8Command.Builder builder = R8Command.builder();

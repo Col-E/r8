@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 
@@ -45,71 +46,71 @@ public class InliningConstraints {
     this.graphLense = graphLense;
   }
 
-  public Constraint forAlwaysMaterializingUser() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forAlwaysMaterializingUser() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forArgument() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forArgument() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forArrayGet() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forArrayGet() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forArrayLength() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forArrayLength() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forArrayPut() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forArrayPut() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forBinop() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forBinop() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forCheckCast(DexType type, DexType invocationContext) {
-    return Constraint.classIsVisible(invocationContext, type, appInfo);
+  public ConstraintWithTarget forCheckCast(DexType type, DexType invocationContext) {
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
   }
 
-  public Constraint forConstClass(DexType type, DexType invocationContext) {
-    return Constraint.classIsVisible(invocationContext, type, appInfo);
+  public ConstraintWithTarget forConstClass(DexType type, DexType invocationContext) {
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
   }
 
-  public Constraint forConstInstruction() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forConstInstruction() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forDebugLocalRead() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forDebugLocalRead() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forDebugLocalsChange() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forDebugLocalsChange() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forDebugPosition() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forDebugPosition() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forInstanceGet(DexField field, DexType invocationContext) {
+  public ConstraintWithTarget forInstanceGet(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
         lookup, appInfo.lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
   }
 
-  public Constraint forInstanceOf(DexType type, DexType invocationContext) {
-    return Constraint.classIsVisible(invocationContext, type, appInfo);
+  public ConstraintWithTarget forInstanceOf(DexType type, DexType invocationContext) {
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
   }
 
-  public Constraint forInstancePut(DexField field, DexType invocationContext) {
+  public ConstraintWithTarget forInstancePut(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
         lookup, appInfo.lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
   }
 
-  public Constraint forInvoke(DexMethod method, Type type, DexType invocationContext) {
+  public ConstraintWithTarget forInvoke(DexMethod method, Type type, DexType invocationContext) {
     switch (type) {
       case DIRECT:
         return forInvokeDirect(method, invocationContext);
@@ -130,162 +131,165 @@ public class InliningConstraints {
     }
   }
 
-  public Constraint forInvokeCustom() {
-    return Constraint.NEVER;
+  public ConstraintWithTarget forInvokeCustom() {
+    return ConstraintWithTarget.NEVER;
   }
 
-  public Constraint forInvokeDirect(DexMethod method, DexType invocationContext) {
+  public ConstraintWithTarget forInvokeDirect(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
     return forSingleTargetInvoke(lookup, appInfo.lookupDirectTarget(lookup), invocationContext);
   }
 
-  public Constraint forInvokeInterface(DexMethod method, DexType invocationContext) {
+  public ConstraintWithTarget forInvokeInterface(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
     return forVirtualInvoke(lookup, appInfo.lookupInterfaceTargets(lookup), invocationContext);
   }
 
-  public Constraint forInvokeMultiNewArray(DexType type, DexType invocationContext) {
-    return Constraint.classIsVisible(invocationContext, type, appInfo);
+  public ConstraintWithTarget forInvokeMultiNewArray(DexType type, DexType invocationContext) {
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
   }
 
-  public Constraint forInvokeNewArray(DexType type, DexType invocationContext) {
-    return Constraint.classIsVisible(invocationContext, type, appInfo);
+  public ConstraintWithTarget forInvokeNewArray(DexType type, DexType invocationContext) {
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
   }
 
-  public Constraint forInvokePolymorphic(DexMethod method, DexType invocationContext) {
-    return Constraint.NEVER;
+  public ConstraintWithTarget forInvokePolymorphic(DexMethod method, DexType invocationContext) {
+    return ConstraintWithTarget.NEVER;
   }
 
-  public Constraint forInvokeStatic(DexMethod method, DexType invocationContext) {
+  public ConstraintWithTarget forInvokeStatic(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
     return forSingleTargetInvoke(lookup, appInfo.lookupStaticTarget(lookup), invocationContext);
   }
 
-  public Constraint forInvokeSuper(DexMethod method, DexType invocationContext) {
+  public ConstraintWithTarget forInvokeSuper(DexMethod method, DexType invocationContext) {
     // The semantics of invoke super depend on the context.
-    return Constraint.SAMECLASS;
+    return new ConstraintWithTarget(Constraint.SAMECLASS, invocationContext);
   }
 
-  public Constraint forInvokeVirtual(DexMethod method, DexType invocationContext) {
+  public ConstraintWithTarget forInvokeVirtual(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
     return forVirtualInvoke(lookup, appInfo.lookupVirtualTargets(lookup), invocationContext);
   }
 
-  public Constraint forJumpInstruction() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forJumpInstruction() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forLoad() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forLoad() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forMonitor() {
+  public ConstraintWithTarget forMonitor() {
     // Conservative choice.
-    return Constraint.NEVER;
+    return ConstraintWithTarget.NEVER;
   }
 
-  public Constraint forMove() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forMove() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forMoveException() {
+  public ConstraintWithTarget forMoveException() {
     // TODO(64432527): Revisit this constraint.
-    return Constraint.NEVER;
+    return ConstraintWithTarget.NEVER;
   }
 
-  public Constraint forNewArrayEmpty(DexType type, DexType invocationContext) {
-    return Constraint.classIsVisible(invocationContext, type, appInfo);
+  public ConstraintWithTarget forNewArrayEmpty(DexType type, DexType invocationContext) {
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
   }
 
-  public Constraint forNewArrayFilledData() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forNewArrayFilledData() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forNewInstance(DexType type, DexType invocationContext) {
-    return Constraint.classIsVisible(invocationContext, type, appInfo);
+  public ConstraintWithTarget forNewInstance(DexType type, DexType invocationContext) {
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
   }
 
-  public Constraint forNonNull() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forNonNull() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forPop() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forPop() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forReturn() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forReturn() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forStaticGet(DexField field, DexType invocationContext) {
+  public ConstraintWithTarget forStaticGet(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
         lookup, appInfo.lookupStaticTarget(lookup.clazz, lookup), invocationContext);
   }
 
-  public Constraint forStaticPut(DexField field, DexType invocationContext) {
+  public ConstraintWithTarget forStaticPut(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
         lookup, appInfo.lookupStaticTarget(lookup.clazz, lookup), invocationContext);
   }
 
-  public Constraint forStore() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forStore() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forThrow() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forThrow() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint forUnop() {
-    return Constraint.ALWAYS;
+  public ConstraintWithTarget forUnop() {
+    return ConstraintWithTarget.ALWAYS;
   }
 
-  private Constraint forFieldInstruction(
+  private ConstraintWithTarget forFieldInstruction(
       DexField field, DexEncodedField target, DexType invocationContext) {
     // Resolve the field if possible and decide whether the instruction can inlined.
     DexType fieldHolder = graphLense.lookupType(field.clazz);
     DexClass fieldClass = appInfo.definitionFor(fieldHolder);
     if (target != null && fieldClass != null) {
-      Constraint fieldConstraint =
-          Constraint.deriveConstraint(invocationContext, fieldHolder, target.accessFlags, appInfo);
-      Constraint classConstraint =
-          Constraint.deriveConstraint(
+      ConstraintWithTarget fieldConstraintWithTarget =
+          ConstraintWithTarget.deriveConstraint(
+              invocationContext, fieldHolder, target.accessFlags, appInfo);
+      ConstraintWithTarget classConstraintWithTarget =
+          ConstraintWithTarget.deriveConstraint(
               invocationContext, fieldHolder, fieldClass.accessFlags, appInfo);
-      return Constraint.min(fieldConstraint, classConstraint);
+      return ConstraintWithTarget.min(
+          fieldConstraintWithTarget, classConstraintWithTarget, appInfo);
     }
-    return Constraint.NEVER;
+    return ConstraintWithTarget.NEVER;
   }
 
-  private Constraint forSingleTargetInvoke(
+  private ConstraintWithTarget forSingleTargetInvoke(
       DexMethod method, DexEncodedMethod target, DexType invocationContext) {
     if (method.holder.isArrayType()) {
-      return Constraint.ALWAYS;
+      return ConstraintWithTarget.ALWAYS;
     }
     if (target != null) {
       DexType methodHolder = graphLense.lookupType(target.method.holder);
       DexClass methodClass = appInfo.definitionFor(methodHolder);
       if (methodClass != null) {
-        Constraint methodConstraint =
-            Constraint.deriveConstraint(
+        ConstraintWithTarget methodConstraintWithTarget =
+            ConstraintWithTarget.deriveConstraint(
                 invocationContext, methodHolder, target.accessFlags, appInfo);
         // We also have to take the constraint of the enclosing class into account.
-        Constraint classConstraint =
-            Constraint.deriveConstraint(
+        ConstraintWithTarget classConstraintWithTarget =
+            ConstraintWithTarget.deriveConstraint(
                 invocationContext, methodHolder, methodClass.accessFlags, appInfo);
-        return Constraint.min(methodConstraint, classConstraint);
+        return ConstraintWithTarget.min(
+            methodConstraintWithTarget, classConstraintWithTarget, appInfo);
       }
     }
-    return Constraint.NEVER;
+    return ConstraintWithTarget.NEVER;
   }
 
-  private Constraint forVirtualInvoke(
+  private ConstraintWithTarget forVirtualInvoke(
       DexMethod method, Collection<DexEncodedMethod> targets, DexType invocationContext) {
     if (method.holder.isArrayType()) {
-      return Constraint.ALWAYS;
+      return ConstraintWithTarget.ALWAYS;
     }
     if (targets == null) {
-      return Constraint.NEVER;
+      return ConstraintWithTarget.NEVER;
     }
 
     // Perform resolution and derive inlining constraints based on the accessibility of the
@@ -294,25 +298,26 @@ public class InliningConstraints {
     DexEncodedMethod resolutionTarget = resolutionResult.asResultOfResolve();
     if (resolutionTarget == null) {
       // This will fail at runtime.
-      return Constraint.NEVER;
+      return ConstraintWithTarget.NEVER;
     }
 
     DexType methodHolder = graphLense.lookupType(resolutionTarget.method.holder);
     DexClass methodClass = appInfo.definitionFor(methodHolder);
     assert methodClass != null;
-    Constraint methodConstraint =
-        Constraint.deriveConstraint(
+    ConstraintWithTarget methodConstraintWithTarget =
+        ConstraintWithTarget.deriveConstraint(
             invocationContext, methodHolder, resolutionTarget.accessFlags, appInfo);
     // We also have to take the constraint of the enclosing class of the resolution result
     // into account. We do not allow inlining this method if it is calling something that
     // is inaccessible. Inlining in that case could move the code to another package making a
     // call succeed that should not succeed. Conversely, if the resolution result is accessible,
     // we have to make sure that inlining cannot make it inaccessible.
-    Constraint classConstraint =
-        Constraint.deriveConstraint(
+    ConstraintWithTarget classConstraintWithTarget =
+        ConstraintWithTarget.deriveConstraint(
             invocationContext, methodHolder, methodClass.accessFlags, appInfo);
-    Constraint result = Constraint.min(methodConstraint, classConstraint);
-    if (result == Constraint.NEVER) {
+    ConstraintWithTarget result =
+        ConstraintWithTarget.min(methodConstraintWithTarget, classConstraintWithTarget, appInfo);
+    if (result == ConstraintWithTarget.NEVER) {
       return result;
     }
 
@@ -321,10 +326,11 @@ public class InliningConstraints {
     for (DexEncodedMethod target : targets) {
       methodHolder = graphLense.lookupType(target.method.holder);
       assert appInfo.definitionFor(methodHolder) != null;
-      methodConstraint =
-          Constraint.deriveConstraint(invocationContext, methodHolder, target.accessFlags, appInfo);
-      result = Constraint.min(result, methodConstraint);
-      if (result == Constraint.NEVER) {
+      methodConstraintWithTarget =
+          ConstraintWithTarget.deriveConstraint(
+              invocationContext, methodHolder, target.accessFlags, appInfo);
+      result = ConstraintWithTarget.min(result, methodConstraintWithTarget, appInfo);
+      if (result == ConstraintWithTarget.NEVER) {
         return result;
       }
     }

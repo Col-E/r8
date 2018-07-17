@@ -10,7 +10,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.JarSourceCode;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.jar.InliningConstraintVisitor;
 import com.android.tools.r8.jar.JarRegisterEffectsVisitor;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -173,7 +173,7 @@ public class JarCode extends Code {
             DescriptorUtils.getDescriptorFromClassBinaryName(tryCatchBlockNode.type))));
   }
 
-  public Constraint computeInliningConstraint(
+  public ConstraintWithTarget computeInliningConstraint(
       DexEncodedMethod encodedMethod,
       AppInfoWithLiveness appInfo,
       GraphLense graphLense,

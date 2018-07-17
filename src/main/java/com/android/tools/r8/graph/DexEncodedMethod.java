@@ -32,7 +32,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
@@ -57,6 +57,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
    * <p>
    * We also use this enum to encode under what constraints a method may be inlined.
    */
+  // TODO(b/111080693): Need to extend this to a state with the context.
   public enum CompilationState {
     /**
      * Has not been processed, yet.
@@ -72,7 +73,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
      */
     PROCESSED_INLINING_CANDIDATE_ANY,
     /**
-     * Code also contains instructions that access protected entities that reside in a differnt
+     * Code also contains instructions that access protected entities that reside in a different
      * package and hence require subclass relationship to be visible.
      */
     PROCESSED_INLINING_CANDIDATE_SUBCLASS,
@@ -96,6 +97,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public DexAnnotationSet annotations;
   public ParameterAnnotationsList parameterAnnotationsList;
   private Code code;
+  // TODO(b/111080693): towards finer-grained inlining constraints,
+  //   we need to maintain a set of states with (potentially different) contexts.
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
   private int classFileVersion = -1;
@@ -208,6 +211,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       assert isInliningCandidate(containerType, Reason.SIMPLE, appInfo);
       return true;
     }
+    // TODO(b/111080693): inlining candidate should satisfy all states if multiple states are there.
     switch (compilationState) {
       case PROCESSED_INLINING_CANDIDATE_ANY:
         return true;
@@ -222,9 +226,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
   }
 
-  public boolean markProcessed(Constraint state) {
+  public boolean markProcessed(ConstraintWithTarget state) {
     CompilationState prevCompilationState = compilationState;
-    switch (state) {
+    switch (state.constraint) {
       case ALWAYS:
         compilationState = PROCESSED_INLINING_CANDIDATE_ANY;
         break;

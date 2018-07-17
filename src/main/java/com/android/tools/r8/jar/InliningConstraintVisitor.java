@@ -17,7 +17,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.conversion.JarSourceCode;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import org.objectweb.asm.MethodVisitor;
@@ -40,7 +40,7 @@ public class InliningConstraintVisitor extends MethodVisitor {
   private final DexEncodedMethod method;
   private final DexType invocationContext;
 
-  private Constraint constraint;
+  private ConstraintWithTarget constraint;
 
   public InliningConstraintVisitor(
       JarApplicationReader application,
@@ -58,22 +58,22 @@ public class InliningConstraintVisitor extends MethodVisitor {
     this.invocationContext = invocationContext;
 
     // Model a synchronized method as having a monitor instruction.
-    this.constraint =
-        method.accessFlags.isSynchronized() ? inliningConstraints.forMonitor() : Constraint.ALWAYS;
+    this.constraint = method.accessFlags.isSynchronized()
+        ? inliningConstraints.forMonitor() : ConstraintWithTarget.ALWAYS;
   }
 
-  public Constraint getConstraint() {
+  public ConstraintWithTarget getConstraint() {
     return constraint;
   }
 
-  private void updateConstraint(Constraint other) {
-    constraint = Constraint.min(constraint, other);
+  private void updateConstraint(ConstraintWithTarget other) {
+    constraint = ConstraintWithTarget.min(constraint, other, appInfo);
   }
 
   // Used to signal that the result is ready, such that we do not need to visit all instructions of
   // the method, if we can see early on that it cannot be inlined anyway.
   public boolean isFinished() {
-    return constraint == Constraint.NEVER;
+    return constraint == ConstraintWithTarget.NEVER;
   }
 
   public void accept(TryCatchBlockNode tryCatchBlock) {

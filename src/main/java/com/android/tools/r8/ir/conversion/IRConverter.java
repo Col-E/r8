@@ -41,7 +41,7 @@ import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.Devirtualizer;
 import com.android.tools.r8.ir.optimize.Inliner;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
@@ -605,7 +605,7 @@ public class IRConverter {
       rewriteCode(method, feedback, isProcessedConcurrently, callSiteInformation, outlineHandler);
     } else {
       // Mark abstract methods as processed as well.
-      method.markProcessed(Constraint.NEVER);
+      method.markProcessed(ConstraintWithTarget.NEVER);
     }
   }
 
@@ -632,12 +632,12 @@ public class IRConverter {
           method.toSourceString(), logCode(options, method));
     }
     if (options.skipIR) {
-      feedback.markProcessed(method, Constraint.NEVER);
+      feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
     }
     IRCode code = method.buildIR(appInfo, options, appInfo.originFor(method.method.holder));
     if (code == null) {
-      feedback.markProcessed(method, Constraint.NEVER);
+      feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
     }
     if (Log.ENABLED) {
@@ -869,9 +869,9 @@ public class IRConverter {
 
   private void markProcessed(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // After all the optimizations have take place, we compute whether method should be inlinedex.
-    Constraint state;
+    ConstraintWithTarget state;
     if (!options.enableInlining || inliner == null) {
-      state = Constraint.NEVER;
+      state = ConstraintWithTarget.NEVER;
     } else {
       state = inliner.computeInliningConstraint(code, method);
     }

@@ -44,7 +44,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -476,8 +476,9 @@ public class Outliner {
 
       // See whether we could move this invoke somewhere else. We reuse the logic from inlining
       // here, as the constraints are the same.
-      Constraint constraint = invoke.inliningConstraint(inliningConstraints, method.method.holder);
-      if (constraint != Constraint.ALWAYS) {
+      ConstraintWithTarget constraint =
+          invoke.inliningConstraint(inliningConstraints, method.method.holder);
+      if (constraint != ConstraintWithTarget.ALWAYS) {
         return false;
       }
       // Find the number of in-going arguments, if adding this instruction.

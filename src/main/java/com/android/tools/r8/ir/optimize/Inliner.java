@@ -74,27 +74,30 @@ public class Inliner {
     return blackList.contains(method.method) || appInfo.neverInline.contains(method);
   }
 
-  private Constraint instructionAllowedForInlining(
+  private ConstraintWithTarget instructionAllowedForInlining(
       Instruction instruction, InliningConstraints inliningConstraints, DexType invocationContext) {
-    Constraint result = instruction.inliningConstraint(inliningConstraints, invocationContext);
-    if (result == Constraint.NEVER && instruction.isDebugInstruction()) {
-      return Constraint.ALWAYS;
+    ConstraintWithTarget result =
+        instruction.inliningConstraint(inliningConstraints, invocationContext);
+    if (result == ConstraintWithTarget.NEVER && instruction.isDebugInstruction()) {
+      return ConstraintWithTarget.ALWAYS;
     }
     return result;
   }
 
-  public Constraint computeInliningConstraint(IRCode code, DexEncodedMethod method) {
-    Constraint result = Constraint.ALWAYS;
+  public ConstraintWithTarget computeInliningConstraint(IRCode code, DexEncodedMethod method) {
+    ConstraintWithTarget result = ConstraintWithTarget.ALWAYS;
     InliningConstraints inliningConstraints = new InliningConstraints(appInfo);
     InstructionIterator it = code.instructionIterator();
     while (it.hasNext()) {
       Instruction instruction = it.next();
-      Constraint state =
+      ConstraintWithTarget state =
           instructionAllowedForInlining(instruction, inliningConstraints, method.method.holder);
-      result = Constraint.min(result, state);
-      if (result == Constraint.NEVER) {
+      if (state == ConstraintWithTarget.NEVER) {
+        result = state;
         break;
       }
+      // TODO(b/111080693): we may need to collect all meaningful constraints.
+      result = ConstraintWithTarget.min(result, state, appInfo);
     }
     return result;
   }
@@ -178,8 +181,8 @@ public class Inliner {
     // The ordinal values are important so please do not reorder.
     NEVER,     // Never inline this.
     SAMECLASS, // Only inline this into methods with same holder.
-    PACKAGE,   // Only inline this into methods with holders from same package.
-    SUBCLASS,  // Only inline this into methods with holders from a subclass.
+    PACKAGE,   // Only inline this into methods with holders from the same package.
+    SUBCLASS,  // Only inline this into methods with holders from a subclass in a different package.
     ALWAYS;    // No restrictions for inlining this.
 
     static {
@@ -189,7 +192,67 @@ public class Inliner {
       assert SUBCLASS.ordinal() < ALWAYS.ordinal();
     }
 
-    public static Constraint deriveConstraint(
+    static Constraint min(Constraint one, Constraint other) {
+      return one.ordinal() < other.ordinal() ? one : other;
+    }
+  }
+
+  /**
+   * Encodes the constraints for inlining, along with the target holder.
+   * <p>
+   * Constraint itself cannot determine whether or not the method can be inlined if instructions in
+   * the method have different constraints with different targets. For example,
+   *   SUBCLASS of x.A v.s. PACKAGE of y.B
+   * Without any target holder information, min of those two Constraints is PACKAGE, meaning that
+   * the current method can be inlined to any method whose holder is in package y. This could cause
+   * an illegal access error due to protect members in x.A. Because of different target holders,
+   * those constraints should not be combined.
+   * <p>
+   * Instead, a right constraint for inlining constraint for the example above is: a method whose
+   * holder is a subclass of x.A _and_ in the same package of y.B can inline this method.
+   */
+  public static class ConstraintWithTarget {
+    public final Constraint constraint;
+    // Note that this is not context---where this constraint is encoded.
+    // It literally refers to the holder type of the target, which could be:
+    // invoked method in invocations, field in field instructions, type of check-cast, etc.
+    final DexType targetHolder;
+
+    public static final ConstraintWithTarget NEVER = new ConstraintWithTarget(Constraint.NEVER);
+    public static final ConstraintWithTarget ALWAYS = new ConstraintWithTarget(Constraint.ALWAYS);
+
+    private ConstraintWithTarget(Constraint constraint) {
+      assert constraint == Constraint.NEVER || constraint == Constraint.ALWAYS;
+      this.constraint = constraint;
+      this.targetHolder = null;
+    }
+
+    ConstraintWithTarget(Constraint constraint, DexType targetHolder) {
+      assert constraint != Constraint.NEVER && constraint != Constraint.ALWAYS;
+      assert targetHolder != null;
+      this.constraint = constraint;
+      this.targetHolder = targetHolder;
+    }
+
+    @Override
+    public int hashCode() {
+      if (targetHolder == null) {
+        return constraint.ordinal();
+      }
+      return constraint.ordinal() * targetHolder.computeHashCode();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof ConstraintWithTarget)) {
+        return false;
+      }
+      ConstraintWithTarget o = (ConstraintWithTarget) other;
+      return this.constraint.ordinal() == o.constraint.ordinal()
+          && this.targetHolder == o.targetHolder;
+    }
+
+    public static ConstraintWithTarget deriveConstraint(
         DexType contextHolder,
         DexType targetHolder,
         AccessFlags flags,
@@ -197,23 +260,25 @@ public class Inliner {
       if (flags.isPublic()) {
         return ALWAYS;
       } else if (flags.isPrivate()) {
-        return targetHolder == contextHolder ? SAMECLASS : NEVER;
+        return targetHolder == contextHolder
+            ? new ConstraintWithTarget(Constraint.SAMECLASS, targetHolder) : NEVER;
       } else if (flags.isProtected()) {
         if (targetHolder.isSamePackage(contextHolder)) {
           // Even though protected, this is visible via the same package from the context.
-          return PACKAGE;
+          return new ConstraintWithTarget(Constraint.PACKAGE, targetHolder);
         } else if (contextHolder.isSubtypeOf(targetHolder, appInfo)) {
-          return SUBCLASS;
+          return new ConstraintWithTarget(Constraint.SUBCLASS, targetHolder);
         }
         return NEVER;
       } else {
         /* package-private */
-        return targetHolder.isSamePackage(contextHolder) ? PACKAGE : NEVER;
+        return targetHolder.isSamePackage(contextHolder)
+            ? new ConstraintWithTarget(Constraint.PACKAGE, targetHolder) : NEVER;
       }
     }
 
-    public static Constraint classIsVisible(DexType context, DexType clazz,
-        AppInfoWithSubtyping appInfo) {
+    public static ConstraintWithTarget classIsVisible(
+        DexType context, DexType clazz, AppInfoWithSubtyping appInfo) {
       if (clazz.isArrayType()) {
         return classIsVisible(context, clazz.toArrayElementType(appInfo.dexItemFactory), appInfo);
       }
@@ -227,8 +292,76 @@ public class Inliner {
           : deriveConstraint(context, clazz, definition.accessFlags, appInfo);
     }
 
-    public static Constraint min(Constraint one, Constraint other) {
-      return one.ordinal() < other.ordinal() ? one : other;
+    public static ConstraintWithTarget min(
+        ConstraintWithTarget one, ConstraintWithTarget other, AppInfoWithSubtyping appInfo) {
+      if (one.equals(other)) {
+        return one;
+      }
+      if (one == NEVER || other == NEVER) {
+        return NEVER;
+      }
+      if (other.constraint.ordinal() < one.constraint.ordinal()) {
+        return min(other, one, appInfo);
+      }
+      // From now on, one.constraint.ordinal() <= other.constraint.ordinal()
+      if (other == ALWAYS) {
+        return one;
+      }
+      Constraint minConstraint = Constraint.min(one.constraint, other.constraint);
+      assert minConstraint != Constraint.NEVER;
+      assert minConstraint != Constraint.ALWAYS;
+      // SAMECLASS <= SAMECLASS, PACKAGE, SUBCLASS
+      if (minConstraint == Constraint.SAMECLASS) {
+        assert one.constraint == Constraint.SAMECLASS;
+        if (other.constraint == Constraint.SAMECLASS) {
+          assert one.targetHolder != other.targetHolder;
+          return NEVER;
+        }
+        if (other.constraint == Constraint.PACKAGE) {
+          if (one.targetHolder.isSamePackage(other.targetHolder)) {
+            return one;
+          }
+          return NEVER;
+        }
+        assert other.constraint == Constraint.SUBCLASS;
+        if (one.targetHolder.isSubtypeOf(other.targetHolder, appInfo)) {
+          return one;
+        }
+        return NEVER;
+      }
+      // PACKAGE <= PACKAGE, SUBCLASS
+      if (minConstraint == Constraint.PACKAGE) {
+        assert one.constraint == Constraint.PACKAGE;
+        if (other.constraint == Constraint.PACKAGE) {
+          assert one.targetHolder != other.targetHolder;
+          if (one.targetHolder.isSamePackage(other.targetHolder)) {
+            return one;
+          }
+          // PACKAGE of x and PACKAGE of y can be satisfied together.
+          return NEVER;
+        }
+        assert other.constraint == Constraint.SUBCLASS;
+        if (other.targetHolder.isSamePackage(one.targetHolder)) {
+          // Then, PACKAGE is more restrictive constraint.
+          return one;
+        }
+        // TODO(b/111080693): towards finer-grained constraints, we need both.
+        // Even though they're in different package, it is still inlinable to a class that is
+        // in the same package of one's context and a sub type of other's context.
+        return NEVER;
+      }
+      // SUBCLASS <= SUBCLASS
+      assert minConstraint == Constraint.SUBCLASS;
+      assert one.constraint == other.constraint;
+      assert one.targetHolder != other.targetHolder;
+      if (one.targetHolder.isSubtypeOf(other.targetHolder, appInfo)) {
+        return one;
+      }
+      if (other.targetHolder.isSubtypeOf(one.targetHolder, appInfo)) {
+        return other;
+      }
+      // SUBCLASS of x and SUBCLASS of y while x and y are not a subtype of each other.
+      return NEVER;
     }
   }
 

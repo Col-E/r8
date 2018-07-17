@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public abstract class ConstInstruction extends Instruction {
@@ -29,7 +29,7 @@ public abstract class ConstInstruction extends Instruction {
   }
 
   @Override
-  public Constraint inliningConstraint(
+  public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forConstInstruction();
   }
