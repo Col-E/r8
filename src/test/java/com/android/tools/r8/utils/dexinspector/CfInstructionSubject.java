@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.dexinspector;
 
+import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfGoto;
@@ -16,6 +17,7 @@ import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfThrow;
 import org.objectweb.asm.Opcodes;
 
@@ -115,6 +117,15 @@ public class CfInstructionSubject implements InstructionSubject {
 
   public boolean isPosition() {
     return instruction instanceof CfPosition;
+  }
+
+  public boolean isStackInstruction(CfStackInstruction.Opcode opcode) {
+    return instruction instanceof CfStackInstruction
+        && ((CfStackInstruction) instruction).getOpcode() == opcode;
+  }
+
+  public boolean isConstNull() {
+    return instruction instanceof CfConstNull;
   }
 
   public boolean isIfNull() {
