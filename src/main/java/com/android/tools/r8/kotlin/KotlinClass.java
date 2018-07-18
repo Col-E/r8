@@ -4,7 +4,12 @@
 
 package com.android.tools.r8.kotlin;
 
+import static kotlinx.metadata.Flag.Property.IS_VAR;
+
 import kotlinx.metadata.KmClassVisitor;
+import kotlinx.metadata.KmConstructorVisitor;
+import kotlinx.metadata.KmFunctionVisitor;
+import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
@@ -20,13 +25,30 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
   }
 
   @Override
-  void validateMetadata(KotlinClassMetadata.Class metadata) {
-    ClassMetadataVisitor visitor = new ClassMetadataVisitor();
+  void processMetadata(KotlinClassMetadata.Class metadata) {
     // To avoid lazy parsing/verifying metadata.
-    metadata.accept(visitor);
+    metadata.accept(new ClassVisitorForNonNullParameterHints());
   }
 
-  private static class ClassMetadataVisitor extends KmClassVisitor {
+  private class ClassVisitorForNonNullParameterHints extends KmClassVisitor {
+    @Override
+    public KmFunctionVisitor visitFunction(int functionFlags, String functionName) {
+      return new NonNullParameterHintCollector.FunctionVisitor(nonNullparamHints);
+    }
+
+    @Override
+    public KmConstructorVisitor visitConstructor(int ctorFlags) {
+      return new NonNullParameterHintCollector.ConstructorVisitor(nonNullparamHints);
+    }
+
+    @Override
+    public KmPropertyVisitor visitProperty(
+        int propertyFlags, String name, int getterFlags, int setterFlags) {
+      if (IS_VAR.invoke(propertyFlags)) {
+        return new NonNullParameterHintCollector.PropertyVisitor(nonNullparamHints);
+      }
+      return null;
+    }
   }
 
   @Override

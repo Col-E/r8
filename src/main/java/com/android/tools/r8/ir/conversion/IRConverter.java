@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -51,6 +52,7 @@ import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.shaking.protolite.ProtoLitePruner;
@@ -647,9 +649,10 @@ public class IRConverter {
     printC1VisualizerHeader(method);
     printMethod(code, "Initial IR (SSA)");
 
-    if (method.getCode() != null && method.getCode().isJarCode() &&
-        appInfo.definitionFor(method.method.holder).hasKotlinInfo()) {
-      computeKotlinNotNullParamHints(feedback, method, code);
+    DexClass holder = appInfo.definitionFor(method.method.holder);
+    if (method.getCode() != null && method.getCode().isJarCode()
+        && holder.hasKotlinInfo()) {
+      computeKotlinNotNullParamHints(feedback, holder.getKotlinInfo(), method, code);
     }
 
     if (options.canHaveArtStringNewInitBug()) {
@@ -807,8 +810,19 @@ public class IRConverter {
   }
 
   private void computeKotlinNotNullParamHints(
-      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    // Try to infer Kotlin non-null parameter check to use it as a hint.
+      OptimizationFeedback feedback, KotlinInfo kotlinInfo, DexEncodedMethod method, IRCode code) {
+    // Use non-null parameter hints in Kotlin metadata if available.
+    if (kotlinInfo.hasNonNullParameterHints()) {
+      BitSet hintFromMetadata = kotlinInfo.lookupNonNullParameterHint(
+          method.method.name.toString(), method.method.proto.toDescriptorString());
+      if (hintFromMetadata != null) {
+        if (hintFromMetadata.length() > 0) {
+          feedback.setKotlinNotNullParamHints(method, hintFromMetadata);
+        }
+        return;
+      }
+    }
+    // Otherwise, fall back to inspecting the code.
     List<Value> arguments = code.collectArguments(true);
     BitSet paramsCheckedForNull = new BitSet();
     DexMethod checkParameterIsNotNull =

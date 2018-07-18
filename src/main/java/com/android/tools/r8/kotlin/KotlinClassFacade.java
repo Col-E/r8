@@ -20,7 +20,7 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
   }
 
   @Override
-  void validateMetadata(KotlinClassMetadata.MultiFileClassFacade metadata) {
+  void processMetadata(KotlinClassMetadata.MultiFileClassFacade metadata) {
     // No worries about lazy parsing/verifying, since no API to explore metadata details.
   }
 
