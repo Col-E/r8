@@ -31,7 +31,7 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection.MethodPool;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
@@ -1486,13 +1486,13 @@ public class VerticalClassMerger {
     // that we always return true here in these cases.
     if (method.getCode().isJarCode()) {
       JarCode jarCode = method.getCode().asJarCode();
-      Constraint constraint =
+      ConstraintWithTarget constraint =
           jarCode.computeInliningConstraint(
               method,
               appInfo,
               new SingleTypeMapperGraphLense(method.method.holder, invocationContext),
               invocationContext);
-      return constraint == Constraint.NEVER;
+      return constraint == ConstraintWithTarget.NEVER;
     }
     // TODO(christofferqa): For non-jar code we currently cannot guarantee that markForceInline()
     // will succeed.

@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
 
 public class OptimizationFeedbackSimple implements OptimizationFeedback {
@@ -34,9 +34,9 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   }
 
   @Override
-  public void markProcessed(DexEncodedMethod method, Constraint state) {
+  public void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {
     // Just as processed, don't provide any inlining constraints.
-    method.markProcessed(Constraint.NEVER);
+    method.markProcessed(ConstraintWithTarget.NEVER);
   }
 
   @Override

@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -208,14 +208,14 @@ public class MemberRebindingAnalysis {
     if (holder == null) {
       return false;
     }
-    Constraint classVisibility =
-        Constraint.deriveConstraint(context, holderType, holder.accessFlags, appInfo);
-    if (classVisibility == Constraint.NEVER) {
+    ConstraintWithTarget classVisibility =
+        ConstraintWithTarget.deriveConstraint(context, holderType, holder.accessFlags, appInfo);
+    if (classVisibility == ConstraintWithTarget.NEVER) {
       return false;
     }
-    Constraint fieldVisibility =
-        Constraint.deriveConstraint(context, holderType, field.accessFlags, appInfo);
-    return fieldVisibility != Constraint.NEVER;
+    ConstraintWithTarget fieldVisibility =
+        ConstraintWithTarget.deriveConstraint(context, holderType, field.accessFlags, appInfo);
+    return fieldVisibility != ConstraintWithTarget.NEVER;
   }
 
   private Map<DexField, Set<DexEncodedMethod>> mergeFieldAccessContexts(

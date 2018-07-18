@@ -9,7 +9,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class Throw extends JumpInstruction {
@@ -65,7 +65,7 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
-  public Constraint inliningConstraint(
+  public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forThrow();
   }

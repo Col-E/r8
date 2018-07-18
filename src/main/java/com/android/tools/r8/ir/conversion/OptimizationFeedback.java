@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
-import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
 
 public interface OptimizationFeedback {
@@ -16,7 +16,7 @@ public interface OptimizationFeedback {
   void methodReturnsConstant(DexEncodedMethod method, long value);
   void methodNeverReturnsNull(DexEncodedMethod method);
   void methodNeverReturnsNormally(DexEncodedMethod method);
-  void markProcessed(DexEncodedMethod method, Constraint state);
+  void markProcessed(DexEncodedMethod method, ConstraintWithTarget state);
   void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
   void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibility eligibility);
