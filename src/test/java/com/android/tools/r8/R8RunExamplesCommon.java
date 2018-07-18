@@ -161,11 +161,15 @@ public abstract class R8RunExamplesCommon {
         break;
       }
       case R8: {
-        R8Command command =
-            addInputFile(R8Command.builder())
-                .setOutput(getOutputFile(), outputMode)
-                .setMode(mode)
-                .build();
+          R8Command command =
+              addInputFile(R8Command.builder())
+                  .addLibraryFiles(
+                      output == Output.CF
+                          ? ToolHelper.getJava8RuntimeJar()
+                          : ToolHelper.getDefaultAndroidJar())
+                  .setOutput(getOutputFile(), outputMode)
+                  .setMode(mode)
+                  .build();
         ExceptionUtils.withR8CompilationHandler(
             command.getReporter(),
             () ->

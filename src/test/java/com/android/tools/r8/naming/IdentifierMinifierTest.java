@@ -81,7 +81,7 @@ public class IdentifierMinifierTest extends TestBase {
     if (backend == Backend.DEX) {
       builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
     } else if (backend == Backend.CF) {
-      builder.addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME));
+      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
     }
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(appFileName));
     processedApp = ToolHelper.runR8(builder.build(), o -> o.debug = false);

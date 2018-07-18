@@ -11,7 +11,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.stream.Stream;
 import org.junit.Assume;
 import org.junit.Test;
@@ -47,7 +46,7 @@ public class NopDebugTestRunner extends DebugTestBase {
     Path outputJar = temp.getRoot().toPath().resolve(outputName);
     ToolHelper.runR8(
         R8Command.builder()
-            .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setMode(CompilationMode.DEBUG)
             .addProgramFiles(inputJar)
             .setOutput(outputJar, OutputMode.ClassFile)

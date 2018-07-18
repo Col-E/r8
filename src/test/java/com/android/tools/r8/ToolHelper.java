@@ -533,6 +533,10 @@ public class ToolHelper {
     return getArtDir(version) + "/" + binary;
   }
 
+  public static Path getJava8RuntimeJar() {
+    return Paths.get(JAVA_8_RUNTIME);
+  }
+
   public static Path getDefaultAndroidJar() {
     return getAndroidJar(AndroidApiLevel.getDefault());
   }

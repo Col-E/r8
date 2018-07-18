@@ -55,7 +55,9 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
       config = new DexDebugTestConfig(outjar);
     } else {
       assert (runtimeKind == RuntimeKind.CF);
-      builder.setOutput(outjar, OutputMode.ClassFile);
+      builder
+          .setOutput(outjar, OutputMode.ClassFile)
+          .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
       config = new CfDebugTestConfig(outjar);
     }
 

@@ -15,7 +15,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.Test;
 
 public class KotlinDebugInfoTestRunner extends TestBase {
@@ -74,7 +73,7 @@ public class KotlinDebugInfoTestRunner extends TestBase {
             .setProgramConsumer(consumer)
             .addProgramFiles(inputJar);
     if ((consumer instanceof ClassFileConsumer)) {
-      builder.addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME));
+      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
     } else {
       builder.addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()));
     }

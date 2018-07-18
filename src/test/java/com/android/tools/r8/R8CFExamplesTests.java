@@ -101,7 +101,7 @@ public class R8CFExamplesTests extends TestBase {
     Path outputJar = temp.getRoot().toPath().resolve(outputName);
     ToolHelper.runR8(
         R8Command.builder()
-            .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setMode(mode)
             .addProgramFiles(inputJar)
             .setOutput(outputJar, OutputMode.ClassFile)

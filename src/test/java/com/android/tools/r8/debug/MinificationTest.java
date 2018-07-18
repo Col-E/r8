@@ -80,7 +80,6 @@ public class MinificationTest extends DebugTestBase {
       proguardConfigurations = builder.build();
     }
 
-    AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
     Path outputPath = temp.getRoot().toPath().resolve("classes.zip");
     Path proguardMap = writeProguardMap ? temp.getRoot().toPath().resolve("proguard.map") : null;
     OutputMode outputMode =
@@ -89,10 +88,12 @@ public class MinificationTest extends DebugTestBase {
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
             .setOutput(outputPath, outputMode)
-            .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(ToolHelper.getAndroidJar(minSdk));
-    if (runtimeKind != RuntimeKind.CF) {
-      builder.setMinApiLevel(minSdk.getLevel());
+            .setMode(CompilationMode.DEBUG);
+    if (runtimeKind == RuntimeKind.DEX) {
+      AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
+      builder.setMinApiLevel(minSdk.getLevel()).addLibraryFiles(ToolHelper.getAndroidJar(minSdk));
+    } else if (runtimeKind == RuntimeKind.CF) {
+      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
     }
     if (proguardMap != null) {
       builder.setProguardMapOutputPath(proguardMap);

@@ -17,7 +17,6 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.stream.Stream;
 import org.junit.Assume;
 import org.junit.Test;
@@ -115,7 +114,7 @@ public class IincDebugTestRunner extends DebugTestBase {
             .setProgramConsumer(consumer)
             .addProgramFiles(inputJar);
     if ((consumer instanceof ClassFileConsumer)) {
-      builder.addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME));
+      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
     } else {
       builder.addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()));
     }

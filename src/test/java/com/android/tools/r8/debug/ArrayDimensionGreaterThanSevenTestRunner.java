@@ -36,6 +36,7 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
         R8Command.builder()
             .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
             .setMode(CompilationMode.DEBUG)
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setOutput(cfOut, OutputMode.ClassFile)
             .build(),
         optionsConsumer);

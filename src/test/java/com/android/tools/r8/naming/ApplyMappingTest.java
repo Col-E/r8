@@ -300,7 +300,11 @@ public class ApplyMappingTest extends TestBase {
   private R8Command.Builder getCommandForInstrumentation(
       Path out, Path flag, Path mainApp, Path instrApp) throws IOException {
     return R8Command.builder()
-        .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), mainApp)
+        .addLibraryFiles(
+            backend == Backend.DEX
+                ? ToolHelper.getDefaultAndroidJar()
+                : ToolHelper.getJava8RuntimeJar(),
+            mainApp)
         .addProgramFiles(instrApp)
         .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
         .addProguardConfigurationFiles(flag);
@@ -309,7 +313,10 @@ public class ApplyMappingTest extends TestBase {
   private R8Command.Builder getCommandForApps(Path out, Path flag, Path... jars)
       throws IOException {
     return R8Command.builder()
-        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+        .addLibraryFiles(
+            backend == Backend.DEX
+                ? ToolHelper.getDefaultAndroidJar()
+                : ToolHelper.getJava8RuntimeJar())
         .addProgramFiles(jars)
         .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
         .addProguardConfigurationFiles(flag);

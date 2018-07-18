@@ -29,7 +29,7 @@ public class NestedExceptionTestRunner {
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
             .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(sink.wrapClassFileConsumer(null))
             .build());
     Path out = temp.newFolder().toPath().resolve("test.jar");

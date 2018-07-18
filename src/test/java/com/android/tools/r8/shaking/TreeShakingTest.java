@@ -193,7 +193,7 @@ public abstract class TreeShakingTest {
     if (backend == Backend.CF) {
       jarLibraries =
           ImmutableList.of(
-              Paths.get(ToolHelper.JAVA_8_RUNTIME),
+              ToolHelper.getJava8RuntimeJar(),
               Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"));
     } else {
       jarLibraries =

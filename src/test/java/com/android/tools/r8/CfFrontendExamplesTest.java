@@ -303,6 +303,7 @@ public class CfFrontendExamplesTest extends TestBase {
     R8Command command =
         R8Command.builder()
             .addProgramFiles(inputJar)
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setMode(CompilationMode.DEBUG)
             .setOutput(outputJar, OutputMode.ClassFile)
             .build();

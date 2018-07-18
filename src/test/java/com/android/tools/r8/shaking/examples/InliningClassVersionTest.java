@@ -17,7 +17,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.io.ByteStreams;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
@@ -147,7 +146,7 @@ public class InliningClassVersionTest extends TestBase {
     ToolHelper.runR8(
         R8Command.builder()
             .addProgramFiles(inputJar)
-            .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .addProguardConfiguration(keepRule, Origin.unknown())
             .setOutput(outputJar, OutputMode.ClassFile)
             .build());

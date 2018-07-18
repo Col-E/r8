@@ -20,7 +20,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.dexinspector.DexInspector;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Assert;
@@ -52,7 +51,7 @@ public class LambdaTestRunner {
     R8.run(
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(appBuilder.wrapClassFileConsumer(new ArchiveConsumer(outPath)))
             .addClassProgramData(inputClass, Origin.unknown())
             .build());

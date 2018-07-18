@@ -16,7 +16,6 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.Test;
 
 public class JumpSubroutineTests extends JasminTestBase {
@@ -40,7 +39,7 @@ public class JumpSubroutineTests extends JasminTestBase {
         R8Command.builder()
             .addProgramFiles(inputJar)
             .setOutput(outputJar, OutputMode.ClassFile)
-            .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .build(),
         options -> options.enableCfFrontend = true);
     ProcessResult processResult = ToolHelper.runJava(outputJar, main);

@@ -102,7 +102,7 @@ public class BootstrapTest extends TestBase {
     ToolHelper.runR8(
         R8Command.builder()
             .setMode(mode)
-            .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outputJar, true))
             .addProgramFiles(inputJar)
             .addProguardConfigurationFiles(pgConfigFile)

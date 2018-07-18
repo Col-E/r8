@@ -166,6 +166,7 @@ public class RemoveAssertionsTest extends TestBase {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(readClasses(ClassWithAssertions.class))
             .setMode(CompilationMode.DEBUG)
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setOutput(outputJar, OutputMode.ClassFile)
             .build();
     ToolHelper.runR8(command, consumer);

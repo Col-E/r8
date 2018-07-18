@@ -60,7 +60,9 @@ public class LineNumberOptimizationTest extends DebugTestBase {
     DebugTestConfig config = null;
 
     if (runtimeKind == RuntimeKind.CF) {
-      builder.setOutput(outjar, OutputMode.ClassFile);
+      builder
+          .setOutput(outjar, OutputMode.ClassFile)
+          .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
       config = new CfDebugTestConfig(outjar);
     } else {
       assert (runtimeKind == RuntimeKind.DEX);

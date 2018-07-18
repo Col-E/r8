@@ -23,7 +23,6 @@ import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import java.nio.file.Paths;
 import java.util.Set;
 import org.junit.Test;
 
@@ -52,7 +51,7 @@ public class IdenticalCatchHandlerTest extends TestBase {
     AndroidApp inputApp =
         AndroidApp.builder()
             .addClassProgramData(inputBytes, Origin.unknown())
-            .addLibraryFiles(Paths.get(ToolHelper.JAVA_8_RUNTIME))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .build();
     assertEquals(2, countCatchHandlers(inputApp));
     AndroidApp outputDexApp = ToolHelper.runR8(inputApp);

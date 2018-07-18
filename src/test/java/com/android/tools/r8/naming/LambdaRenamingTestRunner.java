@@ -20,7 +20,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -129,7 +128,7 @@ public class LambdaRenamingTestRunner extends TestBase {
     Path outPg = temp.getRoot().toPath().resolve(outName);
     ProcessResult proguardResult =
         ToolHelper.runProguard6Raw(
-            inputJar, outPg, Paths.get(ToolHelper.JAVA_8_RUNTIME), pgConfig, null);
+            inputJar, outPg, ToolHelper.getJava8RuntimeJar(), pgConfig, null);
     System.out.println(proguardResult.stdout);
     if (proguardResult.exitCode != 0) {
       System.out.println(proguardResult.stderr);
