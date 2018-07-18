@@ -14,6 +14,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -39,12 +40,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 class A {
   private static String buildClassName(String className) {
@@ -65,7 +70,20 @@ class B {
 
 }
 
+@RunWith(Parameterized.class)
 public class LibraryProvidedProguardRulesTest extends TestBase {
+
+  private Backend backend;
+
+  @Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public LibraryProvidedProguardRulesTest(Backend backend) {
+    this.backend = backend;
+  }
+
   private void addTextJarEntry(JarOutputStream out, String name, String content) throws Exception {
     out.putNextEntry(new ZipEntry(name));
     ByteStreams.copy(
@@ -84,11 +102,19 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
     }
 
     try {
-      R8Command command = (handler != null ? R8Command.builder(handler) : R8Command.builder())
-          .addProgramFiles(jar)
-          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-          .build();
-      return ToolHelper.runR8(command);
+      R8Command.Builder builder =
+          (handler != null ? R8Command.builder(handler) : R8Command.builder()).addProgramFiles(jar);
+      if (backend == Backend.DEX) {
+        builder
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+      } else {
+        assert backend == Backend.CF;
+        builder
+            .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+      }
+      return ToolHelper.runR8(builder.build());
     } catch (CompilationFailedException e) {
       assertNotNull(handler);
       return null;
@@ -186,10 +212,19 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   public void throwingDataResourceProvider() throws Exception {
     DiagnosticsChecker checker = new DiagnosticsChecker();
     try {
-      R8Command command = R8Command.builder(checker)
-          .addProgramResourceProvider(new TestProvider())
-          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-          .build();
+      R8Command.Builder builder =
+          R8Command.builder(checker).addProgramResourceProvider(new TestProvider());
+      if (backend == Backend.DEX) {
+        builder
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+      } else {
+        assert backend == Backend.CF;
+        builder
+            .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+      }
+      builder.build();
       fail("Should not succeed");
     } catch (CompilationFailedException e) {
       DiagnosticsChecker.checkDiagnostic(
