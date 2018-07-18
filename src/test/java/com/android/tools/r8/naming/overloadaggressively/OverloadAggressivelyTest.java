@@ -18,8 +18,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -60,8 +60,8 @@ public class OverloadAggressivelyTest extends TestBase {
     Path out = temp.getRoot().toPath();
     AndroidApp processedApp = runR8(originalApp, FieldUpdater.class, out, overloadaggressively);
 
-    DexInspector dexInspector = new DexInspector(processedApp);
-    ClassSubject a = dexInspector.clazz(A.class.getCanonicalName());
+    CodeInspector codeInspector = new CodeInspector(processedApp);
+    ClassSubject a = codeInspector.clazz(A.class.getCanonicalName());
     DexEncodedField f1 = a.field("int", "f1").getField();
     assertNotNull(f1);
     DexEncodedField f2 = a.field("java.lang.Object", "f2").getField();
@@ -112,8 +112,8 @@ public class OverloadAggressivelyTest extends TestBase {
     Path out = temp.getRoot().toPath();
     AndroidApp processedApp = runR8(originalApp, FieldResolution.class, out, overloadaggressively);
 
-    DexInspector dexInspector = new DexInspector(processedApp);
-    ClassSubject a = dexInspector.clazz(A.class.getCanonicalName());
+    CodeInspector codeInspector = new CodeInspector(processedApp);
+    ClassSubject a = codeInspector.clazz(A.class.getCanonicalName());
     DexEncodedField f1 = a.field("int", "f1").getField();
     assertNotNull(f1);
     DexEncodedField f3 = a.field(B.class.getCanonicalName(), "f3").getField();
@@ -157,8 +157,8 @@ public class OverloadAggressivelyTest extends TestBase {
     Path out = temp.getRoot().toPath();
     AndroidApp processedApp = runR8(originalApp, MethodResolution.class, out, overloadaggressively);
 
-    DexInspector dexInspector = new DexInspector(processedApp);
-    ClassSubject b = dexInspector.clazz(B.class.getCanonicalName());
+    CodeInspector codeInspector = new CodeInspector(processedApp);
+    ClassSubject b = codeInspector.clazz(B.class.getCanonicalName());
     DexEncodedMethod m1 =
         b.method("int", "getF1", ImmutableList.of()).getMethod();
     assertNotNull(m1);

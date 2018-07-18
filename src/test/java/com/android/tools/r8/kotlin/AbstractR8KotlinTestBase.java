@@ -23,10 +23,10 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FieldSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -112,7 +112,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     }));
   }
 
-  protected ClassSubject checkClassIsKept(DexInspector inspector, String className) {
+  protected ClassSubject checkClassIsKept(CodeInspector inspector, String className) {
     checkClassExistsInInput(className);
     ClassSubject classSubject = inspector.clazz(className);
     assertNotNull(classSubject);

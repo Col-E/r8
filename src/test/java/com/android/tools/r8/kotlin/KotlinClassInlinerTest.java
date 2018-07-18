@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -55,7 +55,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
         clazz.interfaces.size() == 1;
   }
 
-  private static Predicate<DexType> createLambdaCheck(DexInspector inspector) {
+  private static Predicate<DexType> createLambdaCheck(CodeInspector inspector) {
     Set<DexType> lambdaClasses = inspector.allClasses().stream()
         .filter(clazz -> isLambda(clazz.getDexClass()))
         .map(clazz -> clazz.getDexClass().type)
@@ -67,7 +67,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   public void testJStyleLambdas() throws Exception {
     final String mainClassName = "class_inliner_lambda_j_style.MainKt";
     runTest("class_inliner_lambda_j_style", mainClassName, false, (app) -> {
-      DexInspector inspector = new DexInspector(app);
+      CodeInspector inspector = new CodeInspector(app);
       assertTrue(
           inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1").isPresent());
       assertTrue(
@@ -77,7 +77,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
     });
 
     runTest("class_inliner_lambda_j_style", mainClassName, true, (app) -> {
-      DexInspector inspector = new DexInspector(app);
+      CodeInspector inspector = new CodeInspector(app);
       Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
       ClassSubject clazz = inspector.clazz(mainClassName);
 
@@ -112,7 +112,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   public void testKStyleLambdas() throws Exception {
     final String mainClassName = "class_inliner_lambda_k_style.MainKt";
     runTest("class_inliner_lambda_k_style", mainClassName, false, (app) -> {
-      DexInspector inspector = new DexInspector(app);
+      CodeInspector inspector = new CodeInspector(app);
       assertTrue(inspector.clazz(
           "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateless$1").isPresent());
       assertTrue(inspector.clazz(
@@ -135,7 +135,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
     });
 
     runTest("class_inliner_lambda_k_style", mainClassName, true, (app) -> {
-      DexInspector inspector = new DexInspector(app);
+      CodeInspector inspector = new CodeInspector(app);
       Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
       ClassSubject clazz = inspector.clazz(mainClassName);
 
@@ -186,7 +186,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   public void testDataClass() throws Exception {
     final String mainClassName = "class_inliner_data_class.MainKt";
     runTest("class_inliner_data_class", mainClassName, true, (app) -> {
-      DexInspector inspector = new DexInspector(app);
+      CodeInspector inspector = new CodeInspector(app);
       ClassSubject clazz = inspector.clazz(mainClassName);
       assertTrue(collectAccessedTypes(
           type -> !type.toSourceString().startsWith("java."),

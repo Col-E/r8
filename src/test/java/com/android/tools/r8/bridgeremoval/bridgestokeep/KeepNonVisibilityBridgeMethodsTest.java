@@ -7,8 +7,8 @@ package com.android.tools.r8.bridgeremoval.bridgestokeep;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -32,7 +32,7 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
         SimpleObservableList.class,
         Main.class);
     String proguardConfig = keepMainAllowAccessModification(Main.class, obfuscate);
-    DexInspector inspector = new DexInspector(compileWithR8(classes, proguardConfig));
+    CodeInspector inspector = new CodeInspector(compileWithR8(classes, proguardConfig));
 
     // The bridge for registerObserver cannot be removed.
     Method registerObserver =

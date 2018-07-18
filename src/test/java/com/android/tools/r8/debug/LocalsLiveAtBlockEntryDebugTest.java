@@ -7,9 +7,9 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.jasmin.JasminBuilder;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -53,8 +53,8 @@ public class LocalsLiveAtBlockEntryDebugTest extends DebugTestBase {
   }
 
   private void runTest(DebugTestConfig config) throws Throwable {
-    DexInspector inspector =
-        new DexInspector(
+    CodeInspector inspector =
+        new CodeInspector(
             (config instanceof CfDebugTestConfig)
                 ? Collections.singletonList(config.getPaths().get(1).resolve(className + ".class"))
                 : config.getPaths());

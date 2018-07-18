@@ -5,7 +5,7 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,24 +53,24 @@ public class TreeShaking11Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/shaking11/keep-rules-keep-method.txt"));
   }
 
-  private static void shaking11OnlyOneClassKept(DexInspector dexInspector) {
-    Assert.assertFalse(dexInspector.clazz("shaking11.Subclass").isPresent());
-    Assert.assertTrue(dexInspector.clazz("shaking11.SubclassWithMethod").isPresent());
+  private static void shaking11OnlyOneClassKept(CodeInspector codeInspector) {
+    Assert.assertFalse(codeInspector.clazz("shaking11.Subclass").isPresent());
+    Assert.assertTrue(codeInspector.clazz("shaking11.SubclassWithMethod").isPresent());
   }
 
-  private static void shaking11BothMethodsKept(DexInspector dexInspector) {
+  private static void shaking11BothMethodsKept(CodeInspector codeInspector) {
     Assert.assertFalse(
-        dexInspector
+        codeInspector
             .clazz("shaking11.Subclass")
             .method("void", "aMethod", Collections.emptyList())
             .isPresent());
     Assert.assertTrue(
-        dexInspector
+        codeInspector
             .clazz("shaking11.SuperClass")
             .method("void", "aMethod", Collections.emptyList())
             .isPresent());
     Assert.assertTrue(
-        dexInspector
+        codeInspector
             .clazz("shaking11.SubclassWithMethod")
             .method("void", "aMethod", Collections.emptyList())
             .isPresent());

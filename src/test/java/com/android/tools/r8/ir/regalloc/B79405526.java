@@ -4,20 +4,20 @@
 
 package com.android.tools.r8.ir.regalloc;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 
 public class B79405526 extends TestBase {
   @Test
   public void test() throws Exception {
     AndroidApp app = compileWithD8(readClasses(TestClass.class));
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(TestClass.class);
     assertThat(clazz, isPresent());
     // Throws if a method in TestClass does not verify.

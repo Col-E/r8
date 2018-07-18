@@ -30,10 +30,10 @@ import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorParserException;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FoundClassSubject;
-import com.android.tools.r8.utils.dexinspector.FoundFieldSubject;
-import com.android.tools.r8.utils.dexinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import java.io.File;
@@ -132,8 +132,8 @@ public abstract class CompilationTestBase {
       if (referenceApk == null) {
         throw e;
       }
-      DexInspector theirs = new DexInspector(Paths.get(referenceApk));
-      DexInspector ours = new DexInspector(out);
+      CodeInspector theirs = new CodeInspector(Paths.get(referenceApk));
+      CodeInspector ours = new CodeInspector(out);
       List<ArtErrorInfo> errors;
       try {
         errors = ArtErrorParser.parse(e.getMessage());
@@ -194,8 +194,8 @@ public abstract class CompilationTestBase {
   public void assertIdenticalApplicationsUpToCode(
       AndroidApp app1, AndroidApp app2, boolean allowNewClassesInApp2)
       throws IOException, ExecutionException {
-    DexInspector inspect1 = new DexInspector(app1);
-    DexInspector inspect2 = new DexInspector(app2);
+    CodeInspector inspect1 = new CodeInspector(app1);
+    CodeInspector inspect2 = new CodeInspector(app2);
 
     class Pair<T> {
       private T first;
@@ -213,7 +213,7 @@ public abstract class CompilationTestBase {
     // Collect all classes from both inspectors, indexed by finalDescriptor.
     Map<String, Pair<FoundClassSubject>> allClasses = new HashMap<>();
 
-    BiConsumer<DexInspector, Boolean> collectClasses =
+    BiConsumer<CodeInspector, Boolean> collectClasses =
         (inspector, selectFirst) -> {
           inspector.forAllClasses(
               clazz -> {

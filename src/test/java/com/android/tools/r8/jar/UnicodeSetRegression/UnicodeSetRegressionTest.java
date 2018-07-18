@@ -11,7 +11,7 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorParserException;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,8 +60,8 @@ public class UnicodeSetRegressionTest {
     } catch (AssertionError e) {
       AndroidApp fromDexApp =
           ToolHelper.runR8(dexFromDX(), options -> options.ignoreMissingClasses = true);
-      DexInspector fromDex = new DexInspector(fromDexApp);
-      DexInspector fromJar = new DexInspector(result);
+      CodeInspector fromDex = new CodeInspector(fromDexApp);
+      CodeInspector fromJar = new CodeInspector(result);
       List<ArtErrorInfo> errors;
       try {
         errors = ArtErrorParser.parse(e.getMessage());

@@ -16,14 +16,14 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.CfInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.DexInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject.JumboStringMode;
-import com.android.tools.r8.utils.dexinspector.InvokeInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.CfInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.DexInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
+import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,7 +49,7 @@ public class NeverReturnsNormallyTest extends TestBase {
   }
 
   private void runTest(
-      BiConsumer<DexInspector, CompilationMode> inspection,
+      BiConsumer<CodeInspector, CompilationMode> inspection,
       boolean enableClassInliner, CompilationMode mode) throws Exception {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
@@ -82,7 +82,7 @@ public class NeverReturnsNormallyTest extends TestBase {
     AndroidApp app =
         ToolHelper.runR8(builder.build(), opts -> opts.enableClassInlining = enableClassInliner);
     inspection.accept(
-        new DexInspector(
+        new CodeInspector(
             app,
             options -> {
               options.enableCfFrontend = true;
@@ -97,7 +97,7 @@ public class NeverReturnsNormallyTest extends TestBase {
     }
   }
 
-  private void validate(DexInspector inspector, CompilationMode mode) {
+  private void validate(CodeInspector inspector, CompilationMode mode) {
     assert (backend == Backend.DEX || backend == Backend.CF);
     ClassSubject clazz = inspector.clazz(TestClass.class);
     assertTrue(clazz.isPresent());

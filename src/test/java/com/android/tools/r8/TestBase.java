@@ -25,9 +25,9 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.android.tools.r8.utils.ZipUtils;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -599,7 +599,7 @@ public class TestBase {
   }
 
   protected DexEncodedMethod getMethod(
-      DexInspector inspector,
+      CodeInspector inspector,
       String className,
       String returnType,
       String methodName,
@@ -618,7 +618,7 @@ public class TestBase {
       String methodName,
       List<String> parameters) {
     try {
-      DexInspector inspector = new DexInspector(application);
+      CodeInspector inspector = new CodeInspector(application);
       return getMethod(inspector, className, returnType, methodName, parameters);
     } catch (Exception e) {
       return null;

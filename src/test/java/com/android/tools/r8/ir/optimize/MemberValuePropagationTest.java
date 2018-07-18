@@ -19,8 +19,8 @@ import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,7 +43,7 @@ public class MemberValuePropagationTest {
   @Test
   public void testWriteOnlyField_putObject_gone() throws Exception {
     Path processedApp = runR8(EXAMPLE_KEEP);
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject clazz = inspector.clazz(WRITE_ONLY_FIELD + ".WriteOnlyCls");
     clazz.forAllMethods(
         methodSubject -> {
@@ -71,7 +71,7 @@ public class MemberValuePropagationTest {
   @Test
   public void testWriteOnlyField_dontoptimize() throws Exception {
     Path processedApp = runR8(DONT_OPTIMIZE);
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject clazz = inspector.clazz(WRITE_ONLY_FIELD + ".WriteOnlyCls");
     clazz.forAllMethods(
         methodSubject -> {

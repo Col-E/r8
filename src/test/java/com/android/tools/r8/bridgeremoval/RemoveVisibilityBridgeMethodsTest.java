@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.bridgeremoval;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -17,9 +17,9 @@ import com.android.tools.r8.bridgeremoval.bridgestoremove.Outer;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
@@ -34,7 +34,7 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
         Outer.class,
         Main.class);
     String proguardConfig = keepMainProguardConfiguration(Main.class, true, obfuscate);
-    DexInspector inspector = new DexInspector(compileWithR8(classes, proguardConfig));
+    CodeInspector inspector = new CodeInspector(compileWithR8(classes, proguardConfig));
 
     List<Method> removedMethods = ImmutableList.of(
         Outer.SubClass.class.getMethod("method"),
@@ -116,7 +116,7 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
     String artResult = runOnArt(optimizedApp, mainClassName);
     assertEquals(javaResult.stdout, artResult);
 
-    DexInspector inspector = new DexInspector(optimizedApp);
+    CodeInspector inspector = new CodeInspector(optimizedApp);
 
     ClassSubject classSubject = inspector.clazz(superClass.name);
     assertThat(classSubject, isPresent());

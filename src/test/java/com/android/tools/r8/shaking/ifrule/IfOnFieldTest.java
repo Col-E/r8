@@ -4,7 +4,7 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,13 +42,13 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
   }
 
   @Override
-  protected DexInspector runR8(
+  protected CodeInspector runR8(
       List<Class> programClasses, String proguardConfig) throws Exception {
     return super.runR8(programClasses, adaptConfiguration(proguardConfig));
   }
 
   @Override
-  protected DexInspector runProguard6(
+  protected CodeInspector runProguard6(
       List<Class> programClasses, String proguardConfig) throws Exception {
     return super.runProguard6(programClasses, adaptConfiguration(proguardConfig));
   }
@@ -77,10 +77,10 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **.D"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector,
         R1.class, R2.class, D.class, D2.class);
-    verifyClassesPresent(dexInspector,
+    verifyClassesPresent(codeInspector,
         R.class, D1.class);
   }
 
@@ -96,10 +96,10 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **.D<2>"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector,
         R1.class, R2.class, D.class, D2.class);
-    verifyClassesPresent(dexInspector,
+    verifyClassesPresent(codeInspector,
         R.class, D1.class);
   }
 
@@ -119,10 +119,10 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **.D2"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector,
         R.class, D.class, R1.class, D1.class);
-    verifyClassesPresent(dexInspector,
+    verifyClassesPresent(codeInspector,
         R2.class, D2.class);
   }
 
@@ -138,10 +138,10 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **.D<2>"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector,
         R.class, D.class, R1.class, D1.class);
-    verifyClassesPresent(dexInspector,
+    verifyClassesPresent(codeInspector,
         R2.class, D2.class);
   }
 
@@ -158,10 +158,10 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **$*D"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector,
         R.class, D.class, R1.class, D1.class, R2.class, D2.class);
-    verifyClassesPresent(dexInspector,
+    verifyClassesPresent(codeInspector,
         MainWithInner.InnerR.class, MainWithInner.InnerD.class);
   }
 
@@ -178,10 +178,10 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class <1>$<2>D"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector,
         R.class, D.class, R1.class, D1.class, R2.class, D2.class);
-    verifyClassesPresent(dexInspector,
+    verifyClassesPresent(codeInspector,
         MainWithInner.InnerR.class, MainWithInner.InnerD.class);
   }
 
@@ -202,9 +202,9 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
             "}",
             "-keep class **.D2");
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector, D2.class);
-    verifyClassesPresent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector, D2.class);
+    verifyClassesPresent(codeInspector,
         I.class, Impl.class, D1.class);
   }
 
@@ -225,9 +225,9 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
             "}",
             "-keep class <2>.D2");
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector, D2.class);
-    verifyClassesPresent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector, D2.class);
+    verifyClassesPresent(codeInspector,
         I.class, Impl.class, D1.class);
   }
 

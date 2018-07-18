@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,7 +54,7 @@ public class TreeShaking12Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/shaking12/keep-rules-printusage.txt"));
   }
 
-  private static void shaking12OnlyInstantiatedClassesHaveConstructors(DexInspector inspector) {
+  private static void shaking12OnlyInstantiatedClassesHaveConstructors(CodeInspector inspector) {
     ClassSubject animalClass = inspector.clazz("shaking12.AnimalClass");
     Assert.assertTrue(animalClass.isPresent());
     Assert.assertFalse(animalClass.method("void", "<init>", Collections.emptyList()).isPresent());

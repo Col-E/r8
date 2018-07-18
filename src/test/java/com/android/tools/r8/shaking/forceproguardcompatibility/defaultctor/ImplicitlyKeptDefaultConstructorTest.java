@@ -4,16 +4,16 @@
 
 package com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.hasDefaultConstructor;
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.hasDefaultConstructor;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
 import com.android.tools.r8.smali.ConstantFoldingTest.TriConsumer;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -103,14 +103,14 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
   }
 
   private void checkAllClassesPresentWithDefaultConstructor(
-      Class mainClass, List<Class> programClasses, DexInspector inspector) {
+      Class mainClass, List<Class> programClasses, CodeInspector inspector) {
     assert programClasses.contains(mainClass);
     assertEquals(programClasses.size(), inspector.allClasses().size());
     inspector.forAllClasses(this::checkPresentWithDefaultConstructor);
   }
 
   private void checkAllClassesPresentOnlyMainWithDefaultConstructor(
-      Class mainClass, List<Class> programClasses, DexInspector inspector) {
+      Class mainClass, List<Class> programClasses, CodeInspector inspector) {
     assert programClasses.contains(mainClass);
     assertEquals(programClasses.size(), inspector.allClasses().size());
     checkPresentWithDefaultConstructor(inspector.clazz(mainClass));
@@ -121,7 +121,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
   }
 
   private void checkOnlyMainPresent(
-      Class mainClass, List<Class> programClasses, DexInspector inspector) {
+      Class mainClass, List<Class> programClasses, CodeInspector inspector) {
     assert programClasses.contains(mainClass);
     assertEquals(1, inspector.allClasses().size());
     inspector.forAllClasses(this::checkPresentWithDefaultConstructor);
@@ -129,9 +129,9 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
 
   private void runTest(
       Class mainClass, List<Class> programClasses, String proguardConfiguration,
-      TriConsumer<Class, List<Class>, DexInspector> r8Checker,
-      TriConsumer<Class, List<Class>, DexInspector> proguardChecker) throws Exception {
-    DexInspector inspector = runR8Compat(programClasses, proguardConfiguration);
+      TriConsumer<Class, List<Class>, CodeInspector> r8Checker,
+      TriConsumer<Class, List<Class>, CodeInspector> proguardChecker) throws Exception {
+    CodeInspector inspector = runR8Compat(programClasses, proguardConfiguration);
     r8Checker.accept(mainClass, programClasses, inspector);
 
     if (isRunProguard()) {
@@ -144,7 +144,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
 
   private void runTest(
       Class mainClass, List<Class> programClasses, String proguardConfiguration,
-      TriConsumer<Class, List<Class>, DexInspector> checker) throws Exception {
+      TriConsumer<Class, List<Class>, CodeInspector> checker) throws Exception {
     runTest(mainClass, programClasses, proguardConfiguration, checker, checker);
   }
 

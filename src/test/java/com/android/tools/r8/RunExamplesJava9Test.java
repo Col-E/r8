@@ -6,7 +6,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -17,12 +17,12 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FoundClassSubject;
-import com.android.tools.r8.utils.dexinspector.FoundMethodSubject;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -54,7 +54,7 @@ public abstract class RunExamplesJava9Test
     Integer androidJarVersion = null;
 
     final List<Consumer<InternalOptions>> optionConsumers = new ArrayList<>();
-    final List<Consumer<DexInspector>> dexInspectorChecks = new ArrayList<>();
+    final List<Consumer<CodeInspector>> dexInspectorChecks = new ArrayList<>();
     final List<UnaryOperator<B>> builderTransformations = new ArrayList<>();
 
     TestRunner(String testName, String packageName, String mainClass) {
@@ -65,7 +65,7 @@ public abstract class RunExamplesJava9Test
 
     abstract C self();
 
-    C withDexCheck(Consumer<DexInspector> check) {
+    C withDexCheck(Consumer<CodeInspector> check) {
       dexInspectorChecks.add(check);
       return self();
     }
@@ -147,8 +147,8 @@ public abstract class RunExamplesJava9Test
       }
 
       if (!dexInspectorChecks.isEmpty()) {
-        DexInspector inspector = new DexInspector(out);
-        for (Consumer<DexInspector> check : dexInspectorChecks) {
+        CodeInspector inspector = new CodeInspector(out);
+        for (Consumer<CodeInspector> check : dexInspectorChecks) {
           check.accept(inspector);
         }
       }

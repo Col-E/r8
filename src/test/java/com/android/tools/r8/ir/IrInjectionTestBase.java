@@ -22,7 +22,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.List;
 import java.util.ListIterator;
@@ -61,7 +61,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
       String returnType,
       String methodName,
       List<String> parameters) {
-    DexInspector inspector = new DexInspector(application);
+    CodeInspector inspector = new CodeInspector(application);
     return getMethod(inspector, className, returnType, methodName, parameters);
   }
 

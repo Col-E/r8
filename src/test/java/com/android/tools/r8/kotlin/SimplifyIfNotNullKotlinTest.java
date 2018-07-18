@@ -10,9 +10,9 @@ import com.android.tools.r8.code.Format22t;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import org.junit.Test;
@@ -35,8 +35,8 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
     final String mainClassName = ex1.getClassName();
     final String extraRules = keepAllMembers(mainClassName);
     runTest(FOLDER, mainClassName, extraRules, app -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject clazz = checkClassIsKept(dexInspector, ex1.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject clazz = checkClassIsKept(codeInspector, ex1.getClassName());
 
       MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
@@ -61,8 +61,8 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
     final String mainClassName = ex2.getClassName();
     final String extraRules = keepAllMembers(mainClassName);
     runTest(FOLDER, mainClassName, extraRules, app -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject clazz = checkClassIsKept(dexInspector, ex2.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject clazz = checkClassIsKept(codeInspector, ex2.getClassName());
 
       MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);

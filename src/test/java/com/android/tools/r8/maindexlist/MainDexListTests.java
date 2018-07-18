@@ -66,8 +66,8 @@ import com.android.tools.r8.utils.MainDexList;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.io.IOException;
@@ -484,7 +484,7 @@ public class MainDexListTests extends TestBase {
         .forEach(
             p -> {
               try {
-                DexInspector i = new DexInspector(AndroidApp.builder().addProgramFiles(p).build());
+                CodeInspector i = new CodeInspector(AndroidApp.builder().addProgramFiles(p).build());
                 assertFalse("Found " + clazz + " in file " + p, i.clazz(clazz).isPresent());
               } catch (IOException | ExecutionException e) {
                 e.printStackTrace();
@@ -519,7 +519,7 @@ public class MainDexListTests extends TestBase {
       throws IOException, ExecutionException, ProguardRuleParserException,
       CompilationFailedException {
     AndroidApp originalApp = AndroidApp.builder().addProgramFiles(app).build();
-    DexInspector originalInspector = new DexInspector(originalApp);
+    CodeInspector originalInspector = new CodeInspector(originalApp);
     for (String clazz : mainDex) {
       assertTrue("Class " + clazz + " does not exist in input",
           originalInspector.clazz(clazz).isPresent());
@@ -583,8 +583,8 @@ public class MainDexListTests extends TestBase {
       assertTrue("Output run only produced one dex file.",
           1 < Files.list(outDir).filter(FileUtils::isDexFile).count());
     }
-    DexInspector inspector =
-        new DexInspector(
+    CodeInspector inspector =
+        new CodeInspector(
             AndroidApp.builder().addProgramFiles(outDir.resolve("classes.dex")).build());
     for (String clazz : mainDex) {
       if (!inspector.clazz(clazz).isPresent()) {

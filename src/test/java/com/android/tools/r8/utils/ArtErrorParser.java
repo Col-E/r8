@@ -4,9 +4,9 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -72,7 +72,7 @@ public class ArtErrorParser {
   public static abstract class ArtErrorInfo {
     public abstract int consumedLines();
     public abstract String getMessage();
-    public abstract String dump(DexInspector inspector, boolean markLocation);
+    public abstract String dump(CodeInspector inspector, boolean markLocation);
   }
 
   private static class ArtMethodError extends ArtErrorInfo {
@@ -117,7 +117,7 @@ public class ArtErrorParser {
     }
 
     @Override
-    public String dump(DexInspector inspector, boolean markLocation) {
+    public String dump(CodeInspector inspector, boolean markLocation) {
       ClassSubject clazz = inspector.clazz(className);
       MethodSubject method = clazz.method(methodReturn, methodName, methodFormals);
       DexEncodedMethod dex = method.getMethod();

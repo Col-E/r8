@@ -20,8 +20,8 @@ import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.SingleConstant;
 import com.android.tools.r8.ir.code.WideConstant;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,7 +54,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
     public void run() throws Exception {
       AndroidApp processdApplication = processApplication(buildApplication(builder));
       assertEquals(1, getNumberOfProgramClasses(processdApplication));
-      DexInspector inspector = new DexInspector(processdApplication);
+      CodeInspector inspector = new CodeInspector(processdApplication);
       ClassSubject clazz = inspector.clazz(DEFAULT_CLASS_NAME);
       clazz.forAllMethods(method -> {
         int index = Integer.parseInt(method.getMethod().method.name.toString().substring(1));

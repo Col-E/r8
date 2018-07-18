@@ -22,7 +22,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -2059,10 +2059,10 @@ public abstract class R8RunArtTestsTest {
 
   private void failWithDexDiff(File originalFile, File processedFile)
       throws IOException, ExecutionException {
-    DexInspector inspectOriginal =
-        new DexInspector(originalFile.toPath().toAbsolutePath());
-    DexInspector inspectProcessed =
-        new DexInspector(processedFile.toPath().toAbsolutePath());
+    CodeInspector inspectOriginal =
+        new CodeInspector(originalFile.toPath().toAbsolutePath());
+    CodeInspector inspectProcessed =
+        new CodeInspector(processedFile.toPath().toAbsolutePath());
     StringBuilder builderOriginal = new StringBuilder();
     StringBuilder builderProcessed = new StringBuilder();
     inspectOriginal.forAllClasses((clazz) -> builderOriginal.append(clazz.dumpMethods()));
@@ -2077,10 +2077,10 @@ public abstract class R8RunArtTestsTest {
     List<ComparisonFailure> errors;
     try {
       // Parse all the verification errors.
-      DexInspector processed = new DexInspector(processedFile.toPath());
-      DexInspector original = DEX_COMPARE_WITH_DEX_REFERENCE_ON_FAILURE
-          ? new DexInspector(referenceFile.toPath())
-          : new DexInspector(inputFiles.stream().map(Paths::get).collect(Collectors.toList()));
+      CodeInspector processed = new CodeInspector(processedFile.toPath());
+      CodeInspector original = DEX_COMPARE_WITH_DEX_REFERENCE_ON_FAILURE
+          ? new CodeInspector(referenceFile.toPath())
+          : new CodeInspector(inputFiles.stream().map(Paths::get).collect(Collectors.toList()));
       List<ArtErrorInfo> errorInfo = ArtErrorParser.parse(verificationError.getMessage());
       errors = ListUtils.map(errorInfo, (error) ->
           new ComparisonFailure(

@@ -15,9 +15,9 @@ import com.android.tools.r8.code.NewArray;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.smali.SmaliBuilder;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -45,11 +45,11 @@ public class GetMembersTest extends CompatProguardSmaliTestBase {
         keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink",
         "-dontoptimize");
-    DexInspector inspector = runCompatProguard(builder, pgConfigs);
+    CodeInspector inspector = runCompatProguard(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
-    MethodSubject method = clazz.method(DexInspector.MAIN);
+    MethodSubject method = clazz.method(CodeInspector.MAIN);
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();
@@ -85,11 +85,11 @@ public class GetMembersTest extends CompatProguardSmaliTestBase {
         keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink",
         "-dontoptimize");
-    DexInspector inspector = runCompatProguard(builder, pgConfigs);
+    CodeInspector inspector = runCompatProguard(builder, pgConfigs);
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
-    MethodSubject method = clazz.method(DexInspector.MAIN);
+    MethodSubject method = clazz.method(CodeInspector.MAIN);
     assertTrue(method.isPresent());
 
     DexCode code = method.getMethod().getCode().asDexCode();

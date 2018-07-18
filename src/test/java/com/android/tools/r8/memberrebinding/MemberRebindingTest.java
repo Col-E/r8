@@ -12,11 +12,11 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FieldAccessInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject;
-import com.android.tools.r8.utils.dexinspector.InvokeInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldAccessInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -55,8 +55,8 @@ public class MemberRebindingTest {
   private final Frontend kind;
   private final Path originalDex;
   private final Path programFile;
-  private final Consumer<DexInspector> inspection;
-  private final Consumer<DexInspector> originalInspection;
+  private final Consumer<CodeInspector> inspection;
+  private final Consumer<CodeInspector> originalInspection;
   private final int minApiLevel;
 
   @Rule
@@ -101,9 +101,9 @@ public class MemberRebindingTest {
     return !invoke.holder().is("java.io.PrintStream");
   }
 
-  private static void inspectOriginalMain(DexInspector inspector) {
+  private static void inspectOriginalMain(CodeInspector inspector) {
     MethodSubject main = inspector.clazz("memberrebinding.Memberrebinding")
-        .method(DexInspector.MAIN);
+        .method(CodeInspector.MAIN);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(MemberRebindingTest::coolInvokes);
     assertTrue(iterator.next().holder().is("memberrebinding.ClassAtBottomOfChain"));
@@ -129,9 +129,9 @@ public class MemberRebindingTest {
     assertFalse(iterator.hasNext());
   }
 
-  private static void inspectMain(DexInspector inspector) {
+  private static void inspectMain(CodeInspector inspector) {
     MethodSubject main = inspector.clazz("memberrebinding.Memberrebinding")
-        .method(DexInspector.MAIN);
+        .method(CodeInspector.MAIN);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(MemberRebindingTest::coolInvokes);
     assertTrue(iterator.next().holder().is("memberrebinding.ClassAtBottomOfChain"));
@@ -160,9 +160,9 @@ public class MemberRebindingTest {
     assertFalse(iterator.hasNext());
   }
 
-  private static void inspectOriginalMain2(DexInspector inspector) {
+  private static void inspectOriginalMain2(CodeInspector inspector) {
     MethodSubject main = inspector.clazz("memberrebinding2.Memberrebinding")
-        .method(DexInspector.MAIN);
+        .method(CodeInspector.MAIN);
     Iterator<FieldAccessInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isFieldAccess);
     // Run through instance put, static put, instance get and instance get.
@@ -176,9 +176,9 @@ public class MemberRebindingTest {
     assertFalse(iterator.hasNext());
   }
 
-  private static void inspectMain2(DexInspector inspector) {
+  private static void inspectMain2(CodeInspector inspector) {
     MethodSubject main = inspector.clazz("memberrebinding2.Memberrebinding")
-        .method(DexInspector.MAIN);
+        .method(CodeInspector.MAIN);
     Iterator<FieldAccessInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isFieldAccess);
     // Run through instance put, static put, instance get and instance get.
@@ -195,7 +195,7 @@ public class MemberRebindingTest {
   public static MethodSignature TEST =
       new MethodSignature("test", "void", new String[]{});
 
-  private static void inspectOriginal3(DexInspector inspector) {
+  private static void inspectOriginal3(CodeInspector inspector) {
     MethodSubject main = inspector.clazz("memberrebinding3.Memberrebinding").method(TEST);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
@@ -205,7 +205,7 @@ public class MemberRebindingTest {
     assertFalse(iterator.hasNext());
   }
 
-  private static void inspect3(DexInspector inspector) {
+  private static void inspect3(CodeInspector inspector) {
     MethodSubject main = inspector.clazz("memberrebinding3.Memberrebinding").method(TEST);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
@@ -215,7 +215,7 @@ public class MemberRebindingTest {
     assertFalse(iterator.hasNext());
   }
 
-  private static void inspectOriginal4(DexInspector inspector) {
+  private static void inspectOriginal4(CodeInspector inspector) {
     MethodSubject main = inspector.clazz("memberrebinding4.Memberrebinding").method(TEST);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
@@ -224,7 +224,7 @@ public class MemberRebindingTest {
     assertFalse(iterator.hasNext());
   }
 
-  private static void inspect4(DexInspector inspector) {
+  private static void inspect4(CodeInspector inspector) {
     MethodSubject main = inspector.clazz("memberrebinding4.Memberrebinding").method(TEST);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
@@ -243,14 +243,14 @@ public class MemberRebindingTest {
     final String name;
     final Frontend kind;
     final AndroidVersion version;
-    final Consumer<DexInspector> originalInspection;
-    final Consumer<DexInspector> processedInspection;
+    final Consumer<CodeInspector> originalInspection;
+    final Consumer<CodeInspector> processedInspection;
 
     private TestConfiguration(String name,
         Frontend kind,
         AndroidVersion version,
-        Consumer<DexInspector> originalInspection,
-        Consumer<DexInspector> processedInspection) {
+        Consumer<CodeInspector> originalInspection,
+        Consumer<CodeInspector> processedInspection) {
       this.name = name;
       this.kind = kind;
       this.version = version;
@@ -261,8 +261,8 @@ public class MemberRebindingTest {
     public static void add(ImmutableList.Builder<TestConfiguration> builder,
         String name,
         AndroidVersion version,
-        Consumer<DexInspector> originalInspection,
-        Consumer<DexInspector> processedInspection) {
+        Consumer<CodeInspector> originalInspection,
+        Consumer<CodeInspector> processedInspection) {
       if (version == AndroidVersion.PRE_N) {
         builder.add(new TestConfiguration(name, Frontend.DEX, version, originalInspection,
             processedInspection));
@@ -330,11 +330,11 @@ public class MemberRebindingTest {
     Path processed = Paths.get(out, "classes.dex");
 
     if (kind == Frontend.DEX) {
-      DexInspector inspector = new DexInspector(originalDex);
+      CodeInspector inspector = new CodeInspector(originalDex);
       originalInspection.accept(inspector);
     }
 
-    DexInspector inspector = new DexInspector(processed);
+    CodeInspector inspector = new CodeInspector(processed);
     inspection.accept(inspector);
 
     // We don't run Art, as the test R8RunExamplesTest already does that.

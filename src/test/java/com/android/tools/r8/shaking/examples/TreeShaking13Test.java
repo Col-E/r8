@@ -5,11 +5,11 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FieldAccessInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldAccessInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,7 +49,7 @@ public class TreeShaking13Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/shaking13/keep-rules.txt"));
   }
 
-  private static void shaking13EnsureFieldWritesCorrect(DexInspector inspector) {
+  private static void shaking13EnsureFieldWritesCorrect(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("shaking13.Shaking");
     MethodSubject testMethod = mainClass.method("void", "fieldTest", Collections.emptyList());
     Assert.assertTrue(testMethod.isPresent());

@@ -5,7 +5,7 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +43,7 @@ public class TreeShaking18Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/shaking18/keep-rules.txt"));
   }
 
-  private static void unusedRemoved(DexInspector inspector) {
+  private static void unusedRemoved(CodeInspector inspector) {
     // TODO(b/80455722): Change to assertFalse when tree-shaking detects this case.
     Assert.assertTrue(
         "DerivedUnused should be removed", inspector.clazz("shaking18.DerivedUnused").isPresent());

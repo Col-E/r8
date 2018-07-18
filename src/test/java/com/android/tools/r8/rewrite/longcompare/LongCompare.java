@@ -10,11 +10,11 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject;
-import com.android.tools.r8.utils.dexinspector.InvokeInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -65,8 +65,8 @@ public class LongCompare {
 
     Path dexPath = outputPath.resolve("classes.dex");
 
-    DexInspector dexInspector = new DexInspector(dexPath);
-    ClassSubject classSubject = dexInspector.clazz("rewrite.LongCompare");
+    CodeInspector codeInspector = new CodeInspector(dexPath);
+    ClassSubject classSubject = codeInspector.clazz("rewrite.LongCompare");
     MethodSubject methodSubject = classSubject
         .method("int", "simpleCompare", Arrays.asList("long", "long"));
     // Check that exception handler is removed since it is no longer needed.

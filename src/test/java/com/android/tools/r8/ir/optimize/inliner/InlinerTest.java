@@ -22,9 +22,9 @@ import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestC
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -57,7 +57,7 @@ public class InlinerTest extends TestBase {
     String artOutput = runOnArt(app, InterfaceTargetsTestClass.class);
     assertEquals(javaOutput, artOutput);
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(InterfaceTargetsTestClass.class);
 
     assertFalse(getMethodSubject(clazz,

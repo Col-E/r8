@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,7 +44,7 @@ public class TreeShakingNestedproto1Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/nestedproto1/keep-rules.txt"));
   }
 
-  private static void nestedproto1UnusedFieldsAreGone(DexInspector inspector) {
+  private static void nestedproto1UnusedFieldsAreGone(CodeInspector inspector) {
     ClassSubject protoClass = inspector.clazz("nestedproto1.GeneratedNestedProto$Outer");
     Assert.assertTrue(protoClass.isPresent());
     Assert.assertFalse(protoClass.field("int", "id_").isPresent());

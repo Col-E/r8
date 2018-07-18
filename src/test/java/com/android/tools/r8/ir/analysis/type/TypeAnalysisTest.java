@@ -33,7 +33,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Smali;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.charset.StandardCharsets;
@@ -116,7 +116,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   // Simple one path with a lot of arithmetic operations.
   private static void arithmetic(AppInfo appInfo) {
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
     DexEncodedMethod subtract =
         inspector.clazz("Test")
             .method(
@@ -131,7 +131,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   // A couple branches, along with some recursive calls.
   private static void fibonacci(AppInfo appInfo) {
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
     DexEncodedMethod fib =
         inspector.clazz("Test")
             .method(new MethodSignature("fibonacci", "int", ImmutableList.of("int")))
@@ -145,7 +145,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   // fill-array-data
   private static void fillArrayData(AppInfo appInfo) {
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
     DexEncodedMethod test1 =
         inspector.clazz("Test")
             .method(new MethodSignature("test1", "int[]", ImmutableList.of()))
@@ -176,7 +176,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   // filled-new-array
   private static void filledNewArray(AppInfo appInfo) {
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
     DexEncodedMethod test4 =
         inspector.clazz("Test")
             .method(new MethodSignature("test4", "int[]", ImmutableList.of()))
@@ -207,7 +207,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   // Make sure the analysis does not hang.
   private static void infiniteLoop(AppInfo appInfo) {
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
     DexEncodedMethod loop2 =
         inspector.clazz("Test")
             .method(new MethodSignature("loop2", "void", ImmutableList.of()))
@@ -226,7 +226,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   // move-exception
   private static void tryCatch(AppInfo appInfo) {
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
     DexEncodedMethod test2 =
         inspector.clazz("Test")
             .method(new MethodSignature("test2_throw", "int", ImmutableList.of()))
@@ -244,7 +244,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   // One very complicated example.
   private static void typeConfusion(AppInfo appInfo) {
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
     DexEncodedMethod method =
         inspector.clazz("TestObject")
             .method(
@@ -264,7 +264,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   // One more complicated example.
   private static void typeConfusion5(AppInfo appInfo) {
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
     DexEncodedMethod method =
         inspector.clazz("TestObject")
             .method(

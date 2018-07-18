@@ -12,9 +12,9 @@ import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -101,7 +101,7 @@ public class DebugLocalTests extends JasminTestBase {
     AndroidApp jasminApp = builder.build();
     AndroidApp d8App = ToolHelper.runD8(jasminApp);
 
-    DexInspector inspector = new DexInspector(d8App);
+    CodeInspector inspector = new CodeInspector(d8App);
     ClassSubject classSubject = inspector.clazz("Test");
     MethodSubject methodSubject = classSubject.method(foo);
     DexCode code = methodSubject.getMethod().getCode().asDexCode();

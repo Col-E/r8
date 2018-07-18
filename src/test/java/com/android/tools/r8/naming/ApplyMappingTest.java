@@ -21,11 +21,11 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject;
-import com.android.tools.r8.utils.dexinspector.InvokeInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
-import com.android.tools.r8.utils.dexinspector.NewInstanceInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.NewInstanceInstructionSubject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -114,8 +114,8 @@ public class ApplyMappingTest extends TestBase {
                     pgConfig -> pgConfig.setApplyMappingFile(proguardMap))
                 .build());
 
-    DexInspector inspector = createDexInspector(instrApp);
-    MethodSubject main = inspector.clazz("applymapping044.Main").method(DexInspector.MAIN);
+    CodeInspector inspector = createDexInspector(instrApp);
+    MethodSubject main = inspector.clazz("applymapping044.Main").method(CodeInspector.MAIN);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
     // B#m()
@@ -169,8 +169,8 @@ public class ApplyMappingTest extends TestBase {
                 .build());
 
     // Make sure the given proguard map is indeed applied.
-    DexInspector inspector = createDexInspector(outputApp);
-    MethodSubject main = inspector.clazz("applymapping044.Main").method(DexInspector.MAIN);
+    CodeInspector inspector = createDexInspector(outputApp);
+    MethodSubject main = inspector.clazz("applymapping044.Main").method(CodeInspector.MAIN);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
     // B#m() -> y#n()
@@ -211,9 +211,9 @@ public class ApplyMappingTest extends TestBase {
     assertEquals("p", original_f.invokedMethod().name.toString());
   }
 
-  private static DexInspector createDexInspector(AndroidApp outputApp)
+  private static CodeInspector createDexInspector(AndroidApp outputApp)
       throws IOException, ExecutionException {
-    return new DexInspector(
+    return new CodeInspector(
         outputApp,
         o -> {
           o.enableCfFrontend = true;
@@ -236,8 +236,8 @@ public class ApplyMappingTest extends TestBase {
                 .build());
 
     // Make sure the given proguard map is indeed applied.
-    DexInspector inspector = createDexInspector(outputApp);
-    MethodSubject main = inspector.clazz("naming001.D").method(DexInspector.MAIN);
+    CodeInspector inspector = createDexInspector(outputApp);
+    MethodSubject main = inspector.clazz("naming001.D").method(CodeInspector.MAIN);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
     // mapping-105 simply includes: naming001.D#keep -> peek
@@ -268,8 +268,8 @@ public class ApplyMappingTest extends TestBase {
                 .build());
 
     // Make sure the given proguard map is indeed applied.
-    DexInspector inspector = createDexInspector(outputApp);
-    MethodSubject main = inspector.clazz("naming001.D").method(DexInspector.MAIN);
+    CodeInspector inspector = createDexInspector(outputApp);
+    MethodSubject main = inspector.clazz("naming001.D").method(CodeInspector.MAIN);
 
     Iterator<InstructionSubject> iterator = main.iterateInstructions();
     // naming001.E is renamed to a.a, so first instruction must be: new-instance La/a;

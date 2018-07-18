@@ -14,12 +14,12 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.CfInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject.JumboStringMode;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.CfInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,7 +41,7 @@ public class MoveStringConstantsTest extends TestBase {
     return Arrays.asList(Backend.values());
   }
 
-  private void runTest(Consumer<DexInspector> inspection) throws Exception {
+  private void runTest(Consumer<CodeInspector> inspection) throws Exception {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(Utils.class));
@@ -72,7 +72,7 @@ public class MoveStringConstantsTest extends TestBase {
               options.inliningInstructionLimit = 10;
             });
     inspection.accept(
-        new DexInspector(
+        new CodeInspector(
             app,
             options -> {
               options.enableCfFrontend = true;
@@ -90,7 +90,7 @@ public class MoveStringConstantsTest extends TestBase {
     this.backend = backend;
   }
 
-  private void validate(DexInspector inspector) {
+  private void validate(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(TestClass.class);
     assertTrue(clazz.isPresent());
 

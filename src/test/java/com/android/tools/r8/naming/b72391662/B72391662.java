@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.naming.b72391662;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -17,9 +17,9 @@ import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageSuper;
 import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageTestClass;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.List;
@@ -60,9 +60,9 @@ public class B72391662 extends ProguardCompatabilityTestBase {
     AndroidApp app = runShrinkerRaw(shrinker, CLASSES, config);
     assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
 
-    DexInspector dexInspector =
-        isR8(shrinker) ? new DexInspector(app) : new DexInspector(app, proguardMap);
-    ClassSubject testClass = dexInspector.clazz(TestClass.class);
+    CodeInspector codeInspector =
+        isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
+    ClassSubject testClass = codeInspector.clazz(TestClass.class);
     assertThat(testClass, isPresent());
 
     // Test the totally unused method.
@@ -150,9 +150,9 @@ public class B72391662 extends ProguardCompatabilityTestBase {
     AndroidApp app = runShrinkerRaw(shrinker, CLASSES, config);
     assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
 
-    DexInspector dexInspector =
-        isR8(shrinker) ? new DexInspector(app) : new DexInspector(app, proguardMap);
-    ClassSubject testClass = dexInspector.clazz(TestClass.class);
+    CodeInspector codeInspector =
+        isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
+    ClassSubject testClass = codeInspector.clazz(TestClass.class);
     assertThat(testClass, isPresent());
 
     // Test the totally unused method.
@@ -247,9 +247,9 @@ public class B72391662 extends ProguardCompatabilityTestBase {
     AndroidApp app = runShrinkerRaw(shrinker, CLASSES, config);
     assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
 
-    DexInspector dexInspector =
-        isR8(shrinker) ? new DexInspector(app) : new DexInspector(app, proguardMap);
-    ClassSubject testClass = dexInspector.clazz(TestClass.class);
+    CodeInspector codeInspector =
+        isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
+    ClassSubject testClass = codeInspector.clazz(TestClass.class);
     assertThat(testClass, isPresent());
 
     // Test the totally unused method.

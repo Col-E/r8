@@ -14,10 +14,10 @@ import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FieldSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.List;
@@ -94,8 +94,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
     FieldSubject f1 = clazz.field("java.lang.String", "same");
     assertTrue(f1.isPresent());
@@ -122,8 +122,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
     FieldSubject f1 = clazz.field("java.lang.String", "same");
     assertTrue(f1.isPresent());
@@ -152,8 +152,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
     FieldSubject f1 = clazz.field("java.lang.String", "same");
     assertTrue(f1.isPresent());
@@ -179,8 +179,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
     FieldSubject f1 = clazz.field("java.lang.String", "same");
     assertTrue(f1.isPresent());
@@ -207,8 +207,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
     FieldSubject f1 = clazz.field("java.lang.String", "same");
     assertTrue(f1.isPresent());
@@ -263,8 +263,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -291,8 +291,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -321,8 +321,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -348,8 +348,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -376,8 +376,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject clazz = dexInspector.clazz(ANOTHER_CLASS);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
     MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -445,8 +445,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
     MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -456,7 +456,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertFalse(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
     MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(subM1.isPresent());
@@ -487,8 +487,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
     MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -498,7 +498,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
     MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(subM1.isPresent());
@@ -531,8 +531,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
     MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -542,7 +542,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
     MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(subM1.isPresent());
@@ -572,8 +572,8 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
-    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    CodeInspector codeInspector = new CodeInspector(app);
+    ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
     MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -583,7 +583,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isRenamed());
     assertNotEquals(m1.getFinalName(), m2.getFinalName());
 
-    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
     MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(subM1.isPresent());
@@ -614,9 +614,9 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null);
 
-    DexInspector dexInspector = new DexInspector(app);
+    CodeInspector codeInspector = new CodeInspector(app);
 
-    ClassSubject sup = dexInspector.clazz(SUPER_CLASS);
+    ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
     MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(m1.isPresent());
@@ -626,7 +626,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ClassSubject sub = dexInspector.clazz(ANOTHER_CLASS);
+    ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
     MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
     assertTrue(subM1.isPresent());

@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.accessrelaxation;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -11,8 +11,8 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.List;
@@ -185,9 +185,9 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
     });
     compareJvmAndArt(app, mainClass);
 
-    DexInspector dexInspector = new DexInspector(app);
+    CodeInspector codeInspector = new CodeInspector(app);
     for (Class clazz : CLASSES) {
-      ClassSubject classSubject = dexInspector.clazz(clazz);
+      ClassSubject classSubject = codeInspector.clazz(clazz);
       assertThat(classSubject, isPresent());
       classSubject.getDexClass().forEachMethod(m -> {
         assertTrue(!m.isInstanceInitializer() || m.isPublicMethod());

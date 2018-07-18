@@ -21,8 +21,8 @@ import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.io.FileNotFoundException;
@@ -363,7 +363,7 @@ public class DexSplitterTests {
 
     // Ensure that the Class1 is actually in the correct split. Note that Class2 would have been
     // shaken away.
-    DexInspector inspector = new DexInspector(base, proguardMap.toString());
+    CodeInspector inspector = new CodeInspector(base, proguardMap.toString());
     ClassSubject subject = inspector.clazz("dexsplitsample.Class1");
     assertTrue(subject.isPresent());
     assertTrue(subject.isRenamed());

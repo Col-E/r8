@@ -4,7 +4,7 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
@@ -50,10 +50,10 @@ public class IfOnAnnotationTest extends ProguardCompatabilityTestBase {
         "-keep class **.UnusedAnnotation*"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector,
         UnusedAnnotation.class, UnusedAnnotationDependent.class);
-    verifyClassesPresent(dexInspector,
+    verifyClassesPresent(codeInspector,
         UsedAnnotation.class, UsedAnnotationDependent.class);
   }
 
@@ -76,10 +76,10 @@ public class IfOnAnnotationTest extends ProguardCompatabilityTestBase {
         "-keep class <1>.Unused<2>*"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    verifyClassesAbsent(dexInspector,
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector,
         UnusedAnnotation.class, UnusedAnnotationDependent.class);
-    verifyClassesPresent(dexInspector,
+    verifyClassesPresent(codeInspector,
         UsedAnnotation.class, UsedAnnotationDependent.class);
   }
 

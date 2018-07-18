@@ -31,7 +31,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.KeepingDiagnosticHandler;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
@@ -1844,7 +1844,7 @@ public class ProguardConfigurationParserTest extends TestBase {
           ImmutableList.of(proguardConfig, additionalProguardConfig),
           null);
       assertEquals(0, result.exitCode);
-      DexInspector proguardInspector = new DexInspector(readJar(proguardedJar));
+      CodeInspector proguardInspector = new CodeInspector(readJar(proguardedJar));
       assertEquals(1, proguardInspector.allClasses().size());
     }
   }
@@ -1867,7 +1867,7 @@ public class ProguardConfigurationParserTest extends TestBase {
           ImmutableList.of(proguardConfig, additionalProguardConfig),
           null);
       assertEquals(0, result.exitCode);
-      DexInspector proguardInspector = new DexInspector(readJar(proguardedJar));
+      CodeInspector proguardInspector = new CodeInspector(readJar(proguardedJar));
       assertEquals(1, proguardInspector.allClasses().size());
     }
   }

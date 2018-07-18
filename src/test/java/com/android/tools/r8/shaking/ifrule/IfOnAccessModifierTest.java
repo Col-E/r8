@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.ifrule;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -11,9 +11,9 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
@@ -59,8 +59,8 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
         "  public <methods>;",
         "}"
     );
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    ClassSubject classSubject = dexInspector.clazz(ClassForIf.class);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
     assertThat(methodSubject, not(isPresent()));
@@ -68,7 +68,7 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
     assertThat(methodSubject, isPresent());
     assertTrue(methodSubject.getMethod().accessFlags.isPublic());
 
-    classSubject = dexInspector.clazz(ClassForSubsequent.class);
+    classSubject = codeInspector.clazz(ClassForSubsequent.class);
     if (isR8(shrinker)) {
       // TODO(b/72109068): ClassForIf#nonPublicMethod becomes public, and -if rule is not applied
       // at the 2nd tree shaking.
@@ -98,8 +98,8 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
         "  !public <methods>;",
         "}"
     );
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    ClassSubject classSubject = dexInspector.clazz(ClassForIf.class);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
     assertThat(methodSubject, not(isPresent()));
@@ -107,7 +107,7 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
     assertThat(methodSubject, isPresent());
     assertTrue(methodSubject.getMethod().accessFlags.isPublic());
 
-    classSubject = dexInspector.clazz(ClassForSubsequent.class);
+    classSubject = codeInspector.clazz(ClassForSubsequent.class);
     if (isR8(shrinker)) {
       // TODO(b/72109068): ClassForIf#nonPublicMethod becomes public, and -if rule is not applied
       // at the 2nd tree shaking.
@@ -138,15 +138,15 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
         "  public <methods>;",
         "}"
     );
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    ClassSubject classSubject = dexInspector.clazz(ClassForIf.class);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
     assertThat(methodSubject, isPresent());
     methodSubject = classSubject.method(nonPublicMethod);
     assertThat(methodSubject, not(isPresent()));
 
-    classSubject = dexInspector.clazz(ClassForSubsequent.class);
+    classSubject = codeInspector.clazz(ClassForSubsequent.class);
     assertThat(classSubject, isPresent());
     methodSubject = classSubject.method(publicMethod);
     assertThat(methodSubject, isPresent());
@@ -170,15 +170,15 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
         "  !public <methods>;",
         "}"
     );
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
-    ClassSubject classSubject = dexInspector.clazz(ClassForIf.class);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
     assertThat(methodSubject, isPresent());
     methodSubject = classSubject.method(nonPublicMethod);
     assertThat(methodSubject, not(isPresent()));
 
-    classSubject = dexInspector.clazz(ClassForSubsequent.class);
+    classSubject = codeInspector.clazz(ClassForSubsequent.class);
     assertThat(classSubject, isPresent());
     methodSubject = classSubject.method(publicMethod);
     assertThat(methodSubject, not(isPresent()));

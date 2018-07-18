@@ -8,7 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -61,8 +61,8 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
       }
 
       if (!dexInspectorChecks.isEmpty()) {
-        DexInspector inspector = new DexInspector(out);
-        for (Consumer<DexInspector> check : dexInspectorChecks) {
+        CodeInspector inspector = new CodeInspector(out);
+        for (Consumer<CodeInspector> check : dexInspectorChecks) {
           check.accept(inspector);
         }
       }

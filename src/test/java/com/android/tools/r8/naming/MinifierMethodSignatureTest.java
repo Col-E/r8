@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.dexinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -33,9 +33,9 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
@@ -178,19 +178,19 @@ public class MinifierMethodSignatureTest extends TestBase {
     return cw.toByteArray();
   }
 
-  private MethodSubject lookupGeneric(DexInspector inspector) {
+  private MethodSubject lookupGeneric(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz("Methods");
     return clazz.method(
         "java.lang.Throwable", "generic", ImmutableList.of("java.lang.Throwable", "Methods$Inner"));
   }
 
-  private MethodSubject lookupParameterizedReturn(DexInspector inspector) {
+  private MethodSubject lookupParameterizedReturn(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz("Methods");
     return clazz.method(
         "Methods$Inner", "parameterizedReturn", ImmutableList.of());
   }
 
-  private MethodSubject lookupParameterizedArguments(DexInspector inspector) {
+  private MethodSubject lookupParameterizedArguments(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz("Methods");
     return clazz.method(
         "void", "parameterizedArguments", ImmutableList.of("java.lang.Throwable", "Methods$Inner"));
@@ -199,12 +199,12 @@ public class MinifierMethodSignatureTest extends TestBase {
   public void runTest(
       ImmutableMap<String, String> signatures,
       Consumer<DiagnosticsChecker> diagnostics,
-      Consumer<DexInspector> inspect)
+      Consumer<CodeInspector> inspect)
       throws Exception {
     DiagnosticsChecker checker = new DiagnosticsChecker();
     assert (backend == Backend.CF || backend == Backend.DEX);
-    DexInspector inspector =
-        new DexInspector(
+    CodeInspector inspector =
+        new CodeInspector(
             ToolHelper.runR8(
                 R8Command.builder(checker)
                     .addClassProgramData(dumpMethods(signatures), Origin.unknown())
@@ -263,7 +263,7 @@ public class MinifierMethodSignatureTest extends TestBase {
 
   private void testSingleMethod(String name, String signature,
       Consumer<DiagnosticsChecker> diagnostics,
-      Consumer<DexInspector> inspector)
+      Consumer<CodeInspector> inspector)
       throws Exception {
     ImmutableMap<String, String> signatures = ImmutableMap.of(name, signature);
     runTest(signatures, diagnostics, inspector);
@@ -277,7 +277,7 @@ public class MinifierMethodSignatureTest extends TestBase {
     assertEquals(0, checker.warnings.size());
   }
 
-  private void noInspection(DexInspector inspector) {
+  private void noInspection(CodeInspector inspector) {
   }
 
   private void noSignatureAttribute(MethodSubject method) {

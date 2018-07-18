@@ -4,16 +4,16 @@
 
 package com.android.tools.r8.ir.desugar.annotations;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
@@ -155,7 +155,7 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
   }
 
   private void checkPresenceOfSyntheticMethods(AndroidApp output) throws Exception {
-    DexInspector inspector = new DexInspector(output);
+    CodeInspector inspector = new CodeInspector(output);
 
     // Get classes A, B, and C.
     ClassSubject clazzA = inspector.clazz(A.class.getCanonicalName());

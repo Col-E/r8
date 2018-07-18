@@ -24,8 +24,8 @@ import com.android.tools.r8.ir.optimize.devirtualize.invokeinterface.I;
 import com.android.tools.r8.ir.optimize.devirtualize.invokeinterface.Main;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -67,9 +67,9 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
     Path out = temp.getRoot().toPath();
     AndroidApp processedApp = runR8(originalApp, Main.class, out);
 
-    DexInspector dexInspector = new DexInspector(processedApp);
-    ClassSubject clazz = dexInspector.clazz(main);
-    DexEncodedMethod m = clazz.method(DexInspector.MAIN).getMethod();
+    CodeInspector codeInspector = new CodeInspector(processedApp);
+    ClassSubject clazz = codeInspector.clazz(main);
+    DexEncodedMethod m = clazz.method(CodeInspector.MAIN).getMethod();
     DexCode code = m.getCode().asDexCode();
     long numOfInvokeInterface = filterInstructionKind(code, InvokeInterface.class).count();
     // List#add, List#get

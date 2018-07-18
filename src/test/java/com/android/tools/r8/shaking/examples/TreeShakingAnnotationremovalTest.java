@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -68,7 +68,7 @@ public class TreeShakingAnnotationremovalTest extends TreeShakingTest {
         });
   }
 
-  private static void annotationRemovalHasNoInnerClassAnnotations(DexInspector inspector) {
+  private static void annotationRemovalHasNoInnerClassAnnotations(CodeInspector inspector) {
     ClassSubject outer = inspector.clazz("annotationremoval.OuterClass");
     Assert.assertTrue(outer.isPresent());
     Assert.assertTrue(outer.getDexClass().getInnerClasses().isEmpty());
@@ -86,7 +86,7 @@ public class TreeShakingAnnotationremovalTest extends TreeShakingTest {
     Assert.assertTrue(local.getDexClass().getInnerClasses().isEmpty());
   }
 
-  private static void annotationRemovalHasAllInnerClassAnnotations(DexInspector inspector) {
+  private static void annotationRemovalHasAllInnerClassAnnotations(CodeInspector inspector) {
     ClassSubject outer = inspector.clazz("annotationremoval.OuterClass");
     Assert.assertTrue(outer.isPresent());
     Assert.assertFalse(outer.getDexClass().getInnerClasses().isEmpty());

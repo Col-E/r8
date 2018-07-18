@@ -16,13 +16,13 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.ConstStringInstructionSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FoundMethodSubject;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject.JumboStringMode;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.ConstStringInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -48,14 +48,14 @@ public class IdentifierMinifierTest extends TestBase {
 
   private final String appFileName;
   private final List<String> keepRulesFiles;
-  private final Consumer<DexInspector> inspection;
+  private final Consumer<CodeInspector> inspection;
   private final Backend backend;
 
   public IdentifierMinifierTest(
       Backend backend,
       String test,
       List<String> keepRulesFiles,
-      Consumer<DexInspector> inspection) {
+      Consumer<CodeInspector> inspection) {
     assert backend == Backend.DEX || backend == Backend.CF;
     this.appFileName =
         ToolHelper.EXAMPLES_BUILD_DIR + test + (backend == Backend.DEX ? "/classes.dex" : ".jar");
@@ -89,13 +89,13 @@ public class IdentifierMinifierTest extends TestBase {
 
   @Test
   public void identiferMinifierTest() throws Exception {
-    DexInspector dexInspector =
-        new DexInspector(
+    CodeInspector codeInspector =
+        new CodeInspector(
             processedApp,
             options -> {
               options.enableCfFrontend = true;
             });
-    inspection.accept(dexInspector);
+    inspection.accept(codeInspector);
   }
 
   @Parameters(name = "[{0}] test: {1} keep: {2}")
@@ -107,7 +107,7 @@ public class IdentifierMinifierTest extends TestBase {
         "getmembers",
         "identifiernamestring");
 
-    Map<String, Consumer<DexInspector>> inspections = new HashMap<>();
+    Map<String, Consumer<CodeInspector>> inspections = new HashMap<>();
     inspections.put("adaptclassstrings:keep-rules-1.txt", IdentifierMinifierTest::test1_rule1);
     inspections.put("adaptclassstrings:keep-rules-2.txt", IdentifierMinifierTest::test1_rule2);
     inspections.put(
@@ -135,9 +135,9 @@ public class IdentifierMinifierTest extends TestBase {
   }
 
   // Without -adaptclassstrings
-  private static void test1_rule1(DexInspector inspector) {
+  private static void test1_rule1(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("adaptclassstrings.Main");
-    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    MethodSubject main = mainClass.method(CodeInspector.MAIN);
     assertTrue(main instanceof FoundMethodSubject);
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
@@ -158,9 +158,9 @@ public class IdentifierMinifierTest extends TestBase {
   }
 
   // With -adaptclassstrings *.*A
-  private static void test1_rule2(DexInspector inspector) {
+  private static void test1_rule2(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("adaptclassstrings.Main");
-    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    MethodSubject main = mainClass.method(CodeInspector.MAIN);
     assertTrue(main instanceof FoundMethodSubject);
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
@@ -180,9 +180,9 @@ public class IdentifierMinifierTest extends TestBase {
     assertEquals(1, renamedYetFoundIdentifierCount);
   }
 
-  private static void test_atomicfieldupdater(DexInspector inspector) {
+  private static void test_atomicfieldupdater(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("atomicfieldupdater.Main");
-    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    MethodSubject main = mainClass.method(CodeInspector.MAIN);
     assertTrue(main instanceof FoundMethodSubject);
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
@@ -193,9 +193,9 @@ public class IdentifierMinifierTest extends TestBase {
     assertEquals(3, constStringInstructions.size());
   }
 
-  private static void test_forname(DexInspector inspector) {
+  private static void test_forname(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("forname.Main");
-    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    MethodSubject main = mainClass.method(CodeInspector.MAIN);
     assertTrue(main instanceof FoundMethodSubject);
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
@@ -203,9 +203,9 @@ public class IdentifierMinifierTest extends TestBase {
     assertEquals(1, renamedYetFoundIdentifierCount);
   }
 
-  private static void test_getmembers(DexInspector inspector) {
+  private static void test_getmembers(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("getmembers.Main");
-    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    MethodSubject main = mainClass.method(CodeInspector.MAIN);
     assertTrue(main instanceof FoundMethodSubject);
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
@@ -224,9 +224,9 @@ public class IdentifierMinifierTest extends TestBase {
   }
 
   // Without -identifiernamestring
-  private static void test2_rule1(DexInspector inspector) {
+  private static void test2_rule1(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
-    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    MethodSubject main = mainClass.method(CodeInspector.MAIN);
     assertTrue(main instanceof FoundMethodSubject);
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
@@ -248,9 +248,9 @@ public class IdentifierMinifierTest extends TestBase {
   }
 
   // With -identifiernamestring for annotations and name-based filters
-  private static void test2_rule2(DexInspector inspector) {
+  private static void test2_rule2(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
-    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    MethodSubject main = mainClass.method(CodeInspector.MAIN);
     assertTrue(main instanceof FoundMethodSubject);
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
@@ -272,9 +272,9 @@ public class IdentifierMinifierTest extends TestBase {
   }
 
   // With -identifiernamestring for reflective methods
-  private static void test2_rule3(DexInspector inspector) {
+  private static void test2_rule3(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
-    MethodSubject main = mainClass.method(DexInspector.MAIN);
+    MethodSubject main = mainClass.method(CodeInspector.MAIN);
     assertTrue(main instanceof FoundMethodSubject);
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
@@ -298,7 +298,7 @@ public class IdentifierMinifierTest extends TestBase {
   }
 
   private static int countRenamedClassIdentifier(
-      DexInspector inspector, FoundMethodSubject method) {
+      CodeInspector inspector, FoundMethodSubject method) {
     return getConstStringInstructions(method)
         .reduce(
             0,
@@ -319,7 +319,7 @@ public class IdentifierMinifierTest extends TestBase {
   }
 
   private static int countRenamedClassIdentifier(
-      DexInspector inspector, DexEncodedField[] fields) {
+      CodeInspector inspector, DexEncodedField[] fields) {
     return Arrays.stream(fields)
         .filter(encodedField -> encodedField.getStaticValue() instanceof DexValueString)
         .reduce(0, (cnt, encodedField) -> {

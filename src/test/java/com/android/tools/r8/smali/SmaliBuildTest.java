@@ -9,8 +9,8 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -19,7 +19,7 @@ public class SmaliBuildTest extends SmaliTestBase {
 
   private void checkJavaLangString(AndroidApp application, boolean present) {
     try {
-      DexInspector inspector = new DexInspector(application);
+      CodeInspector inspector = new CodeInspector(application);
       ClassSubject clazz = inspector.clazz("java.lang.String");
       assertEquals(present, clazz.isPresent());
     } catch (IOException | ExecutionException e) {

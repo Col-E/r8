@@ -10,12 +10,12 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import java.util.List;
 
 class CompatProguardSmaliTestBase extends SmaliTestBase {
-  DexInspector runCompatProguard(SmaliBuilder builder, List<String> proguardConfigurations)
+  CodeInspector runCompatProguard(SmaliBuilder builder, List<String> proguardConfigurations)
       throws Exception {
     Path dexOutputDir = temp.newFolder().toPath();
     R8Command.Builder commandBuilder =
@@ -23,6 +23,6 @@ class CompatProguardSmaliTestBase extends SmaliTestBase {
             .setOutput(dexOutputDir, OutputMode.DexIndexed)
             .addProguardConfiguration(proguardConfigurations, Origin.unknown());
     ToolHelper.getAppBuilder(commandBuilder).addDexProgramData(builder.compile(), Origin.unknown());
-    return new DexInspector(ToolHelper.runR8(commandBuilder.build()));
+    return new CodeInspector(ToolHelper.runR8(commandBuilder.build()));
   }
 }

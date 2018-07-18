@@ -15,15 +15,15 @@ import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 
 public class DefaultMethodsTest extends TestBase {
-  private void runTest(List<String> additionalKeepRules, Consumer<DexInspector> inspection)
+  private void runTest(List<String> additionalKeepRules, Consumer<CodeInspector> inspection)
       throws Exception {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(InterfaceWithDefaultMethods.class));
@@ -40,20 +40,20 @@ public class DefaultMethodsTest extends TestBase {
         Origin.unknown());
     builder.addProguardConfiguration(additionalKeepRules, Origin.unknown());
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    inspection.accept(new DexInspector(app));
+    inspection.accept(new CodeInspector(app));
   }
 
-  private void interfaceNotKept(DexInspector inspector) {
+  private void interfaceNotKept(CodeInspector inspector) {
     assertFalse(inspector.clazz(InterfaceWithDefaultMethods.class).isPresent());
   }
 
-  private void defaultMethodNotKept(DexInspector inspector) {
+  private void defaultMethodNotKept(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
     assertTrue(clazz.isPresent());
     assertFalse(clazz.method("int", "method", ImmutableList.of()).isPresent());
   }
 
-  private void defaultMethodKept(DexInspector inspector) {
+  private void defaultMethodKept(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
     assertTrue(clazz.isPresent());
     MethodSubject method = clazz.method("int", "method", ImmutableList.of());
@@ -61,7 +61,7 @@ public class DefaultMethodsTest extends TestBase {
     assertFalse(method.isAbstract());
   }
 
-  private void defaultMethodAbstract(DexInspector inspector) {
+  private void defaultMethodAbstract(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
     assertTrue(clazz.isPresent());
     MethodSubject method = clazz.method("int", "method", ImmutableList.of());

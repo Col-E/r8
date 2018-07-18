@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -17,8 +17,8 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -126,7 +126,7 @@ public class FieldTypeTest extends TestBase {
     assertThat(artResult.stdout, containsString(impl2.name));
     assertEquals(-1, artResult.stderr.indexOf("DoFieldPut"));
 
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject itf1Subject = inspector.clazz(itf1.name);
     assertThat(itf1Subject, isPresent());
   }

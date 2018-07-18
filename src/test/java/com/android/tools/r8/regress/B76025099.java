@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.regress;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -20,9 +20,9 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Files;
@@ -104,7 +104,7 @@ public class B76025099 extends TestBase {
 
   private void verifyFieldAccess(AndroidApp processedApp, ProcessResult jvmOutput)
       throws Exception {
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject impl = inspector.clazz(Impl.class);
     assertThat(impl, isPresent());
     MethodSubject init = impl.init(ImmutableList.of("java.lang.String"));

@@ -46,8 +46,8 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -81,7 +81,7 @@ public class ClassInlinerTest extends TestBase {
     String artOutput = runOnArt(app, TrivialTestClass.class);
     assertEquals(javaOutput, artOutput);
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(TrivialTestClass.class);
 
     assertEquals(
@@ -153,7 +153,7 @@ public class ClassInlinerTest extends TestBase {
     String artOutput = runOnArt(app, BuildersTestClass.class);
     assertEquals(javaOutput, artOutput);
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(BuildersTestClass.class);
 
     assertEquals(
@@ -238,7 +238,7 @@ public class ClassInlinerTest extends TestBase {
     String artOutput = runOnArt(app, CodeTestClass.class);
     assertEquals(javaOutput, artOutput);
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(C.class);
 
     assertEquals(
@@ -274,7 +274,7 @@ public class ClassInlinerTest extends TestBase {
     String artOutput = runOnArt(app, InvalidRootsTestClass.class);
     assertEquals(javaOutput, artOutput);
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(InvalidRootsTestClass.class);
 
     assertEquals(
@@ -315,7 +315,7 @@ public class ClassInlinerTest extends TestBase {
     String artOutput = runOnArt(app, LambdasTestClass.class);
     assertEquals(javaOutput, artOutput);
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(LambdasTestClass.class);
 
     assertEquals(

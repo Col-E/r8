@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -69,7 +69,7 @@ public class LambdaTestRunner {
 
   private static CfInvokeDynamic findFirstInMethod(AndroidApp app) throws Exception {
     String returnType = "void";
-    DexInspector inspector = new DexInspector(app, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(app, o -> o.enableCfFrontend = true);
     List<String> args = Collections.singletonList(String[].class.getTypeName());
     DexEncodedMethod method = inspector.clazz(CLASS).method(returnType, METHOD, args).getMethod();
     CfCode code = method.getCode().asCfCode();

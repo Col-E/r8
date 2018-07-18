@@ -19,8 +19,8 @@ import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -282,7 +282,7 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     appBuilder.addProgramFiles(ToolHelper.getClassFileForTestClass(CheckSwitchInTestClass.class));
     AndroidApp app = compileWithR8(appBuilder.build());
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     MethodSubject method = inspector.clazz("Test").method("int", "test", ImmutableList.of("int"));
     DexCode code = method.getMethod().getCode().asDexCode();
 

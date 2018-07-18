@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.lambda.CaptureSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -139,21 +139,21 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   }
 
   static class Verifier {
-    final DexInspector dexInspector;
+    final CodeInspector codeInspector;
     final List<DexClass> lambdas = new ArrayList<>();
     final List<DexClass> groups = new ArrayList<>();
 
     Verifier(AndroidApp app) throws IOException, ExecutionException {
-      this(new DexInspector(app));
+      this(new CodeInspector(app));
     }
 
-    Verifier(DexInspector dexInspector) {
-      this.dexInspector = dexInspector;
+    Verifier(CodeInspector codeInspector) {
+      this.codeInspector = codeInspector;
       initGroupsAndLambdas();
     }
 
     private void initGroupsAndLambdas() {
-      dexInspector.forAllClasses(clazz -> {
+      codeInspector.forAllClasses(clazz -> {
         DexClass dexClass = clazz.getDexClass();
         if (isLambdaOrGroup(dexClass)) {
           if (isLambdaGroupClass(dexClass)) {

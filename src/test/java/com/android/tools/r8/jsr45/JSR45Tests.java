@@ -14,9 +14,9 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.dexinspector.AnnotationSubject;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -132,9 +132,9 @@ public class JSR45Tests {
 
     compileWithR8(INPUT_PATH, outputPath, SHRINK_NO_KEEP_CONFIG);
 
-    DexInspector dexInspector =
-        new DexInspector(outputPath.resolve("classes.dex"), getGeneratedProguardMap());
-    ClassSubject classSubject = dexInspector.clazz("HelloKt");
+    CodeInspector codeInspector =
+        new CodeInspector(outputPath.resolve("classes.dex"), getGeneratedProguardMap());
+    ClassSubject classSubject = codeInspector.clazz("HelloKt");
     AnnotationSubject annotationSubject =
         classSubject.annotation("dalvik.annotation.SourceDebugExtension");
     Assert.assertFalse(annotationSubject.isPresent());
@@ -147,8 +147,8 @@ public class JSR45Tests {
         new ReadSourceDebugExtensionAttribute(Opcodes.ASM6, null);
     classReader.accept(sourceDebugExtensionReader, 0);
 
-    DexInspector dexInspector = new DexInspector(androidApp);
-    ClassSubject classSubject = dexInspector.clazz("HelloKt");
+    CodeInspector codeInspector = new CodeInspector(androidApp);
+    ClassSubject classSubject = codeInspector.clazz("HelloKt");
 
     AnnotationSubject annotationSubject =
         classSubject.annotation("dalvik.annotation.SourceDebugExtension");

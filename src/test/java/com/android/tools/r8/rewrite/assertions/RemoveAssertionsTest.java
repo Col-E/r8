@@ -19,9 +19,9 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.function.Consumer;
@@ -149,7 +149,7 @@ public class RemoveAssertionsTest extends TestBase {
         ImmutableList.of(testClass),
         keepMainProguardConfiguration(testClass, true, false),
         options -> options.enableInlining = false);
-    DexInspector x = new DexInspector(app);
+    CodeInspector x = new CodeInspector(app);
 
     ClassSubject clazz = x.clazz(ClassWithAssertions.class);
     assertTrue(clazz.isPresent());

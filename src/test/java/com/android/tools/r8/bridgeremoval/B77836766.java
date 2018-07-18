@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.bridgeremoval;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -16,9 +16,9 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -129,7 +129,7 @@ public class B77836766 extends TestBase {
 
     AndroidApp processedApp = runAndVerifyOnJvmAndArt(jasminBuilder, mainClassName, proguardConfig);
 
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject absSubject = inspector.clazz(absCls.name);
     assertThat(absSubject, isPresent());
     ClassSubject cls1Subject = inspector.clazz(cls1.name);
@@ -236,7 +236,7 @@ public class B77836766 extends TestBase {
 
     AndroidApp processedApp = runAndVerifyOnJvmAndArt(jasminBuilder, mainClassName, proguardConfig);
 
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject baseSubject = inspector.clazz(baseCls.name);
     assertThat(baseSubject, isPresent());
     ClassSubject cls1Subject = inspector.clazz(cls1.name);
@@ -332,7 +332,7 @@ public class B77836766 extends TestBase {
 
     AndroidApp processedApp = runAndVerifyOnJvmAndArt(jasminBuilder, mainClassName, proguardConfig);
 
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject baseSubject = inspector.clazz(baseCls.name);
     assertThat(baseSubject, isPresent());
     ClassSubject subSubject = inspector.clazz(subCls.name);
@@ -408,7 +408,7 @@ public class B77836766 extends TestBase {
     String proguardConfig = keepMainProguardConfiguration(mainClass.name, false, false);
     AndroidApp processedApp = runAndVerifyOnJvmAndArt(jasminBuilder, mainClassName, proguardConfig);
 
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject baseSubject = inspector.clazz(cls.name);
     assertThat(baseSubject, isPresent());
 

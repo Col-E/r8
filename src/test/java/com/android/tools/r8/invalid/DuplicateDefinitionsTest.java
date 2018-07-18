@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.invalid;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -13,8 +13,8 @@ import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -54,7 +54,7 @@ public class DuplicateDefinitionsTest extends JasminTestBase {
             "Ignoring an implementation of the method `void C.method()` because "
                 + "it has multiple definitions"));
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz("C");
     assertThat(clazz, isPresent());
 
@@ -89,7 +89,7 @@ public class DuplicateDefinitionsTest extends JasminTestBase {
     assertThat(output, containsString("Field `C C.fld` has multiple definitions"));
     assertThat(output, containsString("Field `C C.staticFld` has multiple definitions"));
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz("C");
     assertThat(clazz, isPresent());
 

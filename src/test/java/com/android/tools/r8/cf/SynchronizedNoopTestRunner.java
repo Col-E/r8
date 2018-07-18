@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.ArrayList;
 import java.util.Collections;
 import org.junit.Test;
@@ -37,7 +37,7 @@ public class SynchronizedNoopTestRunner {
             .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
             .setProgramConsumer(a.wrapClassFileConsumer(null))
             .build());
-    DexInspector inspector = new DexInspector(a.build());
+    CodeInspector inspector = new CodeInspector(a.build());
     DexEncodedMethod method =
         inspector.clazz(CLASS).method("void", "noop", Collections.emptyList()).getMethod();
     ArrayList<AbstractInsnNode> insns = new ArrayList<>();

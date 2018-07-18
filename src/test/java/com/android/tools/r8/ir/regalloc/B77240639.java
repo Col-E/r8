@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
@@ -11,8 +11,8 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.List;
 import java.util.Map;
 import org.junit.Test;
@@ -21,7 +21,7 @@ public class B77240639 extends TestBase {
   @Test
   public void test1() throws Exception {
     AndroidApp app = compileWithD8(readClasses(TestClass.class));
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(TestClass.class);
     assertThat(clazz, isPresent());
   }
@@ -29,7 +29,7 @@ public class B77240639 extends TestBase {
   @Test
   public void test2() throws Exception {
     AndroidApp app = compileWithD8(readClasses(OtherTestClass.class));
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(OtherTestClass.class);
     assertThat(clazz, isPresent());
     ToolHelper.ProcessResult d8Result = runOnArtRaw(app, OtherTestClass.class.getCanonicalName());

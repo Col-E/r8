@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -32,7 +32,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharSource;
@@ -129,7 +129,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   @Test
   public void keepOnlyA() throws Exception {
     AndroidApp app = runTest("-keep class " + A.class.getTypeName() +" {}", null);
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     assertThat(inspector.clazz(A.class), isPresent());
     assertThat(inspector.clazz(B.class), not(isPresent()));
   }
@@ -137,7 +137,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   @Test
   public void keepOnlyB() throws Exception {
     AndroidApp app = runTest("-keep class **B {}", null);
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     assertThat(inspector.clazz(A.class), not(isPresent()));
     assertThat(inspector.clazz(B.class), isPresent());
   }
@@ -145,7 +145,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   @Test
   public void keepBoth() throws Exception {
     AndroidApp app = runTest("-keep class ** {}", null);
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     assertThat(inspector.clazz(A.class), isPresent());
     assertThat(inspector.clazz(B.class), isPresent());
   }
@@ -153,7 +153,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   @Test
   public void multipleFiles() throws Exception {
     AndroidApp app = runTest(ImmutableList.of("-keep class **A {}", "-keep class **B {}"), null);
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     assertThat(inspector.clazz(A.class), isPresent());
     assertThat(inspector.clazz(B.class), isPresent());
   }

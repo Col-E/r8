@@ -11,9 +11,9 @@ import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -93,8 +93,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_noUseOfProperties");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
       for (Entry<String, KotlinProperty> property : MUTABLE_PROPERTY_CLASS.properties.entrySet()) {
         MethodSignature getter = MUTABLE_PROPERTY_CLASS.getGetterForProperty(property.getKey());
@@ -116,8 +116,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_usePrivateProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
       String propertyName = "privateProp";
       FieldSubject fieldSubject = checkFieldIsKept(classSubject, JAVA_LANG_STRING, propertyName);
@@ -138,8 +138,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_useProtectedProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
       String propertyName = "protectedProp";
       FieldSubject fieldSubject = checkFieldIsKept(classSubject, JAVA_LANG_STRING, propertyName);
@@ -161,8 +161,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_useInternalProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
       String propertyName = "internalProp";
       FieldSubject fieldSubject = checkFieldIsKept(classSubject, JAVA_LANG_STRING, propertyName);
@@ -184,8 +184,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_usePublicProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
       String propertyName = "publicProp";
       FieldSubject fieldSubject = checkFieldIsKept(classSubject, JAVA_LANG_STRING, propertyName);
@@ -207,8 +207,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_usePrimitiveProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
       String propertyName = "primitiveProp";
       FieldSubject fieldSubject = checkFieldIsKept(classSubject, "int", propertyName);
@@ -232,8 +232,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties/LateInitPropertyKt",
         "lateInitProperty_noUseOfProperties");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
       for (Entry<String, KotlinProperty> property : LATE_INIT_PROPERTY_CLASS.properties.entrySet()) {
         MethodSignature getter = LATE_INIT_PROPERTY_CLASS.getGetterForProperty(property.getKey());
@@ -256,8 +256,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties/LateInitPropertyKt", "lateInitProperty_usePrivateLateInitProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
       String propertyName = "privateLateInitProp";
       FieldSubject fieldSubject = classSubject.field(JAVA_LANG_STRING, propertyName);
@@ -279,8 +279,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties/LateInitPropertyKt",
         "lateInitProperty_useProtectedLateInitProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
       String propertyName = "protectedLateInitProp";
       FieldSubject fieldSubject = classSubject.field(JAVA_LANG_STRING, propertyName);
@@ -300,8 +300,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties/LateInitPropertyKt", "lateInitProperty_useInternalLateInitProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
       String propertyName = "internalLateInitProp";
       FieldSubject fieldSubject = classSubject.field(JAVA_LANG_STRING, propertyName);
@@ -319,8 +319,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties/LateInitPropertyKt", "lateInitProperty_usePublicLateInitProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
       String propertyName = "publicLateInitProp";
       FieldSubject fieldSubject = classSubject.field(JAVA_LANG_STRING, propertyName);
@@ -338,8 +338,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties/UserDefinedPropertyKt", "userDefinedProperty_noUseOfProperties");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           USER_DEFINED_PROPERTY_CLASS.getClassName());
       for (String propertyName : USER_DEFINED_PROPERTY_CLASS.properties.keySet()) {
         checkMethodIsRemoved(classSubject,
@@ -355,8 +355,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties/UserDefinedPropertyKt", "userDefinedProperty_useProperties");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject classSubject = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject classSubject = checkClassIsKept(codeInspector,
           USER_DEFINED_PROPERTY_CLASS.getClassName());
       String propertyName = "durationInSeconds";
       // The 'wrapper' property is not assigned to a backing field, it only relies on the wrapped
@@ -381,10 +381,10 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePrimitiveProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject outerClass = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject outerClass = checkClassIsKept(codeInspector,
           "properties.CompanionProperties");
-      ClassSubject companionClass = checkClassIsKept(dexInspector,
+      ClassSubject companionClass = checkClassIsKept(codeInspector,
           COMPANION_PROPERTY_CLASS.getClassName());
       String propertyName = "primitiveProp";
       FieldSubject fieldSubject = checkFieldIsKept(outerClass, "int", propertyName);
@@ -412,10 +412,10 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePrivateProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject outerClass = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject outerClass = checkClassIsKept(codeInspector,
           "properties.CompanionProperties");
-      ClassSubject companionClass = checkClassIsKept(dexInspector,
+      ClassSubject companionClass = checkClassIsKept(codeInspector,
           COMPANION_PROPERTY_CLASS.getClassName());
       String propertyName = "privateProp";
       FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
@@ -446,10 +446,10 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_useInternalProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject outerClass = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject outerClass = checkClassIsKept(codeInspector,
           "properties.CompanionProperties");
-      ClassSubject companionClass = checkClassIsKept(dexInspector,
+      ClassSubject companionClass = checkClassIsKept(codeInspector,
           COMPANION_PROPERTY_CLASS.getClassName());
       String propertyName = "internalProp";
       FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
@@ -477,10 +477,10 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePublicProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject outerClass = checkClassIsKept(dexInspector,
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject outerClass = checkClassIsKept(codeInspector,
           "properties.CompanionProperties");
-      ClassSubject companionClass = checkClassIsKept(dexInspector,
+      ClassSubject companionClass = checkClassIsKept(codeInspector,
           COMPANION_PROPERTY_CLASS.getClassName());
       String propertyName = "publicProp";
       FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
@@ -509,9 +509,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject outerClass = checkClassIsKept(dexInspector, testedClass.getOuterClassName());
-      ClassSubject companionClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
+      ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "privateLateInitProp";
       FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -540,9 +540,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_useInternalLateInitProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject outerClass = checkClassIsKept(dexInspector, testedClass.getOuterClassName());
-      ClassSubject companionClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
+      ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "internalLateInitProp";
       FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -564,9 +564,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePublicLateInitProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject outerClass = checkClassIsKept(dexInspector, testedClass.getOuterClassName());
-      ClassSubject companionClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
+      ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "publicLateInitProp";
       FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -588,8 +588,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_usePrimitiveProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "primitiveProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, "int", propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -615,8 +615,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_usePrivateProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "privateProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -642,8 +642,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useInternalProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "internalProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -669,8 +669,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_usePublicProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "publicProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -696,8 +696,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useLateInitPrivateProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "privateLateInitProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -723,8 +723,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useLateInitInternalProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "internalLateInitProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -746,8 +746,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useLateInitPublicProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "publicLateInitProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -769,8 +769,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePrimitiveProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "primitiveProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, "int", propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -796,8 +796,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePrivateProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "privateProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -822,8 +822,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useInternalProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "internalProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -848,8 +848,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePublicProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "publicProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -875,8 +875,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useLateInitPrivateProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject fileClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject fileClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "privateLateInitProp";
       FieldSubject fieldSubject = checkFieldIsKept(fileClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -901,8 +901,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useLateInitInternalProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "internalLateInitProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -925,8 +925,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useLateInitPublicProp");
     runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject objectClass = checkClassIsKept(dexInspector, testedClass.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "publicLateInitProp";
       FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
       assertTrue(fieldSubject.getField().accessFlags.isStatic());

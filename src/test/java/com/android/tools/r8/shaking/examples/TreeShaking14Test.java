@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,7 +44,7 @@ public class TreeShaking14Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/shaking14/keep-rules.txt"));
   }
 
-  private static void shaking14EnsureRightStaticMethodsLive(DexInspector inspector) {
+  private static void shaking14EnsureRightStaticMethodsLive(CodeInspector inspector) {
     ClassSubject superclass = inspector.clazz("shaking14.Superclass");
     Assert.assertFalse(superclass.method("int", "aMethod", ImmutableList.of("int")).isPresent());
     Assert.assertFalse(

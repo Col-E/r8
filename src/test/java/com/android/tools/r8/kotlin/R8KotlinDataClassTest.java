@@ -8,9 +8,9 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Collections;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -44,8 +44,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
         new MethodSignature("testDataClassGetters", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject dataClass = checkClassIsKept(codeInspector, TEST_DATA_CLASS.getClassName());
 
       // Getters should be removed after inlining, which is possible only if access is relaxed.
       final boolean areGetterPresent = !allowAccessModification;
@@ -60,7 +60,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       checkMethodIsRemoved(dataClass, COPY_METHOD);
       checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
 
-      ClassSubject classSubject = checkClassIsKept(dexInspector, mainClassName);
+      ClassSubject classSubject = checkClassIsKept(codeInspector, mainClassName);
       MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       if (allowAccessModification) {
@@ -79,8 +79,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
         new MethodSignature("testAllDataClassComponentFunctions", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject dataClass = checkClassIsKept(codeInspector, TEST_DATA_CLASS.getClassName());
 
       // ComponentN functions should be removed after inlining, which is possible only if access
       // is relaxed.
@@ -96,7 +96,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       checkMethodIsRemoved(dataClass, COPY_METHOD);
       checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
 
-      ClassSubject classSubject = checkClassIsKept(dexInspector, mainClassName);
+      ClassSubject classSubject = checkClassIsKept(codeInspector, mainClassName);
       MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       if (allowAccessModification) {
@@ -114,8 +114,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
         new MethodSignature("testSomeDataClassComponentFunctions", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject dataClass = checkClassIsKept(codeInspector, TEST_DATA_CLASS.getClassName());
 
       boolean component2IsPresent = !allowAccessModification;
       checkMethodisKeptOrRemoved(dataClass, COMPONENT2_METHOD, component2IsPresent);
@@ -131,7 +131,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       checkMethodIsRemoved(dataClass, COPY_METHOD);
       checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
 
-      ClassSubject classSubject = checkClassIsKept(dexInspector, mainClassName);
+      ClassSubject classSubject = checkClassIsKept(codeInspector, mainClassName);
       MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
       DexCode dexCode = getDexCode(testMethod);
       if (allowAccessModification) {
@@ -149,8 +149,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
         new MethodSignature("testDataClassCopy", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject dataClass = checkClassIsKept(codeInspector, TEST_DATA_CLASS.getClassName());
 
       checkMethodIsRemoved(dataClass, COPY_METHOD);
       checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
@@ -164,8 +164,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
         new MethodSignature("testDataClassCopyWithDefault", "void", Collections.emptyList());
     final String extraRules = keepClassMethod(mainClassName, testMethodSignature);
     runTest("dataclass", mainClassName, extraRules, disableClassInliner, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
-      ClassSubject dataClass = checkClassIsKept(dexInspector, TEST_DATA_CLASS.getClassName());
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject dataClass = checkClassIsKept(codeInspector, TEST_DATA_CLASS.getClassName());
 
       checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
     });

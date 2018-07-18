@@ -7,7 +7,7 @@ import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -33,9 +33,9 @@ public class AnnotationCompanionClassTest extends JasminTestBase {
     JasminBuilder builder = buildClass();
     AndroidApp androidApp = compileWithD8(builder);
 
-    DexInspector dexInspector = new DexInspector(androidApp);
+    CodeInspector codeInspector = new CodeInspector(androidApp);
     assertFalse(
-        dexInspector
+        codeInspector
             .clazz("LMyAnnotation" + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
             .isAnnotation());
   }

@@ -15,9 +15,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -431,7 +431,7 @@ public class B77496850 extends TestBase {
 
   private void checkPathParserMethods(AndroidApp app, Class testClass, int a, int b)
       throws Exception {
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     DexItemFactory factory = inspector.getFactory();
     ClassSubject clazz = inspector.clazz(testClass);
     MethodSubject drawArc = clazz.method(
@@ -484,7 +484,7 @@ public class B77496850 extends TestBase {
       assert compiler == Tool.R8;
       app = compileWithR8(app, "-keep class * { *; }", o -> o.minApiLevel = apiLevel.getLevel());
     }
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     DexItemFactory factory = inspector.getFactory();
     ClassSubject clazz = inspector.clazz(testClass);
     MethodSubject arcToBezier = clazz.method(

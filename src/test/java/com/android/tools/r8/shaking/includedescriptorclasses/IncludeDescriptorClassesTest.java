@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -18,10 +18,10 @@ import org.junit.Test;
 
 public class IncludeDescriptorClassesTest extends TestBase {
   private class Result {
-    final DexInspector inspector;
-    final DexInspector proguardedInspector;
+    final CodeInspector inspector;
+    final CodeInspector proguardedInspector;
 
-    Result(DexInspector inspector, DexInspector proguardedInspector) {
+    Result(CodeInspector inspector, CodeInspector proguardedInspector) {
       this.inspector = inspector;
       this.proguardedInspector = proguardedInspector;
     }
@@ -62,15 +62,15 @@ public class IncludeDescriptorClassesTest extends TestBase {
     List<Class> classes = new ArrayList<>(applicationClasses);
     classes.add(mainClass);
 
-    DexInspector inspector = new DexInspector(compileWithR8(classes, proguardConfig));
+    CodeInspector inspector = new CodeInspector(compileWithR8(classes, proguardConfig));
 
-    DexInspector proguardedInspector = null;
+    CodeInspector proguardedInspector = null;
     // Actually running Proguard should only be during development.
     if (isRunProguard()) {
       Path proguardedJar = temp.newFolder().toPath().resolve("proguarded.jar");
       Path proguardedMap = temp.newFolder().toPath().resolve("proguarded.map");
       ToolHelper.runProguard(jarTestClasses(classes), proguardedJar, proguardConfig, proguardedMap);
-      proguardedInspector = new DexInspector(readJar(proguardedJar), proguardedMap);
+      proguardedInspector = new CodeInspector(readJar(proguardedJar), proguardedMap);
     }
 
     return new Result(inspector, proguardedInspector);

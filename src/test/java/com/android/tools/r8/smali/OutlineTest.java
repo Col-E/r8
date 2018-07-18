@@ -34,9 +34,9 @@ import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,7 +59,7 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   DexEncodedMethod getInvokedMethod(DexApplication application, InvokeStatic invoke) {
-    DexInspector inspector = new DexInspector(application);
+    CodeInspector inspector = new CodeInspector(application);
     ClassSubject clazz = inspector.clazz(invoke.getMethod().holder.toSourceString());
     assertTrue(clazz.isPresent());
     DexMethod invokedMethod = invoke.getMethod();
@@ -843,7 +843,7 @@ public class OutlineTest extends SmaliTestBase {
     assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Check that three outlining methods was created.
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     ClassSubject clazz = inspector.clazz(OutlineOptions.CLASS_NAME);
     assertTrue(clazz.isPresent());
     assertEquals(3, clazz.getDexClass().directMethods().length);

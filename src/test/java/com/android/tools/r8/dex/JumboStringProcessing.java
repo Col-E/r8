@@ -26,7 +26,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import java.nio.file.Path;
@@ -127,7 +127,7 @@ public class JumboStringProcessing extends TestBase {
     AndroidApp application = AndroidApp.builder()
         .addDexProgramData(Files.toByteArray(originalDexFile.toFile()), Origin.unknown())
         .build();
-    DexInspector inspector = new DexInspector(application);
+    CodeInspector inspector = new CodeInspector(application);
     DexEncodedMethod method = getMethod(
         inspector,
         "android.databinding.DataBinderMapperImpl",

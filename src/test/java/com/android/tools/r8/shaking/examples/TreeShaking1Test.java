@@ -6,8 +6,8 @@ package com.android.tools.r8.shaking.examples;
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -165,7 +165,7 @@ public class TreeShaking1Test extends TreeShakingTest {
             "src/test/proguard/valid/empty.flags"));
   }
 
-  private static void shaking1IsCorrectlyRepackaged(DexInspector inspector) {
+  private static void shaking1IsCorrectlyRepackaged(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz -> {
           String descriptor = clazz.getFinalDescriptor();
@@ -176,7 +176,7 @@ public class TreeShaking1Test extends TreeShakingTest {
         });
   }
 
-  private static void shaking1HasNoClassUnused(DexInspector inspector) {
+  private static void shaking1HasNoClassUnused(CodeInspector inspector) {
     Assert.assertFalse(inspector.clazz("shaking1.Unused").isPresent());
     ClassSubject used = inspector.clazz("shaking1.Used");
     Assert.assertTrue(used.isPresent());

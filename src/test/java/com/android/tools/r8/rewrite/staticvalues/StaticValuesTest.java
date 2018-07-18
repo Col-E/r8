@@ -26,8 +26,8 @@ import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 
 public class StaticValuesTest extends SmaliTestBase {
@@ -94,7 +94,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication);
 
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
     assertTrue(
         inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
@@ -178,7 +178,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication);
 
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     MethodSubject clinit = inspector.clazz("Test").clinit();
     // Nothing changed in the class initializer.
     assertEquals(5, clinit.getMethod().getCode().asDexCode().instructions.length);
@@ -219,7 +219,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication);
 
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
     assertTrue(
         inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
@@ -261,7 +261,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication);
 
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
     assertTrue(
         inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
@@ -311,7 +311,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication);
 
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
     assertTrue(
         inspector.clazz("Test").clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
@@ -384,7 +384,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication);
 
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     assertTrue(inspector.clazz("Test").clinit().isPresent());
 
     DexValue value;
@@ -471,7 +471,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication);
 
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     assertTrue(inspector.clazz(className).isPresent());
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
     assertTrue(
@@ -520,7 +520,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication);
 
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     assertTrue(inspector.clazz(className).isPresent());
     assertTrue(inspector.clazz(className).clinit().isPresent());
 
@@ -553,7 +553,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication);
 
-    DexInspector inspector = new DexInspector(processedApplication);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     MethodSubject clinit = inspector.clazz("Test").clinit();
     // Nothing changed in the class initializer.
     assertEquals(3, clinit.getMethod().getCode().asDexCode().instructions.length);

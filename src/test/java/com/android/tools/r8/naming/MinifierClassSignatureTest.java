@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.dexinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -29,8 +29,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
@@ -303,12 +303,12 @@ public class MinifierClassSignatureTest extends TestBase {
   public void runTest(
       ImmutableMap<String, String> signatures,
       Consumer<DiagnosticsChecker> diagnostics,
-      Consumer<DexInspector> inspect)
+      Consumer<CodeInspector> inspect)
       throws Exception {
     DiagnosticsChecker checker = new DiagnosticsChecker();
     assert (backend == Backend.CF || backend == Backend.DEX);
-    DexInspector inspector =
-        new DexInspector(
+    CodeInspector inspector =
+        new CodeInspector(
             ToolHelper.runR8(
                 R8Command.builder(checker)
                     .addClassProgramData(dumpSimple(signatures.get("Simple")), Origin.unknown())
@@ -376,7 +376,7 @@ public class MinifierClassSignatureTest extends TestBase {
 
   private void testSingleClass(String name, String signature,
       Consumer<DiagnosticsChecker> diagnostics,
-      Consumer<DexInspector> inspector)
+      Consumer<CodeInspector> inspector)
       throws Exception {
     ImmutableMap<String, String> signatures = ImmutableMap.of(name, signature);
     runTest(signatures, diagnostics, inspector);
@@ -390,7 +390,7 @@ public class MinifierClassSignatureTest extends TestBase {
     assertEquals(0, checker.warnings.size());
   }
 
-  private void noInspection(DexInspector inspector) {
+  private void noInspection(CodeInspector inspector) {
   }
 
   private void noSignatureAttribute(ClassSubject clazz) {

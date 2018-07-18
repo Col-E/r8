@@ -8,7 +8,7 @@
 
 package com.android.tools.r8.shaking.testrules;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -17,25 +17,25 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 
 public class ForceInlineTest extends TestBase {
 
-  private DexInspector runTest(List<String> proguardConfiguration) throws Exception {
+  private CodeInspector runTest(List<String> proguardConfiguration) throws Exception {
     R8Command.Builder builder =
         ToolHelper.prepareR8CommandBuilder(readClasses(Main.class, A.class, B.class, C.class));
     ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(proguardConfiguration, Origin.unknown());
-    return new DexInspector(ToolHelper.runR8(builder.build()));
+    return new CodeInspector(ToolHelper.runR8(builder.build()));
   }
 
   @Test
   public void testDefaultInlining() throws Exception {
-    DexInspector inspector = runTest(ImmutableList.of(
+    CodeInspector inspector = runTest(ImmutableList.of(
         "-keep class **.Main { *; }",
         "-dontobfuscate"
     ));
@@ -61,7 +61,7 @@ public class ForceInlineTest extends TestBase {
 
   @Test
   public void testNeverInline() throws Exception {
-    DexInspector inspector = runTest(ImmutableList.of(
+    CodeInspector inspector = runTest(ImmutableList.of(
         "-neverinline class **.A { method(); }",
         "-neverinline class **.B { method(); }",
         "-keep class **.Main { *; }",
@@ -86,7 +86,7 @@ public class ForceInlineTest extends TestBase {
 
   @Test
   public void testForceInline() throws Exception {
-    DexInspector inspector = runTest(ImmutableList.of(
+    CodeInspector inspector = runTest(ImmutableList.of(
         "-forceinline class **.A { int m(int, int); }",
         "-forceinline class **.B { int m(int, int); }",
         "-keep class **.Main { *; }",
@@ -108,7 +108,7 @@ public class ForceInlineTest extends TestBase {
   @Test
   public void testForceInlineFails() throws Exception {
     try {
-      DexInspector inspector = runTest(ImmutableList.of(
+      CodeInspector inspector = runTest(ImmutableList.of(
           "-forceinline class **.A { int x(); }",
           "-keep class **.Main { *; }",
           "-dontobfuscate"

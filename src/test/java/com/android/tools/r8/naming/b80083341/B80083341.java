@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming.b80083341;
 
 import static com.android.tools.r8.utils.DescriptorUtils.getClassNameFromDescriptor;
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -12,8 +12,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -40,7 +40,7 @@ public class B80083341 extends TestBase {
         PackagePrivateClass.class, PackagePrivateClass.Itf.class, PackagePrivateClass.Impl.class
     ));
     AndroidApp processedApp = compileWithR8(app, String.join(System.lineSeparator(), config));
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
 

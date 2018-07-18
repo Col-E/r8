@@ -4,7 +4,7 @@
 package com.android.tools.r8.classmerging;
 
 import static com.android.tools.r8.smali.SmaliBuilder.buildCode;
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -30,10 +30,10 @@ import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FoundClassSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -83,11 +83,11 @@ public class ClassMergingTest extends TestBase {
             .setDisableMinification(true)
             .build(),
         optionsConsumer);
-    inspector = new DexInspector(
+    inspector = new CodeInspector(
         Paths.get(temp.getRoot().getCanonicalPath()).resolve("classes.dex"));
   }
 
-  private DexInspector inspector;
+  private CodeInspector inspector;
 
   private final List<String> CAN_BE_MERGED = ImmutableList.of(
       "classmerging.GenericInterface",
@@ -152,7 +152,7 @@ public class ClassMergingTest extends TestBase {
         ImmutableSet.of(
             "classmerging.ConflictInGeneratedNameTest",
             "classmerging.ConflictInGeneratedNameTest$B");
-    DexInspector inspector =
+    CodeInspector inspector =
         runTestOnInput(
             main,
             readProgramFiles(programFiles),
@@ -603,7 +603,7 @@ public class ClassMergingTest extends TestBase {
             "classmerging.ExceptionTest",
             "classmerging.ExceptionTest$ExceptionB",
             "classmerging.ExceptionTest$Exception2");
-    DexInspector inspector = runTest(main, programFiles, preservedClassNames::contains);
+    CodeInspector inspector = runTest(main, programFiles, preservedClassNames::contains);
 
     ClassSubject mainClass = inspector.clazz(main);
     assertThat(mainClass, isPresent());
@@ -645,7 +645,7 @@ public class ClassMergingTest extends TestBase {
     // Sanity check that there is actually an invoke-interface instruction in the input. We need
     // to make sure that this invoke-interface instruction is translated to invoke-virtual after
     // the classes A and B are merged.
-    DexInspector inputInspector = new DexInspector(app);
+    CodeInspector inputInspector = new CodeInspector(app);
     ClassSubject clazz = inputInspector.clazz("classmerging.MergeDefaultMethodIntoClassTest");
     assertThat(clazz, isPresent());
     MethodSubject method = clazz.method("void", "main", ImmutableList.of("java.lang.String[]"));
@@ -773,12 +773,12 @@ public class ClassMergingTest extends TestBase {
     runTest(main, programFiles, preservedClassNames::contains);
   }
 
-  private DexInspector runTest(
+  private CodeInspector runTest(
       String main, Path[] programFiles, Predicate<String> preservedClassNames) throws Exception {
     return runTest(main, programFiles, preservedClassNames, getProguardConfig(EXAMPLE_KEEP));
   }
 
-  private DexInspector runTest(
+  private CodeInspector runTest(
       String main,
       Path[] programFiles,
       Predicate<String> preservedClassNames,
@@ -788,13 +788,13 @@ public class ClassMergingTest extends TestBase {
         main, readProgramFiles(programFiles), preservedClassNames, proguardConfig);
   }
 
-  private DexInspector runTestOnInput(
+  private CodeInspector runTestOnInput(
       String main, AndroidApp input, Predicate<String> preservedClassNames, String proguardConfig)
       throws Exception {
     return runTestOnInput(main, input, preservedClassNames, proguardConfig, this::configure);
   }
 
-  private DexInspector runTestOnInput(
+  private CodeInspector runTestOnInput(
       String main,
       AndroidApp input,
       Predicate<String> preservedClassNames,
@@ -802,8 +802,8 @@ public class ClassMergingTest extends TestBase {
       Consumer<InternalOptions> optionsConsumer)
       throws Exception {
     AndroidApp output = compileWithR8(input, proguardConfig, optionsConsumer);
-    DexInspector inputInspector = new DexInspector(input);
-    DexInspector outputInspector = new DexInspector(output);
+    CodeInspector inputInspector = new CodeInspector(input);
+    CodeInspector outputInspector = new CodeInspector(output);
     // Check that all classes in [preservedClassNames] are in fact preserved.
     for (FoundClassSubject classSubject : inputInspector.allClasses()) {
       String className = classSubject.getOriginalName();

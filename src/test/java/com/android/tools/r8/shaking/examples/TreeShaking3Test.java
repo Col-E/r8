@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -89,12 +89,12 @@ public class TreeShaking3Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/shaking3/keep-no-abstract-classes.txt"));
   }
 
-  private static void shaking3HasNoPrivateClass(DexInspector inspector) {
+  private static void shaking3HasNoPrivateClass(CodeInspector inspector) {
     Assert.assertTrue(inspector.clazz("shaking3.B").isPresent());
     Assert.assertFalse(inspector.clazz("shaking3.AnAbstractClass").isPresent());
   }
 
-  private static void shaking3HasNoClassB(DexInspector inspector) {
+  private static void shaking3HasNoClassB(CodeInspector inspector) {
     Assert.assertFalse(inspector.clazz("shaking3.B").isPresent());
     ClassSubject classA = inspector.clazz("shaking3.A");
     Assert.assertTrue(classA.isPresent());

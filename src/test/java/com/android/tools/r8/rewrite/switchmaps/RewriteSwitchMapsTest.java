@@ -10,7 +10,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
 import java.util.List;
@@ -45,7 +45,7 @@ public class RewriteSwitchMapsTest extends TestBase {
         .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
         .build();
     AndroidApp result = ToolHelper.runR8(command);
-    DexInspector inspector = new DexInspector(result);
+    CodeInspector inspector = new CodeInspector(result);
     Assert.assertFalse(inspector.clazz(SWITCHMAP_CLASS_NAME).isPresent());
   }
 }

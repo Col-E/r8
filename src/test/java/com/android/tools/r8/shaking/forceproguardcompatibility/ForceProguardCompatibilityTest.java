@@ -38,10 +38,10 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FieldSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
@@ -56,7 +56,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
   private void test(Class mainClass, Class mentionedClass, boolean forceProguardCompatibility)
       throws Exception {
     String proguardConfig = keepMainProguardConfiguration(mainClass, true, false);
-    DexInspector inspector = new DexInspector(
+    CodeInspector inspector = new CodeInspector(
         compileWithR8(
             ImmutableList.of(mainClass, mentionedClass),
             proguardConfig,
@@ -103,7 +103,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     }
 
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    CodeInspector inspector = new CodeInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(mainClass.getCanonicalName()).isPresent());
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(mentionedClassWithAnnotations));
     assertTrue(clazz.isPresent());
@@ -138,7 +138,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
 
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    CodeInspector inspector = new CodeInspector(ToolHelper.runR8(builder.build()));
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(testClass));
     assertTrue(clazz.isPresent());
     assertEquals(forceProguardCompatibility && hasDefaultConstructor,
@@ -195,7 +195,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     builder.addProguardConfiguration(proguardConfig, Origin.unknown());
 
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    CodeInspector inspector = new CodeInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(instantiatedClass));
     assertEquals(containsCheckCast, clazz.isPresent());
@@ -210,7 +210,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
       ToolHelper.runProguard(jarTestClasses(ImmutableList.of(mainClass, instantiatedClass)),
           proguardedJar, proguardConfigFile, null);
-      DexInspector proguardInspector = new DexInspector(readJar(proguardedJar));
+      CodeInspector proguardInspector = new CodeInspector(readJar(proguardedJar));
       assertTrue(proguardInspector.clazz(mainClass).isPresent());
       assertEquals(
           containsCheckCast, proguardInspector.clazz(instantiatedClass).isPresent());
@@ -257,7 +257,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     }
 
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    CodeInspector inspector = new CodeInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
     forNameClasses.forEach(clazz -> {
       ClassSubject subject = inspector.clazz(getJavacGeneratedClassName(clazz));
@@ -316,7 +316,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       ToolHelper.runProguard(jarTestClasses(
           ImmutableList.of(mainClass, forNameClass1, forNameClass2)),
           proguardedJar, proguardConfigFile, proguardMapFile);
-      DexInspector proguardedInspector = new DexInspector(readJar(proguardedJar), proguardMapFile);
+      CodeInspector proguardedInspector = new CodeInspector(readJar(proguardedJar), proguardMapFile);
       assertEquals(3, proguardedInspector.allClasses().size());
       assertTrue(proguardedInspector.clazz(mainClass).isPresent());
       for (Class clazz : ImmutableList.of(forNameClass1, forNameClass2)) {
@@ -360,7 +360,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     }
 
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    CodeInspector inspector = new CodeInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
     ClassSubject classSubject = inspector.clazz(getJavacGeneratedClassName(withMemberClass));
     // Due to the direct usage of .class
@@ -424,7 +424,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       ToolHelper.runProguard(jarTestClasses(
           ImmutableList.of(mainClass, withMemberClass)),
           proguardedJar, proguardConfigFile, proguardMapFile);
-      DexInspector proguardedInspector = new DexInspector(readJar(proguardedJar), proguardMapFile);
+      CodeInspector proguardedInspector = new CodeInspector(readJar(proguardedJar), proguardMapFile);
       assertEquals(2, proguardedInspector.allClasses().size());
       assertTrue(proguardedInspector.clazz(mainClass).isPresent());
       classSubject = proguardedInspector.clazz(withMemberClass);
@@ -473,7 +473,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     }
 
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    DexInspector inspector = new DexInspector(ToolHelper.runR8(builder.build()));
+    CodeInspector inspector = new CodeInspector(ToolHelper.runR8(builder.build()));
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
     ClassSubject classSubject = inspector.clazz(getJavacGeneratedClassName(withVolatileFields));
     // Due to the direct usage of .class
@@ -541,7 +541,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       ToolHelper.runProguard(jarTestClasses(
           ImmutableList.of(mainClass, withVolatileFields)),
           proguardedJar, proguardConfigFile, proguardMapFile);
-      DexInspector proguardedInspector = new DexInspector(readJar(proguardedJar), proguardMapFile);
+      CodeInspector proguardedInspector = new CodeInspector(readJar(proguardedJar), proguardMapFile);
       assertEquals(2, proguardedInspector.allClasses().size());
       assertTrue(proguardedInspector.clazz(mainClass).isPresent());
       classSubject = proguardedInspector.clazz(withVolatileFields);
@@ -604,7 +604,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       assertTrue(!forceProguardCompatibility && (!innerClasses || !enclosingMethod));
       return;
     }
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
     assertEquals(innerClasses || enclosingMethod ? "1" : "0", runOnArt(app, mainClass));
 
@@ -639,7 +639,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
   private void runKeepDefaultMethodsTest(
       List<String> additionalKeepRules,
-      Consumer<DexInspector> inspection,
+      Consumer<CodeInspector> inspection,
       Consumer<ProguardConfiguration> compatInspection) throws Exception {
     Class mainClass = TestClass.class;
     CompatProguardCommandBuilder builder = new CompatProguardCommandBuilder();
@@ -657,7 +657,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     Path proguardCompatibilityRules = temp.newFile().toPath();
     builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    inspection.accept(new DexInspector(app));
+    inspection.accept(new CodeInspector(app));
     // Check the Proguard compatibility configuration generated.
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(),
@@ -671,7 +671,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     assertEquals(0, configuration.getRules().size());
   }
 
-  private void defaultMethodKept(DexInspector inspector) {
+  private void defaultMethodKept(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
     assertTrue(clazz.isPresent());
     MethodSubject method = clazz.method("int", "method", ImmutableList.of());
@@ -695,7 +695,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     assertEquals(0, memberRule.getArguments().size());
   }
 
-  private void defaultMethod2Kept(DexInspector inspector) {
+  private void defaultMethod2Kept(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
     assertTrue(clazz.isPresent());
     MethodSubject method =

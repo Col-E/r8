@@ -23,7 +23,7 @@ import com.android.tools.r8.graph.invokesuper2.Main;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -77,7 +77,7 @@ public class TargetLookupTest extends SmaliTestBase {
 
     AndroidApp application = buildApplication(builder);
     AppInfo appInfo = getAppInfo(application);
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
     DexEncodedMethod method = getMethod(inspector, DEFAULT_CLASS_NAME, "int", "x",
         ImmutableList.of());
     assertNull(appInfo.lookupVirtualTarget(method.method.holder, method.method));
@@ -147,7 +147,7 @@ public class TargetLookupTest extends SmaliTestBase {
 
     AndroidApp application = buildApplication(builder);
     AppInfo appInfo = getAppInfo(application);
-    DexInspector inspector = new DexInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app);
 
     DexMethod methodXOnTestSuper =
         getMethod(inspector, "TestSuper", "int", "x", ImmutableList.of()).method;

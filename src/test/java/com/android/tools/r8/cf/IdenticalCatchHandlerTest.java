@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -63,7 +63,7 @@ public class IdenticalCatchHandlerTest extends TestBase {
   }
 
   private int countCatchHandlers(AndroidApp inputApp) throws Exception {
-    DexInspector inspector = new DexInspector(inputApp, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(inputApp, o -> o.enableCfFrontend = true);
     DexClass dexClass = inspector.clazz(TestClass.class).getDexClass();
     Code code = dexClass.virtualMethods()[0].getCode();
     if (code.isCfCode()) {

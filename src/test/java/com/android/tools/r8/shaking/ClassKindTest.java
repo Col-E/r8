@@ -9,7 +9,7 @@ import com.android.tools.r8.shaking.classkinds.Class;
 import com.android.tools.r8.shaking.classkinds.Enum;
 import com.android.tools.r8.shaking.classkinds.Interface;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -59,7 +59,7 @@ public class ClassKindTest extends TestBase {
       Assert.assertTrue(classes.isEmpty());
       return;
     }
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     HashSet<java.lang.Class<?>> expected = Sets.newHashSet(classes);
     CLASSES_TO_INCLUDE.forEach(c -> {
       Assert.assertEquals(expected.contains(c), inspector.clazz(c).isPresent());

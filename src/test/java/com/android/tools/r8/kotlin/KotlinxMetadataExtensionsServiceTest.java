@@ -20,7 +20,7 @@ import com.android.tools.r8.kotlin.KotlinLambdaMergingTest.Lambda;
 import com.android.tools.r8.kotlin.KotlinLambdaMergingTest.Verifier;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -60,7 +60,7 @@ public class KotlinxMetadataExtensionsServiceTest extends TestBase {
         "No MetadataExtensions instances found in the classpath")));
     assertTrue(Files.exists(output));
 
-    DexInspector inspector = new DexInspector(output);
+    CodeInspector inspector = new CodeInspector(output);
     Verifier verifier = new Verifier(inspector);
     String pkg = "lambdas_kstyle_trivial";
     verifier.assertLambdaGroups(

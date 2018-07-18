@@ -5,8 +5,8 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.util.Collections;
@@ -27,9 +27,9 @@ public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
             "java.lang.String", Lists.newArrayList("java.lang.String", "java.lang.String")));
 
     runTest("intrinsics", "intrinsics.IntrinsicsKt", extraRules, (app) -> {
-      DexInspector dexInspector = new DexInspector(app);
+      CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject intrinsicsClass = checkClassIsKept(
-          dexInspector, KOTLIN_INTRINSICS_CLASS.getClassName());
+          codeInspector, KOTLIN_INTRINSICS_CLASS.getClassName());
 
       checkMethodsPresence(intrinsicsClass,
           ImmutableMap.<MethodSignature, Boolean>builder()

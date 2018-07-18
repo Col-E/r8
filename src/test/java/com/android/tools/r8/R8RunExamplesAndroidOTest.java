@@ -12,8 +12,8 @@ import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -174,7 +174,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .run();
   }
 
-  private void checkLambdaCount(DexInspector inspector, int expectedCount, String prefix) {
+  private void checkLambdaCount(CodeInspector inspector, int expectedCount, String prefix) {
     int count = 0;
     for (FoundClassSubject clazz : inspector.allClasses()) {
       if (clazz.isSynthesizedJavaLambdaClass() &&

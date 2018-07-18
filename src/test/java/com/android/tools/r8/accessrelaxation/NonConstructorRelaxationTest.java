@@ -18,7 +18,7 @@ import com.android.tools.r8.accessrelaxation.privatestatic.C;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -62,20 +62,20 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
     AndroidApp app = ToolHelper.runR8(builder.build());
     compareJvmAndArt(app, mainClass);
 
-    DexInspector dexInspector = new DexInspector(app);
-    assertPublic(dexInspector, A.class,
+    CodeInspector codeInspector = new CodeInspector(app);
+    assertPublic(codeInspector, A.class,
         new MethodSignature("baz", STRING, ImmutableList.of()));
-    assertPublic(dexInspector, A.class,
+    assertPublic(codeInspector, A.class,
         new MethodSignature("bar", STRING, ImmutableList.of()));
-    assertPublic(dexInspector, A.class,
+    assertPublic(codeInspector, A.class,
         new MethodSignature("bar", STRING, ImmutableList.of("int")));
-    assertPublic(dexInspector, A.class,
+    assertPublic(codeInspector, A.class,
         new MethodSignature("blah", STRING, ImmutableList.of("int")));
 
-    assertPublic(dexInspector, B.class,
+    assertPublic(codeInspector, B.class,
         new MethodSignature("blah", STRING, ImmutableList.of("int")));
 
-    assertPublic(dexInspector, BB.class,
+    assertPublic(codeInspector, BB.class,
         new MethodSignature("blah", STRING, ImmutableList.of("int")));
   }
 
@@ -110,24 +110,24 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
     AndroidApp app = ToolHelper.runR8(builder.build());
     compareJvmAndArt(app, mainClass);
 
-    DexInspector dexInspector = new DexInspector(app);
-    assertPublic(dexInspector, Base.class,
+    CodeInspector codeInspector = new CodeInspector(app);
+    assertPublic(codeInspector, Base.class,
         new MethodSignature("foo", STRING, ImmutableList.of()));
 
     // Base#foo?() can't be publicized due to Itf<1>#foo<1>().
-    assertNotPublic(dexInspector, Base.class,
+    assertNotPublic(codeInspector, Base.class,
         new MethodSignature("foo1", STRING, ImmutableList.of()));
-    assertNotPublic(dexInspector, Base.class,
+    assertNotPublic(codeInspector, Base.class,
         new MethodSignature("foo2", STRING, ImmutableList.of()));
 
     // Sub?#bar1(int) can be publicized as they don't bother each other.
-    assertPublic(dexInspector, Sub1.class,
+    assertPublic(codeInspector, Sub1.class,
         new MethodSignature("bar1", STRING, ImmutableList.of("int")));
-    assertPublic(dexInspector, Sub2.class,
+    assertPublic(codeInspector, Sub2.class,
         new MethodSignature("bar1", STRING, ImmutableList.of("int")));
 
     // Sub2#bar2(int) is unique throughout the hierarchy, hence publicized.
-    assertPublic(dexInspector, Sub2.class,
+    assertPublic(codeInspector, Sub2.class,
         new MethodSignature("bar2", STRING, ImmutableList.of("int")));
   }
 }

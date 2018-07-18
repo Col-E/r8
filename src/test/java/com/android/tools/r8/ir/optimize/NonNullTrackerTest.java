@@ -28,7 +28,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.function.Consumer;
 import org.junit.Test;
 
@@ -46,8 +46,8 @@ public class NonNullTrackerTest extends TestBase {
         new ApplicationReader(app, TEST_OPTIONS, new Timing("NonNullMarkerTest.appReader"))
             .read().toDirect();
     AppInfo appInfo = new AppInfo(dexApplication);
-    DexInspector dexInspector = new DexInspector(appInfo.app);
-    DexEncodedMethod foo = dexInspector.clazz(testClass.getName()).method(signature).getMethod();
+    CodeInspector codeInspector = new CodeInspector(appInfo.app);
+    DexEncodedMethod foo = codeInspector.clazz(testClass.getName()).method(signature).getMethod();
     IRCode irCode = foo.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
     checkCountOfNonNull(irCode, 0);
 

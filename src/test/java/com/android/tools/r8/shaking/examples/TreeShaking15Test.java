@@ -5,10 +5,10 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FieldSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,7 +48,7 @@ public class TreeShaking15Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/shaking15/keep-rules.txt"));
   }
 
-  private static void shaking15testDictionary(DexInspector inspector) {
+  private static void shaking15testDictionary(CodeInspector inspector) {
     inspector.forAllClasses((clazz) -> checkClassAndMemberInDictionary(clazz));
   }
 

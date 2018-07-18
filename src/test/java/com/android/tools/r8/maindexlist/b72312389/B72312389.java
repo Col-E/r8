@@ -23,7 +23,7 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -84,7 +84,7 @@ public class B72312389 extends TestBase {
         .setMainDexListConsumer(
             (string, handler) -> mainDexList.content = string)
         .build();
-    DexInspector inspector = new DexInspector(ToolHelper.runR8(command));
+    CodeInspector inspector = new CodeInspector(ToolHelper.runR8(command));
     assertTrue(inspector.clazz("instrumentationtest.InstrumentationTest").isPresent());
     assertTrue(mainDexList.content.contains("junit/framework/TestCase.class"));
     // TODO(72794301): Two copies of this message is a bit over the top.

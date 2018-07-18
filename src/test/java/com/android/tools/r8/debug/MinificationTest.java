@@ -16,8 +16,8 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -188,7 +188,7 @@ public class MinificationTest extends DebugTestBase {
       throws Throwable {
     Path proguardMap = config.getProguardMap();
     String mappingFile = proguardMap == null ? null : proguardMap.toString();
-    DexInspector inspector = new DexInspector(config.getPaths(), mappingFile);
+    CodeInspector inspector = new CodeInspector(config.getPaths(), mappingFile);
     ClassSubject clazz = inspector.clazz(className);
     assertTrue(clazz.isPresent());
     if (method != null) {

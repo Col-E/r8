@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,7 +72,7 @@ public class TreeShaking6Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/shaking6/keep-public.txt"));
   }
 
-  private static void hasNoPublicMethodsButPrivate(DexInspector inspector) {
+  private static void hasNoPublicMethodsButPrivate(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz ->
             clazz.forAllMethods(
@@ -88,7 +88,7 @@ public class TreeShaking6Test extends TreeShakingTest {
             .isPresent());
   }
 
-  private static void hasOnlyIntJustAMethod(DexInspector inspector) {
+  private static void hasOnlyIntJustAMethod(CodeInspector inspector) {
     Assert.assertFalse(
         inspector
             .clazz("shaking6.Superclass")
@@ -105,7 +105,7 @@ public class TreeShaking6Test extends TreeShakingTest {
         subclass.method("int", "justAMethod", Collections.singletonList("double")).isPresent());
   }
 
-  private static void hasNoPrivateJustAMethod(DexInspector inspector) {
+  private static void hasNoPrivateJustAMethod(CodeInspector inspector) {
     Assert.assertFalse(
         inspector
             .clazz("shaking6.Superclass")
@@ -122,7 +122,7 @@ public class TreeShaking6Test extends TreeShakingTest {
         subclass.method("int", "justAMethod", Collections.singletonList("double")).isPresent());
   }
 
-  private static void hasNoPrivateMethods(DexInspector inspector) {
+  private static void hasNoPrivateMethods(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz ->
             clazz.forAllMethods(

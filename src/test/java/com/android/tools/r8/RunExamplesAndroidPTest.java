@@ -16,10 +16,10 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FoundClassSubject;
-import com.android.tools.r8.utils.dexinspector.FoundMethodSubject;
-import com.android.tools.r8.utils.dexinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -57,7 +57,7 @@ public abstract class RunExamplesAndroidPTest
     Integer androidJarVersion = null;
 
     final List<Consumer<InternalOptions>> optionConsumers = new ArrayList<>();
-    final List<Consumer<DexInspector>> dexInspectorChecks = new ArrayList<>();
+    final List<Consumer<CodeInspector>> dexInspectorChecks = new ArrayList<>();
     final List<UnaryOperator<B>> builderTransformations = new ArrayList<>();
 
     TestRunner(String testName, String packageName, String mainClass) {
@@ -68,7 +68,7 @@ public abstract class RunExamplesAndroidPTest
 
     abstract C self();
 
-    C withDexCheck(Consumer<DexInspector> check) {
+    C withDexCheck(Consumer<CodeInspector> check) {
       dexInspectorChecks.add(check);
       return self();
     }
@@ -150,8 +150,8 @@ public abstract class RunExamplesAndroidPTest
       }
 
       if (!dexInspectorChecks.isEmpty()) {
-        DexInspector inspector = new DexInspector(out);
-        for (Consumer<DexInspector> check : dexInspectorChecks) {
+        CodeInspector inspector = new CodeInspector(out);
+        for (Consumer<CodeInspector> check : dexInspectorChecks) {
           check.accept(inspector);
         }
       }
@@ -255,12 +255,12 @@ public abstract class RunExamplesAndroidPTest
     }
   }
 
-  protected DexInspector getMainDexInspector(Path zip)
+  protected CodeInspector getMainDexInspector(Path zip)
       throws ZipException, IOException, ExecutionException {
     try (ZipFile zipFile = new ZipFile(zip.toFile(), StandardCharsets.UTF_8)) {
       try (InputStream in =
           zipFile.getInputStream(zipFile.getEntry(ToolHelper.DEFAULT_DEX_FILENAME))) {
-        return new DexInspector(
+        return new CodeInspector(
             AndroidApp.builder()
                 .addDexProgramData(ByteStreams.toByteArray(in), Origin.unknown())
                 .build());

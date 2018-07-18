@@ -12,8 +12,8 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -80,7 +80,7 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
             keepMainProguardConfiguration("Test"),
             options -> options.enableInlining = false);
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     MethodSubject method = inspector.clazz("Test").method("void", "test", ImmutableList.of());
     DexCode code = method.getMethod().getCode().asDexCode();
     assertTrue(code.isEmptyVoidMethod());
@@ -153,7 +153,7 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
             keepMainProguardConfiguration("Test"),
             options -> options.enableInlining = false);
 
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     MethodSubject method = inspector.clazz("Test").method("void", "test", ImmutableList.of());
     DexCode code = method.getMethod().getCode().asDexCode();
     assertTrue(code.isEmptyVoidMethod());

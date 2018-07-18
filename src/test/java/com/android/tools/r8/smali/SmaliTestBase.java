@@ -25,8 +25,8 @@ import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -112,7 +112,7 @@ public class SmaliTestBase extends TestBase {
   }
 
   protected DexClass getClass(DexApplication application, String className) {
-    DexInspector inspector = new DexInspector(application);
+    CodeInspector inspector = new CodeInspector(application);
     ClassSubject clazz = inspector.clazz(className);
     assertTrue(clazz.isPresent());
     return clazz.getDexClass();
@@ -124,7 +124,7 @@ public class SmaliTestBase extends TestBase {
 
   protected DexClass getClass(Path appPath, String className) {
     try {
-      DexInspector inspector = new DexInspector(appPath);
+      CodeInspector inspector = new CodeInspector(appPath);
       ClassSubject clazz = inspector.clazz(className);
       assertTrue(clazz.isPresent());
       return clazz.getDexClass();
@@ -135,14 +135,14 @@ public class SmaliTestBase extends TestBase {
 
   protected DexEncodedMethod getMethod(Path appPath, MethodSignature signature) {
     try {
-      DexInspector inspector = new DexInspector(appPath);
+      CodeInspector inspector = new CodeInspector(appPath);
       return getMethod(inspector, signature);
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
     }
   }
 
-  protected DexEncodedMethod getMethod(DexInspector inspector, MethodSignature signature) {
+  protected DexEncodedMethod getMethod(CodeInspector inspector, MethodSignature signature) {
     return getMethod(
         inspector, signature.clazz, signature.returnType, signature.name, signature.parameterTypes);
   }

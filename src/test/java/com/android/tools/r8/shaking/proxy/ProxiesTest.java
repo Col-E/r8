@@ -23,14 +23,14 @@ import com.android.tools.r8.shaking.proxy.testclasses.SubClass;
 import com.android.tools.r8.shaking.proxy.testclasses.SubInterface;
 import com.android.tools.r8.shaking.proxy.testclasses.TestClass;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 
 public class ProxiesTest extends TestBase {
 
-  private void runTest(List<String> additionalKeepRules, Consumer<DexInspector> inspection,
+  private void runTest(List<String> additionalKeepRules, Consumer<CodeInspector> inspection,
       String expectedResult)
       throws Exception {
     Class mainClass = Main.class;
@@ -51,18 +51,18 @@ public class ProxiesTest extends TestBase {
     builder.addProguardConfiguration(additionalKeepRules, Origin.unknown());
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableDevirtualization = false);
-    inspection.accept(new DexInspector(app));
+    inspection.accept(new CodeInspector(app));
     assertEquals(expectedResult, runOnArt(app, mainClass));
   }
 
-  private int countInstructionInX(DexInspector inspector, Class<? extends Instruction> invoke) {
+  private int countInstructionInX(CodeInspector inspector, Class<? extends Instruction> invoke) {
     MethodSignature signatureForX =
         new MethodSignature("x", "void", ImmutableList.of(BaseInterface.class.getCanonicalName()));
     DexCode x = inspector.clazz(Main.class).method(signatureForX).getMethod().getCode().asDexCode();
     return (int) filterInstructionKind(x, invoke).count();
   }
 
-  private int countInstructionInY(DexInspector inspector, Class<? extends Instruction> invoke) {
+  private int countInstructionInY(CodeInspector inspector, Class<? extends Instruction> invoke) {
     MethodSignature signatureForY =
         new MethodSignature("y", "void", ImmutableList.of(SubInterface.class.getCanonicalName()));
     DexCode y = inspector.clazz(Main.class).method(signatureForY).getMethod().getCode().asDexCode();
@@ -71,7 +71,7 @@ public class ProxiesTest extends TestBase {
         .count();
   }
 
-  private int countInstructionInZ(DexInspector inspector, Class<? extends Instruction> invoke) {
+  private int countInstructionInZ(CodeInspector inspector, Class<? extends Instruction> invoke) {
     MethodSignature signatureForZ =
         new MethodSignature("z", "void", ImmutableList.of(TestClass.class.getCanonicalName()));
     DexCode z = inspector.clazz(Main.class).method(signatureForZ).getMethod().getCode().asDexCode();
@@ -81,7 +81,7 @@ public class ProxiesTest extends TestBase {
   }
 
   private int countInstructionInZSubClass(
-      DexInspector inspector, Class<? extends Instruction> invoke) {
+      CodeInspector inspector, Class<? extends Instruction> invoke) {
     MethodSignature signatureForZ =
         new MethodSignature("z", "void", ImmutableList.of(SubClass.class.getCanonicalName()));
     DexCode z = inspector.clazz(Main.class).method(signatureForZ).getMethod().getCode().asDexCode();
@@ -90,7 +90,7 @@ public class ProxiesTest extends TestBase {
         .count();
   }
 
-  private void noInterfaceKept(DexInspector inspector) {
+  private void noInterfaceKept(CodeInspector inspector) {
     // Indirectly assert that method is inlined into x, y and z.
     assertEquals(1, countInstructionInX(inspector, InvokeInterface.class));
     assertEquals(1, countInstructionInY(inspector, InvokeInterface.class));
@@ -104,7 +104,7 @@ public class ProxiesTest extends TestBase {
         "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nEXCEPTION\n");
   }
 
-  private void baseInterfaceKept(DexInspector inspector) {
+  private void baseInterfaceKept(CodeInspector inspector) {
     // Indirectly assert that method is not inlined into x.
     assertEquals(3, countInstructionInX(inspector, InvokeInterface.class));
     // Indirectly assert that method is inlined into y and z.
@@ -124,7 +124,7 @@ public class ProxiesTest extends TestBase {
         "TestClass 2\nTestClass 2\nTestClass 2\nProxy\nEXCEPTION\n");
   }
 
-  private void subInterfaceKept(DexInspector inspector) {
+  private void subInterfaceKept(CodeInspector inspector) {
     // Indirectly assert that method is not inlined into x or y.
     assertEquals(3, countInstructionInX(inspector, InvokeInterface.class));
     assertEquals(3, countInstructionInY(inspector, InvokeInterface.class));
@@ -146,7 +146,7 @@ public class ProxiesTest extends TestBase {
         "TestClass 4\nTestClass 4\nTestClass 4\nSUCCESS\n");
   }
 
-  private void classKept(DexInspector inspector) {
+  private void classKept(CodeInspector inspector) {
     // Indirectly assert that method is not inlined into x, y or z.
     assertEquals(3, countInstructionInX(inspector, InvokeInterface.class));
     assertEquals(3, countInstructionInY(inspector, InvokeInterface.class));

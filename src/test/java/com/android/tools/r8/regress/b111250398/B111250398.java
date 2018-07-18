@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.regress.b111250398;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -16,10 +16,10 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FieldSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import org.junit.Test;
@@ -236,7 +236,7 @@ public class B111250398 extends TestBase {
         .count();
   }
 
-  private void check(DexInspector inspector, int mfOnBGets, int msfOnBGets) {
+  private void check(CodeInspector inspector, int mfOnBGets, int msfOnBGets) {
     ClassSubject classA = inspector.clazz(A.class);
     assertThat(classA, isPresent());
     MethodSubject mfOnA = classA.method("void", "mf", ImmutableList.of());
@@ -293,20 +293,20 @@ public class B111250398 extends TestBase {
 
   @Test
   public void testSeparateCompilation() throws Exception {
-    DexInspector inspector =
-        new DexInspector(compileWithD8(readClasses(A.class, B.class), this::releaseMode));
+    CodeInspector inspector =
+        new CodeInspector(compileWithD8(readClasses(A.class, B.class), this::releaseMode));
     check(inspector, 5, 5);
   }
 
   @Test
   public void testWholeProgram() throws Exception {
-    DexInspector inspector =
-        new DexInspector(compileWithR8(readClasses(A.class, B.class), this::releaseMode));
+    CodeInspector inspector =
+        new CodeInspector(compileWithR8(readClasses(A.class, B.class), this::releaseMode));
     check(inspector, 1, 1);
   }
 
   private void checkMixed(AndroidApp app) throws Exception{
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     ClassSubject classC = inspector.clazz(C.class);
     assertThat(classC, isPresent());
     MethodSubject totalDays = classC.method("int", "totalDays", ImmutableList.of());
@@ -341,7 +341,7 @@ public class B111250398 extends TestBase {
   }
 
   private void checkDaggerSingleProviderGet(AndroidApp app) throws Exception {
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     MethodSubject get =
         inspector.clazz(SingleCheck.class).method("java.lang.Object", "get", ImmutableList.of());
     assertThat(get, isPresent());

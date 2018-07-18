@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,7 +60,7 @@ public class TreeShaking2Test extends TreeShakingTest {
         null, null, null, ImmutableList.of("src/test/examples/shaking2/keep-rules-printusage.txt"));
   }
 
-  private static void shaking2SuperClassIsAbstract(DexInspector inspector) {
+  private static void shaking2SuperClassIsAbstract(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz("shaking2.SuperClass");
     Assert.assertTrue(clazz.isAbstract());
     Assert.assertTrue(clazz.method("void", "virtualMethod", Collections.emptyList()).isAbstract());

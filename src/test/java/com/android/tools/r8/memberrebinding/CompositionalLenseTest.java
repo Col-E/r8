@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.memberrebinding;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -17,9 +17,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
@@ -74,10 +74,10 @@ public class CompositionalLenseTest extends TestBase {
       options.enableInlining = false;
       options.enableClassMerging = false;
     });
-    DexInspector dexInspector = new DexInspector(processedApp);
-    ClassSubject classSubject = dexInspector.clazz(TestMain.class);
+    CodeInspector codeInspector = new CodeInspector(processedApp);
+    ClassSubject classSubject = codeInspector.clazz(TestMain.class);
     assertThat(classSubject, isPresent());
-    MethodSubject methodSubject = classSubject.method(DexInspector.MAIN);
+    MethodSubject methodSubject = classSubject.method(CodeInspector.MAIN);
     assertThat(methodSubject, isPresent());
     DexCode dexCode = methodSubject.getMethod().getCode().asDexCode();
     assertTrue(dexCode.instructions[2] instanceof InvokeVirtual);

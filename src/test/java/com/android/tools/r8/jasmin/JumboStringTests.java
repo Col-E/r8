@@ -10,7 +10,7 @@ import com.android.tools.r8.debuginfo.DebugInfoInspector;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -91,7 +91,7 @@ public class JumboStringTests extends JasminTestBase {
     AndroidApp d8App = ToolHelper.runD8(jasminApp);
     assertEquals(expected, runOnArt(d8App, clazz.name));
 
-    DexInspector inspector = new DexInspector(d8App);
+    CodeInspector inspector = new CodeInspector(d8App);
     for (Entry<String, MethodSignature> entry : classes.entrySet()) {
       DebugInfoInspector info = new DebugInfoInspector(inspector, entry.getKey(), entry.getValue());
       info.checkStartLine(1);

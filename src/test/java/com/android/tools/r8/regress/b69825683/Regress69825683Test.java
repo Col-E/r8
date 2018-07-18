@@ -13,8 +13,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -34,7 +34,7 @@ public class Regress69825683Test extends TestBase {
         Origin.unknown());
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     List<FoundClassSubject> classes = inspector.allClasses();
 
     // Check that the synthetic class is still present.
@@ -67,7 +67,7 @@ public class Regress69825683Test extends TestBase {
         Origin.unknown());
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     List<FoundClassSubject> classes = inspector.allClasses();
 
     // Check that the synthetic class is still present.

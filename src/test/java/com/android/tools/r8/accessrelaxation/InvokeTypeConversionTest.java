@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.accessrelaxation;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -24,8 +24,8 @@ import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -62,7 +62,7 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
   private void run(
       SmaliBuilder builder,
       String expectedException,
-      Consumer<DexInspector> inspectorConsumer) throws Exception {
+      Consumer<CodeInspector> inspectorConsumer) throws Exception {
     AndroidApp app = buildApplication(builder);
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
@@ -82,7 +82,7 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
       assertEquals(1, artResult.exitCode);
       assertThat(artResult.stderr, containsString(expectedException));
     }
-    DexInspector inspector = new DexInspector(processedApp);
+    CodeInspector inspector = new CodeInspector(processedApp);
     inspectorConsumer.accept(inspector);
   }
 

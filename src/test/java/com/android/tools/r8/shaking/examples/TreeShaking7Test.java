@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking.examples;
 
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -71,7 +71,7 @@ public class TreeShaking7Test extends TreeShakingTest {
         ImmutableList.of("src/test/examples/shaking7/keep-public-theIntField-fields.txt"));
   }
 
-  private static void shaking7HasOnlyDoubleFields(DexInspector inspector) {
+  private static void shaking7HasOnlyDoubleFields(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz -> {
           clazz.forAllFields(
@@ -86,7 +86,7 @@ public class TreeShaking7Test extends TreeShakingTest {
     Assert.assertFalse(inspector.clazz("shaking7.Liar").field("int", "theDoubleField").isPresent());
   }
 
-  private static void shaking7HasOnlyPublicFieldsNamedTheIntField(DexInspector inspector) {
+  private static void shaking7HasOnlyPublicFieldsNamedTheIntField(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz -> {
           clazz.forAllFields(
@@ -104,7 +104,7 @@ public class TreeShaking7Test extends TreeShakingTest {
     Assert.assertTrue(liar.field("double", "theIntField").isPresent());
   }
 
-  private static void shaking7HasOnlyPublicFields(DexInspector inspector) {
+  private static void shaking7HasOnlyPublicFields(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz -> {
           clazz.forAllFields(
@@ -120,7 +120,7 @@ public class TreeShaking7Test extends TreeShakingTest {
     Assert.assertTrue(inspector.clazz("shaking7.Liar").field("int", "theDoubleField").isPresent());
   }
 
-  private static void shaking7HasOnlyPublicFieldsNamedTheDoubleField(DexInspector inspector) {
+  private static void shaking7HasOnlyPublicFieldsNamedTheDoubleField(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz -> {
           clazz.forAllFields(

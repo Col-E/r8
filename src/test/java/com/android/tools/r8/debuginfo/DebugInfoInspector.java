@@ -20,7 +20,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
@@ -49,13 +49,13 @@ public class DebugInfoInspector {
     }
   }
 
-  public DebugInfoInspector(DexInspector inspector, String clazz, MethodSignature method) {
+  public DebugInfoInspector(CodeInspector inspector, String clazz, MethodSignature method) {
     this(inspector.clazz(clazz).method(method).getMethod(), inspector.getFactory());
   }
 
   public DebugInfoInspector(AndroidApp app, String clazz, MethodSignature method)
       throws IOException, ExecutionException {
-    this(new DexInspector(app), clazz, method);
+    this(new CodeInspector(app), clazz, method);
   }
 
   public boolean hasLocalsInfo() {

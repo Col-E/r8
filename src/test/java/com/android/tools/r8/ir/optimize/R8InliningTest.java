@@ -30,9 +30,9 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -145,14 +145,14 @@ public class R8InliningTest extends TestBase {
 
   private void dump(Path path, String title) throws Throwable {
     System.out.println(title + ":");
-    DexInspector inspector = new DexInspector(path.toAbsolutePath());
+    CodeInspector inspector = new CodeInspector(path.toAbsolutePath());
     inspector.clazz("inlining.Inlining").forAllMethods(m -> dump(m.getMethod()));
     System.out.println(title + " size: " + Files.size(path));
   }
 
   @Test
   public void checkNoInvokes() throws Throwable {
-    DexInspector inspector = new DexInspector(getGeneratedDexFile().toAbsolutePath(),
+    CodeInspector inspector = new CodeInspector(getGeneratedDexFile().toAbsolutePath(),
         getGeneratedProguardMap());
     ClassSubject clazz = inspector.clazz("inlining.Inlining");
 
@@ -189,8 +189,8 @@ public class R8InliningTest extends TestBase {
 
   @Test
   public void invokeOnNullableReceiver() throws Exception {
-    DexInspector inspector =
-        new DexInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
+    CodeInspector inspector =
+        new CodeInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
     ClassSubject clazz = inspector.clazz("inlining.Nullability");
     MethodSubject m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
     DexCode code;
@@ -257,8 +257,8 @@ public class R8InliningTest extends TestBase {
 
   @Test
   public void invokeOnNonNullReceiver() throws Exception {
-    DexInspector inspector =
-        new DexInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
+    CodeInspector inspector =
+        new CodeInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
     ClassSubject clazz = inspector.clazz("inlining.Nullability");
     MethodSubject m = clazz.method("int", "conditionalOperator", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());

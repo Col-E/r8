@@ -3,18 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.ifrule;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isNotRenamed;
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.dexinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FieldSubject;
-import com.android.tools.r8.utils.dexinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,19 +60,19 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
   }
 
   @Override
-  protected DexInspector runR8(
+  protected CodeInspector runR8(
       List<Class> programClasses, String proguardConfig) throws Exception {
     return super.runR8(programClasses, adaptConfiguration(proguardConfig));
   }
 
   @Override
-  protected DexInspector runProguard5(
+  protected CodeInspector runProguard5(
       List<Class> programClasses, String proguardConfig) throws Exception {
     return super.runProguard5(programClasses, adaptConfiguration(proguardConfig));
   }
 
   @Override
-  protected DexInspector runProguard6(
+  protected CodeInspector runProguard6(
       List<Class> programClasses, String proguardConfig) throws Exception {
     return super.runProguard6(programClasses, adaptConfiguration(proguardConfig));
   }
@@ -86,17 +86,17 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keep,allowobfuscation class **.Dependent"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
     if (!keepPrecondition) {
       // TODO(b/73708139): Proguard6 kept Dependent (w/o any members), which is not necessary.
       if (shrinker == Shrinker.PROGUARD6) {
         return;
       }
-      assertEquals(1, dexInspector.allClasses().size());
+      assertEquals(1, codeInspector.allClasses().size());
       return;
     }
 
-    ClassSubject clazz = dexInspector.clazz(DependentUser.class);
+    ClassSubject clazz = codeInspector.clazz(DependentUser.class);
     assertThat(clazz, isRenamed());
     // Members of DependentUser are not used anywhere.
     MethodSubject m = clazz.method("void", "callFoo", ImmutableList.of());
@@ -105,7 +105,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
     assertThat(f, not(isPresent()));
 
     // Although DependentUser#callFoo is shrinked, Dependent is kept via -if.
-    clazz = dexInspector.clazz(Dependent.class);
+    clazz = codeInspector.clazz(Dependent.class);
     assertThat(clazz, isRenamed());
     // But, its members are gone.
     m = clazz.method("java.lang.String", "foo", ImmutableList.of());
@@ -123,17 +123,17 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keep,allowobfuscation class <1>.<2>"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
     if (!keepPrecondition) {
       // TODO(b/73708139): Proguard6 kept Dependent (w/o any members), which is not necessary.
       if (shrinker == Shrinker.PROGUARD6) {
         return;
       }
-      assertEquals(1, dexInspector.allClasses().size());
+      assertEquals(1, codeInspector.allClasses().size());
       return;
     }
 
-    ClassSubject clazz = dexInspector.clazz(DependentUser.class);
+    ClassSubject clazz = codeInspector.clazz(DependentUser.class);
     assertThat(clazz, isRenamed());
     // Members of DependentUser are not used anywhere.
     MethodSubject m = clazz.method("void", "callFoo", ImmutableList.of());
@@ -142,7 +142,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
     assertThat(f, not(isPresent()));
 
     // Although DependentUser#callFoo is shrinked, Dependent is kept via -if.
-    clazz = dexInspector.clazz(Dependent.class);
+    clazz = codeInspector.clazz(Dependent.class);
     assertThat(clazz, isRenamed());
     // But, its members are gone.
     m = clazz.method("java.lang.String", "foo", ImmutableList.of());
@@ -160,13 +160,13 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "}"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
     if (!keepPrecondition) {
-      assertEquals(1, dexInspector.allClasses().size());
+      assertEquals(1, codeInspector.allClasses().size());
       return;
     }
 
-    ClassSubject clazz = dexInspector.clazz(DependentUser.class);
+    ClassSubject clazz = codeInspector.clazz(DependentUser.class);
     assertThat(clazz, isRenamed());
     MethodSubject m = clazz.method("void", "callFoo", ImmutableList.of());
     assertThat(m, isRenamed());
@@ -174,7 +174,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
     assertThat(f, not(isPresent()));
 
     // Dependent is kept due to DependentUser#callFoo, but renamed.
-    clazz = dexInspector.clazz(Dependent.class);
+    clazz = codeInspector.clazz(Dependent.class);
     assertThat(clazz, isRenamed());
     m = clazz.method("java.lang.String", "foo", ImmutableList.of());
     assertThat(m, isRenamed());
@@ -196,17 +196,17 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keep,allowobfuscation class **.*User"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
     if (!keepPrecondition) {
       // TODO(b/73708139): Proguard6 kept DependentUser (w/o any members), which is not necessary.
       if (shrinker == Shrinker.PROGUARD6) {
         return;
       }
-      assertEquals(1, dexInspector.allClasses().size());
+      assertEquals(1, codeInspector.allClasses().size());
       return;
     }
 
-    ClassSubject clazz = dexInspector.clazz(DependentUser.class);
+    ClassSubject clazz = codeInspector.clazz(DependentUser.class);
     assertThat(clazz, isRenamed());
     MethodSubject m = clazz.method("void", "callFoo", ImmutableList.of());
     assertThat(m, isRenamed());
@@ -214,7 +214,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
     assertThat(f, not(isPresent()));
 
     // Dependent is kept due to DependentUser#callFoo, but renamed.
-    clazz = dexInspector.clazz(Dependent.class);
+    clazz = codeInspector.clazz(Dependent.class);
     assertThat(clazz, isRenamed());
     m = clazz.method("java.lang.String", "foo", ImmutableList.of());
     assertThat(m, isRenamed());
@@ -236,17 +236,17 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keep,allowobfuscation class <1>.<2>User"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
     if (!keepPrecondition) {
       // TODO(b/73708139): Proguard6 kept DependentUser (w/o any members), which is not necessary.
       if (shrinker == Shrinker.PROGUARD6) {
         return;
       }
-      assertEquals(1, dexInspector.allClasses().size());
+      assertEquals(1, codeInspector.allClasses().size());
       return;
     }
 
-    ClassSubject clazz = dexInspector.clazz(DependentUser.class);
+    ClassSubject clazz = codeInspector.clazz(DependentUser.class);
     assertThat(clazz, isRenamed());
     MethodSubject m = clazz.method("void", "callFoo", ImmutableList.of());
     assertThat(m, isRenamed());
@@ -254,7 +254,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
     assertThat(f, not(isPresent()));
 
     // Dependent is kept due to DependentUser#callFoo, but renamed.
-    clazz = dexInspector.clazz(Dependent.class);
+    clazz = codeInspector.clazz(Dependent.class);
     assertThat(clazz, isRenamed());
     m = clazz.method("java.lang.String", "foo", ImmutableList.of());
     assertThat(m, isRenamed());
@@ -274,9 +274,9 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keepnames class **.Dependent"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
 
-    ClassSubject clazz = dexInspector.clazz(Dependent.class);
+    ClassSubject clazz = codeInspector.clazz(Dependent.class);
     // Only class name is not renamed, if triggered.
     assertThat(clazz, keepPrecondition ? isNotRenamed() : isRenamed());
     MethodSubject m = clazz.method("java.lang.String", "foo", ImmutableList.of());
@@ -299,9 +299,9 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "}"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
 
-    ClassSubject clazz = dexInspector.clazz(Dependent.class);
+    ClassSubject clazz = codeInspector.clazz(Dependent.class);
     // Class name is not renamed, if triggered.
     assertThat(clazz, keepPrecondition ? isNotRenamed() : isRenamed());
     MethodSubject m = clazz.method("java.lang.String", "foo", ImmutableList.of());
@@ -325,9 +325,9 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "}"
     );
 
-    DexInspector dexInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
 
-    ClassSubject clazz = dexInspector.clazz(Dependent.class);
+    ClassSubject clazz = codeInspector.clazz(Dependent.class);
     assertThat(clazz, isRenamed());
     MethodSubject m = clazz.method("java.lang.String", "foo", ImmutableList.of());
     // Only method name is not renamed, if triggered.

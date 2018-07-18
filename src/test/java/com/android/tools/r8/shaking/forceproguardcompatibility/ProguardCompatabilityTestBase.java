@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.forceproguardcompatibility;
 
-import static com.android.tools.r8.utils.dexinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -19,8 +19,8 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
@@ -67,12 +67,12 @@ public class ProguardCompatabilityTestBase extends TestBase {
     throw new IllegalArgumentException("Unknown shrinker: " + mode);
   }
 
-  protected DexInspector runShrinker(
+  protected CodeInspector runShrinker(
       Shrinker mode, List<Class> programClasses, List<String> proguadConfigs) throws Exception {
     return runShrinker(mode, programClasses, String.join(System.lineSeparator(), proguadConfigs));
   }
 
-  protected DexInspector runShrinker(
+  protected CodeInspector runShrinker(
       Shrinker mode, List<Class> programClasses, String proguardConfig) throws Exception {
     switch (mode) {
       case PROGUARD5:
@@ -104,8 +104,8 @@ public class ProguardCompatabilityTestBase extends TestBase {
     return ToolHelper.runR8(builder.build(), configure);
   }
 
-  protected DexInspector runR8(List<Class> programClasses, String proguardConfig) throws Exception {
-    return new DexInspector(runR8Raw(programClasses, proguardConfig));
+  protected CodeInspector runR8(List<Class> programClasses, String proguardConfig) throws Exception {
+    return new CodeInspector(runR8Raw(programClasses, proguardConfig));
   }
 
   protected AndroidApp runR8CompatRaw(
@@ -120,12 +120,12 @@ public class ProguardCompatabilityTestBase extends TestBase {
     return ToolHelper.runR8(builder.build());
   }
 
-  protected DexInspector runR8Compat(
+  protected CodeInspector runR8Compat(
       List<Class> programClasses, String proguardConfig) throws Exception {
-    return new DexInspector(runR8CompatRaw(programClasses, proguardConfig));
+    return new CodeInspector(runR8CompatRaw(programClasses, proguardConfig));
   }
 
-  protected DexInspector runR8CompatKeepingMain(Class mainClass, List<Class> programClasses)
+  protected CodeInspector runR8CompatKeepingMain(Class mainClass, List<Class> programClasses)
       throws Exception {
     return runR8Compat(programClasses, keepMainProguardConfiguration(mainClass));
   }
@@ -148,10 +148,10 @@ public class ProguardCompatabilityTestBase extends TestBase {
     return readJar(proguardedJar);
   }
 
-  protected DexInspector runProguard5(
+  protected CodeInspector runProguard5(
       List<Class> programClasses, String proguardConfig) throws Exception {
     proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
-    return new DexInspector(
+    return new CodeInspector(
         runProguard5Raw(programClasses, proguardConfig, proguardMap), proguardMap);
   }
 
@@ -173,10 +173,10 @@ public class ProguardCompatabilityTestBase extends TestBase {
     return readJar(proguardedJar);
   }
 
-  protected DexInspector runProguard6(
+  protected CodeInspector runProguard6(
       List<Class> programClasses, String proguardConfig) throws Exception {
     proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
-    return new DexInspector(
+    return new CodeInspector(
         runProguard6Raw(programClasses, proguardConfig, proguardMap), proguardMap);
   }
 
@@ -198,30 +198,30 @@ public class ProguardCompatabilityTestBase extends TestBase {
     return ToolHelper.runD8(readJar(proguardedJar));
   }
 
-  protected DexInspector runProguard6AndD8(
+  protected CodeInspector runProguard6AndD8(
       List<Class> programClasses, String proguardConfig) throws Exception {
     proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
-    return new DexInspector(
+    return new CodeInspector(
         runProguard6AndD8Raw(programClasses, proguardConfig, proguardMap), proguardMap);
   }
 
-  protected DexInspector runProguardKeepingMain(Class mainClass, List<Class> programClasses)
+  protected CodeInspector runProguardKeepingMain(Class mainClass, List<Class> programClasses)
       throws Exception {
     return runProguard6AndD8(programClasses, keepMainProguardConfiguration(mainClass));
   }
 
   protected void verifyClassesPresent(
-      DexInspector dexInspector, Class<?>... classesOfInterest) {
+      CodeInspector codeInspector, Class<?>... classesOfInterest) {
     for (Class klass : classesOfInterest) {
-      ClassSubject c = dexInspector.clazz(klass);
+      ClassSubject c = codeInspector.clazz(klass);
       assertThat(c, isPresent());
     }
   }
 
   protected void verifyClassesAbsent(
-      DexInspector dexInspector, Class<?>... classesOfInterest) {
+      CodeInspector codeInspector, Class<?>... classesOfInterest) {
     for (Class klass : classesOfInterest) {
-      ClassSubject c = dexInspector.clazz(klass);
+      ClassSubject c = codeInspector.clazz(klass);
       assertThat(c, not(isPresent()));
     }
   }

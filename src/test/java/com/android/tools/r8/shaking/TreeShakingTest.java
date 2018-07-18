@@ -17,10 +17,10 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
-import com.android.tools.r8.utils.dexinspector.FoundFieldSubject;
-import com.android.tools.r8.utils.dexinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -137,7 +137,7 @@ public abstract class TreeShakingTest {
         });
   }
 
-  protected static void checkSameStructure(DexInspector ref, DexInspector inspector) {
+  protected static void checkSameStructure(CodeInspector ref, CodeInspector inspector) {
     ref.forAllClasses(refClazz -> checkSameStructure(refClazz,
         inspector.clazz(refClazz.getDexClass().toSourceString())));
   }
@@ -167,18 +167,18 @@ public abstract class TreeShakingTest {
   }
 
   protected void runTest(
-      Consumer<DexInspector> inspection,
+      Consumer<CodeInspector> inspection,
       BiConsumer<String, String> outputComparator,
-      BiConsumer<DexInspector, DexInspector> dexComparator,
+      BiConsumer<CodeInspector, CodeInspector> dexComparator,
       List<String> keepRulesFiles)
       throws Exception {
     runTest(inspection, outputComparator, dexComparator, keepRulesFiles, null);
   }
 
   protected void runTest(
-      Consumer<DexInspector> inspection,
+      Consumer<CodeInspector> inspection,
       BiConsumer<String, String> outputComparator,
-      BiConsumer<DexInspector, DexInspector> dexComparator,
+      BiConsumer<CodeInspector, CodeInspector> dexComparator,
       List<String> keepRulesFiles,
       Consumer<InternalOptions> optionsConsumer)
       throws Exception {
@@ -218,8 +218,8 @@ public abstract class TreeShakingTest {
         Assert.assertEquals(resultInput.toString(), resultOutput.toString());
       }
       if (inspection != null) {
-        DexInspector inspector =
-            new DexInspector(
+        CodeInspector inspector =
+            new CodeInspector(
                 out,
                 minify.isMinify()
                     ? proguardMap.toString()
@@ -249,8 +249,8 @@ public abstract class TreeShakingTest {
       }
 
       if (dexComparator != null) {
-        DexInspector ref = new DexInspector(Paths.get(originalDex));
-        DexInspector inspector = new DexInspector(out,
+        CodeInspector ref = new CodeInspector(Paths.get(originalDex));
+        CodeInspector inspector = new CodeInspector(out,
             minify.isMinify() ? proguardMap.toString()
                 : null);
         dexComparator.accept(ref, inspector);
@@ -263,7 +263,7 @@ public abstract class TreeShakingTest {
     }
 
     if (inspection != null) {
-      DexInspector inspector = new DexInspector(out,
+      CodeInspector inspector = new CodeInspector(out,
           minify.isMinify() ? proguardMap.toString()
               : null);
       inspection.accept(inspector);

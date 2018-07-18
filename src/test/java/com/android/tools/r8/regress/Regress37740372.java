@@ -18,8 +18,8 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.dexinspector.ClassSubject;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Base64;
 import java.util.Set;
 import org.junit.Test;
@@ -129,7 +129,7 @@ public class Regress37740372 extends SmaliTestBase {
   }
 
   private void checkApplicationOnlyHasJavaLangObject(AndroidApp app) throws Throwable {
-    DexInspector inspector = new DexInspector(app);
+    CodeInspector inspector = new CodeInspector(app);
     inspector.forAllClasses(this::assertIsJavaLangObjet);
   }
 

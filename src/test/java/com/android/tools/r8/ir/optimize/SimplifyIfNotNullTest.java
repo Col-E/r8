@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.dexinspector.DexInspector;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,10 +32,10 @@ public class SimplifyIfNotNullTest extends TestBase {
     AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(testClass));
     AndroidApp r8Result = compileWithR8(app,
         "-keep class " + testClass.getCanonicalName() + " { *; }");
-    DexInspector dexInspector = new DexInspector(r8Result);
+    CodeInspector codeInspector = new CodeInspector(r8Result);
     for (MethodSignature signature : signatures) {
       DexEncodedMethod method =
-          dexInspector.clazz(testClass.getName()).method(signature).getMethod();
+          codeInspector.clazz(testClass.getName()).method(signature).getMethod();
       long count = Arrays.stream(method.getCode().asDexCode().instructions)
           .filter(SimplifyIfNotNullTest::isIf).count();
       assertEquals(0, count);
