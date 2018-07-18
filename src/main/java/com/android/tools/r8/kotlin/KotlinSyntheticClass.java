@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.DexClass;
+import kotlinx.metadata.KmFunctionVisitor;
 import kotlinx.metadata.KmLambdaVisitor;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
@@ -32,21 +33,23 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
   }
 
   private KotlinSyntheticClass(Flavour flavour, KotlinClassMetadata.SyntheticClass metadata) {
+    super(metadata);
     this.flavour = flavour;
-    validateMetadata(metadata);
-    this.metadata = metadata;
   }
 
   @Override
-  void validateMetadata(KotlinClassMetadata.SyntheticClass metadata) {
+  void processMetadata(KotlinClassMetadata.SyntheticClass metadata) {
     if (metadata.isLambda()) {
-      SyntheticClassMetadataVisitor visitor = new SyntheticClassMetadataVisitor();
       // To avoid lazy parsing/verifying metadata.
-      metadata.accept(visitor);
+      metadata.accept(new LambdaVisitorForNonNullParameterHints());
     }
   }
 
-  private static class SyntheticClassMetadataVisitor extends KmLambdaVisitor {
+  private class LambdaVisitorForNonNullParameterHints extends KmLambdaVisitor {
+    @Override
+    public KmFunctionVisitor visitFunction(int functionFlags, String functionName) {
+      return new NonNullParameterHintCollector.FunctionVisitor(nonNullparamHints);
+    }
   }
 
   public boolean isLambda() {

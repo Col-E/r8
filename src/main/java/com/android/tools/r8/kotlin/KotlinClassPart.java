@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.kotlin;
 
+import static kotlinx.metadata.Flag.Property.IS_VAR;
+
+import kotlinx.metadata.KmFunctionVisitor;
 import kotlinx.metadata.KmPackageVisitor;
+import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiFileClassPart> {
@@ -21,12 +25,25 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
   }
 
   @Override
-  void validateMetadata(KotlinClassMetadata.MultiFileClassPart metadata) {
+  void processMetadata(KotlinClassMetadata.MultiFileClassPart metadata) {
     // To avoid lazy parsing/verifying metadata.
-    metadata.accept(new MultiFileClassPartMetadataVisitor());
+    metadata.accept(new PackageVisitorForNonNullParameterHints());
   }
 
-  private static class MultiFileClassPartMetadataVisitor extends KmPackageVisitor {
+  private class PackageVisitorForNonNullParameterHints extends KmPackageVisitor {
+    @Override
+    public KmFunctionVisitor visitFunction(int functionFlags, String functionName) {
+      return new NonNullParameterHintCollector.FunctionVisitor(nonNullparamHints);
+    }
+
+    @Override
+    public KmPropertyVisitor visitProperty(
+        int propertyFlags, String name, int getterFlags, int setterFlags) {
+      if (IS_VAR.invoke(propertyFlags)) {
+        return new NonNullParameterHintCollector.PropertyVisitor(nonNullparamHints);
+      }
+      return null;
+    }
   }
 
   @Override
