@@ -533,6 +533,25 @@ public class TestBase {
     return result.stdout;
   }
 
+  /** Run application on Java with the specified main class and provided arguments. */
+  protected String runOnJava(AndroidApp app, Class mainClass, String... args) throws IOException {
+    return runOnJava(app, mainClass, Arrays.asList(args));
+  }
+
+  /** Run application on Java with the specified main class and provided arguments. */
+  protected String runOnJava(AndroidApp app, Class mainClass, List<String> args)
+      throws IOException {
+    return runOnJava(app, mainClass.getCanonicalName(), args);
+  }
+
+  /** Run application on Java with the specified main class and provided arguments. */
+  protected String runOnJava(AndroidApp app, String mainClass, List<String> args)
+      throws IOException {
+    Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
+    app.writeToZip(out, OutputMode.ClassFile);
+    return ToolHelper.runJava(out, mainClass).stdout;
+  }
+
   protected ProcessResult runOnJavaRaw(String main, byte[]... classes) throws IOException {
     return runOnJavaRaw(main, Arrays.asList(classes));
   }

@@ -116,4 +116,8 @@ public class CfInstructionSubject implements InstructionSubject {
   public boolean isPosition() {
     return instruction instanceof CfPosition;
   }
+
+  public boolean isIfNull() {
+    return instruction instanceof CfIf && ((CfIf) instruction).getOpcode() == Opcodes.IFNULL;
+  }
 }

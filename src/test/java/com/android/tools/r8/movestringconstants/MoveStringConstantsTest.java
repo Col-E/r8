@@ -6,6 +6,7 @@ package com.android.tools.r8.movestringconstants;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
@@ -13,23 +14,46 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.dexinspector.CfInstructionSubject;
 import com.android.tools.r8.utils.dexinspector.ClassSubject;
 import com.android.tools.r8.utils.dexinspector.DexInspector;
 import com.android.tools.r8.utils.dexinspector.InstructionSubject;
 import com.android.tools.r8.utils.dexinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.dexinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class MoveStringConstantsTest extends TestBase {
+
+  private Backend backend;
+
+  @Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
   private void runTest(Consumer<DexInspector> inspection) throws Exception {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(Utils.class));
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    builder.addLibraryFiles(
+        backend == Backend.DEX
+            ? ToolHelper.getDefaultAndroidJar()
+            : ToolHelper.getJava8RuntimeJar());
+    assert (backend == Backend.CF || backend == Backend.DEX);
+    builder.setProgramConsumer(
+        backend == Backend.DEX
+            ? DexIndexedConsumer.emptyConsumer()
+            : ClassFileConsumer.emptyConsumer());
     builder.setMode(CompilationMode.RELEASE);
     builder.addProguardConfiguration(
         ImmutableList.of(
@@ -38,11 +62,32 @@ public class MoveStringConstantsTest extends TestBase {
             "-allowaccessmodification"
         ),
         Origin.unknown());
-    AndroidApp app = ToolHelper.runR8(builder.build());
-    inspection.accept(new DexInspector(app));
+    AndroidApp app =
+        ToolHelper.runR8(
+            builder.build(),
+            options -> {
+              // This test relies on that TestClass.java/Utils.check will be inlined.
+              // Its size must fit into the inlining instruction limit. For CF, the default
+              // setting (5) is just too small.
+              options.inliningInstructionLimit = 10;
+            });
+    inspection.accept(
+        new DexInspector(
+            app,
+            options -> {
+              options.enableCfFrontend = true;
+            }));
 
-    // Run on Art to check generated code against verifier.
-    runOnArt(app, TestClass.class);
+    if (backend == Backend.DEX) {
+      // Run on Art to check generated code against verifier.
+      runOnArt(app, TestClass.class);
+    } else {
+      runOnJava(app, TestClass.class);
+    }
+  }
+
+  public MoveStringConstantsTest(Backend backend) {
+    this.backend = backend;
   }
 
   private void validate(DexInspector inspector) {
@@ -54,10 +99,15 @@ public class MoveStringConstantsTest extends TestBase {
         clazz.method("void", "foo", ImmutableList.of(
             "java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String"));
     assertTrue(methodThrowToBeInlined.isPresent());
+    assert (backend == Backend.DEX || backend == Backend.CF);
+    Predicate<InstructionSubject> nullCheck =
+        backend == Backend.DEX
+            ? InstructionSubject::isIfEqz
+            : insn -> ((CfInstructionSubject) insn).isIfNull();
     validateSequence(
         methodThrowToBeInlined.iterateInstructions(),
         // 'if' with "foo#1" is flipped.
-        InstructionSubject::isIfEqz,
+        nullCheck,
 
         // 'if' with "foo#2" is removed along with the constant.
 
@@ -69,12 +119,12 @@ public class MoveStringConstantsTest extends TestBase {
         // 'if's with "foo#4" and "foo#5" are flipped, but their throwing branches
         // are not moved to the end of the code (area for improvement?).
         insn -> insn.isConstString("StringConstants::foo#4", JumboStringMode.DISALLOW),
-        InstructionSubject::isIfEqz, // Flipped if
+        nullCheck, // Flipped if
         InstructionSubject::isGoto, // Jump around throwing branch.
         InstructionSubject::isInvokeStatic, // Throwing branch.
         InstructionSubject::isThrow,
         insn -> insn.isConstString("StringConstants::foo#5", JumboStringMode.DISALLOW),
-        InstructionSubject::isIfEqz, // Flipped if
+        nullCheck, // Flipped if
         InstructionSubject::isReturnVoid, // Final return statement.
         InstructionSubject::isInvokeStatic, // Throwing branch.
         InstructionSubject::isThrow,
