@@ -41,8 +41,14 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class PrintUsageTest {
 
+  private enum Backend {
+    CF,
+    DEX
+  }
+
   private static final String PRINT_USAGE_FILE_SUFFIX = "-print-usage.txt";
 
+  private final Backend backend;
   private final String test;
   private final String programFile;
   private final List<String> keepRulesFiles;
@@ -52,9 +58,11 @@ public class PrintUsageTest {
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   public PrintUsageTest(
+      Backend backend,
       String test,
       List<String> keepRulesFiles,
       Consumer<PrintUsageInspector> inspection) {
+    this.backend = backend;
     this.test = test;
     this.programFile = ToolHelper.EXAMPLES_BUILD_DIR + test + ".jar";
     this.keepRulesFiles = keepRulesFiles;
@@ -64,22 +72,29 @@ public class PrintUsageTest {
   @Before
   public void runR8andGetPrintUsage() throws Exception {
     Path out = temp.getRoot().toPath();
-    R8Command command =
+    R8Command.Builder builder =
         ToolHelper.addProguardConfigurationConsumer(
                 R8Command.builder(),
                 pgConfig -> {
                   pgConfig.setPrintUsage(true);
                   pgConfig.setPrintUsageFile(out.resolve(test + PRINT_USAGE_FILE_SUFFIX));
                 })
-            .setOutput(out, OutputMode.DexIndexed)
             .addProgramFiles(Paths.get(programFile))
-            .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-            .build();
-    ToolHelper.runR8(command, options -> {
-      // Disable inlining to make this test not depend on inlining decisions.
-      options.enableInlining = false;
-    });
+            .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get));
+
+    if (backend == Backend.DEX) {
+      builder
+          .setOutput(out, OutputMode.DexIndexed)
+          .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+    } else {
+      builder.setOutput(out, OutputMode.ClassFile).addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+    }
+    ToolHelper.runR8(
+        builder.build(),
+        options -> {
+          // Disable inlining to make this test not depend on inlining decisions.
+          options.enableInlining = false;
+        });
   }
 
   @Test
@@ -106,6 +121,7 @@ public class PrintUsageTest {
     inspections.put("shaking12:keep-rules-printusage.txt", PrintUsageTest::inspectShaking12);
 
     List<Object[]> testCases = new ArrayList<>();
+    for (Backend backend : Backend.values()) {
     Set<String> usedInspections = new HashSet<>();
     for (String test : tests) {
       File[] keepFiles = new File(ToolHelper.EXAMPLES_DIR + test)
@@ -115,11 +131,13 @@ public class PrintUsageTest {
         Consumer<PrintUsageInspector> inspection =
             getTestOptionalParameter(inspections, usedInspections, test, keepName);
         if (inspection != null) {
-          testCases.add(new Object[]{test, ImmutableList.of(keepFile.getPath()), inspection});
+            testCases.add(
+                new Object[] {backend, test, ImmutableList.of(keepFile.getPath()), inspection});
         }
       }
     }
-    assert usedInspections.size() == inspections.size();
+      assert usedInspections.size() == inspections.size();
+    }
     return testCases;
   }
 
