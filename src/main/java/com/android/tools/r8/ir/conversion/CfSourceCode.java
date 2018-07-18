@@ -182,7 +182,6 @@ public class CfSourceCode implements SourceCode {
   private CfState state;
   private final CfCode code;
   private final DexEncodedMethod method;
-  private final Position callerPosition;
   private final Origin origin;
 
   private final Reference2IntMap<CfLabel> labelOffsets = new Reference2IntOpenHashMap<>();
@@ -205,7 +204,6 @@ public class CfSourceCode implements SourceCode {
       boolean preserveCaller) {
     this.code = code;
     this.method = method;
-    this.callerPosition = callerPosition;
     this.origin = origin;
     int cfPositionCount = 0;
     for (int i = 0; i < code.getInstructions().size(); i++) {
@@ -328,7 +326,7 @@ public class CfSourceCode implements SourceCode {
   public void buildPrelude(IRBuilder builder) {
     assert !inPrelude;
     inPrelude = true;
-    state.buildPrelude();
+    state.buildPrelude(canonicalPositions.getPreamblePosition());
     setLocalVariableLists();
     buildArgumentInstructions(builder);
     recordStateForTarget(0, state.getSnapshot());

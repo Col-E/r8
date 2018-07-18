@@ -61,8 +61,7 @@ public class InliningWithoutPositionsTestSourceDump implements Opcodes {
       }
   */
   public static byte[] dump(
-      boolean mainPos, boolean foo1Pos, boolean barPos, boolean foo2Pos, Location throwLocation)
-      throws Exception {
+      boolean mainPos, boolean foo1Pos, boolean barPos, boolean foo2Pos, Location throwLocation) {
     ClassWriter cw = new ClassWriter(0);
     FieldVisitor fv;
     MethodVisitor mv;

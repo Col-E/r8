@@ -74,8 +74,8 @@ public class CfState {
 
   private static final int MAX_UPDATES = 4;
 
-  public void buildPrelude() {
-    current = new BaseSnapshot();
+  public void buildPrelude(Position preamblePosition) {
+    current = new BaseSnapshot(preamblePosition);
   }
 
   public void clear() {
@@ -92,9 +92,9 @@ public class CfState {
     current = new BaseSnapshot(locals, stack, position);
   }
 
-  public void merge(Snapshot snapshot) {
+  public void merge(Snapshot snapshot, Position preamblePosition) {
     if (current == null) {
-      current = snapshot == null ? new BaseSnapshot() : snapshot;
+      current = snapshot == null ? new BaseSnapshot(preamblePosition) : snapshot;
     } else {
       current = merge(current, snapshot, origin);
     }
@@ -312,8 +312,8 @@ public class CfState {
     final SlotType[] stack;
     final Position position;
 
-    BaseSnapshot() {
-      this(0, 0, Position.none());
+    BaseSnapshot(Position preamblePosition) {
+      this(0, 0, preamblePosition);
     }
 
     BaseSnapshot(int locals, int stack, Position position) {

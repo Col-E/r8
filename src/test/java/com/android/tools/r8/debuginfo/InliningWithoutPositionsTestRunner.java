@@ -40,33 +40,49 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InliningWithoutPositionsTestRunner {
 
+  enum Backend {
+    CF,
+    DEX
+  }
+
   private static final String TEST_CLASS = "InliningWithoutPositionsTestSource";
   private static final String TEST_PACKAGE = "com.android.tools.r8.debuginfo";
 
   @ClassRule public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
+  private final Backend backend;
   private final boolean mainPos;
   private final boolean foo1Pos;
   private final boolean barPos;
   private final boolean foo2Pos;
   private final Location throwLocation;
 
-  @Parameters(name = "main/foo1/bar/foo2 positions: {0}/{1}/{2}/{3}, throwLocation: {4}")
+  @Parameters(name = "{0}: main/foo1/bar/foo2 positions: {1}/{2}/{3}/{4}, throwLocation: {5}")
   public static Collection<Object[]> data() {
     List<Object[]> testCases = new ArrayList<>();
+    for (Backend backend : Backend.values()) {
     for (int i = 0; i < 16; ++i) {
       for (Location throwLocation : Location.values()) {
         if (throwLocation != Location.MAIN) {
-          testCases.add(
-              new Object[] {(i & 1) != 0, (i & 2) != 0, (i & 4) != 0, (i & 8) != 0, throwLocation});
+            testCases.add(
+                new Object[] {
+                  backend, (i & 1) != 0, (i & 2) != 0, (i & 4) != 0, (i & 8) != 0, throwLocation
+                });
         }
+      }
       }
     }
     return testCases;
   }
 
   public InliningWithoutPositionsTestRunner(
-      boolean mainPos, boolean foo1Pos, boolean barPos, boolean foo2Pos, Location throwLocation) {
+      Backend backend,
+      boolean mainPos,
+      boolean foo1Pos,
+      boolean barPos,
+      boolean foo2Pos,
+      Location throwLocation) {
+    this.backend = backend;
     this.mainPos = mainPos;
     this.foo1Pos = foo1Pos;
     this.barPos = barPos;
@@ -79,33 +95,45 @@ public class InliningWithoutPositionsTestRunner {
     // See InliningWithoutPositionsTestSourceDump for the code compiled here.
     Path testClassDir = temp.newFolder(TEST_PACKAGE.split(".")).toPath();
     Path testClassPath = testClassDir.resolve(TEST_CLASS + ".class");
-    Path outputDexPath = temp.newFolder().toPath();
+    Path outputPath = temp.newFolder().toPath();
 
     Files.write(
         testClassPath,
         InliningWithoutPositionsTestSourceDump.dump(
             mainPos, foo1Pos, barPos, foo2Pos, throwLocation));
 
-    AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
     Path proguardMapPath = testClassDir.resolve("proguard.map");
 
-    ToolHelper.runR8(
+    R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(testClassPath)
-            .setMinApiLevel(minSdk.getLevel())
-            .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
-            .setOutput(outputDexPath, OutputMode.DexIndexed)
             .setMode(CompilationMode.RELEASE)
-            .setProguardMapOutputPath(proguardMapPath)
-            .build(),
-        options -> options.inliningInstructionLimit = 20);
+            .setProguardMapOutputPath(proguardMapPath);
+    if (backend == Backend.DEX) {
+      AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
+      builder
+          .setMinApiLevel(minSdk.getLevel())
+          .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
+          .setOutput(outputPath, OutputMode.DexIndexed);
+    } else {
+      assert (backend == Backend.CF);
+      builder
+          .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+          .setOutput(outputPath, OutputMode.ClassFile);
+    }
 
-    ArtCommandBuilder artCommandBuilder = new ArtCommandBuilder();
-    artCommandBuilder.appendClasspath(outputDexPath.resolve("classes.dex").toString());
-    artCommandBuilder.setMainClass(TEST_PACKAGE + "." + TEST_CLASS);
+    ToolHelper.runR8(builder.build(), options -> options.inliningInstructionLimit = 40);
 
-    ProcessResult result = ToolHelper.runArtRaw(artCommandBuilder);
+    ProcessResult result;
+    if (backend == Backend.DEX) {
+      ArtCommandBuilder artCommandBuilder = new ArtCommandBuilder();
+      artCommandBuilder.appendClasspath(outputPath.resolve("classes.dex").toString());
+      artCommandBuilder.setMainClass(TEST_PACKAGE + "." + TEST_CLASS);
 
+      result = ToolHelper.runArtRaw(artCommandBuilder);
+    } else {
+      result = ToolHelper.runJava(outputPath, TEST_PACKAGE + "." + TEST_CLASS);
+    }
     assertNotEquals(result.exitCode, 0);
 
     // Verify stack trace.
