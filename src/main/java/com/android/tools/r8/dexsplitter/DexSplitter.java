@@ -10,19 +10,29 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexSplitterHelper;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FeatureClassMapping;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 @Keep
 public final class DexSplitter {
@@ -61,7 +71,18 @@ public final class DexSplitter {
       }
       return featureName;
     }
+  }
 
+  private static class ZipFileOrigin extends PathOrigin {
+
+    public ZipFileOrigin(Path path) {
+      super(path);
+    }
+
+    @Override
+    public String part() {
+      return "splitting of file '" + super.part() + "'";
+    }
   }
 
   @Keep
@@ -73,6 +94,7 @@ public final class DexSplitter {
     private String output = DEFAULT_OUTPUT_DIR;
     private String featureSplitMapping;
     private String proguardMap;
+    private boolean splitNonClassResources = false;
 
     public DiagnosticsHandler getDiagnosticsHandler() {
       return diagnosticsHandler;
@@ -124,6 +146,10 @@ public final class DexSplitter {
 
     public void addFeatureJar(String jar, String outputName) {
       featureJars.add(new FeatureJar(jar, outputName));
+    }
+
+    public void setSplitNonClassResources(boolean value) {
+      splitNonClassResources = value;
     }
 
     public ImmutableList<String> getInputArchives() {
@@ -193,6 +219,11 @@ public final class DexSplitter {
         options.setFeatureSplitMapping(featureSplit);
         continue;
       }
+      Boolean b = OptionsParsing.tryParseBoolean(context, "--split-non-class-resources");
+      if (b != null) {
+        options.setSplitNonClassResources(b);
+        continue;
+      }
       throw new RuntimeException(String.format("Unknown options: '%s'.", context.head()));
     }
     return options;
@@ -246,6 +277,39 @@ public final class DexSplitter {
 
     DexSplitterHelper.run(
         builder.build(), featureClassMapping, options.getOutput(), options.getProguardMap());
+
+    if (options.splitNonClassResources) {
+      splitNonClassResources(options, featureClassMapping);
+    }
+  }
+
+  private static void splitNonClassResources(Options options,
+      FeatureClassMapping featureClassMapping) {
+    for (String s : options.inputArchives) {
+      try (ZipFile zipFile = new ZipFile(s, StandardCharsets.UTF_8)) {
+        Enumeration<? extends ZipEntry> entries = zipFile.entries();
+        while (entries.hasMoreElements()) {
+          ZipEntry entry = entries.nextElement();
+          String name = entry.getName();
+          if (!ZipUtils.isDexFile(name) && !ZipUtils.isClassFile(name)) {
+            String feature = featureClassMapping.featureForNonClass(name);
+            Path outputDir = Paths.get(options.getOutput()).resolve(feature);
+            try (InputStream stream = zipFile.getInputStream(entry)) {
+              Path outputFile = outputDir.resolve(name);
+              Path parent = outputFile.getParent();
+              if (parent != null) {
+                Files.createDirectories(parent);
+              }
+              Files.copy(stream, outputFile);
+            }
+          }
+        }
+      } catch (IOException e) {
+        options.getDiagnosticsHandler().error(
+            new ExceptionDiagnostic(e, new ZipFileOrigin(Paths.get(s))));
+        throw new AbortException();
+      }
+    }
   }
 
   public static void main(String[] args) {
