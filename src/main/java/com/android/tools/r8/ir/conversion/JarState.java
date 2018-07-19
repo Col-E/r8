@@ -339,6 +339,12 @@ public class JarState {
     }
     int start = source.getOffset(node.start);
     int end = source.getOffset(node.end);
+    // If the locals information is invalid the node start or end could be a label that does
+    // not exist in the program.
+    if (start == -1 || end == -1) {
+      throw new InvalidDebugInfoException(
+          "Locals information for '" + node.name + "' has undefined start or end point.");
+    }
     // Ensure that there is an entry at the starting point of the local.
     {
       LocalsAtOffset atStart;
