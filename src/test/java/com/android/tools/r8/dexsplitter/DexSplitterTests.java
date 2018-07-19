@@ -32,12 +32,15 @@ import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.internal.runners.statements.ExpectException;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 public class DexSplitterTests {
@@ -50,6 +53,8 @@ public class DexSplitterTests {
   private static final String CLASS3_INNER_CLASS = CLASS_DIR + "/Class3$InnerClass.class";
   private static final String CLASS4_CLASS = CLASS_DIR + "/Class4.class";
   private static final String CLASS4_LAMBDA_INTERFACE = CLASS_DIR + "/Class4$LambdaInterface.class";
+  private static final String TEXT_FILE =
+      ToolHelper.EXAMPLES_ANDROID_N_DIR + "dexsplitsample/TextFile.txt";
 
 
   @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -201,6 +206,19 @@ public class DexSplitterTests {
     }
   }
 
+  private void validateNonClassOutput(Path base, Path feature) throws IOException {
+    byte[] contents = Files.readAllBytes(Paths.get(TEXT_FILE));
+    byte[] contents2 = new byte[contents.length * 2];
+    System.arraycopy(contents, 0, contents2, 0, contents.length);
+    System.arraycopy(contents, 0, contents2, contents.length, contents.length);
+    Path baseTextFile = base.resolve("dexsplitsample/TextFile.txt");
+    Path featureTextFile = feature.resolve("dexsplitsample/TextFile2.txt");
+    assert Files.exists(baseTextFile);
+    assert Files.exists(featureTextFile);
+    assert Arrays.equals(Files.readAllBytes(baseTextFile), contents);
+    assert Arrays.equals(Files.readAllBytes(featureTextFile), contents2);
+  }
+
   private Path createSplitSpec() throws FileNotFoundException, UnsupportedEncodingException {
     Path splitSpec = temp.getRoot().toPath().resolve("split_spec");
     try (PrintWriter out = new PrintWriter(splitSpec.toFile(), "UTF-8")) {
@@ -222,8 +240,7 @@ public class DexSplitterTests {
 
   @Test
   public void splitFilesFromJar()
-      throws IOException, CompilationFailedException, FeatureMappingException, ResourceException,
-          ExecutionException {
+      throws IOException, CompilationFailedException, FeatureMappingException {
     splitFromJars(true, true);
     splitFromJars(false, true);
     splitFromJars(true, false);
@@ -304,7 +321,6 @@ public class DexSplitterTests {
     validateUnobfuscatedOutput(base, feature);
   }
 
-
   @Test
   public void splitFilesObfuscation()
       throws CompilationFailedException, IOException, ExecutionException {
@@ -367,5 +383,84 @@ public class DexSplitterTests {
     ClassSubject subject = inspector.clazz("dexsplitsample.Class1");
     assertTrue(subject.isPresent());
     assertTrue(subject.isRenamed());
+  }
+
+  @Test
+  public void splitNonClassFiles()
+      throws CompilationFailedException, IOException, FeatureMappingException {
+    Path inputZip = temp.getRoot().toPath().resolve("input-zip-with-non-class-files.jar");
+    ZipOutputStream inputZipStream = new ZipOutputStream(Files.newOutputStream(inputZip));
+    String name = "dexsplitsample/TextFile.txt";
+    inputZipStream.putNextEntry(new ZipEntry(name));
+    inputZipStream.write(Files.readAllBytes(Paths.get(TEXT_FILE)));
+    inputZipStream.closeEntry();
+    name = "dexsplitsample/TextFile2.txt";
+    inputZipStream.putNextEntry(new ZipEntry(name));
+    inputZipStream.write(Files.readAllBytes(Paths.get(TEXT_FILE)));
+    inputZipStream.write(Files.readAllBytes(Paths.get(TEXT_FILE)));
+    inputZipStream.closeEntry();
+    inputZipStream.close();
+    Path output = temp.newFolder().toPath().resolve("output");
+    Files.createDirectory(output);
+    Path baseJar = temp.getRoot().toPath().resolve("base.jar");
+    Path featureJar = temp.getRoot().toPath().resolve("feature1.jar");
+    ZipOutputStream baseStream = new ZipOutputStream(Files.newOutputStream(baseJar));
+    name = "dexsplitsample/TextFile.txt";
+    baseStream.putNextEntry(new ZipEntry(name));
+    baseStream.write(Files.readAllBytes(Paths.get(TEXT_FILE)));
+    baseStream.closeEntry();
+    baseStream.close();
+    ZipOutputStream featureStream = new ZipOutputStream(Files.newOutputStream(featureJar));
+    name = "dexsplitsample/TextFile2.txt";
+    featureStream.putNextEntry(new ZipEntry(name));
+    featureStream.write(Files.readAllBytes(Paths.get(TEXT_FILE)));
+    featureStream.write(Files.readAllBytes(Paths.get(TEXT_FILE)));
+    featureStream.closeEntry();
+    featureStream.close();
+    Options options = new Options();
+    options.addInputArchive(inputZip.toString());
+    options.setOutput(output.toString());
+    options.addFeatureJar(baseJar.toString());
+    options.addFeatureJar(featureJar.toString());
+    options.setSplitNonClassResources(true);
+    DexSplitter.run(options);
+    Path baseDir = output.resolve("base");
+    Path featureDir = output.resolve("feature1");
+    validateNonClassOutput(baseDir, featureDir);
+  }
+
+  @Test(expected = FeatureMappingException.class)
+  public void splitDuplicateNonClassFiles()
+      throws IOException, CompilationFailedException, FeatureMappingException {
+    Path inputZip = temp.getRoot().toPath().resolve("input-zip-with-non-class-files.jar");
+    ZipOutputStream inputZipStream = new ZipOutputStream(Files.newOutputStream(inputZip));
+    String name = "dexsplitsample/TextFile.txt";
+    inputZipStream.putNextEntry(new ZipEntry(name));
+    inputZipStream.write(Files.readAllBytes(Paths.get(TEXT_FILE)));
+    inputZipStream.closeEntry();
+    inputZipStream.close();
+    Path output = temp.newFolder().toPath().resolve("output");
+    Files.createDirectory(output);
+    Path featureJar = temp.getRoot().toPath().resolve("feature1.jar");
+    Path feature2Jar = temp.getRoot().toPath().resolve("feature2.jar");
+    ZipOutputStream featureStream = new ZipOutputStream(Files.newOutputStream(feature2Jar));
+    name = "dexsplitsample/TextFile.txt";
+    featureStream.putNextEntry(new ZipEntry(name));
+    featureStream.write(Files.readAllBytes(Paths.get(TEXT_FILE)));
+    featureStream.closeEntry();
+    featureStream.close();
+    ZipOutputStream feature2Stream = new ZipOutputStream(Files.newOutputStream(featureJar));
+    name = "dexsplitsample/TextFile.txt";
+    feature2Stream.putNextEntry(new ZipEntry(name));
+    feature2Stream.write(Files.readAllBytes(Paths.get(TEXT_FILE)));
+    feature2Stream.closeEntry();
+    feature2Stream.close();
+    Options options = new Options();
+    options.addInputArchive(inputZip.toString());
+    options.setOutput(output.toString());
+    options.addFeatureJar(feature2Jar.toString());
+    options.addFeatureJar(featureJar.toString());
+    options.setSplitNonClassResources(true);
+    DexSplitter.run(options);
   }
 }

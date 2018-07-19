@@ -9,12 +9,16 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.dexsplitter.DexSplitter.FeatureJar;
 import com.android.tools.r8.origin.PathOrigin;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * Provides a mappings of classes to modules. The structure of the input file is as follows:
@@ -43,6 +47,7 @@ import java.util.regex.Pattern;
 public final class FeatureClassMapping {
 
   HashMap<String, String> parsedRules = new HashMap<>(); // Already parsed rules.
+  HashMap<String, String> parseNonClassRules = new HashMap<>();
   boolean usesOnlyExactMappings = true;
 
   HashSet<FeaturePredicate> mappings = new HashSet<>();
@@ -122,6 +127,19 @@ public final class FeatureClassMapping {
           String javaType = DescriptorUtils.descriptorToJavaType(javaDescriptor);
           mapping.addMapping(javaType, featureJar.getOutputName());
         }
+        try (ZipFile zipfile = new ZipFile(jarPath.toString(), StandardCharsets.UTF_8)) {
+          Enumeration<? extends ZipEntry> entries = zipfile.entries();
+          while (entries.hasMoreElements()) {
+            ZipEntry entry = entries.nextElement();
+            String name = entry.getName();
+            if (!ZipUtils.isClassFile(name)) {
+              mapping.addNonClassMapping(name, featureJar.getOutputName());
+            }
+          }
+        } catch (IOException e) {
+          reporter.error(new ExceptionDiagnostic(e, new JarFileOrigin(jarPath)));
+          throw new AbortException();
+        }
       }
       assert mapping.usesOnlyExactMappings;
       return mapping;
@@ -133,6 +151,16 @@ public final class FeatureClassMapping {
 
   public void addMapping(String clazz, String feature) throws FeatureMappingException {
     addRule(clazz, feature, 0);
+  }
+
+  public void addNonClassMapping(String name, String feature) throws FeatureMappingException {
+    if (parseNonClassRules.containsKey(name)) {
+      throw new FeatureMappingException(
+          "Non-code files with the same name present in multiple feature splits. " +
+          "File '" + name + "' present in both '" + feature + "' and '" +
+          parseNonClassRules.get(name) + "'.");
+    }
+    parseNonClassRules.put(name, feature);
   }
 
   FeatureClassMapping(List<String> lines) throws FeatureMappingException {
@@ -159,6 +187,10 @@ public final class FeatureClassMapping {
       }
       return bestMatch.feature;
     }
+  }
+
+  public String featureForNonClass(String nonClass) {
+    return parseNonClassRules.getOrDefault(nonClass, baseName);
   }
 
   private void parseAndAdd(String line, int lineNumber) throws FeatureMappingException {
