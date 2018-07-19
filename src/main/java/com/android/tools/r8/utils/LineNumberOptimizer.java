@@ -203,7 +203,6 @@ public class LineNumberOptimizer {
 
   public static ClassNameMapper run(
       DexApplication application, NamingLens namingLens, boolean identityMapping) {
-    IdentityHashMap<DexString, List<DexProgramClass>> classesOfFiles = new IdentityHashMap<>();
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
