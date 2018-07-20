@@ -25,6 +25,8 @@ final class PublicizerLense extends NestedGraphLense {
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
+        null,
+        null,
         appView.getGraphLense(),
         appView.getAppInfo().dexItemFactory);
     this.appView = appView;

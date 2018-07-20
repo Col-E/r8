@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -85,6 +86,17 @@ public class BridgeMethodAnalysis {
         Map<DexMethod, DexMethod> bridgeTargetToBridgeMap) {
       this.previousLense = previousLense;
       this.bridgeTargetToBridgeMap = bridgeTargetToBridgeMap;
+    }
+
+    @Override
+    public DexField getOriginalFieldSignature(DexField field) {
+      return previousLense.getOriginalFieldSignature(field);
+    }
+
+    @Override
+    public DexMethod getOriginalMethodSignature(DexMethod method) {
+      // TODO(b/79143143): implement this when re-enable bridge analysis.
+      throw new Unimplemented("BridgeLense.getOriginalMethodSignature() not implemented");
     }
 
     @Override

@@ -38,7 +38,8 @@ public class MemberRebindingLense extends NestedGraphLense {
       Map<DexMethod, DexMethod> methodMap,
       Map<DexField, DexField> fieldMap,
       GraphLense previousLense) {
-    super(ImmutableMap.of(), methodMap, fieldMap, previousLense, appInfo.dexItemFactory);
+    super(
+        ImmutableMap.of(), methodMap, fieldMap, null, null, previousLense, appInfo.dexItemFactory);
     this.appInfo = appInfo;
   }
 

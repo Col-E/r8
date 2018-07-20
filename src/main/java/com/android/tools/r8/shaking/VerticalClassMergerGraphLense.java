@@ -14,6 +14,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
@@ -57,8 +60,17 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       Map<DexMethod, DexMethod> methodMap,
       Set<DexMethod> mergedMethods,
       Map<DexType, Map<DexMethod, GraphLenseLookupResult>> contextualVirtualToDirectMethodMaps,
+      BiMap<DexField, DexField> originalFieldSignatures,
+      BiMap<DexMethod, DexMethod> originalMethodSignatures,
       GraphLense previousLense) {
-    super(ImmutableMap.of(), methodMap, fieldMap, previousLense, appInfo.dexItemFactory);
+    super(
+        ImmutableMap.of(),
+        methodMap,
+        fieldMap,
+        originalFieldSignatures,
+        originalMethodSignatures,
+        previousLense,
+        appInfo.dexItemFactory);
     this.appInfo = appInfo;
     this.mergedMethods = mergedMethods;
     this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
@@ -138,11 +150,13 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   public static class Builder {
     private final AppInfo appInfo;
 
-    protected final Map<DexField, DexField> fieldMap = new HashMap<>();
+    protected final BiMap<DexField, DexField> fieldMap = HashBiMap.create();
     protected final Map<DexMethod, DexMethod> methodMap = new HashMap<>();
     private final ImmutableSet.Builder<DexMethod> mergedMethodsBuilder = ImmutableSet.builder();
     private final Map<DexType, Map<DexMethod, GraphLenseLookupResult>>
         contextualVirtualToDirectMethodMaps = new HashMap<>();
+
+    private final Map<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
     private Builder(AppInfo appInfo) {
       this.appInfo = appInfo;
@@ -157,37 +171,89 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
           && contextualVirtualToDirectMethodMaps.isEmpty()) {
         return previousLense;
       }
+      Map<DexProto, DexProto> cache = new HashMap<>();
+      BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
       return new VerticalClassMergerGraphLense(
           appInfo,
           fieldMap,
           methodMap,
           getMergedMethodSignaturesAfterClassMerging(
-              mergedMethodsBuilder.build(), mergedClasses, dexItemFactory),
+              mergedMethodsBuilder.build(), mergedClasses, dexItemFactory, cache),
           contextualVirtualToDirectMethodMaps,
+          getOriginalFieldSignaturesAfterClassMerging(
+              originalFieldSignatures, mergedClasses, dexItemFactory),
+          getOriginalMethodSignaturesAfterClassMerging(
+              originalMethodSignatures, mergedClasses, dexItemFactory, cache),
           previousLense);
     }
 
     // After we have recorded that a method "a.b.c.Foo;->m(A, B, C)V" was merged into another class,
     // it could be that the class B was merged into its subclass B'. In that case we update the
     // signature to "a.b.c.Foo;->m(A, B', C)V".
-    private Set<DexMethod> getMergedMethodSignaturesAfterClassMerging(
+    private static Set<DexMethod> getMergedMethodSignaturesAfterClassMerging(
         Set<DexMethod> mergedMethods,
         Map<DexType, DexType> mergedClasses,
-        DexItemFactory dexItemFactory) {
+        DexItemFactory dexItemFactory,
+        Map<DexProto, DexProto> cache) {
       ImmutableSet.Builder<DexMethod> result = ImmutableSet.builder();
-      Map<DexProto, DexProto> cache = new HashMap<>();
       for (DexMethod signature : mergedMethods) {
-        DexType newHolder = mergedClasses.getOrDefault(signature.holder, signature.holder);
-        DexProto newProto =
-            dexItemFactory.applyClassMappingToProto(
-                signature.proto, type -> mergedClasses.getOrDefault(type, type), cache);
-        if (signature.holder.equals(newHolder) && signature.proto.equals(newProto)) {
-          result.add(signature);
-        } else {
-          result.add(dexItemFactory.createMethod(newHolder, newProto, signature.name));
-        }
+        result.add(
+            getMethodSignatureAfterClassMerging(signature, mergedClasses, dexItemFactory, cache));
       }
       return result.build();
+    }
+
+    private static BiMap<DexField, DexField> getOriginalFieldSignaturesAfterClassMerging(
+        Map<DexField, DexField> originalFieldSignatures,
+        Map<DexType, DexType> mergedClasses,
+        DexItemFactory dexItemFactory) {
+      ImmutableBiMap.Builder<DexField, DexField> result = ImmutableBiMap.builder();
+      for (Map.Entry<DexField, DexField> entry : originalFieldSignatures.entrySet()) {
+        result.put(
+            getFieldSignatureAfterClassMerging(entry.getKey(), mergedClasses, dexItemFactory),
+            entry.getValue());
+      }
+      return result.build();
+    }
+
+    private static BiMap<DexMethod, DexMethod> getOriginalMethodSignaturesAfterClassMerging(
+        Map<DexMethod, DexMethod> originalMethodSignatures,
+        Map<DexType, DexType> mergedClasses,
+        DexItemFactory dexItemFactory,
+        Map<DexProto, DexProto> cache) {
+      ImmutableBiMap.Builder<DexMethod, DexMethod> result = ImmutableBiMap.builder();
+      for (Map.Entry<DexMethod, DexMethod> entry : originalMethodSignatures.entrySet()) {
+        result.put(
+            getMethodSignatureAfterClassMerging(
+                entry.getKey(), mergedClasses, dexItemFactory, cache),
+            entry.getValue());
+      }
+      return result.build();
+    }
+
+    private static DexField getFieldSignatureAfterClassMerging(
+        DexField signature, Map<DexType, DexType> mergedClasses, DexItemFactory dexItemFactory) {
+      DexType newClass = mergedClasses.getOrDefault(signature.clazz, signature.clazz);
+      DexType newType = mergedClasses.getOrDefault(signature.type, signature.type);
+      if (signature.clazz.equals(newClass) && signature.type.equals(newType)) {
+        return signature;
+      }
+      return dexItemFactory.createField(newClass, newType, signature.name);
+    }
+
+    private static DexMethod getMethodSignatureAfterClassMerging(
+        DexMethod signature,
+        Map<DexType, DexType> mergedClasses,
+        DexItemFactory dexItemFactory,
+        Map<DexProto, DexProto> cache) {
+      DexType newHolder = mergedClasses.getOrDefault(signature.holder, signature.holder);
+      DexProto newProto =
+          dexItemFactory.applyClassMappingToProto(
+              signature.proto, type -> mergedClasses.getOrDefault(type, type), cache);
+      if (signature.holder.equals(newHolder) && signature.proto.equals(newProto)) {
+        return signature;
+      }
+      return dexItemFactory.createMethod(newHolder, newProto, signature.name);
     }
 
     public boolean hasMappingForSignatureInContext(DexType context, DexMethod signature) {
@@ -211,6 +277,10 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       methodMap.put(from, to);
     }
 
+    public void recordMove(DexMethod from, DexMethod to) {
+      originalMethodSignatures.put(to, from);
+    }
+
     public void mapVirtualMethodToDirectInType(
         DexMethod from, GraphLenseLookupResult to, DexType type) {
       Map<DexMethod, GraphLenseLookupResult> virtualToDirectMethodMap =
@@ -222,6 +292,7 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       fieldMap.putAll(builder.fieldMap);
       methodMap.putAll(builder.methodMap);
       mergedMethodsBuilder.addAll(builder.mergedMethodsBuilder.build());
+      originalMethodSignatures.putAll(builder.originalMethodSignatures);
       for (DexType context : builder.contextualVirtualToDirectMethodMaps.keySet()) {
         Map<DexMethod, GraphLenseLookupResult> current =
             contextualVirtualToDirectMethodMaps.get(context);
