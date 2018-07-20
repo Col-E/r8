@@ -153,14 +153,9 @@ public final class FeatureClassMapping {
     addRule(clazz, feature, 0);
   }
 
-  public void addNonClassMapping(String name, String feature) throws FeatureMappingException {
-    if (parseNonClassRules.containsKey(name)) {
-      throw new FeatureMappingException(
-          "Non-code files with the same name present in multiple feature splits. " +
-          "File '" + name + "' present in both '" + feature + "' and '" +
-          parseNonClassRules.get(name) + "'.");
-    }
-    parseNonClassRules.put(name, feature);
+  public void addNonClassMapping(String name, String feature) {
+    // If a non-class file is present in multiple features put the resource in the base.
+    parseNonClassRules.put(name, parseNonClassRules.containsKey(name) ? baseName : feature);
   }
 
   FeatureClassMapping(List<String> lines) throws FeatureMappingException {
