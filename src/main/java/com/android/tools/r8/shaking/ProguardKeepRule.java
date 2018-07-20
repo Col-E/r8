@@ -3,39 +3,37 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class ProguardKeepRule extends ProguardConfigurationRule {
+public class ProguardKeepRule extends ProguardKeepRuleBase {
 
-  public static class Builder extends ProguardClassSpecification.Builder {
+  public static class Builder extends ProguardKeepRuleBase.Builder<ProguardKeepRule, Builder> {
 
-    private ProguardKeepRuleType type;
-    private final ProguardKeepRuleModifiers.Builder modifiersBuilder =
-        ProguardKeepRuleModifiers.builder();
-
-    protected Builder() {}
-
-    public void setType(ProguardKeepRuleType type) {
-      this.type = type;
+    protected Builder() {
+      super();
     }
 
-    public ProguardKeepRuleModifiers.Builder getModifiersBuilder() {
-      return modifiersBuilder;
+    @Override
+    public Builder self() {
+      return this;
     }
 
+    @Override
     public ProguardKeepRule build() {
-      return new ProguardKeepRule(classAnnotation, classAccessFlags, negatedClassAccessFlags,
-          classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
-          inheritanceIsExtends, memberRules, type, modifiersBuilder.build());
+      return new ProguardKeepRule(origin, getPosition(), source, classAnnotation, classAccessFlags,
+          negatedClassAccessFlags, classTypeNegated, classType, classNames, inheritanceAnnotation,
+          inheritanceClassName, inheritanceIsExtends, memberRules, type, modifiersBuilder.build());
     }
   }
 
-  private final ProguardKeepRuleType type;
-  private final ProguardKeepRuleModifiers modifiers;
-
   protected ProguardKeepRule(
+      Origin origin,
+      Position position,
+      String source,
       ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
@@ -48,10 +46,9 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
       List<ProguardMemberRule> memberRules,
       ProguardKeepRuleType type,
       ProguardKeepRuleModifiers modifiers) {
-    super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,
-        classNames, inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
-    this.type = type;
-    this.modifiers = modifiers;
+    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
+        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
+        inheritanceIsExtends, memberRules, type, modifiers);
   }
 
   /**
@@ -61,16 +58,11 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
     return new Builder();
   }
 
-  public ProguardKeepRuleType getType() {
-    return type;
-  }
-
-  public ProguardKeepRuleModifiers getModifiers() {
-    return modifiers;
-  }
-
   protected ProguardKeepRule materialize() {
     return new ProguardKeepRule(
+        Origin.unknown(),
+        Position.UNKNOWN,
+        null,
         getClassAnnotation(),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
@@ -93,23 +85,7 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
       return false;
     }
     ProguardKeepRule that = (ProguardKeepRule) o;
-
-    if (type != that.type) {
-      return false;
-    }
-    if (!modifiers.equals(that.modifiers)) {
-      return false;
-    }
     return super.equals(that);
-  }
-
-  @Override
-  public int hashCode() {
-    // Used multiplier 3 to avoid too much overflow when computing hashCode.
-    int result = type.hashCode();
-    result = 3 * result + modifiers.hashCode();
-    result = 3 * result + super.hashCode();
-    return result;
   }
 
   static void appendNonEmpty(StringBuilder builder, String pre, Object item, String post) {
@@ -126,16 +102,6 @@ public class ProguardKeepRule extends ProguardConfigurationRule {
         builder.append(post);
       }
     }
-  }
-
-  @Override
-  String typeString() {
-    return type.toString();
-  }
-
-  @Override
-  String modifierString() {
-    return modifiers.toString();
   }
 
   public static ProguardKeepRule defaultKeepAllRule(

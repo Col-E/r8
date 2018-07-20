@@ -228,7 +228,7 @@ public class ProguardConfigurationParser {
       } else if (acceptString("keepparameternames")) {
         configurationBuilder.setKeepParameterNames(true, origin, getPosition(optionStart));
       } else if (acceptString("checkdiscard")) {
-        ProguardCheckDiscardRule rule = parseCheckDiscardRule();
+        ProguardCheckDiscardRule rule = parseCheckDiscardRule(optionStart);
         configurationBuilder.addRule(rule);
       } else if (acceptString("keepdirectories")) {
         // TODO(74279367): Report an error until it's fully supported.
@@ -237,10 +237,10 @@ public class ProguardConfigurationParser {
         }
         parsePathFilter(configurationBuilder::addKeepDirectories);
       } else if (acceptString("keep")) {
-        ProguardKeepRule rule = parseKeepRule();
+        ProguardKeepRule rule = parseKeepRule(optionStart);
         configurationBuilder.addRule(rule);
       } else if (acceptString("whyareyoukeeping")) {
-        ProguardWhyAreYouKeepingRule rule = parseWhyAreYouKeepingRule();
+        ProguardWhyAreYouKeepingRule rule = parseWhyAreYouKeepingRule(optionStart);
         configurationBuilder.addRule(rule);
       } else if (acceptString("dontoptimize")) {
         configurationBuilder.disableOptimization();
@@ -316,10 +316,10 @@ public class ProguardConfigurationParser {
       } else if (acceptString("applymapping")) {
         configurationBuilder.setApplyMappingFile(parseFileName());
       } else if (acceptString("assumenosideeffects")) {
-        ProguardAssumeNoSideEffectRule rule = parseAssumeNoSideEffectsRule();
+        ProguardAssumeNoSideEffectRule rule = parseAssumeNoSideEffectsRule(optionStart);
         configurationBuilder.addRule(rule);
       } else if (acceptString("assumevalues")) {
-        ProguardAssumeValuesRule rule = parseAssumeValuesRule();
+        ProguardAssumeValuesRule rule = parseAssumeValuesRule(optionStart);
         configurationBuilder.addRule(rule);
       } else if (acceptString("include")) {
         // Collect the parsed configuration until the include.
@@ -348,16 +348,16 @@ public class ProguardConfigurationParser {
       } else if (acceptString("packageobfuscationdictionary")) {
         configurationBuilder.setPackageObfuscationDictionary(parseFileName());
       } else if (acceptString("alwaysinline")) {
-        InlineRule rule = parseInlineRule(Type.ALWAYS);
+        InlineRule rule = parseInlineRule(Type.ALWAYS, optionStart);
         configurationBuilder.addRule(rule);
       } else if (allowTestOptions && acceptString("forceinline")) {
-        InlineRule rule = parseInlineRule(Type.FORCE);
+        InlineRule rule = parseInlineRule(Type.FORCE, optionStart);
         configurationBuilder.addRule(rule);
         // Insert a matching -checkdiscard rule to ensure force inlining happens.
         ProguardCheckDiscardRule ruled = rule.asProguardCheckDiscardRule();
         configurationBuilder.addRule(ruled);
       } else if (allowTestOptions && acceptString("neverinline")) {
-        InlineRule rule = parseInlineRule(Type.NEVER);
+        InlineRule rule = parseInlineRule(Type.NEVER, optionStart);
         configurationBuilder.addRule(rule);
       } else if (acceptString("useuniqueclassmembernames")) {
         configurationBuilder.setUseUniqueClassMemberNames(true);
@@ -376,7 +376,7 @@ public class ProguardConfigurationParser {
         }
         parsePathFilter(configurationBuilder::addAdaptResourceFilecontents);
       } else if (acceptString("identifiernamestring")) {
-        configurationBuilder.addRule(parseIdentifierNameStringRule());
+        configurationBuilder.addRule(parseIdentifierNameStringRule(optionStart));
       } else if (acceptString("if")) {
         configurationBuilder.addRule(parseIfRule(optionStart));
       } else {
@@ -545,9 +545,11 @@ public class ProguardConfigurationParser {
       }
     }
 
-    private ProguardKeepRule parseKeepRule()
+    private ProguardKeepRule parseKeepRule(Position start)
         throws ProguardRuleParserException {
-      ProguardKeepRule.Builder keepRuleBuilder = ProguardKeepRule.builder();
+      ProguardKeepRule.Builder keepRuleBuilder = ProguardKeepRule.builder()
+          .setOrigin(origin)
+          .setStart(start);
       parseRuleTypeAndModifiers(keepRuleBuilder);
       parseClassSpec(keepRuleBuilder, false);
       if (keepRuleBuilder.getMemberRules().isEmpty()) {
@@ -560,13 +562,21 @@ public class ProguardConfigurationParser {
         defaultRuleBuilder.setArguments(Collections.emptyList());
         keepRuleBuilder.getMemberRules().add(defaultRuleBuilder.build());
       }
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
       return keepRuleBuilder.build();
     }
 
-    private ProguardWhyAreYouKeepingRule parseWhyAreYouKeepingRule()
+    private ProguardWhyAreYouKeepingRule parseWhyAreYouKeepingRule(Position start)
         throws ProguardRuleParserException {
-      ProguardWhyAreYouKeepingRule.Builder keepRuleBuilder = ProguardWhyAreYouKeepingRule.builder();
+      ProguardWhyAreYouKeepingRule.Builder keepRuleBuilder = ProguardWhyAreYouKeepingRule.builder()
+          .setOrigin(origin)
+          .setStart(start);
       parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
       return keepRuleBuilder.build();
     }
 
@@ -577,37 +587,56 @@ public class ProguardConfigurationParser {
       return keepRuleBuilder.build();
     }
 
-    private ProguardCheckDiscardRule parseCheckDiscardRule()
+    private ProguardCheckDiscardRule parseCheckDiscardRule(Position start)
         throws ProguardRuleParserException {
-      ProguardCheckDiscardRule.Builder keepRuleBuilder = ProguardCheckDiscardRule.builder();
+      ProguardCheckDiscardRule.Builder keepRuleBuilder = ProguardCheckDiscardRule.builder()
+          .setOrigin(origin)
+          .setStart(start);
       parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
       return keepRuleBuilder.build();
     }
 
-    private InlineRule parseInlineRule(InlineRule.Type type)
+    private InlineRule parseInlineRule(InlineRule.Type type, Position start)
         throws ProguardRuleParserException {
-      InlineRule.Builder keepRuleBuilder = InlineRule.builder().setType(type);
+      InlineRule.Builder keepRuleBuilder = InlineRule.builder()
+          .setOrigin(origin)
+          .setStart(start)
+          .setType(type);
       parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
       return keepRuleBuilder.build();
     }
 
-    private ProguardIdentifierNameStringRule parseIdentifierNameStringRule()
+    private ProguardIdentifierNameStringRule parseIdentifierNameStringRule(Position start)
         throws ProguardRuleParserException {
       ProguardIdentifierNameStringRule.Builder keepRuleBuilder =
-          ProguardIdentifierNameStringRule.builder();
+          ProguardIdentifierNameStringRule.builder()
+              .setOrigin(origin)
+              .setStart(start);
       parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
       return keepRuleBuilder.build();
     }
 
     private ProguardIfRule parseIfRule(TextPosition optionStart)
         throws ProguardRuleParserException {
-      ProguardIfRule.Builder ifRuleBuilder = ProguardIfRule.builder();
+      ProguardIfRule.Builder ifRuleBuilder = ProguardIfRule.builder()
+          .setOrigin(origin)
+          .setStart(optionStart);
       parseClassSpec(ifRuleBuilder, false);
 
       // Required a subsequent keep rule.
       skipWhitespace();
+      Position keepStart = getPosition();
       if (acceptString("-keep")) {
-        ProguardKeepRule subsequentRule = parseKeepRule();
+        ProguardKeepRule subsequentRule = parseKeepRule(keepStart);
         ifRuleBuilder.setSubsequentRule(subsequentRule);
         ProguardIfRule ifRule = ifRuleBuilder.build();
         verifyAndLinkBackReferences(ifRule.getWildcards());
@@ -636,8 +665,11 @@ public class ProguardConfigurationParser {
       }
     }
 
-    private void parseClassSpec(
-        ProguardConfigurationRule.Builder builder, boolean allowValueSpecification)
+    private
+    <C extends ProguardClassSpecification, B extends ProguardClassSpecification.Builder<C, B>>
+    void parseClassSpec(
+        ProguardClassSpecification.Builder<C, B> builder,
+        boolean allowValueSpecification)
         throws ProguardRuleParserException {
       parseClassFlagsAndAnnotations(builder);
       parseClassType(builder);
@@ -646,8 +678,7 @@ public class ProguardConfigurationParser {
       parseMemberRules(builder, allowValueSpecification);
     }
 
-    private void parseRuleTypeAndModifiers(ProguardKeepRule.Builder builder)
-        throws ProguardRuleParserException {
+    private void parseRuleTypeAndModifiers(ProguardKeepRule.Builder builder) {
       if (acceptString("names")) {
         builder.setType(ProguardKeepRuleType.KEEP);
         builder.getModifiersBuilder().setAllowsShrinking(true);
@@ -800,12 +831,15 @@ public class ProguardConfigurationParser {
           ClassOrType.CLASS, dexItemFactory));
     }
 
-    private void parseMemberRules(ProguardClassSpecification.Builder classSpecificationBuilder,
+    private
+    <C extends ProguardClassSpecification, B extends ProguardClassSpecification.Builder<C, B>>
+    void parseMemberRules(
+        ProguardClassSpecification.Builder<C, B> classSpecificationBuilder,
         boolean allowValueSpecification)
         throws ProguardRuleParserException {
       skipWhitespace();
       if (!eof() && acceptChar('{')) {
-        ProguardMemberRule rule = null;
+        ProguardMemberRule rule;
         while ((rule = parseMemberRule(allowValueSpecification)) != null) {
           classSpecificationBuilder.getMemberRules().add(rule);
         }
@@ -1086,16 +1120,27 @@ public class ProguardConfigurationParser {
       return fileFilter;
     }
 
-    private ProguardAssumeNoSideEffectRule parseAssumeNoSideEffectsRule()
+    private ProguardAssumeNoSideEffectRule parseAssumeNoSideEffectsRule(Position start)
         throws ProguardRuleParserException {
-      ProguardAssumeNoSideEffectRule.Builder builder = ProguardAssumeNoSideEffectRule.builder();
+      ProguardAssumeNoSideEffectRule.Builder builder = ProguardAssumeNoSideEffectRule.builder()
+          .setOrigin(origin)
+          .setStart(start);
       parseClassSpec(builder, true);
+      Position end = getPosition();
+      builder.setSource(getSourceSnippet(contents, start, end));
+      builder.setEnd(end);
       return builder.build();
     }
 
-    private ProguardAssumeValuesRule parseAssumeValuesRule() throws ProguardRuleParserException {
-      ProguardAssumeValuesRule.Builder builder = ProguardAssumeValuesRule.builder();
+    private ProguardAssumeValuesRule parseAssumeValuesRule(Position start)
+        throws ProguardRuleParserException {
+      ProguardAssumeValuesRule.Builder builder = ProguardAssumeValuesRule.builder()
+          .setOrigin(origin)
+          .setStart(start);
       parseClassSpec(builder, true);
+      Position end = getPosition();
+      builder.setSource(getSourceSnippet(contents, start, end));
+      builder.setEnd(end);
       return builder.build();
     }
 
@@ -1549,7 +1594,24 @@ public class ProguardConfigurationParser {
     private int getColumn() {
       return position - lineStartPosition + 1 /* column starts at 1 */;
     }
-  }
+
+    private String getSourceSnippet(String source, Position start, Position end) {
+      return start instanceof TextPosition && end instanceof TextPosition
+          ? getTextSourceSnippet(source, (TextPosition) start, (TextPosition) end)
+          : null;
+      }
+    }
+
+    private String getTextSourceSnippet(String source, TextPosition start, TextPosition end) {
+      long length = end.getOffset() - start.getOffset();
+      if (start.getOffset() < 0 || end.getOffset() < 0
+          || start.getOffset() >= source.length() || end.getOffset() > source.length()
+          || length <= 0) {
+        return null;
+      } else {
+        return source.substring((int) start.getOffset(), (int) end.getOffset());
+      }
+    }
 
   static class IdentifierPatternWithWildcards {
     final String pattern;

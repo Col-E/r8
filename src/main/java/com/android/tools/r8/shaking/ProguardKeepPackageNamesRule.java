@@ -3,23 +3,36 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import java.util.List;
 
 public class ProguardKeepPackageNamesRule extends ProguardConfigurationRule {
 
-  public static class Builder extends ProguardConfigurationRule.Builder {
+  public static class Builder
+      extends ProguardConfigurationRule.Builder<ProguardKeepPackageNamesRule, Builder> {
 
     private Builder() {
+      super();
     }
 
+    @Override
+    public Builder self() {
+      return this;
+    }
+
+    @Override
     public ProguardKeepPackageNamesRule build() {
-      return new ProguardKeepPackageNamesRule(classAnnotation, classAccessFlags,
-          negatedClassAccessFlags, classTypeNegated, classType, classNames, inheritanceAnnotation,
-          inheritanceClassName, inheritanceIsExtends, memberRules);
+      return new ProguardKeepPackageNamesRule(origin, getPosition(), source, classAnnotation,
+          classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType, classNames,
+          inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
     }
   }
 
   private ProguardKeepPackageNamesRule(
+      Origin origin,
+      Position position,
+      String source,
       ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
@@ -30,12 +43,13 @@ public class ProguardKeepPackageNamesRule extends ProguardConfigurationRule {
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
-    super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,
-        classNames, inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
+    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
+        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
+        inheritanceIsExtends, memberRules);
   }
 
-  public static ProguardKeepPackageNamesRule.Builder builder() {
-    return new ProguardKeepPackageNamesRule.Builder();
+  public static Builder builder() {
+    return new Builder();
   }
 
   @Override

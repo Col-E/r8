@@ -3,17 +3,28 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import com.google.common.collect.Iterables;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ProguardIfRule extends ProguardKeepRule {
+public class ProguardIfRule extends ProguardKeepRuleBase {
 
   final ProguardKeepRule subsequentRule;
 
-  public static class Builder extends ProguardKeepRule.Builder {
+  public static class Builder extends ProguardKeepRuleBase.Builder<ProguardIfRule, Builder> {
 
     ProguardKeepRule subsequentRule = null;
+
+    protected Builder() {
+      super();
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
 
     public void setSubsequentRule(ProguardKeepRule rule) {
       subsequentRule = rule;
@@ -22,13 +33,17 @@ public class ProguardIfRule extends ProguardKeepRule {
     @Override
     public ProguardIfRule build() {
       assert subsequentRule != null : "Option -if without a subsequent rule.";
-      return new ProguardIfRule(classAnnotation, classAccessFlags,
+      return new ProguardIfRule(origin, getPosition(), source, classAnnotation, classAccessFlags,
           negatedClassAccessFlags, classTypeNegated, classType, classNames, inheritanceAnnotation,
           inheritanceClassName, inheritanceIsExtends, memberRules, subsequentRule);
     }
   }
 
-  private ProguardIfRule(ProguardTypeMatcher classAnnotation,
+  private ProguardIfRule(
+      Origin origin,
+      Position position,
+      String source,
+      ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags, boolean classTypeNegated,
       ProguardClassType classType, ProguardClassNameList classNames,
@@ -36,8 +51,9 @@ public class ProguardIfRule extends ProguardKeepRule {
       ProguardTypeMatcher inheritanceClassName, boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules,
       ProguardKeepRule subsequentRule) {
-    super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,
-        classNames, inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules,
+    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
+        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
+        inheritanceIsExtends, memberRules,
         ProguardKeepRuleType.CONDITIONAL, ProguardKeepRuleModifiers.builder().build());
     this.subsequentRule = subsequentRule;
   }
@@ -51,9 +67,11 @@ public class ProguardIfRule extends ProguardKeepRule {
     return Iterables.concat(super.getWildcards(), subsequentRule.getWildcards());
   }
 
-  @Override
   protected ProguardIfRule materialize() {
     return new ProguardIfRule(
+        Origin.unknown(),
+        Position.UNKNOWN,
+        null,
         getClassAnnotation(),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),

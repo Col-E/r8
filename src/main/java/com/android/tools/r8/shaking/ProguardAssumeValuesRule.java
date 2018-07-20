@@ -3,21 +3,36 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import java.util.List;
 
 public class ProguardAssumeValuesRule extends ProguardConfigurationRule {
-  public static class Builder extends ProguardClassSpecification.Builder {
 
-    private Builder() {}
+  public static class Builder
+      extends ProguardConfigurationRule.Builder<ProguardAssumeValuesRule, Builder> {
 
+    private Builder() {
+      super();
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
+
+    @Override
     public ProguardAssumeValuesRule build() {
-      return new ProguardAssumeValuesRule(classAnnotation, classAccessFlags, negatedClassAccessFlags,
-          classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
-          inheritanceIsExtends, memberRules);
+      return new ProguardAssumeValuesRule(origin, getPosition(), source, classAnnotation,
+          classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType, classNames,
+          inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
     }
   }
 
   private ProguardAssumeValuesRule(
+      Origin origin,
+      Position position,
+      String source,
       ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
@@ -28,8 +43,9 @@ public class ProguardAssumeValuesRule extends ProguardConfigurationRule {
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
-    super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,
-        classNames, inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
+    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
+        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
+        inheritanceIsExtends, memberRules);
   }
 
   /**
