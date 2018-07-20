@@ -67,7 +67,7 @@ public class InliningConstraintVisitor extends MethodVisitor {
   }
 
   private void updateConstraint(ConstraintWithTarget other) {
-    constraint = ConstraintWithTarget.min(constraint, other, appInfo);
+    constraint = ConstraintWithTarget.meet(constraint, other, appInfo);
   }
 
   // Used to signal that the result is ready, such that we do not need to visit all instructions of

@@ -52,7 +52,7 @@ public class ConstraintWithTargetTest {
   }
 
   private ConstraintWithTarget meet(ConstraintWithTarget e1, ConstraintWithTarget e2) {
-    return ConstraintWithTarget.min(e1, e2, appInfo);
+    return ConstraintWithTarget.meet(e1, e2, appInfo);
   }
 
   @Test
