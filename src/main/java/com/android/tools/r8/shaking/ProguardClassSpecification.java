@@ -3,6 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
+import com.android.tools.r8.position.TextPosition;
+import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedList;
@@ -11,8 +15,13 @@ import java.util.Objects;
 
 public abstract class ProguardClassSpecification {
 
-  public static class Builder {
+  public abstract static class
+  Builder<C extends ProguardClassSpecification, B extends Builder<C, B>> {
 
+    protected Origin origin;
+    protected Position start;
+    protected Position end;
+    protected String source;
     protected ProguardTypeMatcher classAnnotation;
     protected ProguardAccessFlags classAccessFlags = new ProguardAccessFlags();
     protected ProguardAccessFlags negatedClassAccessFlags = new ProguardAccessFlags();
@@ -25,6 +34,46 @@ public abstract class ProguardClassSpecification {
     protected List<ProguardMemberRule> memberRules = new LinkedList<>();
 
     protected Builder() {
+      this(Origin.unknown(), Position.UNKNOWN);
+    }
+
+    protected Builder(Origin origin, Position start) {
+      this.origin = origin;
+      this.start = start;
+    }
+
+    public abstract C build();
+
+    public abstract B self();
+
+    public B setOrigin(Origin origin) {
+      this.origin = origin;
+      return self();
+    }
+
+    public B setStart(Position start) {
+      this.start = start;
+      return self();
+    }
+
+    public B setEnd(Position end) {
+      this.end = end;
+      return self();
+    }
+
+    public B setSource(String source) {
+      this.source = source;
+      return self();
+    }
+
+    public Position getPosition() {
+      if (start == null) {
+        return Position.UNKNOWN;
+      }
+      if (end == null || !((start instanceof TextPosition) && (end instanceof TextPosition))) {
+        return start;
+      }
+      return new TextRange((TextPosition) start, (TextPosition) end);
     }
 
     public List<ProguardMemberRule> getMemberRules() {
@@ -117,6 +166,9 @@ public abstract class ProguardClassSpecification {
     }
   }
 
+  private final Origin origin;
+  private final Position position;
+  private final String source;
   private final ProguardTypeMatcher classAnnotation;
   private final ProguardAccessFlags classAccessFlags;
   private final ProguardAccessFlags negatedClassAccessFlags;
@@ -129,6 +181,9 @@ public abstract class ProguardClassSpecification {
   private final List<ProguardMemberRule> memberRules;
 
   protected ProguardClassSpecification(
+      Origin origin,
+      Position position,
+      String source,
       ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
@@ -139,6 +194,9 @@ public abstract class ProguardClassSpecification {
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
+    this.origin = origin;
+    this.position = position;
+    this.source =source;
     this.classAnnotation = classAnnotation;
     this.classAccessFlags = classAccessFlags;
     this.negatedClassAccessFlags = negatedClassAccessFlags;
@@ -150,6 +208,18 @@ public abstract class ProguardClassSpecification {
     this.inheritanceClassName = inheritanceClassName;
     this.inheritanceIsExtends = inheritanceIsExtends;
     this.memberRules = memberRules;
+  }
+
+  public Origin getOrigin() {
+    return origin;
+  }
+
+  public Position getPosition() {
+    return position;
+  }
+
+  public String getSource() {
+    return source;
   }
 
   public List<ProguardMemberRule> getMemberRules() {

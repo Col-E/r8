@@ -3,22 +3,35 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import java.util.List;
 
 public class ProguardIdentifierNameStringRule extends ProguardConfigurationRule {
 
-  public static class Builder extends ProguardConfigurationRule.Builder {
+  public static class Builder
+      extends ProguardConfigurationRule.Builder<ProguardIdentifierNameStringRule, Builder> {
     private Builder() {
+      super();
     }
 
+    @Override
+    public Builder self() {
+      return this;
+    }
+
+    @Override
     public ProguardIdentifierNameStringRule build() {
-      return new ProguardIdentifierNameStringRule(classAnnotation, classAccessFlags,
-          negatedClassAccessFlags, classTypeNegated, classType, classNames, inheritanceAnnotation,
-          inheritanceClassName, inheritanceIsExtends, memberRules);
+      return new ProguardIdentifierNameStringRule(origin, getPosition(), source, classAnnotation,
+          classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType, classNames,
+          inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
     }
   }
 
   private ProguardIdentifierNameStringRule(
+      Origin origin,
+      Position position,
+      String source,
       ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
@@ -29,8 +42,9 @@ public class ProguardIdentifierNameStringRule extends ProguardConfigurationRule 
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
-    super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,
-        classNames, inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
+    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
+        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
+        inheritanceIsExtends, memberRules);
   }
 
   public static Builder builder() {

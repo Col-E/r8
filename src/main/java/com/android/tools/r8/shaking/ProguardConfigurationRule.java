@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
@@ -11,6 +13,9 @@ import java.util.stream.StreamSupport;
 
 public abstract class ProguardConfigurationRule extends ProguardClassSpecification {
   ProguardConfigurationRule(
+      Origin origin,
+      Position position,
+      String source,
       ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
@@ -21,8 +26,9 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
-    super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,
-        classNames, inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
+    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
+        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
+        inheritanceIsExtends, memberRules);
   }
 
   abstract String typeString();

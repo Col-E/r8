@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -1813,6 +1814,66 @@ public class ProguardConfigurationParserTest extends TestBase {
     testNotSupported("-adaptresourcefilecontents");
   }
 
+  private void checkRulesSourceSnippet(List<String> sourceRules) {
+    checkRulesSourceSnippet(sourceRules, sourceRules, false);
+  }
+
+  private void checkRulesSourceSnippet(
+      List<String> sourceRules, List<String> expected, boolean trim) {
+    reset();
+    parser.parse(createConfigurationForTesting(sourceRules));
+    verifyParserEndsCleanly();
+    List<ProguardConfigurationRule> rules = parser.getConfig().getRules();
+    assertEquals(expected.size(), rules.size());
+    for (int i = 0; i < expected.size(); i++) {
+      assertEquals(trim ? expected.get(i).trim() : expected.get(i), rules.get(i).getSource());
+    }
+  }
+
+  @Test
+  public void accurateSourceSnippet() {
+    String rule1 = String.join(System.lineSeparator(), ImmutableList.of("-keep class A  {  *;  }"));
+    String rule2 =
+        String.join(System.lineSeparator(), ImmutableList.of("-keep class A  ", "{  *;  ", "}"));
+    String rule3 =
+        String.join(
+            System.lineSeparator(), ImmutableList.of("-checkdiscard class A  ", "{  *;  ", "}"));
+
+    checkRulesSourceSnippet(ImmutableList.of(rule1));
+    checkRulesSourceSnippet(ImmutableList.of(rule2));
+    checkRulesSourceSnippet(ImmutableList.of(rule3));
+    checkRulesSourceSnippet(ImmutableList.of(rule1, rule2, rule3));
+  }
+
+  @Test
+  public void accurateSourceSnippet_withWhitespace() {
+    Iterable<String> nonEmptyWhiteSpace =
+        whiteSpace.stream().filter(space -> !space.equals("")).collect(Collectors.toList());
+    for (String space : nonEmptyWhiteSpace) {
+      String rule1 =
+          String.join(System.lineSeparator(), ImmutableList.of("  -keep class A  {  *;  }  "))
+              .replaceAll(" {2}", space);
+      String rule2 =
+          String.join(
+                  System.lineSeparator(), ImmutableList.of("-keep class A  ", "{  *;  ", "}", ""))
+              .replaceAll(" {2}", space);
+
+      checkRulesSourceSnippet(ImmutableList.of(rule1), ImmutableList.of(rule1), true);
+      checkRulesSourceSnippet(
+          ImmutableList.of("#Test comment ", "", rule1), ImmutableList.of(rule1), true);
+      checkRulesSourceSnippet(
+          ImmutableList.of("#Test comment ", "", rule1, "", "#Test comment ", ""),
+          ImmutableList.of(rule1),
+          true);
+      checkRulesSourceSnippet(ImmutableList.of(rule2), ImmutableList.of(rule2), true);
+      checkRulesSourceSnippet(ImmutableList.of(rule1, rule2), ImmutableList.of(rule1, rule2), true);
+      checkRulesSourceSnippet(
+          ImmutableList.of(
+              "#Test comment ", "", rule1, " ", "#Test comment ", "", rule2, "#Test comment ", ""),
+          ImmutableList.of(rule1, rule2),
+          true);
+    }
+  }
 
   private ProguardConfiguration parseAndVerifyParserEndsCleanly(List<String> config) {
     parser.parse(createConfigurationForTesting(config));

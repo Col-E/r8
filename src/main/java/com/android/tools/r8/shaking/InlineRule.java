@@ -4,6 +4,8 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import java.util.List;
 
 public class InlineRule extends ProguardConfigurationRule {
@@ -12,20 +14,27 @@ public class InlineRule extends ProguardConfigurationRule {
     ALWAYS, FORCE, NEVER
   }
 
-  public static class Builder extends ProguardConfigurationRule.Builder {
+  public static class Builder extends ProguardConfigurationRule.Builder<InlineRule, Builder> {
 
     private Builder() {
+      super();
     }
 
     Type type;
+
+    @Override
+    public Builder self() {
+      return this;
+    }
 
     public Builder setType(Type type) {
       this.type = type;
       return this;
     }
 
+    @Override
     public InlineRule build() {
-      return new InlineRule(classAnnotation, classAccessFlags,
+      return new InlineRule(origin, getPosition(), source, classAnnotation, classAccessFlags,
           negatedClassAccessFlags, classTypeNegated, classType, classNames, inheritanceAnnotation,
           inheritanceClassName, inheritanceIsExtends, memberRules, type);
     }
@@ -34,6 +43,9 @@ public class InlineRule extends ProguardConfigurationRule {
   private final Type type;
 
   private InlineRule(
+      Origin origin,
+      Position position,
+      String source,
       ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
@@ -45,13 +57,14 @@ public class InlineRule extends ProguardConfigurationRule {
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules,
       Type type) {
-    super(classAnnotation, classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType,
-        classNames, inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
+    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
+        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
+        inheritanceIsExtends, memberRules);
     this.type = type;
   }
 
-  public static InlineRule.Builder builder() {
-    return new InlineRule.Builder();
+  public static Builder builder() {
+    return new Builder();
   }
 
   public Type getType() {
