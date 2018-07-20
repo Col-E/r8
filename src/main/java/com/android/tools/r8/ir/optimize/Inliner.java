@@ -97,7 +97,7 @@ public class Inliner {
         break;
       }
       // TODO(b/111080693): we may need to collect all meaningful constraints.
-      result = ConstraintWithTarget.min(result, state, appInfo);
+      result = ConstraintWithTarget.meet(result, state, appInfo);
     }
     return result;
   }
@@ -179,11 +179,17 @@ public class Inliner {
    */
   public enum Constraint {
     // The ordinal values are important so please do not reorder.
-    NEVER,     // Never inline this.
-    SAMECLASS, // Only inline this into methods with same holder.
-    PACKAGE,   // Only inline this into methods with holders from the same package.
-    SUBCLASS,  // Only inline this into methods with holders from a subclass in a different package.
-    ALWAYS;    // No restrictions for inlining this.
+    NEVER(1),     // Never inline this.
+    SAMECLASS(2), // Inlineable into methods with same holder.
+    PACKAGE(4),   // Inlineable into methods with holders from the same package.
+    SUBCLASS(8),  // Inlineable into methods with holders from a subclass in a different package.
+    ALWAYS(16);   // No restrictions for inlining this.
+
+    int value;
+
+    Constraint(int value) {
+      this.value = value;
+    }
 
     static {
       assert NEVER.ordinal() < SAMECLASS.ordinal();
@@ -192,8 +198,8 @@ public class Inliner {
       assert SUBCLASS.ordinal() < ALWAYS.ordinal();
     }
 
-    static Constraint min(Constraint one, Constraint other) {
-      return one.ordinal() < other.ordinal() ? one : other;
+    boolean isSet(int value) {
+      return (this.value & value) != 0;
     }
   }
 
@@ -292,26 +298,26 @@ public class Inliner {
           : deriveConstraint(context, clazz, definition.accessFlags, appInfo);
     }
 
-    public static ConstraintWithTarget min(
+    public static ConstraintWithTarget meet(
         ConstraintWithTarget one, ConstraintWithTarget other, AppInfoWithSubtyping appInfo) {
       if (one.equals(other)) {
         return one;
       }
-      if (one == NEVER || other == NEVER) {
-        return NEVER;
-      }
       if (other.constraint.ordinal() < one.constraint.ordinal()) {
-        return min(other, one, appInfo);
+        return meet(other, one, appInfo);
       }
       // From now on, one.constraint.ordinal() <= other.constraint.ordinal()
+      if (one == NEVER) {
+        return NEVER;
+      }
       if (other == ALWAYS) {
         return one;
       }
-      Constraint minConstraint = Constraint.min(one.constraint, other.constraint);
-      assert minConstraint != Constraint.NEVER;
-      assert minConstraint != Constraint.ALWAYS;
+      int constraint = one.constraint.value | other.constraint.value;
+      assert !Constraint.NEVER.isSet(constraint);
+      assert !Constraint.ALWAYS.isSet(constraint);
       // SAMECLASS <= SAMECLASS, PACKAGE, SUBCLASS
-      if (minConstraint == Constraint.SAMECLASS) {
+      if (Constraint.SAMECLASS.isSet(constraint)) {
         assert one.constraint == Constraint.SAMECLASS;
         if (other.constraint == Constraint.SAMECLASS) {
           assert one.targetHolder != other.targetHolder;
@@ -330,14 +336,14 @@ public class Inliner {
         return NEVER;
       }
       // PACKAGE <= PACKAGE, SUBCLASS
-      if (minConstraint == Constraint.PACKAGE) {
+      if (Constraint.PACKAGE.isSet(constraint)) {
         assert one.constraint == Constraint.PACKAGE;
         if (other.constraint == Constraint.PACKAGE) {
           assert one.targetHolder != other.targetHolder;
           if (one.targetHolder.isSamePackage(other.targetHolder)) {
             return one;
           }
-          // PACKAGE of x and PACKAGE of y can be satisfied together.
+          // PACKAGE of x and PACKAGE of y cannot be satisfied together.
           return NEVER;
         }
         assert other.constraint == Constraint.SUBCLASS;
@@ -346,12 +352,12 @@ public class Inliner {
           return one;
         }
         // TODO(b/111080693): towards finer-grained constraints, we need both.
-        // Even though they're in different package, it is still inlinable to a class that is
-        // in the same package of one's context and a sub type of other's context.
+        // The target method is still inlineable to methods with a holder from the same package of
+        // one's holder and a subtype of other's holder.
         return NEVER;
       }
       // SUBCLASS <= SUBCLASS
-      assert minConstraint == Constraint.SUBCLASS;
+      assert Constraint.SUBCLASS.isSet(constraint);
       assert one.constraint == other.constraint;
       assert one.targetHolder != other.targetHolder;
       if (one.targetHolder.isSubtypeOf(other.targetHolder, appInfo)) {

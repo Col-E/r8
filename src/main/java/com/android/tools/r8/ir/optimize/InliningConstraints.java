@@ -254,7 +254,7 @@ public class InliningConstraints {
       ConstraintWithTarget classConstraintWithTarget =
           ConstraintWithTarget.deriveConstraint(
               invocationContext, fieldHolder, fieldClass.accessFlags, appInfo);
-      return ConstraintWithTarget.min(
+      return ConstraintWithTarget.meet(
           fieldConstraintWithTarget, classConstraintWithTarget, appInfo);
     }
     return ConstraintWithTarget.NEVER;
@@ -276,7 +276,7 @@ public class InliningConstraints {
         ConstraintWithTarget classConstraintWithTarget =
             ConstraintWithTarget.deriveConstraint(
                 invocationContext, methodHolder, methodClass.accessFlags, appInfo);
-        return ConstraintWithTarget.min(
+        return ConstraintWithTarget.meet(
             methodConstraintWithTarget, classConstraintWithTarget, appInfo);
       }
     }
@@ -316,7 +316,7 @@ public class InliningConstraints {
         ConstraintWithTarget.deriveConstraint(
             invocationContext, methodHolder, methodClass.accessFlags, appInfo);
     ConstraintWithTarget result =
-        ConstraintWithTarget.min(methodConstraintWithTarget, classConstraintWithTarget, appInfo);
+        ConstraintWithTarget.meet(methodConstraintWithTarget, classConstraintWithTarget, appInfo);
     if (result == ConstraintWithTarget.NEVER) {
       return result;
     }
@@ -329,7 +329,7 @@ public class InliningConstraints {
       methodConstraintWithTarget =
           ConstraintWithTarget.deriveConstraint(
               invocationContext, methodHolder, target.accessFlags, appInfo);
-      result = ConstraintWithTarget.min(result, methodConstraintWithTarget, appInfo);
+      result = ConstraintWithTarget.meet(result, methodConstraintWithTarget, appInfo);
       if (result == ConstraintWithTarget.NEVER) {
         return result;
       }
