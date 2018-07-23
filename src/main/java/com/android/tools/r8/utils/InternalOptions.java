@@ -537,7 +537,7 @@ public class InternalOptions {
   //
   // See b/69364976 and b/77996377.
   public boolean canHaveBoundsCheckEliminationBug() {
-    return minApiLevel <= AndroidApiLevel.L.getLevel();
+    return minApiLevel < AndroidApiLevel.M.getLevel();
   }
 
   // MediaTek JIT compilers for KitKat phones did not implement the not
@@ -631,7 +631,7 @@ public class InternalOptions {
   //
   // See b/78493232 and b/80118070.
   public boolean canHaveArtStringNewInitBug() {
-    return minApiLevel <= AndroidApiLevel.P.getLevel();
+    return minApiLevel < AndroidApiLevel.Q.getLevel();
   }
 
   // Dalvik tracing JIT may perform invalid optimizations when int/float values are converted to
@@ -639,6 +639,6 @@ public class InternalOptions {
   //
   // See b/77496850.
   public boolean canHaveNumberConversionRegisterAllocationBug() {
-    return minApiLevel <= AndroidApiLevel.K.getLevel();
+    return minApiLevel < AndroidApiLevel.L.getLevel();
   }
 }

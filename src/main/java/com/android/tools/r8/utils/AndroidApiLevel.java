@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
  * Android API level description
  */
 public enum AndroidApiLevel {
+  Q(29),  // Speculative, this can change.
   P(28),
   O_MR1(27),
   O(26),
