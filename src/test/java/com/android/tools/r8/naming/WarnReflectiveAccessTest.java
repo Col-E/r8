@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DiagnosticsChecker;
 import com.android.tools.r8.OutputMode;
@@ -72,15 +73,17 @@ public class WarnReflectiveAccessTest extends TestBase {
       byte[][] classes,
       Class main,
       Path out,
+      boolean explicitRule,
       boolean enableMinification,
       boolean forceProguardCompatibility)
       throws Exception {
     String minificationModifier = enableMinification ? ",allowobfuscation " : " ";
-    String reflectionRules = forceProguardCompatibility ? ""
-        : "-identifiernamestring class java.lang.Class {\n"
+    String reflectionRules = explicitRule
+        ? "-identifiernamestring class java.lang.Class {\n"
             + "static java.lang.Class forName(java.lang.String);\n"
             + "java.lang.reflect.Method getDeclaredMethod(java.lang.String, java.lang.Class[]);\n"
-            + "}\n";
+            + "}\n"
+        : "";
     R8Command.Builder commandBuilder =
         R8Command.builder(reporter)
             .addProguardConfiguration(
@@ -102,7 +105,8 @@ public class WarnReflectiveAccessTest extends TestBase {
     });
   }
 
-  private void reflectionWithBuildter(
+  private void reflectionWithBuilder(
+      boolean explicitRule,
       boolean enableMinification,
       boolean forceProguardCompatibility) throws Exception {
     byte[][] classes = {
@@ -110,7 +114,7 @@ public class WarnReflectiveAccessTest extends TestBase {
     };
     Path out = temp.getRoot().toPath();
     AndroidApp processedApp = runR8(classes, WarnReflectiveAccessTestMain.class, out,
-        enableMinification, forceProguardCompatibility);
+        explicitRule, enableMinification, forceProguardCompatibility);
 
     String main = WarnReflectiveAccessTestMain.class.getCanonicalName();
     CodeInspector codeInspector = new CodeInspector(processedApp);
@@ -133,35 +137,59 @@ public class WarnReflectiveAccessTest extends TestBase {
   }
 
   @Test
-  public void test_minification_forceProguardCompatibility() throws Exception {
-    reflectionWithBuildter(true, true);
+  public void test_explicit_minification_forceProguardCompatibility() throws Exception {
+    reflectionWithBuilder(true, true, true);
     assertFalse(handler.warnings.isEmpty());
-    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 54, 1,
-        "Cannot determine", "getDeclaredMethod", "resolution failure");
-  }
-
-  @Test
-  public void test_noMinification_forceProguardCompatibility() throws Exception {
-    reflectionWithBuildter(false, true);
-    assertFalse(handler.warnings.isEmpty());
-    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 54, 1,
-        "Cannot determine", "getDeclaredMethod", "resolution failure");
-  }
-
-  @Test
-  public void test_minification_R8() throws Exception {
-    reflectionWithBuildter(true, false);
-    assertFalse(handler.warnings.isEmpty());
-    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 54, 1,
+    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 55, 1,
         "Cannot determine", "getDeclaredMethod", "-identifiernamestring", "resolution failure");
   }
 
   @Test
-  public void test_noMinification_R8() throws Exception {
-    reflectionWithBuildter(false, false);
+  public void test_explicit_noMinification_forceProguardCompatibility() throws Exception {
+    reflectionWithBuilder(true, false, true);
     assertFalse(handler.warnings.isEmpty());
-    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 54, 1,
+    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 55, 1,
         "Cannot determine", "getDeclaredMethod", "-identifiernamestring", "resolution failure");
+  }
+
+  @Test
+  public void test_explicit_minification_R8() throws Exception {
+    reflectionWithBuilder(true, true, false);
+    assertFalse(handler.warnings.isEmpty());
+    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 55, 1,
+        "Cannot determine", "getDeclaredMethod", "-identifiernamestring", "resolution failure");
+  }
+
+  @Test
+  public void test_explicit_noMinification_R8() throws Exception {
+    reflectionWithBuilder(true, false, false);
+    assertFalse(handler.warnings.isEmpty());
+    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 55, 1,
+        "Cannot determine", "getDeclaredMethod", "-identifiernamestring", "resolution failure");
+  }
+
+  @Test
+  public void test_implicit_minification_forceProguardCompatibility() throws Exception {
+    reflectionWithBuilder(false, true, true);
+    assertTrue(handler.warnings.isEmpty());
+  }
+
+  @Test
+  public void test_implicit_noMinification_forceProguardCompatibility() throws Exception {
+    reflectionWithBuilder(false, false, true);
+    assertTrue(handler.warnings.isEmpty());
+  }
+
+  @Test
+  public void test_implicit_minification_R8() throws Exception {
+    reflectionWithBuilder(false, true, false);
+    assertTrue(handler.warnings.isEmpty());
+  }
+
+  @Test
+  public void test_implicit_noMinification_R8() throws Exception {
+    reflectionWithBuilder(false, false, false);
+    assertTrue(handler.warnings.isEmpty());
   }
 
 }

@@ -5,7 +5,6 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentiferNameString;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
-import static com.android.tools.r8.naming.IdentifierNameStringUtils.warnUndeterminedIdentifierIfNecessary;
 import static com.android.tools.r8.shaking.ProguardConfigurationUtils.buildIdentifierNameStringRule;
 
 import com.android.tools.r8.Diagnostic;
@@ -58,6 +57,8 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -186,10 +187,9 @@ public class Enqueuer {
   private final Queue<Action> proguardCompatibilityWorkList = Queues.newArrayDeque();
 
   /**
-   * A set of methods that need code inspection for Proguard compatibility rules.
+   * A set of methods that need code inspection for Java reflection in use.
    */
-  private final Set<DexEncodedMethod> pendingProguardReflectiveCompatibility =
-      Sets.newLinkedHashSet();
+  private final Set<DexEncodedMethod> pendingReflectiveUses = Sets.newLinkedHashSet();
 
   /**
    * A cache for DexMethod that have been marked reachable.
@@ -305,13 +305,15 @@ public class Enqueuer {
 
     boolean registerInvokeVirtual(DexMethod method, KeepReason keepReason) {
       if (appInfo.dexItemFactory.classMethods.isReflectiveMemberLookup(method)) {
-        if (forceProguardCompatibility) {
-          // TODO(b/76181966): whether or not add this rule in normal mode.
-          if (identifierNameStrings.add(method) && compatibility != null) {
+        // Implicitly add -identifiernamestring rule for the Java reflection in use.
+        if (identifierNameStrings.add(method)) {
+          // Add -identifiernamestring rule to Compatibility configuration builder for testing.
+          if (forceProguardCompatibility && compatibility != null) {
             compatibility.addRule(buildIdentifierNameStringRule(method));
           }
-          pendingProguardReflectiveCompatibility.add(currentMethod);
         }
+        // Revisit the current method to implicitly add -keep rule for items with reflective access.
+        pendingReflectiveUses.add(currentMethod);
       }
       if (!registerItemWithTarget(virtualInvokes, method)) {
         return false;
@@ -347,13 +349,15 @@ public class Enqueuer {
     boolean registerInvokeStatic(DexMethod method, KeepReason keepReason) {
       if (method == appInfo.dexItemFactory.classMethods.forName
           || appInfo.dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method)) {
-        if (forceProguardCompatibility) {
-          // TODO(b/76181966): whether or not add this rule in normal mode.
-          if (identifierNameStrings.add(method) && compatibility != null) {
+        // Implicitly add -identifiernamestring rule for the Java reflection in use.
+        if (identifierNameStrings.add(method)) {
+          // Add -identifiernamestring rule to Compatibility configuration builder for testing.
+          if(forceProguardCompatibility && compatibility != null) {
             compatibility.addRule(buildIdentifierNameStringRule(method));
           }
-          pendingProguardReflectiveCompatibility.add(currentMethod);
         }
+        // Revisit the current method to implicitly add -keep rule for items with reflective access.
+        pendingReflectiveUses.add(currentMethod);
       }
       if (!registerItemWithTarget(staticInvokes, method)) {
         return false;
@@ -1270,15 +1274,15 @@ public class Enqueuer {
         }
 
         // Continue fix-point processing while there are additional work items to ensure
-        // Proguard compatibility.
+        // items that are passed to Java reflections are traced.
         if (proguardCompatibilityWorkList.isEmpty()
-            && pendingProguardReflectiveCompatibility.isEmpty()) {
+            && pendingReflectiveUses.isEmpty()) {
           break;
         }
-        pendingProguardReflectiveCompatibility.forEach(this::handleProguardReflectiveBehavior);
+        pendingReflectiveUses.forEach(this::handleReflectiveBehavior);
         workList.addAll(proguardCompatibilityWorkList);
         proguardCompatibilityWorkList.clear();
-        pendingProguardReflectiveCompatibility.clear();
+        pendingReflectiveUses.clear();
       }
       if (Log.ENABLED) {
         Set<DexEncodedMethod> allLive = Sets.newIdentityHashSet();
@@ -1475,15 +1479,15 @@ public class Enqueuer {
         Action.markMethodLive(method, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
   }
 
-  private void handleProguardReflectiveBehavior(DexEncodedMethod method) {
+  private void handleReflectiveBehavior(DexEncodedMethod method) {
     DexType originHolder = method.method.holder;
     Origin origin = appInfo.originFor(originHolder);
     IRCode code = method.buildIR(appInfo, options, origin);
     code.instructionIterator().forEachRemaining(instr ->
-        handleProguardReflectiveBehavior(instr, originHolder));
+        handleReflectiveBehavior(instr, originHolder));
   }
 
-  private void handleProguardReflectiveBehavior(Instruction instruction, DexType originHolder) {
+  private void handleReflectiveBehavior(Instruction instruction, DexType originHolder) {
     if (!instruction.isInvokeMethod()) {
       return;
     }
@@ -1494,8 +1498,6 @@ public class Enqueuer {
     }
     DexItemBasedString itemBasedString = identifyIdentiferNameString(appInfo, invoke);
     if (itemBasedString == null) {
-      warnUndeterminedIdentifierIfNecessary(
-          appInfo, options, invokedMethod, originHolder, instruction, null);
       return;
     }
     if (itemBasedString.basedOn instanceof DexType) {
@@ -1683,8 +1685,10 @@ public class Enqueuer {
     public final Set<DexItem> neverInline;
     /**
      * All items with -identifiernamestring rule.
+     * Bound boolean value indicates the rule is explicitly specified by users (<code>true</code>)
+     * or not, i.e., implicitly added by R8 (<code>false</code>).
      */
-    public final Set<DexItem> identifierNameStrings;
+    public final Object2BooleanMap<DexItem> identifierNameStrings;
     /**
      * Set of fields that have been identified as proto-lite fields by the
      * {@link ProtoLiteExtension}.
@@ -1741,8 +1745,8 @@ public class Enqueuer {
       this.alwaysInline = enqueuer.rootSet.alwaysInline;
       this.forceInline = enqueuer.rootSet.forceInline;
       this.neverInline = enqueuer.rootSet.neverInline;
-      this.identifierNameStrings =
-          Sets.union(enqueuer.rootSet.identifierNameStrings, enqueuer.identifierNameStrings);
+      this.identifierNameStrings = joinIdentifierNameStrings(
+          enqueuer.rootSet.identifierNameStrings, enqueuer.identifierNameStrings);
       this.protoLiteFields = enqueuer.protoLiteFields;
       this.prunedTypes = Collections.emptySet();
       this.switchMaps = Collections.emptyMap();
@@ -1913,6 +1917,18 @@ public class Enqueuer {
           .collect(ImmutableSortedSet.toImmutableSortedSet(PresortedComparable::slowCompare));
     }
 
+    private Object2BooleanMap<DexItem> joinIdentifierNameStrings(
+        Set<DexItem> explicit, Set<DexItem> implicit) {
+      Object2BooleanMap<DexItem> result = new Object2BooleanArrayMap<>();
+      for (DexItem e : explicit) {
+        result.putIfAbsent(e, true);
+      }
+      for (DexItem i : implicit) {
+        result.putIfAbsent(i, false);
+      }
+      return result;
+    }
+
     private <T extends PresortedComparable<T>> SortedSet<T> toSortedDescriptorSet(
         Set<? extends KeyedDexItem<T>> set) {
       ImmutableSortedSet.Builder<T> builder =
@@ -2020,6 +2036,32 @@ public class Enqueuer {
         }
       }
       return builder.build();
+    }
+
+    private static Object2BooleanMap<DexItem> rewriteMixedItemsConservatively(
+        Object2BooleanMap<DexItem> original, GraphLense lense) {
+      Object2BooleanMap<DexItem> result = new Object2BooleanArrayMap<>();
+      for (Object2BooleanMap.Entry<DexItem> entry : original.object2BooleanEntrySet()) {
+        DexItem item = entry.getKey();
+        // TODO(b/67934123) There should be a common interface to perform the dispatch.
+        if (item instanceof DexType) {
+          result.put(lense.lookupType((DexType) item), entry.getBooleanValue());
+        } else if (item instanceof DexMethod) {
+          DexMethod method = (DexMethod) item;
+          if (lense.isContextFreeForMethod(method)) {
+            result.put(lense.lookupMethod(method), entry.getBooleanValue());
+          } else {
+            for (DexMethod candidate: lense.lookupMethodInAllContexts(method)) {
+              result.put(candidate, entry.getBooleanValue());
+            }
+          }
+        } else if (item instanceof DexField) {
+          result.put(lense.lookupField((DexField) item), entry.getBooleanValue());
+        } else {
+          throw new Unreachable();
+        }
+      }
+      return result;
     }
 
     private static <T> Set<T> mergeSets(Collection<T> first, Collection<T> second) {
