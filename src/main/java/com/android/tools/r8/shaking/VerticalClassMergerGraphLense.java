@@ -76,10 +76,6 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
     this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
   }
 
-  public static Builder builder(AppInfo appInfo) {
-    return new Builder(appInfo);
-  }
-
   @Override
   public GraphLenseLookupResult lookupMethod(
       DexMethod method, DexEncodedMethod context, Type type) {
@@ -148,7 +144,6 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   }
 
   public static class Builder {
-    private final AppInfo appInfo;
 
     protected final BiMap<DexField, DexField> fieldMap = HashBiMap.create();
     protected final Map<DexMethod, DexMethod> methodMap = new HashMap<>();
@@ -158,14 +153,8 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
 
     private final Map<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
-    private Builder(AppInfo appInfo) {
-      this.appInfo = appInfo;
-    }
-
     public GraphLense build(
-        GraphLense previousLense,
-        Map<DexType, DexType> mergedClasses,
-        DexItemFactory dexItemFactory) {
+        GraphLense previousLense, Map<DexType, DexType> mergedClasses, AppInfo appInfo) {
       if (fieldMap.isEmpty()
           && methodMap.isEmpty()
           && contextualVirtualToDirectMethodMaps.isEmpty()) {
@@ -178,12 +167,12 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
           fieldMap,
           methodMap,
           getMergedMethodSignaturesAfterClassMerging(
-              mergedMethodsBuilder.build(), mergedClasses, dexItemFactory, cache),
+              mergedMethodsBuilder.build(), mergedClasses, appInfo.dexItemFactory, cache),
           contextualVirtualToDirectMethodMaps,
           getOriginalFieldSignaturesAfterClassMerging(
-              originalFieldSignatures, mergedClasses, dexItemFactory),
+              originalFieldSignatures, mergedClasses, appInfo.dexItemFactory),
           getOriginalMethodSignaturesAfterClassMerging(
-              originalMethodSignatures, mergedClasses, dexItemFactory, cache),
+              originalMethodSignatures, mergedClasses, appInfo.dexItemFactory, cache),
           previousLense);
     }
 

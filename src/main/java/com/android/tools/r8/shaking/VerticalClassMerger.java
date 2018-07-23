@@ -189,7 +189,7 @@ public class VerticalClassMerger {
     this.executorService = executorService;
     this.graphLense = appView.getGraphLense();
     this.methodPoolCollection = new MethodPoolCollection(application);
-    this.renamedMembersLense = VerticalClassMergerGraphLense.builder(appInfo);
+    this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder();
     this.timing = timing;
 
     Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
@@ -651,7 +651,7 @@ public class VerticalClassMerger {
     if (Log.ENABLED) {
       Log.debug(getClass(), "Merged %d classes.", numberOfMerges);
     }
-    return renamedMembersLense.build(graphLense, mergedClasses, application.dexItemFactory);
+    return renamedMembersLense.build(graphLense, mergedClasses, appInfo);
   }
 
   private boolean methodResolutionMayChange(DexClass source, DexClass target) {
@@ -733,7 +733,7 @@ public class VerticalClassMerger {
     private final DexClass source;
     private final DexClass target;
     private final VerticalClassMergerGraphLense.Builder deferredRenamings =
-        VerticalClassMergerGraphLense.builder(appInfo);
+        new VerticalClassMergerGraphLense.Builder();
     private boolean abortMerge = false;
 
     private ClassMerger(DexClass source, DexClass target) {
