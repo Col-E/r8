@@ -142,7 +142,7 @@ public class IdentifierMinifierTest extends TestBase {
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
     int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
-    assertEquals(4, renamedYetFoundIdentifierCount);
+    assertEquals(0, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
     MethodSubject bar = aClass.method("void", "bar", ImmutableList.of());
@@ -165,7 +165,7 @@ public class IdentifierMinifierTest extends TestBase {
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
     int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
-    assertEquals(4, renamedYetFoundIdentifierCount);
+    assertEquals(0, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
     MethodSubject bar = aClass.method("void", "bar", ImmutableList.of());
@@ -231,7 +231,7 @@ public class IdentifierMinifierTest extends TestBase {
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
     int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
-    assertEquals(1, renamedYetFoundIdentifierCount);
+    assertEquals(0, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("identifiernamestring.A");
     MethodSubject aInit =
@@ -255,7 +255,7 @@ public class IdentifierMinifierTest extends TestBase {
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
     int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
-    assertEquals(2, renamedYetFoundIdentifierCount);
+    assertEquals(1, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("identifiernamestring.A");
     MethodSubject aInit =
@@ -271,7 +271,7 @@ public class IdentifierMinifierTest extends TestBase {
     assertEquals(2, renamedYetFoundIdentifierCount);
   }
 
-  // With -identifiernamestring for reflective methods in testing class R.
+  // With -identifiernamestring for reflective methods
   private static void test2_rule3(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
     MethodSubject main = mainClass.method(CodeInspector.MAIN);
