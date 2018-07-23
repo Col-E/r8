@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -78,7 +79,8 @@ public abstract class GraphLense {
       if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
         return previousLense;
       }
-      return new NestedGraphLense(typeMap, methodMap, fieldMap, previousLense, dexItemFactory);
+      return new NestedGraphLense(
+          typeMap, methodMap, fieldMap, null, null, previousLense, dexItemFactory);
     }
 
   }
@@ -86,6 +88,10 @@ public abstract class GraphLense {
   public static Builder builder() {
     return new Builder();
   }
+
+  public abstract DexField getOriginalFieldSignature(DexField field);
+
+  public abstract DexMethod getOriginalMethodSignature(DexMethod method);
 
   public abstract DexType lookupType(DexType type);
 
@@ -156,6 +162,16 @@ public abstract class GraphLense {
   private static class IdentityGraphLense extends GraphLense {
 
     @Override
+    public DexField getOriginalFieldSignature(DexField field) {
+      return field;
+    }
+
+    @Override
+    public DexMethod getOriginalMethodSignature(DexMethod method) {
+      return method;
+    }
+
+    @Override
     public DexType lookupType(DexType type) {
       return type;
     }
@@ -197,13 +213,44 @@ public abstract class GraphLense {
     protected final Map<DexMethod, DexMethod> methodMap;
     protected final Map<DexField, DexField> fieldMap;
 
-    public NestedGraphLense(Map<DexType, DexType> typeMap, Map<DexMethod, DexMethod> methodMap,
-        Map<DexField, DexField> fieldMap, GraphLense previousLense, DexItemFactory dexItemFactory) {
+    // Maps that store the original signature of fields and methods that have been affected by
+    // vertical class merging. Needed to generate a correct Proguard map in the end.
+    private final BiMap<DexField, DexField> originalFieldSignatures;
+    private final BiMap<DexMethod, DexMethod> originalMethodSignatures;
+
+    public NestedGraphLense(
+        Map<DexType, DexType> typeMap,
+        Map<DexMethod, DexMethod> methodMap,
+        Map<DexField, DexField> fieldMap,
+        BiMap<DexField, DexField> originalFieldSignatures,
+        BiMap<DexMethod, DexMethod> originalMethodSignatures,
+        GraphLense previousLense,
+        DexItemFactory dexItemFactory) {
       this.typeMap = typeMap.isEmpty() ? null : typeMap;
       this.methodMap = methodMap;
       this.fieldMap = fieldMap;
+      this.originalFieldSignatures = originalFieldSignatures;
+      this.originalMethodSignatures = originalMethodSignatures;
       this.previousLense = previousLense;
       this.dexItemFactory = dexItemFactory;
+    }
+
+    @Override
+    public DexField getOriginalFieldSignature(DexField field) {
+      DexField originalField =
+          originalFieldSignatures != null
+              ? originalFieldSignatures.getOrDefault(field, field)
+              : field;
+      return previousLense.getOriginalFieldSignature(originalField);
+    }
+
+    @Override
+    public DexMethod getOriginalMethodSignature(DexMethod method) {
+      DexMethod originalMethod =
+          originalMethodSignatures != null
+              ? originalMethodSignatures.getOrDefault(method, method)
+              : method;
+      return previousLense.getOriginalMethodSignature(originalMethod);
     }
 
     @Override

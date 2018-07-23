@@ -773,6 +773,7 @@ public class VerticalClassMerger {
                   directMethod.isClassInitializer() ? Rename.NEVER : Rename.IF_NEEDED);
           add(directMethods, resultingDirectMethod, MethodSignatureEquivalence.get());
           deferredRenamings.map(directMethod.method, resultingDirectMethod.method);
+          deferredRenamings.recordMove(directMethod.method, resultingDirectMethod.method);
 
           if (!directMethod.isStaticMethod()) {
             blockRedirectionOfSuperCalls(resultingDirectMethod.method);
@@ -802,6 +803,7 @@ public class VerticalClassMerger {
             DexEncodedMethod resultingVirtualMethod =
                 renameMethod(virtualMethod, availableMethodSignatures, Rename.NEVER);
             deferredRenamings.map(virtualMethod.method, resultingVirtualMethod.method);
+            deferredRenamings.recordMove(virtualMethod.method, resultingVirtualMethod.method);
             add(virtualMethods, resultingVirtualMethod, MethodSignatureEquivalence.get());
             continue;
           }
@@ -856,6 +858,7 @@ public class VerticalClassMerger {
         }
 
         deferredRenamings.map(virtualMethod.method, shadowedBy.method);
+        deferredRenamings.recordMove(virtualMethod.method, resultingDirectMethod.method);
       }
 
       if (abortMerge) {
@@ -1155,6 +1158,7 @@ public class VerticalClassMerger {
       DexEncodedMethod result = method.toTypeSubstitutedMethod(newSignature);
       result.markForceInline();
       deferredRenamings.map(method.method, result.method);
+      deferredRenamings.recordMove(method.method, result.method);
       // Renamed constructors turn into ordinary private functions. They can be private, as
       // they are only references from their direct subclass, which they were merged into.
       result.accessFlags.unsetConstructor();
@@ -1507,6 +1511,16 @@ public class VerticalClassMerger {
     public SingleTypeMapperGraphLense(DexType source, DexType target) {
       this.source = source;
       this.target = target;
+    }
+
+    @Override
+    public DexField getOriginalFieldSignature(DexField field) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public DexMethod getOriginalMethodSignature(DexMethod method) {
+      throw new Unreachable();
     }
 
     @Override
