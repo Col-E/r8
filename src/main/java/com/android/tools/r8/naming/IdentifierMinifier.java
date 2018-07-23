@@ -26,15 +26,15 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
-import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.Map;
+import java.util.Set;
 
 class IdentifierMinifier {
 
   private final AppInfoWithLiveness appInfo;
   private final ProguardClassFilter adaptClassStrings;
   private final NamingLens lens;
-  private final Object2BooleanMap<DexItem> identifierNameStrings;
+  private final Set<DexItem> identifierNameStrings;
 
   IdentifierMinifier(
       AppInfoWithLiveness appInfo, ProguardClassFilter adaptClassStrings, NamingLens lens) {

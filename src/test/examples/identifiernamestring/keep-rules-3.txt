@@ -11,7 +11,7 @@
 
 -dontshrink
 
--identifiernamestring class **.R {
+-identifiernamestring class * {
   static java.lang.reflect.Field *(java.lang.Class, java.lang.String);
   static java.lang.reflect.Method *(java.lang.Class, java.lang.String, java.lang.Class[]);
 }
