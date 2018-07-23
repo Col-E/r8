@@ -25,7 +25,10 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -150,7 +153,12 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public void write(Writer writer) throws IOException {
-    for (ClassNamingForNameMapper naming : classNameMappings.values()) {
+    // Sort classes by their original name such that the generated Proguard map is deterministic
+    // (and easy to navigate manually).
+    List<ClassNamingForNameMapper> classNamingForNameMappers =
+        new ArrayList<>(classNameMappings.values());
+    classNamingForNameMappers.sort(Comparator.comparing(x -> x.originalName));
+    for (ClassNamingForNameMapper naming : classNamingForNameMappers) {
       naming.write(writer);
     }
   }
