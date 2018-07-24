@@ -164,7 +164,11 @@ public class DexCode extends Code {
 
   @Override
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
+      DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
+      Origin origin) {
     DexSourceCode source =
         new DexSourceCode(
             this, encodedMethod, null, options.lineNumberOptimization == LineNumberOptimization.ON);
@@ -176,6 +180,7 @@ public class DexCode extends Code {
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
+      GraphLense graphLense,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,

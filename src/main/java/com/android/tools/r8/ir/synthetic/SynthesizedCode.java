@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -47,16 +48,27 @@ public final class SynthesizedCode extends Code {
 
   @Override
   public final IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
+      DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
+      Origin origin) {
     return new IRBuilder(encodedMethod, appInfo, sourceCodeProvider.get(), options).build();
   }
 
   @Override
   public IRCode buildInliningIR(
-      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options,
-      ValueNumberGenerator valueNumberGenerator, Position callerPosition, Origin origin) {
-    return new IRBuilder(encodedMethod, appInfo,
-        sourceCodeProvider.get(), options, valueNumberGenerator).build();
+      DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
+      ValueNumberGenerator valueNumberGenerator,
+      Position callerPosition,
+      Origin origin) {
+    IRBuilder builder =
+        new IRBuilder(
+            encodedMethod, appInfo, sourceCodeProvider.get(), options, valueNumberGenerator);
+    return builder.build();
   }
 
   @Override

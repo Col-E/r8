@@ -329,14 +329,17 @@ public class IRBuilder {
   // Flag indicating if the instructions define values with imprecise types.
   private boolean hasImpreciseInstructionOutValueTypes = false;
 
-  public IRBuilder(DexEncodedMethod method, AppInfo appInfo,
-      SourceCode source, InternalOptions options) {
+  public IRBuilder(
+      DexEncodedMethod method, AppInfo appInfo, SourceCode source, InternalOptions options) {
     this(method, appInfo, source, options, new ValueNumberGenerator());
   }
 
   public IRBuilder(
-      DexEncodedMethod method, AppInfo appInfo, SourceCode source,
-      InternalOptions options, ValueNumberGenerator valueNumberGenerator) {
+      DexEncodedMethod method,
+      AppInfo appInfo,
+      SourceCode source,
+      InternalOptions options,
+      ValueNumberGenerator valueNumberGenerator) {
     assert source != null;
     this.method = method;
     this.appInfo = appInfo;

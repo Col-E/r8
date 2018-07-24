@@ -201,14 +201,19 @@ public class CfCode extends Code {
 
   @Override
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
-    return internalBuild(encodedMethod, appInfo, options, null, null, origin);
+      DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
+      Origin origin) {
+    return internalBuild(encodedMethod, appInfo, graphLense, options, null, null, origin);
   }
 
   @Override
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
+      GraphLense graphLense,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
@@ -216,12 +221,13 @@ public class CfCode extends Code {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     return internalBuild(
-        encodedMethod, appInfo, options, valueNumberGenerator, callerPosition, origin);
+        encodedMethod, appInfo, graphLense, options, valueNumberGenerator, callerPosition, origin);
   }
 
   private IRCode internalBuild(
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
+      GraphLense graphLense,
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition,

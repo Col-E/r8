@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
@@ -61,14 +63,16 @@ import java.util.stream.Collectors;
 public class SwitchMapCollector {
 
   private final AppInfoWithLiveness appInfo;
+  private final GraphLense graphLense;
   private final InternalOptions options;
   private final DexString switchMapPrefix;
   private final DexType intArrayType;
 
   private final Map<DexField, Int2ReferenceMap<DexField>> switchMaps = new IdentityHashMap<>();
 
-  public SwitchMapCollector(AppInfoWithLiveness appInfo, InternalOptions options) {
-    this.appInfo = appInfo;
+  public SwitchMapCollector(AppView<AppInfoWithLiveness> appView, InternalOptions options) {
+    this.appInfo = appView.getAppInfo();
+    this.graphLense = appView.getGraphLense();
     this.options = options;
     switchMapPrefix = appInfo.dexItemFactory.createString("$SwitchMap$");
     intArrayType = appInfo.dexItemFactory.createType("[I");
@@ -92,7 +96,8 @@ public class SwitchMapCollector {
     List<DexEncodedField> switchMapFields = Arrays.stream(clazz.staticFields())
         .filter(this::maybeIsSwitchMap).collect(Collectors.toList());
     if (!switchMapFields.isEmpty()) {
-      IRCode initializer = clazz.getClassInitializer().buildIR(appInfo, options, clazz.origin);
+      IRCode initializer =
+          clazz.getClassInitializer().buildIR(appInfo, graphLense, options, clazz.origin);
       switchMapFields.forEach(field -> extractSwitchMap(field, initializer));
     }
   }

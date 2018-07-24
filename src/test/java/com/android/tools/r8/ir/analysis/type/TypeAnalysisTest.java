@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstString;
@@ -122,7 +123,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(
                 new MethodSignature("subtractConstants8bitRegisters", "int", ImmutableList.of()))
             .getMethod();
-    IRCode irCode = subtract.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        subtract.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract, irCode);
     analysis.forEach((v, l) -> {
       assertEither(l, PRIMITIVE, NULL, TOP);
@@ -136,7 +138,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("fibonacci", "int", ImmutableList.of("int")))
             .getMethod();
-    IRCode irCode = fib.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        fib.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, fib, irCode);
     analysis.forEach((v, l) -> {
       assertEither(l, PRIMITIVE, NULL);
@@ -150,7 +153,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("test1", "int[]", ImmutableList.of()))
             .getMethod();
-    IRCode irCode = test1.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        test1.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, test1, irCode);
     Value array = null;
     InstructionIterator iterator = irCode.instructionIterator();
@@ -181,7 +185,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("test4", "int[]", ImmutableList.of()))
             .getMethod();
-    IRCode irCode = test4.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        test4.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, test4, irCode);
     Value array = null;
     InstructionIterator iterator = irCode.instructionIterator();
@@ -212,7 +217,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("loop2", "void", ImmutableList.of()))
             .getMethod();
-    IRCode irCode = loop2.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        loop2.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2, irCode);
     analysis.forEach((v, l) -> {
       if (l.isClassTypeLatticeElement()) {
@@ -231,7 +237,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test")
             .method(new MethodSignature("test2_throw", "int", ImmutableList.of()))
             .getMethod();
-    IRCode irCode = test2.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        test2.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, test2, irCode);
     analysis.forEach((v, l) -> {
       if (l.isClassTypeLatticeElement()) {
@@ -257,7 +264,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
         CheckCast.class, new ClassTypeLatticeElement(test, true),
         NewInstance.class, new ClassTypeLatticeElement(test, false));
-    IRCode irCode = method.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
     analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }
@@ -275,7 +283,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
       ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
       InstanceOf.class, PRIMITIVE,
       StaticGet.class, new ClassTypeLatticeElement(test, true));
-    IRCode irCode = method.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
     analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }

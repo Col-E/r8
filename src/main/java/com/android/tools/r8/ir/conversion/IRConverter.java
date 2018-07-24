@@ -495,7 +495,8 @@ public class IRConverter {
           executorService.submit(
               () -> {
                 IRCode code =
-                    method.buildIR(appInfo, options, appInfo.originFor(method.method.holder));
+                    method.buildIR(
+                        appInfo, graphLense, options, appInfo.originFor(method.method.holder));
                 assert code != null;
                 assert !method.getCode().isOutlineCode();
                 // Instead of repeating all the optimizations of rewriteCode(), only run the
@@ -637,7 +638,8 @@ public class IRConverter {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
     }
-    IRCode code = method.buildIR(appInfo, options, appInfo.originFor(method.method.holder));
+    IRCode code =
+        method.buildIR(appInfo, graphLense, options, appInfo.originFor(method.method.holder));
     if (code == null) {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;

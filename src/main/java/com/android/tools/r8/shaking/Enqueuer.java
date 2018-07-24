@@ -94,6 +94,7 @@ public class Enqueuer {
   private boolean tracingMainDex = false;
 
   private final AppInfoWithSubtyping appInfo;
+  private final GraphLense graphLense;
   private final InternalOptions options;
   private RootSet rootSet;
 
@@ -218,15 +219,23 @@ public class Enqueuer {
    */
   private final ProguardConfiguration.Builder compatibility;
 
-  public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options,
+  public Enqueuer(
+      AppInfoWithSubtyping appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
       boolean forceProguardCompatibility) {
-    this(appInfo, options, forceProguardCompatibility, null, null);
+    this(appInfo, graphLense, options, forceProguardCompatibility, null, null);
   }
 
-  public Enqueuer(AppInfoWithSubtyping appInfo, InternalOptions options,
+  public Enqueuer(
+      AppInfoWithSubtyping appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
       boolean forceProguardCompatibility,
-      ProguardConfiguration.Builder compatibility, ProtoLiteExtension protoLiteExtension) {
+      ProguardConfiguration.Builder compatibility,
+      ProtoLiteExtension protoLiteExtension) {
     this.appInfo = appInfo;
+    this.graphLense = graphLense;
     this.compatibility = compatibility;
     this.options = options;
     this.protoLiteExtension = protoLiteExtension;
@@ -1478,7 +1487,7 @@ public class Enqueuer {
   private void handleProguardReflectiveBehavior(DexEncodedMethod method) {
     DexType originHolder = method.method.holder;
     Origin origin = appInfo.originFor(originHolder);
-    IRCode code = method.buildIR(appInfo, options, origin);
+    IRCode code = method.buildIR(appInfo, graphLense, options, origin);
     code.instructionIterator().forEachRemaining(instr ->
         handleProguardReflectiveBehavior(instr, originHolder));
   }

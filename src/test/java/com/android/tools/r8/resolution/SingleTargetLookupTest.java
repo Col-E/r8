@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
@@ -107,8 +108,13 @@ public class SingleTargetLookupTest extends AsmTestBase {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     RootSet rootSet = new RootSetBuilder(appInfoWithSubtyping, application,
         buildKeepRuleForClass(Main.class, application.dexItemFactory), options).run(executor);
-    appInfo = new Enqueuer(appInfoWithSubtyping, options, options.forceProguardCompatibility)
-        .traceApplication(rootSet, executor, timing);
+    appInfo =
+        new Enqueuer(
+                appInfoWithSubtyping,
+                GraphLense.getIdentityLense(),
+                options,
+                options.forceProguardCompatibility)
+            .traceApplication(rootSet, executor, timing);
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
   }

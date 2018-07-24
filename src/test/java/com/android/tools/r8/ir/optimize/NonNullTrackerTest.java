@@ -13,6 +13,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
@@ -48,7 +49,8 @@ public class NonNullTrackerTest extends TestBase {
     AppInfo appInfo = new AppInfo(dexApplication);
     CodeInspector codeInspector = new CodeInspector(appInfo.app);
     DexEncodedMethod foo = codeInspector.clazz(testClass.getName()).method(signature).getMethod();
-    IRCode irCode = foo.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        foo.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     checkCountOfNonNull(irCode, 0);
 
     NonNullTracker nonNullTracker = new NonNullTracker();

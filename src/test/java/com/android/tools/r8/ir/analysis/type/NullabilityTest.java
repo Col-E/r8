@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.IRCode;
@@ -58,7 +59,8 @@ public class NullabilityTest extends TestBase {
     AppInfo appInfo = new AppInfo(dexApplication);
     CodeInspector codeInspector = new CodeInspector(appInfo.app);
     DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();
-    IRCode irCode = foo.buildIR(appInfo, TEST_OPTIONS, Origin.unknown());
+    IRCode irCode =
+        foo.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     NonNullTracker nonNullTracker = new NonNullTracker();
     nonNullTracker.addNonNull(irCode);
     TypeAnalysis analysis = new TypeAnalysis(appInfo, foo, irCode);

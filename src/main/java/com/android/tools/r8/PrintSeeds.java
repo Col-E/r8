@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -84,7 +85,7 @@ public class PrintSeeds {
           new RootSetBuilder(
                   appInfo, application, options.proguardConfiguration.getRules(), options)
               .run(executor);
-      Enqueuer enqueuer = new Enqueuer(appInfo, options, false);
+      Enqueuer enqueuer = new Enqueuer(appInfo, GraphLense.getIdentityLense(), options, false);
       appInfo = enqueuer.traceApplication(rootSet, executor, timing);
       RootSetBuilder.writeSeeds(
           appInfo.withLiveness(),

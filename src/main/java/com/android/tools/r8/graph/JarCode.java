@@ -108,17 +108,22 @@ public class JarCode extends Code {
 
   @Override
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
+      DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
+      Origin origin) {
     triggerDelayedParsingIfNeccessary();
     return options.debug
-        ? internalBuildWithLocals(encodedMethod, appInfo, options, null, null)
-        : internalBuild(encodedMethod, appInfo, options, null, null);
+        ? internalBuildWithLocals(encodedMethod, appInfo, graphLense, options, null, null)
+        : internalBuild(encodedMethod, appInfo, graphLense, options, null, null);
   }
 
   @Override
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
+      GraphLense graphLense,
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition,
@@ -126,28 +131,31 @@ public class JarCode extends Code {
     assert generator != null;
     triggerDelayedParsingIfNeccessary();
     return options.debug
-        ? internalBuildWithLocals(encodedMethod, appInfo, options, generator, callerPosition)
-        : internalBuild(encodedMethod, appInfo, options, generator, callerPosition);
+        ? internalBuildWithLocals(
+            encodedMethod, appInfo, graphLense, options, generator, callerPosition)
+        : internalBuild(encodedMethod, appInfo, graphLense, options, generator, callerPosition);
   }
 
   private IRCode internalBuildWithLocals(
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
+      GraphLense graphLense,
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition) {
     try {
-      return internalBuild(encodedMethod, appInfo, options, generator, callerPosition);
+      return internalBuild(encodedMethod, appInfo, graphLense, options, generator, callerPosition);
     } catch (InvalidDebugInfoException e) {
       options.warningInvalidDebugInfo(encodedMethod, origin, e);
       node.localVariables.clear();
-      return internalBuild(encodedMethod, appInfo, options, generator, callerPosition);
+      return internalBuild(encodedMethod, appInfo, graphLense, options, generator, callerPosition);
     }
   }
 
   private IRCode internalBuild(
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
+      GraphLense graphLense,
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition) {

@@ -292,6 +292,7 @@ public class R8 {
         Enqueuer enqueuer =
             new Enqueuer(
                 appView.getAppInfo(),
+                appView.getGraphLense(),
                 options,
                 options.forceProguardCompatibility,
                 compatibility,
@@ -380,10 +381,9 @@ public class R8 {
                   .rewrittenWithLense(application.asDirect(), appView.getGraphLense()));
         }
         // Collect switch maps and ordinals maps.
+        appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness, options).run());
         appViewWithLiveness.setAppInfo(
-            new SwitchMapCollector(appViewWithLiveness.getAppInfo(), options).run());
-        appViewWithLiveness.setAppInfo(
-            new EnumOrdinalMapCollector(appViewWithLiveness.getAppInfo(), options).run());
+            new EnumOrdinalMapCollector(appViewWithLiveness, options).run());
 
         // TODO(b/79143143): re-enable once fixed.
         // graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withLiveness()).run();
@@ -419,7 +419,8 @@ public class R8 {
 
       if (!options.mainDexKeepRules.isEmpty()) {
         appView.setAppInfo(new AppInfoWithSubtyping(application));
-        Enqueuer enqueuer = new Enqueuer(appView.getAppInfo(), options, true);
+        Enqueuer enqueuer =
+            new Enqueuer(appView.getAppInfo(), appView.getGraphLense(), options, true);
         // Lets find classes which may have code executed before secondary dex files installation.
         RootSet mainDexRootSet =
             new RootSetBuilder(appView.getAppInfo(), application, options.mainDexKeepRules, options)
@@ -443,7 +444,11 @@ public class R8 {
         timing.begin("Post optimization code stripping");
         try {
           Enqueuer enqueuer =
-              new Enqueuer(appView.getAppInfo(), options, options.forceProguardCompatibility);
+              new Enqueuer(
+                  appView.getAppInfo(),
+                  appView.getGraphLense(),
+                  options,
+                  options.forceProguardCompatibility);
           appView.setAppInfo(enqueuer.traceApplication(rootSet, executorService, timing));
 
           AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();

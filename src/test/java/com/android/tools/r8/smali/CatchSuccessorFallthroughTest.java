@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
@@ -68,7 +69,9 @@ public class CatchSuccessorFallthroughTest extends SmaliTestBase {
 
     DexEncodedMethod method = getMethod(originalApplication, methodSig);
     // Get the IR pre-optimization.
-    IRCode code = method.buildIR(null, new InternalOptions(), Origin.unknown());
+    IRCode code =
+        method.buildIR(
+            null, GraphLense.getIdentityLense(), new InternalOptions(), Origin.unknown());
 
     // Find the exit block and assert that the value is a phi merging the exceptional edge
     // with the normal edge.

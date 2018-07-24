@@ -175,20 +175,32 @@ public class LazyCfCode extends Code {
 
   @Override
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
-    return asCfCode().buildIR(encodedMethod, appInfo, options, origin);
+      DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
+      Origin origin) {
+    return asCfCode().buildIR(encodedMethod, appInfo, graphLense, options, origin);
   }
 
   @Override
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
+      GraphLense graphLense,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
-    return asCfCode().buildInliningIR(
-        encodedMethod, appInfo, options, valueNumberGenerator, callerPosition, origin);
+    return asCfCode()
+        .buildInliningIR(
+            encodedMethod,
+            appInfo,
+            graphLense,
+            options,
+            valueNumberGenerator,
+            callerPosition,
+            origin);
   }
 
   @Override

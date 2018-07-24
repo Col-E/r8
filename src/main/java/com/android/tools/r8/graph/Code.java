@@ -17,11 +17,16 @@ import com.android.tools.r8.utils.InternalOptions;
 public abstract class Code extends CachedHashValueDexItem {
 
   public abstract IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin);
+      DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
+      Origin origin);
 
   public IRCode buildInliningIR(
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
+      GraphLense graphLense,
       InternalOptions options,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,

@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.UseRegistry;
@@ -1164,7 +1165,11 @@ public class Outliner {
 
     @Override
     public IRCode buildIR(
-        DexEncodedMethod encodedMethod, AppInfo appInfo, InternalOptions options, Origin origin) {
+        DexEncodedMethod encodedMethod,
+        AppInfo appInfo,
+        GraphLense graphLense,
+        InternalOptions options,
+        Origin origin) {
       OutlineSourceCode source = new OutlineSourceCode(outline);
       IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options);
       return builder.build();

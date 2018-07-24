@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
@@ -30,12 +32,14 @@ import java.util.Map;
 public class EnumOrdinalMapCollector {
 
   private final AppInfoWithLiveness appInfo;
+  private final GraphLense graphLense;
   private final InternalOptions options;
 
   private final Map<DexType, Reference2IntMap<DexField>> ordinalsMaps = new IdentityHashMap<>();
 
-  public EnumOrdinalMapCollector(AppInfoWithLiveness appInfo, InternalOptions options) {
-    this.appInfo = appInfo;
+  public EnumOrdinalMapCollector(AppView<AppInfoWithLiveness> appView, InternalOptions options) {
+    this.appInfo = appView.getAppInfo();
+    this.graphLense = appView.getGraphLense();
     this.options = options;
   }
 
@@ -55,7 +59,8 @@ public class EnumOrdinalMapCollector {
       return;
     }
     DexEncodedMethod initializer = clazz.getClassInitializer();
-    IRCode code = initializer.getCode().buildIR(initializer, appInfo, options, clazz.origin);
+    IRCode code =
+        initializer.getCode().buildIR(initializer, appInfo, graphLense, options, clazz.origin);
     Reference2IntMap<DexField> ordinalsMap = new Reference2IntArrayMap<>();
     ordinalsMap.defaultReturnValue(-1);
     InstructionIterator it = code.instructionIterator();
