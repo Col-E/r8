@@ -76,6 +76,7 @@ public class CfBuilder {
   private final Int2ReferenceMap<DebugLocalInfo> emittedLocals = new Int2ReferenceOpenHashMap<>();
   private Int2ReferenceMap<DebugLocalInfo> pendingLocals = null;
   private boolean pendingLocalChanges = false;
+  private BasicBlock pendingFrame = null;
 
   private final List<LocalVariableInfo> localVariablesTable = new ArrayList<>();
   private final Int2ReferenceMap<LocalVariableInfo> openLocalVariables =
@@ -259,7 +260,6 @@ public class CfBuilder {
     BasicBlock block = blockIterator.next();
     CfLabel tryCatchStart = null;
     CatchHandlers<BasicBlock> tryCatchHandlers = CatchHandlers.EMPTY_BASIC_BLOCK;
-    BasicBlock pendingFrame = null;
     boolean previousFallthrough = false;
     do {
       assert stack.isEmpty();
@@ -286,17 +286,6 @@ public class CfBuilder {
         pendingFrame = block;
         emitLabel(getLabel(block));
       }
-      if (pendingFrame != null) {
-        boolean advancesPC = hasMaterializingInstructions(block, nextBlock);
-        // If block has no materializing instructions, then we postpone emitting the frame
-        // until the next block. In this case, nextBlock must be non-null
-        // (or we would fall off the edge of the method).
-        assert advancesPC || nextBlock != null;
-        if (advancesPC) {
-          addFrame(pendingFrame, Collections.emptyList());
-          pendingFrame = null;
-        }
-      }
       JumpInstruction exit = block.exit();
       boolean fallthrough =
           (exit.isGoto() && exit.asGoto().getTarget() == nextBlock)
@@ -308,7 +297,7 @@ public class CfBuilder {
         pendingLocals = new Int2ReferenceOpenHashMap<>(locals);
         pendingLocalChanges = true;
       }
-      buildCfInstructions(block, fallthrough, stack);
+      buildCfInstructions(block, nextBlock, fallthrough, stack);
       block = nextBlock;
       previousFallthrough = fallthrough;
     } while (block != null);
@@ -346,7 +335,19 @@ public class CfBuilder {
     return false;
   }
 
-  private void buildCfInstructions(BasicBlock block, boolean fallthrough, Stack stack) {
+  private void buildCfInstructions(
+      BasicBlock block, BasicBlock nextBlock, boolean fallthrough, Stack stack) {
+    if (pendingFrame != null) {
+      boolean advancesPC = hasMaterializingInstructions(block, nextBlock);
+      // If block has no materializing instructions, then we postpone emitting the frame
+      // until the next block. In this case, nextBlock must be non-null
+      // (or we would fall off the edge of the method).
+      assert advancesPC || nextBlock != null;
+      if (advancesPC) {
+        addFrame(pendingFrame, Collections.emptyList());
+        pendingFrame = null;
+      }
+    }
     InstructionIterator it = block.iterator();
     while (it.hasNext()) {
       Instruction instruction = it.next();
@@ -394,35 +395,39 @@ public class CfBuilder {
     }
     CfLabel label = ensureLabel();
     if (didLocalsChange) {
-      Int2ReferenceSortedMap<DebugLocalInfo> ending =
-          DebugLocalInfo.endingLocals(emittedLocals, pendingLocals);
-      Int2ReferenceSortedMap<DebugLocalInfo> starting =
-          DebugLocalInfo.startingLocals(emittedLocals, pendingLocals);
-      assert !ending.isEmpty() || !starting.isEmpty();
-      for (Entry<DebugLocalInfo> entry : ending.int2ReferenceEntrySet()) {
-        int localIndex = entry.getIntKey();
-        LocalVariableInfo info = openLocalVariables.remove(localIndex);
-        info.setEnd(label);
-        localVariablesTable.add(info);
-        DebugLocalInfo removed = emittedLocals.remove(localIndex);
-        assert removed == entry.getValue();
-      }
-      if (!starting.isEmpty()) {
-        for (Entry<DebugLocalInfo> entry : starting.int2ReferenceEntrySet()) {
-          int localIndex = entry.getIntKey();
-          assert !emittedLocals.containsKey(localIndex);
-          assert !openLocalVariables.containsKey(localIndex);
-          openLocalVariables.put(
-              localIndex, new LocalVariableInfo(localIndex, entry.getValue(), label));
-          emittedLocals.put(localIndex, entry.getValue());
-        }
-      }
-      pendingLocalChanges = false;
+      updateLocals(label);
     }
     if (didPositionChange) {
       add(new CfPosition(label, position));
       currentPosition = position;
     }
+  }
+
+  private void updateLocals(CfLabel label) {
+    Int2ReferenceSortedMap<DebugLocalInfo> ending =
+        DebugLocalInfo.endingLocals(emittedLocals, pendingLocals);
+    Int2ReferenceSortedMap<DebugLocalInfo> starting =
+        DebugLocalInfo.startingLocals(emittedLocals, pendingLocals);
+    assert !ending.isEmpty() || !starting.isEmpty();
+    for (Entry<DebugLocalInfo> entry : ending.int2ReferenceEntrySet()) {
+      int localIndex = entry.getIntKey();
+      LocalVariableInfo info = openLocalVariables.remove(localIndex);
+      info.setEnd(label);
+      localVariablesTable.add(info);
+      DebugLocalInfo removed = emittedLocals.remove(localIndex);
+      assert removed == entry.getValue();
+    }
+    if (!starting.isEmpty()) {
+      for (Entry<DebugLocalInfo> entry : starting.int2ReferenceEntrySet()) {
+        int localIndex = entry.getIntKey();
+        assert !emittedLocals.containsKey(localIndex);
+        assert !openLocalVariables.containsKey(localIndex);
+        openLocalVariables.put(
+            localIndex, new LocalVariableInfo(localIndex, entry.getValue(), label));
+        emittedLocals.put(localIndex, entry.getValue());
+      }
+    }
+    pendingLocalChanges = false;
   }
 
   private boolean localsChanged() {
@@ -461,11 +466,25 @@ public class CfBuilder {
 
     Collection<Value> locals = registerAllocator.getLocalsAtBlockEntry(block);
     Int2ReferenceSortedMap<FrameType> mapping = new Int2ReferenceAVLTreeMap<>();
-
     for (Value local : locals) {
       mapping.put(getLocalRegister(local), getFrameType(block, local));
     }
-    instructions.add(new CfFrame(mapping, stackTypes));
+    CfFrame frame = new CfFrame(mapping, stackTypes);
+
+    // Make sure to end locals on this transition before the synthetic CfFrame instruction.
+    // Otherwise we might extend the live range of a local across a CfFrame instruction that
+    // the local is not live across. For example if we have a return followed by a move exception
+    // where the locals end. Inserting a CfFrame instruction between the return and the move
+    // exception without ending the locals will lead to having the local alive on the CfFrame
+    // instruction which is not correct and will cause us to not be able to build IR from the
+    // CfCode.
+    boolean didLocalsChange = localsChanged();
+    if (didLocalsChange) {
+      CfLabel label = ensureLabel();
+      updateLocals(label);
+    }
+
+    instructions.add(frame);
   }
 
   private FrameType getFrameType(BasicBlock liveBlock, Value local) {
