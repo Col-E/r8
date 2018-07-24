@@ -241,14 +241,11 @@ public class CfCode extends Code {
         new CfSourceCode(
             this,
             encodedMethod,
+            graphLense.getOriginalMethodSignature(encodedMethod.method),
             callerPosition,
             origin,
             options.lineNumberOptimization == LineNumberOptimization.ON);
-    IRBuilder builder =
-        (generator == null)
-            ? new IRBuilder(encodedMethod, appInfo, source, options)
-            : new IRBuilder(encodedMethod, appInfo, source, options, generator);
-    return builder.build();
+    return new IRBuilder(encodedMethod, appInfo, source, options, generator).build();
   }
 
   @Override

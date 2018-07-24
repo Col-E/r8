@@ -171,7 +171,11 @@ public class DexCode extends Code {
       Origin origin) {
     DexSourceCode source =
         new DexSourceCode(
-            this, encodedMethod, null, options.lineNumberOptimization == LineNumberOptimization.ON);
+            this,
+            encodedMethod,
+            graphLense.getOriginalMethodSignature(encodedMethod.method),
+            null,
+            options.lineNumberOptimization == LineNumberOptimization.ON);
     IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options);
     return builder.build();
   }
@@ -189,6 +193,7 @@ public class DexCode extends Code {
         new DexSourceCode(
             this,
             encodedMethod,
+            graphLense.getOriginalMethodSignature(encodedMethod.method),
             callerPosition,
             options.lineNumberOptimization == LineNumberOptimization.ON);
     IRBuilder builder =

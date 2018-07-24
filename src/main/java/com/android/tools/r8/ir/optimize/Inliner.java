@@ -587,7 +587,8 @@ public class Inliner {
               invokePosition = Position.noneWithMethod(method.method, null);
             }
             assert invokePosition.callerPosition == null
-                || invokePosition.getOutermostCaller().method == method.method;
+                || invokePosition.getOutermostCaller().method
+                    == graphLense.getOriginalMethodSignature(method.method);
 
             IRCode inlinee =
                 result.buildInliningIR(

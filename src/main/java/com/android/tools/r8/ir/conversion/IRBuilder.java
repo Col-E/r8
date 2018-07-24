@@ -344,7 +344,8 @@ public class IRBuilder {
     this.method = method;
     this.appInfo = appInfo;
     this.source = source;
-    this.valueNumberGenerator = valueNumberGenerator;
+    this.valueNumberGenerator =
+        valueNumberGenerator != null ? valueNumberGenerator : new ValueNumberGenerator();
     this.options = options;
   }
 

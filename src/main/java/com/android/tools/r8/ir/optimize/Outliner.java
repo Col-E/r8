@@ -1171,8 +1171,7 @@ public class Outliner {
         InternalOptions options,
         Origin origin) {
       OutlineSourceCode source = new OutlineSourceCode(outline);
-      IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options);
-      return builder.build();
+      return new IRBuilder(encodedMethod, appInfo, source, options).build();
     }
 
     @Override

@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -199,6 +200,7 @@ public class CfSourceCode implements SourceCode {
   public CfSourceCode(
       CfCode code,
       DexEncodedMethod method,
+      DexMethod originalMethod,
       Position callerPosition,
       Origin origin,
       boolean preserveCaller) {
@@ -217,7 +219,7 @@ public class CfSourceCode implements SourceCode {
     }
     this.state = new CfState(origin);
     canonicalPositions =
-        new CanonicalPositions(callerPosition, preserveCaller, cfPositionCount, this.method.method);
+        new CanonicalPositions(callerPosition, preserveCaller, cfPositionCount, originalMethod);
   }
 
   @Override

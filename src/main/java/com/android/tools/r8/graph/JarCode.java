@@ -162,13 +162,14 @@ public class JarCode extends Code {
     if (!options.debug) {
       node.localVariables.clear();
     }
-    JarSourceCode source = new JarSourceCode(
-        method.getHolder(), node, application, encodedMethod.method, callerPosition);
-    IRBuilder builder =
-        (generator == null)
-            ? new IRBuilder(encodedMethod, appInfo, source, options)
-            : new IRBuilder(encodedMethod, appInfo, source, options, generator);
-    return builder.build();
+    JarSourceCode source =
+        new JarSourceCode(
+            method.getHolder(),
+            node,
+            application,
+            graphLense.getOriginalMethodSignature(encodedMethod.method),
+            callerPosition);
+    return new IRBuilder(encodedMethod, appInfo, source, options, generator).build();
   }
 
   @Override

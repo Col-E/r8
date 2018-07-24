@@ -187,20 +187,20 @@ public class JarSourceCode implements SourceCode {
   // Cooked position to indicate positions in synthesized code (ie, for synchronization).
   private Position syntheticPosition = null;
 
-  private final DexMethod method;
+  private final DexMethod originalMethod;
   private final Position callerPosition;
 
   public JarSourceCode(
       DexType clazz,
       MethodNode node,
       JarApplicationReader application,
-      DexMethod method,
+      DexMethod originalMethod,
       Position callerPosition) {
     assert node != null;
     assert node.desc != null;
     this.node = node;
     this.application = application;
-    this.method = method;
+    this.originalMethod = originalMethod;
     this.clazz = clazz;
     this.callerPosition = callerPosition;
     parameterTypes = Arrays.asList(application.getArgumentTypes(node.desc));
@@ -2862,12 +2862,12 @@ public class JarSourceCode implements SourceCode {
 
   private Position getCanonicalPosition(int line) {
     return canonicalPositions.computeIfAbsent(
-        line, l -> new Position(l, null, method, callerPosition));
+        line, l -> new Position(l, null, originalMethod, callerPosition));
   }
 
   private Position getPreamblePosition() {
     if (preamblePosition == null) {
-      preamblePosition = Position.synthetic(0, method, null);
+      preamblePosition = Position.synthetic(0, originalMethod, null);
     }
     return preamblePosition;
   }
@@ -2891,8 +2891,8 @@ public class JarSourceCode implements SourceCode {
       }
       syntheticPosition =
           (min == Integer.MAX_VALUE)
-              ? Position.noneWithMethod(method, callerPosition)
-              : Position.synthetic(min < max ? min - 1 : min, method, callerPosition);
+              ? Position.noneWithMethod(originalMethod, callerPosition)
+              : Position.synthetic(min < max ? min - 1 : min, originalMethod, callerPosition);
     }
     return syntheticPosition;
   }
