@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.classmerging;
 
+import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.smali.SmaliBuilder.buildCode;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -22,6 +24,10 @@ import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.MoveException;
+import com.android.tools.r8.debug.DebugTestBase;
+import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
+import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
+import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -166,7 +172,9 @@ public class ClassMergingTest extends TestBase {
               configure(options);
               // Avoid that direct methods in B get inlined.
               options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-            });
+            },
+            // Disable debug testing since the test has a method with "$classmerging$" in the name.
+            null);
 
     ClassSubject clazzSubject = inspector.clazz("classmerging.ConflictInGeneratedNameTest$B");
     assertThat(clazzSubject, isPresent());
@@ -1008,6 +1016,23 @@ public class ClassMergingTest extends TestBase {
       String proguardConfig,
       Consumer<InternalOptions> optionsConsumer)
       throws Throwable {
+    return runTestOnInput(
+        main,
+        input,
+        preservedClassNames,
+        proguardConfig,
+        optionsConsumer,
+        new VerticalClassMergerDebugTest(main));
+  }
+
+  private CodeInspector runTestOnInput(
+      String main,
+      AndroidApp input,
+      Predicate<String> preservedClassNames,
+      String proguardConfig,
+      Consumer<InternalOptions> optionsConsumer,
+      VerticalClassMergerDebugTest debugTestRunner)
+      throws Throwable {
     Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
     R8Command.Builder commandBuilder =
         ToolHelper.prepareR8CommandBuilder(input)
@@ -1034,6 +1059,11 @@ public class ClassMergingTest extends TestBase {
     }
     // Check that the R8-generated code produces the same result as D8-generated code.
     assertEquals(runOnArt(compileWithD8(input), main), runOnArt(output, main));
+    // Check that we never come across a method that has a name with "$classmerging$" in it during
+    // debugging.
+    if (debugTestRunner != null) {
+      debugTestRunner.test(output, proguardMapPath);
+    }
     return outputInspector;
   }
 
@@ -1048,5 +1078,83 @@ public class ClassMergingTest extends TestBase {
       builder.append(System.lineSeparator());
     }
     return builder.toString();
+  }
+
+  private class VerticalClassMergerDebugTest extends DebugTestBase {
+
+    private final String main;
+    private DebugTestRunner runner = null;
+
+    public VerticalClassMergerDebugTest(String main) {
+      this.main = main;
+    }
+
+    public void test(AndroidApp app, Path proguardMapPath) throws Throwable {
+      Path appPath =
+          File.createTempFile("app", ".zip", ClassMergingTest.this.temp.getRoot()).toPath();
+      app.writeToZip(appPath, OutputMode.DexIndexed);
+
+      DexDebugTestConfig config = new DexDebugTestConfig(appPath);
+      config.allowUnprocessedCommands();
+      config.setProguardMap(proguardMapPath);
+
+      this.runner =
+          getDebugTestRunner(
+              config, main, breakpoint(main, "main"), run(), stepIntoUntilNoLongerInApp());
+      this.runner.runBare();
+    }
+
+    private void checkState(DebuggeeState state) {
+      // If a class pkg.A is merged into pkg.B, and a method pkg.A.m() needs to be renamed, then
+      // it will be renamed to pkg.B.m$pkg$A(). Since all tests are in the package "classmerging",
+      // we check that no methods in the debugging state (i.e., after the Proguard map has been
+      // applied) contain "$classmerging$.
+      String qualifiedMethodSignature =
+          state.getClassSignature() + "->" + state.getMethodName() + state.getMethodSignature();
+      boolean holderIsCompanionClass = state.getClassName().endsWith(COMPANION_CLASS_NAME_SUFFIX);
+      if (!holderIsCompanionClass) {
+        assertThat(qualifiedMethodSignature, not(containsString("$classmerging$")));
+      }
+    }
+
+    // Keeps stepping in until it is no longer in a class from the classmerging package.
+    // Then starts stepping out until it is again in the classmerging package.
+    private Command stepIntoUntilNoLongerInApp() {
+      return stepUntil(
+          StepKind.INTO,
+          StepLevel.INSTRUCTION,
+          state -> {
+            if (state.getClassSignature().contains("classmerging")) {
+              checkState(state);
+
+              // Continue stepping into.
+              return false;
+            }
+
+            // Stop stepping into.
+            runner.enqueueCommandFirst(stepOutUntilInApp());
+            return true;
+          });
+    }
+
+    // Keeps stepping out until it is in a class from the classmerging package.
+    // Then starts stepping in until it is no longer in the classmerging package.
+    private Command stepOutUntilInApp() {
+      return stepUntil(
+          StepKind.OUT,
+          StepLevel.INSTRUCTION,
+          state -> {
+            if (state.getClassSignature().contains("classmerging")) {
+              checkState(state);
+
+              // Stop stepping out.
+              runner.enqueueCommandFirst(stepIntoUntilNoLongerInApp());
+              return true;
+            }
+
+            // Continue stepping out.
+            return false;
+          });
+    }
   }
 }

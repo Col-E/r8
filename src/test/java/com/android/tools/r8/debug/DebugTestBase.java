@@ -137,6 +137,18 @@ public abstract class DebugTestBase {
   private void runInternal(
       DebugTestConfig config, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
       throws Throwable {
+    getDebugTestRunner(config, debuggeeClass, commands).runBare();
+  }
+
+  protected DebugTestRunner getDebugTestRunner(
+      DebugTestConfig config, String debuggeeClass, JUnit3Wrapper.Command... commands)
+      throws Throwable {
+    return getDebugTestRunner(config, debuggeeClass, Arrays.asList(commands));
+  }
+
+  protected DebugTestRunner getDebugTestRunner(
+      DebugTestConfig config, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
+      throws Throwable {
     // Skip test due to unsupported runtime.
     Assume.assumeTrue("Skipping test " + testName.getMethodName() + " because ART is not supported",
         ToolHelper.artSupported());
@@ -152,7 +164,7 @@ public abstract class DebugTestBase {
             ? null
             : ClassNameMapper.mapperFromFile(config.getProguardMap());
 
-    new JUnit3Wrapper(config, debuggeeClass, commands, classNameMapper).runBare();
+    return new JUnit3Wrapper(config, debuggeeClass, commands, classNameMapper);
   }
 
   /**
@@ -495,8 +507,14 @@ public abstract class DebugTestBase {
     return t -> inspector.accept(t.debuggeeState.getLocalValues().get(localName));
   }
 
+  protected interface DebugTestRunner {
+    void enqueueCommandFirst(JUnit3Wrapper.Command command);
+
+    void runBare() throws Throwable;
+  }
+
   @Ignore("Prevents Gradle from running the wrapper as a test.")
-  static class JUnit3Wrapper extends JDWPTestCase {
+  public static class JUnit3Wrapper extends JDWPTestCase implements DebugTestRunner {
 
     private final String debuggeeClassName;
 
@@ -801,8 +819,10 @@ public abstract class DebugTestBase {
         // Continue stepping until mainLoopStep exits with false.
       }
 
-      assertTrue(
-          "All commands have NOT been processed for config: " + config, commandsQueue.isEmpty());
+      if (config.mustProcessAllCommands()) {
+        assertTrue(
+            "All commands have NOT been processed for config: " + config, commandsQueue.isEmpty());
+      }
 
       logWriter.println("Finish loop");
     }

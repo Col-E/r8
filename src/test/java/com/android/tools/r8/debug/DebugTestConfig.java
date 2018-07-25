@@ -17,6 +17,7 @@ public abstract class DebugTestConfig {
     DEX
   }
 
+  private boolean mustProcessAllCommands = true;
   private List<Path> paths = new ArrayList<>();
 
   private Path proguardMap = null;
@@ -45,6 +46,14 @@ public abstract class DebugTestConfig {
   public DebugTestConfig addPaths(List<Path> paths) {
     this.paths.addAll(paths);
     return this;
+  }
+
+  public boolean mustProcessAllCommands() {
+    return mustProcessAllCommands;
+  }
+
+  public void allowUnprocessedCommands() {
+    mustProcessAllCommands = false;
   }
 
   /** Proguard map that the debuggee has been translated according to, null if not present. */
