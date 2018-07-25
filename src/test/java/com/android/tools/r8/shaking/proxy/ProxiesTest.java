@@ -6,14 +6,11 @@ package com.android.tools.r8.shaking.proxy;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeInterface;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
@@ -24,11 +21,32 @@ import com.android.tools.r8.shaking.proxy.testclasses.SubInterface;
 import com.android.tools.r8.shaking.proxy.testclasses.TestClass;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class ProxiesTest extends TestBase {
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public ProxiesTest(Backend backend) {
+    this.backend = backend;
+  }
 
   private void runTest(List<String> additionalKeepRules, Consumer<CodeInspector> inspection,
       String expectedResult)
@@ -49,52 +67,89 @@ public class ProxiesTest extends TestBase {
         Origin.unknown()
     );
     builder.addProguardConfiguration(additionalKeepRules, Origin.unknown());
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    if (backend == Backend.DEX) {
+      builder
+          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+          .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+    } else {
+      assert backend == Backend.CF;
+      builder
+          .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+          .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+    }
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableDevirtualization = false);
-    inspection.accept(new CodeInspector(app));
-    assertEquals(expectedResult, runOnArt(app, mainClass));
+    inspection.accept(new CodeInspector(app, o -> o.enableCfFrontend = true));
+    assertEquals(
+        expectedResult,
+        backend == Backend.DEX ? runOnArt(app, mainClass) : runOnJava(app, mainClass));
   }
 
-  private int countInstructionInX(CodeInspector inspector, Class<? extends Instruction> invoke) {
+  private int countInstructionInX(CodeInspector inspector, Predicate<InstructionSubject> invoke) {
     MethodSignature signatureForX =
         new MethodSignature("x", "void", ImmutableList.of(BaseInterface.class.getCanonicalName()));
-    DexCode x = inspector.clazz(Main.class).method(signatureForX).getMethod().getCode().asDexCode();
-    return (int) filterInstructionKind(x, invoke).count();
+    MethodSubject method = inspector.clazz(Main.class).method(signatureForX);
+    assert method instanceof FoundMethodSubject;
+    FoundMethodSubject foundMethod = (FoundMethodSubject) method;
+    return (int) Streams.stream(foundMethod.iterateInstructions(invoke)).count();
   }
 
-  private int countInstructionInY(CodeInspector inspector, Class<? extends Instruction> invoke) {
+  private int countInstructionInY(CodeInspector inspector, Predicate<InstructionSubject> invoke) {
     MethodSignature signatureForY =
         new MethodSignature("y", "void", ImmutableList.of(SubInterface.class.getCanonicalName()));
-    DexCode y = inspector.clazz(Main.class).method(signatureForY).getMethod().getCode().asDexCode();
-    return (int) filterInstructionKind(y, invoke)
-        .filter(instruction -> instruction.getMethod().qualifiedName().endsWith("method"))
-        .count();
+    MethodSubject method = inspector.clazz(Main.class).method(signatureForY);
+    assert method instanceof FoundMethodSubject;
+    FoundMethodSubject foundMethod = (FoundMethodSubject) method;
+    return (int)
+        Streams.stream(foundMethod.iterateInstructions(invoke))
+            .filter(
+                instruction -> {
+                  InvokeInstructionSubject invokeInstruction =
+                      (InvokeInstructionSubject) instruction;
+                  return invokeInstruction.invokedMethod().qualifiedName().endsWith("method");
+                })
+            .count();
   }
 
-  private int countInstructionInZ(CodeInspector inspector, Class<? extends Instruction> invoke) {
+  private int countInstructionInZ(CodeInspector inspector, Predicate<InstructionSubject> invoke) {
     MethodSignature signatureForZ =
         new MethodSignature("z", "void", ImmutableList.of(TestClass.class.getCanonicalName()));
-    DexCode z = inspector.clazz(Main.class).method(signatureForZ).getMethod().getCode().asDexCode();
-    return (int) filterInstructionKind(z, invoke)
-        .filter(instruction -> instruction.getMethod().qualifiedName().endsWith("method"))
-        .count();
+    MethodSubject method = inspector.clazz(Main.class).method(signatureForZ);
+    assert method instanceof FoundMethodSubject;
+    FoundMethodSubject foundMethod = (FoundMethodSubject) method;
+    return (int)
+        Streams.stream(foundMethod.iterateInstructions(invoke))
+            .filter(
+                instruction -> {
+                  InvokeInstructionSubject invokeInstruction =
+                      (InvokeInstructionSubject) instruction;
+                  return invokeInstruction.invokedMethod().qualifiedName().endsWith("method");
+                })
+            .count();
   }
 
   private int countInstructionInZSubClass(
-      CodeInspector inspector, Class<? extends Instruction> invoke) {
+      CodeInspector inspector, Predicate<InstructionSubject> invoke) {
     MethodSignature signatureForZ =
         new MethodSignature("z", "void", ImmutableList.of(SubClass.class.getCanonicalName()));
-    DexCode z = inspector.clazz(Main.class).method(signatureForZ).getMethod().getCode().asDexCode();
-    return (int) filterInstructionKind(z, invoke)
-        .filter(instruction -> instruction.getMethod().qualifiedName().endsWith("method"))
-        .count();
+    MethodSubject method = inspector.clazz(Main.class).method(signatureForZ);
+    assert method instanceof FoundMethodSubject;
+    FoundMethodSubject foundMethod = (FoundMethodSubject) method;
+    return (int)
+        Streams.stream(foundMethod.iterateInstructions(invoke))
+            .filter(
+                instruction -> {
+                  InvokeInstructionSubject invokeInstruction =
+                      (InvokeInstructionSubject) instruction;
+                  return invokeInstruction.invokedMethod().qualifiedName().endsWith("method");
+                })
+            .count();
   }
 
   private void noInterfaceKept(CodeInspector inspector) {
     // Indirectly assert that method is inlined into x, y and z.
-    assertEquals(1, countInstructionInX(inspector, InvokeInterface.class));
-    assertEquals(1, countInstructionInY(inspector, InvokeInterface.class));
-    assertEquals(1, countInstructionInZ(inspector, InvokeVirtual.class));
+    assertEquals(1, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(1, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(1, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
   }
 
   @Test
@@ -106,11 +161,11 @@ public class ProxiesTest extends TestBase {
 
   private void baseInterfaceKept(CodeInspector inspector) {
     // Indirectly assert that method is not inlined into x.
-    assertEquals(3, countInstructionInX(inspector, InvokeInterface.class));
+    assertEquals(3, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
     // Indirectly assert that method is inlined into y and z.
-    assertEquals(1, countInstructionInY(inspector, InvokeInterface.class));
-    assertEquals(1, countInstructionInZ(inspector, InvokeVirtual.class));
-    assertEquals(1, countInstructionInZSubClass(inspector, InvokeVirtual.class));
+    assertEquals(1, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(1, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
+    assertEquals(1, countInstructionInZSubClass(inspector, InstructionSubject::isInvokeVirtual));
   }
 
   @Test
@@ -126,11 +181,11 @@ public class ProxiesTest extends TestBase {
 
   private void subInterfaceKept(CodeInspector inspector) {
     // Indirectly assert that method is not inlined into x or y.
-    assertEquals(3, countInstructionInX(inspector, InvokeInterface.class));
-    assertEquals(3, countInstructionInY(inspector, InvokeInterface.class));
+    assertEquals(3, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(3, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
     // Indirectly assert that method is inlined into z.
-    assertEquals(1, countInstructionInZ(inspector, InvokeVirtual.class));
-    assertEquals(1, countInstructionInZSubClass(inspector, InvokeVirtual.class));
+    assertEquals(1, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
+    assertEquals(1, countInstructionInZSubClass(inspector, InstructionSubject::isInvokeVirtual));
   }
 
   @Test
@@ -148,10 +203,10 @@ public class ProxiesTest extends TestBase {
 
   private void classKept(CodeInspector inspector) {
     // Indirectly assert that method is not inlined into x, y or z.
-    assertEquals(3, countInstructionInX(inspector, InvokeInterface.class));
-    assertEquals(3, countInstructionInY(inspector, InvokeInterface.class));
-    assertEquals(3, countInstructionInZ(inspector, InvokeVirtual.class));
-    assertEquals(3, countInstructionInZSubClass(inspector, InvokeVirtual.class));
+    assertEquals(3, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(3, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(3, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
+    assertEquals(3, countInstructionInZSubClass(inspector, InstructionSubject::isInvokeVirtual));
   }
 
   @Test
