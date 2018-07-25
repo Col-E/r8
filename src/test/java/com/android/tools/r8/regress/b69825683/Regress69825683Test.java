@@ -7,6 +7,7 @@ package com.android.tools.r8.regress.b69825683;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -16,10 +17,25 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class Regress69825683Test extends TestBase {
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public Regress69825683Test(Backend backend) {
+    this.backend = backend;
+  }
 
   @Test
   public void outerConstructsInner() throws Exception {
@@ -32,9 +48,18 @@ public class Regress69825683Test extends TestBase {
         "}",
         "-dontobfuscate"),
         Origin.unknown());
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    if (backend == Backend.DEX) {
+      builder
+          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+          .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+    } else {
+      assert backend == Backend.CF;
+      builder
+          .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+          .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+    }
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    CodeInspector inspector = new CodeInspector(app);
+    CodeInspector inspector = new CodeInspector(app, o -> o.enableCfFrontend = true);
     List<FoundClassSubject> classes = inspector.allClasses();
 
     // Check that the synthetic class is still present.
@@ -51,7 +76,9 @@ public class Regress69825683Test extends TestBase {
     String innerName = innerClass.getCanonicalName();
     int index = innerName.lastIndexOf('.');
     innerName = innerName.substring(0, index) + "$" + innerName.substring(index + 1);
-    assertTrue(runOnArt(app, mainClass).startsWith(innerName));
+    assertTrue(
+        (backend == Backend.DEX ? runOnArt(app, mainClass) : runOnJava(app, mainClass))
+            .startsWith(innerName));
   }
 
   @Test
@@ -65,9 +92,18 @@ public class Regress69825683Test extends TestBase {
         "}",
         "-dontobfuscate"),
         Origin.unknown());
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    if (backend == Backend.DEX) {
+      builder
+          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+          .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+    } else {
+      assert backend == Backend.CF;
+      builder
+          .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+          .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+    }
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    CodeInspector inspector = new CodeInspector(app);
+    CodeInspector inspector = new CodeInspector(app, o -> o.enableCfFrontend = true);
     List<FoundClassSubject> classes = inspector.allClasses();
 
     // Check that the synthetic class is still present.
@@ -79,6 +115,8 @@ public class Regress69825683Test extends TestBase {
             .count());
 
     // Run code to check that the constructor with synthetic class as argument is present.
-    assertTrue(runOnArt(app, mainClass).startsWith(mainClass.getCanonicalName()));
+    assertTrue(
+        (backend == Backend.DEX ? runOnArt(app, mainClass) : runOnJava(app, mainClass))
+            .startsWith(mainClass.getCanonicalName()));
   }
 }
