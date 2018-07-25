@@ -79,9 +79,11 @@ public class ProxiesTest extends TestBase {
     }
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableDevirtualization = false);
     inspection.accept(new CodeInspector(app, o -> o.enableCfFrontend = true));
-    assertEquals(
-        expectedResult,
-        backend == Backend.DEX ? runOnArt(app, mainClass) : runOnJava(app, mainClass));
+    String result = backend == Backend.DEX ? runOnArt(app, mainClass) : runOnJava(app, mainClass);
+    if (ToolHelper.isWindows()) {
+      result = result.replace(System.lineSeparator(), "\n");
+    }
+    assertEquals(expectedResult, result);
   }
 
   private int countInstructionInX(CodeInspector inspector, Predicate<InstructionSubject> invoke) {
