@@ -134,7 +134,12 @@ public class MemberNaming {
     }
 
     public static FieldSignature fromDexField(DexField field) {
-      return new FieldSignature(field.name.toSourceString(),
+      return fromDexField(field, false);
+    }
+
+    public static FieldSignature fromDexField(DexField field, boolean withQualifiedName) {
+      return new FieldSignature(
+          withQualifiedName ? field.qualifiedName() : field.name.toSourceString(),
           field.type.toSourceString());
     }
 

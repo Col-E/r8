@@ -490,6 +490,7 @@ public class R8 {
         ClassNameMapper classNameMapper =
             LineNumberOptimizer.run(
                 application,
+                appView.getGraphLense(),
                 namingLens,
                 options.lineNumberOptimization == LineNumberOptimization.IDENTITY_MAPPING);
         timing.end();

@@ -117,6 +117,10 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
     return clazz;
   }
 
+  public String qualifiedName() {
+    return clazz + "." + name;
+  }
+
   @Override
   public String toSmaliString() {
     return clazz.toSmaliString() + "->" + name + ":" + type.toSmaliString();

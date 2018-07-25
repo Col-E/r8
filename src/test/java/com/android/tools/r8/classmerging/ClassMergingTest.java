@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -34,8 +35,11 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,6 +49,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -97,7 +102,7 @@ public class ClassMergingTest extends TestBase {
   );
 
   @Test
-  public void testClassesHaveBeenMerged() throws Exception {
+  public void testClassesHaveBeenMerged() throws Throwable {
     runR8(EXAMPLE_KEEP, this::configure);
     // GenericInterface should be merged into GenericInterfaceImpl.
     for (String candidate : CAN_BE_MERGED) {
@@ -109,7 +114,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testClassesHaveNotBeenMerged() throws Exception {
+  public void testClassesHaveNotBeenMerged() throws Throwable {
     runR8(DONT_OPTIMIZE, null);
     for (String candidate : CAN_BE_MERGED) {
       assertTrue(inspector.clazz(candidate).isPresent());
@@ -124,7 +129,7 @@ public class ClassMergingTest extends TestBase {
   // Assuming that the chance of observing one of the two orderings is 50%, this test therefore has
   // approximately 3% chance of succeeding although there is an issue.
   @Test
-  public void testCallGraphCycle() throws Exception {
+  public void testCallGraphCycle() throws Throwable {
     String main = "classmerging.CallGraphCycleTest";
     Path[] programFiles =
         new Path[] {
@@ -140,7 +145,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testConflictInGeneratedName() throws Exception {
+  public void testConflictInGeneratedName() throws Throwable {
     String main = "classmerging.ConflictInGeneratedNameTest";
     Path[] programFiles =
         new Path[] {
@@ -204,14 +209,14 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testConflictWasDetected() throws Exception {
+  public void testConflictWasDetected() throws Throwable {
     runR8(EXAMPLE_KEEP, this::configure);
     assertTrue(inspector.clazz("classmerging.ConflictingInterface").isPresent());
     assertTrue(inspector.clazz("classmerging.ConflictingInterfaceImpl").isPresent());
   }
 
   @Test
-  public void testFieldCollision() throws Exception {
+  public void testFieldCollision() throws Throwable {
     String main = "classmerging.FieldCollisionTest";
     Path[] programFiles =
         new Path[] {
@@ -227,7 +232,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testLambdaRewriting() throws Exception {
+  public void testLambdaRewriting() throws Throwable {
     String main = "classmerging.LambdaRewritingTest";
     Path[] programFiles =
         new Path[] {
@@ -250,7 +255,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testMethodCollision() throws Exception {
+  public void testMethodCollision() throws Throwable {
     String main = "classmerging.MethodCollisionTest";
     Path[] programFiles =
         new Path[] {
@@ -275,7 +280,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testNestedDefaultInterfaceMethodsTest() throws Exception {
+  public void testNestedDefaultInterfaceMethodsTest() throws Throwable {
     String main = "classmerging.NestedDefaultInterfaceMethodsTest";
     Path[] programFiles =
         new Path[] {
@@ -294,7 +299,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testNestedDefaultInterfaceMethodsWithCDumpTest() throws Exception {
+  public void testNestedDefaultInterfaceMethodsWithCDumpTest() throws Throwable {
     String main = "classmerging.NestedDefaultInterfaceMethodsTest";
     Path[] programFiles =
         new Path[] {
@@ -319,7 +324,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testPinnedParameterTypes() throws Exception {
+  public void testPinnedParameterTypes() throws Throwable {
     String main = "classmerging.PinnedParameterTypesTest";
     Path[] programFiles =
         new Path[] {
@@ -342,7 +347,213 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testSuperCallWasDetected() throws Exception {
+  public void testProguardFieldMap() throws Throwable {
+    String main = "classmerging.ProguardFieldMapTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("ProguardFieldMapTest.class"),
+          CF_DIR.resolve("ProguardFieldMapTest$A.class"),
+          CF_DIR.resolve("ProguardFieldMapTest$B.class")
+        };
+
+    // Try without vertical class merging, to check that output is as expected.
+    String expectedProguardMapWithoutClassMerging =
+        Joiner.on(System.lineSeparator())
+            .join(
+                "classmerging.ProguardFieldMapTest -> classmerging.ProguardFieldMapTest:",
+                "    1:2:void main(java.lang.String[]):10:11 -> main",
+                "classmerging.ProguardFieldMapTest$A -> classmerging.ProguardFieldMapTest$A:",
+                "    1:1:void <init>():14:14 -> <init>",
+                "    2:2:void <init>():16:16 -> <init>",
+                "classmerging.ProguardFieldMapTest$B -> classmerging.ProguardFieldMapTest$B:",
+                "    1:1:void <init>():19:19 -> <init>",
+                "    1:1:void test():22:22 -> test");
+    runTestOnInput(
+        main,
+        readProgramFiles(programFiles),
+        Predicates.alwaysTrue(),
+        getProguardConfig(EXAMPLE_KEEP),
+        options -> {
+          configure(options);
+          options.enableClassMerging = false;
+          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+          options.proguardMapConsumer =
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithoutClassMerging));
+        });
+
+    // Try with vertical class merging.
+    String expectedProguardMapWithClassMerging =
+        Joiner.on(System.lineSeparator())
+            .join(
+                "classmerging.ProguardFieldMapTest -> classmerging.ProguardFieldMapTest:",
+                "    1:2:void main(java.lang.String[]):10:11 -> main",
+                "classmerging.ProguardFieldMapTest$B -> classmerging.ProguardFieldMapTest$B:",
+                "    java.lang.String classmerging.ProguardFieldMapTest$A.f -> f",
+                "    1:1:void classmerging.ProguardFieldMapTest$A.<init>():14:14 -> <init>",
+                "    1:1:void <init>():19 -> <init>",
+                "    2:2:void classmerging.ProguardFieldMapTest$A.<init>():16:16 -> <init>",
+                "    2:2:void <init>():19 -> <init>",
+                "    1:1:void test():22:22 -> test");
+    Set<String> preservedClassNames =
+        ImmutableSet.of("classmerging.ProguardFieldMapTest", "classmerging.ProguardFieldMapTest$B");
+    runTestOnInput(
+        main,
+        readProgramFiles(programFiles),
+        preservedClassNames::contains,
+        getProguardConfig(EXAMPLE_KEEP),
+        options -> {
+          configure(options);
+          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+          options.proguardMapConsumer =
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging));
+        });
+  }
+
+  @Test
+  public void testProguardMethodMap() throws Throwable {
+    String main = "classmerging.ProguardMethodMapTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("ProguardMethodMapTest.class"),
+          CF_DIR.resolve("ProguardMethodMapTest$A.class"),
+          CF_DIR.resolve("ProguardMethodMapTest$B.class")
+        };
+
+    // Try without vertical class merging, to check that output is as expected.
+    String expectedProguardMapWithoutClassMerging =
+        Joiner.on(System.lineSeparator())
+            .join(
+                "classmerging.ProguardMethodMapTest -> classmerging.ProguardMethodMapTest:",
+                "    1:2:void main(java.lang.String[]):10:11 -> main",
+                "classmerging.ProguardMethodMapTest$A -> classmerging.ProguardMethodMapTest$A:",
+                "    1:1:void <init>():14:14 -> <init>",
+                "    1:1:void method():17:17 -> method",
+                "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
+                "    1:1:void <init>():21:21 -> <init>",
+                "    1:2:void method():25:26 -> method");
+    runTestOnInput(
+        main,
+        readProgramFiles(programFiles),
+        Predicates.alwaysTrue(),
+        getProguardConfig(EXAMPLE_KEEP),
+        options -> {
+          configure(options);
+          options.enableClassMerging = false;
+          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+          options.proguardMapConsumer =
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithoutClassMerging));
+        });
+
+    // Try with vertical class merging.
+    String expectedProguardMapWithClassMerging =
+        Joiner.on(System.lineSeparator())
+            .join(
+                "classmerging.ProguardMethodMapTest -> classmerging.ProguardMethodMapTest:",
+                "    1:2:void main(java.lang.String[]):10:11 -> main",
+                "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
+                // TODO(christofferqa): Should this be "...<init>():14 -> <init>" to reflect that
+                // A.<init> has been inlined into B.<init>?
+                "    1:1:void classmerging.ProguardMethodMapTest$A.<init>():14:14 -> <init>",
+                // TODO(christofferqa): Should this be " ...<init>():21:21 -> <init>"?
+                "    1:1:void <init>():21 -> <init>",
+                "    1:2:void method():25:26 -> method",
+                "    1:1:void classmerging.ProguardMethodMapTest$A.method():17:17 -> "
+                    + "method$classmerging$ProguardMethodMapTest$A");
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.ProguardMethodMapTest", "classmerging.ProguardMethodMapTest$B");
+    runTestOnInput(
+        main,
+        readProgramFiles(programFiles),
+        preservedClassNames::contains,
+        getProguardConfig(EXAMPLE_KEEP),
+        options -> {
+          configure(options);
+          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+          options.proguardMapConsumer =
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging));
+        });
+  }
+
+  // TODO(christofferqa): The sets appInfo.forceInline and appInfo.neverInline must be rewritten
+  // with the graph lense after vertical class merging.
+  @Ignore
+  @Test
+  public void testProguardMethodMapAfterInlining() throws Throwable {
+    String main = "classmerging.ProguardMethodMapTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("ProguardMethodMapTest.class"),
+          CF_DIR.resolve("ProguardMethodMapTest$A.class"),
+          CF_DIR.resolve("ProguardMethodMapTest$B.class")
+        };
+
+    // Try without vertical class merging, to check that output is as expected.
+    String expectedProguardMapWithoutClassMerging =
+        Joiner.on(System.lineSeparator())
+            .join(
+                "classmerging.ProguardMethodMapTest -> classmerging.ProguardMethodMapTest:",
+                "    1:2:void main(java.lang.String[]):10:11 -> main",
+                "classmerging.ProguardMethodMapTest$A -> classmerging.ProguardMethodMapTest$A:",
+                "    1:1:void <init>():14:14 -> <init>",
+                "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
+                "    1:1:void <init>():21:21 -> <init>",
+                "    1:1:void method():25:25 -> method",
+                "    2:2:void classmerging.ProguardMethodMapTest$A.method():17:17 -> method",
+                "    2:2:void method():26 -> method");
+    runTestOnInput(
+        main,
+        readProgramFiles(programFiles),
+        Predicates.alwaysTrue(),
+        getProguardConfig(
+            EXAMPLE_KEEP,
+            "-forceinline class classmerging.ProguardMethodMapTest$A { public void method(); }"),
+        options -> {
+          configure(options);
+          options.enableClassMerging = false;
+          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+          options.proguardMapConsumer =
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithoutClassMerging));
+        });
+
+    // Try with vertical class merging.
+    String expectedProguardMapWithClassMerging =
+        Joiner.on(System.lineSeparator())
+            .join(
+                "classmerging.ProguardMethodMapTest -> classmerging.ProguardMethodMapTest:",
+                "    1:2:void main(java.lang.String[]):10:11 -> main",
+                "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
+                "    1:1:void classmerging.ProguardMethodMapTest$A.<init>():14:14 -> <init>",
+                "    1:1:void <init>():21 -> <init>",
+                "    1:1:void method():25:25 -> method",
+                "    2:2:void classmerging.ProguardMethodMapTest$A.method():17:17 -> method",
+                "    2:2:void method():26 -> method");
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.ProguardMethodMapTest", "classmerging.ProguardMethodMapTest$B");
+    runTestOnInput(
+        main,
+        readProgramFiles(programFiles),
+        preservedClassNames::contains,
+        getProguardConfig(
+            EXAMPLE_KEEP,
+            "-forceinline class classmerging.ProguardMethodMapTest$A { public void method(); }"),
+        options -> {
+          configure(options);
+          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+          options.proguardMapConsumer =
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging));
+        });
+  }
+
+  @Test
+  public void testSuperCallWasDetected() throws Throwable {
     String main = "classmerging.SuperCallRewritingTest";
     Path[] programFiles =
         new Path[] {
@@ -366,7 +577,7 @@ public class ClassMergingTest extends TestBase {
   // targets SubClassThatReferencesSuperMethod.referencedMethod. When running without class
   // merging, R8 should not rewrite the invoke-super instruction into invoke-direct.
   @Test
-  public void testSuperCallNotRewrittenToDirect() throws Exception {
+  public void testSuperCallNotRewrittenToDirect() throws Throwable {
     String main = "classmerging.SuperCallRewritingTest";
     Path[] programFiles =
         new Path[] {
@@ -446,7 +657,7 @@ public class ClassMergingTest extends TestBase {
   //   }
   @Test
   @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V6_0_1)
-  public void testSuperCallToMergedClassIsRewritten() throws Exception {
+  public void testSuperCallToMergedClassIsRewritten() throws Throwable {
     String main = "classmerging.SuperCallToMergedClassIsRewrittenTest";
     Set<String> preservedClassNames =
         ImmutableSet.of(
@@ -569,7 +780,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testConflictingInterfaceSignatures() throws Exception {
+  public void testConflictingInterfaceSignatures() throws Throwable {
     String main = "classmerging.ConflictingInterfaceSignaturesTest";
     Path[] programFiles =
         new Path[] {
@@ -588,7 +799,7 @@ public class ClassMergingTest extends TestBase {
   // If an exception class A is merged into another exception class B, then all exception tables
   // should be updated, and class A should be removed entirely.
   @Test
-  public void testExceptionTables() throws Exception {
+  public void testExceptionTables() throws Throwable {
     String main = "classmerging.ExceptionTest";
     Path[] programFiles =
         new Path[] {
@@ -624,7 +835,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testMergeDefaultMethodIntoClass() throws Exception {
+  public void testMergeDefaultMethodIntoClass() throws Throwable {
     String main = "classmerging.MergeDefaultMethodIntoClassTest";
     Path[] programFiles =
         new Path[] {
@@ -658,7 +869,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testNativeMethod() throws Exception {
+  public void testNativeMethod() throws Throwable {
     String main = "classmerging.ClassWithNativeMethodTest";
     Path[] programFiles =
         new Path[] {
@@ -676,7 +887,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testNoIllegalClassAccess() throws Exception {
+  public void testNoIllegalClassAccess() throws Throwable {
     String main = "classmerging.SimpleInterfaceAccessTest";
     Path[] programFiles =
         new Path[] {
@@ -701,7 +912,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testNoIllegalClassAccessWithAccessModifications() throws Exception {
+  public void testNoIllegalClassAccessWithAccessModifications() throws Throwable {
     // If access modifications are allowed then SimpleInterface should be merged into
     // SimpleInterfaceImpl.
     String main = "classmerging.SimpleInterfaceAccessTest";
@@ -736,7 +947,7 @@ public class ClassMergingTest extends TestBase {
   // into an invoke-direct instruction after it gets merged into class C. We should add a test that
   // checks that this works with and without inlining of the method B.m().
   @Test
-  public void testRewritePinnedMethod() throws Exception {
+  public void testRewritePinnedMethod() throws Throwable {
     String main = "classmerging.RewritePinnedMethodTest";
     Path[] programFiles =
         new Path[] {
@@ -759,7 +970,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
-  public void testTemplateMethodPattern() throws Exception {
+  public void testTemplateMethodPattern() throws Throwable {
     String main = "classmerging.TemplateMethodTest";
     Path[] programFiles =
         new Path[] {
@@ -774,7 +985,7 @@ public class ClassMergingTest extends TestBase {
   }
 
   private CodeInspector runTest(
-      String main, Path[] programFiles, Predicate<String> preservedClassNames) throws Exception {
+      String main, Path[] programFiles, Predicate<String> preservedClassNames) throws Throwable {
     return runTest(main, programFiles, preservedClassNames, getProguardConfig(EXAMPLE_KEEP));
   }
 
@@ -783,14 +994,14 @@ public class ClassMergingTest extends TestBase {
       Path[] programFiles,
       Predicate<String> preservedClassNames,
       String proguardConfig)
-      throws Exception {
+      throws Throwable {
     return runTestOnInput(
         main, readProgramFiles(programFiles), preservedClassNames, proguardConfig);
   }
 
   private CodeInspector runTestOnInput(
       String main, AndroidApp input, Predicate<String> preservedClassNames, String proguardConfig)
-      throws Exception {
+      throws Throwable {
     return runTestOnInput(main, input, preservedClassNames, proguardConfig, this::configure);
   }
 
@@ -800,8 +1011,20 @@ public class ClassMergingTest extends TestBase {
       Predicate<String> preservedClassNames,
       String proguardConfig,
       Consumer<InternalOptions> optionsConsumer)
-      throws Exception {
-    AndroidApp output = compileWithR8(input, proguardConfig, optionsConsumer);
+      throws Throwable {
+    Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
+    R8Command.Builder commandBuilder =
+        ToolHelper.prepareR8CommandBuilder(input)
+            .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
+    ToolHelper.allowTestProguardOptions(commandBuilder);
+    AndroidApp output =
+        ToolHelper.runR8(
+            commandBuilder.build(),
+            options -> {
+              optionsConsumer.accept(options);
+              options.proguardMapConsumer =
+                  new FileConsumer(proguardMapPath, options.proguardMapConsumer);
+            });
     CodeInspector inputInspector = new CodeInspector(input);
     CodeInspector outputInspector = new CodeInspector(output);
     // Check that all classes in [preservedClassNames] are in fact preserved.

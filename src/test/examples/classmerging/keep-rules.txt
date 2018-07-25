@@ -37,6 +37,12 @@
 -keep public class classmerging.PinnedParameterTypesTest$TestClass {
   public static void method(...);
 }
+-keep public class classmerging.ProguardFieldMapTest {
+  public static void main(...);
+}
+-keep public class classmerging.ProguardMethodMapTest {
+  public static void main(...);
+}
 -keep public class classmerging.SimpleInterfaceAccessTest {
   public static void main(...);
 }

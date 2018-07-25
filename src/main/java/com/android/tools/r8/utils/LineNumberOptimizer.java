@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
@@ -35,6 +36,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class LineNumberOptimizer {
@@ -202,7 +204,10 @@ public class LineNumberOptimizer {
   }
 
   public static ClassNameMapper run(
-      DexApplication application, NamingLens namingLens, boolean identityMapping) {
+      DexApplication application,
+      GraphLense graphLense,
+      NamingLens namingLens,
+      boolean identityMapping) {
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
@@ -230,7 +235,7 @@ public class LineNumberOptimizer {
       addClassToClassNaming(clazz, renamedClassName, onDemandClassNamingBuilder);
 
       // First transfer renamed fields to classNamingBuilder.
-      addFieldsToClassNaming(namingLens, clazz, onDemandClassNamingBuilder);
+      addFieldsToClassNaming(graphLense, namingLens, clazz, onDemandClassNamingBuilder);
 
       // Then process the methods, ordered by renamed name.
       List<DexString> renamedMethodNames = new ArrayList<>(methodsByRenamedName.keySet());
@@ -261,7 +266,9 @@ public class LineNumberOptimizer {
             }
           }
 
-          MethodSignature originalSignature = MethodSignature.fromDexMethod(method.method);
+          DexMethod originalMethod = graphLense.getOriginalMethodSignature(method.method);
+          MethodSignature originalSignature =
+              MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != clazz.type);
 
           DexString obfuscatedNameDexString = namingLens.lookupName(method.method);
           String obfuscatedName = obfuscatedNameDexString.toString();
@@ -269,7 +276,8 @@ public class LineNumberOptimizer {
           // Add simple "a() -> b" mapping if we won't have any other with concrete line numbers
           if (mappedPositions.isEmpty()) {
             // But only if it's been renamed.
-            if (obfuscatedNameDexString != method.method.name) {
+            if (obfuscatedNameDexString != originalMethod.name
+                || originalMethod.holder != clazz.type) {
               onDemandClassNamingBuilder
                   .get()
                   .addMappedRange(null, originalSignature, null, obfuscatedName);
@@ -278,7 +286,16 @@ public class LineNumberOptimizer {
           }
 
           Map<DexMethod, MethodSignature> signatures = new IdentityHashMap<>();
-          signatures.put(method.method, originalSignature);
+          signatures.put(originalMethod, originalSignature);
+          Function<DexMethod, MethodSignature> getOriginalMethodSignature =
+              m -> {
+                DexMethod original = graphLense.getOriginalMethodSignature(m);
+                return signatures.computeIfAbsent(
+                    original,
+                    key ->
+                        MethodSignature.fromDexMethod(
+                            original, original.holder != clazz.getType()));
+              };
 
           MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);
           onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
@@ -309,23 +326,14 @@ public class LineNumberOptimizer {
             ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.get();
             classNamingBuilder.addMappedRange(
                 obfuscatedRange,
-                signatures.computeIfAbsent(
-                    firstPosition.method,
-                    m ->
-                        MethodSignature.fromDexMethod(
-                            m, firstPosition.method.holder != clazz.getType())),
+                getOriginalMethodSignature.apply(firstPosition.method),
                 originalRange,
                 obfuscatedName);
             Position caller = firstPosition.caller;
             while (caller != null) {
-              Position finalCaller = caller;
               classNamingBuilder.addMappedRange(
                   obfuscatedRange,
-                  signatures.computeIfAbsent(
-                      caller.method,
-                      m ->
-                          MethodSignature.fromDexMethod(
-                              m, finalCaller.method.holder != clazz.getType())),
+                  getOriginalMethodSignature.apply(caller.method),
                   Math.max(caller.line, 0), // Prevent against "no-position".
                   obfuscatedName);
               caller = caller.callerPosition;
@@ -381,16 +389,20 @@ public class LineNumberOptimizer {
     }
   }
 
-  private static void addFieldsToClassNaming(NamingLens namingLens, DexProgramClass clazz,
+  private static void addFieldsToClassNaming(
+      GraphLense graphLense,
+      NamingLens namingLens,
+      DexProgramClass clazz,
       Supplier<Builder> onDemandClassNamingBuilder) {
     clazz.forEachField(
         dexEncodedField -> {
           DexField dexField = dexEncodedField.field;
+          DexField originalField = graphLense.getOriginalFieldSignature(dexField);
           DexString renamedName = namingLens.lookupName(dexField);
-          if (renamedName != dexField.name) {
-            FieldSignature signature =
-                new FieldSignature(dexField.name.toString(), dexField.type.toString());
-            MemberNaming memberNaming = new MemberNaming(signature, renamedName.toString());
+          if (renamedName != originalField.name || originalField.clazz != clazz.type) {
+            FieldSignature originalSignature =
+                FieldSignature.fromDexField(originalField, originalField.clazz != clazz.type);
+            MemberNaming memberNaming = new MemberNaming(originalSignature, renamedName.toString());
             onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
           }
         });
