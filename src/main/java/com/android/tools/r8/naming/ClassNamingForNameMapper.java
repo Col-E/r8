@@ -69,17 +69,17 @@ public class ClassNamingForNameMapper implements ClassNaming {
     /** The parameters are forwarded to MappedRange constructor, see explanation there. */
     @Override
     public void addMappedRange(
-        Range obfuscatedRange,
+        Range minifiedRange,
         MemberNaming.MethodSignature originalSignature,
         Object originalRange,
-        String obfuscatedName) {
+        String renamedName) {
       mappedRangesByName
-          .computeIfAbsent(obfuscatedName, k -> new ArrayList<>())
-          .add(new MappedRange(obfuscatedRange, originalSignature, originalRange, obfuscatedName));
+          .computeIfAbsent(renamedName, k -> new ArrayList<>())
+          .add(new MappedRange(minifiedRange, originalSignature, originalRange, renamedName));
     }
   }
 
-  /** List of MappedRanges that belong to the same obfuscated name. */
+  /** List of MappedRanges that belong to the same renamed name. */
   public static class MappedRangesOfName {
     private final List<MappedRange> mappedRanges;
 
@@ -94,14 +94,14 @@ public class ClassNamingForNameMapper implements ClassNaming {
     public MappedRange firstRangeForLine(int line) {
       MappedRange bestRange = null;
       for (MappedRange range : mappedRanges) {
-        if (range.obfuscatedRange == null) {
+        if (range.minifiedRange == null) {
           if (bestRange == null) {
             // This is an "a() -> b" mapping (no concrete line numbers), remember this if there'll
             // be no better one.
             bestRange = range;
           }
-        } else if (range.obfuscatedRange.contains(line)) {
-          // Concrete obfuscated range found ("x:y:a()[:u[:v]] -> b")
+        } else if (range.minifiedRange.contains(line)) {
+          // Concrete minified range found ("x:y:a()[:u[:v]] -> b")
           return range;
         }
       }
@@ -109,25 +109,25 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
 
     /**
-     * Search for a MappedRange where the obfuscated range contains the specified {@code line} and
-     * return that and the subsequent MappedRanges with the same obfuscated range. Return general
+     * Search for a MappedRange where the minified range contains the specified {@code line} and
+     * return that and the subsequent MappedRanges with the same minified range. Return general
      * MappedRange ("a() -> b") if no concrete mapping found or empty list if nothing found.
      */
     public List<MappedRange> allRangesForLine(int line) {
       MappedRange noLineRange = null;
       for (int i = 0; i < mappedRanges.size(); ++i) {
         MappedRange rangeI = mappedRanges.get(i);
-        if (rangeI.obfuscatedRange == null) {
+        if (rangeI.minifiedRange == null) {
           if (noLineRange == null) {
             // This is an "a() -> b" mapping (no concrete line numbers), remember this if there'll
             // be no better one.
             noLineRange = rangeI;
           }
-        } else if (rangeI.obfuscatedRange.contains(line)) {
-          // Concrete obfuscated range found ("x:y:a()[:u[:v]] -> b")
+        } else if (rangeI.minifiedRange.contains(line)) {
+          // Concrete minified range found ("x:y:a()[:u[:v]] -> b")
           int j = i + 1;
           for (; j < mappedRanges.size(); ++j) {
-            if (!Objects.equals(mappedRanges.get(j).obfuscatedRange, rangeI.obfuscatedRange)) {
+            if (!Objects.equals(mappedRanges.get(j).minifiedRange, rangeI.minifiedRange)) {
               break;
             }
           }
@@ -166,10 +166,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
   /**
    * Mapping from the renamed signature to the naming information for a member.
-   * <p>
-   * A renamed signature is a signature where the member's name has been obfuscated but not the type
+   *
+   * <p>A renamed signature is a signature where the member's name has been renamed but not the type
    * information.
-   **/
+   */
   private final ImmutableMap<MethodSignature, MemberNaming> methodMembers;
   private final ImmutableMap<FieldSignature, MemberNaming> fieldMembers;
 
@@ -325,22 +325,22 @@ public class ClassNamingForNameMapper implements ClassNaming {
   }
 
   /**
-   * MappedRange describes an (original line numbers, signature) <-> (obfuscated line numbers)
+   * MappedRange describes an (original line numbers, signature) <-> (minified line numbers)
    * mapping. It can describe 3 different things:
    *
    * <p>1. The method is renamed. The original source lines are preserved. The corresponding
    * Proguard-map syntax is "a(...) -> b"
    *
-   * <p>2. The source lines of a method in the original range are renumbered to the obfuscated
-   * range. In this case the {@link MappedRange#originalRange} is either a {@code Range} or null,
+   * <p>2. The source lines of a method in the original range are renumbered to the minified range.
+   * In this case the {@link MappedRange#originalRange} is either a {@code Range} or null,
    * indicating that the original range is unknown or is the same as the {@link
-   * MappedRange#obfuscatedRange}. The corresponding Proguard-map syntax is "x:y:a(...) -> b" or
+   * MappedRange#minifiedRange}. The corresponding Proguard-map syntax is "x:y:a(...) -> b" or
    * "x:y:a(...):u:v -> b"
    *
    * <p>3. The source line of a method is the inlining caller of the previous {@code MappedRange}.
    * In this case the {@link MappedRange@originalRange} is either an {@code int} or null, indicating
-   * that the original source line is unknown, or may be identical to a line of the obfuscated
-   * range. The corresponding Proguard-map syntax is "x:y:a(...) -> b" or "x:y:a(...):u -> b"
+   * that the original source line is unknown, or may be identical to a line of the minified range.
+   * The corresponding Proguard-map syntax is "x:y:a(...) -> b" or "x:y:a(...):u -> b"
    */
   public static class MappedRange {
 
@@ -350,10 +350,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
       return nextSequenceNumber++;
     }
 
-    public final Range obfuscatedRange; // Can be null, if so then originalRange must also be null.
+    public final Range minifiedRange; // Can be null, if so then originalRange must also be null.
     public final MethodSignature signature;
     public final Object originalRange; // null, Integer or Range.
-    public final String obfuscatedName;
+    public final String renamedName;
 
     /**
      * The sole purpose of {@link #sequenceNumber} is to preserve the order of members read from a
@@ -362,52 +362,49 @@ public class ClassNamingForNameMapper implements ClassNaming {
     private final int sequenceNumber = getNextSequenceNumber();
 
     private MappedRange(
-        Range obfuscatedRange,
-        MethodSignature signature,
-        Object originalRange,
-        String obfuscatedName) {
+        Range minifiedRange, MethodSignature signature, Object originalRange, String renamedName) {
 
-      assert obfuscatedRange != null || originalRange == null;
+      assert minifiedRange != null || originalRange == null;
       assert originalRange == null
           || originalRange instanceof Integer
           || originalRange instanceof Range;
 
-      this.obfuscatedRange = obfuscatedRange;
+      this.minifiedRange = minifiedRange;
       this.signature = signature;
       this.originalRange = originalRange;
-      this.obfuscatedName = obfuscatedName;
+      this.renamedName = renamedName;
     }
 
-    public int originalLineFromObfuscated(int obfuscatedLineNumber) {
-      if (obfuscatedRange == null) {
+    public int getOriginalLineNumber(int lineNumberAfterMinification) {
+      if (minifiedRange == null) {
         // General mapping without concrete line numbers: "a() -> b"
-        return obfuscatedLineNumber;
+        return lineNumberAfterMinification;
       }
-      assert obfuscatedRange.contains(obfuscatedLineNumber);
+      assert minifiedRange.contains(lineNumberAfterMinification);
       if (originalRange == null) {
         // Concrete identity mapping: "x:y:a() -> b"
-        return obfuscatedLineNumber;
+        return lineNumberAfterMinification;
       } else if (originalRange instanceof Integer) {
         // Inlinee: "x:y:a():u -> b"
         return (int) originalRange;
       } else {
         // "x:y:a():u:v -> b"
         assert originalRange instanceof Range;
-        return ((Range) originalRange).from + obfuscatedLineNumber - obfuscatedRange.from;
+        return ((Range) originalRange).from + lineNumberAfterMinification - minifiedRange.from;
       }
     }
 
     @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();
-      if (obfuscatedRange != null) {
-        builder.append(obfuscatedRange).append(':');
+      if (minifiedRange != null) {
+        builder.append(minifiedRange).append(':');
       }
       builder.append(signature);
       if (originalRange != null) {
         builder.append(":").append(originalRange);
       }
-      builder.append(" -> ").append(obfuscatedName);
+      builder.append(" -> ").append(renamedName);
       return builder.toString();
     }
 
@@ -424,19 +421,19 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
       MappedRange that = (MappedRange) o;
 
-      return Objects.equals(obfuscatedRange, that.obfuscatedRange)
+      return Objects.equals(minifiedRange, that.minifiedRange)
           && Objects.equals(originalRange, that.originalRange)
           && signature.equals(that.signature)
-          && obfuscatedName.equals(that.obfuscatedName);
+          && renamedName.equals(that.renamedName);
     }
 
     @Override
     public int hashCode() {
       // sequenceNumber is intentionally omitted from hashCode since it's not used in equality test.
-      int result = Objects.hashCode(obfuscatedRange);
+      int result = Objects.hashCode(minifiedRange);
       result = 31 * result + Objects.hashCode(originalRange);
       result = 31 * result + signature.hashCode();
-      result = 31 * result + obfuscatedName.hashCode();
+      result = 31 * result + renamedName.hashCode();
       return result;
     }
   }

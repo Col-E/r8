@@ -701,7 +701,7 @@ public abstract class DebugTestBase {
         if (range == null) {
           return obfuscatedLineNumber;
         }
-        return range.originalLineFromObfuscated(obfuscatedLineNumber);
+        return range.getOriginalLineNumber(obfuscatedLineNumber);
       }
 
       @Override
@@ -724,8 +724,7 @@ public abstract class DebugTestBase {
         for (MappedRange range : mappedRanges) {
           lines.add(
               new SignatureAndLine(
-                  range.signature.toString(),
-                  range.originalLineFromObfuscated(obfuscatedLineNumber)));
+                  range.signature.toString(), range.getOriginalLineNumber(obfuscatedLineNumber)));
         }
         return lines;
       }
