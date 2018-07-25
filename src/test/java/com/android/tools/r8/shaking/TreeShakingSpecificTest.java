@@ -14,12 +14,15 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Assert;
@@ -27,8 +30,28 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class TreeShakingSpecificTest {
+  enum Backend {
+    DEX,
+    CF
+  }
+
+  private Backend backend;
+
+  @Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public TreeShakingSpecificTest(Backend backend) {
+    this.backend = backend;
+  }
+
   private static final String VALID_PROGUARD_DIR = "src/test/proguard/valid/";
 
   @Rule
@@ -37,18 +60,28 @@ public class TreeShakingSpecificTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
+  private void finishBuild(R8Command.Builder builder, Path out, String test) throws IOException {
+    Path input;
+    if (backend == Backend.DEX) {
+      builder.setOutput(out, OutputMode.DexIndexed);
+      input = Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex");
+    } else {
+      builder.setOutput(out, OutputMode.ClassFile);
+      input = Paths.get(EXAMPLES_BUILD_DIR, test + ".jar");
+    }
+    ToolHelper.getAppBuilder(builder).addProgramFiles(input);
+  }
+
   @Test
   public void testIgnoreWarnings() throws Exception {
     // Generate R8 processed version without library option.
     Path out = temp.getRoot().toPath();
     String test = "shaking2";
-    Path originalDex = Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex");
     Path keepRules = Paths.get(EXAMPLES_DIR, test, "keep-rules.txt");
     Path ignoreWarnings = Paths.get(VALID_PROGUARD_DIR, "ignorewarnings.flags");
     R8Command.Builder builder = R8Command.builder()
-        .setOutput(out, OutputMode.DexIndexed)
         .addProguardConfigurationFiles(keepRules, ignoreWarnings);
-    ToolHelper.getAppBuilder(builder).addProgramFiles(originalDex);
+    finishBuild(builder, out, test);
     R8.run(builder.build());
   }
 
@@ -57,7 +90,6 @@ public class TreeShakingSpecificTest {
     // Generate R8 processed version without library option.
     Path out = temp.getRoot().toPath();
     String test = "shaking2";
-    Path originalDex = Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex");
     Path keepRules = Paths.get(EXAMPLES_DIR, test, "keep-rules.txt");
     DiagnosticsHandler handler = new DiagnosticsHandler() {
       @Override
@@ -68,9 +100,8 @@ public class TreeShakingSpecificTest {
       }
     };
     R8Command.Builder builder = R8Command.builder(handler)
-        .setOutput(out, OutputMode.DexIndexed)
         .addProguardConfigurationFiles(keepRules);
-    ToolHelper.getAppBuilder(builder).addProgramFiles(originalDex);
+    finishBuild(builder, out, test);
     R8.run(builder.build());
   }
 
@@ -79,7 +110,6 @@ public class TreeShakingSpecificTest {
     // Generate R8 processed version without library option.
     String test = "shaking1";
     Path out = temp.getRoot().toPath();
-    Path originalDex = Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex");
     Path keepRules = Paths.get(EXAMPLES_DIR, test, "keep-rules.txt");
 
     // Create a flags file in temp dir requesting dump of the mapping.
@@ -90,10 +120,15 @@ public class TreeShakingSpecificTest {
     }
 
     R8Command.Builder builder = R8Command.builder()
-        .setOutput(out, OutputMode.DexIndexed)
         .addProguardConfigurationFiles(keepRules, printMapping);
-    ToolHelper.getAppBuilder(builder).addProgramFiles(originalDex);
     // Turn off inlining, as we want the mapping that is printed to be stable.
+    finishBuild(builder, out, test);
+    if (backend == Backend.DEX) {
+      builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+    } else {
+      assert backend == Backend.CF;
+      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+    }
     ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
 
     Path outputmapping = out.resolve("mapping.txt");
@@ -102,8 +137,15 @@ public class TreeShakingSpecificTest {
         Stream.of(new String(Files.readAllBytes(outputmapping), StandardCharsets.UTF_8).split("\n"))
             .filter(line -> !line.startsWith("#"))
             .collect(Collectors.joining("\n"));
-    String refMapping = new String(Files.readAllBytes(
-        Paths.get(EXAMPLES_DIR, "shaking1", "print-mapping.ref")), StandardCharsets.UTF_8);
+    // For the CF backend we treat ConstString/LDC as a (potentially always) throwing instruction,
+    // as opposed to the DEX backend where it's throwing only if its string is ill-formed.
+    // When ConstString is throwing we preserve its position which makes it show up in the
+    // the output Proguard map. That's why the reference CF map is different from the DEX one.
+    String mapping_ref = backend == Backend.CF ? "print-mapping-cf.ref" : "print-mapping.ref";
+    String refMapping =
+        new String(
+            Files.readAllBytes(Paths.get(EXAMPLES_DIR, "shaking1", mapping_ref)),
+            StandardCharsets.UTF_8);
     Assert.assertEquals(sorted(refMapping), sorted(actualMapping));
   }
 
