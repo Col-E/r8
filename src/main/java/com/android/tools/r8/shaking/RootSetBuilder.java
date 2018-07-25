@@ -59,9 +59,9 @@ public class RootSetBuilder {
   private final Set<ProguardConfigurationRule> rulesThatUseExtendsOrImplementsWrong =
       Sets.newIdentityHashSet();
   private final Set<DexItem> checkDiscarded = Sets.newIdentityHashSet();
-  private final Set<DexItem> alwaysInline = Sets.newIdentityHashSet();
-  private final Set<DexItem> forceInline = Sets.newIdentityHashSet();
-  private final Set<DexItem> neverInline = Sets.newIdentityHashSet();
+  private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
+  private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
+  private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
   private final Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking =
       new IdentityHashMap<>();
   private final Map<DexItem, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
@@ -727,13 +727,19 @@ public class RootSetBuilder {
     } else if (context instanceof InlineRule) {
       switch (((InlineRule) context).getType()) {
         case ALWAYS:
-          alwaysInline.add(item);
+          if (item instanceof DexEncodedMethod) {
+            alwaysInline.add(((DexEncodedMethod) item).method);
+          }
           break;
         case FORCE:
-          forceInline.add(item);
+          if (item instanceof DexEncodedMethod) {
+            forceInline.add(((DexEncodedMethod) item).method);
+          }
           break;
         case NEVER:
-          neverInline.add(item);
+          if (item instanceof DexEncodedMethod) {
+            neverInline.add(((DexEncodedMethod) item).method);
+          }
           break;
         default:
           throw new Unreachable();
@@ -755,9 +761,9 @@ public class RootSetBuilder {
     public final Set<DexItem> reasonAsked;
     public final Set<DexItem> keepPackageName;
     public final Set<DexItem> checkDiscarded;
-    public final Set<DexItem> alwaysInline;
-    public final Set<DexItem> forceInline;
-    public final Set<DexItem> neverInline;
+    public final Set<DexMethod> alwaysInline;
+    public final Set<DexMethod> forceInline;
+    public final Set<DexMethod> neverInline;
     public final Map<DexItem, ProguardMemberRule> noSideEffects;
     public final Map<DexItem, ProguardMemberRule> assumedValues;
     private final Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking;
@@ -792,9 +798,9 @@ public class RootSetBuilder {
         Set<DexItem> reasonAsked,
         Set<DexItem> keepPackageName,
         Set<DexItem> checkDiscarded,
-        Set<DexItem> alwaysInline,
-        Set<DexItem> forceInline,
-        Set<DexItem> neverInline,
+        Set<DexMethod> alwaysInline,
+        Set<DexMethod> forceInline,
+        Set<DexMethod> neverInline,
         Map<DexItem, ProguardMemberRule> noSideEffects,
         Map<DexItem, ProguardMemberRule> assumedValues,
         Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking,

@@ -71,7 +71,7 @@ public class Inliner {
   }
 
   public boolean isBlackListed(DexEncodedMethod method) {
-    return blackList.contains(method.method) || appInfo.neverInline.contains(method);
+    return blackList.contains(method.method) || appInfo.neverInline.contains(method.method);
   }
 
   private ConstraintWithTarget instructionAllowedForInlining(

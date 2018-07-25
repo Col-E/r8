@@ -100,6 +100,17 @@ public class BridgeMethodAnalysis {
     }
 
     @Override
+    public DexField getRenamedFieldSignature(DexField originalField) {
+      return previousLense.getRenamedFieldSignature(originalField);
+    }
+
+    @Override
+    public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
+      // TODO(b/79143143): implement this when re-enabling bridge analysis.
+      throw new Unimplemented("BridgeLense.getRenamedMethodSignature() not implemented");
+    }
+
+    @Override
     public DexType lookupType(DexType type) {
       return previousLense.lookupType(type);
     }

@@ -252,7 +252,7 @@ public class VerticalClassMerger {
     }
   }
 
-  private void extractPinnedItems(Iterable<DexItem> items, AbortReason reason) {
+  private <T extends DexItem> void extractPinnedItems(Iterable<T> items, AbortReason reason) {
     for (DexItem item : items) {
       if (item instanceof DexType || item instanceof DexClass) {
         DexType type = item instanceof DexType ? (DexType) item : ((DexClass) item).type;
@@ -1520,6 +1520,16 @@ public class VerticalClassMerger {
 
     @Override
     public DexMethod getOriginalMethodSignature(DexMethod method) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public DexField getRenamedFieldSignature(DexField originalField) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
       throw new Unreachable();
     }
 

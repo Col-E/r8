@@ -1681,15 +1681,15 @@ public class Enqueuer {
     /**
      * All methods that should be inlined if possible due to a configuration directive.
      */
-    public final Set<DexItem> alwaysInline;
+    public final Set<DexMethod> alwaysInline;
     /**
      * All methods that *must* be inlined due to a configuration directive (testing only).
      */
-    public final Set<DexItem> forceInline;
+    public final Set<DexMethod> forceInline;
     /**
      * All methods that *must* never be inlined due to a configuration directive (testing only).
      */
-    public final Set<DexItem> neverInline;
+    public final Set<DexMethod> neverInline;
     /**
      * All items with -identifiernamestring rule.
      */
@@ -1836,8 +1836,8 @@ public class Enqueuer {
       this.assumedValues = previous.assumedValues;
       assert lense.assertNotModified(previous.alwaysInline);
       this.alwaysInline = previous.alwaysInline;
-      this.forceInline = previous.forceInline;
-      this.neverInline = previous.neverInline;
+      this.forceInline = rewriteMethodsWithRenamedSignature(previous.forceInline, lense);
+      this.neverInline = rewriteMethodsWithRenamedSignature(previous.neverInline, lense);
       this.identifierNameStrings =
           rewriteMixedItemsConservatively(previous.identifierNameStrings, lense);
       // Switchmap classes should never be affected by renaming.
@@ -1945,6 +1945,16 @@ public class Enqueuer {
         } else {
           throw new Unreachable();
         }
+      }
+      return builder.build();
+    }
+
+    private static ImmutableSortedSet<DexMethod> rewriteMethodsWithRenamedSignature(
+        Set<DexMethod> methods, GraphLense lense) {
+      ImmutableSortedSet.Builder<DexMethod> builder =
+          new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
+      for (DexMethod method : methods) {
+        builder.add(lense.getRenamedMethodSignature(method));
       }
       return builder.build();
     }

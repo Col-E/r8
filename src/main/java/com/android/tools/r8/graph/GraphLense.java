@@ -93,6 +93,10 @@ public abstract class GraphLense {
 
   public abstract DexMethod getOriginalMethodSignature(DexMethod method);
 
+  public abstract DexField getRenamedFieldSignature(DexField originalField);
+
+  public abstract DexMethod getRenamedMethodSignature(DexMethod originalMethod);
+
   public abstract DexType lookupType(DexType type);
 
   // This overload can be used when the graph lense is known to be context insensitive.
@@ -140,7 +144,7 @@ public abstract class GraphLense {
     return this instanceof IdentityGraphLense;
   }
 
-  public boolean assertNotModified(Iterable<DexItem> items) {
+  public <T extends DexItem> boolean assertNotModified(Iterable<T> items) {
     for (DexItem item : items) {
       if (item instanceof DexClass) {
         DexType type = ((DexClass) item).type;
@@ -169,6 +173,16 @@ public abstract class GraphLense {
     @Override
     public DexMethod getOriginalMethodSignature(DexMethod method) {
       return method;
+    }
+
+    @Override
+    public DexField getRenamedFieldSignature(DexField originalField) {
+      return originalField;
+    }
+
+    @Override
+    public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
+      return originalMethod;
     }
 
     @Override
@@ -251,6 +265,24 @@ public abstract class GraphLense {
               ? originalMethodSignatures.getOrDefault(method, method)
               : method;
       return previousLense.getOriginalMethodSignature(originalMethod);
+    }
+
+    @Override
+    public DexField getRenamedFieldSignature(DexField originalField) {
+      DexField renamedField =
+          originalFieldSignatures != null
+              ? originalFieldSignatures.inverse().getOrDefault(originalField, originalField)
+              : originalField;
+      return previousLense.getRenamedFieldSignature(renamedField);
+    }
+
+    @Override
+    public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
+      DexMethod renamedMethod =
+          originalMethodSignatures != null
+              ? originalMethodSignatures.inverse().getOrDefault(originalMethod, originalMethod)
+              : originalMethod;
+      return previousLense.getRenamedMethodSignature(renamedMethod);
     }
 
     @Override

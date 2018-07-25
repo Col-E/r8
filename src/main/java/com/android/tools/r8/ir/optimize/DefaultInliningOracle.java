@@ -93,11 +93,11 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   private Reason computeInliningReason(DexEncodedMethod target) {
     if (target.getOptimizationInfo().forceInline()
         || (inliner.appInfo.hasLiveness()
-            && inliner.appInfo.withLiveness().forceInline.contains(target))) {
+            && inliner.appInfo.withLiveness().forceInline.contains(target.method))) {
       return Reason.FORCE;
     }
     if (inliner.appInfo.hasLiveness()
-        && inliner.appInfo.withLiveness().alwaysInline.contains(target)) {
+        && inliner.appInfo.withLiveness().alwaysInline.contains(target.method)) {
       return Reason.ALWAYS;
     }
     if (callSiteInformation.hasSingleCallSite(target)) {

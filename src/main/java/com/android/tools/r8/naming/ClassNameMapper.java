@@ -38,7 +38,7 @@ public class ClassNameMapper implements ProguardMap {
     private final ImmutableMap.Builder<String, ClassNamingForNameMapper.Builder> mapBuilder;
 
     private Builder() {
-      mapBuilder = ImmutableMap.builder();
+      this.mapBuilder = ImmutableMap.builder();
     }
 
     @Override

@@ -49,7 +49,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -479,9 +478,6 @@ public class ClassMergingTest extends TestBase {
         });
   }
 
-  // TODO(christofferqa): The sets appInfo.forceInline and appInfo.neverInline must be rewritten
-  // with the graph lense after vertical class merging.
-  @Ignore
   @Test
   public void testProguardMethodMapAfterInlining() throws Throwable {
     String main = "classmerging.ProguardMethodMapTest";
