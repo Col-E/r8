@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.ir.desugar.annotations.version2;
 
-import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.*;
+import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.CRTS_SIMPLE_NAME;
+import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.CRT_NAME;
+import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.PACKAGE_NAME;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassWriter;

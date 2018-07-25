@@ -4,8 +4,12 @@
 
 package com.android.tools.r8.debuginfo;
 
-import java.util.*;
-import org.objectweb.asm.*;
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 public class InliningWithoutPositionsTestSourceDump implements Opcodes {
 

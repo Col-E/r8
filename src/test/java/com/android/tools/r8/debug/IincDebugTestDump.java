@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.debug;
 
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 public class IincDebugTestDump implements Opcodes {
 

@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.cf;
 
-import java.util.*;
-import org.objectweb.asm.*;
-
 public class AlwaysNullGetItemTest {
   public static void main(String[] args) {
     try {
