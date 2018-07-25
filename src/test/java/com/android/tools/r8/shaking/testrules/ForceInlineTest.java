@@ -13,6 +13,9 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -20,17 +23,45 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class ForceInlineTest extends TestBase {
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public ForceInlineTest(Backend backend) {
+    this.backend = backend;
+  }
 
   private CodeInspector runTest(List<String> proguardConfiguration) throws Exception {
+    ProgramConsumer programConsumer;
+    Path library;
+    if (backend == Backend.DEX) {
+      programConsumer = DexIndexedConsumer.emptyConsumer();
+      library = ToolHelper.getDefaultAndroidJar();
+    } else {
+      assert backend == Backend.CF;
+      programConsumer = ClassFileConsumer.emptyConsumer();
+      library = ToolHelper.getJava8RuntimeJar();
+    }
     R8Command.Builder builder =
-        ToolHelper.prepareR8CommandBuilder(readClasses(Main.class, A.class, B.class, C.class));
+        ToolHelper.prepareR8CommandBuilder(
+                readClasses(Main.class, A.class, B.class, C.class), programConsumer)
+            .addLibraryFiles(library);
     ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(proguardConfiguration, Origin.unknown());
-    return new CodeInspector(ToolHelper.runR8(builder.build()));
+    return new CodeInspector(ToolHelper.runR8(builder.build(), o -> o.enableCfFrontend = true));
   }
 
   @Test
