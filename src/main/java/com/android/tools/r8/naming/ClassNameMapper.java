@@ -35,7 +35,7 @@ import java.util.function.Consumer;
 public class ClassNameMapper implements ProguardMap {
 
   public static class Builder extends ProguardMap.Builder {
-    final ImmutableMap.Builder<String, ClassNamingForNameMapper.Builder> mapBuilder;
+    private final ImmutableMap.Builder<String, ClassNamingForNameMapper.Builder> mapBuilder;
 
     private Builder() {
       mapBuilder = ImmutableMap.builder();
