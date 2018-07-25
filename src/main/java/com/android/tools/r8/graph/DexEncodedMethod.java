@@ -24,6 +24,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.code.IRCode;
@@ -541,6 +542,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return builder.build();
   }
 
+  public DexEncodedMethod toStaticMethodWithoutThis() {
+    assert !accessFlags.isStatic();
+    Builder builder = builder(this);
+    builder.setStatic();
+    builder.withoutThisParameter();
+    return builder.build();
+  }
+
   /**
    * Rewrites the code in this method to have JumboString bytecode if required by mapping.
    * <p>
@@ -658,6 +667,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       forceInline = template.forceInline;
       useIdentifierNameString = template.useIdentifierNameString;
       checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
+      trivialInitializerInfo = template.trivialInitializerInfo;
     }
 
     public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
@@ -926,6 +936,19 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     public void setMethod(DexMethod method) {
       this.method = method;
+    }
+
+    public void setStatic() {
+      this.accessFlags.setStatic();
+    }
+
+    public void withoutThisParameter() {
+      assert code != null;
+      if (code.isDexCode()) {
+        code = code.asDexCode().withoutThisParameter();
+      } else {
+        throw new Unreachable("Code " + code.getClass().getSimpleName() + " is not supported.");
+      }
     }
 
     public void setCode(Code code) {

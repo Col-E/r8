@@ -16,11 +16,13 @@ import com.android.tools.r8.kotlin.TestKotlinClass.AccessorKind;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.function.Consumer;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -59,12 +61,15 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
           .addProperty("property", JAVA_LANG_STRING, Visibility.PRIVATE)
           .addProperty("indirectPropertyGetter", JAVA_LANG_STRING, Visibility.PRIVATE);
 
+  private Consumer<InternalOptions> disableClassStaticizer =
+      opts -> opts.enableClassStaticizer = false;
+
   @Test
   public void testCompanionProperty_primitivePropertyIsAlwaysInlined() throws Exception {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePrimitiveProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
       String propertyName = "primitiveProp";
@@ -93,7 +98,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePrivateProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
       String propertyName = "privateProp";
@@ -123,7 +128,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_useInternalProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
       String propertyName = "internalProp";
@@ -152,7 +157,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePublicProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
       String propertyName = "publicProp";
@@ -181,7 +186,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, (app) -> {
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
       String propertyName = "privateLateInitProp";
@@ -257,7 +262,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     TestKotlinCompanionClass testedClass = ACCESSOR_COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("accessors.AccessorKt",
         "accessor_accessPropertyFromCompanionClass");
-    runTest("accessors", mainClass, (app) -> {
+    runTest("accessors", mainClass, disableClassStaticizer, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
       ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());

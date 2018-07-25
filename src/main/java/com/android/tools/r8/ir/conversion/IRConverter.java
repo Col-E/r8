@@ -50,6 +50,7 @@ import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
+import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.kotlin.KotlinInfo;
@@ -94,9 +95,10 @@ public class IRConverter {
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final LambdaMerger lambdaMerger;
   private final ClassInliner classInliner;
+  private final ClassStaticizer classStaticizer;
   private final InternalOptions options;
   private final CfgPrinter printer;
-  private final GraphLense graphLense;
+  private GraphLense graphLense;
   private final CodeRewriter codeRewriter;
   private final MemberValuePropagation memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
@@ -144,7 +146,7 @@ public class IRConverter {
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
       this.nonNullTracker = new NonNullTracker();
-      this.inliner = new Inliner(appInfo.withLiveness(), graphLense, options);
+      this.inliner = new Inliner(this, options);
       this.outliner = new Outliner(appInfo.withLiveness(), options);
       this.memberValuePropagation =
           options.enableValuePropagation ?
@@ -182,6 +184,17 @@ public class IRConverter {
             ? new ClassInliner(
             appInfo.dexItemFactory, lambdaRewriter, options.classInliningInstructionLimit)
             : null;
+    this.classStaticizer = options.enableClassStaticizer && appInfo.hasLiveness()
+        ? new ClassStaticizer(appInfo.withLiveness(), this) : null;
+  }
+
+  public void setGraphLense(GraphLense graphLense) {
+    assert graphLense != null;
+    this.graphLense = graphLense;
+  }
+
+  public GraphLense getGraphLense() {
+    return graphLense;
   }
 
   /**
@@ -254,6 +267,18 @@ public class IRConverter {
     if (lambdaRewriter != null) {
       lambdaRewriter.adjustAccessibility();
       lambdaRewriter.synthesizeLambdaClasses(builder);
+    }
+  }
+
+  private void staticizeClasses(OptimizationFeedback feedback) {
+    if (classStaticizer != null) {
+      classStaticizer.staticizeCandidates(feedback);
+    }
+  }
+
+  private void collectStaticizerCandidates(DexApplication application) {
+    if (classStaticizer != null) {
+      classStaticizer.collectCandidates(application);
     }
   }
 
@@ -408,6 +433,7 @@ public class IRConverter {
       throws ExecutionException {
     removeLambdaDeserializationMethods();
     collectLambdaMergingCandidates(application);
+    collectStaticizerCandidates(application);
 
     // The process is in two phases.
     // 1) Subject all DexEncodedMethods to optimization (except outlining).
@@ -437,6 +463,8 @@ public class IRConverter {
     // Build a new application with jumbo string info.
     Builder<?> builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
+
+    staticizeClasses(directFeedback);
 
     // Second inlining pass for dealing with double inline callers.
     if (inliner != null) {
@@ -676,6 +704,11 @@ public class IRConverter {
       }
     }
 
+    if (classStaticizer != null) {
+      classStaticizer.fixupMethodCode(method, code);
+      assert code.isConsistentSSA();
+    }
+
     if (identifierNameStringMarker != null) {
       identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(method, code);
       assert code.isConsistentSSA();
@@ -802,6 +835,9 @@ public class IRConverter {
       codeRewriter.identifyTrivialInitializer(method, code, feedback);
     }
     codeRewriter.identifyParameterUsages(method, code, feedback);
+    if (classStaticizer != null) {
+      classStaticizer.examineMethodCode(method, code);
+    }
 
     if (options.canHaveNumberConversionRegisterAllocationBug()) {
       codeRewriter.workaroundNumberConversionRegisterAllocationBug(code);

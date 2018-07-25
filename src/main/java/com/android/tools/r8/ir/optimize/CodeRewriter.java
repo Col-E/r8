@@ -953,6 +953,14 @@ public class CodeRewriter {
         continue;
       }
 
+      if (insn.isGoto()) {
+        // Trivial goto to the next block.
+        if (insn.asGoto().isTrivialGotoToTheNextBlock(code)) {
+          continue;
+        }
+        return null;
+      }
+
       // Other instructions make the instance initializer not eligible.
       return null;
     }

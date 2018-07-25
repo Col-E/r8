@@ -266,6 +266,14 @@ public abstract class Instruction {
     block = null;
   }
 
+  public void removeOrReplaceByDebugLocalRead() {
+    getBlock().listIterator(this).removeOrReplaceByDebugLocalRead();
+  }
+
+  public void replace(Instruction newInstruction) {
+    getBlock().listIterator(this).replaceCurrentInstruction(newInstruction);
+  }
+
   /**
    * Returns true if the instruction is in the IR and therefore has a block.
    */

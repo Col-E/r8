@@ -237,6 +237,8 @@ public final class D8Command extends BaseCompilerCommand {
     internal.enableInlining = false;
     assert internal.enableClassInlining;
     internal.enableClassInlining = false;
+    assert internal.enableClassStaticizer;
+    internal.enableClassStaticizer = false;
     assert internal.enableSwitchMapRemoval;
     internal.enableSwitchMapRemoval = false;
     assert internal.outline.enabled;

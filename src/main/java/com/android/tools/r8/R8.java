@@ -396,6 +396,7 @@ public class R8 {
             new IRConverter(
                 appView.getAppInfo(), options, timing, printer, appView.getGraphLense());
         application = converter.optimize(application, executorService);
+        appView.setGraphLense(converter.getGraphLense());
       } finally {
         timing.end();
       }

@@ -43,8 +43,8 @@ import java.util.stream.Collectors;
 public class Inliner {
   private static final int INITIAL_INLINING_INSTRUCTION_ALLOWANCE = 1500;
 
+  private final IRConverter converter;
   protected final AppInfoWithLiveness appInfo;
-  private final GraphLense graphLense;
   final InternalOptions options;
 
   // State for inlining methods which are known to be called twice.
@@ -55,12 +55,9 @@ public class Inliner {
 
   private final Set<DexMethod> blackList = Sets.newIdentityHashSet();
 
-  public Inliner(
-      AppInfoWithLiveness appInfo,
-      GraphLense graphLense,
-      InternalOptions options) {
-    this.appInfo = appInfo;
-    this.graphLense = graphLense;
+  public Inliner(IRConverter converter, InternalOptions options) {
+    this.converter = converter;
+    this.appInfo = converter.appInfo.withLiveness();
     this.options = options;
     fillInBlackList(appInfo);
   }
@@ -588,11 +585,11 @@ public class Inliner {
             }
             assert invokePosition.callerPosition == null
                 || invokePosition.getOutermostCaller().method
-                    == graphLense.getOriginalMethodSignature(method.method);
+                    == converter.getGraphLense().getOriginalMethodSignature(method.method);
 
             IRCode inlinee =
-                result.buildInliningIR(
-                    code.valueNumberGenerator, appInfo, graphLense, options, invokePosition);
+                result.buildInliningIR(code.valueNumberGenerator,
+                    appInfo, converter.getGraphLense(), options, invokePosition);
             if (inlinee != null) {
               // TODO(64432527): Get rid of this additional check by improved inlining.
               if (block.hasCatchHandlers() && inlinee.computeNormalExitBlocks().isEmpty()) {

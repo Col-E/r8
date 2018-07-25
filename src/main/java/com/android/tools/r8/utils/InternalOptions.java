@@ -84,6 +84,7 @@ public class InternalOptions {
       enableNonNullTracking = false;
       enableInlining = false;
       enableClassInlining = false;
+      enableClassStaticizer = false;
       enableSwitchMapRemoval = false;
       outline.enabled = false;
       enableValuePropagation = false;
@@ -102,6 +103,7 @@ public class InternalOptions {
   public boolean enableInlining =
       !Version.isDev() || System.getProperty("com.android.tools.r8.disableinlining") == null;
   public boolean enableClassInlining = true;
+  public boolean enableClassStaticizer = true;
   public int classInliningInstructionLimit = 50;
   public int inliningInstructionLimit = 5;
   public boolean enableSwitchMapRemoval = true;

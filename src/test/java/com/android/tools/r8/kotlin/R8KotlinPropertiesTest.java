@@ -83,16 +83,17 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
           .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
           .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
 
-  private Consumer<InternalOptions> disableClassInliningAndMerging = o -> {
+  private Consumer<InternalOptions> disableAggressiveClassOptimizations = o -> {
     o.enableClassInlining = false;
     o.enableClassMerging = false;
+    o.enableClassStaticizer = false;
   };
 
   @Test
   public void testMutableProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_noUseOfProperties");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -115,7 +116,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_privateIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_usePrivateProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -137,7 +138,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_protectedIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_useProtectedProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -160,7 +161,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_internalIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -183,7 +184,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_publicIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -206,7 +207,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testMutableProperty_primitivePropertyIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/MutablePropertyKt",
         "mutableProperty_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           MUTABLE_PROPERTY_CLASS.getClassName());
@@ -231,11 +232,12 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
     String mainClass = addMainToClasspath("properties/LateInitPropertyKt",
         "lateInitProperty_noUseOfProperties");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
-      for (Entry<String, KotlinProperty> property : LATE_INIT_PROPERTY_CLASS.properties.entrySet()) {
+      for (Entry<String, KotlinProperty> property : LATE_INIT_PROPERTY_CLASS.properties
+          .entrySet()) {
         MethodSignature getter = LATE_INIT_PROPERTY_CLASS.getGetterForProperty(property.getKey());
         MethodSignature setter = LATE_INIT_PROPERTY_CLASS.getSetterForProperty(property.getKey());
         if (property.getValue().getVisibility() == Visibility.PRIVATE) {
@@ -255,7 +257,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_privateIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/LateInitPropertyKt", "lateInitProperty_usePrivateLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -278,7 +280,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_protectedIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath("properties/LateInitPropertyKt",
         "lateInitProperty_useProtectedLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -299,7 +301,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_internalIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/LateInitPropertyKt", "lateInitProperty_useInternalLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -318,7 +320,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testLateInitProperty_publicIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/LateInitPropertyKt", "lateInitProperty_usePublicLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           LATE_INIT_PROPERTY_CLASS.getClassName());
@@ -337,7 +339,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testUserDefinedProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/UserDefinedPropertyKt", "userDefinedProperty_noUseOfProperties");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           USER_DEFINED_PROPERTY_CLASS.getClassName());
@@ -354,7 +356,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testUserDefinedProperty_publicIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties/UserDefinedPropertyKt", "userDefinedProperty_useProperties");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject classSubject = checkClassIsKept(codeInspector,
           USER_DEFINED_PROPERTY_CLASS.getClassName());
@@ -380,7 +382,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testCompanionProperty_primitivePropertyCannotBeInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector,
           "properties.CompanionProperties");
@@ -411,7 +413,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testCompanionProperty_privatePropertyIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePrivateProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector,
           "properties.CompanionProperties");
@@ -445,7 +447,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testCompanionProperty_internalPropertyCannotBeInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector,
           "properties.CompanionProperties");
@@ -476,7 +478,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testCompanionProperty_publicPropertyCannotBeInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector,
           "properties.CompanionProperties");
@@ -508,7 +510,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
       ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
@@ -539,7 +541,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_useInternalLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
       ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
@@ -563,7 +565,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePublicLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
       ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
@@ -587,7 +589,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "primitiveProp";
@@ -614,7 +616,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_usePrivateProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "privateProp";
@@ -641,7 +643,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "internalProp";
@@ -668,7 +670,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "publicProp";
@@ -695,7 +697,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useLateInitPrivateProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "privateLateInitProp";
@@ -722,7 +724,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useLateInitInternalProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "internalLateInitProp";
@@ -745,7 +747,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = OBJECT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.ObjectPropertiesKt", "objectProperties_useLateInitPublicProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "publicLateInitProp";
@@ -768,7 +770,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "primitiveProp";
@@ -795,7 +797,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePrivateProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "privateProp";
@@ -821,7 +823,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "internalProp";
@@ -847,7 +849,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "publicProp";
@@ -874,7 +876,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useLateInitPrivateProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject fileClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "privateLateInitProp";
@@ -900,7 +902,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useLateInitInternalProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "internalLateInitProp";
@@ -924,7 +926,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useLateInitPublicProp");
-    runTest(PACKAGE_NAME, mainClass, disableClassInliningAndMerging, (app) -> {
+    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
       CodeInspector codeInspector = new CodeInspector(app);
       ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
       String propertyName = "publicLateInitProp";

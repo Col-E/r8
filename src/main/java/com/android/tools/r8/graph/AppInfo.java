@@ -528,7 +528,7 @@ public class AppInfo {
     return false;
   }
 
-  private static boolean canTriggerStaticInitializer(DexClass clazz) {
+  public static boolean canTriggerStaticInitializer(DexClass clazz) {
     // Assume it *may* trigger if we didn't find the definition.
     return clazz == null || clazz.hasClassInitializer();
   }

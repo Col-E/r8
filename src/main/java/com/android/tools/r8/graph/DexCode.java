@@ -62,6 +62,17 @@ public class DexCode extends Code {
     hashCode();  // Cache the hash code eagerly.
   }
 
+  public DexCode withoutThisParameter() {
+    // Note that we assume the original code has a register associated with 'this'
+    // argument of the (former) instance method. We also assume (but do not check)
+    // that 'this' register is never used, so when we decrease incoming register size
+    // by 1, it becomes just a regular register which is never used, and thus will be
+    // gone when we build an IR from this code. Rebuilding IR for methods 'staticized'
+    // this way is highly recommended to improve register allocation.
+    return new DexCode(registerSize, incomingRegisterSize - 1, outgoingRegisterSize,
+        instructions, tries, handlers, debugInfoWithoutFirstParameter(), highestSortingString);
+  }
+
   @Override
   public boolean isDexCode() {
     return true;
@@ -104,6 +115,19 @@ public class DexCode extends Code {
     DexString[] newParameters = new DexString[parameters.length + 1];
     newParameters[0] = name;
     System.arraycopy(parameters, 0, newParameters, 1, parameters.length);
+    return new DexDebugInfo(debugInfo.startLine, newParameters, debugInfo.events);
+  }
+
+  public DexDebugInfo debugInfoWithoutFirstParameter() {
+    if (debugInfo == null) {
+      return null;
+    }
+    DexString[] parameters = debugInfo.parameters;
+    if(parameters.length == 0) {
+      return debugInfo;
+    }
+    DexString[] newParameters = new DexString[parameters.length - 1];
+    System.arraycopy(parameters, 1, newParameters, 0, parameters.length - 1);
     return new DexDebugInfo(debugInfo.startLine, newParameters, debugInfo.events);
   }
 

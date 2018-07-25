@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
 import java.util.List;
+import java.util.ListIterator;
 
 public class Goto extends JumpInstruction {
 
@@ -101,6 +102,18 @@ public class Goto extends JumpInstruction {
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     // Nothing to do.
+  }
+
+  public boolean isTrivialGotoToTheNextBlock(IRCode code) {
+    BasicBlock thisBlock = getBlock();
+    ListIterator<BasicBlock> blockIterator = code.blocks.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      if (thisBlock == block) {
+        return blockIterator.hasNext() && blockIterator.next() == getTarget();
+      }
+    }
+    return false;
   }
 
   @Override
