@@ -35,17 +35,17 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Streams;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IdentifierNameStringMarker {
   private final AppInfo appInfo;
   private final DexItemFactory dexItemFactory;
-  private final Set<DexItem> identifierNameStrings;
+  private final Object2BooleanMap<DexItem> identifierNameStrings;
   private final InternalOptions options;
 
   public IdentifierNameStringMarker(AppInfoWithLiveness appInfo, InternalOptions options) {
@@ -63,7 +63,7 @@ public class IdentifierNameStringMarker {
   }
 
   private void decoupleIdentifierNameStringInField(DexEncodedField encodedField) {
-    if (!identifierNameStrings.contains(encodedField.field)) {
+    if (!identifierNameStrings.containsKey(encodedField.field)) {
       return;
     }
     if (!encodedField.accessFlags.isStatic()) {
@@ -102,22 +102,27 @@ public class IdentifierNameStringMarker {
         if (instruction.isStaticPut() || instruction.isInstancePut()) {
           FieldInstruction fieldPut = instruction.asFieldInstruction();
           DexField field = fieldPut.getField();
-          if (!identifierNameStrings.contains(field)) {
+          if (!identifierNameStrings.containsKey(field)) {
             continue;
           }
+          boolean isExplicitRule = identifierNameStrings.getBoolean(field);
           Value in = instruction.isStaticPut()
               ? instruction.asStaticPut().inValue()
               : instruction.asInstancePut().value();
           if (!in.isConstString()) {
-            warnUndeterminedIdentifierIfNecessary(
-                appInfo, options, field, originHolder, instruction, null);
+            if (isExplicitRule) {
+              warnUndeterminedIdentifierIfNecessary(
+                  appInfo, options, field, originHolder, instruction, null);
+            }
             continue;
           }
           DexString original = in.getConstInstruction().asConstString().getValue();
           DexItemBasedString itemBasedString = inferMemberOrTypeFromNameString(appInfo, original);
           if (itemBasedString == null) {
-            warnUndeterminedIdentifierIfNecessary(
-                appInfo, options, field, originHolder, instruction, original);
+            if (isExplicitRule) {
+              warnUndeterminedIdentifierIfNecessary(
+                  appInfo, options, field, originHolder, instruction, original);
+            }
             continue;
           }
           // Move the cursor back to $fieldPut
@@ -163,16 +168,19 @@ public class IdentifierNameStringMarker {
         } else if (instruction.isInvokeMethod()) {
           InvokeMethod invoke = instruction.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
-          if (!identifierNameStrings.contains(invokedMethod)) {
+          if (!identifierNameStrings.containsKey(invokedMethod)) {
             continue;
           }
+          boolean isExplicitRule = identifierNameStrings.getBoolean(invokedMethod);
           List<Value> ins = invoke.arguments();
           Value[] changes = new Value [ins.size()];
           if (isReflectionMethod(dexItemFactory, invokedMethod)) {
             DexItemBasedString itemBasedString = identifyIdentiferNameString(appInfo, invoke);
             if (itemBasedString == null) {
-              warnUndeterminedIdentifierIfNecessary(
-                  appInfo, options, invokedMethod, originHolder, instruction, null);
+              if (isExplicitRule) {
+                warnUndeterminedIdentifierIfNecessary(
+                    appInfo, options, invokedMethod, originHolder, instruction, null);
+              }
               continue;
             }
             DexType returnType = invoke.getReturnType();
@@ -217,16 +225,20 @@ public class IdentifierNameStringMarker {
             for (int i = 0; i < ins.size(); i++) {
               Value in = ins.get(i);
               if (!in.isConstString()) {
-                warnUndeterminedIdentifierIfNecessary(
-                    appInfo, options, invokedMethod, originHolder, instruction, null);
+                if (isExplicitRule) {
+                  warnUndeterminedIdentifierIfNecessary(
+                      appInfo, options, invokedMethod, originHolder, instruction, null);
+                }
                 continue;
               }
               DexString original = in.getConstInstruction().asConstString().getValue();
               DexItemBasedString itemBasedString =
                   inferMemberOrTypeFromNameString(appInfo, original);
               if (itemBasedString == null) {
-                warnUndeterminedIdentifierIfNecessary(
-                    appInfo, options, invokedMethod, originHolder, instruction, original);
+                if (isExplicitRule) {
+                  warnUndeterminedIdentifierIfNecessary(
+                      appInfo, options, invokedMethod, originHolder, instruction, original);
+                }
                 continue;
               }
               // Move the cursor back to $invoke

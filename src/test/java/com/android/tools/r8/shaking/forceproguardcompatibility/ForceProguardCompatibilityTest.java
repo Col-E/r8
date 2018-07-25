@@ -23,7 +23,6 @@ import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
-import com.android.tools.r8.shaking.ProguardIdentifierNameStringRule;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardKeepRuleType;
@@ -261,7 +260,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
     forNameClasses.forEach(clazz -> {
       ClassSubject subject = inspector.clazz(getJavacGeneratedClassName(clazz));
-      assertEquals(forceProguardCompatibility, subject.isPresent());
+      assertTrue(subject.isPresent());
       assertEquals(subject.isPresent() && allowObfuscation, subject.isRenamed());
     });
 
@@ -273,8 +272,10 @@ public class ForceProguardCompatibilityTest extends TestBase {
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     if (forceProguardCompatibility) {
       List<ProguardConfigurationRule> rules = configuration.getRules();
-      assertEquals(3, rules.size());
-      Iterables.filter(rules, ProguardKeepRule.class).forEach(rule -> {
+      assertEquals(2, rules.size());
+      for (ProguardConfigurationRule r : rules) {
+        assertTrue(r instanceof ProguardKeepRule);
+        ProguardKeepRule rule = (ProguardKeepRule) r;
         assertEquals(ProguardKeepRuleType.KEEP, rule.getType());
         assertTrue(rule.getModifiers().allowsObfuscation);
         assertTrue(rule.getModifiers().allowsOptimization);
@@ -292,18 +293,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
           assertEquals(1, memberRules.size());
           assertEquals(ProguardMemberType.INIT, memberRules.iterator().next().getRuleType());
         }
-      });
-      Iterables.filter(rules, ProguardIdentifierNameStringRule.class).forEach(rule -> {
-        List<ProguardMemberRule> memberRules = rule.getMemberRules();
-        ProguardClassNameList classNames = rule.getClassNames();
-        assertEquals(1, classNames.size());
-        DexType type = classNames.asSpecificDexTypes().get(0);
-        assertEquals("java.lang.Class", type.toSourceString());
-        assertEquals(1, memberRules.size());
-        ProguardMemberRule memberRule = memberRules.iterator().next();
-        assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
-        assertEquals("forName", memberRule.getName().toString());
-      });
+      }
     } else {
       assertEquals(0, configuration.getRules().size());
     }
@@ -367,11 +357,11 @@ public class ForceProguardCompatibilityTest extends TestBase {
     assertTrue(classSubject.isPresent());
     assertEquals(allowObfuscation, classSubject.isRenamed());
     FieldSubject foo = classSubject.field("java.lang.String", "foo");
-    assertEquals(forceProguardCompatibility, foo.isPresent());
+    assertTrue(foo.isPresent());
     assertEquals(foo.isPresent() && allowObfuscation, foo.isRenamed());
     MethodSubject bar =
         classSubject.method("java.lang.String", "bar", ImmutableList.of("java.lang.String"));
-    assertEquals(forceProguardCompatibility, bar.isPresent());
+    assertTrue(bar.isPresent());
     assertEquals(bar.isPresent() && allowObfuscation, bar.isRenamed());
 
     // Check the Proguard compatibility rules generated.
@@ -382,8 +372,10 @@ public class ForceProguardCompatibilityTest extends TestBase {
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     if (forceProguardCompatibility) {
       List<ProguardConfigurationRule> rules = configuration.getRules();
-      assertEquals(4, rules.size());
-      Iterables.filter(rules, ProguardKeepRule.class).forEach(rule -> {
+      assertEquals(2, rules.size());
+      for (ProguardConfigurationRule r : rules) {
+        assertTrue(r instanceof ProguardKeepRule);
+        ProguardKeepRule rule = (ProguardKeepRule) r;
         assertEquals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS, rule.getType());
         assertTrue(rule.getModifiers().allowsObfuscation);
         assertTrue(rule.getModifiers().allowsOptimization);
@@ -400,18 +392,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
           assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
           assertTrue(memberRule.getName().matches("bar"));
         }
-      });
-      Iterables.filter(rules, ProguardIdentifierNameStringRule.class).forEach(rule -> {
-        List<ProguardMemberRule> memberRules = rule.getMemberRules();
-        ProguardClassNameList classNames = rule.getClassNames();
-        assertEquals(1, classNames.size());
-        DexType type = classNames.asSpecificDexTypes().get(0);
-        assertEquals("java.lang.Class", type.toSourceString());
-        assertEquals(1, memberRules.size());
-        ProguardMemberRule memberRule = memberRules.iterator().next();
-        assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
-        assertTrue(memberRule.getName().toString().startsWith("getDeclared"));
-      });
+      }
     } else {
       assertEquals(0, configuration.getRules().size());
     }
@@ -480,13 +461,13 @@ public class ForceProguardCompatibilityTest extends TestBase {
     assertTrue(classSubject.isPresent());
     assertEquals(allowObfuscation, classSubject.isRenamed());
     FieldSubject f = classSubject.field("int", "intField");
-    assertEquals(forceProguardCompatibility, f.isPresent());
+    assertTrue(f.isPresent());
     assertEquals(f.isPresent() && allowObfuscation, f.isRenamed());
     f = classSubject.field("long", "longField");
-    assertEquals(forceProguardCompatibility, f.isPresent());
+    assertTrue(f.isPresent());
     assertEquals(f.isPresent() && allowObfuscation, f.isRenamed());
     f = classSubject.field("java.lang.Object", "objField");
-    assertEquals(forceProguardCompatibility, f.isPresent());
+    assertTrue(f.isPresent());
     assertEquals(f.isPresent() && allowObfuscation, f.isRenamed());
 
     // Check the Proguard compatibility rules generated.
@@ -497,9 +478,11 @@ public class ForceProguardCompatibilityTest extends TestBase {
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     if (forceProguardCompatibility) {
       List<ProguardConfigurationRule> rules = configuration.getRules();
-      assertEquals(6, rules.size());
+      assertEquals(3, rules.size());
       Object2BooleanMap<String> keptFields = new Object2BooleanArrayMap<>();
-      Iterables.filter(rules, ProguardKeepRule.class).forEach(rule -> {
+      for (ProguardConfigurationRule r : rules) {
+        assertTrue(r instanceof ProguardKeepRule);
+        ProguardKeepRule rule = (ProguardKeepRule) r;
         assertEquals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS, rule.getType());
         assertTrue(rule.getModifiers().allowsObfuscation);
         assertTrue(rule.getModifiers().allowsOptimization);
@@ -512,23 +495,11 @@ public class ForceProguardCompatibilityTest extends TestBase {
         ProguardMemberRule memberRule = memberRules.iterator().next();
         assertEquals(ProguardMemberType.FIELD, memberRule.getRuleType());
         keptFields.put(memberRule.getName().toString(), true);
-      });
+      }
       assertEquals(3, keptFields.size());
       assertTrue(keptFields.containsKey("intField"));
       assertTrue(keptFields.containsKey("longField"));
       assertTrue(keptFields.containsKey("objField"));
-      Iterables.filter(rules, ProguardIdentifierNameStringRule.class).forEach(rule -> {
-        List<ProguardMemberRule> memberRules = rule.getMemberRules();
-        ProguardClassNameList classNames = rule.getClassNames();
-        assertEquals(1, classNames.size());
-        DexType type = classNames.asSpecificDexTypes().get(0);
-        assertTrue(type.toSourceString().startsWith("java.util.concurrent.atomic.Atomic"));
-        assertTrue(type.toSourceString().endsWith("FieldUpdater"));
-        assertEquals(1, memberRules.size());
-        ProguardMemberRule memberRule = memberRules.iterator().next();
-        assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
-        assertEquals("newUpdater", memberRule.getName().toString());
-      });
     } else {
       assertEquals(0, configuration.getRules().size());
     }
