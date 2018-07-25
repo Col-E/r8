@@ -630,7 +630,7 @@ public abstract class DebugTestBase {
           return null;
         }
         ClassNamingForNameMapper.MappedRangesOfName ranges =
-            classNaming.mappedRangesByName.get(obfuscatedMethodName);
+            classNaming.mappedRangesByRenamedName.get(obfuscatedMethodName);
         if (ranges == null) {
           return null;
         }
@@ -694,7 +694,7 @@ public abstract class DebugTestBase {
           return null;
         }
         ClassNamingForNameMapper.MappedRangesOfName ranges =
-            classNaming.mappedRangesByName.get(obfuscatedMethodName);
+            classNaming.mappedRangesByRenamedName.get(obfuscatedMethodName);
         if (ranges == null) {
           return null;
         }

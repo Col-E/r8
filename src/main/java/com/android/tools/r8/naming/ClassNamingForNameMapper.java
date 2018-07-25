@@ -14,6 +14,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -172,20 +173,20 @@ public class ClassNamingForNameMapper implements ClassNaming {
   private final ImmutableMap<MethodSignature, MemberNaming> methodMembers;
   private final ImmutableMap<FieldSignature, MemberNaming> fieldMembers;
 
-  /** Map of obfuscated name -> MappedRangesOfName */
-  public final Map<String, MappedRangesOfName> mappedRangesByName;
+  /** Map of renamed name -> MappedRangesOfName */
+  public final Map<String, MappedRangesOfName> mappedRangesByRenamedName;
 
   private ClassNamingForNameMapper(
       String renamedName,
       String originalName,
       Map<MethodSignature, MemberNaming> methodMembers,
       Map<FieldSignature, MemberNaming> fieldMembers,
-      Map<String, MappedRangesOfName> mappedRangesByName) {
+      Map<String, MappedRangesOfName> mappedRangesByRenamedName) {
     this.renamedName = renamedName;
     this.originalName = originalName;
     this.methodMembers = ImmutableMap.copyOf(methodMembers);
     this.fieldMembers = ImmutableMap.copyOf(fieldMembers);
-    this.mappedRangesByName = mappedRangesByName;
+    this.mappedRangesByRenamedName = mappedRangesByRenamedName;
   }
 
   @Override
@@ -273,16 +274,13 @@ public class ClassNamingForNameMapper implements ClassNaming {
         });
 
     // Sort MappedRanges by sequence number to restore construction order (original Proguard-map
-    // input)
-    List<MappedRange> rangeList = new ArrayList<>();
-    for (MappedRangesOfName ranges : mappedRangesByName.values()) {
-      rangeList.addAll(ranges.mappedRanges);
+    // input).
+    List<MappedRange> mappedRangesSorted = new ArrayList<>();
+    for (MappedRangesOfName ranges : mappedRangesByRenamedName.values()) {
+      mappedRangesSorted.addAll(ranges.mappedRanges);
     }
-    rangeList.sort(
-        (lhs, rhs) -> {
-          return lhs.sequenceNumber - rhs.sequenceNumber;
-        });
-    for (MappedRange range : rangeList) {
+    mappedRangesSorted.sort(Comparator.comparingInt(range -> range.sequenceNumber));
+    for (MappedRange range : mappedRangesSorted) {
       writer.append("    ").append(range.toString()).append('\n');
     }
   }
@@ -313,7 +311,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
         && renamedName.equals(that.renamedName)
         && methodMembers.equals(that.methodMembers)
         && fieldMembers.equals(that.fieldMembers)
-        && mappedRangesByName.equals(that.mappedRangesByName);
+        && mappedRangesByRenamedName.equals(that.mappedRangesByRenamedName);
   }
 
   @Override
@@ -322,7 +320,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     result = 31 * result + renamedName.hashCode();
     result = 31 * result + methodMembers.hashCode();
     result = 31 * result + fieldMembers.hashCode();
-    result = 31 * result + mappedRangesByName.hashCode();
+    result = 31 * result + mappedRangesByRenamedName.hashCode();
     return result;
   }
 

@@ -185,7 +185,7 @@ public class InliningWithoutPositionsTestRunner {
     ClassNamingForNameMapper classNaming = mapper.getClassNaming(TEST_PACKAGE + "." + TEST_CLASS);
     assertNotNull(classNaming);
 
-    MappedRangesOfName rangesForMain = classNaming.mappedRangesByName.get("main");
+    MappedRangesOfName rangesForMain = classNaming.mappedRangesByRenamedName.get("main");
     assertNotNull(rangesForMain);
 
     List<MappedRange> frames = rangesForMain.allRangesForLine(expectedLineNumber);

@@ -212,8 +212,8 @@ public class LineNumberOptimizer {
         continue;
       }
 
-      IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByName =
-          groupMethodsByName(namingLens, clazz);
+      IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
+          groupMethodsByRenamedName(namingLens, clazz);
 
       // At this point we don't know if we really need to add this class to the builder.
       // It depends on whether any methods/fields are renamed or some methods contain positions.
@@ -232,8 +232,11 @@ public class LineNumberOptimizer {
       // First transfer renamed fields to classNamingBuilder.
       addFieldsToClassNaming(namingLens, clazz, onDemandClassNamingBuilder);
 
-      // Then process the methods.
-      for (List<DexEncodedMethod> methods : methodsByName.values()) {
+      // Then process the methods, ordered by renamed name.
+      List<DexString> renamedMethodNames = new ArrayList<>(methodsByRenamedName.keySet());
+      renamedMethodNames.sort(DexString::slowCompareTo);
+      for (DexString methodName : renamedMethodNames) {
+        List<DexEncodedMethod> methods = methodsByRenamedName.get(methodName);
         if (methods.size() > 1) {
           // If there are multiple methods with the same name (overloaded) then sort them for
           // deterministic behaviour: the algorithm will assign new line numbers in this order.
@@ -393,27 +396,18 @@ public class LineNumberOptimizer {
         });
   }
 
-  private static IdentityHashMap<DexString, List<DexEncodedMethod>> groupMethodsByName(
+  private static IdentityHashMap<DexString, List<DexEncodedMethod>> groupMethodsByRenamedName(
       NamingLens namingLens, DexProgramClass clazz) {
-    IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByName =
+    IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
         new IdentityHashMap<>(clazz.directMethods().length + clazz.virtualMethods().length);
-    clazz.forEachMethod(
-        method -> {
-          // Add method only if renamed or contains positions.
-          if (namingLens.lookupName(method.method) != method.method.name
-              || doesContainPositions(method)) {
-            methodsByName.compute(
-                method.method.name,
-                (name, methods) -> {
-                  if (methods == null) {
-                    methods = new ArrayList<>();
-                  }
-                  methods.add(method);
-                  return methods;
-                });
-          }
-        });
-    return methodsByName;
+    for (DexEncodedMethod method : clazz.methods()) {
+      // Add method only if renamed or contains positions.
+      DexString renamedName = namingLens.lookupName(method.method);
+      if (renamedName != method.method.name || doesContainPositions(method)) {
+        methodsByRenamedName.computeIfAbsent(renamedName, key -> new ArrayList<>()).add(method);
+      }
+    }
+    return methodsByRenamedName;
   }
 
   private static boolean doesContainPositions(DexEncodedMethod method) {
