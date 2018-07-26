@@ -54,12 +54,12 @@ public class TextPosition implements Position {
 
   @Override
   public String toString() {
-    return "Offset: " + offset + ", Line: " + line + ", column: " + column;
+    return "offset: " + offset + ", line: " + line + ", column: " + column;
   }
 
   @Override
   public String getDescription() {
-    return "Line: " + line + (column != UNKNOWN_COLUMN ? ", column: " + column: "");
+    return "line " + line + (column != UNKNOWN_COLUMN ? (", column " + column) : "");
   }
 
   @Override

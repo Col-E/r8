@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 
 /**
  * A DiagnosticsHandler can be provided to customize handling of diagnostics information.
@@ -20,7 +21,11 @@ public interface DiagnosticsHandler {
    */
   default void error(Diagnostic error) {
     if (error.getOrigin() != Origin.unknown()) {
-      System.err.print("Error in " + error.getOrigin() + ":\n  ");
+      System.err.print("Error in " + error.getOrigin());
+      if (error.getPosition() != Position.UNKNOWN) {
+        System.err.print(" at " + error.getPosition().getDescription());
+      }
+      System.err.println(":");
     } else {
       System.err.print("Error: ");
     }
