@@ -678,7 +678,14 @@ public class MainDexListTests extends TestBase {
     DirectMappedDexApplication application = builder.build().toDirect();
     ApplicationWriter writer =
         new ApplicationWriter(
-            application, options, null, null, NamingLens.getIdentityLens(), null, null);
+            application,
+            options,
+            null,
+            null,
+            GraphLense.getIdentityLense(),
+            NamingLens.getIdentityLens(),
+            null,
+            null);
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     try {

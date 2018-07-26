@@ -1234,7 +1234,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-keepdirectories"
     ));
     checkFileFilterMatchAnything(config.getAdaptResourceFilenames());
-    checkFileFilterMatchAnything(config.getAdaptResourceFilecontents());
+    checkFileFilterMatchAnything(config.getAdaptResourceFileContents());
     checkFileFilterMatchAnything(config.getKeepDirectories());
   }
 
@@ -1247,7 +1247,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-adaptresourcefilecontents"
     ));
     checkFileFilterMatchAnything(config.getAdaptResourceFilenames());
-    checkFileFilterMatchAnything(config.getAdaptResourceFilecontents());
+    checkFileFilterMatchAnything(config.getAdaptResourceFileContents());
     checkFileFilterMatchAnything(config.getKeepDirectories());
   }
 
@@ -1260,7 +1260,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-adaptresourcefilenames"
     ));
     checkFileFilterMatchAnything(config.getAdaptResourceFilenames());
-    checkFileFilterMatchAnything(config.getAdaptResourceFilecontents());
+    checkFileFilterMatchAnything(config.getAdaptResourceFileContents());
     checkFileFilterMatchAnything(config.getKeepDirectories());
   }
 
@@ -1282,7 +1282,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-keepdirectories " + FILE_FILTER_SINGLE
     ));
     checkFileFilterSingle(config.getAdaptResourceFilenames());
-    checkFileFilterSingle(config.getAdaptResourceFilecontents());
+    checkFileFilterSingle(config.getAdaptResourceFileContents());
     checkFileFilterSingle(config.getKeepDirectories());
   }
 
@@ -1315,7 +1315,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         "-keepdirectories " + FILE_FILTER_MULTIPLE
     ));
     checkFileFilterMultiple(config.getAdaptResourceFilenames());
-    checkFileFilterMultiple(config.getAdaptResourceFilecontents());
+    checkFileFilterMultiple(config.getAdaptResourceFileContents());
     checkFileFilterMultiple(config.getKeepDirectories());
   }
 

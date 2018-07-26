@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.DexValue.UnknownDexValue;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -61,6 +62,7 @@ public class CfApplicationWriter {
   private static final boolean PRINT_CF = false;
 
   private final DexApplication application;
+  private final GraphLense graphLense;
   private final NamingLens namingLens;
   private final InternalOptions options;
 
@@ -72,10 +74,12 @@ public class CfApplicationWriter {
       DexApplication application,
       InternalOptions options,
       String deadCode,
+      GraphLense graphLense,
       NamingLens namingLens,
       String proguardSeedsData,
       ProguardMapSupplier proguardMapSupplier) {
     this.application = application;
+    this.graphLense = graphLense;
     this.namingLens = namingLens;
     this.options = options;
     this.proguardMapSupplier = proguardMapSupplier;
@@ -102,7 +106,13 @@ public class CfApplicationWriter {
       }
     }
     ApplicationWriter.supplyAdditionalConsumers(
-        application, namingLens, options, deadCode, proguardMapSupplier, proguardSeedsData);
+        application,
+        graphLense,
+        namingLens,
+        options,
+        deadCode,
+        proguardMapSupplier,
+        proguardSeedsData);
   }
 
   private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer) throws IOException {

@@ -374,7 +374,7 @@ public class ProguardConfigurationParser {
         if (failOnPartiallyImplementedOptions) {
           failPartiallyImplementedOption("-adaptresourcefilecontents", optionStart);
         }
-        parsePathFilter(configurationBuilder::addAdaptResourceFilecontents);
+        parsePathFilter(configurationBuilder::addAdaptResourceFileContents);
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule(optionStart));
       } else if (acceptString("if")) {

@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
@@ -135,7 +136,14 @@ public class SharedClassWritingTest {
     options.programConsumer = consumer;
     ApplicationWriter writer =
         new ApplicationWriter(
-            application, options, null, null, NamingLens.getIdentityLens(), null, null);
+            application,
+            options,
+            null,
+            null,
+            GraphLense.getIdentityLense(),
+            NamingLens.getIdentityLens(),
+            null,
+            null);
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     writer.write(executorService);
     List<Set<String>> generatedDescriptors = consumer.getDescriptors();

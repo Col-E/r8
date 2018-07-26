@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -51,6 +52,7 @@ public class ApplicationWriter {
 
   public final DexApplication application;
   public final String deadCode;
+  public final GraphLense graphLense;
   public final NamingLens namingLens;
   public final String proguardSeedsData;
   public final InternalOptions options;
@@ -120,6 +122,7 @@ public class ApplicationWriter {
       InternalOptions options,
       List<Marker> markers,
       String deadCode,
+      GraphLense graphLense,
       NamingLens namingLens,
       String proguardSeedsData,
       ProguardMapSupplier proguardMapSupplier) {
@@ -128,6 +131,7 @@ public class ApplicationWriter {
         options,
         markers,
         deadCode,
+        graphLense,
         namingLens,
         proguardSeedsData,
         proguardMapSupplier,
@@ -139,6 +143,7 @@ public class ApplicationWriter {
       InternalOptions options,
       List<Marker> markers,
       String deadCode,
+      GraphLense graphLense,
       NamingLens namingLens,
       String proguardSeedsData,
       ProguardMapSupplier proguardMapSupplier,
@@ -154,6 +159,7 @@ public class ApplicationWriter {
       }
     }
     this.deadCode = deadCode;
+    this.graphLense = graphLense;
     this.namingLens = namingLens;
     this.proguardSeedsData = proguardSeedsData;
     this.proguardMapSupplier = proguardMapSupplier;
@@ -258,7 +264,13 @@ public class ApplicationWriter {
       options.reporter.failIfPendingErrors();
       // Supply info to all additional resource consumers.
       supplyAdditionalConsumers(
-          application, namingLens, options, deadCode, proguardMapSupplier, proguardSeedsData);
+          application,
+          graphLense,
+          namingLens,
+          options,
+          deadCode,
+          proguardMapSupplier,
+          proguardSeedsData);
     } finally {
       application.timing.end();
     }
@@ -266,6 +278,7 @@ public class ApplicationWriter {
 
   public static void supplyAdditionalConsumers(
       DexApplication application,
+      GraphLense graphLense,
       NamingLens namingLens,
       InternalOptions options,
       String deadCode,

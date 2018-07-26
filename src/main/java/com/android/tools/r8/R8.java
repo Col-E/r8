@@ -176,6 +176,7 @@ public class R8 {
       ExecutorService executorService,
       DexApplication application,
       String deadCode,
+      GraphLense graphLense,
       NamingLens namingLens,
       String proguardSeedsData,
       InternalOptions options,
@@ -188,6 +189,7 @@ public class R8 {
                 application,
                 options,
                 deadCode,
+                graphLense,
                 namingLens,
                 proguardSeedsData,
                 proguardMapSupplier)
@@ -198,6 +200,7 @@ public class R8 {
                 options,
                 marker == null ? null : Collections.singletonList(marker),
                 deadCode,
+                graphLense,
                 namingLens,
                 proguardSeedsData,
                 proguardMapSupplier)
@@ -513,6 +516,7 @@ public class R8 {
           executorService,
           application,
           application.deadCode,
+          appView.getGraphLense(),
           namingLens,
           proguardSeedsData,
           options,

@@ -56,7 +56,7 @@ public class ProguardConfiguration {
     private Position keepParameterNamesOptionPosition;
     private final ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
     private final ProguardPathFilter.Builder adaptResourceFilenames = ProguardPathFilter.builder();
-    private final ProguardPathFilter.Builder adaptResourceFilecontents =
+    private final ProguardPathFilter.Builder adaptResourceFileContents =
         ProguardPathFilter.builder();
     private final ProguardPathFilter.Builder keepDirectories = ProguardPathFilter.builder();
     private boolean forceProguardCompatibility = false;
@@ -235,8 +235,8 @@ public class ProguardConfiguration {
       adaptResourceFilenames.addPattern(pattern);
     }
 
-    public void addAdaptResourceFilecontents(ProguardPathList pattern) {
-      adaptResourceFilecontents.addPattern(pattern);
+    public void addAdaptResourceFileContents(ProguardPathList pattern) {
+      adaptResourceFileContents.addPattern(pattern);
     }
 
     public void addKeepDirectories(ProguardPathList pattern) {
@@ -288,7 +288,7 @@ public class ProguardConfiguration {
           keepParameterNames,
           adaptClassStrings.build(),
           adaptResourceFilenames.build(),
-          adaptResourceFilecontents.build(),
+          adaptResourceFileContents.build(),
           keepDirectories.build());
 
       reporter.failIfPendingErrors();
@@ -357,7 +357,7 @@ public class ProguardConfiguration {
   private final boolean keepParameterNames;
   private final ProguardClassFilter adaptClassStrings;
   private final ProguardPathFilter adaptResourceFilenames;
-  private final ProguardPathFilter adaptResourceFilecontents;
+  private final ProguardPathFilter adaptResourceFileContents;
   private final ProguardPathFilter keepDirectories;
 
   private ProguardConfiguration(
@@ -395,7 +395,7 @@ public class ProguardConfiguration {
       boolean keepParameterNames,
       ProguardClassFilter adaptClassStrings,
       ProguardPathFilter adaptResourceFilenames,
-      ProguardPathFilter adaptResourceFilecontents,
+      ProguardPathFilter adaptResourceFileContents,
       ProguardPathFilter keepDirectories) {
     this.parsedConfiguration = parsedConfiguration;
     this.dexItemFactory = factory;
@@ -431,7 +431,7 @@ public class ProguardConfiguration {
     this.keepParameterNames = keepParameterNames;
     this.adaptClassStrings = adaptClassStrings;
     this.adaptResourceFilenames = adaptResourceFilenames;
-    this.adaptResourceFilecontents = adaptResourceFilecontents;
+    this.adaptResourceFileContents = adaptResourceFileContents;
     this.keepDirectories = keepDirectories;
   }
 
@@ -575,8 +575,8 @@ public class ProguardConfiguration {
     return adaptResourceFilenames;
   }
 
-  public ProguardPathFilter getAdaptResourceFilecontents() {
-    return adaptResourceFilecontents;
+  public ProguardPathFilter getAdaptResourceFileContents() {
+    return adaptResourceFileContents;
   }
 
   public ProguardPathFilter getKeepDirectories() {

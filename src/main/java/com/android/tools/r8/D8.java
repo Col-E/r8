@@ -12,6 +12,7 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -191,6 +192,7 @@ public final class D8 {
               options,
               marker == null ? null : ImmutableList.copyOf(markers),
               null,
+              GraphLense.getIdentityLense(),
               NamingLens.getIdentityLens(),
               null,
               null)

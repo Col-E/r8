@@ -14,6 +14,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -1609,6 +1610,7 @@ public class ToolHelper {
         Executors.newSingleThreadExecutor(),
         application,
         null,
+        GraphLense.getIdentityLense(),
         NamingLens.getIdentityLens(),
         null,
         options,

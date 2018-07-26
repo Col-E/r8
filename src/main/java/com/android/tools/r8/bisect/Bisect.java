@@ -177,7 +177,8 @@ public class Bisect {
       throws IOException, ExecutionException {
     InternalOptions options = new InternalOptions();
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
-    ApplicationWriter writer = new ApplicationWriter(app, options, null, null, null, null, null);
+    ApplicationWriter writer =
+        new ApplicationWriter(app, options, null, null, null, null, null, null);
     writer.write(executor);
     compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);
   }
