@@ -2448,16 +2448,73 @@ public class CodeRewriter {
           // Zero test with a value range, or comparison between between two values,
           // each with a value ranges.
           if (theIf.isZeroTest()) {
-            if (!inValues.get(0).isValueInRange(0)) {
-              int cond = Long.signum(inValues.get(0).getValueRange().getMin());
-              simplifyIfWithKnownCondition(code, block, theIf, cond);
+            LongInterval interval = inValues.get(0).getValueRange();
+            if (!interval.containsValue(0)) {
+              // Interval doesn't contain zero at all.
+              int sign = Long.signum(interval.getMin());
+              simplifyIfWithKnownCondition(code, block, theIf, sign);
+            } else {
+              // Interval contains zero.
+              switch (theIf.getType()) {
+                case GE:
+                case LT:
+                  // [a, b] >= 0 is always true if a >= 0.
+                  // [a, b] < 0 is always false if a >= 0.
+                  // In both cases a zero condition takes the right branch.
+                  if (interval.getMin() == 0) {
+                    simplifyIfWithKnownCondition(code, block, theIf, 0);
+                  }
+                  break;
+                case LE:
+                case GT:
+                  // [a, b] <= 0 is always true if b <= 0.
+                  // [a, b] > 0 is always false if b <= 0.
+                  if (interval.getMax() == 0) {
+                    simplifyIfWithKnownCondition(code, block, theIf, 0);
+                  }
+                  break;
+                case EQ:
+                case NE:
+                  // Only a single element interval [0, 0] can be dealt with here.
+                  // Such intervals should have been replaced by constants.
+                  assert !interval.isSingleValue();
+                  break;
+              }
             }
           } else {
             LongInterval leftRange = inValues.get(0).getValueRange();
             LongInterval rightRange = inValues.get(1).getValueRange();
+            // Two overlapping ranges. Check for single point overlap.
             if (!leftRange.overlapsWith(rightRange)) {
+              // No overlap.
               int cond = Long.signum(leftRange.getMin() - rightRange.getMin());
               simplifyIfWithKnownCondition(code, block, theIf, cond);
+            } else {
+              // The two intervals overlap. We can simplify if they overlap at the end points.
+              switch (theIf.getType()) {
+                case LT:
+                case GE:
+                  // [a, b] < [c, d] is always false when a == d.
+                  // [a, b] >= [c, d] is always true when a == d.
+                  // In both cases 0 condition will choose the right branch.
+                  if (leftRange.getMin() == rightRange.getMax()) {
+                    simplifyIfWithKnownCondition(code, block, theIf, 0);
+                  }
+                  break;
+                case GT:
+                case LE:
+                  // [a, b] > [c, d] is always false when b == c.
+                  // [a, b] <= [c, d] is always true when b == c.
+                  // In both cases 0 condition will choose the right branch.
+                  if (leftRange.getMax() == rightRange.getMin()) {
+                    simplifyIfWithKnownCondition(code, block, theIf, 0);
+                  }
+                  break;
+                case EQ:
+                case NE:
+                  // Since there is overlap EQ and NE cannot be determined.
+                  break;
+              }
             }
           }
         } else if (theIf.isZeroTest() && !inValues.get(0).isConstNumber()
