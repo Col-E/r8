@@ -82,8 +82,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   public static final int EXCEPTION_INTERVALS_OVERLAP_CUTOFF = 500;
 
   private enum ArgumentReuseMode {
-    ALLOW_ARGUMENT_REUSE,
-    DISALLOW_ARGUMENT_REUSE
+    ALLOW_ARGUMENT_REUSE_U4BIT,
+    ALLOW_ARGUMENT_REUSE_U8BIT,
+    ALLOW_ARGUMENT_REUSE_U16BIT
   }
 
   private static class LocalRange implements Comparable<LocalRange> {
@@ -115,9 +116,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  // The max register number that will fit in any dex instruction encoding.
-  private static final int MAX_SMALL_REGISTER = Constants.U4BIT_MAX;
-
   // The code for which to allocate registers.
   private final IRCode code;
   // Number of registers used for arguments.
@@ -132,6 +130,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // The value of the last argument, or null if the method has no arguments.
   private Value lastArgumentValue;
 
+  // The current register allocation mode.
+  private ArgumentReuseMode mode = ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U4BIT;
   // The set of registers that are free for allocation.
   private TreeSet<Integer> freeRegisters = new TreeSet<>();
   // The max register number used.
@@ -204,32 +204,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     constrainArgumentIntervals();
     insertRangeInvokeMoves();
     ImmutableList<BasicBlock> blocks = computeLivenessInformation();
-    // First attempt to allocate register allowing argument reuse. This will fail if spilling
-    // is required or if we end up using more than 16 registers.
-    boolean noSpilling =
-        performAllocationWithoutMoveInsertion(ArgumentReuseMode.ALLOW_ARGUMENT_REUSE);
-    if (!noSpilling || (highestUsedRegister() > MAX_SMALL_REGISTER)) {
-      // Redo allocation disallowing argument reuse. This always succeeds.
-      clearRegisterAssignments();
-      performAllocation(ArgumentReuseMode.DISALLOW_ARGUMENT_REUSE);
-    } else {
-      // Insert spill and phi moves after allocating with argument reuse. If the moves causes
-      // the method to use more than 16 registers we redo allocation disallowing argument
-      // reuse. This very rarely happens in practice (12 methods on GMSCore v4 hits that case).
-      insertMoves();
-      if (highestUsedRegister() > MAX_SMALL_REGISTER) {
-        // Redo allocation disallowing argument reuse. This always succeeds.
-        clearRegisterAssignments();
-        removeSpillAndPhiMoves();
-        performAllocation(ArgumentReuseMode.DISALLOW_ARGUMENT_REUSE);
-      }
-    }
-
+    performAllocation();
     assert code.isConsistentGraph();
     if (Log.ENABLED) {
       Log.debug(this.getClass(), toString());
     }
-    computeUnusedRegisters();
+    assert registersUsed() == 0 || unusedRegisters != null;
     if (debug) {
       computeDebugInfo(blocks);
     }
@@ -529,9 +509,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // Compute a table that for each register numbers contains the number of previous register
   // numbers that were unused. This table is then used to slide down the actual registers
   // used to fill the gaps.
-  private void computeUnusedRegisters() {
+  private boolean computeUnusedRegisters() {
     if (registersUsed() == 0) {
-      return;
+      return false;
     }
     // Compute the set of registers that is used based on all live intervals.
     Set<Integer> usedRegisters = new HashSet<>();
@@ -556,6 +536,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       computed[i] = unused;
     }
     unusedRegisters = computed;
+    return unused > 0;
   }
 
   private void addRegisterIfUsed(Set<Integer> used, LiveIntervals intervals) {
@@ -613,23 +594,78 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return blocks;
   }
 
-  private boolean performAllocationWithoutMoveInsertion(ArgumentReuseMode mode) {
-    pinArgumentRegisters();
-    return performLinearScan(mode);
+  private void performAllocation() {
+    // Will automatically continue to ALLOW_ARGUMENT_REUSE_U8BIT and ALLOW_ARGUMENT_REUSE_U16BIT,
+    // if needed.
+    performAllocation(ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U4BIT, false);
   }
 
-  private boolean performAllocation(ArgumentReuseMode mode) {
-    boolean result = performAllocationWithoutMoveInsertion(mode);
-    insertMoves();
-    if (mode == ArgumentReuseMode.DISALLOW_ARGUMENT_REUSE) {
-      // Now that we know the max register number we can compute whether it is safe to use
-      // argument registers in place. If it is, we redo move insertion to get rid of the moves
-      // caused by splitting of the argument registers.
-      if (unsplitArguments()) {
-        removeSpillAndPhiMoves();
-        insertMoves();
-      }
+  private ArgumentReuseMode performAllocation(ArgumentReuseMode mode, boolean isRetry) {
+    ArgumentReuseMode result = mode;
+    this.mode = mode;
+
+    if (isRetry) {
+      clearRegisterAssignments(mode);
+      removeSpillAndPhiMoves();
     }
+
+    pinArgumentRegisters();
+
+    boolean succeeded = performLinearScan(mode);
+    if (succeeded) {
+      insertMoves();
+    }
+
+    switch (mode) {
+      case ALLOW_ARGUMENT_REUSE_U4BIT:
+        if (!succeeded || highestUsedRegister() > Constants.U4BIT_MAX
+            || options.testing.alwaysUsePessimisticRegisterAllocation) {
+          // Redo allocation in mode ALLOW_ARGUMENT_REUSE_U8BIT. This may in principle also fail.
+          // It is extremely rare that a method will use more than 256 registers, though.
+          result = performAllocation(ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT, true);
+        } else {
+          // Never has unused registers.
+          assert !computeUnusedRegisters();
+        }
+        break;
+
+      case ALLOW_ARGUMENT_REUSE_U8BIT:
+        assert succeeded;
+        // Now that we know the max register number we can compute whether it is safe to use
+        // argument registers in place. If it is, we redo move insertion to get rid of the moves
+        // caused by splitting of the argument registers.
+        if (unsplitArguments()) {
+          removeSpillAndPhiMoves();
+          insertMoves();
+        }
+        computeUnusedRegisters();
+
+        if (highestUsedRegister() > Constants.U8BIT_MAX
+            || options.testing.alwaysUsePessimisticRegisterAllocation) {
+          // Redo allocation in mode ALLOW_ARGUMENT_REUSE_U16BIT. This always succeed.
+          unusedRegisters = null;
+          result = performAllocation(ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U16BIT, true);
+        }
+        break;
+
+      case ALLOW_ARGUMENT_REUSE_U16BIT:
+        assert succeeded;
+        // Now that we know the max register number we can compute whether it is safe to use
+        // argument registers in place. If it is, we redo move insertion to get rid of the moves
+        // caused by splitting of the argument registers.
+        if (unsplitArguments()) {
+          removeSpillAndPhiMoves();
+          insertMoves();
+        }
+        computeUnusedRegisters();
+        break;
+    }
+
+    assert result != ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U4BIT
+        || highestUsedRegister() <= Constants.U4BIT_MAX;
+    assert result != ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT
+        || highestUsedRegister() <= Constants.U8BIT_MAX;
+
     return result;
   }
 
@@ -697,7 +733,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return false;
   }
 
-  private void clearRegisterAssignments() {
+  private void clearRegisterAssignments(ArgumentReuseMode mode) {
     freeRegisters.clear();
     maxRegisterNumber = -1;
     active.clear();
@@ -705,6 +741,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     unhandled.clear();
     moveExceptionIntervals.clear();
     for (LiveIntervals intervals : liveIntervals) {
+      if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U16BIT) {
+        intervals.undoSplits();
+        intervals.setSpilled(false);
+      }
       intervals.clearRegisterAssignment();
     }
   }
@@ -741,10 +781,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return register;
   }
 
-  private boolean isHighRegister(int register) {
-    return register > Constants.U4BIT_MAX;
-  }
-
   private boolean performLinearScan(ArgumentReuseMode mode) {
     unhandled.addAll(liveIntervals);
 
@@ -753,7 +789,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       LiveIntervals argumentInterval = argumentValue.getLiveIntervals();
       assert argumentInterval.getRegister() != NO_REGISTER;
       unhandled.remove(argumentInterval);
-      if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE) {
+      if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U4BIT) {
         // All the argument intervals are active in the beginning and have preallocated registers.
         active.add(argumentInterval);
       } else {
@@ -766,8 +802,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           if (use != null) {
             LiveIntervals split;
             if (argumentInterval.numberOfUsesWithConstraint() == 1) {
-              // If there is only one register-constrained use, split before
-              // that one use.
+              // If there is only one register-constrained use, split before that one use.
               split = argumentInterval.splitBefore(use.getPosition());
             } else {
               // If there are multiple register-constrained users, split right after the definition
@@ -795,7 +830,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // When we allow argument reuse we do not allow any splitting, therefore we cannot get into
     // trouble with move exception registers. When argument reuse is disallowed we block a fixed
     // register to be used only by move exception instructions.
-    if (mode == ArgumentReuseMode.DISALLOW_ARGUMENT_REUSE) {
+    if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT
+        || mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U16BIT) {
       // Force all move exception ranges to start out with the exception in a fixed register. Split
       // their live ranges which will force another register if used.
       boolean overlappingMoveExceptionIntervals = false;
@@ -915,7 +951,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             computedFreeRegisters.remove(register);
           });
     }
-    if (mode == ArgumentReuseMode.DISALLOW_ARGUMENT_REUSE) {
+    if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT
+        || mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U16BIT) {
       // Each time an argument interval is active, we currently require that it is present in its
       // original, incoming argument register.
       for (LiveIntervals activeIntervals : active) {
@@ -1057,7 +1094,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           // Allocate the argument intervals.
           unhandled.remove(destIntervals);
           boolean excludeUnhandledOverlappingArgumentIntervals = false;
-          if (mode == ArgumentReuseMode.DISALLOW_ARGUMENT_REUSE) {
+          if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT
+              || mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U16BIT) {
             // Since we are going to do a look-ahead, there may be argument live interval splits,
             // which are currently unhandled, but would be inactive at the invoke-range instruction.
             // Thus, the implementation of allocateLinkedIntervals needs to exclude the argument
@@ -1174,6 +1212,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private int getNewSpillRegister(LiveIntervals intervals) {
     if (intervals.isArgumentInterval()) {
+      // Arguments are always in the argument registers, so for arguments just use that register
+      // for the unconstrained prefix. For everything else, get a spill register.
       return intervals.getSplitParent().getRegister();
     }
 
@@ -1184,6 +1224,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private int getSpillRegister(LiveIntervals intervals, IntList excludedRegisters) {
     if (intervals.isArgumentInterval()) {
+      // Arguments are always in the argument registers, so for arguments just use that register
+      // for the unconstrained prefix. For everything else, get a spill register.
       return intervals.getSplitParent().getRegister();
     }
 
@@ -1518,32 +1560,37 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
     // Just use the argument register if an argument split has no register constraint. That will
     // avoid move generation for the argument.
-    if (registerConstraint == Constants.U16BIT_MAX && unhandledInterval.isArgumentInterval()) {
-      int argumentRegister = unhandledInterval.getSplitParent().getRegister();
-      assignFreeRegisterToUnhandledInterval(unhandledInterval, argumentRegister);
-      return true;
+    if (unhandledInterval.isArgumentInterval()) {
+      if (registerConstraint == Constants.U16BIT_MAX
+          || (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT
+              && registerConstraint == Constants.U8BIT_MAX)) {
+        int argumentRegister = unhandledInterval.getSplitParent().getRegister();
+        assignFreeRegisterToUnhandledInterval(unhandledInterval, argumentRegister);
+        return true;
+      }
     }
 
-    if (registerConstraint < Constants.U16BIT_MAX) {
-      if (mode == ArgumentReuseMode.DISALLOW_ARGUMENT_REUSE) {
-        // We know that none of the argument registers will be reused. Therefore, we allow the
-        // use of number of arguments more registers.
-        registerConstraint += numberOfArgumentRegisters;
-      }
+    if (registerConstraint < Constants.U16BIT_MAX
+        && (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT
+            || mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U16BIT)) {
+      // Since we swap the argument registers and the temporary registers after register allocation,
+      // we can allow the use of number of arguments more registers.
+      registerConstraint += numberOfArgumentRegisters;
     }
 
     // Set all free positions for possible registers to max integer.
     RegisterPositions freePositions = new RegisterPositions(registerConstraint + 1);
 
-    if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE) {
-      if (options.debug && !code.method.accessFlags.isStatic()) {
-        // If we are generating debug information, we pin the this value register since the
-        // debugger expects to always be able to find it in the input register.
-        assert numberOfArgumentRegisters > 0;
-        assert firstArgumentValue != null && firstArgumentValue.requiredRegisters() == 1;
-        freePositions.set(0, 0);
-      }
-    } else {
+    if (options.debug && !code.method.accessFlags.isStatic()) {
+      // If we are generating debug information, we pin the this value register since the
+      // debugger expects to always be able to find it in the input register.
+      assert numberOfArgumentRegisters > 0;
+      assert firstArgumentValue != null && firstArgumentValue.requiredRegisters() == 1;
+      freePositions.set(0, 0);
+    }
+
+    if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT
+        || mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U16BIT) {
       // Argument reuse is not allowed and we block all the argument registers so that
       // arguments are never free.
       for (int i = 0; i < numberOfArgumentRegisters && i <= registerConstraint; i++) {
@@ -1626,7 +1673,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // Determine what to do based on how long the selected candidate is free.
     if (largestFreePosition == 0) {
       // Not free. We need to spill.
-      if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE) {
+      if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U4BIT) {
         // No spilling is allowed when we allow argument reuse. Bailout and start over with
         // argument reuse disallowed.
         return false;
@@ -1654,7 +1701,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         // Free for the entire interval. Allocate the register.
         assignFreeRegisterToUnhandledInterval(unhandledInterval, candidate);
       } else {
-        if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE) {
+        if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U4BIT) {
           // No splitting is allowed when we allow argument reuse. Bailout and start over with
           // argument reuse disallowed.
           return false;
@@ -2148,7 +2195,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     boolean isSpillingToArgumentRegister =
         (spilled.isArgumentInterval() || registerNumber < numberOfArgumentRegisters);
     if (isSpillingToArgumentRegister) {
-      registerNumber = Constants.U16BIT_MAX;
+      if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT) {
+        registerNumber = Constants.U8BIT_MAX;
+      } else {
+        registerNumber = Constants.U16BIT_MAX;
+      }
     }
     LiveIntervalsUse firstUseWithLowerLimit = null;
     boolean hasUsesBeforeFirstUseWithLowerLimit = false;

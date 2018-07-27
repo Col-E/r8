@@ -445,6 +445,7 @@ public class InternalOptions {
     public Function<Set<DexEncodedMethod>, Set<DexEncodedMethod>> irOrdering =
         Function.identity();
 
+    public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean invertConditionals = false;
     public boolean placeExceptionalBlocksLast = false;
     public boolean dontCreateMarkerInD8 = false;
