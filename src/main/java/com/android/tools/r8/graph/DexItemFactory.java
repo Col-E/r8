@@ -573,6 +573,10 @@ public class DexItemFactory {
     return canonicalize(strings, new DexString(source));
   }
 
+  public DexString lookupString(String source) {
+    return strings.get(new DexString(source));
+  }
+
   // TODO(b/67934123) Unify into one method,
   public DexItemBasedString createItemBasedString(DexType type) {
     assert !sorted;
@@ -635,7 +639,7 @@ public class DexItemFactory {
     return createType(createString(descriptor));
   }
 
-  synchronized public DexType lookupType(DexString descriptor) {
+  public DexType lookupType(DexString descriptor) {
     return types.get(descriptor);
   }
 

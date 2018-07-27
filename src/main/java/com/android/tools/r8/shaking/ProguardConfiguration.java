@@ -57,7 +57,7 @@ public class ProguardConfiguration {
     private final ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
     private final ProguardPathFilter.Builder adaptResourceFilenames = ProguardPathFilter.builder();
     private final ProguardPathFilter.Builder adaptResourceFileContents =
-        ProguardPathFilter.builder();
+        ProguardPathFilter.builder().disable();
     private final ProguardPathFilter.Builder keepDirectories = ProguardPathFilter.builder();
     private boolean forceProguardCompatibility = false;
     private boolean overloadAggressively;
@@ -233,6 +233,10 @@ public class ProguardConfiguration {
 
     public void addAdaptResourceFilenames(ProguardPathList pattern) {
       adaptResourceFilenames.addPattern(pattern);
+    }
+
+    public void enableAdaptResourceFileContents() {
+      adaptResourceFileContents.enable();
     }
 
     public void addAdaptResourceFileContents(ProguardPathList pattern) {
