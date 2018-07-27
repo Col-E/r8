@@ -8,6 +8,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
@@ -110,7 +111,14 @@ public class Smali {
           app, options, new Timing("smali")).read(executor);
       ApplicationWriter writer =
           new ApplicationWriter(
-              dexApp, options, null, null, NamingLens.getIdentityLens(), null, null);
+              dexApp,
+              options,
+              null,
+              null,
+              GraphLense.getIdentityLense(),
+              NamingLens.getIdentityLens(),
+              null,
+              null);
       writer.write(executor);
       return consumer.contents;
     } finally {
