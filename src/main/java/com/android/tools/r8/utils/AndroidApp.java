@@ -12,6 +12,7 @@ import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceProvider;
+import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DirectoryClassFileProvider;
@@ -468,8 +469,8 @@ public class AndroidApp {
     }
 
     /** Add resource data. */
-    public Builder addDataResource(byte[] bytes, String name, Origin origin) {
-      addDataResources(DataEntryResource.fromBytes(bytes, name, origin));
+    public Builder addDataResource(DataEntryResource dataResource) {
+      addDataResources(dataResource);
       return this;
     }
 

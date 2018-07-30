@@ -29,6 +29,10 @@ import java.util.zip.ZipFile;
 @KeepForSubclassing
 public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
 
+  interface ArchiveEntryConsumer {
+    void accept(ArchiveEntryOrigin entry, InputStream stream) throws IOException;
+  }
+
   @KeepForSubclassing
   public interface ZipFileSupplier {
     ZipFile open() throws IOException;
@@ -83,50 +87,72 @@ public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
     this.include = include;
   }
 
-  private List<ProgramResource> readArchive() throws IOException {
-    List<ProgramResource> dexResources = new ArrayList<>();
-    List<ProgramResource> classResources = new ArrayList<>();
+  private void readArchive(ArchiveEntryConsumer consumer) throws IOException {
     try (ZipFile zipFile = supplier.open()) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
         try (InputStream stream = zipFile.getInputStream(entry)) {
-          String name = entry.getName();
-          Origin entryOrigin = new ArchiveEntryOrigin(name, origin);
-          if (include.test(name)) {
-            if (ZipUtils.isDexFile(name)) {
-              dexResources.add(
-                  ProgramResource.fromBytes(
-                      entryOrigin, Kind.DEX, ByteStreams.toByteArray(stream), null));
-            } else if (ZipUtils.isClassFile(name)) {
-              String descriptor = DescriptorUtils.guessTypeDescriptor(name);
-              classResources.add(
-                  ProgramResource.fromBytes(
-                      entryOrigin,
-                      Kind.CF,
-                      ByteStreams.toByteArray(stream),
-                      Collections.singleton(descriptor)));
-            }
-          }
+          consumer.accept(new ArchiveEntryOrigin(entry.getName(), origin), stream);
         }
       }
     } catch (ZipException e) {
       throw new CompilationError("Zip error while reading archive" + e.getMessage(), e, origin);
     }
-    if (!dexResources.isEmpty() && !classResources.isEmpty()) {
-      throw new CompilationError(
-          "Cannot create android app from an archive containing both DEX and Java-bytecode content",
-          origin);
-    }
-    return !dexResources.isEmpty() ? dexResources : classResources;
   }
 
   @Override
   public Collection<ProgramResource> getProgramResources() throws ResourceException {
     try {
-      return readArchive();
+      List<ProgramResource> dexResources = new ArrayList<>();
+      List<ProgramResource> classResources = new ArrayList<>();
+      readArchive(
+          (entry, stream) -> {
+            String name = entry.getEntryName();
+            if (include.test(name)) {
+              if (ZipUtils.isDexFile(name)) {
+                dexResources.add(
+                    ProgramResource.fromBytes(
+                        entry, Kind.DEX, ByteStreams.toByteArray(stream), null));
+              } else if (ZipUtils.isClassFile(name)) {
+                String descriptor = DescriptorUtils.guessTypeDescriptor(name);
+                classResources.add(
+                    ProgramResource.fromBytes(
+                        entry,
+                        Kind.CF,
+                        ByteStreams.toByteArray(stream),
+                        Collections.singleton(descriptor)));
+              }
+            }
+          });
+      if (!dexResources.isEmpty() && !classResources.isEmpty()) {
+        throw new CompilationError(
+            "Cannot create android app from an archive containing both DEX and Java-bytecode "
+                + "content",
+            origin);
+      }
+      return !dexResources.isEmpty() ? dexResources : classResources;
     } catch (IOException e) {
       throw new ResourceException(origin, e);
     }
+  }
+
+  @Override
+  public DataResourceProvider getDataResourceProvider() {
+    return visitor -> {
+      try {
+        readArchive(
+            (entry, stream) -> {
+              String name = entry.getEntryName();
+              if (!ZipUtils.isClassFile(name) && !ZipUtils.isDexFile(name)) {
+                visitor.visit(
+                    DataEntryResource.fromBytes(
+                        ByteStreams.toByteArray(stream), entry.getEntryName(), entry));
+              }
+            });
+      } catch (IOException e) {
+        throw new ResourceException(origin, e);
+      }
+    };
   }
 }
