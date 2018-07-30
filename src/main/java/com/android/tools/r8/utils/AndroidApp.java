@@ -10,6 +10,8 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.DataEntryResource;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DirectoryClassFileProvider;
@@ -267,6 +269,7 @@ public class AndroidApp {
 
     private final List<ProgramResourceProvider> programResourceProviders = new ArrayList<>();
     private final List<ProgramResource> programResources = new ArrayList<>();
+    private final List<DataEntryResource> dataResources = new ArrayList<>();
     private final Map<ProgramResource, String> programResourcesMainDescriptor = new HashMap<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
     private final List<ClassFileResourceProvider> libraryResourceProviders = new ArrayList<>();
@@ -464,6 +467,12 @@ public class AndroidApp {
       return this;
     }
 
+    /** Add resource data. */
+    public Builder addDataResource(byte[] bytes, String name, Origin origin) {
+      addDataResources(DataEntryResource.fromBytes(bytes, name, origin));
+      return this;
+    }
+
     /**
      * Set proguard-map output data.
      *
@@ -529,17 +538,34 @@ public class AndroidApp {
      * Build final AndroidApp.
      */
     public AndroidApp build() {
-      if (!programResources.isEmpty()) {
+      if (!programResources.isEmpty() || !dataResources.isEmpty()) {
         // If there are individual program resources move them to a dedicated provider.
-        final List<ProgramResource> resources = ImmutableList.copyOf(programResources);
+        final List<ProgramResource> finalProgramResources = ImmutableList.copyOf(programResources);
+        final List<DataEntryResource> finalDataResources = ImmutableList.copyOf(dataResources);
         programResourceProviders.add(
             new ProgramResourceProvider() {
               @Override
-              public Collection<ProgramResource> getProgramResources() throws ResourceException {
-                return resources;
+              public Collection<ProgramResource> getProgramResources() {
+                return finalProgramResources;
+              }
+
+              @Override
+              public DataResourceProvider getDataResourceProvider() {
+                if (!finalDataResources.isEmpty()) {
+                  return new DataResourceProvider() {
+                    @Override
+                    public void accept(Visitor visitor) {
+                      for (DataEntryResource dataResource : finalDataResources) {
+                        visitor.visit(dataResource);
+                      }
+                    }
+                  };
+                }
+                return null;
               }
             });
         programResources.clear();
+        dataResources.clear();
       }
       return new AndroidApp(
           ImmutableList.copyOf(programResourceProviders),
@@ -574,6 +600,14 @@ public class AndroidApp {
 
     private void addProgramResources(Collection<ProgramResource> resources) {
       programResources.addAll(resources);
+    }
+
+    private void addDataResources(DataEntryResource... resources) {
+      addDataResources(Arrays.asList(resources));
+    }
+
+    private void addDataResources(Collection<DataEntryResource> resources) {
+      this.dataResources.addAll(resources);
     }
 
     private void addClasspathOrLibraryProvider(

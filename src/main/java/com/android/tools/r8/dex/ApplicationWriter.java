@@ -316,21 +316,26 @@ public class ApplicationWriter {
           .filter(Objects::nonNull)
           .collect(Collectors.toList());
 
+      ResourceAdapter resourceAdapter =
+          new ResourceAdapter(application.dexItemFactory, graphLense, namingLens, options);
+
       for (DataResourceProvider dataResourceProvider : dataResourceProviders) {
         try {
-          dataResourceProvider.accept(new Visitor() {
-            @Override
-            public void visit(DataDirectoryResource directory) {
-              dataResourceConsumer.accept(directory, options.reporter);
-              options.reporter.failIfPendingErrors();
-            }
+          dataResourceProvider.accept(
+              new Visitor() {
+                @Override
+                public void visit(DataDirectoryResource directory) {
+                  dataResourceConsumer.accept(directory, options.reporter);
+                  options.reporter.failIfPendingErrors();
+                }
 
-            @Override
-            public void visit(DataEntryResource file) {
-              dataResourceConsumer.accept(file, options.reporter);
-              options.reporter.failIfPendingErrors();
-            }
-          });
+                @Override
+                public void visit(DataEntryResource file) {
+                  dataResourceConsumer.accept(
+                      resourceAdapter.adaptFileContentsIfNeeded(file), options.reporter);
+                  options.reporter.failIfPendingErrors();
+                }
+              });
         } catch (ResourceException e) {
           throw new CompilationError(e.getMessage(), e);
         }

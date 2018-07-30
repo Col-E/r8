@@ -370,10 +370,7 @@ public class ProguardConfigurationParser {
         }
         parsePathFilter(configurationBuilder::addAdaptResourceFilenames);
       } else if (acceptString("adaptresourcefilecontents")) {
-        // TODO(36847655): Report an error until it's fully supported.
-        if (failOnPartiallyImplementedOptions) {
-          failPartiallyImplementedOption("-adaptresourcefilecontents", optionStart);
-        }
+        configurationBuilder.enableAdaptResourceFileContents();
         parsePathFilter(configurationBuilder::addAdaptResourceFileContents);
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule(optionStart));

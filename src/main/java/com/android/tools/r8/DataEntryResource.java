@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -21,6 +22,10 @@ public interface DataEntryResource extends DataResource {
   /** Get the bytes of the data entry resource. */
   InputStream getByteStream() throws ResourceException;
 
+  static DataEntryResource fromBytes(byte[] bytes, String name, Origin origin) {
+    return new ByteDataEntryResource(bytes, name, origin);
+  }
+
   static DataEntryResource fromFile(Path dir, Path file) {
     return new LocalDataEntryResource(dir.resolve(file).toFile(),
         file.toString().replace(File.separatorChar, SEPARATOR));
@@ -28,6 +33,34 @@ public interface DataEntryResource extends DataResource {
 
   static DataEntryResource fromZip(ZipFile zip, ZipEntry entry) {
     return new ZipDataEntryResource(zip, entry);
+  }
+
+  class ByteDataEntryResource implements DataEntryResource {
+
+    private final byte[] bytes;
+    private final String name;
+    private final Origin origin;
+
+    public ByteDataEntryResource(byte[] bytes, String name, Origin origin) {
+      this.bytes = bytes;
+      this.name = name;
+      this.origin = origin;
+    }
+
+    @Override
+    public InputStream getByteStream() {
+      return new ByteArrayInputStream(bytes);
+    }
+
+    @Override
+    public String getName() {
+      return name;
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return origin;
+    }
   }
 
   class ZipDataEntryResource implements DataEntryResource {

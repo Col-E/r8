@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking;
 import com.google.common.collect.ImmutableList;
 
 public class ProguardPathFilter {
+  private final boolean enabled;
   private final ImmutableList<ProguardPathList> patterns;
 
   public static Builder builder() {
@@ -14,6 +15,7 @@ public class ProguardPathFilter {
   }
 
   public static class Builder {
+    private boolean enabled = true;
     private final ImmutableList.Builder<ProguardPathList> patterns = ImmutableList.builder();
 
     private Builder() {
@@ -24,23 +26,41 @@ public class ProguardPathFilter {
       return this;
     }
 
+    public Builder disable() {
+      enabled = false;
+      return this;
+    }
+
+    public Builder enable() {
+      enabled = true;
+      return this;
+    }
+
     ProguardPathFilter build() {
-      return new ProguardPathFilter(patterns.build());
+      return new ProguardPathFilter(patterns.build(), enabled);
     }
   }
 
-  private ProguardPathFilter(ImmutableList<ProguardPathList> patterns) {
+  private ProguardPathFilter(ImmutableList<ProguardPathList> patterns, boolean enabled) {
+    this.enabled = enabled;
     if (patterns.isEmpty()) {
       this.patterns = ImmutableList.of(ProguardPathList.emptyList());
     } else {
+      assert enabled;
       this.patterns = patterns;
     }
   }
 
+  public boolean isEnabled() {
+    return enabled;
+  }
+
   public boolean matches(String path) {
-    for (ProguardPathList pattern : patterns) {
-      if (pattern.matches(path)) {
-        return true;
+    if (enabled) {
+      for (ProguardPathList pattern : patterns) {
+        if (pattern.matches(path)) {
+          return true;
+        }
       }
     }
     return false;
