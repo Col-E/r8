@@ -9,6 +9,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompatProguardCommandBuilder;
+import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -157,16 +158,26 @@ public class ProguardCompatabilityTestBase extends TestBase {
 
   protected AndroidApp runProguard6Raw(
       List<Class> programClasses, String proguardConfig, Path proguardMap) throws Exception {
+    return runProguard6Raw(programClasses, proguardConfig, proguardMap, null);
+  }
+
+  protected AndroidApp runProguard6Raw(
+      List<Class> programClasses,
+      String proguardConfig,
+      Path proguardMap,
+      List<DataEntryResource> dataResources)
+      throws Exception {
     Path proguardedJar =
         File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
     Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
     FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
-    ProcessResult result = ToolHelper.runProguard6Raw(
-        jarTestClasses(programClasses),
-        proguardedJar,
-        ToolHelper.getAndroidJar(AndroidApiLevel.N),
-        proguardConfigFile,
-        proguardMap);
+    ProcessResult result =
+        ToolHelper.runProguard6Raw(
+            jarTestClasses(programClasses, dataResources),
+            proguardedJar,
+            ToolHelper.getAndroidJar(AndroidApiLevel.N),
+            proguardConfigFile,
+            proguardMap);
     if (result.exitCode != 0) {
       fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
     }

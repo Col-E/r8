@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataDirectoryResource;
@@ -15,22 +16,25 @@ import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import org.junit.Ignore;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
-public class AdaptResourceFileContentsTest extends TestBase {
+public class AdaptResourceFileContentsTest extends ProguardCompatabilityTestBase {
 
   private static class CustomDataResourceConsumer implements DataResourceConsumer {
 
@@ -125,7 +129,14 @@ public class AdaptResourceFileContentsTest extends TestBase {
         adaptResourceFileContentsRule,
         "-keep class " + AdaptResourceFileContentsTestClass.class.getName() + " {",
         "  public static void main(...);",
-        "}",
+        "}");
+  }
+
+  private static String getProguardConfigWithNeverInline(
+      boolean enableAdaptResourceFileContents, String adaptResourceFileContentsPathFilter) {
+    return String.join(
+        System.lineSeparator(),
+        getProguardConfig(enableAdaptResourceFileContents, adaptResourceFileContentsPathFilter),
         "-neverinline class com.android.tools.r8.naming.AdaptResourceFileContentsTestClass$B {",
         "  public void method();",
         "}");
@@ -134,7 +145,8 @@ public class AdaptResourceFileContentsTest extends TestBase {
   @Test
   public void testEnabled() throws Exception {
     CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
-    AndroidApp out = compileWithR8(getProguardConfig(true, null), dataResourceConsumer);
+    AndroidApp out =
+        compileWithR8(getProguardConfigWithNeverInline(true, null), dataResourceConsumer);
 
     // Check that the data resources have changed as expected.
     checkAllAreChanged(
@@ -155,16 +167,54 @@ public class AdaptResourceFileContentsTest extends TestBase {
         dataResourceConsumer.get("resource-all-unchanged.txt"), originalAllUnchangedResource);
   }
 
-  @Ignore("b/36847655")
   @Test
   public void testProguardBehavior() throws Exception {
-    // TODO(christofferqa): Run Proguard on the example and check that R8 behaves the same way.
+    AndroidApp result =
+        runProguard6Raw(
+            ImmutableList.of(
+                AdaptResourceFileContentsTestClass.class,
+                AdaptResourceFileContentsTestClass.A.class,
+                AdaptResourceFileContentsTestClass.B.class),
+            getProguardConfig(true, null),
+            null,
+            getDataResources()
+                .stream()
+                .filter(x -> !x.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION))
+                .collect(Collectors.toList()));
+
+    List<DataEntryResource> dataResources = getDataResources(result);
+    assertEquals(4, dataResources.size());
+
+    assertTrue(
+        dataResources.stream().anyMatch(x -> x.getName().endsWith("resource-all-changed.md")));
+    assertTrue(
+        dataResources.stream().anyMatch(x -> x.getName().endsWith("resource-all-changed.txt")));
+    assertTrue(
+        dataResources.stream().anyMatch(x -> x.getName().endsWith("resource-all-present.txt")));
+    assertTrue(
+        dataResources.stream().anyMatch(x -> x.getName().endsWith("resource-all-unchanged.txt")));
+
+    for (DataEntryResource dataResource : dataResources) {
+      byte[] bytes = ByteStreams.toByteArray(dataResource.getByteStream());
+      List<String> lines =
+          Arrays.asList(new String(bytes, Charset.defaultCharset()).split(System.lineSeparator()));
+
+      if (dataResource.getName().endsWith("resource-all-changed.md")) {
+        checkAllAreChanged(lines, originalAllChangedResource);
+      } else if (dataResource.getName().endsWith("resource-all-changed.txt")) {
+        checkAllAreChanged(lines, originalAllChangedResource);
+      } else if (dataResource.getName().endsWith("resource-all-present.txt")) {
+        checkAllArePresent(lines, new CodeInspector(result));
+      } else if (dataResource.getName().endsWith("resource-all-unchanged.txt")) {
+        checkAllAreUnchanged(lines, originalAllUnchangedResource);
+      }
+    }
   }
 
   @Test
   public void testEnabledWithFilter() throws Exception {
     CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
-    compileWithR8(getProguardConfig(true, "*.md"), dataResourceConsumer);
+    compileWithR8(getProguardConfigWithNeverInline(true, "*.md"), dataResourceConsumer);
 
     // Check that the file matching the filter has changed as expected.
     checkAllAreChanged(
@@ -186,7 +236,7 @@ public class AdaptResourceFileContentsTest extends TestBase {
   @Test
   public void testDisabled() throws Exception {
     CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
-    compileWithR8(getProguardConfig(false, null), dataResourceConsumer);
+    compileWithR8(getProguardConfigWithNeverInline(false, null), dataResourceConsumer);
 
     // Check that all data resources are unchanged.
     checkAllAreUnchanged(
@@ -203,22 +253,20 @@ public class AdaptResourceFileContentsTest extends TestBase {
         dataResourceConsumer.get("resource-all-unchanged.txt"), originalAllUnchangedResource);
   }
 
-  private static void checkAllAreChanged(
-      ImmutableList<String> adaptedLines, ImmutableList<String> originalLines) {
+  private static void checkAllAreChanged(List<String> adaptedLines, List<String> originalLines) {
     assertEquals(adaptedLines.size(), originalLines.size());
     for (int i = 0; i < originalLines.size(); i++) {
       assertNotEquals(originalLines.get(i), adaptedLines.get(i));
     }
   }
 
-  private static void checkAllArePresent(ImmutableList<String> lines, CodeInspector inspector) {
+  private static void checkAllArePresent(List<String> lines, CodeInspector inspector) {
     for (String line : lines) {
       assertThat(inspector.clazz(line), isPresent());
     }
   }
 
-  private static void checkAllAreUnchanged(
-      ImmutableList<String> adaptedLines, ImmutableList<String> originalLines) {
+  private static void checkAllAreUnchanged(List<String> adaptedLines, List<String> originalLines) {
     assertEquals(adaptedLines.size(), originalLines.size());
     for (int i = 0; i < originalLines.size(); i++) {
       assertEquals(originalLines.get(i), adaptedLines.get(i));
@@ -227,40 +275,9 @@ public class AdaptResourceFileContentsTest extends TestBase {
 
   private AndroidApp compileWithR8(String proguardConfig, DataResourceConsumer dataResourceConsumer)
       throws CompilationFailedException, IOException {
-    AndroidApp app =
-        AndroidApp.builder()
-            .addProgramFiles(
-                ToolHelper.getClassFileForTestClass(AdaptResourceFileContentsTestClass.class),
-                ToolHelper.getClassFileForTestClass(AdaptResourceFileContentsTestClass.A.class),
-                ToolHelper.getClassFileForTestClass(AdaptResourceFileContentsTestClass.B.class))
-            .addDataResource(
-                String.join(System.lineSeparator(), originalAllChangedResource).getBytes(),
-                "resource-all-changed.class",
-                Origin.unknown())
-            .addDataResource(
-                String.join(System.lineSeparator(), originalAllChangedResource).getBytes(),
-                "resource-all-changed.cLaSs",
-                Origin.unknown())
-            .addDataResource(
-                String.join(System.lineSeparator(), originalAllChangedResource).getBytes(),
-                "resource-all-changed.md",
-                Origin.unknown())
-            .addDataResource(
-                String.join(System.lineSeparator(), originalAllChangedResource).getBytes(),
-                "resource-all-changed.txt",
-                Origin.unknown())
-            .addDataResource(
-                String.join(System.lineSeparator(), originalAllPresentResource).getBytes(),
-                "resource-all-present.txt",
-                Origin.unknown())
-            .addDataResource(
-                String.join(System.lineSeparator(), originalAllUnchangedResource).getBytes(),
-                "resource-all-unchanged.txt",
-                Origin.unknown())
-            .build();
     R8Command command =
         ToolHelper.allowTestProguardOptions(
-                ToolHelper.prepareR8CommandBuilder(app)
+                ToolHelper.prepareR8CommandBuilder(getAndroidApp())
                     .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown()))
             .build();
     return ToolHelper.runR8(
@@ -271,6 +288,44 @@ public class AdaptResourceFileContentsTest extends TestBase {
           options.enableClassMerging = true;
           options.dataResourceConsumer = dataResourceConsumer;
         });
+  }
+
+  private AndroidApp getAndroidApp() throws IOException {
+    AndroidApp.Builder builder = AndroidApp.builder();
+    builder.addProgramFiles(
+        ToolHelper.getClassFileForTestClass(AdaptResourceFileContentsTestClass.class),
+        ToolHelper.getClassFileForTestClass(AdaptResourceFileContentsTestClass.A.class),
+        ToolHelper.getClassFileForTestClass(AdaptResourceFileContentsTestClass.B.class));
+    getDataResources().forEach(builder::addDataResource);
+    return builder.build();
+  }
+
+  private List<DataEntryResource> getDataResources() {
+    return ImmutableList.of(
+        DataEntryResource.fromBytes(
+            String.join(System.lineSeparator(), originalAllChangedResource).getBytes(),
+            "resource-all-changed.class",
+            Origin.unknown()),
+        DataEntryResource.fromBytes(
+            String.join(System.lineSeparator(), originalAllChangedResource).getBytes(),
+            "resource-all-changed.cLaSs",
+            Origin.unknown()),
+        DataEntryResource.fromBytes(
+            String.join(System.lineSeparator(), originalAllChangedResource).getBytes(),
+            "resource-all-changed.md",
+            Origin.unknown()),
+        DataEntryResource.fromBytes(
+            String.join(System.lineSeparator(), originalAllChangedResource).getBytes(),
+            "resource-all-changed.txt",
+            Origin.unknown()),
+        DataEntryResource.fromBytes(
+            String.join(System.lineSeparator(), originalAllPresentResource).getBytes(),
+            "resource-all-present.txt",
+            Origin.unknown()),
+        DataEntryResource.fromBytes(
+            String.join(System.lineSeparator(), originalAllUnchangedResource).getBytes(),
+            "resource-all-unchanged.txt",
+            Origin.unknown()));
   }
 }
 

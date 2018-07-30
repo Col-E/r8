@@ -94,7 +94,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   private AndroidApp runTest(List<String> rules, DiagnosticsHandler handler) throws Exception {
     Path jar = temp.newFile("test.jar").toPath();
     try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar.toFile()))) {
-      addTestClassesToJar(out, A.class, B.class);
+      addTestClassesToJar(out, ImmutableList.of(A.class, B.class));
       for (int i =  0; i < rules.size(); i++) {
         String name = "META-INF/proguard/jar" + (i == 0 ? "" : i) + ".rules";
         addTextJarEntry(out, name, rules.get(i));

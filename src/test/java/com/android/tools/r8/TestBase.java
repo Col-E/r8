@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
@@ -40,6 +41,7 @@ import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -185,17 +187,25 @@ public class TestBase {
    * Create a temporary JAR file containing the specified test classes.
    */
   protected Path jarTestClasses(Class... classes) throws IOException {
+    return jarTestClasses(Arrays.asList(classes), null);
+  }
+
+  /** Create a temporary JAR file containing the specified test classes and data resources. */
+  protected Path jarTestClasses(Iterable<Class> classes, List<DataEntryResource> dataResources)
+      throws IOException {
     Path jar = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
     try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar.toFile()))) {
       addTestClassesToJar(out, classes);
+      if (dataResources != null) {
+        addDataResourcesToJar(out, dataResources);
+      }
     }
     return jar;
   }
 
-  /**
-   * Create a temporary JAR file containing the specified test classes.
-   */
-  protected void addTestClassesToJar(JarOutputStream out, Class... classes) throws IOException {
+  /** Create a temporary JAR file containing the specified test classes. */
+  protected void addTestClassesToJar(JarOutputStream out, Iterable<Class> classes)
+      throws IOException {
     for (Class clazz : classes) {
       try (FileInputStream in =
           new FileInputStream(ToolHelper.getClassFileForTestClass(clazz).toFile())) {
@@ -204,6 +214,41 @@ public class TestBase {
         out.closeEntry();
       }
     }
+  }
+
+  /** Create a temporary JAR file containing the specified data resources. */
+  protected void addDataResourcesToJar(JarOutputStream out, List<DataEntryResource> dataResources)
+      throws IOException {
+    try {
+      for (DataEntryResource dataResource : dataResources) {
+        out.putNextEntry(new ZipEntry(dataResource.getName()));
+        ByteStreams.copy(dataResource.getByteStream(), out);
+        out.closeEntry();
+      }
+    } catch (ResourceException e) {
+      throw new IOException("Resource error", e);
+    }
+  }
+
+  /** Returns a list containing all the data resources in the given app. */
+  public static List<DataEntryResource> getDataResources(AndroidApp app) throws ResourceException {
+    List<DataEntryResource> dataResources = new ArrayList<>();
+    for (ProgramResourceProvider programResourceProvider : app.getProgramResourceProviders()) {
+      DataResourceProvider dataResourceProvider = programResourceProvider.getDataResourceProvider();
+      if (dataResourceProvider != null) {
+        dataResourceProvider.accept(
+            new Visitor() {
+              @Override
+              public void visit(DataDirectoryResource directory) {}
+
+              @Override
+              public void visit(DataEntryResource file) {
+                dataResources.add(file);
+              }
+            });
+      }
+    }
+    return dataResources;
   }
 
   /**
