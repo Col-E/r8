@@ -42,15 +42,15 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
   }
 
   @Override
-  protected CodeInspector runR8(
-      List<Class> programClasses, String proguardConfig) throws Exception {
-    return super.runR8(programClasses, adaptConfiguration(proguardConfig));
+  protected CodeInspector inspectR8Result(List<Class> programClasses, String proguardConfig)
+      throws Exception {
+    return super.inspectR8Result(programClasses, adaptConfiguration(proguardConfig));
   }
 
   @Override
-  protected CodeInspector runProguard6(
-      List<Class> programClasses, String proguardConfig) throws Exception {
-    return super.runProguard6(programClasses, adaptConfiguration(proguardConfig));
+  protected CodeInspector inspectProguard6Result(List<Class> programClasses, String proguardConfig)
+      throws Exception {
+    return super.inspectProguard6Result(programClasses, adaptConfiguration(proguardConfig));
   }
 
   @Test
@@ -77,7 +77,7 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **.D"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         R1.class, R2.class, D.class, D2.class);
     verifyClassesPresent(codeInspector,
@@ -96,7 +96,7 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **.D<2>"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         R1.class, R2.class, D.class, D2.class);
     verifyClassesPresent(codeInspector,
@@ -119,7 +119,7 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **.D2"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         R.class, D.class, R1.class, D1.class);
     verifyClassesPresent(codeInspector,
@@ -138,7 +138,7 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **.D<2>"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         R.class, D.class, R1.class, D1.class);
     verifyClassesPresent(codeInspector,
@@ -158,7 +158,7 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class **$*D"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         R.class, D.class, R1.class, D1.class, R2.class, D2.class);
     verifyClassesPresent(codeInspector,
@@ -178,7 +178,7 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
         "-keep class <1>$<2>D"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         R.class, D.class, R1.class, D1.class, R2.class, D2.class);
     verifyClassesPresent(codeInspector,
@@ -202,7 +202,7 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
             "}",
             "-keep class **.D2");
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector, D2.class);
     verifyClassesPresent(codeInspector,
         I.class, Impl.class, D1.class);
@@ -225,7 +225,7 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
             "}",
             "-keep class <2>.D2");
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector, D2.class);
     verifyClassesPresent(codeInspector,
         I.class, Impl.class, D1.class);

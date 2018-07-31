@@ -587,9 +587,7 @@ public class AndroidApp {
       } else if (isClassFile(file)) {
         addProgramResources(ProgramResource.fromFile(Kind.CF, file));
       } else if (isArchive(file)) {
-        ArchiveResourceProvider archiveResourceProvider = new ArchiveResourceProvider(
-            FilteredClassPath.unfiltered(file), ignoreDexInArchive);
-        addProgramResourceProvider(archiveResourceProvider);
+        addProgramResourceProvider(ArchiveResourceProvider.fromArchive(file, ignoreDexInArchive));
       } else {
         throw new CompilationError("Unsupported source file type", new PathOrigin(file));
       }

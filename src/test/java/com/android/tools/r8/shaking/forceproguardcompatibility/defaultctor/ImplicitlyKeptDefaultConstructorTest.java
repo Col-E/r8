@@ -131,13 +131,13 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityT
       Class mainClass, List<Class> programClasses, String proguardConfiguration,
       TriConsumer<Class, List<Class>, CodeInspector> r8Checker,
       TriConsumer<Class, List<Class>, CodeInspector> proguardChecker) throws Exception {
-    CodeInspector inspector = runR8Compat(programClasses, proguardConfiguration);
+    CodeInspector inspector = inspectR8CompatResult(programClasses, proguardConfiguration);
     r8Checker.accept(mainClass, programClasses, inspector);
 
     if (isRunProguard()) {
-      inspector = runProguard6(programClasses, proguardConfiguration);
+      inspector = inspectProguard6Result(programClasses, proguardConfiguration);
       proguardChecker.accept(mainClass, programClasses, inspector);
-      inspector = runProguard6AndD8(programClasses, proguardConfiguration);
+      inspector = inspectProguard6AndD8Result(programClasses, proguardConfiguration);
       proguardChecker.accept(mainClass, programClasses, inspector);
     }
   }

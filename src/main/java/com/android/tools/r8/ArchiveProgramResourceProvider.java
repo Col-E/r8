@@ -136,23 +136,4 @@ public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
       throw new ResourceException(origin, e);
     }
   }
-
-  @Override
-  public DataResourceProvider getDataResourceProvider() {
-    return visitor -> {
-      try {
-        readArchive(
-            (entry, stream) -> {
-              String name = entry.getEntryName();
-              if (!ZipUtils.isClassFile(name) && !ZipUtils.isDexFile(name)) {
-                visitor.visit(
-                    DataEntryResource.fromBytes(
-                        ByteStreams.toByteArray(stream), entry.getEntryName(), entry));
-              }
-            });
-      } catch (IOException e) {
-        throw new ResourceException(origin, e);
-      }
-    };
-  }
 }

@@ -59,7 +59,7 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
         "  public <methods>;",
         "}"
     );
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
@@ -98,7 +98,7 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
         "  !public <methods>;",
         "}"
     );
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
@@ -138,7 +138,7 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
         "  public <methods>;",
         "}"
     );
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
@@ -170,7 +170,7 @@ public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
         "  !public <methods>;",
         "}"
     );
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);

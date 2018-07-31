@@ -57,7 +57,7 @@ public class B72391662 extends ProguardCompatabilityTestBase {
         "-dontwarn java.lang.invoke.*"
     );
 
-    AndroidApp app = runShrinkerRaw(shrinker, CLASSES, config);
+    AndroidApp app = runShrinker(shrinker, CLASSES, config);
     assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
 
     CodeInspector codeInspector =
@@ -147,7 +147,7 @@ public class B72391662 extends ProguardCompatabilityTestBase {
         "-dontwarn java.lang.invoke.*"
     );
 
-    AndroidApp app = runShrinkerRaw(shrinker, CLASSES, config);
+    AndroidApp app = runShrinker(shrinker, CLASSES, config);
     assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
 
     CodeInspector codeInspector =
@@ -244,7 +244,7 @@ public class B72391662 extends ProguardCompatabilityTestBase {
       ));
     }
 
-    AndroidApp app = runShrinkerRaw(shrinker, CLASSES, config);
+    AndroidApp app = runShrinker(shrinker, CLASSES, config);
     assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
 
     CodeInspector codeInspector =

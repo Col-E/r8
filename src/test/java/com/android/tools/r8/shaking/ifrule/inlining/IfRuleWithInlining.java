@@ -90,6 +90,6 @@ public class IfRuleWithInlining extends ProguardCompatabilityTestBase {
         "-dontobfuscate"
     );
 
-    check(runShrinkerRaw(shrinker, CLASSES, config));
+    check(runShrinker(shrinker, CLASSES, config));
   }
 }

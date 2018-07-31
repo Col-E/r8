@@ -234,19 +234,25 @@ public class TestBase {
   public static List<DataEntryResource> getDataResources(AndroidApp app) throws ResourceException {
     List<DataEntryResource> dataResources = new ArrayList<>();
     for (ProgramResourceProvider programResourceProvider : app.getProgramResourceProviders()) {
-      DataResourceProvider dataResourceProvider = programResourceProvider.getDataResourceProvider();
-      if (dataResourceProvider != null) {
-        dataResourceProvider.accept(
-            new Visitor() {
-              @Override
-              public void visit(DataDirectoryResource directory) {}
+      dataResources.addAll(getDataResources(programResourceProvider.getDataResourceProvider()));
+    }
+    return dataResources;
+  }
 
-              @Override
-              public void visit(DataEntryResource file) {
-                dataResources.add(file);
-              }
-            });
-      }
+  public static List<DataEntryResource> getDataResources(DataResourceProvider dataResourceProvider)
+      throws ResourceException {
+    List<DataEntryResource> dataResources = new ArrayList<>();
+    if (dataResourceProvider != null) {
+      dataResourceProvider.accept(
+          new Visitor() {
+            @Override
+            public void visit(DataDirectoryResource directory) {}
+
+            @Override
+            public void visit(DataEntryResource file) {
+              dataResources.add(file);
+            }
+          });
     }
     return dataResources;
   }

@@ -21,6 +21,7 @@ import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +36,10 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
   private final Origin origin;
   private final FilteredClassPath archive;
   private final boolean ignoreDexInArchive;
+
+  public static ArchiveResourceProvider fromArchive(Path archive, boolean ignoreDexInArchive) {
+    return new ArchiveResourceProvider(FilteredClassPath.unfiltered(archive), ignoreDexInArchive);
+  }
 
   ArchiveResourceProvider(FilteredClassPath archive, boolean ignoreDexInArchive) {
     assert isArchive(archive.getPath());

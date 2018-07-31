@@ -84,9 +84,8 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatabilityTestBas
   }
 
   @Override
-  protected AndroidApp runR8Raw(
-      List<Class> programClasses, String proguardConfig) throws Exception {
-    return super.runR8Raw(programClasses, proguardConfig, this::configure);
+  protected AndroidApp runR8(List<Class> programClasses, String proguardConfig) throws Exception {
+    return super.runR8(programClasses, proguardConfig, this::configure);
   }
 
   private void check(AndroidApp app) throws Exception {
@@ -119,7 +118,7 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatabilityTestBas
         "-dontobfuscate"
     );
 
-    check(runShrinkerRaw(shrinker, CLASSES, config));
+    check(runShrinker(shrinker, CLASSES, config));
   }
 
   @Test
@@ -135,7 +134,7 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatabilityTestBas
         "-dontobfuscate"
     );
 
-    check(runShrinkerRaw(shrinker, CLASSES, config));
+    check(runShrinker(shrinker, CLASSES, config));
   }
 
   @Test
@@ -151,6 +150,6 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatabilityTestBas
         "-dontobfuscate"
     );
 
-    check(runShrinkerRaw(shrinker, CLASSES, config));
+    check(runShrinker(shrinker, CLASSES, config));
   }
 }

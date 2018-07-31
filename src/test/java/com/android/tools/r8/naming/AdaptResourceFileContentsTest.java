@@ -14,6 +14,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
+import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
@@ -21,16 +22,21 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
@@ -169,46 +175,61 @@ public class AdaptResourceFileContentsTest extends ProguardCompatabilityTestBase
 
   @Test
   public void testProguardBehavior() throws Exception {
-    AndroidApp result =
-        runProguard6Raw(
-            ImmutableList.of(
-                AdaptResourceFileContentsTestClass.class,
-                AdaptResourceFileContentsTestClass.A.class,
-                AdaptResourceFileContentsTestClass.B.class),
-            getProguardConfig(true, null),
-            null,
-            getDataResources()
-                .stream()
-                .filter(x -> !x.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION))
-                .collect(Collectors.toList()));
+    Path proguardedJar =
+        File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
+    runProguard6Raw(
+        proguardedJar,
+        ImmutableList.of(
+            AdaptResourceFileContentsTestClass.class,
+            AdaptResourceFileContentsTestClass.A.class,
+            AdaptResourceFileContentsTestClass.B.class),
+        getProguardConfig(true, null),
+        null,
+        getDataResources()
+            .stream()
+            .filter(x -> !x.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION))
+            .collect(Collectors.toList()));
 
-    List<DataEntryResource> dataResources = getDataResources(result);
-    assertEquals(4, dataResources.size());
+    // Visit each of the resources in the jar and check that their contents are as expected.
+    Set<String> filenames = new HashSet<>();
+    ArchiveResourceProvider.fromArchive(proguardedJar, true)
+        .accept(
+            new Visitor() {
+              @Override
+              public void visit(DataDirectoryResource directory) {}
 
-    assertTrue(
-        dataResources.stream().anyMatch(x -> x.getName().endsWith("resource-all-changed.md")));
-    assertTrue(
-        dataResources.stream().anyMatch(x -> x.getName().endsWith("resource-all-changed.txt")));
-    assertTrue(
-        dataResources.stream().anyMatch(x -> x.getName().endsWith("resource-all-present.txt")));
-    assertTrue(
-        dataResources.stream().anyMatch(x -> x.getName().endsWith("resource-all-unchanged.txt")));
+              @Override
+              public void visit(DataEntryResource file) {
+                try {
+                  byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
+                  List<String> lines =
+                      Arrays.asList(
+                          new String(bytes, Charset.defaultCharset())
+                              .split(System.lineSeparator()));
+                  if (file.getName().endsWith("resource-all-changed.md")) {
+                    checkAllAreChanged(lines, originalAllChangedResource);
+                  } else if (file.getName().endsWith("resource-all-changed.txt")) {
+                    checkAllAreChanged(lines, originalAllChangedResource);
+                  } else if (file.getName().endsWith("resource-all-present.txt")) {
+                    checkAllArePresent(lines, new CodeInspector(readJar(proguardedJar)));
+                  } else if (file.getName().endsWith("resource-all-unchanged.txt")) {
+                    checkAllAreUnchanged(lines, originalAllUnchangedResource);
+                  }
+                } catch (Exception e) {
+                  throw new RuntimeException(e);
+                }
 
-    for (DataEntryResource dataResource : dataResources) {
-      byte[] bytes = ByteStreams.toByteArray(dataResource.getByteStream());
-      List<String> lines =
-          Arrays.asList(new String(bytes, Charset.defaultCharset()).split(System.lineSeparator()));
+                // Record that the jar contains a resource with this name.
+                filenames.add(file.getName());
+              }
+            });
 
-      if (dataResource.getName().endsWith("resource-all-changed.md")) {
-        checkAllAreChanged(lines, originalAllChangedResource);
-      } else if (dataResource.getName().endsWith("resource-all-changed.txt")) {
-        checkAllAreChanged(lines, originalAllChangedResource);
-      } else if (dataResource.getName().endsWith("resource-all-present.txt")) {
-        checkAllArePresent(lines, new CodeInspector(result));
-      } else if (dataResource.getName().endsWith("resource-all-unchanged.txt")) {
-        checkAllAreUnchanged(lines, originalAllUnchangedResource);
-      }
-    }
+    // Check that the jar contains the four expected resources, and nothing else.
+    assertEquals(4, filenames.size());
+    assertTrue(filenames.stream().anyMatch(x -> x.endsWith("resource-all-changed.md")));
+    assertTrue(filenames.stream().anyMatch(x -> x.endsWith("resource-all-changed.txt")));
+    assertTrue(filenames.stream().anyMatch(x -> x.endsWith("resource-all-present.txt")));
+    assertTrue(filenames.stream().anyMatch(x -> x.endsWith("resource-all-unchanged.txt")));
   }
 
   @Test

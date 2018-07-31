@@ -60,21 +60,21 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
   }
 
   @Override
-  protected CodeInspector runR8(
-      List<Class> programClasses, String proguardConfig) throws Exception {
-    return super.runR8(programClasses, adaptConfiguration(proguardConfig));
+  protected CodeInspector inspectR8Result(List<Class> programClasses, String proguardConfig)
+      throws Exception {
+    return super.inspectR8Result(programClasses, adaptConfiguration(proguardConfig));
   }
 
   @Override
-  protected CodeInspector runProguard5(
-      List<Class> programClasses, String proguardConfig) throws Exception {
-    return super.runProguard5(programClasses, adaptConfiguration(proguardConfig));
+  protected CodeInspector inspectProguard5Result(List<Class> programClasses, String proguardConfig)
+      throws Exception {
+    return super.inspectProguard5Result(programClasses, adaptConfiguration(proguardConfig));
   }
 
   @Override
-  protected CodeInspector runProguard6(
-      List<Class> programClasses, String proguardConfig) throws Exception {
-    return super.runProguard6(programClasses, adaptConfiguration(proguardConfig));
+  protected CodeInspector inspectProguard6Result(List<Class> programClasses, String proguardConfig)
+      throws Exception {
+    return super.inspectProguard6Result(programClasses, adaptConfiguration(proguardConfig));
   }
 
   @Test
@@ -86,7 +86,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keep,allowobfuscation class **.Dependent"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     if (!keepPrecondition) {
       // TODO(b/73708139): Proguard6 kept Dependent (w/o any members), which is not necessary.
       if (shrinker == Shrinker.PROGUARD6) {
@@ -123,7 +123,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keep,allowobfuscation class <1>.<2>"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     if (!keepPrecondition) {
       // TODO(b/73708139): Proguard6 kept Dependent (w/o any members), which is not necessary.
       if (shrinker == Shrinker.PROGUARD6) {
@@ -160,7 +160,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "}"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     if (!keepPrecondition) {
       assertEquals(1, codeInspector.allClasses().size());
       return;
@@ -196,7 +196,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keep,allowobfuscation class **.*User"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     if (!keepPrecondition) {
       // TODO(b/73708139): Proguard6 kept DependentUser (w/o any members), which is not necessary.
       if (shrinker == Shrinker.PROGUARD6) {
@@ -236,7 +236,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keep,allowobfuscation class <1>.<2>User"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     if (!keepPrecondition) {
       // TODO(b/73708139): Proguard6 kept DependentUser (w/o any members), which is not necessary.
       if (shrinker == Shrinker.PROGUARD6) {
@@ -274,7 +274,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "-keepnames class **.Dependent"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
 
     ClassSubject clazz = codeInspector.clazz(Dependent.class);
     // Only class name is not renamed, if triggered.
@@ -299,7 +299,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "}"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
 
     ClassSubject clazz = codeInspector.clazz(Dependent.class);
     // Class name is not renamed, if triggered.
@@ -325,7 +325,7 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
         "}"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
 
     ClassSubject clazz = codeInspector.clazz(Dependent.class);
     assertThat(clazz, isRenamed());

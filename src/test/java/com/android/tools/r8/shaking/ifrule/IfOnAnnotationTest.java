@@ -50,7 +50,7 @@ public class IfOnAnnotationTest extends ProguardCompatabilityTestBase {
         "-keep class **.UnusedAnnotation*"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         UnusedAnnotation.class, UnusedAnnotationDependent.class);
     verifyClassesPresent(codeInspector,
@@ -76,7 +76,7 @@ public class IfOnAnnotationTest extends ProguardCompatabilityTestBase {
         "-keep class <1>.Unused<2>*"
     );
 
-    CodeInspector codeInspector = runShrinker(shrinker, CLASSES, config);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         UnusedAnnotation.class, UnusedAnnotationDependent.class);
     verifyClassesPresent(codeInspector,
