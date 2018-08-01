@@ -35,6 +35,10 @@ public interface DataEntryResource extends DataResource {
     return new ZipDataEntryResource(zip, entry);
   }
 
+  default DataEntryResource withName(String name) {
+    return new NestedDataEntryResource(name, null, this);
+  }
+
   class ByteDataEntryResource implements DataEntryResource {
 
     private final byte[] bytes;
@@ -122,6 +126,37 @@ public interface DataEntryResource extends DataResource {
       } catch (IOException e) {
         throw new ResourceException(getOrigin(), e);
       }
+    }
+  }
+
+  /**
+   * A resource that has the same contents as another resource, but with a different name or origin.
+   */
+  class NestedDataEntryResource implements DataEntryResource {
+
+    private final String name;
+    private final Origin origin;
+    private final DataEntryResource resource;
+
+    public NestedDataEntryResource(String name, Origin origin, DataEntryResource resource) {
+      this.name = name;
+      this.origin = origin;
+      this.resource = resource;
+    }
+
+    @Override
+    public InputStream getByteStream() throws ResourceException {
+      return resource.getByteStream();
+    }
+
+    @Override
+    public String getName() {
+      return name != null ? name : resource.getName();
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return origin != null ? origin : resource.getOrigin();
     }
   }
 }

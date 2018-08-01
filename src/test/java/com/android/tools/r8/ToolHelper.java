@@ -823,6 +823,13 @@ public class ToolHelper {
         .setProguardMapConsumer(StringConsumer.emptyConsumer());
   }
 
+  public static R8Command.Builder prepareR8CommandBuilder(
+      AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
+    return R8Command.builder(app, diagnosticsHandler)
+        .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+        .setProguardMapConsumer(StringConsumer.emptyConsumer());
+  }
+
   public static AndroidApp runR8(AndroidApp app) throws IOException {
     return runR8WithProgramConsumer(app, DexIndexedConsumer.emptyConsumer());
   }

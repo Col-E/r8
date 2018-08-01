@@ -136,6 +136,12 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       mode = defaultCompilationMode();
     }
 
+    // Internal constructor for testing.
+    Builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
+      super(AndroidApp.builder(app, new Reporter(diagnosticsHandler)));
+      mode = defaultCompilationMode();
+    }
+
     /**
      * Get current compilation mode.
      */

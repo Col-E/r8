@@ -158,6 +158,18 @@ public class ProguardCompatabilityTestBase extends TestBase {
       Path proguardMap,
       List<DataEntryResource> dataResources)
       throws Exception {
+    return runProguard6Raw(
+        destination, programClasses, proguardConfig, proguardMap, dataResources, null);
+  }
+
+  protected ProcessResult runProguard6Raw(
+      Path destination,
+      List<Class> programClasses,
+      String proguardConfig,
+      Path proguardMap,
+      List<DataEntryResource> dataResources,
+      Consumer<ProcessResult> processResultConsumer)
+      throws Exception {
     Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
     FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
     ProcessResult result =
@@ -169,6 +181,9 @@ public class ProguardCompatabilityTestBase extends TestBase {
             proguardMap);
     if (result.exitCode != 0) {
       fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
+    }
+    if (processResultConsumer != null) {
+      processResultConsumer.accept(result);
     }
     return result;
   }

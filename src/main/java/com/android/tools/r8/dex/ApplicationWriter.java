@@ -34,15 +34,18 @@ import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ObjectArrays;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -309,7 +312,6 @@ public class ApplicationWriter {
     }
     DataResourceConsumer dataResourceConsumer = options.dataResourceConsumer;
     if (dataResourceConsumer != null) {
-
       List<DataResourceProvider> dataResourceProviders = application.programResourceProviders
           .stream()
           .map(ProgramResourceProvider::getDataResourceProvider)
@@ -318,6 +320,7 @@ public class ApplicationWriter {
 
       ResourceAdapter resourceAdapter =
           new ResourceAdapter(application.dexItemFactory, graphLense, namingLens, options);
+      Set<String> generatedResourceNames = new HashSet<>();
 
       for (DataResourceProvider dataResourceProvider : dataResourceProviders) {
         try {
@@ -331,8 +334,13 @@ public class ApplicationWriter {
 
                 @Override
                 public void visit(DataEntryResource file) {
-                  dataResourceConsumer.accept(
-                      resourceAdapter.adaptFileContentsIfNeeded(file), options.reporter);
+                  DataEntryResource adapted = resourceAdapter.adaptIfNeeded(file);
+                  if (generatedResourceNames.add(adapted.getName())) {
+                    dataResourceConsumer.accept(adapted, options.reporter);
+                  } else {
+                    options.reporter.warning(
+                        new StringDiagnostic("Resource '" + file.getName() + "' already exists."));
+                  }
                   options.reporter.failIfPendingErrors();
                 }
               });
