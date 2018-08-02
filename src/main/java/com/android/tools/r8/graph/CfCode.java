@@ -206,6 +206,7 @@ public class CfCode extends Code {
       GraphLense graphLense,
       InternalOptions options,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     return internalBuild(encodedMethod, appInfo, graphLense, options, null, null, origin);
   }
 
@@ -218,6 +219,7 @@ public class CfCode extends Code {
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     return internalBuild(

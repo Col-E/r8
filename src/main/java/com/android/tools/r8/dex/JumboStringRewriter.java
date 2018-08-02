@@ -123,7 +123,7 @@ public class JumboStringRewriter {
     DexCode code = method.getCode().asDexCode();
     // As we have rewritten the code, we now know that its highest string index that is not
     // a jumbo-string is firstJumboString (actually the previous string, but we do not have that).
-    method.setDexCode(new DexCode(
+    method.setCode(new DexCode(
         code.registerSize,
         code.incomingRegisterSize,
         code.outgoingRegisterSize,
