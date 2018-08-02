@@ -146,6 +146,8 @@ public class LazyCfCode extends Code {
     assert this.context != null;
     this.code = code;
     this.context = null;
+    // Propagate the ownership of LazyCfCode to CfCode.
+    code.setOwner(this.getOwner());
   }
 
   @Override
@@ -180,6 +182,7 @@ public class LazyCfCode extends Code {
       GraphLense graphLense,
       InternalOptions options,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     return asCfCode().buildIR(encodedMethod, appInfo, graphLense, options, origin);
   }
 
@@ -192,6 +195,7 @@ public class LazyCfCode extends Code {
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     return asCfCode()
         .buildInliningIR(
             encodedMethod,

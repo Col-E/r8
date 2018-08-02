@@ -1170,6 +1170,7 @@ public class Outliner {
         GraphLense graphLense,
         InternalOptions options,
         Origin origin) {
+      assert getOwner() == encodedMethod;
       OutlineSourceCode source = new OutlineSourceCode(outline);
       return new IRBuilder(encodedMethod, appInfo, source, options).build();
     }

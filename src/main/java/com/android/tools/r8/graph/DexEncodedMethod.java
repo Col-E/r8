@@ -116,6 +116,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     assert code == null || !accessFlags.isAbstract();
+    setCodeOwnership();
   }
 
   public DexEncodedMethod(
@@ -276,7 +277,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public void setCode(Code code) {
+    voidCodeOwnership();
     this.code = code;
+    setCodeOwnership();
   }
 
   public void setCode(
@@ -284,7 +287,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       RegisterAllocator registerAllocator,
       InternalOptions options) {
     final DexBuilder builder = new DexBuilder(ir, registerAllocator, options);
-    code = builder.build(method.getArity());
+    setCode(builder.build(method.getArity()));
   }
 
   @Override
@@ -316,12 +319,21 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return code;
   }
 
-  public void setDexCode(DexCode code) {
-    this.code = code;
+  public void removeCode() {
+    voidCodeOwnership();
+    code = null;
   }
 
-  public void removeCode() {
-    code = null;
+  private void setCodeOwnership() {
+    if (code != null) {
+      code.setOwner(this);
+    }
+  }
+
+  private void voidCodeOwnership() {
+    if (code != null) {
+      code.setOwner(null);
+    }
   }
 
   public boolean hasDebugPositions() {
@@ -389,6 +401,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public DexEncodedMethod toAbstractMethod() {
     accessFlags.setAbstract();
+    voidCodeOwnership();
     this.code = null;
     return this;
   }

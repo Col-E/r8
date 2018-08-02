@@ -113,6 +113,7 @@ public class JarCode extends Code {
       GraphLense graphLense,
       InternalOptions options,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     triggerDelayedParsingIfNeccessary();
     return options.debug
         ? internalBuildWithLocals(encodedMethod, appInfo, graphLense, options, null, null)
@@ -128,6 +129,7 @@ public class JarCode extends Code {
       ValueNumberGenerator generator,
       Position callerPosition,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     assert generator != null;
     triggerDelayedParsingIfNeccessary();
     return options.debug

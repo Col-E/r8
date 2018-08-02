@@ -193,6 +193,7 @@ public class DexCode extends Code {
       GraphLense graphLense,
       InternalOptions options,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     DexSourceCode source =
         new DexSourceCode(
             this,
@@ -213,6 +214,7 @@ public class DexCode extends Code {
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     DexSourceCode source =
         new DexSourceCode(
             this,

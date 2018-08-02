@@ -16,6 +16,18 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public abstract class Code extends CachedHashValueDexItem {
 
+  private DexEncodedMethod owner;
+
+  public void setOwner(DexEncodedMethod encodedMethod) {
+    // When this Code is un/linked to DexEncodedMethod, the ownership should be updated accordingly.
+    owner = encodedMethod;
+  }
+
+  public DexEncodedMethod getOwner() {
+    // build*IR() will check if the current Code belongs to the given DexEncodedMethod.
+    return owner;
+  }
+
   public abstract IRCode buildIR(
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,

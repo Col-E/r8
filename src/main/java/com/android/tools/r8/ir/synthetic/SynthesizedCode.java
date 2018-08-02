@@ -53,6 +53,7 @@ public final class SynthesizedCode extends Code {
       GraphLense graphLense,
       InternalOptions options,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     return new IRBuilder(encodedMethod, appInfo, sourceCodeProvider.get(), options).build();
   }
 
@@ -65,6 +66,7 @@ public final class SynthesizedCode extends Code {
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
+    assert getOwner() == encodedMethod;
     IRBuilder builder =
         new IRBuilder(
             encodedMethod, appInfo, sourceCodeProvider.get(), options, valueNumberGenerator);
