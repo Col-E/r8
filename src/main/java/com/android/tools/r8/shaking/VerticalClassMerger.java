@@ -61,10 +61,12 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -542,7 +544,13 @@ public class VerticalClassMerger {
     timing.begin("fixup");
     GraphLense result = new TreeFixer().fixupTypeReferences(mergingGraphLense);
     timing.end();
-    assert result.assertNotModified(appInfo.alwaysInline);
+    assert result.assertNotModified(
+        appInfo
+            .alwaysInline
+            .stream()
+            .map(appInfo::definitionFor)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList()));
     assert result.assertNotModified(appInfo.noSideEffects.keySet());
     // TODO(christofferqa): Enable this assert.
     // assert result.assertNotModified(appInfo.pinnedItems);

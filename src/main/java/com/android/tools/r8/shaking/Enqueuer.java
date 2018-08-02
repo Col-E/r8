@@ -1827,7 +1827,9 @@ public class Enqueuer {
       this.noSideEffects = previous.noSideEffects;
       assert lense.assertNotModified(previous.assumedValues.keySet());
       this.assumedValues = previous.assumedValues;
-      assert lense.assertNotModified(previous.alwaysInline);
+      assert lense.assertNotModified(
+          previous.alwaysInline.stream().map(this::definitionFor).filter(Objects::nonNull)
+              .collect(Collectors.toList()));
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = rewriteMethodsWithRenamedSignature(previous.forceInline, lense);
       this.neverInline = rewriteMethodsWithRenamedSignature(previous.neverInline, lense);
