@@ -368,7 +368,27 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
             "adaptresourcefilenames/prefixB.txt",
             // Filename with numeric prefix and extension.
             "adaptresourcefilenames/42TestClass.txt",
-            "adaptresourcefilenames/42B.txt");
+            "adaptresourcefilenames/42B.txt",
+            //
+            // PACKAGE RENAMING TESTS:
+            //
+            // Filename that matches a type, but only the directory should be renamed.
+            "adaptresourcefilenames/pkg/C",
+            // Filename that matches a type that should be renamed.
+            "adaptresourcefilenames/pkg/C.txt",
+            // Filename that does not match a type, but where the directory should be renamed.
+            "adaptresourcefilenames/pkg/file.txt",
+            // Filename that does not match a type, but where a directory-prefix should be renamed.
+            "adaptresourcefilenames/pkg/directory/file.txt",
+            // Filename that matches a type, but only the directory should be renamed.
+            "adaptresourcefilenames/pkg/innerpkg/D",
+            // Filename that matches a type that should be renamed.
+            "adaptresourcefilenames/pkg/innerpkg/D.txt",
+            // Filename that does not match a type, but where the directory should be renamed.
+            "adaptresourcefilenames/pkg/innerpkg/file.txt",
+            // Filename that does not match a type, but where a directory-prefix should be renamed.
+            "adaptresourcefilenames/pkg/innerpkg/directory/file.txt"
+            );
     return filenames
         .stream()
         .map(filename -> DataEntryResource.fromBytes(new byte[0], filename, Origin.unknown()))
@@ -424,12 +444,61 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
         typeName = "adaptresourcefilenames.B";
         suffix = " suffix.txt";
         break;
+        //
+        // PACKAGE RENAMING TESTS
+        //
+      case "adaptresourcefilenames/pkg/C.txt":
+        typeName = "adaptresourcefilenames.pkg.C";
+        suffix = ".txt";
+        break;
+      case "adaptresourcefilenames/pkg/innerpkg/D.txt":
+        typeName = "adaptresourcefilenames.pkg.innerpkg.D";
+        suffix = ".txt";
+        break;
     }
     if (typeName != null) {
       String renamedName = mapper.getObfuscatedToOriginalMapping().inverse().get(typeName);
       assertNotNull(renamedName);
       assertNotEquals(typeName, renamedName);
       return renamedName.replace('.', '/') + suffix;
+    }
+    // Renamings for files in directories that match packages that have been renamed,
+    // but where the filename itself should not be renamed.
+    String samePackageAsType = null;
+    switch (filename) {
+      case "adaptresourcefilenames/pkg/C":
+        samePackageAsType = "adaptresourcefilenames.pkg.C";
+        suffix = "C";
+        break;
+      case "adaptresourcefilenames/pkg/file.txt":
+        samePackageAsType = "adaptresourcefilenames.pkg.C";
+        suffix = "file.txt";
+        break;
+      case "adaptresourcefilenames/pkg/directory/file.txt":
+        samePackageAsType = "adaptresourcefilenames.pkg.C";
+        suffix = "directory/file.txt";
+        break;
+      case "adaptresourcefilenames/pkg/innerpkg/D":
+        samePackageAsType = "adaptresourcefilenames.pkg.innerpkg.D";
+        suffix = "D";
+        break;
+      case "adaptresourcefilenames/pkg/innerpkg/file.txt":
+        samePackageAsType = "adaptresourcefilenames.pkg.innerpkg.D";
+        suffix = "file.txt";
+        break;
+      case "adaptresourcefilenames/pkg/innerpkg/directory/file.txt":
+        samePackageAsType = "adaptresourcefilenames.pkg.innerpkg.D";
+        suffix = "directory/file.txt";
+        break;
+    }
+    if (samePackageAsType != null) {
+      String renamedName = mapper.getObfuscatedToOriginalMapping().inverse().get(samePackageAsType);
+      assertNotNull(renamedName);
+      assertNotEquals(samePackageAsType, renamedName);
+      if (renamedName.contains(".")) {
+        String renamedPackageName = renamedName.substring(0, renamedName.lastIndexOf('.'));
+        return renamedPackageName.replace('.', '/') + "/" + suffix;
+      }
     }
     return filename;
   }

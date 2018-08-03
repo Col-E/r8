@@ -190,6 +190,11 @@ public class ResourceAdapter {
         if (currentChar == getClassNameSeparator()
             && !eof(position + 1)
             && Character.isJavaIdentifierPart(contents.charAt(position + 1))) {
+          if (allowRenamingOfPrefixes()
+              && shouldRecordPrefix(currentChar)
+              && isRenamingCandidate(start, position)) {
+            prefixEndPositionsExclusive.push(position);
+          }
           // Consume the dot and the Java identifier part that follows the dot.
           position += 2;
           continue;
@@ -205,7 +210,7 @@ public class ResourceAdapter {
         while (!prefixEndPositionsExclusive.isEmpty() && !renamingSucceeded) {
           int prefixEndExclusive = prefixEndPositionsExclusive.popInt();
           assert isRenamingCandidate(start, prefixEndExclusive);
-          renamingSucceeded = renameJavaTypeInRange(start, prefixEndExclusive);
+          renamingSucceeded = handlePrefix(start, prefixEndExclusive);
         }
       }
 
@@ -217,7 +222,7 @@ public class ResourceAdapter {
     }
 
     // Returns true if the Java type in the range [from; toExclusive[ was renamed.
-    private boolean renameJavaTypeInRange(int from, int toExclusive) {
+    protected boolean renameJavaTypeInRange(int from, int toExclusive) {
       String javaType = contents.substring(from, toExclusive);
       if (getClassNameSeparator() != '.') {
         javaType = javaType.replace(getClassNameSeparator(), '.');
@@ -246,11 +251,33 @@ public class ResourceAdapter {
       return false;
     }
 
+    // Returns true if the Java package in the range [from; toExclusive[ was renamed.
+    protected boolean renameJavaPackageInRange(int from, int toExclusive) {
+      String javaPackage = contents.substring(from, toExclusive);
+      if (getClassNameSeparator() != '/') {
+        javaPackage = javaPackage.replace(getClassNameSeparator(), '/');
+      }
+      String minifiedJavaPackage = namingLense.lookupPackageName(javaPackage);
+      if (!javaPackage.equals(minifiedJavaPackage)) {
+        outputRangeFromInput(outputFrom, from);
+        outputJavaType(
+            getClassNameSeparator() != '/'
+                ? minifiedJavaPackage.replace('/', getClassNameSeparator())
+                : minifiedJavaPackage);
+        outputFrom = toExclusive;
+        changed = true;
+        return true;
+      }
+      return false;
+    }
+
     protected abstract char getClassNameSeparator();
 
     protected abstract boolean allowRenamingOfPrefixes();
 
     protected abstract boolean shouldRecordPrefix(char c);
+
+    protected abstract boolean handlePrefix(int from, int toExclusive);
 
     protected abstract boolean isRenamingCandidate(int from, int toExclusive);
 
@@ -295,6 +322,11 @@ public class ResourceAdapter {
     }
 
     @Override
+    protected boolean handlePrefix(int from, int toExclusive) {
+      throw new Unreachable();
+    }
+
+    @Override
     public boolean isRenamingCandidate(int from, int toExclusive) {
       // If the Java type starts with '-' or '.', it should not be renamed.
       return (from <= 0 || !isDashOrDot(contents.charAt(from - 1)))
@@ -325,6 +357,15 @@ public class ResourceAdapter {
     @Override
     public boolean shouldRecordPrefix(char c) {
       return !Character.isLetterOrDigit(c);
+    }
+
+    @Override
+    protected boolean handlePrefix(int from, int toExclusive) {
+      assert !eof(toExclusive);
+      if (contents.charAt(toExclusive) == '/') {
+        return renameJavaPackageInRange(from, toExclusive);
+      }
+      return renameJavaTypeInRange(from, toExclusive);
     }
 
     @Override

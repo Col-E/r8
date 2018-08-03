@@ -4,10 +4,14 @@
 
 package adaptresourcefilenames;
 
+import adaptresourcefilenames.pkg.C;
+import adaptresourcefilenames.pkg.innerpkg.D;
+
 public class TestClass {
 
   public static void main(String[] args) {
-    B obj = new B();
-    obj.method();
+    new B().method();
+    new C().method();
+    new D().method();
   }
 }

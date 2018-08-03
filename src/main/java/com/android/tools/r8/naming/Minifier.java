@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -42,8 +43,8 @@ public class Minifier {
   public NamingLens run(Timing timing) {
     assert options.enableMinification;
     timing.begin("MinifyClasses");
-    Map<DexType, DexString> classRenaming =
-        new ClassNameMinifier(appInfo, rootSet, options).computeRenaming(timing);
+    ClassNameMinifier classNameMinifier = new ClassNameMinifier(appInfo, rootSet, options);
+    ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing);
     timing.end();
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
@@ -53,7 +54,12 @@ public class Minifier {
     Map<DexField, DexString> fieldRenaming =
         new FieldNameMinifier(appInfo, rootSet, options).computeRenaming(timing);
     timing.end();
-    NamingLens lens = new MinifiedRenaming(classRenaming, methodRenaming, fieldRenaming, appInfo);
+    NamingLens lens =
+        new MinifiedRenaming(
+            classRenaming,
+            methodRenaming,
+            fieldRenaming,
+            appInfo);
     timing.begin("MinifyIdentifiers");
     new IdentifierMinifier(appInfo, options.proguardConfiguration.getAdaptClassStrings(), lens)
         .run();
@@ -64,18 +70,25 @@ public class Minifier {
   private static class MinifiedRenaming extends NamingLens {
 
     private final AppInfo appInfo;
+    private final Map<String, String> packageRenaming;
     private final Map<DexItem, DexString> renaming = new IdentityHashMap<>();
 
     private MinifiedRenaming(
-        Map<DexType, DexString> classRenaming,
+        ClassRenaming classRenaming,
         MethodRenaming methodRenaming,
         Map<DexField, DexString> fieldRenaming,
         AppInfo appInfo) {
       this.appInfo = appInfo;
-      renaming.putAll(classRenaming);
+      this.packageRenaming = classRenaming.packageRenaming;
+      renaming.putAll(classRenaming.classRenaming);
       renaming.putAll(methodRenaming.renaming);
       renaming.putAll(methodRenaming.callSiteRenaming);
       renaming.putAll(fieldRenaming);
+    }
+
+    @Override
+    public String lookupPackageName(String packageName) {
+      return packageRenaming.getOrDefault(packageName, packageName);
     }
 
     @Override
