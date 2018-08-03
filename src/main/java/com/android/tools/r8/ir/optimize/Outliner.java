@@ -44,6 +44,7 @@ import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -108,6 +109,7 @@ public class Outliner {
 
   final private AppInfoWithLiveness appInfo;
   final private DexItemFactory dexItemFactory;
+  final private IRConverter converter;
   private final InliningConstraints inliningConstraints;
 
   // Representation of an outline.
@@ -818,9 +820,10 @@ public class Outliner {
     }
   }
 
-  public Outliner(AppInfoWithLiveness appInfo, InternalOptions options) {
+  public Outliner(AppInfoWithLiveness appInfo, InternalOptions options, IRConverter converter) {
     this.appInfo = appInfo;
     this.dexItemFactory = appInfo.dexItemFactory;
+    this.converter = converter;
     this.inliningConstraints = new InliningConstraints(appInfo);
     this.options = options;
   }
@@ -852,7 +855,10 @@ public class Outliner {
     assert outlineSites.size() == 0;
     for (List<DexEncodedMethod> outlineMethods : candidateMethodLists) {
       if (outlineMethods.size() >= options.outline.threshold) {
-        methodsSelectedForOutlining.addAll(outlineMethods);
+        for (DexEncodedMethod outlineMethod : outlineMethods) {
+          methodsSelectedForOutlining.add(
+              converter.getGraphLense().mapDexEncodedMethod(appInfo, outlineMethod));
+        }
       }
     }
     candidateMethodLists.clear();

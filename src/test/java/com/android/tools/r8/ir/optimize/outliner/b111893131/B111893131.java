@@ -26,7 +26,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -66,7 +65,6 @@ class TestClass {
 @RunWith(VmTestRunner.class)
 public class B111893131 extends TestBase {
 
-  @Ignore("b/111893131")
   @Test
   public void test() throws Exception {
     String javaResult = runOnJava(TestClass.class);

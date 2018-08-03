@@ -109,7 +109,7 @@ public class IRConverter {
   private final Devirtualizer devirtualizer;
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
 
-  private final boolean enableWholeProgramOptimizations;
+  public final boolean enableWholeProgramOptimizations;
 
   private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private final OptimizationFeedback simpleOptimizationFeedback = new OptimizationFeedbackSimple();
@@ -147,7 +147,7 @@ public class IRConverter {
       assert appInfo.hasLiveness();
       this.nonNullTracker = new NonNullTracker();
       this.inliner = new Inliner(this, options);
-      this.outliner = new Outliner(appInfo.withLiveness(), options);
+      this.outliner = new Outliner(appInfo.withLiveness(), options, this);
       this.memberValuePropagation =
           options.enableValuePropagation ?
               new MemberValuePropagation(appInfo.withLiveness()) : null;

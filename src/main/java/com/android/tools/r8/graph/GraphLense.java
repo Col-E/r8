@@ -97,6 +97,21 @@ public abstract class GraphLense {
 
   public abstract DexMethod getRenamedMethodSignature(DexMethod originalMethod);
 
+  public final DexEncodedMethod mapDexEncodedMethod(
+      AppInfo appInfo, DexEncodedMethod originalEncodedMethod) {
+    DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method);
+    if (newMethod != originalEncodedMethod.method) {
+      // We can't directly use AppInfo#definitionFor(DexMethod) since definitions may not be
+      // updated either yet.
+      DexClass newHolder = appInfo.definitionFor(newMethod.holder);
+      assert newHolder != null;
+      DexEncodedMethod newEncodedMethod = newHolder.lookupMethod(newMethod);
+      assert newEncodedMethod != null;
+      return newEncodedMethod;
+    }
+    return originalEncodedMethod;
+  }
+
   public abstract DexType lookupType(DexType type);
 
   // This overload can be used when the graph lense is known to be context insensitive.
