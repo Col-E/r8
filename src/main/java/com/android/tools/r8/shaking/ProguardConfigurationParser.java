@@ -1262,6 +1262,7 @@ public class ProguardConfigurationParser {
     private IdentifierPatternWithWildcards acceptIdentifierWithBackreference(IdentifierType kind) {
       ImmutableList.Builder<ProguardWildcard> wildcardsCollector = ImmutableList.builder();
       StringBuilder currentAsterisks = null;
+      int asteriskCount = 0;
       StringBuilder currentBackreference = null;
       skipWhitespace();
       int start = position;
@@ -1303,19 +1304,35 @@ public class ProguardConfigurationParser {
           }
         } else if (currentAsterisks != null) {
           if (current == '*') {
+            // only '*', '**', and '***' are allowed.
+            // E.g., '****' should be regarded as two separate wildcards (e.g., '***' and '*')
+            if (asteriskCount >= 3) {
+              wildcardsCollector.add(new ProguardWildcard.Pattern(currentAsterisks.toString()));
+              currentAsterisks = new StringBuilder();
+              asteriskCount = 0;
+            }
             currentAsterisks.append((char) current);
+            asteriskCount++;
             end += Character.charCount(current);
             continue;
           } else {
             wildcardsCollector.add(new ProguardWildcard.Pattern(currentAsterisks.toString()));
             currentAsterisks = null;
+            asteriskCount = 0;
           }
         }
         // From now on, neither in asterisk collecting state nor back reference collecting state.
         assert currentAsterisks == null && currentBackreference == null;
         if (current == '*') {
-          currentAsterisks = new StringBuilder();
-          currentAsterisks.append((char) current);
+          if (kind == IdentifierType.CLASS_NAME) {
+            // '**' and '***' are only allowed in type name.
+            currentAsterisks = new StringBuilder();
+            currentAsterisks.append((char) current);
+            asteriskCount = 1;
+          } else {
+            // For member names, regard '**' or '***' as separate single-asterisk wildcards.
+            wildcardsCollector.add(new ProguardWildcard.Pattern(String.valueOf((char) current)));
+          }
           end += Character.charCount(current);
         } else if (current == '?' || current == '%') {
           wildcardsCollector.add(new ProguardWildcard.Pattern(String.valueOf((char) current)));
