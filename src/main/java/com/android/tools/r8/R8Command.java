@@ -83,6 +83,10 @@ public final class R8Command extends BaseCompilerCommand {
       super(app);
     }
 
+    private Builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
+      super(app, diagnosticsHandler);
+    }
+
     // Internal
 
     void internalForceProguardCompatibility() {
@@ -453,6 +457,11 @@ public final class R8Command extends BaseCompilerCommand {
   // Internal builder to start from an existing AndroidApp.
   static Builder builder(AndroidApp app) {
     return new Builder(app);
+  }
+
+  // Internal builder to start from an existing AndroidApp.
+  static Builder builder(AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
+    return new Builder(app, diagnosticsHandler);
   }
 
   /**

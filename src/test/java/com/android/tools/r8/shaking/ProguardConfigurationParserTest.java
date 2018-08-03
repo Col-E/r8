@@ -1810,7 +1810,6 @@ public class ProguardConfigurationParserTest extends TestBase {
   @Test
   public void parse_partiallyImplemented_notSupported() {
     testNotSupported("-keepdirectories");
-    testNotSupported("-adaptresourcefilenames");
   }
 
   private void checkRulesSourceSnippet(List<String> sourceRules) {

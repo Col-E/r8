@@ -31,6 +31,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.lang.reflect.GenericSignatureFormatError;
@@ -38,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -92,7 +94,18 @@ class ClassNameMinifier {
     states.computeIfAbsent("", k -> topLevelState);
   }
 
-  Map<DexType, DexString> computeRenaming(Timing timing) {
+  static class ClassRenaming {
+    protected final Map<String, String> packageRenaming;
+    protected final Map<DexType, DexString> classRenaming;
+
+    private ClassRenaming(
+        Map<DexType, DexString> classRenaming, Map<String, String> packageRenaming) {
+      this.classRenaming = classRenaming;
+      this.packageRenaming = packageRenaming;
+    }
+  }
+
+  ClassRenaming computeRenaming(Timing timing) {
     // Use deterministic class order to make sure renaming is deterministic.
     Iterable<DexProgramClass> classes = appInfo.classesWithDeterministicOrder();
     // Collect names we have to keep.
@@ -128,7 +141,19 @@ class ClassNameMinifier {
     appInfo.dexItemFactory.forAllTypes(this::renameArrayTypeIfNeeded);
     timing.end();
 
-    return Collections.unmodifiableMap(renaming);
+    return new ClassRenaming(Collections.unmodifiableMap(renaming), getPackageRenaming());
+  }
+
+  private Map<String, String> getPackageRenaming() {
+    ImmutableMap.Builder<String, String> packageRenaming = ImmutableMap.builder();
+    for (Entry<String, Namespace> entry : states.entrySet()) {
+      String originalPackageName = entry.getKey();
+      String minifiedPackageName = entry.getValue().getPackageName();
+      if (!minifiedPackageName.equals(originalPackageName)) {
+        packageRenaming.put(originalPackageName, minifiedPackageName);
+      }
+    }
+    return packageRenaming.build();
   }
 
   private void renameDanglingTypes(DexClass clazz) {
@@ -406,6 +431,7 @@ class ClassNameMinifier {
 
   private class Namespace {
 
+    private final String packageName;
     private final char[] packagePrefix;
     private int typeCounter = 1;
     private int packageCounter = 1;
@@ -417,12 +443,17 @@ class ClassNameMinifier {
     }
 
     Namespace(String packageName, String separator) {
+      this.packageName = packageName;
       this.packagePrefix = ("L" + packageName
           // L or La/b/ (or La/b/C$)
           + (packageName.isEmpty() ? "" : separator))
           .toCharArray();
       this.packageDictionaryIterator = packageDictionary.iterator();
       this.classDictionaryIterator = classDictionary.iterator();
+    }
+
+    public String getPackageName() {
+      return packageName;
     }
 
     private String nextSuggestedNameForClass() {
@@ -466,7 +497,6 @@ class ClassNameMinifier {
       usedPackagePrefixes.add(candidate);
       return candidate;
     }
-
   }
 
   private class GenericSignatureRewriter implements GenericSignatureAction<DexType> {

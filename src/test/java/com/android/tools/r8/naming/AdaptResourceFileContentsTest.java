@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -42,7 +43,7 @@ import org.junit.Test;
 
 public class AdaptResourceFileContentsTest extends ProguardCompatabilityTestBase {
 
-  private static class CustomDataResourceConsumer implements DataResourceConsumer {
+  protected static class CustomDataResourceConsumer implements DataResourceConsumer {
 
     private final Map<String, ImmutableList<String>> resources = new HashMap<>();
 
@@ -53,6 +54,7 @@ public class AdaptResourceFileContentsTest extends ProguardCompatabilityTestBase
 
     @Override
     public void accept(DataEntryResource file, DiagnosticsHandler diagnosticsHandler) {
+      assertFalse(resources.containsKey(file.getName()));
       try {
         byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
         String contents = new String(bytes, Charset.defaultCharset());
@@ -67,6 +69,10 @@ public class AdaptResourceFileContentsTest extends ProguardCompatabilityTestBase
 
     public ImmutableList<String> get(String name) {
       return resources.get(name);
+    }
+
+    public int size() {
+      return resources.size();
     }
   }
 

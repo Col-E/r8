@@ -30,6 +30,8 @@ import java.util.function.Predicate;
  */
 public abstract class NamingLens {
 
+  public abstract String lookupPackageName(String packageName);
+
   public abstract DexString lookupDescriptor(DexType type);
 
   public abstract String lookupSimpleName(DexType inner, DexString innerName);
@@ -96,6 +98,11 @@ public abstract class NamingLens {
     @Override
     public DexString lookupName(DexField field) {
       return field.name;
+    }
+
+    @Override
+    public String lookupPackageName(String packageName) {
+      return packageName;
     }
 
     @Override

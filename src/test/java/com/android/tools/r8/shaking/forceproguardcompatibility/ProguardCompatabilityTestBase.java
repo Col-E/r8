@@ -158,17 +158,40 @@ public class ProguardCompatabilityTestBase extends TestBase {
       Path proguardMap,
       List<DataEntryResource> dataResources)
       throws Exception {
+    return runProguard6Raw(
+        destination,
+        jarTestClasses(programClasses, dataResources),
+        proguardConfig,
+        proguardMap,
+        null);
+  }
+
+  protected ProcessResult runProguard6Raw(
+      Path destination, Path jar, String proguardConfig, Path proguardMap) throws Exception {
+    return runProguard6Raw(destination, jar, proguardConfig, proguardMap, null);
+  }
+
+  protected ProcessResult runProguard6Raw(
+      Path destination,
+      Path jar,
+      String proguardConfig,
+      Path proguardMap,
+      Consumer<ProcessResult> processResultConsumer)
+      throws Exception {
     Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
     FileUtils.writeTextFile(proguardConfigFile, proguardConfig);
     ProcessResult result =
         ToolHelper.runProguard6Raw(
-            jarTestClasses(programClasses, dataResources),
+            jar,
             destination,
             ToolHelper.getAndroidJar(AndroidApiLevel.N),
             proguardConfigFile,
             proguardMap);
     if (result.exitCode != 0) {
       fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
+    }
+    if (processResultConsumer != null) {
+      processResultConsumer.accept(result);
     }
     return result;
   }

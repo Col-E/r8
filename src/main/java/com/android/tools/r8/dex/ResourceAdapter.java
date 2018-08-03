@@ -6,6 +6,7 @@ package com.android.tools.r8.dex;
 
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -18,6 +19,8 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.io.ByteStreams;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntStack;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
@@ -39,28 +42,59 @@ public class ResourceAdapter {
     this.options = options;
   }
 
-  public DataEntryResource adaptFileContentsIfNeeded(DataEntryResource file) {
-    ProguardPathFilter filter = options.proguardConfiguration.getAdaptResourceFileContents();
-    return filter.isEnabled()
-            && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
-            && filter.matches(file.getName())
-        ? adaptFileContents(file)
-        : file;
+  public DataEntryResource adaptIfNeeded(DataEntryResource file) {
+    // Adapt name, if needed.
+    ProguardPathFilter adaptResourceFileNamesFilter =
+        options.proguardConfiguration.getAdaptResourceFilenames();
+    String name =
+        adaptResourceFileNamesFilter.isEnabled()
+                && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
+                && adaptResourceFileNamesFilter.matches(file.getName())
+            ? adaptFilename(file)
+            : file.getName();
+    assert name != null;
+    // Adapt contents, if needed.
+    ProguardPathFilter adaptResourceFileContentsFilter =
+        options.proguardConfiguration.getAdaptResourceFileContents();
+    byte[] contents =
+        adaptResourceFileContentsFilter.isEnabled()
+                && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
+                && adaptResourceFileContentsFilter.matches(file.getName())
+            ? adaptFileContents(file)
+            : null;
+    // Return a new resource if the name or contents changed. Otherwise return the original
+    // resource as it was.
+    if (contents != null) {
+      // File contents was adapted. Return a new resource that has the new contents, and a new name,
+      // if the filename was adapted.
+      return DataEntryResource.fromBytes(contents, name, file.getOrigin());
+    }
+    if (!name.equals(file.getName())) {
+      // File contents was not adapted, but filename was.
+      return file.withName(name);
+    }
+    // Neither file contents nor filename was adapted.
+    return file;
+  }
+
+  private String adaptFilename(DataEntryResource file) {
+    FilenameAdapter adapter = new FilenameAdapter(file.getName());
+    if (adapter.run()) {
+      return adapter.getResult();
+    }
+    return file.getName();
   }
 
   // According to the Proguard documentation, the resource files should be parsed and written using
   // the platform's default character set.
-  private DataEntryResource adaptFileContents(DataEntryResource file) {
+  private byte[] adaptFileContents(DataEntryResource file) {
     try (InputStream in = file.getByteStream()) {
       byte[] bytes = ByteStreams.toByteArray(in);
       String contents = new String(bytes, Charset.defaultCharset());
 
       FileContentsAdapter adapter = new FileContentsAdapter(contents);
       if (adapter.run()) {
-        return DataEntryResource.fromBytes(
-            adapter.getResult().getBytes(Charset.defaultCharset()),
-            file.getName(),
-            file.getOrigin());
+        return adapter.getResult().getBytes(Charset.defaultCharset());
       }
     } catch (ResourceException e) {
       options.reporter.error(
@@ -68,12 +102,14 @@ public class ResourceAdapter {
     } catch (Exception e) {
       options.reporter.error(new ExceptionDiagnostic(e, file.getOrigin()));
     }
-    return file;
+    // Return null to signal that the file contents did not change. Otherwise we would have to copy
+    // the original file for no reason.
+    return null;
   }
 
-  private class FileContentsAdapter {
+  private abstract class StringAdapter {
 
-    private final String contents;
+    protected final String contents;
     private final StringBuilder result = new StringBuilder();
 
     // If any type names in `contents` have been updated. If this flag is still true in the end,
@@ -82,8 +118,21 @@ public class ResourceAdapter {
     private int outputFrom = 0;
     private int position = 0;
 
-    public FileContentsAdapter(String contents) {
+    // When renaming Java type names, the adapter always looks for the longest name to rewrite.
+    // For example, if there is a resource with the name "foo/bar/C$X$Y.txt", then the adapter will
+    // check if there is a renaming for the type "foo.bar.C$X$Y". If there is no such renaming, then
+    // -adaptresourcefilenames works in such a way that "foo/bar/C$X" should be rewritten if there
+    // is a renaming for the type "foo.bar.C$X". Therefore, when scanning forwards to read the
+    // substring "foo/bar/C$X$Y", this adapter records the positions of the two '$' characters in
+    // the stack `prefixEndPositionsExclusive`, such that it can easily backtrack to the previously
+    // valid, but shorter Java type name.
+    //
+    // Note that there is no backtracking for -adaptresourcefilecontents.
+    private final IntStack prefixEndPositionsExclusive;
+
+    public StringAdapter(String contents) {
       this.contents = contents;
+      this.prefixEndPositionsExclusive = allowRenamingOfPrefixes() ? new IntArrayList() : null;
     }
 
     public boolean run() {
@@ -123,17 +172,29 @@ public class ResourceAdapter {
         return;
       }
 
+      assert !allowRenamingOfPrefixes() || prefixEndPositionsExclusive.isEmpty();
+
       assert Character.isJavaIdentifierPart(contents.charAt(position));
       int start = position++;
       while (!eof()) {
         char currentChar = contents.charAt(position);
         if (Character.isJavaIdentifierPart(currentChar)) {
+          if (allowRenamingOfPrefixes()
+              && shouldRecordPrefix(currentChar)
+              && isRenamingCandidate(start, position)) {
+            prefixEndPositionsExclusive.push(position);
+          }
           position++;
           continue;
         }
-        if (currentChar == '.'
+        if (currentChar == getClassNameSeparator()
             && !eof(position + 1)
             && Character.isJavaIdentifierPart(contents.charAt(position + 1))) {
+          if (allowRenamingOfPrefixes()
+              && shouldRecordPrefix(currentChar)
+              && isRenamingCandidate(start, position)) {
+            prefixEndPositionsExclusive.push(position);
+          }
           // Consume the dot and the Java identifier part that follows the dot.
           position += 2;
           continue;
@@ -143,13 +204,29 @@ public class ResourceAdapter {
         break;
       }
 
-      if ((start > 0 && isDashOrDot(contents.charAt(start - 1)))
-          || (!eof(position) && isDashOrDot(contents.charAt(position)))) {
-        // The Java type starts with '-' or '.', and should not be renamed.
-        return;
+      boolean renamingSucceeded =
+          isRenamingCandidate(start, position) && renameJavaTypeInRange(start, position);
+      if (!renamingSucceeded && allowRenamingOfPrefixes()) {
+        while (!prefixEndPositionsExclusive.isEmpty() && !renamingSucceeded) {
+          int prefixEndExclusive = prefixEndPositionsExclusive.popInt();
+          assert isRenamingCandidate(start, prefixEndExclusive);
+          renamingSucceeded = handlePrefix(start, prefixEndExclusive);
+        }
       }
 
-      String javaType = contents.substring(start, position);
+      if (allowRenamingOfPrefixes()) {
+        while (!prefixEndPositionsExclusive.isEmpty()) {
+          prefixEndPositionsExclusive.popInt();
+        }
+      }
+    }
+
+    // Returns true if the Java type in the range [from; toExclusive[ was renamed.
+    protected boolean renameJavaTypeInRange(int from, int toExclusive) {
+      String javaType = contents.substring(from, toExclusive);
+      if (getClassNameSeparator() != '.') {
+        javaType = javaType.replace(getClassNameSeparator(), '.');
+      }
       DexString descriptor =
           dexItemFactory.lookupString(
               DescriptorUtils.javaTypeToDescriptorIgnorePrimitives(javaType));
@@ -157,19 +234,52 @@ public class ResourceAdapter {
       if (dexType != null) {
         DexString renamedDescriptor = namingLense.lookupDescriptor(graphLense.lookupType(dexType));
         if (!descriptor.equals(renamedDescriptor)) {
-          // Need to flush all changes up to and excluding 'start', and then output the renamed
+          String renamedJavaType =
+              DescriptorUtils.descriptorToJavaType(renamedDescriptor.toSourceString());
+          // Need to flush all changes up to and excluding 'from', and then output the renamed
           // type.
-          outputRangeFromInput(outputFrom, start);
-          outputString(DescriptorUtils.descriptorToJavaType(renamedDescriptor.toSourceString()));
-          outputFrom = position;
+          outputRangeFromInput(outputFrom, from);
+          outputJavaType(
+              getClassNameSeparator() != '.'
+                  ? renamedJavaType.replace('.', getClassNameSeparator())
+                  : renamedJavaType);
+          outputFrom = toExclusive;
           changed = true;
+          return true;
         }
       }
+      return false;
     }
 
-    private boolean isDashOrDot(char c) {
-      return c == '.' || c == '-';
+    // Returns true if the Java package in the range [from; toExclusive[ was renamed.
+    protected boolean renameJavaPackageInRange(int from, int toExclusive) {
+      String javaPackage = contents.substring(from, toExclusive);
+      if (getClassNameSeparator() != '/') {
+        javaPackage = javaPackage.replace(getClassNameSeparator(), '/');
+      }
+      String minifiedJavaPackage = namingLense.lookupPackageName(javaPackage);
+      if (!javaPackage.equals(minifiedJavaPackage)) {
+        outputRangeFromInput(outputFrom, from);
+        outputJavaType(
+            getClassNameSeparator() != '/'
+                ? minifiedJavaPackage.replace('/', getClassNameSeparator())
+                : minifiedJavaPackage);
+        outputFrom = toExclusive;
+        changed = true;
+        return true;
+      }
+      return false;
     }
+
+    protected abstract char getClassNameSeparator();
+
+    protected abstract boolean allowRenamingOfPrefixes();
+
+    protected abstract boolean shouldRecordPrefix(char c);
+
+    protected abstract boolean handlePrefix(int from, int toExclusive);
+
+    protected abstract boolean isRenamingCandidate(int from, int toExclusive);
 
     private void outputRangeFromInput(int from, int toExclusive) {
       if (from < toExclusive) {
@@ -177,16 +287,90 @@ public class ResourceAdapter {
       }
     }
 
-    private void outputString(String s) {
+    private void outputJavaType(String s) {
       result.append(s);
     }
 
-    private boolean eof() {
+    protected boolean eof() {
       return eof(position);
     }
 
-    private boolean eof(int position) {
+    protected boolean eof(int position) {
       return position == contents.length();
+    }
+  }
+
+  private class FileContentsAdapter extends StringAdapter {
+
+    public FileContentsAdapter(String fileContents) {
+      super(fileContents);
+    }
+
+    @Override
+    public char getClassNameSeparator() {
+      return '.';
+    }
+
+    @Override
+    public boolean allowRenamingOfPrefixes() {
+      return false;
+    }
+
+    @Override
+    public boolean shouldRecordPrefix(char c) {
+      throw new Unreachable();
+    }
+
+    @Override
+    protected boolean handlePrefix(int from, int toExclusive) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean isRenamingCandidate(int from, int toExclusive) {
+      // If the Java type starts with '-' or '.', it should not be renamed.
+      return (from <= 0 || !isDashOrDot(contents.charAt(from - 1)))
+          && (eof(toExclusive) || !isDashOrDot(contents.charAt(toExclusive)));
+    }
+
+    private boolean isDashOrDot(char c) {
+      return c == '.' || c == '-';
+    }
+  }
+
+  private class FilenameAdapter extends StringAdapter {
+
+    public FilenameAdapter(String filename) {
+      super(filename);
+    }
+
+    @Override
+    public char getClassNameSeparator() {
+      return '/';
+    }
+
+    @Override
+    public boolean allowRenamingOfPrefixes() {
+      return true;
+    }
+
+    @Override
+    public boolean shouldRecordPrefix(char c) {
+      return !Character.isLetterOrDigit(c);
+    }
+
+    @Override
+    protected boolean handlePrefix(int from, int toExclusive) {
+      assert !eof(toExclusive);
+      if (contents.charAt(toExclusive) == '/') {
+        return renameJavaPackageInRange(from, toExclusive);
+      }
+      return renameJavaTypeInRange(from, toExclusive);
+    }
+
+    @Override
+    public boolean isRenamingCandidate(int from, int toExclusive) {
+      return from == 0 && !eof(toExclusive);
     }
   }
 }

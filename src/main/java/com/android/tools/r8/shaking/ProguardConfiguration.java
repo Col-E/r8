@@ -55,7 +55,8 @@ public class ProguardConfiguration {
     private Origin keepParameterNamesOptionOrigin;
     private Position keepParameterNamesOptionPosition;
     private final ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
-    private final ProguardPathFilter.Builder adaptResourceFilenames = ProguardPathFilter.builder();
+    private final ProguardPathFilter.Builder adaptResourceFilenames =
+        ProguardPathFilter.builder().disable();
     private final ProguardPathFilter.Builder adaptResourceFileContents =
         ProguardPathFilter.builder().disable();
     private final ProguardPathFilter.Builder keepDirectories = ProguardPathFilter.builder();
@@ -229,6 +230,10 @@ public class ProguardConfiguration {
 
     public void addAdaptClassStringsPattern(ProguardClassNameList pattern) {
       adaptClassStrings.addPattern(pattern);
+    }
+
+    public void enableAdaptResourceFilenames() {
+      adaptResourceFilenames.enable();
     }
 
     public void addAdaptResourceFilenames(ProguardPathList pattern) {

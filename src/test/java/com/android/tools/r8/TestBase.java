@@ -230,6 +230,26 @@ public class TestBase {
     }
   }
 
+  /**
+   * Creates a new, temporary JAR that contains all the entries from the given JAR as well as the
+   * specified data resources. The given JAR is left unchanged.
+   */
+  protected Path addDataResourcesToExistingJar(
+      Path existingJar, List<DataEntryResource> dataResources) throws IOException {
+    Path newJar = File.createTempFile("app", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
+    try (JarOutputStream out = new JarOutputStream(new FileOutputStream(newJar.toFile()))) {
+      ArchiveProgramResourceProvider.fromArchive(existingJar)
+          .readArchive(
+              (entry, stream) -> {
+                out.putNextEntry(new ZipEntry(entry.getEntryName()));
+                ByteStreams.copy(stream, out);
+                out.closeEntry();
+              });
+      addDataResourcesToJar(out, dataResources);
+    }
+    return newJar;
+  }
+
   /** Returns a list containing all the data resources in the given app. */
   public static List<DataEntryResource> getDataResources(AndroidApp app) throws ResourceException {
     List<DataEntryResource> dataResources = new ArrayList<>();
