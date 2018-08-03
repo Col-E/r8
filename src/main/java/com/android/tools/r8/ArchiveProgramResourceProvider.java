@@ -87,7 +87,7 @@ public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
     this.include = include;
   }
 
-  private void readArchive(ArchiveEntryConsumer consumer) throws IOException {
+  void readArchive(ArchiveEntryConsumer consumer) throws IOException {
     try (ZipFile zipFile = supplier.open()) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {

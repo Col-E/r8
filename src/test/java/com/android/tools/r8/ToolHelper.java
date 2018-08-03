@@ -80,6 +80,7 @@ public class ToolHelper {
   public static final String EXAMPLES_KOTLIN_DIR = TESTS_DIR + "examplesKotlin/";
   public static final String TESTS_BUILD_DIR = BUILD_DIR + "test/";
   public static final String EXAMPLES_BUILD_DIR = TESTS_BUILD_DIR + "examples/";
+  public static final String EXAMPLES_CF_DIR = EXAMPLES_BUILD_DIR + "classes/";
   public static final String EXAMPLES_KOTLIN_BUILD_DIR = TESTS_BUILD_DIR + "examplesKotlin/";
   public static final String EXAMPLES_KOTLIN_RESOURCE_DIR =
       TESTS_BUILD_DIR + "kotlinR8TestResources/";
@@ -753,8 +754,11 @@ public class ToolHelper {
   }
 
   public static List<Path> getClassFilesForTestPackage(Package pkg) throws IOException {
-    Path dir = ToolHelper.getPackageDirectoryForTestPackage(pkg);
-    return Files.walk(dir)
+    return getClassFilesForTestDirectory(ToolHelper.getPackageDirectoryForTestPackage(pkg));
+  }
+
+  public static List<Path> getClassFilesForTestDirectory(Path directory) throws IOException {
+    return Files.walk(directory)
         .filter(path -> path.toString().endsWith(".class"))
         .collect(Collectors.toList());
   }

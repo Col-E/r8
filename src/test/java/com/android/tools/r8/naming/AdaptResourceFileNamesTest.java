@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
+
+  private static final Path CF_DIR =
+      Paths.get(ToolHelper.EXAMPLES_CF_DIR).resolve("adaptresourcefilenames");
+  private static final Path TEST_JAR =
+      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR)
+          .resolve("adaptresourcefilenames" + FileUtils.JAR_EXTENSION);
 
   private KeepingDiagnosticHandler diagnosticsHandler;
   private ClassNameMapper mapper = null;
@@ -65,7 +72,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
     return String.join(
         System.lineSeparator(),
         adaptResourceFilenamesRule,
-        "-keep class " + AdaptResourceFilenamesTestClass.class.getName() + " {",
+        "-keep class " + adaptresourcefilenames.TestClass.class.getName() + " {",
         "  public static void main(...);",
         "}");
   }
@@ -75,10 +82,10 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
     return String.join(
         System.lineSeparator(),
         getProguardConfig(enableAdaptResourceFileNames, adaptResourceFileNamesPathFilter),
-        "-neverinline class com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB {",
+        "-neverinline class " + adaptresourcefilenames.A.class.getName() + " {",
         "  public void method();",
         "}",
-        "-neverinline class com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB$Inner {",
+        "-neverinline class " + adaptresourcefilenames.B.Inner.class.getName() + " {",
         "  public void method();",
         "}");
   }
@@ -105,9 +112,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
         this::checkR8Renamings);
     // Check that the generated resources have the expected names.
     Map<String, String> expectedRenamings =
-        ImmutableMap.of(
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.md",
-            "com/android/tools/r8/naming/b.md");
+        ImmutableMap.of("adaptresourcefilenames/B.md", "adaptresourcefilenames/b.md");
     for (DataEntryResource dataResource : getOriginalDataResources()) {
       assertNotNull(
           "Resource not renamed as expected: " + dataResource.getName(),
@@ -139,30 +144,22 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
             .addAll(getOriginalDataResources())
             .add(
                 DataEntryResource.fromBytes(
-                    new byte[0], "com/android/tools/r8/naming/b.txt", Origin.unknown()))
+                    new byte[0], "adaptresourcefilenames/b.txt", Origin.unknown()))
             .build());
     assertEquals(1, diagnosticsHandler.warnings.size());
     assertThat(
         diagnosticsHandler.warnings.get(0).getDiagnosticMessage(),
-        containsString("Resource 'com/android/tools/r8/naming/b.txt' already exists."));
+        containsString("Resource 'adaptresourcefilenames/b.txt' already exists."));
     assertEquals(getOriginalDataResources().size(), dataResourceConsumer.size());
   }
 
   @Test
   public void testProguardBehavior() throws Exception {
+    Path inputJar = addDataResourcesToExistingJar(TEST_JAR, getOriginalDataResources());
     Path proguardedJar =
         File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
     Path proguardMapFile = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
-    runProguard6Raw(
-        proguardedJar,
-        ImmutableList.of(
-            AdaptResourceFilenamesTestClass.class,
-            AdaptResourceFilenamesTestClassA.class,
-            AdaptResourceFilenamesTestClassB.class,
-            AdaptResourceFilenamesTestClassB.Inner.class),
-        getProguardConfig(true, null),
-        proguardMapFile,
-        getOriginalDataResources());
+    runProguard6Raw(proguardedJar, inputJar, getProguardConfig(true, null), proguardMapFile);
     // Extract the names of the generated resources.
     Set<String> filenames = new HashSet<>();
     ArchiveResourceProvider.fromArchive(proguardedJar, true)
@@ -188,35 +185,37 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
 
   @Test
   public void testProguardCollisionBehavior() throws Exception {
+    List<DataEntryResource> originalDataResources = getOriginalDataResources();
+    Path inputJar =
+        addDataResourcesToExistingJar(
+            TEST_JAR,
+            ImmutableList.<DataEntryResource>builder()
+                .addAll(originalDataResources)
+                .add(
+                    DataEntryResource.fromBytes(
+                        new byte[0], "adaptresourcefilenames/b.txt", Origin.unknown()))
+                .build());
     Path proguardedJar =
         File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
-    List<DataEntryResource> originalDataResources = getOriginalDataResources();
     runProguard6Raw(
         proguardedJar,
-        ImmutableList.of(
-            AdaptResourceFilenamesTestClass.class,
-            AdaptResourceFilenamesTestClassA.class,
-            AdaptResourceFilenamesTestClassB.class,
-            AdaptResourceFilenamesTestClassB.Inner.class),
+        inputJar,
         getProguardConfig(true, null),
         null,
-        ImmutableList.<DataEntryResource>builder()
-            .addAll(originalDataResources)
-            .add(
-                DataEntryResource.fromBytes(
-                    new byte[0], "com/android/tools/r8/naming/b.txt", Origin.unknown()))
-            .build(),
         processResult -> {
           assertEquals(0, processResult.exitCode);
           assertThat(
               processResult.stderr,
               containsString(
-                  "Warning: can't write resource [com/android/tools/r8/naming/b.txt] "
-                      + "(Duplicate jar entry [com/android/tools/r8/naming/b.txt])"));
+                  "Warning: can't write resource [adaptresourcefilenames/b.txt] "
+                      + "(Duplicate jar entry [adaptresourcefilenames/b.txt])"));
         });
     assertEquals(
         originalDataResources.size(),
-        getDataResources(ArchiveResourceProvider.fromArchive(proguardedJar, true)).size());
+        getDataResources(ArchiveResourceProvider.fromArchive(proguardedJar, true))
+            .stream()
+            .filter(dataResource -> !dataResource.getName().equals("META-INF/MANIFEST.MF"))
+            .count());
   }
 
   private AndroidApp compileWithR8(String proguardConfig, DataResourceConsumer dataResourceConsumer)
@@ -261,15 +260,13 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
       // such, but the test expectations rely on them.
       mapper = ClassNameMapper.mapperFromString(proguardMap);
       assertEquals(
-          "com.android.tools.r8.naming.AdaptResourceFilenamesTestClass",
-          mapper.deobfuscateClassName(
-              "com.android.tools.r8.naming.AdaptResourceFilenamesTestClass"));
+          "adaptresourcefilenames.TestClass",
+          mapper.deobfuscateClassName("adaptresourcefilenames.TestClass"));
       assertEquals(
-          "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB",
-          mapper.deobfuscateClassName("com.android.tools.r8.naming.b"));
+          "adaptresourcefilenames.B", mapper.deobfuscateClassName("adaptresourcefilenames.b"));
       assertEquals(
-          "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB$Inner",
-          mapper.deobfuscateClassName("com.android.tools.r8.naming.a"));
+          "adaptresourcefilenames.B$Inner",
+          mapper.deobfuscateClassName("adaptresourcefilenames.a"));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -277,11 +274,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
 
   private AndroidApp getAndroidApp(List<DataEntryResource> dataResources) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addProgramFiles(
-        ToolHelper.getClassFileForTestClass(AdaptResourceFilenamesTestClass.class),
-        ToolHelper.getClassFileForTestClass(AdaptResourceFilenamesTestClassA.class),
-        ToolHelper.getClassFileForTestClass(AdaptResourceFilenamesTestClassB.class),
-        ToolHelper.getClassFileForTestClass(AdaptResourceFilenamesTestClassB.Inner.class));
+    builder.addProgramFiles(ToolHelper.getClassFilesForTestDirectory(CF_DIR));
     dataResources.forEach(builder::addDataResource);
     return builder.build();
   }
@@ -290,92 +283,92 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
     List<String> filenames =
         ImmutableList.of(
             // Filename with simple name in root directory.
-            "AdaptResourceFilenamesTestClass",
-            "AdaptResourceFilenamesTestClassB",
+            "TestClass",
+            "B",
             // Filename with qualified name in root directory.
-            "com.android.tools.r8.naming.AdaptResourceFilenamesTestClass",
-            "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB",
+            "adaptresourcefilenames.TestClass",
+            "adaptresourcefilenames.B",
             // Filename with qualified directory name in root directory.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB",
+            "adaptresourcefilenames/TestClass",
+            "adaptresourcefilenames/B",
             // Filename with simple name in sub directory.
-            "foo/bar/baz/AdaptResourceFilenamesTestClass",
-            "foo/bar/baz/AdaptResourceFilenamesTestClassB",
+            "foo/bar/baz/TestClass",
+            "foo/bar/baz/B",
             // Filename with qualified name in sub directory.
-            "foo/bar/baz/com/android.tools.r8.naming.AdaptResourceFilenamesTestClass",
-            "foo/bar/baz/com/android.tools.r8.naming.AdaptResourceFilenamesTestClassB",
+            "foo/bar/baz/adaptresourcefiles.TestClass",
+            "foo/bar/baz/adaptresourcefiles.B",
             // Filename with qualified directory name in sub directory.
-            "foo/bar/baz/com/android/tools/r8/naming/AdaptResourceFilenamesTestClass",
-            "foo/bar/baz/com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB",
+            "foo/bar/baz/adaptresourcefilenames/TestClass",
+            "foo/bar/baz/adaptresourcefilenames/B",
             //
             // SUFFIX VARIANTS:
             //
             // Filename with simple name and extension in root directory.
-            "AdaptResourceFilenamesTestClass.txt",
-            "AdaptResourceFilenamesTestClassB.txt",
+            "TestClass.txt",
+            "B.txt",
             // Filename with qualified name and extension in root directory.
-            "com.android.tools.r8.naming.AdaptResourceFilenamesTestClass.txt",
-            "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB.txt",
+            "adaptresourcefilenames.TestClass.txt",
+            "adaptresourcefilenames.B.txt",
             // Filename with qualified directory name and extension in root directory.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass.txt",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.txt",
+            "adaptresourcefilenames/TestClass.txt",
+            "adaptresourcefilenames/B.txt",
             // Filename with simple name and extension in sub directory.
-            "foo/bar/baz/AdaptResourceFilenamesTestClass.txt",
-            "foo/bar/baz/AdaptResourceFilenamesTestClassB.txt",
+            "foo/bar/baz/TestClass.txt",
+            "foo/bar/baz/B.txt",
             // Filename with qualified name and extension in sub directory.
-            "foo/bar/baz/com/android.tools.r8.naming.AdaptResourceFilenamesTestClass.txt",
-            "foo/bar/baz/com/android.tools.r8.naming.AdaptResourceFilenamesTestClassB.txt",
+            "foo/bar/baz/adaptresourcefiles.TestClass.txt",
+            "foo/bar/baz/adaptresourcefiles.B.txt",
             // Filename with qualified directory name and extension in sub directory.
-            "foo/bar/baz/com/android/tools/r8/naming/AdaptResourceFilenamesTestClass.txt",
-            "foo/bar/baz/com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.txt",
+            "foo/bar/baz/adaptresourcefilenames/TestClass.txt",
+            "foo/bar/baz/adaptresourcefilenames/B.txt",
             // Filename with other extension (used to test filtering).
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass.md",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.md",
+            "adaptresourcefilenames/TestClass.md",
+            "adaptresourcefilenames/B.md",
             // Filename with dot suffix only.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass.",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.",
+            "adaptresourcefilenames/TestClass.",
+            "adaptresourcefilenames/B.",
             // Filename with dot suffix and extension.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass.suffix.txt",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.suffix.txt",
+            "adaptresourcefilenames/TestClass.suffix.txt",
+            "adaptresourcefilenames/B.suffix.txt",
             // Filename with dash suffix and extension.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass-suffix.txt",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB-suffix.txt",
+            "adaptresourcefilenames/TestClass-suffix.txt",
+            "adaptresourcefilenames/B-suffix.txt",
             // Filename with dollar suffix and extension.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass$suffix.txt",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB$suffix.txt",
+            "adaptresourcefilenames/TestClass$suffix.txt",
+            "adaptresourcefilenames/B$suffix.txt",
             // Filename with dollar suffix matching inner class and extension.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass$Inner.txt",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB$Inner.txt",
+            "adaptresourcefilenames/TestClass$Inner.txt",
+            "adaptresourcefilenames/B$Inner.txt",
             // Filename with underscore suffix and extension.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass_suffix.txt",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB_suffix.txt",
+            "adaptresourcefilenames/TestClass_suffix.txt",
+            "adaptresourcefilenames/B_suffix.txt",
             // Filename with whitespace suffix and extension.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass suffix.txt",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB suffix.txt",
+            "adaptresourcefilenames/TestClass suffix.txt",
+            "adaptresourcefilenames/B suffix.txt",
             // Filename with identifier suffix and extension.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClasssuffix.txt",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassBsuffix.txt",
+            "adaptresourcefilenames/TestClasssuffix.txt",
+            "adaptresourcefilenames/Bsuffix.txt",
             // Filename with numeric suffix and extension.
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClass42.txt",
-            "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB42.txt",
+            "adaptresourcefilenames/TestClass42.txt",
+            "adaptresourcefilenames/B42.txt",
             //
             // PREFIX VARIANTS:
             //
             // Filename with dot prefix and extension.
-            "com/android/tools/r8/naming/prefix.AdaptResourceFilenamesTestClass.txt",
-            "com/android/tools/r8/naming/prefix.AdaptResourceFilenamesTestClassB.txt",
+            "adaptresourcefilenames/prefix.TestClass.txt",
+            "adaptresourcefilenames/prefix.B.txt",
             // Filename with dash prefix and extension.
-            "com/android/tools/r8/naming/prefix-AdaptResourceFilenamesTestClass.txt",
-            "com/android/tools/r8/naming/prefix-AdaptResourceFilenamesTestClassB.txt",
+            "adaptresourcefilenames/prefix-TestClass.txt",
+            "adaptresourcefilenames/prefix-B.txt",
             // Filename with dollar prefix and extension.
-            "com/android/tools/r8/naming/prefix$AdaptResourceFilenamesTestClass.txt",
-            "com/android/tools/r8/naming/prefix$AdaptResourceFilenamesTestClassB.txt",
+            "adaptresourcefilenames/prefix$TestClass.txt",
+            "adaptresourcefilenames/prefix$B.txt",
             // Filename with identifier prefix and extension.
-            "com/android/tools/r8/naming/prefixAdaptResourceFilenamesTestClass.txt",
-            "com/android/tools/r8/naming/prefixAdaptResourceFilenamesTestClassB.txt",
+            "adaptresourcefilenames/prefixTestClass.txt",
+            "adaptresourcefilenames/prefixB.txt",
             // Filename with numeric prefix and extension.
-            "com/android/tools/r8/naming/42AdaptResourceFilenamesTestClass.txt",
-            "com/android/tools/r8/naming/42AdaptResourceFilenamesTestClassB.txt");
+            "adaptresourcefilenames/42TestClass.txt",
+            "adaptresourcefilenames/42B.txt");
     return filenames
         .stream()
         .map(filename -> DataEntryResource.fromBytes(new byte[0], filename, Origin.unknown()))
@@ -387,48 +380,48 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
     String suffix = null;
     switch (filename) {
         // Filename with dot only.
-      case "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.":
-        typeName = "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB";
+      case "adaptresourcefilenames/B.":
+        typeName = "adaptresourcefilenames.B";
         suffix = ".";
         break;
         // Filename with extension.
-      case "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.txt":
-        typeName = "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB";
+      case "adaptresourcefilenames/B.txt":
+        typeName = "adaptresourcefilenames.B";
         suffix = ".txt";
         break;
         // Filename with other extension (used to test filtering).
-      case "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.md":
-        typeName = "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB";
+      case "adaptresourcefilenames/B.md":
+        typeName = "adaptresourcefilenames.B";
         suffix = ".md";
         break;
         // Filename with dot suffix and extension.
-      case "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB.suffix.txt":
-        typeName = "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB";
+      case "adaptresourcefilenames/B.suffix.txt":
+        typeName = "adaptresourcefilenames.B";
         suffix = ".suffix.txt";
         break;
         // Filename with dash suffix and extension.
-      case "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB-suffix.txt":
-        typeName = "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB";
+      case "adaptresourcefilenames/B-suffix.txt":
+        typeName = "adaptresourcefilenames.B";
         suffix = "-suffix.txt";
         break;
         // Filename with dollar suffix and extension.
-      case "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB$suffix.txt":
-        typeName = "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB";
+      case "adaptresourcefilenames/B$suffix.txt":
+        typeName = "adaptresourcefilenames.B";
         suffix = "$suffix.txt";
         break;
         // Filename with dollar suffix matching inner class and extension.
-      case "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB$Inner.txt":
-        typeName = "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB$Inner";
+      case "adaptresourcefilenames/B$Inner.txt":
+        typeName = "adaptresourcefilenames.B$Inner";
         suffix = ".txt";
         break;
         // Filename with underscore suffix and extension.
-      case "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB_suffix.txt":
-        typeName = "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB";
+      case "adaptresourcefilenames/B_suffix.txt":
+        typeName = "adaptresourcefilenames.B";
         suffix = "_suffix.txt";
         break;
         // Filename with whitespace suffix and extension.
-      case "com/android/tools/r8/naming/AdaptResourceFilenamesTestClassB suffix.txt":
-        typeName = "com.android.tools.r8.naming.AdaptResourceFilenamesTestClassB";
+      case "adaptresourcefilenames/B suffix.txt":
+        typeName = "adaptresourcefilenames.B";
         suffix = " suffix.txt";
         break;
     }
@@ -439,38 +432,5 @@ public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
       return renamedName.replace('.', '/') + suffix;
     }
     return filename;
-  }
-}
-
-class AdaptResourceFilenamesTestClass {
-
-  public static void main(String[] args) {
-    AdaptResourceFilenamesTestClassB obj = new AdaptResourceFilenamesTestClassB();
-    obj.method();
-  }
-}
-
-class AdaptResourceFilenamesTestClassA {
-
-  public void method() {
-    System.out.println("In A.method()");
-  }
-}
-
-class AdaptResourceFilenamesTestClassB extends AdaptResourceFilenamesTestClassA {
-
-  private Inner inner = new Inner();
-
-  static class Inner {
-
-    public void method() {
-      System.out.println("In Inner.method()");
-    }
-  }
-
-  public void method() {
-    System.out.println("In B.method()");
-    super.method();
-    inner.method();
   }
 }
