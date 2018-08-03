@@ -27,6 +27,8 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -61,6 +63,8 @@ public class LambdaRewriter {
 
   final DexString deserializeLambdaMethodName;
   final DexProto deserializeLambdaMethodProto;
+
+  final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
 
   // Maps call sites seen so far to inferred lambda descriptor. It is intended
   // to help avoid re-matching call sites we already seen. Note that same call
@@ -165,7 +169,12 @@ public class LambdaRewriter {
     // referenced symbols to make them accessible. This can result in
     // method access relaxation or creation of accessor method.
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
+      // This call may cause methodMapping to be updated.
       lambdaClass.target.ensureAccessibility();
+    }
+    if (converter.enableWholeProgramOptimizations && !methodMapping.isEmpty()) {
+      converter.setGraphLense(
+        new LambdaRewriterGraphLense(methodMapping, converter.getGraphLense(), factory));
     }
   }
 
