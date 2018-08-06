@@ -828,9 +828,9 @@ public class ToolHelper {
   }
 
   public static R8Command.Builder prepareR8CommandBuilder(
-      AndroidApp app, DiagnosticsHandler diagnosticsHandler) {
+      AndroidApp app, ProgramConsumer programConsumer, DiagnosticsHandler diagnosticsHandler) {
     return R8Command.builder(app, diagnosticsHandler)
-        .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+        .setProgramConsumer(programConsumer)
         .setProguardMapConsumer(StringConsumer.emptyConsumer());
   }
 
