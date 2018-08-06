@@ -35,10 +35,16 @@ public class B80083341 extends TestBase {
         "-keep,allowobfuscation class " + mainClass.getCanonicalName() + " {",
         "}"
     );
-    AndroidApp app = readClassesAndAndriodJar(ImmutableList.of(
-        mainClass, TestClass.class, AnotherClass.class,
-        PackagePrivateClass.class, PackagePrivateClass.Itf.class, PackagePrivateClass.Impl.class
-    ));
+    AndroidApp app =
+        readClassesAndRuntimeJar(
+            ImmutableList.of(
+                mainClass,
+                TestClass.class,
+                AnotherClass.class,
+                PackagePrivateClass.class,
+                PackagePrivateClass.Itf.class,
+                PackagePrivateClass.Impl.class),
+            Backend.DEX);
     AndroidApp processedApp = compileWithR8(app, String.join(System.lineSeparator(), config));
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject mainSubject = inspector.clazz(mainClass);

@@ -151,19 +151,19 @@ public class TestBase {
     return builder.build();
   }
 
-  protected static AndroidApp readClassesAndAndriodJar(List<Class> programClasses)
-      throws IOException {
-    return readClassesAndAndriodJar(programClasses, ToolHelper.getMinApiLevelForDexVm());
-  }
-
-  protected static AndroidApp readClassesAndAndriodJar(
-      List<Class> programClasses, AndroidApiLevel androidLibrary)
+  protected static AndroidApp readClassesAndRuntimeJar(List<Class> programClasses, Backend backend)
       throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (Class clazz : programClasses) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
     }
-    builder.addLibraryFiles(ToolHelper.getAndroidJar(androidLibrary));
+    if (backend == Backend.DEX) {
+      AndroidApiLevel androidLibrary = ToolHelper.getMinApiLevelForDexVm();
+      builder.addLibraryFiles(ToolHelper.getAndroidJar(androidLibrary));
+    } else {
+      assert backend == Backend.CF;
+      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+    }
     return builder.build();
   }
 

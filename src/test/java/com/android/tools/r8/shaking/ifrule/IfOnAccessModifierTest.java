@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -40,7 +41,14 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
 
   @Parameters(name = "shrinker: {0}")
   public static Collection<Object> data() {
-    return ImmutableList.of(Shrinker.PROGUARD6, Shrinker.R8);
+    return ImmutableList.of(Shrinker.R8_CF, Shrinker.PROGUARD6, Shrinker.R8);
+  }
+
+  @Override
+  protected AndroidApp runR8(List<Class> programClasses, String proguardConfig, Backend backend)
+      throws Exception {
+    // Disable inlining, otherwise classes can be pruned away if all their methods are inlined.
+    return runR8(programClasses, proguardConfig, o -> o.enableInlining = false, backend);
   }
 
   @Test

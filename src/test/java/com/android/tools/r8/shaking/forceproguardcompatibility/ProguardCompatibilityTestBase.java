@@ -78,9 +78,9 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected CodeInspector inspectAfterShrinking(
-      Shrinker mode, List<Class> programClasses, List<String> proguadConfigs) throws Exception {
+      Shrinker mode, List<Class> programClasses, List<String> proguardConfigs) throws Exception {
     return inspectAfterShrinking(
-        mode, programClasses, String.join(System.lineSeparator(), proguadConfigs));
+        mode, programClasses, String.join(System.lineSeparator(), proguardConfigs));
   }
 
   protected CodeInspector inspectAfterShrinking(
@@ -116,17 +116,13 @@ public class ProguardCompatibilityTestBase extends TestBase {
       Backend backend)
       throws Exception {
     assert backend == Backend.DEX || backend == Backend.CF;
-    AndroidApp app = readClassesAndAndriodJar(programClasses);
+    AndroidApp app = readClassesAndRuntimeJar(programClasses, backend);
     R8Command.Builder builder =
         ToolHelper.prepareR8CommandBuilder(
-                app,
-                backend == Backend.DEX
-                    ? DexIndexedConsumer.emptyConsumer()
-                    : ClassFileConsumer.emptyConsumer())
-            .addLibraryFiles(
-                backend == Backend.DEX
-                    ? ToolHelper.getDefaultAndroidJar()
-                    : ToolHelper.getJava8RuntimeJar());
+            app,
+            backend == Backend.DEX
+                ? DexIndexedConsumer.emptyConsumer()
+                : ClassFileConsumer.emptyConsumer());
     ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
     return ToolHelper.runR8(builder.build(), configure);
