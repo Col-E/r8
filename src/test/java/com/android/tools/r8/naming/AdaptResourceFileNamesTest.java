@@ -24,7 +24,7 @@ import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.AdaptResourceFileContentsTest.CustomDataResourceConsumer;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.FileUtils;
@@ -48,7 +48,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class AdaptResourceFileNamesTest extends ProguardCompatabilityTestBase {
+public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
 
   private Backend backend;
 

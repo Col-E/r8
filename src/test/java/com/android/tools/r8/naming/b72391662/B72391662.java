@@ -15,7 +15,7 @@ import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageSuper;
 import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageTestClass;
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -27,7 +27,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
-public class B72391662 extends ProguardCompatabilityTestBase {
+public class B72391662 extends ProguardCompatibilityTestBase {
 
   private static final List<Class> CLASSES = ImmutableList.of(
       TestMain.class, Interface.class, Super.class, TestClass.class,

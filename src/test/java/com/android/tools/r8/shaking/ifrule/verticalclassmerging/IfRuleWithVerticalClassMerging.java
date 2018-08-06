@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -58,7 +58,7 @@ class Main {
 }
 
 @RunWith(Parameterized.class)
-public class IfRuleWithVerticalClassMerging extends ProguardCompatabilityTestBase {
+public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBase {
   private final static List<Class> CLASSES = ImmutableList.of(
       A.class, B.class, C.class, D.class, Main.class);
 
@@ -84,8 +84,9 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatabilityTestBas
   }
 
   @Override
-  protected AndroidApp runR8(List<Class> programClasses, String proguardConfig) throws Exception {
-    return super.runR8(programClasses, proguardConfig, this::configure);
+  protected AndroidApp runR8(List<Class> programClasses, String proguardConfig, Backend backend)
+      throws Exception {
+    return super.runR8(programClasses, proguardConfig, this::configure, backend);
   }
 
   private void check(AndroidApp app) throws Exception {

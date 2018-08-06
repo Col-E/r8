@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.ifrule;
 
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -14,7 +14,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class IfOnAnnotationTest extends ProguardCompatabilityTestBase {
+public class IfOnAnnotationTest extends ProguardCompatibilityTestBase {
   private final static List<Class> CLASSES = ImmutableList.of(
       UsedAnnotation.class, UnusedAnnotation.class,
       UsedAnnotationDependent.class, UnusedAnnotationDependent.class,

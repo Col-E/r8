@@ -11,7 +11,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -19,7 +19,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
-public class KeepClassMembersTest extends ProguardCompatabilityTestBase {
+public class KeepClassMembersTest extends ProguardCompatibilityTestBase {
 
   private void check(CodeInspector inspector, Class mainClass, Class<?> staticClass,
       boolean forceProguardCompatibility, boolean fromProguard) {

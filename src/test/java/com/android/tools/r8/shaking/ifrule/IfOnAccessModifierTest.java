@@ -10,7 +10,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -23,7 +23,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class IfOnAccessModifierTest extends ProguardCompatabilityTestBase {
+public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     private final static List<Class> CLASSES = ImmutableList.of(
         ClassForIf.class, ClassForSubsequent.class,
         MainForAccessModifierTest.class);

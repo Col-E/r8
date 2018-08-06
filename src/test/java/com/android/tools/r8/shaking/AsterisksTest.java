@@ -13,7 +13,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -53,7 +53,7 @@ class B111974287 {
 }
 
 @RunWith(Parameterized.class)
-public class AsterisksTest extends ProguardCompatabilityTestBase {
+public class AsterisksTest extends ProguardCompatibilityTestBase {
   private final static List<Class> CLASSES = ImmutableList.of(B111974287.class);
   private final Shrinker shrinker;
 
@@ -63,7 +63,7 @@ public class AsterisksTest extends ProguardCompatabilityTestBase {
 
   @Parameters(name = "shrinker: {0}")
   public static Collection<Object> data() {
-    return ImmutableList.of(Shrinker.PROGUARD6, Shrinker.R8);
+    return ImmutableList.of(Shrinker.PROGUARD6, Shrinker.R8, Shrinker.R8_CF);
   }
 
   @Test

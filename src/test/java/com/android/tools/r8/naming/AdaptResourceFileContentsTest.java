@@ -23,7 +23,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.FileUtils;
@@ -47,7 +47,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class AdaptResourceFileContentsTest extends ProguardCompatabilityTestBase {
+public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase {
 
   private Backend backend;
 

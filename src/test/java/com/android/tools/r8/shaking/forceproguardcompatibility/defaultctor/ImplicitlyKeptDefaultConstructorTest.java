@@ -10,7 +10,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.smali.ConstantFoldingTest.TriConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -90,7 +90,7 @@ class MainGetStaticFieldInitialized {
   }
 }
 
-public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatabilityTestBase {
+public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityTestBase {
 
   private void checkPresentWithDefaultConstructor(ClassSubject clazz) {
     assertThat(clazz, isPresent());

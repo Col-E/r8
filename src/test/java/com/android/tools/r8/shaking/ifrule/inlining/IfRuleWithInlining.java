@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -43,7 +43,7 @@ class Main {
 }
 
 @RunWith(Parameterized.class)
-public class IfRuleWithInlining extends ProguardCompatabilityTestBase {
+public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
   private final static List<Class> CLASSES = ImmutableList.of(
       A.class, D.class, Main.class);
 

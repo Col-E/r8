@@ -10,7 +10,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class IfOnClassTest extends ProguardCompatabilityTestBase {
+public class IfOnClassTest extends ProguardCompatibilityTestBase {
   private final static List<Class> CLASSES = ImmutableList.of(
       EmptyMainClassForIfOnClassTests.class,
       Precondition.class, DependentUser.class, Dependent.class);
@@ -60,9 +60,9 @@ public class IfOnClassTest extends ProguardCompatabilityTestBase {
   }
 
   @Override
-  protected CodeInspector inspectR8Result(List<Class> programClasses, String proguardConfig)
-      throws Exception {
-    return super.inspectR8Result(programClasses, adaptConfiguration(proguardConfig));
+  protected CodeInspector inspectR8Result(
+      List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
+    return super.inspectR8Result(programClasses, adaptConfiguration(proguardConfig), backend);
   }
 
   @Override

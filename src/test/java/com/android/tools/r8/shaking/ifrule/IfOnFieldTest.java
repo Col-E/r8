@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.ifrule;
 
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatabilityTestBase;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class IfOnFieldTest extends ProguardCompatabilityTestBase {
+public class IfOnFieldTest extends ProguardCompatibilityTestBase {
   private final static List<Class> CLASSES = ImmutableList.of(
       D.class, D1.class, D2.class,
       R.class, R1.class, R2.class,
@@ -42,9 +42,9 @@ public class IfOnFieldTest extends ProguardCompatabilityTestBase {
   }
 
   @Override
-  protected CodeInspector inspectR8Result(List<Class> programClasses, String proguardConfig)
-      throws Exception {
-    return super.inspectR8Result(programClasses, adaptConfiguration(proguardConfig));
+  protected CodeInspector inspectR8Result(
+      List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
+    return super.inspectR8Result(programClasses, adaptConfiguration(proguardConfig), backend);
   }
 
   @Override
