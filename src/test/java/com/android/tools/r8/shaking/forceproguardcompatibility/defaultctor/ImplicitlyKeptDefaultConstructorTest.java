@@ -15,8 +15,12 @@ import com.android.tools.r8.smali.ConstantFoldingTest.TriConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 class SuperClass {
 
@@ -90,7 +94,19 @@ class MainGetStaticFieldInitialized {
   }
 }
 
+@RunWith(Parameterized.class)
 public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityTestBase {
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public ImplicitlyKeptDefaultConstructorTest(Backend backend) {
+    this.backend = backend;
+  }
 
   private void checkPresentWithDefaultConstructor(ClassSubject clazz) {
     assertThat(clazz, isPresent());
@@ -131,7 +147,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
       Class mainClass, List<Class> programClasses, String proguardConfiguration,
       TriConsumer<Class, List<Class>, CodeInspector> r8Checker,
       TriConsumer<Class, List<Class>, CodeInspector> proguardChecker) throws Exception {
-    CodeInspector inspector = inspectR8CompatResult(programClasses, proguardConfiguration);
+    CodeInspector inspector = inspectR8CompatResult(programClasses, proguardConfiguration, backend);
     r8Checker.accept(mainClass, programClasses, inspector);
 
     if (isRunProguard()) {

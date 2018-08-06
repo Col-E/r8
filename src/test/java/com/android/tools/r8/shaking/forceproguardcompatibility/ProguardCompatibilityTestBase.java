@@ -38,12 +38,16 @@ public class ProguardCompatibilityTestBase extends TestBase {
     PROGUARD6,
     PROGUARD6_THEN_D8,
     R8_COMPAT,
+    R8_COMPAT_CF,
     R8,
     R8_CF
   }
 
   protected static boolean isR8(Shrinker shrinker) {
-    return shrinker == Shrinker.R8_COMPAT || shrinker == Shrinker.R8 || shrinker == Shrinker.R8_CF;
+    return shrinker == Shrinker.R8_COMPAT
+        || shrinker == Shrinker.R8_COMPAT_CF
+        || shrinker == Shrinker.R8
+        || shrinker == Shrinker.R8_CF;
   }
 
   protected AndroidApp runShrinker(
@@ -62,7 +66,9 @@ public class ProguardCompatibilityTestBase extends TestBase {
       case PROGUARD6_THEN_D8:
         return runProguard6AndD8(programClasses, proguardConfig, proguardMap);
       case R8_COMPAT:
-        return runR8Compat(programClasses, proguardConfig);
+        return runR8Compat(programClasses, proguardConfig, Backend.DEX);
+      case R8_COMPAT_CF:
+        return runR8Compat(programClasses, proguardConfig, Backend.CF);
       case R8:
         return runR8(programClasses, proguardConfig, Backend.DEX);
       case R8_CF:
@@ -87,7 +93,9 @@ public class ProguardCompatibilityTestBase extends TestBase {
       case PROGUARD6_THEN_D8:
         return inspectProguard6AndD8Result(programClasses, proguardConfig);
       case R8_COMPAT:
-        return inspectR8CompatResult(programClasses, proguardConfig);
+        return inspectR8CompatResult(programClasses, proguardConfig, Backend.DEX);
+      case R8_COMPAT_CF:
+        return inspectR8CompatResult(programClasses, proguardConfig, Backend.CF);
       case R8:
         return inspectR8Result(programClasses, proguardConfig, Backend.DEX);
       case R8_CF:
@@ -129,21 +137,27 @@ public class ProguardCompatibilityTestBase extends TestBase {
     return new CodeInspector(runR8(programClasses, proguardConfig, backend));
   }
 
-  protected AndroidApp runR8Compat(List<Class> programClasses, String proguardConfig)
-      throws Exception {
+  protected AndroidApp runR8Compat(
+      List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
     CompatProguardCommandBuilder builder = new CompatProguardCommandBuilder(true);
     ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
     programClasses.forEach(
         clazz -> builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz)));
-    builder.addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()));
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    if (backend == Backend.DEX) {
+      builder.addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()));
+      builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    } else {
+      assert backend == Backend.CF;
+      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+      builder.setProgramConsumer(ClassFileConsumer.emptyConsumer());
+    }
     return ToolHelper.runR8(builder.build());
   }
 
-  protected CodeInspector inspectR8CompatResult(List<Class> programClasses, String proguardConfig)
-      throws Exception {
-    return new CodeInspector(runR8Compat(programClasses, proguardConfig));
+  protected CodeInspector inspectR8CompatResult(
+      List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
+    return new CodeInspector(runR8Compat(programClasses, proguardConfig, backend));
   }
 
   protected AndroidApp runProguard5(
