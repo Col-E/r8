@@ -11,11 +11,13 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
@@ -33,6 +35,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,8 +43,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class AdaptResourceFileContentsTest extends ProguardCompatabilityTestBase {
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public AdaptResourceFileContentsTest(Backend backend) {
+    this.backend = backend;
+  }
 
   protected static class CustomDataResourceConsumer implements DataResourceConsumer {
 
@@ -302,10 +319,19 @@ public class AdaptResourceFileContentsTest extends ProguardCompatabilityTestBase
 
   private AndroidApp compileWithR8(String proguardConfig, DataResourceConsumer dataResourceConsumer)
       throws CompilationFailedException, IOException {
+    assert backend == Backend.DEX || backend == Backend.CF;
     R8Command command =
         ToolHelper.allowTestProguardOptions(
-                ToolHelper.prepareR8CommandBuilder(getAndroidApp())
+                ToolHelper.prepareR8CommandBuilder(
+                        getAndroidApp(),
+                        backend == Backend.DEX
+                            ? DexIndexedConsumer.emptyConsumer()
+                            : ClassFileConsumer.emptyConsumer())
                     .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown()))
+            .addLibraryFiles(
+                backend == Backend.DEX
+                    ? ToolHelper.getDefaultAndroidJar()
+                    : ToolHelper.getJava8RuntimeJar())
             .build();
     return ToolHelper.runR8(
         command,
