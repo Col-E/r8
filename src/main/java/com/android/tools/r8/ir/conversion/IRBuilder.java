@@ -87,6 +87,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
@@ -309,6 +310,7 @@ public class IRBuilder {
   // Basic blocks. Added after processing from the worklist.
   private final LinkedList<BasicBlock> blocks = new LinkedList<>();
 
+  private BasicBlock entryBlock = null;
   private BasicBlock currentBlock = null;
   final private ValueNumberGenerator valueNumberGenerator;
   private final DexEncodedMethod method;
@@ -323,6 +325,9 @@ public class IRBuilder {
   // Pending local reads.
   private Value previousLocalValue = null;
   private final List<Value> debugLocalReads = new ArrayList<>();
+
+  // Lazily populated list of local values that are referenced without being actually defined.
+  private Int2ReferenceMap<List<Value>> uninitializedDebugLocalValues = null;
 
   private int nextBlockNumber = 0;
 
@@ -420,6 +425,7 @@ public class IRBuilder {
     processedInstructions = null;
 
     setCurrentBlock(targets.get(INITIAL_BLOCK_OFFSET).block);
+    entryBlock = currentBlock;
     source.buildPrelude(this);
 
     // Process normal blocks reachable from the entry block using a worklist of reachable
@@ -437,6 +443,21 @@ public class IRBuilder {
 
     // Insert debug positions so all position changes are marked by an explicit instruction.
     boolean hasDebugPositions = insertDebugPositions();
+
+    // Insert definitions for all uninitialized local values.
+    if (uninitializedDebugLocalValues != null) {
+      InstructionListIterator it = entryBlock.listIterator();
+      it.nextUntil(i -> !i.isArgument());
+      it.previous();
+      for (List<Value> values : uninitializedDebugLocalValues.values()) {
+        for (Value value : values) {
+          Instruction def = new DebugLocalUninitialized(value);
+          def.setBlock(entryBlock);
+          def.setPosition(Position.none());
+          it.add(def);
+        }
+      }
+    }
 
     // Clear all reaching definitions to free up memory (and avoid invalid use).
     for (BasicBlock block : blocks) {
@@ -648,15 +669,6 @@ public class IRBuilder {
     addInstruction(new Argument(value));
   }
 
-  public void addDebugUninitialized(int register, ValueType type) {
-    if (!options.debug) {
-      return;
-    }
-    Value value = writeRegister(register, type, ThrowingInfo.NO_THROW, null);
-    assert !value.hasLocalInfo();
-    addInstruction(new DebugLocalUninitialized(value));
-  }
-
   private void addDebugLocalWrite(ValueType type, int dest, Value in) {
     assert options.debug;
     Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
@@ -670,7 +682,7 @@ public class IRBuilder {
     assert local != null;
     assert local == getIncomingLocal(register);
     ValueType valueType = ValueType.fromDexType(local.type);
-    return readRegisterIgnoreLocal(register, valueType);
+    return readRegisterIgnoreLocal(register, valueType, local);
   }
 
   private static boolean isValidFor(Value value, DebugLocalInfo local) {
@@ -697,7 +709,7 @@ public class IRBuilder {
     assert local == getOutgoingLocal(register);
     ValueType valueType = ValueType.fromDexType(local.type);
     // TODO(mathiasr): Here we create a Phi with type based on debug info. That's just wrong!
-    Value incomingValue = readRegisterIgnoreLocal(register, valueType);
+    Value incomingValue = readRegisterIgnoreLocal(register, valueType, local);
 
     // TODO(mathiasr): This can be simplified once trivial phi removal is local-info aware.
     if (incomingValue.isPhi() || incomingValue.getLocalInfo() != local) {
@@ -1672,8 +1684,7 @@ public class IRBuilder {
     return value;
   }
 
-  private Value readRegisterIgnoreLocal(int register, ValueType type) {
-    DebugLocalInfo local = getIncomingLocal(register);
+  private Value readRegisterIgnoreLocal(int register, ValueType type, DebugLocalInfo local) {
     return readRegister(register, type, currentBlock, EdgeType.NON_EDGE, local);
   }
 
@@ -1707,7 +1718,14 @@ public class IRBuilder {
     }
     // If the register still has unknown value create a phi value for it.
     if (value == null) {
-      if (!block.isSealed()) {
+      if (block == entryBlock && local != null) {
+        assert block.getPredecessors().isEmpty();
+        // If a debug-local is referenced at the entry block, lazily introduce an SSA value for it.
+        // This value must *not* be added to the entry blocks current definitions since
+        // uninitialized debug-locals may be reference at the same register/local-index yet be of
+        // different types (eg, int in one part of the CFG and float in a disjoint part).
+        value = getUninitializedDebugLocalValue(register, type, local);
+      } else if (!block.isSealed()) {
         assert !blocks.isEmpty() : "No write to " + register;
         Phi phi = new Phi(valueNumberGenerator.next(), block, type, local);
         block.addIncompletePhi(register, phi, readingEdge);
@@ -1731,6 +1749,29 @@ public class IRBuilder {
     }
     // Update the last block at which the definition was found/created.
     block.updateCurrentDefinition(register, value, readingEdge);
+    return value;
+  }
+
+  private Value getUninitializedDebugLocalValue(
+      int register, ValueType type, DebugLocalInfo local) {
+    assert type == ValueType.fromDexType(local.type);
+    if (uninitializedDebugLocalValues == null) {
+      uninitializedDebugLocalValues = new Int2ReferenceOpenHashMap<>();
+    }
+    List<Value> values = uninitializedDebugLocalValues.get(register);
+    if (values != null) {
+      for (Value value : values) {
+        if (value.outType() == type) {
+          return value;
+        }
+      }
+    } else {
+      uninitializedDebugLocalValues.put(register, new ArrayList<>(2));
+    }
+    // Create a new SSA value for the uninitialized local value.
+    // Note that the uninitialized local value *does not* itself have local information!
+    Value value = new Value(valueNumberGenerator.next(), type, null);
+    uninitializedDebugLocalValues.get(register).add(value);
     return value;
   }
 
@@ -1785,7 +1826,7 @@ public class IRBuilder {
     previousLocalValue =
         (incomingLocal == null || incomingLocal != outgoingLocal)
             ? null
-            : readRegisterIgnoreLocal(register, type);
+            : readRegisterIgnoreLocal(register, type, incomingLocal);
     return writeRegister(register, type, throwing, outgoingLocal);
   }
 

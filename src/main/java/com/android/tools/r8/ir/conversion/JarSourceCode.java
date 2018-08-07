@@ -29,7 +29,6 @@ import com.android.tools.r8.ir.conversion.JarState.Local;
 import com.android.tools.r8.ir.conversion.JarState.Slot;
 import com.android.tools.r8.logging.Log;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.io.PrintWriter;
@@ -275,7 +274,6 @@ public class JarSourceCode implements SourceCode {
     // Record types for arguments.
     Int2ReferenceMap<ValueType> argumentLocals = recordArgumentTypes();
     Int2ReferenceMap<ValueType> initializedLocals = new Int2ReferenceOpenHashMap<>(argumentLocals);
-    Int2ReferenceMap<ValueType> uninitializedLocals = new Int2ReferenceOpenHashMap<>();
     // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
     for (Object o : node.localVariables) {
       LocalVariableNode local = (LocalVariableNode) o;
@@ -320,11 +318,9 @@ public class JarSourceCode implements SourceCode {
       int localRegister = state.getLocalRegister(local.index, localType);
       ValueType existingLocalType = initializedLocals.get(localRegister);
       if (existingLocalType == null) {
-        // For uninitialized entries write the local to ensure it exists in the local state.
         int writeRegister = state.writeLocal(local.index, localType);
         assert writeRegister == localRegister;
         initializedLocals.put(localRegister, localValueType);
-        uninitializedLocals.put(localRegister, localValueType);
       }
     }
 
@@ -334,10 +330,6 @@ public class JarSourceCode implements SourceCode {
     // Build the actual argument instructions now that type and debug information is known
     // for arguments.
     buildArgumentInstructions(builder);
-
-    for (Entry<ValueType> entry : uninitializedLocals.int2ReferenceEntrySet()) {
-      builder.addDebugUninitialized(entry.getIntKey(), entry.getValue());
-    }
 
     // Add debug information for all locals at the initial label.
     for (Local local : state.getLocalsToOpen()) {
