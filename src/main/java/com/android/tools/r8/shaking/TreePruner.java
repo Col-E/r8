@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.KeyedDexItem;
@@ -21,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class TreePruner {
 
@@ -102,9 +104,9 @@ public class TreePruner {
   }
 
   private <S extends PresortedComparable<S>, T extends KeyedDexItem<S>> int firstUnreachableIndex(
-      T[] items, Set<S> live) {
+      T[] items, Predicate<S> live) {
     for (int i = 0; i < items.length; i++) {
-      if (!live.contains(items[i].getKey())) {
+      if (!live.test(items[i].getKey())) {
         return i;
       }
     }
@@ -117,7 +119,7 @@ public class TreePruner {
   }
 
   private DexEncodedMethod[] reachableMethods(DexEncodedMethod[] methods, DexClass clazz) {
-    int firstUnreachable = firstUnreachableIndex(methods, appInfo.liveMethods);
+    int firstUnreachable = firstUnreachableIndex(methods, appInfo.liveMethods::contains);
     // Return the original array if all methods are used.
     if (firstUnreachable == -1) {
       return methods;
@@ -168,7 +170,12 @@ public class TreePruner {
   }
 
   private DexEncodedField[] reachableFields(DexEncodedField[] fields) {
-    int firstUnreachable = firstUnreachableIndex(fields, appInfo.liveFields);
+    Predicate<DexField> isReachableOrReferencedField =
+        field ->
+            appInfo.liveFields.contains(field)
+                || appInfo.fieldsRead.contains(field)
+                || appInfo.fieldsWritten.contains(field);
+    int firstUnreachable = firstUnreachableIndex(fields, isReachableOrReferencedField);
     // Return the original array if all fields are used.
     if (firstUnreachable == -1) {
       return fields;
@@ -177,14 +184,14 @@ public class TreePruner {
       Log.debug(getClass(), "Removing field: " + fields[firstUnreachable]);
     }
     usagePrinter.printUnusedField(fields[firstUnreachable]);
-    ArrayList<DexEncodedField> reachableFields = new ArrayList<>(fields.length);
+    ArrayList<DexEncodedField> reachableOrReferencedFields = new ArrayList<>(fields.length);
     for (int i = 0; i < firstUnreachable; i++) {
-      reachableFields.add(fields[i]);
+      reachableOrReferencedFields.add(fields[i]);
     }
     for (int i = firstUnreachable + 1; i < fields.length; i++) {
       DexEncodedField field = fields[i];
-      if (appInfo.liveFields.contains(field.getKey())) {
-        reachableFields.add(field);
+      if (isReachableOrReferencedField.test(field.field)) {
+        reachableOrReferencedFields.add(field);
       } else {
         if (Log.ENABLED) {
           Log.debug(getClass(), "Removing field: " + field);
@@ -192,7 +199,9 @@ public class TreePruner {
         usagePrinter.printUnusedField(field);
       }
     }
-    return reachableFields.toArray(new DexEncodedField[reachableFields.size()]);
+    return reachableOrReferencedFields.isEmpty()
+        ? DexEncodedField.EMPTY_ARRAY
+        : reachableOrReferencedFields.toArray(DexEncodedField.EMPTY_ARRAY);
   }
 
   public Collection<DexType> getRemovedClasses() {
