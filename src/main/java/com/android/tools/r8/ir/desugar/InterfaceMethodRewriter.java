@@ -368,6 +368,12 @@ public final class InterfaceMethodRewriter {
         processor.process(clazz.asProgramClass());
       }
     }
+    if (converter.enableWholeProgramOptimizations &&
+        (!processor.methodsWithMovedCode.isEmpty() || !processor.movedMethods.isEmpty())) {
+      converter.setGraphLense(
+          new InterfaceMethodDesugaringLense(processor.movedMethods,
+              processor.methodsWithMovedCode, converter.getGraphLense(), factory));
+    }
     return processor.companionClasses;
   }
 

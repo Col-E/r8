@@ -19,6 +19,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +41,9 @@ final class InterfaceProcessor {
   private final InterfaceMethodRewriter rewriter;
   // All created companion classes indexed by interface classes.
   final Map<DexProgramClass, DexProgramClass> companionClasses = new IdentityHashMap<>();
+
+  final BiMap<DexMethod, DexMethod> movedMethods = HashBiMap.create();
+  final Map<DexEncodedMethod, DexEncodedMethod> methodsWithMovedCode = new IdentityHashMap<>();
 
   InterfaceProcessor(InterfaceMethodRewriter rewriter) {
     this.rewriter = rewriter;
@@ -74,12 +79,15 @@ final class InterfaceProcessor {
         assert (dexCode.getDebugInfo() == null)
             || (companionMethod.getArity() == dexCode.getDebugInfo().parameters.length);
 
-        companionMethods.add(new DexEncodedMethod(companionMethod,
-            newFlags, virtual.annotations, virtual.parameterAnnotationsList, code));
-
         // Make the method abstract.
         virtual.accessFlags.setAbstract();
-        virtual.removeCode();
+        virtual.removeCode(); // Remove code first to void ownership.
+
+        DexEncodedMethod implMethod = new DexEncodedMethod(
+            companionMethod, newFlags, virtual.annotations, virtual.parameterAnnotationsList, code);
+        companionMethods.add(implMethod);
+
+        methodsWithMovedCode.put(virtual, implMethod);
       }
 
       // Remove bridge methods.
@@ -105,27 +113,29 @@ final class InterfaceProcessor {
         newFlags.setPublic();
       }
 
+      DexMethod oldMethod = direct.method;
       if (isStaticMethod(direct)) {
         assert originalFlags.isPrivate() || originalFlags.isPublic()
             : "Static interface method " + direct.toSourceString() + " is expected to "
             + "either be public or private in " + iface.origin;
-        companionMethods.add(new DexEncodedMethod(
-            rewriter.staticAsMethodOfCompanionClass(direct.method), newFlags,
+        DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(oldMethod);
+        companionMethods.add(new DexEncodedMethod(companionMethod, newFlags,
             direct.annotations, direct.parameterAnnotationsList, direct.getCode()));
+        movedMethods.put(oldMethod, companionMethod);
 
       } else {
         if (originalFlags.isPrivate()) {
-          assert !rewriter.factory.isClassConstructor(direct.method)
+          assert !rewriter.factory.isClassConstructor(oldMethod)
               : "Unexpected private constructor " + direct.toSourceString()
               + " in " + iface.origin;
           newFlags.setStatic();
 
-          DexMethod companionMethod = rewriter.privateAsMethodOfCompanionClass(direct.method);
+          DexMethod companionMethod = rewriter.privateAsMethodOfCompanionClass(oldMethod);
 
           Code code = direct.getCode();
           if (code == null) {
             throw new CompilationError("Code is missing for private instance "
-                + "interface method: " + direct.method.toSourceString(), iface.origin);
+                + "interface method: " + oldMethod.toSourceString(), iface.origin);
           }
           DexCode dexCode = code.asDexCode();
           // TODO(ager): Should we give the new first parameter an actual name? Maybe 'this'?
@@ -135,11 +145,12 @@ final class InterfaceProcessor {
 
           companionMethods.add(new DexEncodedMethod(companionMethod,
               newFlags, direct.annotations, direct.parameterAnnotationsList, code));
+          movedMethods.put(oldMethod, companionMethod);
 
         } else {
           // Since there are no interface constructors at this point,
           // this should only be class constructor.
-          assert rewriter.factory.isClassConstructor(direct.method);
+          assert rewriter.factory.isClassConstructor(oldMethod);
           remainingMethods.add(direct);
         }
       }
