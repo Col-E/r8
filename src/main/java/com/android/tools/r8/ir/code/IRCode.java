@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -24,6 +25,35 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IRCode {
+
+  public static class LiveAtEntrySets {
+    // Set of live SSA values (regardless of whether they denote a local variable).
+    public final Set<Value> liveValues;
+
+    // Subset of live local-variable values.
+    public final Set<Value> liveLocalValues;
+
+    public LiveAtEntrySets(Set<Value> liveValues, Set<Value> liveLocalValues) {
+      assert liveValues.containsAll(liveLocalValues);
+      this.liveValues = liveValues;
+      this.liveLocalValues = liveLocalValues;
+    }
+
+    @Override
+    public int hashCode() {
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      LiveAtEntrySets other = (LiveAtEntrySets) o;
+      return liveValues.equals(other.liveValues) && liveLocalValues.equals(other.liveLocalValues);
+    }
+
+    public boolean isEmpty() {
+      return liveValues.isEmpty() && liveLocalValues.isEmpty();
+    }
+  }
 
   // Stack marker to denote when all successors of a block have been processed when topologically
   // sorting.
@@ -72,8 +102,8 @@ public class IRCode {
   /**
    * Compute the set of live values at the entry to each block using a backwards data-flow analysis.
    */
-  public Map<BasicBlock, Set<Value>> computeLiveAtEntrySets() {
-    Map<BasicBlock, Set<Value>> liveAtEntrySets = new IdentityHashMap<>();
+  public Map<BasicBlock, LiveAtEntrySets> computeLiveAtEntrySets() {
+    Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets = new IdentityHashMap<>();
     Queue<BasicBlock> worklist = new ArrayDeque<>();
     // Since this is a backwards data-flow analysis we process the blocks in reverse
     // topological order to reduce the number of iterations.
@@ -82,24 +112,37 @@ public class IRCode {
     while (!worklist.isEmpty()) {
       BasicBlock block = worklist.poll();
       Set<Value> live = new HashSet<>();
+      Set<Value> liveLocals = new HashSet<>();
       for (BasicBlock succ : block.getSuccessors()) {
-        Set<Value> succLiveAtEntry = liveAtEntrySets.get(succ);
-        if (succLiveAtEntry != null) {
-          live.addAll(succLiveAtEntry);
+        LiveAtEntrySets liveAtSucc = liveAtEntrySets.get(succ);
+        if (liveAtSucc != null) {
+          live.addAll(liveAtSucc.liveValues);
+          liveLocals.addAll(liveAtSucc.liveLocalValues);
         }
         int predIndex = succ.getPredecessors().indexOf(block);
         for (Phi phi : succ.getPhis()) {
-          live.add(phi.getOperand(predIndex));
+          Value operand = phi.getOperand(predIndex);
+          live.add(operand);
+          // TODO(zerny): Assert that operand.hasLocalInfo iff phi.hasLocalInfo
+          if (operand.hasLocalInfo()) {
+            liveLocals.add(operand);
+          }
           assert phi.getDebugValues().stream().allMatch(Value::needsRegister);
+          assert phi.getDebugValues().stream().allMatch(Value::hasLocalInfo);
           live.addAll(phi.getDebugValues());
+          liveLocals.addAll(phi.getDebugValues());
         }
       }
-      ListIterator<Instruction> iterator =
-          block.getInstructions().listIterator(block.getInstructions().size());
-      while (iterator.hasPrevious()) {
-        Instruction instruction = iterator.previous();
-        if (instruction.outValue() != null) {
-          live.remove(instruction.outValue());
+      Iterator<Instruction> iterator = block.getInstructions().descendingIterator();
+      while (iterator.hasNext()) {
+        Instruction instruction = iterator.next();
+        Value outValue = instruction.outValue();
+        if (outValue != null) {
+          live.remove(outValue);
+          assert outValue.hasLocalInfo() || !liveLocals.contains(outValue);
+          if (outValue.hasLocalInfo()) {
+            liveLocals.remove(outValue);
+          }
         }
         for (Value use : instruction.inValues()) {
           if (use.needsRegister()) {
@@ -107,15 +150,22 @@ public class IRCode {
           }
         }
         assert instruction.getDebugValues().stream().allMatch(Value::needsRegister);
+        assert instruction.getDebugValues().stream().allMatch(Value::hasLocalInfo);
         live.addAll(instruction.getDebugValues());
+        liveLocals.addAll(instruction.getDebugValues());
       }
       for (Phi phi : block.getPhis()) {
         live.remove(phi);
+        assert phi.hasLocalInfo() || !liveLocals.contains(phi);
+        if (phi.hasLocalInfo()) {
+          liveLocals.remove(phi);
+        }
       }
-      Set<Value> previousLiveAtEntry = liveAtEntrySets.put(block, live);
+      LiveAtEntrySets liveAtEntry = new LiveAtEntrySets(live, liveLocals);
+      LiveAtEntrySets previousLiveAtEntry = liveAtEntrySets.put(block, liveAtEntry);
       // If the live-at-entry set changed, add the predecessors to the worklist if they are not
       // already there.
-      if (previousLiveAtEntry == null || !previousLiveAtEntry.equals(live)) {
+      if (previousLiveAtEntry == null || !previousLiveAtEntry.equals(liveAtEntry)) {
         for (BasicBlock pred : block.getPredecessors()) {
           if (!worklist.contains(pred)) {
             worklist.add(pred);
@@ -123,8 +173,9 @@ public class IRCode {
         }
       }
     }
-    assert liveAtEntrySets.get(sorted.get(0)).size() == 0
-        : "Unexpected values live at entry to first block: " + liveAtEntrySets.get(sorted.get(0));
+    assert liveAtEntrySets.get(sorted.get(0)).isEmpty()
+        : "Unexpected values live at entry to first block: "
+        + liveAtEntrySets.get(sorted.get(0)).liveValues;
     return liveAtEntrySets;
   }
 
@@ -495,9 +546,14 @@ public class IRCode {
   }
 
   public boolean consistentBlockNumbering() {
-    return blocks.stream()
+    blocks
+        .stream()
         .collect(Collectors.groupingBy(BasicBlock::getNumber, Collectors.counting()))
-        .entrySet().stream().noneMatch((bb2count) -> bb2count.getValue() > 1);
+        .forEach(
+            (key, value) -> {
+              assert value == 1;
+            });
+    return true;
   }
 
   private boolean consistentBlockInstructions() {

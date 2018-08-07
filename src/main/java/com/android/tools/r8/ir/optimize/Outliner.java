@@ -1022,6 +1022,12 @@ public class Outliner {
     }
 
     @Override
+    public void buildBlockTransfer(
+        IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
+      throw new Unreachable("Outliner does not support control flow");
+    }
+
+    @Override
     public void buildPostlude(IRBuilder builder) {
       // Intentionally left empty. (Needed for Java-bytecode-frontend synchronization support.)
     }

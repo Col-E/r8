@@ -366,46 +366,116 @@ public class CfSourceCode implements SourceCode {
   }
 
   @Override
+  public void buildBlockTransfer(
+      IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
+    if (predecessorOffset == IRBuilder.INITIAL_BLOCK_OFFSET) {
+      return;
+    }
+    if (currentInstructionIndex != predecessorOffset) {
+      // If transfer is not still in the same block, then update the state to that of the successor.
+      // The builder's lookup of local variables relies on this state for starting locals.
+      currentInstructionIndex = successorOffset;
+      state.reset(incomingState.get(currentInstructionIndex), false);
+      setLocalVariableLists();
+      // The transfer has not yet taken place, so the current position is that of the predecessor.
+      int positionOffset = predecessorOffset;
+      List<CfInstruction> instructions = code.getInstructions();
+      CfInstruction instruction = instructions.get(positionOffset);
+      while (0 < positionOffset && !(instruction instanceof CfPosition)) {
+        instruction = instructions.get(--positionOffset);
+      }
+      if (instruction instanceof CfPosition) {
+        CfPosition position = (CfPosition) instruction;
+        state.setPosition(getCanonicalPosition(position.getPosition()));
+      } else {
+        state.setPosition(canonicalPositions.getPreamblePosition());
+      }
+    }
+    // Manually compute the local variable change for the block transfer.
+    LocalVariableList atSource = getLocalVariables(predecessorOffset);
+    LocalVariableList atTarget = getLocalVariables(successorOffset);
+    if (!isExceptional) {
+      for (Entry<DebugLocalInfo> entry : atSource.locals.int2ObjectEntrySet()) {
+        if (atTarget.locals.get(entry.getIntKey()) != entry.getValue()) {
+          builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
+        }
+      }
+    }
+    for (Entry<DebugLocalInfo> entry : atTarget.locals.int2ObjectEntrySet()) {
+      if (atSource.locals.get(entry.getIntKey()) != entry.getValue()) {
+        builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
+      }
+    }
+  }
+
+  @Override
   public void buildInstruction(
       IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
     CfInstruction instruction = code.getInstructions().get(instructionIndex);
     currentInstructionIndex = instructionIndex;
     if (firstBlockInstruction) {
       currentBlockInfo = builder.getCFG().get(instructionIndex);
+      if (instructionIndex == 0 && currentBlockInfo == null) {
+        // If the entry block is also a target the actual entry block is at offset -1.
+        currentBlockInfo = builder.getCFG().get(IRBuilder.INITIAL_BLOCK_OFFSET);
+      }
       state.reset(incomingState.get(instructionIndex), instructionIndex == 0);
     }
+    assert currentBlockInfo != null;
     setLocalVariableLists();
-    readEndingLocals(builder);
-    if (currentBlockInfo != null && instruction.canThrow()) {
+
+    if (instruction.canThrow()) {
       Snapshot exceptionTransfer =
           state.getSnapshot().exceptionTransfer(builder.getFactory().throwableType);
       for (int target : currentBlockInfo.exceptionalSuccessors) {
         recordStateForTarget(target, exceptionTransfer);
       }
     }
-    if (isControlFlow(instruction)) {
-      ensureDebugValueLivenessControl(builder);
-      instruction.buildIR(builder, state, this);
-      Snapshot stateSnapshot = state.getSnapshot();
-      for (int target : getTargets(instructionIndex)) {
-        recordStateForTarget(target, stateSnapshot);
+
+    boolean localsChanged = localsChanged();
+    boolean hasNextInstructionInCurrentBlock =
+        instructionIndex + 1 != instructionCount()
+            && !builder.getCFG().containsKey(instructionIndex + 1);
+
+    if (instruction.isReturn() || instruction instanceof CfThrow) {
+      // Ensure that all live locals are marked as ending on method exits.
+      assert currentBlockInfo.normalSuccessors.isEmpty();
+      if (currentBlockInfo.exceptionalSuccessors.isEmpty()) {
+        incomingLocals.forEach(builder::addDebugLocalEnd);
+      } else if (!incomingLocals.isEmpty()) {
+        // If the throw instruction does not exit the method, we must end (ensure liveness of) all
+        // locals that are not kept live by at least one of the exceptional successors.
+        Int2ReferenceMap<DebugLocalInfo> live = new Int2ReferenceOpenHashMap<>();
+        for (int successorOffset : currentBlockInfo.exceptionalSuccessors) {
+          live.putAll(getLocalVariables(successorOffset).locals);
+        }
+        for (Entry<DebugLocalInfo> entry : incomingLocals.int2ObjectEntrySet()) {
+          if (live.get(entry.getIntKey()) != entry.getValue()) {
+            builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
+          }
+        }
       }
-      state.clear();
-    } else {
-      if (instruction instanceof CfPosition) {
-        CfPosition cfPosition = (CfPosition) instruction;
-        Position position = cfPosition.getPosition();
-        CfPosition newCfPosition =
-            new CfPosition(cfPosition.getLabel(), getCanonicalPosition(position));
-        newCfPosition.buildIR(builder, state, this);
-      } else {
-        instruction.buildIR(builder, state, this);
-      }
-      ensureDebugValueLiveness(builder);
-      if (builder.getCFG().containsKey(currentInstructionIndex + 1)) {
-        recordStateForTarget(currentInstructionIndex + 1, state.getSnapshot());
-      }
+    } else if (localsChanged && hasNextInstructionInCurrentBlock) {
+      endLocals(builder);
     }
+
+    build(instruction, builder);
+    if (!hasNextInstructionInCurrentBlock) {
+      Snapshot stateSnapshot = state.getSnapshot();
+      if (isControlFlow(instruction)) {
+        for (int target : getTargets(instructionIndex)) {
+          recordStateForTarget(target, stateSnapshot);
+        }
+      } else {
+        recordStateForTarget(instructionIndex + 1, stateSnapshot);
+      }
+    } else if (localsChanged) {
+      startLocals(builder);
+    }
+  }
+
+  private void build(CfInstruction instruction, IRBuilder builder) {
+    instruction.buildIR(builder, state, this);
   }
 
   private void recordStateForTarget(int target, Snapshot snapshot) {
@@ -521,13 +591,24 @@ public class CfSourceCode implements SourceCode {
     }
   }
 
-  private void readEndingLocals(IRBuilder builder) {
-    if (!outgoingLocals.equals(incomingLocals)) {
-      // Add reads of locals ending after the current instruction.
-      for (Entry<DebugLocalInfo> entry : incomingLocals.int2ObjectEntrySet()) {
-        if (!entry.getValue().equals(outgoingLocals.get(entry.getIntKey()))) {
-          builder.addDebugLocalRead(entry.getIntKey(), entry.getValue());
-        }
+  private boolean localsChanged() {
+    return !incomingLocals.equals(outgoingLocals);
+  }
+
+  private void endLocals(IRBuilder builder) {
+    assert localsChanged();
+    for (Entry<DebugLocalInfo> entry : incomingLocals.int2ObjectEntrySet()) {
+      if (!entry.getValue().equals(outgoingLocals.get(entry.getIntKey()))) {
+        builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
+      }
+    }
+  }
+
+  private void startLocals(IRBuilder builder) {
+    assert localsChanged();
+    for (Entry<DebugLocalInfo> entry : outgoingLocals.int2ObjectEntrySet()) {
+      if (!entry.getValue().equals(incomingLocals.get(entry.getIntKey()))) {
+        builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
       }
     }
   }
@@ -551,40 +632,6 @@ public class CfSourceCode implements SourceCode {
       }
     }
     return result;
-  }
-
-  private void ensureDebugValueLiveness(IRBuilder builder) {
-    if (incomingLocals.equals(outgoingLocals)) {
-      return;
-    }
-    for (Entry<DebugLocalInfo> entry : incomingLocals.int2ObjectEntrySet()) {
-      if (entry.getValue().equals(outgoingLocals.get(entry.getIntKey()))) {
-        continue;
-      }
-      builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
-    }
-    for (Entry<DebugLocalInfo> entry : outgoingLocals.int2ObjectEntrySet()) {
-      if (entry.getValue().equals(incomingLocals.get(entry.getIntKey()))) {
-        continue;
-      }
-      builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
-    }
-  }
-
-  private void ensureDebugValueLivenessControl(IRBuilder builder) {
-    if (incomingLocals.equals(outgoingLocals)) {
-      return;
-    }
-    for (Entry<DebugLocalInfo> entry : incomingLocals.int2ObjectEntrySet()) {
-      if (entry.getValue().equals(outgoingLocals.get(entry.getIntKey()))) {
-        continue;
-      }
-      builder.addDebugLocalRead(entry.getIntKey(), entry.getValue());
-    }
-    assert outgoingLocals
-        .int2ObjectEntrySet()
-        .stream()
-        .allMatch(entry -> entry.getValue().equals(incomingLocals.get(entry.getIntKey())));
   }
 
   private boolean isControlFlow(CfInstruction currentInstruction) {
@@ -641,7 +688,7 @@ public class CfSourceCode implements SourceCode {
     return state.getPosition();
   }
 
-  private Position getCanonicalPosition(Position position) {
+  public Position getCanonicalPosition(Position position) {
     return canonicalPositions.getCanonical(
         new Position(
             position.line,

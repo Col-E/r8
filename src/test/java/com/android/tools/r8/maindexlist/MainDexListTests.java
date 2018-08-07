@@ -753,6 +753,12 @@ public class MainDexListTests extends TestBase {
     }
 
     @Override
+    public void buildBlockTransfer(
+        IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
+      throw new Unreachable();
+    }
+
+    @Override
     public void buildPostlude(IRBuilder builder) {
       // Intentionally empty.
     }

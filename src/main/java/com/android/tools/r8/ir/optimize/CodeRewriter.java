@@ -2221,6 +2221,7 @@ public class CodeRewriter {
             Value overwrittenLocal = instruction.removeDebugValue(localInfo);
             if (overwrittenLocal != null) {
               inValue.definition.addDebugValue(overwrittenLocal);
+              overwrittenLocal.addDebugLocalEnd(inValue.definition);
             }
             if (prevInstruction != null) {
               instruction.moveDebugValues(prevInstruction);

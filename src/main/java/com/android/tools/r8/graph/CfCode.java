@@ -65,6 +65,11 @@ public class CfCode extends Code {
     public CfLabel getEnd() {
       return end;
     }
+
+    @Override
+    public String toString() {
+      return "" + index + " => " + local;
+    }
   }
 
   private final DexMethod method;

@@ -164,6 +164,12 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
+  public void buildBlockTransfer(
+      IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
+    // Intentionally empty. Dex front-end does not support debug locals so no transfer info needed.
+  }
+
+  @Override
   public void buildInstruction(
       IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
     updateCurrentCatchHandlers(instructionIndex);

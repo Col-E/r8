@@ -192,6 +192,12 @@ public abstract class SyntheticSourceCode implements SourceCode {
   }
 
   @Override
+  public void buildBlockTransfer(
+      IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
+    // Intensionally empty as synthetic code does not contain locals information.
+  }
+
+  @Override
   public final void resolveAndBuildSwitch(
       int value, int fallthroughOffset, int payloadOffset, IRBuilder builder) {
     throw new Unreachable("Unexpected call to resolveAndBuildSwitch");

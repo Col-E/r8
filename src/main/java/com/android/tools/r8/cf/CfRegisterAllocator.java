@@ -7,6 +7,7 @@ import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRCode.LiveAtEntrySets;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
@@ -25,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.TreeSet;
 
 /**
@@ -41,7 +41,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
   private final InternalOptions options;
 
   // Mapping from basic blocks to the set of values live at entry to that basic block.
-  private Map<BasicBlock, Set<Value>> liveAtEntrySets;
+  private Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets;
 
   // List of all top-level live intervals for all SSA values.
   private final List<LiveIntervals> liveIntervals = new ArrayList<>();
@@ -106,7 +106,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
     ImmutableList<BasicBlock> blocks = computeLivenessInformation();
     performLinearScan();
     if (options.debug) {
-      LinearScanRegisterAllocator.computeDebugInfo(blocks, liveIntervals, this);
+      LinearScanRegisterAllocator.computeDebugInfo(blocks, liveIntervals, this, liveAtEntrySets);
     }
   }
 
@@ -252,10 +252,10 @@ public class CfRegisterAllocator implements RegisterAllocator {
   }
 
   public void addToLiveAtEntrySet(BasicBlock block, Collection<Phi> phis) {
-    liveAtEntrySets.get(block).addAll(phis);
+    liveAtEntrySets.get(block).liveValues.addAll(phis);
   }
 
   public Collection<Value> getLocalsAtBlockEntry(BasicBlock block) {
-    return liveAtEntrySets.get(block);
+    return liveAtEntrySets.get(block).liveValues;
   }
 }

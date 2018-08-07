@@ -5,25 +5,61 @@ package com.android.tools.r8.debug;
 
 import static org.hamcrest.core.IsNot.not;
 
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
+import java.util.Collection;
 import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-/**
- * Test single stepping behaviour of synchronized blocks.
- */
+/** Test single stepping behaviour of synchronized blocks. */
+@RunWith(Parameterized.class)
 public class SynchronizedBlockTest extends DebugTestBase {
 
   public static final String CLASS = "SynchronizedBlock";
   public static final String FILE = "SynchronizedBlock.java";
 
-  private static DebugTestConfig config;
+  private final String name;
+  private final DebugTestConfig config;
 
-  @BeforeClass
-  public static void setup() {
-    config = new D8DebugTestResourcesConfig(temp);
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Object[]> setup() {
+    DelayedDebugTestConfig cf =
+        temp -> new CfDebugTestConfig().addPaths(DebugTestBase.DEBUGGEE_JAR);
+    DelayedDebugTestConfig r8cf = temp -> new R8CfDebugTestResourcesConfig(temp);
+    DelayedDebugTestConfig r8cfcf =
+        temp -> {
+          Path out = temp.getRoot().toPath().resolve("r8cfcf.jar");
+          try {
+            ToolHelper.runR8(
+                R8Command.builder()
+                    .setOutput(out, OutputMode.ClassFile)
+                    .setMode(CompilationMode.DEBUG)
+                    .addProgramFiles(DebugTestBase.DEBUGGEE_JAR)
+                    .build(),
+                options -> options.enableCfFrontend = true);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+          return new CfDebugTestConfig().addPaths(out);
+        };
+    DelayedDebugTestConfig d8 = temp -> new D8DebugTestResourcesConfig(temp);
+    return ImmutableList.of(
+        new Object[] {"CF", cf},
+        new Object[] {"D8", d8},
+        new Object[] {"R8/CF", r8cf},
+        new Object[] {"R8/CF/CF", r8cfcf});
+  }
+
+  public SynchronizedBlockTest(String name, DelayedDebugTestConfig config) {
+    this.name = name;
+    this.config = config.getConfig(temp);
   }
 
   @Test

@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.ir.conversion.JarState.Local;
+import com.android.tools.r8.ir.conversion.JarState.LocalChangeAtOffset;
 import com.android.tools.r8.ir.conversion.JarState.Slot;
 import com.android.tools.r8.logging.Log;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -467,6 +468,32 @@ public class JarSourceCode implements SourceCode {
   }
 
   @Override
+  public void buildBlockTransfer(
+      IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
+    assert currentInstruction == null || predecessorOffset == getOffset(currentInstruction);
+    currentInstruction = null;
+    if (predecessorOffset == IRBuilder.INITIAL_BLOCK_OFFSET
+        || successorOffset == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
+      return;
+    }
+    currentPosition = getCanonicalDebugPositionAtOffset(predecessorOffset);
+
+    LocalChangeAtOffset localChange = state.getLocalChange(predecessorOffset, successorOffset);
+    if (!isExceptional) {
+      for (Local toClose : localChange.getLocalsToClose()) {
+        builder.addDebugLocalEnd(toClose.slot.register, toClose.info);
+      }
+    }
+    List<Local> localsToOpen = localChange.getLocalsToOpen();
+    if (!localsToOpen.isEmpty()) {
+      state.restoreState(successorOffset);
+      for (Local toOpen : localsToOpen) {
+        builder.addDebugLocalStart(toOpen.slot.register, toOpen.info);
+      }
+    }
+  }
+
+  @Override
   public void buildInstruction(
       IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
     if (instructionIndex == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
@@ -482,13 +509,7 @@ public class JarSourceCode implements SourceCode {
     // current position will be updated by LineNumberNode into this block.
     if (firstBlockInstruction || instructionIndex == 0) {
       state.restoreState(instructionIndex);
-      // Don't include line changes when processing a label. Doing so will end up emitting local
-      // writes after the line has changed and thus causing locals to become visible too late.
-      currentPosition =
-          getCanonicalDebugPositionAtOffset(
-              ((instructionIndex > 0) && (insn instanceof LabelNode))
-                  ? instructionIndex - 1
-                  : instructionIndex);
+      currentPosition = getCanonicalDebugPositionAtOffset(instructionIndex);
     }
 
     String preInstructionState;
@@ -496,30 +517,20 @@ public class JarSourceCode implements SourceCode {
       preInstructionState = state.toString();
     }
 
-    if (firstBlockInstruction && insn != initialLabel) {
-      int offset = getOffset(insn);
-      state.beginTransactionAtBlockStart(offset);
-      assert state.getLocalsToClose().isEmpty();
-      for (Local local : state.getLocalsToOpen()) {
-        builder.addDebugLocalStart(local.slot.register, local.info);
-      }
-      state.endTransaction();
-    }
-
     boolean hasNextInstruction =
         instructionIndex + 1 != instructionCount()
             && !builder.getCFG().containsKey(instructionIndex + 1);
     state.beginTransaction(instructionIndex + 1, hasNextInstruction);
-    build(insn, builder);
-    if (hasNextInstruction || !isControlFlowInstruction(insn)) {
-      // We're either in straight-line code or at the end of a fallthrough block.
-      // Close locals starting at this point.
+    if (hasNextInstruction) {
+      // Explicitly end all locals ending at this point.
       for (Local local : state.getLocalsToClose()) {
         builder.addDebugLocalEnd(local.slot.register, local.info);
       }
     }
+    build(insn, builder);
+    // If the block continues past this instruction then local state should be updated.
     if (hasNextInstruction) {
-      // Open the scope of locals starting at this point.
+      // Ensure starts of locals starting at this point.
       for (Local local : state.getLocalsToOpen()) {
         builder.addDebugLocalStart(local.slot.register, local.info);
       }
@@ -536,6 +547,8 @@ public class JarSourceCode implements SourceCode {
             offset, instructionToString(insn), preInstructionState, state);
       }
     }
+
+    currentInstruction = null;
   }
 
   private boolean verifyExceptionEdgesAreRecorded(AbstractInsnNode insn) {
@@ -1862,23 +1875,12 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private void processLocalVariablesAtControlEdge(AbstractInsnNode insn, IRBuilder builder) {
-    assert isControlFlowInstruction(insn) && !isReturn(insn);
-    int offset = getOffset(insn);
-    int blockOffset = builder.getCFG().headMap(offset).lastIntKey();
-    BlockInfo blockInfo = builder.getCFG().get(blockOffset);
-    // Read all locals that are not live on all successors to ensure liveness.
-    for (Local local : state.localsNotLiveAtAllSuccessors(blockInfo.allSuccessors())) {
-      builder.addDebugLocalRead(local.slot.register, local.info);
-    }
-  }
-
   private void processLocalVariablesAtExit(AbstractInsnNode insn, IRBuilder builder) {
     assert isReturn(insn) || isThrow(insn);
     // Read all locals live at exit to ensure liveness.
     for (Local local : state.getLocals()) {
       if (local.info != null) {
-        builder.addDebugLocalRead(local.slot.register, local.info);
+        builder.addDebugLocalEnd(local.slot.register, local.info);
       }
     }
   }
@@ -2323,7 +2325,24 @@ public class JarSourceCode implements SourceCode {
     if (isExitingThrow(insn)) {
       processLocalVariablesAtExit(insn, builder);
     } else {
-      processLocalVariablesAtControlEdge(insn, builder);
+      int offset = getOffset(insn);
+      Int2ReferenceSortedMap<BlockInfo> cfg = builder.getCFG();
+      BlockInfo info = cfg.get(cfg.headMap(offset + 1).lastIntKey());
+      assert info.normalSuccessors.isEmpty();
+      assert !info.exceptionalSuccessors.isEmpty();
+      Int2ReferenceMap<DebugLocalInfo> ending = new Int2ReferenceOpenHashMap<>();
+      for (int successorOffset : info.exceptionalSuccessors) {
+        if (successorOffset == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
+          // TODO(zerny): It would likely be beneficial to keep locals live until the exit from the
+          // exceptional sync exit block.
+          continue;
+        }
+        LocalChangeAtOffset localChange = state.getLocalChange(offset, successorOffset);
+        for (Local localEnd : localChange.getLocalsToClose()) {
+          ending.put(localEnd.slot.register, localEnd.info);
+        }
+      }
+      ending.forEach(builder::addDebugLocalEnd);
     }
     builder.addThrow(register);
   }
@@ -2659,7 +2678,6 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void build(JumpInsnNode insn, IRBuilder builder) {
-    processLocalVariablesAtControlEdge(insn, builder);
     int[] targets = getTargets(insn);
     int opcode = insn.getOpcode();
     if (Opcodes.IFEQ <= opcode && opcode <= Opcodes.IF_ACMPNE) {
@@ -2749,12 +2767,10 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void build(TableSwitchInsnNode insn, IRBuilder builder) {
-    processLocalVariablesAtControlEdge(insn, builder);
     buildSwitch(insn.dflt, insn.labels, new int[]{insn.min}, builder);
   }
 
   private void build(LookupSwitchInsnNode insn, IRBuilder builder) {
-    processLocalVariablesAtControlEdge(insn, builder);
     int[] keys = new int[insn.keys.size()];
     for (int i = 0; i < insn.keys.size(); i++) {
       keys[i] = (int) insn.keys.get(i);

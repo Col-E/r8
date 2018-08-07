@@ -54,6 +54,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeCustom;
+import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.MoveException;
@@ -137,18 +138,25 @@ public class IRBuilder {
   }
 
   private static class MoveExceptionWorklistItem extends WorklistItem {
+    private final int sourceOffset;
     private final int targetOffset;
 
-    private MoveExceptionWorklistItem(BasicBlock block, int targetOffset) {
+    private MoveExceptionWorklistItem(BasicBlock block, int sourceOffset, int targetOffset) {
       super(block, -1);
+      this.sourceOffset = sourceOffset;
       this.targetOffset = targetOffset;
     }
   }
 
   private static class SplitBlockWorklistItem extends WorklistItem {
+    private final int sourceOffset;
+    private final int targetOffset;
 
-    public SplitBlockWorklistItem(BasicBlock block) {
-      super(block, -1);
+    public SplitBlockWorklistItem(
+        int firstInstructionIndex, BasicBlock block, int sourceOffset, int targetOffset) {
+      super(block, firstInstructionIndex);
+      this.sourceOffset = sourceOffset;
+      this.targetOffset = targetOffset;
     }
   }
 
@@ -234,8 +242,9 @@ public class IRBuilder {
       return all;
     }
 
-    boolean hasJustOneNormalExit() {
-      return normalSuccessors.size() == 1 && exceptionalSuccessors.isEmpty();
+    boolean hasMoreThanASingleNormalExit() {
+      return normalSuccessors.size() > 1
+          || (normalSuccessors.size() == 1 && !exceptionalSuccessors.isEmpty());
     }
 
     BlockInfo split(
@@ -312,6 +321,8 @@ public class IRBuilder {
 
   private BasicBlock entryBlock = null;
   private BasicBlock currentBlock = null;
+  private int currentInstructionOffset = -1;
+
   final private ValueNumberGenerator valueNumberGenerator;
   private final DexEncodedMethod method;
   private final AppInfo appInfo;
@@ -324,7 +335,7 @@ public class IRBuilder {
 
   // Pending local reads.
   private Value previousLocalValue = null;
-  private final List<Value> debugLocalReads = new ArrayList<>();
+  private final List<Value> debugLocalEnds = new ArrayList<>();
 
   // Lazily populated list of local values that are referenced without being actually defined.
   private Int2ReferenceMap<List<Value>> uninitializedDebugLocalValues = null;
@@ -580,6 +591,7 @@ public class IRBuilder {
       if (item.block.isFilled()) {
         continue;
       }
+      assert debugLocalEnds.isEmpty();
       setCurrentBlock(item.block);
       blocks.add(currentBlock);
       currentBlock.setNumber(nextBlockNumber++);
@@ -589,10 +601,21 @@ public class IRBuilder {
         closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
         continue;
       }
-      // Split blocks are just pending close.
+      // Process split blocks which need to emit the locals transfer.
       if (item instanceof SplitBlockWorklistItem) {
-        closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
-        continue;
+        SplitBlockWorklistItem splitEdgeItem = (SplitBlockWorklistItem) item;
+        source.buildBlockTransfer(
+            this, splitEdgeItem.sourceOffset, splitEdgeItem.targetOffset, false);
+        if (item.firstInstructionIndex == -1) {
+          // If the block is a pure split-edge block emit goto (picks up local ends) and close.
+          addInstruction(new Goto(), Position.none());
+          closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
+          continue;
+        } else if (!debugLocalEnds.isEmpty()) {
+          // Otherwise, if some locals ended, insert a read so it takes place at the
+          // predecessor position.
+          addInstruction(new DebugLocalRead());
+        }
       }
       // Build IR for each dex instruction in the block.
       int instCount = source.instructionCount();
@@ -600,12 +623,14 @@ public class IRBuilder {
         if (currentBlock == null) {
           break;
         }
-        BlockInfo info = targets.get(source.instructionOffset(i));
+        int instructionOffset = source.instructionOffset(i);
+        BlockInfo info = targets.get(instructionOffset);
         if (info != null && info.block != currentBlock) {
-          closeCurrentBlockWithFallThrough(info.block);
           addToWorklist(info.block, i);
+          closeCurrentBlockWithFallThrough(info.block);
           break;
         }
+        currentInstructionOffset = instructionOffset;
         source.buildInstruction(this, i, i == item.firstInstructionIndex);
       }
     }
@@ -615,17 +640,29 @@ public class IRBuilder {
     // TODO(zerny): Link with outer try-block handlers, if any. b/65203529
     int targetIndex = source.instructionIndex(moveExceptionItem.targetOffset);
     int moveExceptionDest = source.getMoveExceptionRegister(targetIndex);
+    Position position = source.getCanonicalDebugPositionAtOffset(moveExceptionItem.targetOffset);
     if (moveExceptionDest >= 0) {
       Value out = writeRegister(moveExceptionDest, ValueType.OBJECT, ThrowingInfo.NO_THROW, null);
-      Position position = source.getCanonicalDebugPositionAtOffset(moveExceptionItem.targetOffset);
       MoveException moveException = new MoveException(out);
       moveException.setPosition(position);
       currentBlock.add(moveException);
     }
-    Goto exit = new Goto();
-    currentBlock.add(exit);
+    // The block-transfer for exceptional edges needs to inform that this is an exceptional transfer
+    // so that local ends become implicit. The reason for this issue is that the "split block" for
+    // and exceptional edge is *after* control transfer, so inserting an end will end up causing
+    // locals to remain live longer than they should. The problem with this is that it is now
+    // possible to resurrect a local by declaring debug info that does not contain the exception
+    // handler but then loading the value from the local index. This should not be a problem in
+    // practice since the stack is empty so the known case of extending the local liveness via the
+    // stack can't happen. If this does end up being an issue, it can potentially be solved by
+    // ending any local that could possibly end in any of the exceptional targets and then
+    // explicitly restart the local on each split-edge that does not end the local.
+    boolean isExceptionalEdge = true;
+    source.buildBlockTransfer(
+        this, moveExceptionItem.sourceOffset, moveExceptionItem.targetOffset, isExceptionalEdge);
     BasicBlock targetBlock = getTarget(moveExceptionItem.targetOffset);
     currentBlock.link(targetBlock);
+    addInstruction(new Goto(), position);
     addToWorklist(targetBlock, targetIndex);
   }
 
@@ -680,7 +717,7 @@ public class IRBuilder {
   private Value getIncomingLocalValue(int register, DebugLocalInfo local) {
     assert options.debug;
     assert local != null;
-    assert local == getIncomingLocal(register);
+    // TODO(b/111251032): Here we lookup a value with type based on debug info. That's just wrong!
     ValueType valueType = ValueType.fromDexType(local.type);
     return readRegisterIgnoreLocal(register, valueType, local);
   }
@@ -691,47 +728,21 @@ public class IRBuilder {
     return !value.isUninitializedLocal() && value.getLocalInfo() == local;
   }
 
-  public void addDebugLocalRead(int register, DebugLocalInfo local) {
-    if (!options.debug) {
-      return;
-    }
-    Value value = getIncomingLocalValue(register, local);
-    if (isValidFor(value, local)) {
-      debugLocalReads.add(value);
-    }
-  }
-
   public void addDebugLocalStart(int register, DebugLocalInfo local) {
     if (!options.debug) {
       return;
     }
     assert local != null;
     assert local == getOutgoingLocal(register);
+    // TODO(b/111251032): Here we lookup a value with type based on debug info. That's just wrong!
     ValueType valueType = ValueType.fromDexType(local.type);
-    // TODO(mathiasr): Here we create a Phi with type based on debug info. That's just wrong!
     Value incomingValue = readRegisterIgnoreLocal(register, valueType, local);
-
-    // TODO(mathiasr): This can be simplified once trivial phi removal is local-info aware.
-    if (incomingValue.isPhi() || incomingValue.getLocalInfo() != local) {
+    // If the local was not introduced by the previous instruction, start it here.
+    if (incomingValue.getLocalInfo() != local
+        || currentBlock.isEmpty()
+        || currentBlock.getInstructions().getLast().outValue() != incomingValue) {
       addDebugLocalWrite(ValueType.fromDexType(local.type), register, incomingValue);
-      return;
     }
-    assert incomingValue.getLocalInfo() == local;
-    assert !incomingValue.isUninitializedLocal();
-
-    // When inserting a start there are three possibilities:
-    // 1. The block is empty (eg, instructions from block entry until now materialized to nothing).
-    // 2. The block is non-empty and the last instruction defines the local to start.
-    // 3. The block is non-empty and the last instruction does not define the local to start.
-    if (currentBlock.getInstructions().isEmpty()) {
-      addInstruction(new DebugLocalRead());
-    }
-    Instruction instruction = currentBlock.getInstructions().getLast();
-    if (instruction.outValue() == incomingValue) {
-      return;
-    }
-    instruction.addDebugValue(incomingValue);
-    incomingValue.addDebugLocalStart(instruction);
   }
 
   public void addDebugLocalEnd(int register, DebugLocalInfo local) {
@@ -739,38 +750,18 @@ public class IRBuilder {
       return;
     }
     Value value = getIncomingLocalValue(register, local);
-    if (!isValidFor(value, local)) {
-      return;
-    }
-    // When inserting an end there are three possibilities:
-    // 1. The block is empty (eg, instructions from block entry until now materialized to nothing).
-    // 2. The block has an instruction not defining the local being ended.
-    // 3. The block has an instruction defining the local being ended.
-    if (currentBlock.getInstructions().isEmpty()) {
-      addInstruction(new DebugLocalRead());
-    }
-    Instruction instruction = currentBlock.getInstructions().getLast();
-    if (instruction.outValue() != value) {
-      instruction.addDebugValue(value);
-      value.addDebugLocalEnd(instruction);
-      return;
-    }
-    // In case 3. there are two cases:
-    // a. The defining instruction is a debug-write, in which case it should be removed.
-    // b. The defining instruction is overwriting the local value, in which case we de-associate it.
-    assert !instruction.outValue().isUsed();
-    if (instruction.isDebugLocalWrite()) {
-      DebugLocalWrite write = instruction.asDebugLocalWrite();
-      currentBlock.replaceCurrentDefinitions(value, write.src());
-      currentBlock.listIterator(write).removeOrReplaceByDebugLocalRead();
-    } else {
-      instruction.outValue().clearLocalInfo();
+    if (isValidFor(value, local)) {
+      debugLocalEnds.add(value);
     }
   }
 
   public void addDebugPosition(Position position) {
     if (options.debug) {
       assert source.getCurrentPosition().equals(position);
+      if (!debugLocalEnds.isEmpty()) {
+        // If there are pending local ends, end them before changing the line.
+        addInstruction(new DebugLocalRead(), Position.none());
+      }
       addInstruction(new DebugPosition());
     }
   }
@@ -1007,12 +998,11 @@ public class IRBuilder {
   }
 
   public void addGoto(int targetOffset) {
-    addInstruction(new Goto());
     BasicBlock targetBlock = getTarget(targetOffset);
     assert !currentBlock.hasCatchSuccessor(targetBlock);
     currentBlock.link(targetBlock);
     addToWorklist(targetBlock, source.instructionIndex(targetOffset));
-    closeCurrentBlock();
+    closeCurrentBlock(new Goto());
   }
 
   private void addTrivialIf(int trueTargetOffset, int falseTargetOffset) {
@@ -1024,14 +1014,12 @@ public class IRBuilder {
     // We expected an if here and therefore we incremented the expected predecessor count
     // twice for the following block.
     target.decrementUnfilledPredecessorCount();
-    addInstruction(new Goto());
     currentBlock.link(target);
     addToWorklist(target, source.instructionIndex(trueTargetOffset));
-    closeCurrentBlock();
+    closeCurrentBlock(new Goto());
   }
 
   private void addNonTrivialIf(If instruction, int trueTargetOffset, int falseTargetOffset) {
-    addInstruction(instruction);
     BasicBlock trueTarget = getTarget(trueTargetOffset);
     BasicBlock falseTarget = getTarget(falseTargetOffset);
     currentBlock.link(trueTarget);
@@ -1039,7 +1027,7 @@ public class IRBuilder {
     // Generate fall-through before the block that is branched to.
     addToWorklist(falseTarget, source.instructionIndex(falseTargetOffset));
     addToWorklist(trueTarget, source.instructionIndex(trueTargetOffset));
-    closeCurrentBlock();
+    closeCurrentBlock(instruction);
   }
 
   public void addIf(If.Type type, ValueType operandType, int value1, int value2,
@@ -1406,8 +1394,7 @@ public class IRBuilder {
     // Attach the live locals to the return instruction to avoid a local change on monitor exit.
     attachLocalValues(ret);
     source.buildPostlude(this);
-    addInstruction(ret);
-    closeCurrentBlock();
+    closeCurrentBlock(ret);
   }
 
   public void addStaticGet(int dest, DexField field) {
@@ -1497,8 +1484,8 @@ public class IRBuilder {
     // Create a switch with only the non-fallthrough targets.
     keys = nonFallthroughKeys.toIntArray();
     labelOffsets = nonFallthroughOffsets.toIntArray();
-    addInstruction(createSwitch(switchValue, keys, fallthroughOffset, labelOffsets));
-    closeCurrentBlock();
+    Switch aSwitch = createSwitch(switchValue, keys, fallthroughOffset, labelOffsets);
+    closeCurrentBlock(aSwitch);
   }
 
   private Switch createSwitch(Value value, int[] keys, int fallthroughOffset, int[] targetOffsets) {
@@ -1537,6 +1524,9 @@ public class IRBuilder {
 
   public void addThrow(int value) {
     Value in = readRegister(value, ValueType.OBJECT);
+    // The only successors to a throw instruction are exceptional, so we directly add it (ensuring
+    // the exceptional edges which are split-edge by construction) and then we close the block which
+    // cannot have any additional edges that need splitting.
     addInstruction(new Throw(in));
     closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
   }
@@ -1932,7 +1922,8 @@ public class IRBuilder {
             header = new BasicBlock();
             header.incrementUnfilledPredecessorCount();
             moveExceptionHeaders.put(target, header);
-            ssaWorklist.add(new MoveExceptionWorklistItem(header, targetOffset));
+            ssaWorklist.add(
+                new MoveExceptionWorklistItem(header, currentInstructionOffset, targetOffset));
           }
           targets.add(header);
         }
@@ -1944,20 +1935,22 @@ public class IRBuilder {
   private void attachLocalValues(Instruction ir) {
     if (!options.debug) {
       assert previousLocalValue == null;
-      assert debugLocalReads.isEmpty();
+      assert debugLocalEnds.isEmpty();
       return;
     }
     // Add a use if this instruction is overwriting a previous value of the same local.
     if (previousLocalValue != null && previousLocalValue.getLocalInfo() == ir.getLocalInfo()) {
       assert ir.outValue() != null;
       ir.addDebugValue(previousLocalValue);
+      previousLocalValue.addDebugLocalEnd(ir);
     }
     // Add reads of locals if any are pending.
-    for (Value value : debugLocalReads) {
+    for (Value value : debugLocalEnds) {
       ir.addDebugValue(value);
+      value.addDebugLocalEnd(ir);
     }
     previousLocalValue = null;
-    debugLocalReads.clear();
+    debugLocalEnds.clear();
   }
 
   // Package (ie, SourceCode accessed) helpers.
@@ -2067,48 +2060,80 @@ public class IRBuilder {
   }
 
   private void closeCurrentBlockGuaranteedNotToNeedEdgeSplitting() {
-    // TODO(zerny): To ensure liveness of locals throughout the entire block, we might want to
-    // insert reads before closing the block. It is unclear if we can rely on a local-end to ensure
-    // liveness in all blocks where the local should be live.
     assert currentBlock != null;
     currentBlock.close(this);
     setCurrentBlock(null);
     throwingInstructionInCurrentBlock = false;
+    currentInstructionOffset = -1;
+    assert debugLocalEnds.isEmpty();
   }
 
-  private void closeCurrentBlock() {
+  private void closeCurrentBlock(JumpInstruction jumpInstruction) {
+    assert !jumpInstruction.instructionTypeCanThrow();
     assert currentBlock != null;
+    assert currentBlock.getInstructions().isEmpty()
+        || !currentBlock.getInstructions().getLast().isJumpInstruction();
+    generateSplitEdgeBlocks();
+    addInstruction(jumpInstruction);
+    closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
+  }
+
+  private void closeCurrentBlockWithFallThrough(BasicBlock nextBlock) {
+    assert currentBlock != null;
+    assert !currentBlock.hasCatchSuccessor(nextBlock);
+    currentBlock.link(nextBlock);
+    closeCurrentBlock(new Goto());
+  }
+
+  private void generateSplitEdgeBlocks() {
+    assert currentBlock != null;
+    assert currentBlock.isEmpty() || !currentBlock.getInstructions().getLast().isJumpInstruction();
     BlockInfo info = getBlockInfo(currentBlock);
-    if (!info.hasJustOneNormalExit()) {
+    if (info.hasMoreThanASingleNormalExit()) {
       // Exceptional edges are always split on construction, so no need to split edges to them.
+      // Introduce split-edge blocks for all normal edges and push them on the work list.
       for (int successorOffset : info.normalSuccessors) {
         BlockInfo successorInfo = getBlockInfo(successorOffset);
-        if (successorInfo.predecessorCount() > 1) {
+        if (successorInfo.predecessorCount() == 1) {
+          // re-add to worklist as a unique succ
+          WorklistItem oldItem = null;
+          for (WorklistItem item : ssaWorklist) {
+            if (item.block == successorInfo.block) {
+              oldItem = item;
+            }
+          }
+          assert oldItem.firstInstructionIndex == source.instructionIndex(successorOffset);
+          ssaWorklist.remove(oldItem);
+          ssaWorklist.add(
+              new SplitBlockWorklistItem(
+                  oldItem.firstInstructionIndex,
+                  oldItem.block,
+                  currentInstructionOffset,
+                  successorOffset));
+        } else {
           BasicBlock splitBlock = createSplitEdgeBlock(currentBlock, successorInfo.block);
-          ssaWorklist.add(new SplitBlockWorklistItem(splitBlock));
+          ssaWorklist.add(
+              new SplitBlockWorklistItem(
+                  -1, splitBlock, currentInstructionOffset, successorOffset));
         }
       }
+    } else if (info.normalSuccessors.size() == 1) {
+      int successorOffset = info.normalSuccessors.iterator().nextInt();
+      source.buildBlockTransfer(this, currentInstructionOffset, successorOffset, false);
+    } else {
+      // TODO(zerny): Consider refactoring to compute the live-at-exit via callback here too.
+      assert info.allSuccessors().isEmpty();
     }
-    closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
   }
 
   private static BasicBlock createSplitEdgeBlock(BasicBlock source, BasicBlock target) {
     BasicBlock splitBlock = new BasicBlock();
-    splitBlock.add(new Goto());
     splitBlock.incrementUnfilledPredecessorCount();
     splitBlock.getPredecessors().add(source);
     splitBlock.getSuccessors().add(target);
     source.replaceSuccessor(target, splitBlock);
     target.replacePredecessor(source, splitBlock);
     return splitBlock;
-  }
-
-  private void closeCurrentBlockWithFallThrough(BasicBlock nextBlock) {
-    assert currentBlock != null;
-    addInstruction(new Goto());
-    assert !currentBlock.hasCatchSuccessor(nextBlock);
-    currentBlock.link(nextBlock);
-    closeCurrentBlock();
   }
 
   /**

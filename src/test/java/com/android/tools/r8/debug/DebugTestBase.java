@@ -246,6 +246,9 @@ public abstract class DebugTestBase {
 
           @Override
           public JUnit3Wrapper.DebuggeeState get() {
+            if (wrapper.state == JUnit3Wrapper.State.Exit) {
+              return null;
+            }
             assert verifyStateLocation(wrapper.getDebuggeeState());
             if (initial) {
               if (DEBUG_TESTS) {

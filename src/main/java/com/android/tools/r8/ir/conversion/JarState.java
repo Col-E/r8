@@ -81,7 +81,7 @@ public class JarState {
   }
 
   // Collection of locals information at a program point.
-  private static class LocalsAtOffset {
+  static class LocalsAtOffset {
     // Note that we assume live is always a super-set of starts.
     final List<LocalNodeInfo> live;
     final List<LocalNodeInfo> starts;
@@ -256,6 +256,41 @@ public class JarState {
     public String toString() {
       return "locals: " + localsToString(Arrays.asList(locals))
           + ", stack: " + stackToString(stack);
+    }
+  }
+
+  public static class LocalChangeAtOffset {
+
+    final LocalsAtOffset atExit;
+    final LocalsAtOffset atEntry;
+    private JarState state;
+
+    private LocalChangeAtOffset(LocalsAtOffset atExit, LocalsAtOffset atEntry, JarState state) {
+      this.atExit = atExit;
+      this.atEntry = atEntry;
+      this.state = state;
+    }
+
+    public List<Local> getLocalsToClose() {
+      List<Local> toClose = new ArrayList<>(atExit.live.size());
+      for (LocalNodeInfo liveAtExit : atExit.live) {
+        if (!atEntry.isLive(liveAtExit.info)) {
+          int register = state.getLocalRegister(liveAtExit.node.index, liveAtExit.type);
+          toClose.add(new Local(new Slot(register, liveAtExit.type), liveAtExit.info));
+        }
+      }
+      return toClose;
+    }
+
+    public List<Local> getLocalsToOpen() {
+      List<Local> toOpen = new ArrayList<>(atEntry.live.size());
+      for (LocalNodeInfo liveAtEntry : atEntry.live) {
+        if (!atExit.isLive(liveAtEntry.info)) {
+          int register = state.getLocalRegister(liveAtEntry.node.index, liveAtEntry.type);
+          toOpen.add(new Local(new Slot(register, liveAtEntry.type), liveAtEntry.info));
+        }
+      }
+      return toOpen;
     }
   }
 
@@ -527,6 +562,18 @@ public class JarState {
       setLocalForRegister(local.slot.register, local.slot.type, null);
     }
     localsToClose.clear();
+  }
+
+  private LocalsAtOffset getLocalsAtOffset(int offset) {
+    Int2ReferenceSortedMap<LocalsAtOffset> headMap = localsAtOffsetTable.headMap(offset + 1);
+    return localsAtOffsetTable.get(headMap.lastIntKey());
+  }
+
+  public LocalChangeAtOffset getLocalChange(int predecessorIndex, int successorIndex) {
+    return new LocalChangeAtOffset(
+        getLocalsAtOffset(predecessorIndex),
+        getLocalsAtOffset(successorIndex),
+        this);
   }
 
   public List<Local> getLocalsToClose() {

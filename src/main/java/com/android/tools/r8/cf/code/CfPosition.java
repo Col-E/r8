@@ -41,7 +41,8 @@ public class CfPosition extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    state.setPosition(position);
-    builder.addDebugPosition(position);
+    Position canonical = code.getCanonicalPosition(position);
+    state.setPosition(canonical);
+    builder.addDebugPosition(canonical);
   }
 }

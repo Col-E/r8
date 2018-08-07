@@ -49,6 +49,9 @@ public interface SourceCode {
 
   void buildInstruction(IRBuilder builder, int instructionIndex, boolean firstBlockInstruction);
 
+  void buildBlockTransfer(
+      IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional);
+
   void buildPostlude(IRBuilder builder);
 
   // Helper to resolve switch payloads and build switch instructions (dex code only).

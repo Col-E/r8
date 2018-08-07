@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRCode.LiveAtEntrySets;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
@@ -31,7 +32,6 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.regalloc.RegisterPositions.Type;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
@@ -126,7 +126,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private final InternalOptions options;
 
   // Mapping from basic blocks to the set of values live at entry to that basic block.
-  private Map<BasicBlock, Set<Value>> liveAtEntrySets;
+  private Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets;
   // The value of the first argument, or null if the method has no arguments.
   protected Value firstArgumentValue;
   // The value of the last argument, or null if the method has no arguments.
@@ -254,12 +254,14 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private void computeDebugInfo(ImmutableList<BasicBlock> blocks) {
-    computeDebugInfo(blocks, liveIntervals, this);
+    computeDebugInfo(blocks, liveIntervals, this, liveAtEntrySets);
   }
 
   public static void computeDebugInfo(
-      ImmutableList<BasicBlock> blocks, List<LiveIntervals> liveIntervals,
-      RegisterAllocator allocator) {
+      ImmutableList<BasicBlock> blocks,
+      List<LiveIntervals> liveIntervals,
+      RegisterAllocator allocator,
+      Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets) {
     // Collect live-ranges for all SSA values with local information.
     List<LocalRange> ranges = new ArrayList<>();
     for (LiveIntervals interval : liveIntervals) {
@@ -267,46 +269,19 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       if (!value.hasLocalInfo()) {
         continue;
       }
-      List<Integer> starts = ListUtils.map(value.getDebugLocalStarts(), Instruction::getNumber);
-      List<Integer> ends = ListUtils.map(value.getDebugLocalEnds(), Instruction::getNumber);
-      List<LiveRange> liveRanges = new ArrayList<>();
-      liveRanges.addAll(interval.getRanges());
+      List<LiveRange> liveRanges = new ArrayList<>(interval.getRanges());
       for (LiveIntervals child : interval.getSplitChildren()) {
         assert child.getValue() == value;
         assert child.getSplitChildren() == null || child.getSplitChildren().isEmpty();
         liveRanges.addAll(child.getRanges());
       }
       liveRanges.sort((r1, r2) -> Integer.compare(r1.start, r2.start));
-      starts.sort(Integer::compare);
-      ends.sort(Integer::compare);
-
       for (LiveRange liveRange : liveRanges) {
         int start = liveRange.start;
         int end = liveRange.end;
-        Integer nextEnd;
-        while ((nextEnd = nextInRange(start, end, ends)) != null) {
-          // If an argument value has been split, we have disallowed argument reuse and therefore,
-          // the argument value is also in the argument register throughout the method. For debug
-          // information, we always use the argument register whenever a local corresponds to an
-          // argument value. That avoids ending and restarting locals whenever we move arguments
-          // to lower register.
-          int register = allocator.getArgumentOrAllocateRegisterForValue(value, start);
-          ranges.add(new LocalRange(value, register, start, nextEnd));
-          Integer nextStart = nextInRange(nextEnd, end, starts);
-          if (nextStart == null) {
-            start = -1;
-            break;
-          }
-          start = nextStart;
-        }
-        if (start >= 0) {
-          ranges.add(
-              new LocalRange(
-                  value,
-                  allocator.getArgumentOrAllocateRegisterForValue(value, start),
-                  start,
-                  end));
-        }
+        ranges.add(
+            new LocalRange(
+                value, allocator.getArgumentOrAllocateRegisterForValue(value, start), start, end));
       }
     }
     if (ranges.isEmpty()) {
@@ -321,11 +296,33 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     Int2ReferenceMap<DebugLocalInfo> ending = new Int2ReferenceOpenHashMap<>();
     Int2ReferenceMap<DebugLocalInfo> starting = new Int2ReferenceOpenHashMap<>();
 
+    boolean isEntryBlock = true;
     for (BasicBlock block : blocks) {
-      // Skip past all spill moves to obtain the instruction number of the actual first instruction.
       InstructionListIterator instructionIterator = block.listIterator();
-      instructionIterator.nextUntil(
-          i -> !i.isArgument() && !i.isMoveException() && !isSpillInstruction(i));
+      Set<Value> liveLocalValues = new HashSet<>(liveAtEntrySets.get(block).liveLocalValues);
+      // Skip past arguments and open argument and phi locals.
+      if (isEntryBlock) {
+        isEntryBlock = false;
+        assert block.getPhis().isEmpty();
+        while (instructionIterator.hasNext()) {
+          Instruction instruction = instructionIterator.next();
+          if (!instruction.isArgument()) {
+            break;
+          }
+          if (instruction.outValue().hasLocalInfo()) {
+            liveLocalValues.add(instruction.outValue());
+          }
+        }
+        instructionIterator.previous();
+      } else {
+        for (Phi phi : block.getPhis()) {
+          if (phi.hasLocalInfo()) {
+            liveLocalValues.add(phi);
+          }
+        }
+      }
+      // Skip past all spill moves to obtain the instruction number of the actual first instruction.
+      instructionIterator.nextUntil(i -> !i.isMoveException() && !isSpillInstruction(i));
       Instruction firstInstruction = instructionIterator.previous();
       int firstIndex = firstInstruction.getNumber();
 
@@ -333,14 +330,18 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // might be live upon entering the first instruction (if they are used by it). Since we
       // skipped move-exception this closes locals at the move exception which should close as part
       // of the exceptional transfer.
-      openRanges.removeIf(openRange -> !isLocalLiveAtInstruction(firstInstruction, openRange));
+      openRanges.removeIf(
+          openRange ->
+              !liveLocalValues.contains(openRange.value)
+                  || !isLocalLiveAtInstruction(firstInstruction, openRange));
 
       // Open ranges up-to but excluding the first instruction. Starts are inclusive but entry is
       // prior to the first instruction.
       while (nextStartingRange != null && nextStartingRange.start < firstIndex) {
         // If the range is live at this index open it. Again the end is inclusive here because the
         // instruction is live at block entry if it is live at entry to the first instruction.
-        if (isLocalLiveAtInstruction(firstInstruction, nextStartingRange)) {
+        if (liveLocalValues.contains(nextStartingRange.value)
+            && isLocalLiveAtInstruction(firstInstruction, nextStartingRange)) {
           openRanges.add(nextStartingRange);
         }
         nextStartingRange = rangeIterator.hasNext() ? rangeIterator.next() : null;
@@ -359,30 +360,51 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // Iterate the block instructions and emit locals changed events.
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
-        if (instruction.isDebugLocalRead()) {
-          // Remove debug local reads now that local liveness is computed.
-          assert !instruction.getDebugValues().isEmpty();
-          instruction.clearDebugValues();
-          instructionIterator.remove();
-        }
         if (!instructionIterator.hasNext()) {
           break;
         }
+
+        if (!instruction.getDebugValues().isEmpty()) {
+          for (Value endAnnotation : instruction.getDebugValues()) {
+            ListIterator<LocalRange> it = openRanges.listIterator();
+            while (it.hasNext()) {
+              LocalRange openRange = it.next();
+              if (openRange.value == endAnnotation) {
+                it.remove();
+                assert currentLocals.get(openRange.register) == openRange.local;
+                currentLocals.remove(openRange.register);
+                ending.put(openRange.register, openRange.local);
+                break;
+              }
+            }
+          }
+          // Remove the end markers now that local liveness is computed.
+          instruction.clearDebugValues();
+          if (instruction.isDebugLocalRead()) {
+            Instruction prev = instructionIterator.previous();
+            assert prev == instruction;
+            instructionIterator.remove();
+          }
+        }
+
         Instruction nextInstruction = instructionIterator.peekNext();
         if (isSpillInstruction(nextInstruction)) {
           // No need to insert a DebugLocalsChange instruction before a spill instruction.
           continue;
         }
         int index = nextInstruction.getNumber();
-        ListIterator<LocalRange> it = openRanges.listIterator(0);
-        while (it.hasNext()) {
-          LocalRange openRange = it.next();
-          // Close ranges up-to but excluding the first instruction.
-          if (!isLocalLiveAtInstruction(nextInstruction, openRange)) {
-            it.remove();
-            assert currentLocals.get(openRange.register) == openRange.local;
-            currentLocals.remove(openRange.register);
-            ending.put(openRange.register, openRange.local);
+        {
+          ListIterator<LocalRange> it = openRanges.listIterator();
+          while (it.hasNext()) {
+            LocalRange openRange = it.next();
+            // Close ranges up-to but excluding the first instruction.
+            if (!isLocalLiveAtInstruction(nextInstruction, openRange)) {
+              it.remove();
+              // It may be that currentLocals does not contain this local because an explicit end
+              // already closed the local.
+              currentLocals.remove(openRange.register);
+              ending.put(openRange.register, openRange.local);
+            }
           }
         }
         while (nextStartingRange != null && nextStartingRange.start < index) {
@@ -2292,7 +2314,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         int toInstruction = successor.entry().getNumber();
 
         // Insert spill/restore moves when a value changes across a block boundary.
-        Set<Value> liveAtEntry = liveAtEntrySets.get(successor);
+        Set<Value> liveAtEntry = liveAtEntrySets.get(successor).liveValues;
         for (Value value : liveAtEntry) {
           LiveIntervals parentInterval = value.getLiveIntervals();
           LiveIntervals fromIntervals = parentInterval.getSplitCovering(fromInstruction);
@@ -2388,8 +2410,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           LiveIntervals thisIntervals = thisValue.getLiveIntervals();
           thisIntervals.getRanges().clear();
           thisIntervals.addRange(new LiveRange(0, code.getNextInstructionNumber()));
-          for (Set<Value> values : liveAtEntrySets.values()) {
-            values.add(thisValue);
+          for (LiveAtEntrySets values : liveAtEntrySets.values()) {
+            values.liveValues.add(thisValue);
           }
           return;
         }
@@ -2397,20 +2419,18 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  /**
-   * Compute live ranges based on liveAtEntry sets for all basic blocks.
-   */
+  /** Compute live ranges based on liveAtEntry sets for all basic blocks. */
   public static void computeLiveRanges(
       InternalOptions options,
       IRCode code,
-      Map<BasicBlock, Set<Value>> liveAtEntrySets,
+      Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets,
       List<LiveIntervals> liveIntervals) {
     for (BasicBlock block : code.topologicallySortedBlocks()) {
       Set<Value> live = new HashSet<>();
       List<BasicBlock> successors = block.getSuccessors();
       Set<Value> phiOperands = new HashSet<>();
       for (BasicBlock successor : successors) {
-        live.addAll(liveAtEntrySets.get(successor));
+        live.addAll(liveAtEntrySets.get(successor).liveValues);
         for (Phi phi : successor.getPhis()) {
           live.remove(phi);
           phiOperands.add(phi.getOperand(successor.getPredecessors().indexOf(block)));
