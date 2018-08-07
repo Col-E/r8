@@ -1722,7 +1722,7 @@ public class IRBuilder {
         assert block.getPredecessors().isEmpty();
         // If a debug-local is referenced at the entry block, lazily introduce an SSA value for it.
         // This value must *not* be added to the entry blocks current definitions since
-        // uninitialized debug-locals may be reference at the same register/local-index yet be of
+        // uninitialized debug-locals may be referenced at the same register/local-index yet be of
         // different types (eg, int in one part of the CFG and float in a disjoint part).
         value = getUninitializedDebugLocalValue(register, type, local);
       } else if (!block.isSealed()) {
@@ -1766,12 +1766,14 @@ public class IRBuilder {
         }
       }
     } else {
-      uninitializedDebugLocalValues.put(register, new ArrayList<>(2));
+      values = new ArrayList<>(2);
+      uninitializedDebugLocalValues.put(register, values);
     }
     // Create a new SSA value for the uninitialized local value.
-    // Note that the uninitialized local value *does not* itself have local information!
+    // Note that the uninitialized local value must not itself have local information, so that it
+    // does not contribute to the visible/live-range of the local variable.
     Value value = new Value(valueNumberGenerator.next(), type, null);
-    uninitializedDebugLocalValues.get(register).add(value);
+    values.add(value);
     return value;
   }
 
