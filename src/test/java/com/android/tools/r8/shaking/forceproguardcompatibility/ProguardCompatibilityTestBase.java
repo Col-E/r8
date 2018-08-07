@@ -115,14 +115,8 @@ public class ProguardCompatibilityTestBase extends TestBase {
       Consumer<InternalOptions> configure,
       Backend backend)
       throws Exception {
-    assert backend == Backend.DEX || backend == Backend.CF;
     AndroidApp app = readClassesAndRuntimeJar(programClasses, backend);
-    R8Command.Builder builder =
-        ToolHelper.prepareR8CommandBuilder(
-            app,
-            backend == Backend.DEX
-                ? DexIndexedConsumer.emptyConsumer()
-                : ClassFileConsumer.emptyConsumer());
+    R8Command.Builder builder = ToolHelper.prepareR8CommandBuilder(app, emptyConsumer(backend));
     ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
     return ToolHelper.runR8(builder.build(), configure);

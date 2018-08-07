@@ -721,4 +721,22 @@ public class TestBase {
       return this != NONE;
     }
   }
+
+  public static ProgramConsumer emptyConsumer(Backend backend) {
+    if (backend == Backend.DEX) {
+      return DexIndexedConsumer.emptyConsumer();
+    } else {
+      assert backend == Backend.CF;
+      return ClassFileConsumer.emptyConsumer();
+    }
+  }
+
+  public static Path runtimeJar(Backend backend) {
+    if (backend == Backend.DEX) {
+      return ToolHelper.getDefaultAndroidJar();
+    } else {
+      assert backend == Backend.CF;
+      return ToolHelper.getJava8RuntimeJar();
+    }
+  }
 }

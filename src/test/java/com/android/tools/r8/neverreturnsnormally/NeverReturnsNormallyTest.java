@@ -7,9 +7,7 @@ package com.android.tools.r8.neverreturnsnormally;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -53,15 +51,8 @@ public class NeverReturnsNormallyTest extends TestBase {
       boolean enableClassInliner, CompilationMode mode) throws Exception {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
-    assert (backend == Backend.DEX || backend == Backend.CF);
-    builder.setProgramConsumer(
-        backend == Backend.DEX
-            ? DexIndexedConsumer.emptyConsumer()
-            : ClassFileConsumer.emptyConsumer());
-    builder.addLibraryFiles(
-        backend == Backend.DEX
-            ? ToolHelper.getDefaultAndroidJar()
-            : ToolHelper.getJava8RuntimeJar());
+    builder.setProgramConsumer(emptyConsumer(backend));
+    builder.addLibraryFiles(runtimeJar(backend));
     builder.setMode(mode);
     builder.addProguardConfiguration(
         ImmutableList.of(
@@ -93,6 +84,7 @@ public class NeverReturnsNormallyTest extends TestBase {
       // Run on Art to check generated code against verifier.
       runOnArt(app, TestClass.class);
     } else {
+      assert backend == Backend.CF;
       runOnJava(app, TestClass.class);
     }
   }

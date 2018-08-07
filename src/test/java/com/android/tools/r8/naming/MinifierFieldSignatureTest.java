@@ -21,8 +21,6 @@ import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.V1_8;
 
-import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsChecker;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
@@ -180,7 +178,6 @@ public class MinifierFieldSignatureTest extends TestBase {
       Consumer<CodeInspector> inspect)
       throws Exception {
     DiagnosticsChecker checker = new DiagnosticsChecker();
-    assert (backend == Backend.CF || backend == Backend.DEX);
     CodeInspector inspector =
         new CodeInspector(
             ToolHelper.runR8(
@@ -192,10 +189,8 @@ public class MinifierFieldSignatureTest extends TestBase {
                             "-keepattributes InnerClasses,EnclosingMethod,Signature",
                             "-keep,allowobfuscation class ** { *; }"),
                         Origin.unknown())
-                    .setProgramConsumer(
-                        backend == Backend.DEX
-                            ? DexIndexedConsumer.emptyConsumer()
-                            : ClassFileConsumer.emptyConsumer())
+                    .setProgramConsumer(emptyConsumer(backend))
+                    .addLibraryFiles(runtimeJar(backend))
                     .setProguardMapConsumer(StringConsumer.emptyConsumer())
                     .build(),
                 options -> {

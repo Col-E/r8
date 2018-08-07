@@ -6,9 +6,7 @@ package com.android.tools.r8.movestringconstants;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -45,15 +43,8 @@ public class MoveStringConstantsTest extends TestBase {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(Utils.class));
-    builder.addLibraryFiles(
-        backend == Backend.DEX
-            ? ToolHelper.getDefaultAndroidJar()
-            : ToolHelper.getJava8RuntimeJar());
-    assert (backend == Backend.CF || backend == Backend.DEX);
-    builder.setProgramConsumer(
-        backend == Backend.DEX
-            ? DexIndexedConsumer.emptyConsumer()
-            : ClassFileConsumer.emptyConsumer());
+    builder.addLibraryFiles(runtimeJar(backend));
+    builder.setProgramConsumer(emptyConsumer(backend));
     builder.setMode(CompilationMode.RELEASE);
     builder.addProguardConfiguration(
         ImmutableList.of(
@@ -82,6 +73,7 @@ public class MoveStringConstantsTest extends TestBase {
       // Run on Art to check generated code against verifier.
       runOnArt(app, TestClass.class);
     } else {
+      assert backend == Backend.CF;
       runOnJava(app, TestClass.class);
     }
   }
