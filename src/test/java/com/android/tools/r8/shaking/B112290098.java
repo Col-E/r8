@@ -13,7 +13,6 @@ import org.junit.Test;
 
 public class B112290098 extends TestBase {
 
-  @Ignore("b/112290098")
   @Test
   public void test() throws Exception {
     String mainClass = TestClass.class.getName();
