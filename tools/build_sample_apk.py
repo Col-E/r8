@@ -85,6 +85,10 @@ def get_bin_path(app):
 def get_android_jar(api):
   return os.path.join(utils.REPO_ROOT, ANDROID_JAR.format(api=api))
 
+def get_guava_jar():
+  return os.path.join(utils.REPO_ROOT,
+                      'third_party/gradle-plugin/com/google/guava/guava/22.0/guava-22.0.jar')
+
 def get_sample_dir(app):
   return os.path.join(utils.REPO_ROOT, 'src', 'test', 'sampleApks', app)
 
@@ -132,8 +136,11 @@ def compile_with_javac(api, app):
   with utils.ChangedWorkingDirectory(get_sample_dir(app)):
     files = glob.glob(SRC_LOCATION.format(app=app))
     command = [DEFAULT_JAVAC,
-               '-classpath', get_android_jar(api),
-               '-sourcepath', '%s:%s' % (get_src_path(app), get_gen_path(app)),
+               '-classpath', '%s:%s' % (get_android_jar(api), get_guava_jar()),
+               '-sourcepath', '%s:%s:%s' % (
+                   get_src_path(app),
+                   get_gen_path(app),
+                   get_guava_jar()),
                '-d', get_bin_path(app)]
     command.extend(files)
     utils.PrintCmd(command)
@@ -149,6 +156,8 @@ def dex(app, api):
              '--classpath', get_android_jar(api),
              '--min-api', str(api)]
   command.extend(files)
+  command.append(get_guava_jar())
+
   utils.PrintCmd(command)
   subprocess.check_call(command)
 
@@ -253,7 +262,7 @@ def benchmark(app, output_dir):
   start(app)
   # We could do better here by continiously parsing the logcat for a marker, but
   # this works nicely with the current setup.
-  time.sleep(8)
+  time.sleep(12)
   kill(app)
   return float(store_or_print_benchmarks(stop_logcat(logcat), output_dir))
 

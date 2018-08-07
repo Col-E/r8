@@ -5,6 +5,9 @@
 package com.android.tools.r8.sample.split;
 
 import com.android.tools.r8.sample.split.R8Activity;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.ConcurrentHashMultiset;
 
 public class SplitClass {
   int initialValue;
@@ -13,14 +16,39 @@ public class SplitClass {
     this.initialValue = initialValue;
   }
 
-
-
   public int calculate(int x) {
     int result = 2;
     for (int i = 0; i < 42; i++) {
       result += initialValue + x;
     }
     return result;
+  }
+
+  public int guava(int iterations) {
+    for (int i = 0; i < iterations; i++) {
+      int result = 0;
+      ImmutableList<String> a = ImmutableList.of(
+          "foo",
+          "bar",
+          "foobar",
+          "last");
+      if (a.contains("foobar")) {
+        result++;
+      }
+      if (a.subList(0, 2).contains("last")) {
+        throw new RuntimeException("WAT");
+      }
+      result = a.size();
+      Multiset<String> set = ConcurrentHashMultiset.create();
+      for (int j = 0; j < 100; j++) {
+        set.add(a.get(j%4));
+      }
+      for (String s : a) {
+        result += set.count(s);
+      }
+    }
+    return 42;
+
   }
 
   public int largeMethod(int x, int y) {
@@ -103,6 +131,16 @@ public class SplitClass {
 
     return a + b - c * x;
   }
+
+  public int callSplitLocal() {
+    SplitClass split = new SplitClass(initialValue);
+    for (int i = 0; i < R8Activity.ITERATIONS / R8Activity.SPLITS; i++) {
+      // Ensure no dead code elimination.
+      initialValue = split.calculate(i);
+    }
+    return initialValue;
+  }
+
 
   public int callBase() {
     BaseClass base = new BaseClass(initialValue);

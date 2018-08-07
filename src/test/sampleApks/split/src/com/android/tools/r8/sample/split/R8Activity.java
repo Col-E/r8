@@ -8,10 +8,23 @@ import android.app.Activity;
 import android.os.Bundle;
 import com.android.tools.r8.sample.split.R;
 import com.android.tools.r8.sample.split.SplitClass;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.ConcurrentHashMultiset;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * Benchmarking of splits. Generally the naming is like this:
+ * Base -> Split (no postfix)
+ * Base -> Base (Local, to get the corresponding performance if no split involved)
+ * Split -> Split (SplitLocal)
+ * Split -> Base (SplitCallback)
+ * Base no call overhead (Baseline)
+ * In most of these cases we have the methods duplicated between the SplitClass and this class.
+ * This is to enable output of the split and not split version of the code without having to
+ * run in two different build configurations (i.e., with and without using split code)
+ */
 public class R8Activity extends Activity {
   // Enables easy splitting of iterations to better see effect of jit in later versions of art
   public static final int ITERATIONS = 100000;
@@ -34,6 +47,14 @@ public class R8Activity extends Activity {
       total += benchmarkCall();
     }
     System.out.println("Call Total: " + total);
+
+
+    total = 0;
+    for (int i = 0; i < SPLITS; i++) {
+      total += benchmarkCallSplitLocal();
+    }
+    System.out.println("CallSplitLocal Total: " + total);
+
 
     total = 0;
     for (int i = 0; i < SPLITS; i++) {
@@ -83,6 +104,19 @@ public class R8Activity extends Activity {
     }
     System.out.println("LargeMethodCallLocal Total: " + total);
 
+    total = 0;
+    for (int i = 0; i < SPLITS; i++) {
+      total += benchmarkGuava();
+    }
+    System.out.println("Guava Total: " + total);
+
+
+    total = 0;
+    for (int i = 0; i < SPLITS; i++) {
+      total += benchmarkGuavaLocal();
+    }
+    System.out.println("GuavaLocal Total: " + total);
+
   }
 
   private long benchmarkCall() {
@@ -97,12 +131,38 @@ public class R8Activity extends Activity {
     return timeElapsed;
   }
 
+  private long benchmarkGuava() {
+    SplitClass split = new SplitClass(3);
+    long start = System.nanoTime();
+    res = split.guava(ITERATIONS / SPLITS / 10);
+    long finish = System.nanoTime();
+    long timeElapsed = (finish - start) / 1000;
+    return timeElapsed;
+  }
+
+  private long benchmarkGuavaLocal() {
+    long start = System.nanoTime();
+    res = guava(ITERATIONS / SPLITS / 10);
+    long finish = System.nanoTime();
+    long timeElapsed = (finish - start) / 1000;
+    return timeElapsed;
+  }
+
   private long benchmarkCallLocal() {
     long start = System.nanoTime();
     for (int i = 0; i < ITERATIONS / SPLITS; i++) {
       // Ensure no dead code elimination.
       res = calculate(i);
     }
+    long finish = System.nanoTime();
+    long timeElapsed = (finish - start) / 1000;
+    return timeElapsed;
+  }
+
+  private long benchmarkCallSplitLocal() {
+    SplitClass split = new SplitClass(3);
+    long start = System.nanoTime();
+    split.callSplitLocal();
     long finish = System.nanoTime();
     long timeElapsed = (finish - start) / 1000;
     return timeElapsed;
@@ -196,6 +256,32 @@ public class R8Activity extends Activity {
     long finish = System.nanoTime();
     long timeElapsed = (finish - start) / 1000;
     return timeElapsed;
+  }
+
+  public int guava(int iterations) {
+    for (int i = 0; i < iterations; i++) {
+      int result = 0;
+      ImmutableList<String> a = ImmutableList.of(
+          "foo",
+          "bar",
+          "foobar",
+          "last");
+      if (a.contains("foobar")) {
+        result++;
+      }
+      if (a.subList(0, 2).contains("last")) {
+        throw new RuntimeException("WAT");
+      }
+      result = a.size();
+      Multiset<String> set = ConcurrentHashMultiset.create();
+      for (int j = 0; j < 100; j++) {
+        set.add(a.get(j%4));
+      }
+      for (String s : a) {
+        result += set.count(s);
+      }
+    }
+    return 42;
   }
 
   public int calculate(int x) {
