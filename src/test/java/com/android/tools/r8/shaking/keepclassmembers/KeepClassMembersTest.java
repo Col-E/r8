@@ -17,9 +17,25 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.Collection;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KeepClassMembersTest extends ProguardCompatibilityTestBase {
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public KeepClassMembersTest(Backend backend) {
+    this.backend = backend;
+  }
 
   private void check(CodeInspector inspector, Class mainClass, Class<?> staticClass,
       boolean forceProguardCompatibility, boolean fromProguard) {
@@ -71,9 +87,13 @@ public class KeepClassMembersTest extends ProguardCompatibilityTestBase {
         "-dontoptimize", "-dontobfuscate"
     ));
     CodeInspector inspector;
-      inspector = new CodeInspector(
-          compileWithR8(ImmutableList.of(mainClass, staticClass), proguardConfig,
-              options -> options.forceProguardCompatibility = forceProguardCompatibility));
+    inspector =
+        new CodeInspector(
+            compileWithR8(
+                readClasses(ImmutableList.of(mainClass, staticClass)),
+                proguardConfig,
+                options -> options.forceProguardCompatibility = forceProguardCompatibility,
+                backend));
     check(inspector, mainClass, staticClass, forceProguardCompatibility, false);
 
     if (isRunProguard()) {

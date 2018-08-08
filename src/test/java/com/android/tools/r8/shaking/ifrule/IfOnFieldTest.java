@@ -31,7 +31,7 @@ public class IfOnFieldTest extends ProguardCompatibilityTestBase {
 
   @Parameters(name = "shrinker: {0}")
   public static Collection<Object> data() {
-    return ImmutableList.of(Shrinker.PROGUARD6, Shrinker.R8);
+    return ImmutableList.of(Shrinker.PROGUARD6, Shrinker.R8, Shrinker.R8_CF);
   }
 
   private String adaptConfiguration(String proguardConfig) {

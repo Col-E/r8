@@ -51,8 +51,9 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected AndroidApp runShrinker(
-      Shrinker mode, List<Class> programClasses, Iterable<String> proguadConfigs) throws Exception {
-    return runShrinker(mode, programClasses, String.join(System.lineSeparator(), proguadConfigs));
+      Shrinker mode, List<Class> programClasses, Iterable<String> proguardConfigs)
+      throws Exception {
+    return runShrinker(mode, programClasses, String.join(System.lineSeparator(), proguardConfigs));
   }
 
   protected AndroidApp runShrinker(Shrinker mode, List<Class> programClasses, String proguardConfig)

@@ -8,12 +8,16 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
@@ -58,10 +62,12 @@ public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
   @Parameters(name = "shrinker: {0} inlineMethod: {1}")
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as triggering inlining in Proguard is out of our control.
+    // TODO(b/64432527) Add configuration {Shrinker.R8_CF, true} when fixed. For now we fail to
+    // inline because of the exception handler.
     return ImmutableList.of(
-        new Object[]{Shrinker.R8, true},
-        new Object[]{Shrinker.R8, false}
-    );
+        new Object[] {Shrinker.R8, true},
+        new Object[] {Shrinker.R8, false},
+        new Object[] {Shrinker.R8_CF, false});
   }
 
   private void check(AndroidApp app) throws Exception {
@@ -72,7 +78,15 @@ public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
     assertEquals(!inlineMethod, clazzA.method("int", "a", ImmutableList.of()).isPresent());
     // TODO(110148109): class D should be present - inlining or not.
     assertEquals(!inlineMethod, inspector.clazz(D.class).isPresent());
-    ProcessResult result = runOnArtRaw(app, Main.class.getName());
+    ProcessResult result;
+    if (shrinker == Shrinker.R8) {
+      result = runOnArtRaw(app, Main.class.getName());
+    } else {
+      assert shrinker == Shrinker.R8_CF;
+      Path file = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
+      app.writeToZip(file, OutputMode.ClassFile);
+      result = ToolHelper.runJava(file, Main.class.getName());
+    }
     assertEquals(0, result.exitCode);
     // TODO(110148109): Output should be the same - inlining or not.
     assertEquals(!inlineMethod ? "1" : "2", result.stdout);

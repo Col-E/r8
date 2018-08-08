@@ -8,6 +8,8 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
@@ -15,6 +17,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
@@ -74,9 +78,10 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as Proguard does not merge A into B.
     return ImmutableList.of(
-        new Object[]{Shrinker.R8, true},
-        new Object[]{Shrinker.R8, false}
-    );
+        new Object[] {Shrinker.R8, true},
+        new Object[] {Shrinker.R8, false},
+        new Object[] {Shrinker.R8_CF, true},
+        new Object[] {Shrinker.R8_CF, false});
   }
 
   private void configure(InternalOptions options) {
@@ -99,7 +104,15 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
     // TODO(110141157): Class D should be kept - vertical class merging or not.
     assertEquals(!enableClassMerging, clazzD.isPresent());
 
-    ProcessResult result = runOnArtRaw(app, Main.class.getName());
+    ProcessResult result;
+    if (shrinker == Shrinker.R8) {
+      result = runOnArtRaw(app, Main.class.getName());
+    } else {
+      assert shrinker == Shrinker.R8_CF;
+      Path file = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
+      app.writeToZip(file, OutputMode.ClassFile);
+      result = ToolHelper.runJava(file, Main.class.getName());
+    }
     // TODO(110141157): The code should run - vertical class merging or not.
     assertEquals(enableClassMerging ? 1 : 0, result.exitCode);
     if (!enableClassMerging) {
