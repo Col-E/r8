@@ -97,7 +97,7 @@ public abstract class GraphLense {
 
   public abstract DexMethod getRenamedMethodSignature(DexMethod originalMethod);
 
-  public final DexEncodedMethod mapDexEncodedMethod(
+  public DexEncodedMethod mapDexEncodedMethod(
       AppInfo appInfo, DexEncodedMethod originalEncodedMethod) {
     DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method);
     if (newMethod != originalEncodedMethod.method) {
