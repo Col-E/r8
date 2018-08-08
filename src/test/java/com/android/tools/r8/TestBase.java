@@ -324,7 +324,7 @@ public class TestBase {
 
   /** Compile an application with D8. */
   protected AndroidApp compileWithD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws IOException {
+      throws IOException, CompilationFailedException {
     return ToolHelper.runD8(app, optionsConsumer);
   }
 
@@ -400,11 +400,7 @@ public class TestBase {
   protected AndroidApp compileWithR8(
       AndroidApp app, String proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationFailedException {
-    R8Command command =
-        ToolHelper.prepareR8CommandBuilder(app)
-            .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown())
-            .build();
-    return ToolHelper.runR8(command, optionsConsumer);
+    return compileWithR8(app, proguardConfig, optionsConsumer, Backend.DEX);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration and backend. */
