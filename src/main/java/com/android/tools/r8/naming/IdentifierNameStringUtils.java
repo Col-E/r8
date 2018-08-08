@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemBasedString;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -24,10 +23,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.position.TextPosition;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import java.util.List;
 import java.util.Map;
@@ -370,39 +365,5 @@ public final class IdentifierNameStringUtils {
       types[i] = typeMap.get(i);
     }
     return new DexTypeList(types);
-  }
-
-  public static void warnUndeterminedIdentifierIfNecessary(
-      AppInfo appInfo,
-      InternalOptions options,
-      DexItem member,
-      DexType originHolder,
-      Instruction instruction,
-      DexString original) {
-    assert member instanceof DexField || member instanceof DexMethod;
-    DexClass originClass = appInfo.definitionFor(originHolder);
-    // If the origin is a library class, it is out of developers' control.
-    if (originClass != null && originClass.isLibraryClass()) {
-      return;
-    }
-    // Undetermined identifiers matter only if minification is enabled.
-    if (!options.proguardConfiguration.isObfuscating()) {
-      return;
-    }
-    Origin origin = appInfo.originFor(originHolder);
-    String kind = member instanceof DexField ? "field" : "method";
-    String originalMessage = original == null ? "what identifier string flows to "
-        : "what '" + original.toString() + "' refers to, which flows to ";
-    String message =
-        "Cannot determine " + originalMessage + member.toSourceString()
-            + " that is specified in -identifiernamestring rules."
-            + " Thus, not all identifier strings flowing to that " + kind
-            + " are renamed, which can cause resolution failures at runtime.";
-    StringDiagnostic diagnostic =
-        instruction.getPosition().line >= 1
-            ? new StringDiagnostic(message, origin,
-                new TextPosition(0L, instruction.getPosition().line, 1))
-            : new StringDiagnostic(message, origin);
-    options.reporter.warning(diagnostic);
   }
 }
