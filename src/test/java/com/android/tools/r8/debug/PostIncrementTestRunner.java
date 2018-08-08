@@ -4,8 +4,10 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import java.util.stream.Stream;
+import org.junit.Assume;
 import org.junit.Test;
 
 // See b/80385846
@@ -16,6 +18,8 @@ public class PostIncrementTestRunner extends DebugTestBase {
 
   @Test
   public void test() throws Exception {
+    Assume.assumeTrue("Older runtimes cause some kind of debug streaming issues",
+        ToolHelper.getDexVm().isNewerThan(DexVm.ART_5_1_1_HOST));
     DebugTestConfig cfConfig = new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());
     DebugTestConfig d8Config = new D8DebugTestConfig().compileAndAddClasses(temp, CLASS);
     new DebugStreamComparator()

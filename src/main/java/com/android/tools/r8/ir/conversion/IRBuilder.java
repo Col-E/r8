@@ -733,7 +733,10 @@ public class IRBuilder {
       return;
     }
     assert local != null;
-    assert local == getOutgoingLocal(register);
+    assert local == getOutgoingLocal(register) :
+        "local-start mismatch: " + local + " != " + getOutgoingLocal(register)
+            + " at " + currentInstructionOffset
+            + " for source\n" + source.toString();
     // TODO(b/111251032): Here we lookup a value with type based on debug info. That's just wrong!
     ValueType valueType = ValueType.fromDexType(local.type);
     Value incomingValue = readRegisterIgnoreLocal(register, valueType, local);
