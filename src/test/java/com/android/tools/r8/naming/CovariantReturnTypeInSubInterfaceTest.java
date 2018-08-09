@@ -7,15 +7,20 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 interface SuperInterface {
   Super foo();
@@ -42,14 +47,14 @@ class Sub extends Super {
 class SuperImplementer implements SuperInterface {
   @Override
   public Super foo() {
-    return new Super();
+    return new Sub();
   }
 }
 
-class SubImplementer implements SubInterface {
+class SubImplementer extends SuperImplementer implements SubInterface {
   @Override
   public Sub foo() {
-    return new Sub();
+    return (Sub) super.foo();
   }
 }
 
@@ -57,19 +62,22 @@ class TestMain {
   public static void main(String[] args) {
     SubImplementer subImplementer = new SubImplementer();
     Super sup = subImplementer.foo();
-    System.out.println(sup.bar());
+    System.out.print(sup.bar());
   }
 }
 
+@RunWith(VmTestRunner.class)
 public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
 
-  @Ignore("b/112185748")
-  @Test
-  public void test() throws Exception {
+  private void test(boolean overloadAggressively) throws Exception {
+    String mainName = TestMain.class.getCanonicalName();
+    String aggressive =
+        overloadAggressively ? "-overloadaggressively" : "# Not overload aggressively";
     List<String> config = ImmutableList.of(
         "-printmapping",
         "-useuniqueclassmembernames",
-        "-keep class " + TestMain.class.getCanonicalName() + " {",
+        aggressive,
+        "-keep class " + mainName + " {",
         "  public void main(...);",
         "}",
         "-keep,allowobfuscation class **.Super* {",
@@ -88,7 +96,10 @@ public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
         SubImplementer.class,
         TestMain.class
     );
-    AndroidApp processedApp = compileWithR8(app, String.join(System.lineSeparator(), config));
+    AndroidApp processedApp =
+        compileWithR8(app, String.join(System.lineSeparator(), config), options -> {
+          options.enableInlining = false;
+        });
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject superInterface = inspector.clazz(SuperInterface.class);
     assertThat(superInterface, isRenamed());
@@ -101,6 +112,24 @@ public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
         Sub.class.getCanonicalName(), "foo", ImmutableList.of());
     assertThat(foo2, isRenamed());
     assertEquals(foo1.getFinalName(), foo2.getFinalName());
+
+    ProcessResult javaResult = ToolHelper.runJava(ToolHelper.getClassPathForTests(), mainName);
+    assertEquals(0, javaResult.exitCode);
+    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
+    processedApp.writeToZip(outDex, OutputMode.DexIndexed);
+    ProcessResult artResult = ToolHelper.runArtNoVerificationErrorsRaw(outDex.toString(), mainName);
+    assertEquals(0, artResult.exitCode);
+    assertEquals(javaResult.stdout, artResult.stdout);
+  }
+
+  @Test
+  public void test_notAggressively() throws Exception {
+    test(false);
+  }
+
+  @Test
+  public void test_aggressively() throws Exception {
+    test(true);
   }
 
 }
