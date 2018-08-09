@@ -581,7 +581,7 @@ public class BasicBlock {
     assert predecessors.size() == 1;
     assert predecessors.get(0).successors.size() == 1;
     BasicBlock unlinkedBlock = predecessors.get(0);
-    predecessors.get(0).successors.clear();
+    unlinkedBlock.successors.clear();
     predecessors.clear();
     return unlinkedBlock;
   }
@@ -604,7 +604,7 @@ public class BasicBlock {
     assert successors.size() == 1;
     assert successors.get(0).predecessors.size() == 1;
     BasicBlock unlinkedBlock = successors.get(0);
-    successors.get(0).predecessors.clear();
+    unlinkedBlock.predecessors.clear();
     successors.clear();
     return unlinkedBlock;
   }

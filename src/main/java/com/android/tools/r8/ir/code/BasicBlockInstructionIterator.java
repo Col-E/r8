@@ -291,21 +291,19 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
 
   private void appendCatchHandlers(IRCode code, BasicBlock invokeBlock,
       IRCode inlinee, ListIterator<BasicBlock> blocksIterator) {
-    BasicBlock inlineeBlock = null;
-    // Move back through the inlinee blocks added (they are now in the basic blocks list).
+    // Position right after the empty invoke block, by moving back through the newly added inlinee
+    // blocks (they are now in the basic blocks list).
     for (int i = 0; i < inlinee.blocks.size(); i++) {
-      inlineeBlock = blocksIterator.previous();
+      blocksIterator.previous();
     }
-    assert inlineeBlock == inlinee.blocks.getFirst();
-    // Position right after the empty invoke block.
-    inlineeBlock = blocksIterator.next();
-    assert inlineeBlock == inlinee.blocks.getFirst();
+    assert IteratorUtils.peekNext(blocksIterator) == inlinee.blocks.getFirst();
 
-    // Iterate through the inlined blocks (they are now in the basic blocks list).
+    // Iterate through the inlined blocks.
     Iterator<BasicBlock> inlinedBlocksIterator = inlinee.blocks.iterator();
     while (inlinedBlocksIterator.hasNext()) {
       BasicBlock inlinedBlock = inlinedBlocksIterator.next();
-      assert inlineeBlock == inlinedBlock;  // Iterators must be in sync.
+      BasicBlock expected = blocksIterator.next();
+      assert inlinedBlock == expected; // Iterators must be in sync.
       if (inlinedBlock.hasCatchHandlers()) {
         // The block already has catch handlers, so it has only one throwing instruction, and no
         // splitting is required.
@@ -316,23 +314,17 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
         // handlers must be added to each of these blocks.
         splitBlockAndCopyCatchHandlers(code, invokeBlock, inlinedBlock, blocksIterator);
       }
-      // Iterate to the next inlined block (if more inlined blocks).
-      inlineeBlock = blocksIterator.next();
     }
   }
 
-  private void removeArgumentInstructions(IRCode inlinee) {
-    int index = 0;
-    InstructionListIterator inlineeIterator = inlinee.blocks.getFirst().listIterator();
-    List<Value> arguments = inlinee.collectArguments();
-    while (inlineeIterator.hasNext()) {
-      Instruction instruction = inlineeIterator.next();
-      if (instruction.isArgument()) {
-        assert !instruction.outValue().isUsed();
-        assert instruction.outValue() == arguments.get(index++);
-        inlineeIterator.remove();
-      }
-    }
+  private static void removeArgumentInstruction(
+      InstructionListIterator iterator, Value expectedArgument) {
+    assert iterator.hasNext();
+    Instruction instruction = iterator.next();
+    assert instruction.isArgument();
+    assert !instruction.outValue().isUsed();
+    assert instruction.outValue() == expectedArgument;
+    iterator.remove();
   }
 
   @Override
@@ -341,47 +333,77 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       List<BasicBlock> blocksToRemove, DexType downcast) {
     assert blocksToRemove != null;
     boolean inlineeCanThrow = canThrow(inlinee);
+
+    // Split the block with the invocation into three blocks, where the first block contains all
+    // instructions before the invocation, the second block contains only the invocation, and the
+    // third block contains all instructions that follow the invocation.
     BasicBlock invokeBlock = split(code, 1, blocksIterator);
     assert invokeBlock.getInstructions().size() == 2;
     assert invokeBlock.getInstructions().getFirst().isInvoke();
+
+    Invoke invoke = invokeBlock.getInstructions().getFirst().asInvoke();
+    BasicBlock invokePredecessor = invokeBlock.getPredecessors().get(0);
+    BasicBlock invokeSuccessor = invokeBlock.getSuccessors().get(0);
 
     // Invalidate position-on-throwing-instructions property if it does not hold for the inlinee.
     if (!inlinee.doAllThrowingInstructionsHavePositions()) {
       code.setAllThrowingInstructionsHavePositions(false);
     }
 
-    // Split the invoke instruction into a separate block.
-    Invoke invoke = invokeBlock.getInstructions().getFirst().asInvoke();
-    BasicBlock invokePredecessor = invokeBlock.getPredecessors().get(0);
-    BasicBlock invokeSuccessor = invokeBlock.getSuccessors().get(0);
-
-    CheckCast castInstruction = null;
-    // Map all argument values, and remove the arguments instructions in the inlinee.
+    // Map all argument values. The first one needs special handling if there is a downcast type.
     List<Value> arguments = inlinee.collectArguments();
     assert invoke.inValues().size() == arguments.size();
-    for (int i = 0; i < invoke.inValues().size(); i++) {
+
+    BasicBlock entryBlock = inlinee.blocks.getFirst();
+    InstructionListIterator entryBlockIterator;
+
+    int i = 0;
+    if (downcast != null) {
+      CheckCast castInstruction =
+          new CheckCast(code.createValue(ValueType.OBJECT), invoke.inValues().get(0), downcast);
+      castInstruction.setPosition(invoke.getPosition());
+
+      // Splice in the check cast operation.
+      if (entryBlock.canThrow() || invokeBlock.hasCatchHandlers()) {
+        // Since the cast-instruction may also fail we need to create a new block for the cast.
+        //
+        // Note that the downcast of the receiver is made at the call site, so we need to copy the
+        // catch handlers from the invoke block to the block with the cast. This is already being
+        // done when we copy the catch handlers of the invoke block (if any) to all the blocks in
+        // the inlinee (by the call to appendCatchHandlers() later in this method), so we don't
+        // need to do anything about that here.
+        BasicBlock inlineEntry = entryBlock;
+        entryBlock = entryBlock.listIterator().split(inlinee);
+        entryBlockIterator = entryBlock.listIterator();
+        // Insert cast instruction into the new block.
+        inlineEntry.getInstructions().addFirst(castInstruction);
+        castInstruction.setBlock(inlineEntry);
+        assert castInstruction.getBlock().getInstructions().size() == 2;
+      } else {
+        castInstruction.setBlock(entryBlock);
+        entryBlockIterator = entryBlock.listIterator();
+        entryBlockIterator.add(castInstruction);
+      }
+
+      // Map the argument value that has been cast.
+      Value argument = arguments.get(i);
+      argument.replaceUsers(castInstruction.outValue);
+      removeArgumentInstruction(entryBlockIterator, argument);
+      i++;
+    } else {
+      entryBlockIterator = entryBlock.listIterator();
+    }
+
+    // Map the remaining argument values.
+    for (; i < invoke.inValues().size(); i++) {
       // TODO(zerny): Support inlining in --debug mode.
       assert !arguments.get(i).hasLocalInfo();
-      if ((i == 0) && (downcast != null)) {
-        Value invokeValue = invoke.inValues().get(0);
-        Value receiverValue = arguments.get(0);
-        Value value = code.createValue(ValueType.OBJECT);
-        castInstruction = new CheckCast(value, invokeValue, downcast);
-        castInstruction.setPosition(invoke.getPosition());
-        receiverValue.replaceUsers(value);
-      } else {
-        arguments.get(i).replaceUsers(invoke.inValues().get(i));
-      }
+      Value argument = arguments.get(i);
+      argument.replaceUsers(invoke.inValues().get(i));
+      removeArgumentInstruction(entryBlockIterator, argument);
     }
-    removeArgumentInstructions(inlinee);
-    if (castInstruction != null) {
-      // Splice in the check cast operation.
-      inlinee.blocks.getFirst().listIterator().split(inlinee);
-      BasicBlock newBlock = inlinee.blocks.getFirst();
-      assert newBlock.getInstructions().size() == 1;
-      newBlock.getInstructions().addFirst(castInstruction);
-      castInstruction.setBlock(newBlock);
-    }
+
+    assert entryBlock.getInstructions().stream().noneMatch(Instruction::isArgument);
 
     // The inline entry is the first block now the argument instructions are gone.
     BasicBlock inlineEntry = inlinee.blocks.getFirst();
@@ -421,6 +443,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       invokeBlockIterator.next();
       invokeBlockIterator.remove();
       invokeSuccessor = invokeBlock;
+      assert invokeBlock.getInstructions().getFirst().isGoto();
     }
 
     // Link the inlinee into the graph.
@@ -433,15 +456,14 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     if (blocksIterator == null) {
       // If no block iterator was passed create one for the insertion of the inlinee blocks.
       blocksIterator = code.blocks.listIterator(code.blocks.indexOf(invokeBlock));
-      blocksIterator.next();
     } else {
-      // If a blocks iterator was passed, back up to the block with the invoke instruction and
-      // remove it.
+      // If a block iterator was passed, back up to the block with the invoke instruction.
       blocksIterator.previous();
       blocksIterator.previous();
     }
+    assert IteratorUtils.peekNext(blocksIterator) == invokeBlock;
 
-    // Insert inlinee blocks into the IR code.
+    // Insert inlinee blocks into the IR code of the callee, before the invoke block.
     int blockNumber = code.getHighestBlockNumber() + 1;
     for (BasicBlock bb : inlinee.blocks) {
       bb.setNumber(blockNumber++);
