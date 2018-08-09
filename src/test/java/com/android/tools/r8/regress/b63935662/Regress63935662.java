@@ -7,28 +7,53 @@ package com.android.tools.r8.regress.b63935662;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.OffOrAuto;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class Regress63935662 extends TestBase {
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public Regress63935662(Backend backend) {
+    this.backend = backend;
+  }
 
   void run(AndroidApp app, Class mainClass) throws Exception {
     Path proguardConfig =
         writeTextToTempFile(keepMainProguardConfiguration(mainClass, true, false));
-    R8Command command =
-        ToolHelper.prepareR8CommandBuilder(app)
-            .addProguardConfigurationFiles(proguardConfig)
-            .setMinApiLevel(AndroidApiLevel.L.getLevel())
-            .build();
+    R8Command.Builder builder =
+        ToolHelper.prepareR8CommandBuilder(app, emptyConsumer(backend))
+            .addLibraryFiles(runtimeJar(backend))
+            .addProguardConfigurationFiles(proguardConfig);
+    if (backend == Backend.DEX) {
+      builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
+    }
     String resultFromJava = runOnJava(mainClass);
-    app = ToolHelper.runR8(command, options -> options.interfaceMethodDesugaring = OffOrAuto.Auto);
-    String resultFromArt = runOnArt(app, mainClass);
-    Assert.assertEquals(resultFromJava, resultFromArt);
+    app =
+        ToolHelper.runR8(
+            builder.build(), options -> options.interfaceMethodDesugaring = OffOrAuto.Auto);
+    String result;
+    if (backend == Backend.DEX) {
+      result = runOnArt(app, mainClass);
+    } else {
+      assert backend == Backend.CF;
+      result = runOnJava(app, mainClass);
+    }
+    Assert.assertEquals(resultFromJava, result);
   }
 
   @Test
