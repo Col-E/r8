@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.MethodSignatureRelaxedEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -90,11 +91,15 @@ import java.util.function.Function;
  */
 class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
-  private final Equivalence<DexMethod> equivalence = MethodSignatureEquivalence.get();
+  private final Equivalence<DexMethod> equivalence;
   private final Map<DexCallSite, DexString> callSiteRenaming = new IdentityHashMap<>();
 
   MethodNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
     super(appInfo, rootSet, options);
+    equivalence =
+        overloadAggressively
+            ? MethodSignatureEquivalence.get()
+            : new MethodSignatureRelaxedEquivalence(appInfo);
   }
 
   @Override
@@ -337,10 +342,12 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
   }
 
   private void addStatesToGlobalMapForMethod(
-      DexEncodedMethod method, Set<NamingState<DexProto, ?>> collectedStates,
+      DexEncodedMethod method,
+      Set<NamingState<DexProto, ?>> collectedStates,
       Map<Wrapper<DexMethod>, Set<NamingState<DexProto, ?>>> globalStateMap,
       Map<Wrapper<DexMethod>, Set<DexMethod>> sourceMethodsMap,
-      Map<Wrapper<DexMethod>, NamingState<DexProto, ?>> originStates, DexType originInterface) {
+      Map<Wrapper<DexMethod>, NamingState<DexProto, ?>> originStates,
+      DexType originInterface) {
     Wrapper<DexMethod> key = equivalence.wrap(method.method);
     Set<NamingState<DexProto, ?>> stateSet =
         globalStateMap.computeIfAbsent(key, k -> new HashSet<>());

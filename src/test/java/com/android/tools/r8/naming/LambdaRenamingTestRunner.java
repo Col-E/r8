@@ -16,13 +16,16 @@ import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(VmTestRunner.class)
 public class LambdaRenamingTestRunner extends TestBase {
   static final Class CLASS = LambdaRenamingTest.class;
   static final Class[] CLASSES = LambdaRenamingTest.CLASSES;
