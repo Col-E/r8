@@ -476,6 +476,7 @@ public class JarSourceCode implements SourceCode {
         || successorOffset == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
       return;
     }
+    // The transfer has not yet taken place, so the current position is that of the predecessor.
     currentPosition = getCanonicalDebugPositionAtOffset(predecessorOffset);
 
     LocalChangeAtOffset localChange = state.getLocalChange(predecessorOffset, successorOffset);
@@ -484,12 +485,8 @@ public class JarSourceCode implements SourceCode {
         builder.addDebugLocalEnd(toClose.slot.register, toClose.info);
       }
     }
-    List<Local> localsToOpen = localChange.getLocalsToOpen();
-    if (!localsToOpen.isEmpty()) {
-      state.restoreState(successorOffset);
-      for (Local toOpen : localsToOpen) {
-        builder.addDebugLocalStart(toOpen.slot.register, toOpen.info);
-      }
+    for (Local toOpen : localChange.getLocalsToOpen()) {
+      builder.addDebugLocalStart(toOpen.slot.register, toOpen.info);
     }
   }
 

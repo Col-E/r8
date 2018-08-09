@@ -192,8 +192,6 @@ public class CfSourceCode implements SourceCode {
   private boolean inPrelude;
   private Int2ObjectMap<DebugLocalInfo> incomingLocals;
   private Int2ObjectMap<DebugLocalInfo> outgoingLocals;
-  private Int2ReferenceMap<Int2ObjectMap<DebugLocalInfo>> definitelyLiveIncomingLocals =
-      new Int2ReferenceOpenHashMap<>();
   private Int2ReferenceMap<CfState.Snapshot> incomingState = new Int2ReferenceOpenHashMap<>();
   private final CanonicalPositions canonicalPositions;
 
@@ -371,38 +369,21 @@ public class CfSourceCode implements SourceCode {
     if (predecessorOffset == IRBuilder.INITIAL_BLOCK_OFFSET) {
       return;
     }
-    if (currentInstructionIndex != predecessorOffset) {
-      // If transfer is not still in the same block, then update the state to that of the successor.
-      // The builder's lookup of local variables relies on this state for starting locals.
-      currentInstructionIndex = successorOffset;
-      state.reset(incomingState.get(currentInstructionIndex), false);
-      setLocalVariableLists();
-      // The transfer has not yet taken place, so the current position is that of the predecessor.
-      int positionOffset = predecessorOffset;
-      List<CfInstruction> instructions = code.getInstructions();
-      CfInstruction instruction = instructions.get(positionOffset);
-      while (0 < positionOffset && !(instruction instanceof CfPosition)) {
-        instruction = instructions.get(--positionOffset);
-      }
-      if (instruction instanceof CfPosition) {
-        CfPosition position = (CfPosition) instruction;
-        state.setPosition(getCanonicalPosition(position.getPosition()));
-      } else {
-        state.setPosition(canonicalPositions.getPreamblePosition());
-      }
-    }
+    // The transfer has not yet taken place, so the current position is that of the predecessor.
+    state.setPosition(getCanonicalDebugPositionAtOffset(predecessorOffset));
+
     // Manually compute the local variable change for the block transfer.
-    LocalVariableList atSource = getLocalVariables(predecessorOffset);
-    LocalVariableList atTarget = getLocalVariables(successorOffset);
+    Int2ObjectMap<DebugLocalInfo> atSource = getLocalVariables(predecessorOffset).locals;
+    Int2ObjectMap<DebugLocalInfo> atTarget = getLocalVariables(successorOffset).locals;
     if (!isExceptional) {
-      for (Entry<DebugLocalInfo> entry : atSource.locals.int2ObjectEntrySet()) {
-        if (atTarget.locals.get(entry.getIntKey()) != entry.getValue()) {
+      for (Entry<DebugLocalInfo> entry : atSource.int2ObjectEntrySet()) {
+        if (atTarget.get(entry.getIntKey()) != entry.getValue()) {
           builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
         }
       }
     }
-    for (Entry<DebugLocalInfo> entry : atTarget.locals.int2ObjectEntrySet()) {
-      if (atSource.locals.get(entry.getIntKey()) != entry.getValue()) {
+    for (Entry<DebugLocalInfo> entry : atTarget.int2ObjectEntrySet()) {
+      if (atSource.get(entry.getIntKey()) != entry.getValue()) {
         builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
       }
     }
@@ -562,33 +543,15 @@ public class CfSourceCode implements SourceCode {
 
   private void setLocalVariableLists() {
     incomingLocals = getLocalVariables(currentInstructionIndex).locals;
-    CfInstruction currentInstruction = code.getInstructions().get(currentInstructionIndex);
     if (inPrelude) {
       outgoingLocals = incomingLocals;
       return;
     }
-    if (currentInstruction.isReturn() || currentInstruction instanceof CfThrow) {
-      outgoingLocals = emptyMap();
-      return;
-    }
-    if (isControlFlow(currentInstruction)) {
-      // We need to read all locals that are not live on all successors to ensure liveness.
-      // Determine outgoingLocals as the intersection of all successors' locals.
-      outgoingLocals = null;
-      int[] targets = getTargets(currentInstructionIndex);
-      for (int target : targets) {
-        Int2ObjectMap<DebugLocalInfo> locals = getLocalVariables(target).locals;
-        outgoingLocals = intersectMaps(outgoingLocals, locals);
-      }
-      assert outgoingLocals != null;
-      // Pass outgoingLocals to all successors.
-      for (int target : targets) {
-        Int2ObjectMap<DebugLocalInfo> existing = definitelyLiveIncomingLocals.get(target);
-        definitelyLiveIncomingLocals.put(target, intersectMaps(existing, outgoingLocals));
-      }
-    } else {
-      outgoingLocals = getLocalVariables(currentInstructionIndex + 1).locals;
-    }
+    CfInstruction currentInstruction = code.getInstructions().get(currentInstructionIndex);
+    outgoingLocals =
+        !isControlFlow(currentInstruction)
+            ? getLocalVariables(currentInstructionIndex + 1).locals
+            : emptyMap();
   }
 
   private boolean localsChanged() {
@@ -611,27 +574,6 @@ public class CfSourceCode implements SourceCode {
         builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
       }
     }
-  }
-
-  private Int2ObjectMap<DebugLocalInfo> intersectMaps(
-      Int2ObjectMap<DebugLocalInfo> existing, Int2ObjectMap<DebugLocalInfo> update) {
-    assert update != null;
-    if (existing == null) {
-      return update;
-    }
-    if (existing.size() > update.size()) {
-      return intersectMaps(update, existing);
-    }
-    if (existing.equals(update)) {
-      return existing;
-    }
-    Int2ObjectOpenHashMap<DebugLocalInfo> result = new Int2ObjectOpenHashMap<>();
-    for (Entry<DebugLocalInfo> local : existing.int2ObjectEntrySet()) {
-      if (local.getValue().equals(update.get(local.getIntKey()))) {
-        result.put(local.getIntKey(), local.getValue());
-      }
-    }
-    return result;
   }
 
   private boolean isControlFlow(CfInstruction currentInstruction) {

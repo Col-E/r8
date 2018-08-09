@@ -706,14 +706,6 @@ public class IRBuilder {
     addInstruction(new Argument(value));
   }
 
-  private void addDebugLocalWrite(ValueType type, int dest, Value in) {
-    assert options.debug;
-    Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
-    DebugLocalWrite write = new DebugLocalWrite(out, in);
-    assert !write.instructionTypeCanThrow();
-    addInstruction(write);
-  }
-
   private Value getIncomingLocalValue(int register, DebugLocalInfo local) {
     assert options.debug;
     assert local != null;
@@ -729,26 +721,26 @@ public class IRBuilder {
   }
 
   public void addDebugLocalStart(int register, DebugLocalInfo local) {
+    assert local != null;
     if (!options.debug) {
       return;
     }
-    assert local != null;
-    assert local == getOutgoingLocal(register) :
-        "local-start mismatch: " + local + " != " + getOutgoingLocal(register)
-            + " at " + currentInstructionOffset
-            + " for source\n" + source.toString();
-    // TODO(b/111251032): Here we lookup a value with type based on debug info. That's just wrong!
-    ValueType valueType = ValueType.fromDexType(local.type);
-    Value incomingValue = readRegisterIgnoreLocal(register, valueType, local);
     // If the local was not introduced by the previous instruction, start it here.
+    Value incomingValue = getIncomingLocalValue(register, local);
     if (incomingValue.getLocalInfo() != local
         || currentBlock.isEmpty()
         || currentBlock.getInstructions().getLast().outValue() != incomingValue) {
-      addDebugLocalWrite(ValueType.fromDexType(local.type), register, incomingValue);
+      // Note that the write register must not lookup outgoing local information and the local is
+      // never considered clobbered by a start (if the in value has local info it must have been
+      // marked ended elsewhere).
+      Value out = writeRegister(register, incomingValue.outType(), ThrowingInfo.NO_THROW, local);
+      DebugLocalWrite write = new DebugLocalWrite(out, incomingValue);
+      addInstruction(write);
     }
   }
 
   public void addDebugLocalEnd(int register, DebugLocalInfo local) {
+    assert local != null;
     if (!options.debug) {
       return;
     }
@@ -951,7 +943,8 @@ public class IRBuilder {
       // If the move is writing to a different local we must construct a new value.
       DebugLocalInfo destLocal = getOutgoingLocal(dest);
       if (destLocal != null && destLocal != in.getLocalInfo()) {
-        addDebugLocalWrite(type, dest, in);
+        Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
+        addInstruction(new DebugLocalWrite(out, in));
         return;
       }
     }
