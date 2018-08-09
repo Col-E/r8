@@ -56,18 +56,20 @@ public class CodeInspector {
       new MethodSignature("main", "void", new String[] {"java.lang.String[]"});
 
   public CodeInspector(Path file, String mappingFile) throws IOException, ExecutionException {
-    this(Collections.singletonList(file), mappingFile);
+    this(Collections.singletonList(file), mappingFile, null);
   }
 
   public CodeInspector(Path file) throws IOException, ExecutionException {
-    this(Collections.singletonList(file), null);
+    this(Collections.singletonList(file), null, null);
   }
 
   public CodeInspector(List<Path> files) throws IOException, ExecutionException {
-    this(files, null);
+    this(files, null, null);
   }
 
-  public CodeInspector(List<Path> files, String mappingFile) throws IOException, ExecutionException {
+  public CodeInspector(
+      List<Path> files, String mappingFile, Consumer<InternalOptions> optionsConsumer)
+      throws IOException, ExecutionException {
     if (mappingFile != null) {
       this.mapping = ClassNameMapper.mapperFromFile(Paths.get(mappingFile));
       originalToObfuscatedMapping = this.mapping.getObfuscatedToOriginalMapping().inverse();
@@ -77,10 +79,13 @@ public class CodeInspector {
     }
     Timing timing = new Timing("CodeInspector");
     InternalOptions options = new InternalOptions();
+    if (optionsConsumer != null) {
+      optionsConsumer.accept(options);
+    }
     dexItemFactory = options.itemFactory;
     AndroidApp input = AndroidApp.builder().addProgramFiles(files).build();
     application = new ApplicationReader(input, options, timing).read();
-  }
+    }
 
   public CodeInspector(AndroidApp app) throws IOException, ExecutionException {
     this(

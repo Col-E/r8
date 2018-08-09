@@ -188,7 +188,7 @@ public class MinificationTest extends DebugTestBase {
       throws Throwable {
     Path proguardMap = config.getProguardMap();
     String mappingFile = proguardMap == null ? null : proguardMap.toString();
-    CodeInspector inspector = new CodeInspector(config.getPaths(), mappingFile);
+    CodeInspector inspector = new CodeInspector(config.getPaths(), mappingFile, null);
     ClassSubject clazz = inspector.clazz(className);
     assertTrue(clazz.isPresent());
     if (method != null) {

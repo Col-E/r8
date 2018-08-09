@@ -8,6 +8,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -18,14 +20,18 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
@@ -39,9 +45,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class MemberRebindingTest {
 
-  private static final List<Path> JAR_LIBRARIES = ImmutableList.of(
-      ToolHelper.getDefaultAndroidJar(),
-      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "memberrebindinglib.jar"));
+  private static final Path JAR_LIBRARY =
+      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "memberrebindinglib.jar");
 
   private enum Frontend {
     DEX, JAR;
@@ -52,7 +57,9 @@ public class MemberRebindingTest {
     }
   }
 
+  private final String name;
   private final Frontend kind;
+  private final Backend backend;
   private final Path originalDex;
   private final Path programFile;
   private final Consumer<CodeInspector> inspection;
@@ -66,7 +73,9 @@ public class MemberRebindingTest {
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
   public MemberRebindingTest(TestConfiguration configuration) {
+    this.name = configuration.name;
     this.kind = configuration.kind;
+    this.backend = configuration.backend;
     originalDex = configuration.getDexPath();
     if (kind == Frontend.DEX) {
       this.programFile = originalDex;
@@ -84,10 +93,16 @@ public class MemberRebindingTest {
     String out = temp.getRoot().getCanonicalPath();
     // NOTE: It is important to turn off inlining to ensure
     // dex inspection of invokes is predictable.
-    R8Command.Builder builder = R8Command.builder()
-        .setOutput(Paths.get(out), OutputMode.DexIndexed)
-        .addLibraryFiles(JAR_LIBRARIES)
-        .setMinApiLevel(minApiLevel);
+    assert backend == Backend.DEX || backend == Backend.CF;
+    R8Command.Builder builder =
+        R8Command.builder()
+            .setOutput(
+                Paths.get(out),
+                backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .addLibraryFiles(JAR_LIBRARY, TestBase.runtimeJar(backend));
+    if (backend == Backend.DEX) {
+      builder.setMinApiLevel(minApiLevel);
+    }
     ToolHelper.getAppBuilder(builder).addProgramFiles(programFile);
     ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
   }
@@ -242,33 +257,41 @@ public class MemberRebindingTest {
 
     final String name;
     final Frontend kind;
+    final Backend backend;
     final AndroidVersion version;
     final Consumer<CodeInspector> originalInspection;
     final Consumer<CodeInspector> processedInspection;
 
-    private TestConfiguration(String name,
+    private TestConfiguration(
+        String name,
         Frontend kind,
+        Backend backend,
         AndroidVersion version,
         Consumer<CodeInspector> originalInspection,
         Consumer<CodeInspector> processedInspection) {
       this.name = name;
       this.kind = kind;
+      this.backend = backend;
       this.version = version;
       this.originalInspection = originalInspection;
       this.processedInspection = processedInspection;
     }
 
-    public static void add(ImmutableList.Builder<TestConfiguration> builder,
+    public static void add(
+        ImmutableList.Builder<TestConfiguration> builder,
         String name,
+        Backend backend,
         AndroidVersion version,
         Consumer<CodeInspector> originalInspection,
         Consumer<CodeInspector> processedInspection) {
-      if (version == AndroidVersion.PRE_N) {
-        builder.add(new TestConfiguration(name, Frontend.DEX, version, originalInspection,
-            processedInspection));
+      if (version == AndroidVersion.PRE_N && backend == Backend.DEX) {
+        builder.add(
+            new TestConfiguration(
+                name, Frontend.DEX, backend, version, originalInspection, processedInspection));
       }
-      builder.add(new TestConfiguration(name, Frontend.JAR, version, originalInspection,
-          processedInspection));
+      builder.add(
+          new TestConfiguration(
+              name, Frontend.JAR, backend, version, originalInspection, processedInspection));
     }
 
     public Path getDexPath() {
@@ -304,21 +327,43 @@ public class MemberRebindingTest {
     }
 
     public String toString() {
-      return name + " " + kind;
+      return backend + " " + name + " " + kind;
     }
   }
 
   @Parameters(name = "{0}")
   public static Collection<TestConfiguration> data() {
     ImmutableList.Builder<TestConfiguration> builder = ImmutableList.builder();
-    TestConfiguration.add(builder, "memberrebinding", TestConfiguration.AndroidVersion.PRE_N,
-        MemberRebindingTest::inspectOriginalMain, MemberRebindingTest::inspectMain);
-    TestConfiguration.add(builder, "memberrebinding2", TestConfiguration.AndroidVersion.PRE_N,
-        MemberRebindingTest::inspectOriginalMain2, MemberRebindingTest::inspectMain2);
-    TestConfiguration.add(builder, "memberrebinding3", TestConfiguration.AndroidVersion.PRE_N,
-        MemberRebindingTest::inspectOriginal3, MemberRebindingTest::inspect3);
-    TestConfiguration.add(builder, "memberrebinding4", TestConfiguration.AndroidVersion.N,
-        MemberRebindingTest::inspectOriginal4, MemberRebindingTest::inspect4);
+    for (Backend backend : Backend.values()) {
+      TestConfiguration.add(
+          builder,
+          "memberrebinding",
+          backend,
+          TestConfiguration.AndroidVersion.PRE_N,
+          MemberRebindingTest::inspectOriginalMain,
+          MemberRebindingTest::inspectMain);
+      TestConfiguration.add(
+          builder,
+          "memberrebinding2",
+          backend,
+          TestConfiguration.AndroidVersion.PRE_N,
+          MemberRebindingTest::inspectOriginalMain2,
+          MemberRebindingTest::inspectMain2);
+      TestConfiguration.add(
+          builder,
+          "memberrebinding3",
+          backend,
+          TestConfiguration.AndroidVersion.PRE_N,
+          MemberRebindingTest::inspectOriginal3,
+          MemberRebindingTest::inspect3);
+      TestConfiguration.add(
+          builder,
+          "memberrebinding4",
+          backend,
+          TestConfiguration.AndroidVersion.N,
+          MemberRebindingTest::inspectOriginal4,
+          MemberRebindingTest::inspect4);
+    }
     return builder.build();
   }
 
@@ -326,15 +371,24 @@ public class MemberRebindingTest {
   public void memberRebindingTest() throws IOException, InterruptedException, ExecutionException {
     Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
 
-    String out = temp.getRoot().getCanonicalPath();
-    Path processed = Paths.get(out, "classes.dex");
+    Path out = Paths.get(temp.getRoot().getCanonicalPath());
+    List<Path> processed;
+    if (backend == Backend.DEX) {
+      processed = Collections.singletonList(out.resolve("classes.dex"));
+    } else {
+      assert backend == Backend.CF;
+      processed =
+          Arrays.stream(out.resolve(name).toFile().listFiles(f -> f.toString().endsWith(".class")))
+              .map(File::toPath)
+              .collect(Collectors.toList());
+    }
 
     if (kind == Frontend.DEX) {
       CodeInspector inspector = new CodeInspector(originalDex);
       originalInspection.accept(inspector);
     }
 
-    CodeInspector inspector = new CodeInspector(processed);
+    CodeInspector inspector = new CodeInspector(processed, null, o -> o.enableCfFrontend = true);
     inspection.accept(inspector);
 
     // We don't run Art, as the test R8RunExamplesTest already does that.
