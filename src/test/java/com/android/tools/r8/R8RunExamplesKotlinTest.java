@@ -25,10 +25,16 @@ public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
 
     List<String[]> fullTestList = new ArrayList<>(tests.length * 2);
     for (String test : tests) {
-      fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
-      fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.RELEASE, test));
+      fullTestList.add(
+          makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test, Output.DEX));
+      fullTestList.add(
+          makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.RELEASE, test, Output.DEX));
       fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.DEBUG, test));
       fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
+      fullTestList.add(
+          makeTest(Input.JAVAC, CompilerUnderTest.R8, CompilationMode.DEBUG, test, Output.CF));
+      fullTestList.add(
+          makeTest(Input.JAVAC, CompilerUnderTest.R8, CompilationMode.RELEASE, test, Output.CF));
     }
     return fullTestList;
   }
