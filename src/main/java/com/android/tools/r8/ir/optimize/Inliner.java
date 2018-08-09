@@ -605,7 +605,7 @@ public class Inliner {
               if (!strategy.isValidTarget(invoke, target, inlinee)) {
                 continue;
               }
-              DexType downcast = createDowncastIfNeeded(strategy, invoke, target);
+              DexType downcast = getDowncastTypeIfNeeded(strategy, invoke, target);
               // Inline the inlinee code in place of the invoke instruction
               // Back up before the invoke instruction.
               iterator.previous();
@@ -635,7 +635,7 @@ public class Inliner {
     assert code.isConsistentSSA();
   }
 
-  private DexType createDowncastIfNeeded(
+  private static DexType getDowncastTypeIfNeeded(
       InliningStrategy strategy, InvokeMethod invoke, DexEncodedMethod target) {
     if (invoke.isInvokeMethodWithReceiver()) {
       // If the invoke has a receiver but the actual type of the receiver is different
