@@ -63,7 +63,7 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isFieldAccess() {
-    return isInstanceGet() || isInstancePut() || isStaticGet() || isStaticSet();
+    return isInstanceGet() || isInstancePut() || isStaticGet() || isStaticPut();
   }
 
   @Override
@@ -153,6 +153,7 @@ public class DexInstructionSubject implements InstructionSubject {
     return instruction instanceof Const4;
   }
 
+  @Override
   public boolean isInstanceGet() {
     return instruction instanceof Iget
         || instruction instanceof IgetBoolean
@@ -163,6 +164,7 @@ public class DexInstructionSubject implements InstructionSubject {
         || instruction instanceof IgetObject;
   }
 
+  @Override
   public boolean isInstancePut() {
     return instruction instanceof Iput
         || instruction instanceof IputBoolean
@@ -173,6 +175,7 @@ public class DexInstructionSubject implements InstructionSubject {
         || instruction instanceof IputObject;
   }
 
+  @Override
   public boolean isStaticGet() {
     return instruction instanceof Sget
         || instruction instanceof SgetBoolean
@@ -183,7 +186,8 @@ public class DexInstructionSubject implements InstructionSubject {
         || instruction instanceof SgetObject;
   }
 
-  public boolean isStaticSet() {
+  @Override
+  public boolean isStaticPut() {
     return instruction instanceof Sput
         || instruction instanceof SputBoolean
         || instruction instanceof SputByte

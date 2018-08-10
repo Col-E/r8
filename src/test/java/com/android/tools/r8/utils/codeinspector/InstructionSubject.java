@@ -38,4 +38,12 @@ public interface InstructionSubject {
   boolean isInvoke();
 
   boolean isNewInstance();
+
+  boolean isInstancePut();
+
+  boolean isStaticPut();
+
+  boolean isInstanceGet();
+
+  boolean isStaticGet();
 }

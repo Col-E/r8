@@ -4,111 +4,130 @@
 package com.android.tools.r8.ir.optimize;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.IputObject;
-import com.android.tools.r8.code.NewInstance;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.SputObject;
-import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class MemberValuePropagationTest {
-  private static final String WRITE_ONLY_FIELD = "write_only_field";
-  private static final Path EXAMPLE_JAR = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR)
-      .resolve(WRITE_ONLY_FIELD + FileUtils.JAR_EXTENSION);
-  private static final Path EXAMPLE_KEEP = Paths.get(ToolHelper.EXAMPLES_DIR)
-      .resolve(WRITE_ONLY_FIELD).resolve("keep-rules.txt");
-  private static final Path DONT_OPTIMIZE = Paths.get(ToolHelper.EXAMPLES_DIR)
-      .resolve(WRITE_ONLY_FIELD).resolve("keep-rules-dontoptimize.txt");
+  private static final String PACKAGE_NAME = "write_only_field";
+  private static final String QUALIFIED_CLASS_NAME = PACKAGE_NAME + ".WriteOnlyCls";
+  private static final Path EXAMPLE_JAR =
+      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve(PACKAGE_NAME + FileUtils.JAR_EXTENSION);
+  private static final Path EXAMPLE_KEEP =
+      Paths.get(ToolHelper.EXAMPLES_DIR).resolve(PACKAGE_NAME).resolve("keep-rules.txt");
+  private static final Path DONT_OPTIMIZE =
+      Paths.get(ToolHelper.EXAMPLES_DIR)
+          .resolve(PACKAGE_NAME)
+          .resolve("keep-rules-dontoptimize.txt");
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<TestBase.Backend> data() {
+    return Arrays.asList(TestBase.Backend.values());
+  }
+
+  public MemberValuePropagationTest(TestBase.Backend backend) {
+    this.backend = backend;
+  }
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   @Test
   public void testWriteOnlyField_putObject_gone() throws Exception {
-    Path processedApp = runR8(EXAMPLE_KEEP);
-    CodeInspector inspector = new CodeInspector(processedApp);
-    ClassSubject clazz = inspector.clazz(WRITE_ONLY_FIELD + ".WriteOnlyCls");
+    List<Path> processedApp = runR8(EXAMPLE_KEEP);
+    CodeInspector inspector = new CodeInspector(processedApp, null, o -> o.enableCfFrontend = true);
+    ClassSubject clazz = inspector.clazz(QUALIFIED_CLASS_NAME);
     clazz.forAllMethods(
         methodSubject -> {
-          if (methodSubject.isClassInitializer()) {
-            DexEncodedMethod encodedMethod = methodSubject.getMethod();
-            DexCode code = encodedMethod.getCode().asDexCode();
-            assertEquals(4, code.instructions.length);
-            assertTrue(code.instructions[0] instanceof NewInstance);
-            assertTrue(code.instructions[1] instanceof Const4);
-            assertTrue(code.instructions[2] instanceof InvokeDirect);
-            assertTrue(code.instructions[3] instanceof ReturnVoid);
-          }
-          if (methodSubject.isInstanceInitializer()) {
-            DexEncodedMethod encodedMethod = methodSubject.getMethod();
-            DexCode code = encodedMethod.getCode().asDexCode();
-            assertEquals(4, code.instructions.length);
-            assertTrue(code.instructions[0] instanceof InvokeDirect);
-            assertTrue(code.instructions[1] instanceof NewInstance);
-            assertTrue(code.instructions[2] instanceof InvokeDirect);
-            assertTrue(code.instructions[3] instanceof ReturnVoid);
+          Iterator<InstructionSubject> iterator = methodSubject.iterateInstructions();
+          while (iterator.hasNext()) {
+            InstructionSubject instruction = iterator.next();
+            assertFalse(instruction.isInstancePut() || instruction.isStaticPut());
           }
         });
   }
 
   @Test
   public void testWriteOnlyField_dontoptimize() throws Exception {
-    Path processedApp = runR8(DONT_OPTIMIZE);
-    CodeInspector inspector = new CodeInspector(processedApp);
-    ClassSubject clazz = inspector.clazz(WRITE_ONLY_FIELD + ".WriteOnlyCls");
+    List<Path> processedApp = runR8(DONT_OPTIMIZE);
+    CodeInspector inspector = new CodeInspector(processedApp, null, o -> o.enableCfFrontend = true);
+    ClassSubject clazz = inspector.clazz(QUALIFIED_CLASS_NAME);
+    assert backend == Backend.DEX || backend == Backend.CF;
     clazz.forAllMethods(
         methodSubject -> {
+          Iterator<InstructionSubject> iterator = methodSubject.iterateInstructions();
           if (methodSubject.isClassInitializer()) {
-            DexEncodedMethod encodedMethod = methodSubject.getMethod();
-            DexCode code = encodedMethod.getCode().asDexCode();
-            assertEquals(5, code.instructions.length);
-            assertTrue(code.instructions[0] instanceof NewInstance);
-            assertTrue(code.instructions[1] instanceof Const4);
-            assertTrue(code.instructions[2] instanceof InvokeDirect);
-            assertTrue(code.instructions[3] instanceof SputObject);
-            assertTrue(code.instructions[4] instanceof ReturnVoid);
+            int numPuts = 0;
+            while (iterator.hasNext()) {
+              if (iterator.next().isStaticPut()) {
+                ++numPuts;
+              }
+            }
+            assertEquals(1, numPuts);
           }
           if (methodSubject.isInstanceInitializer()) {
-            DexEncodedMethod encodedMethod = methodSubject.getMethod();
-            DexCode code = encodedMethod.getCode().asDexCode();
-            assertEquals(5, code.instructions.length);
-            assertTrue(code.instructions[0] instanceof InvokeDirect);
-            assertTrue(code.instructions[1] instanceof NewInstance);
-            assertTrue(code.instructions[2] instanceof InvokeDirect);
-            assertTrue(code.instructions[3] instanceof IputObject);
-            assertTrue(code.instructions[4] instanceof ReturnVoid);
+            int numPuts = 0;
+            while (iterator.hasNext()) {
+              if (iterator.next().isInstancePut()) {
+                ++numPuts;
+              }
+            }
+            assertEquals(1, numPuts);
           }
         });
   }
 
-  private Path runR8(Path proguardConfig) throws IOException, CompilationFailedException {
-    Path dexOutputDir = temp.newFolder().toPath();
+  private List<Path> runR8(Path proguardConfig) throws IOException, CompilationFailedException {
+    Path outputDir = temp.newFolder().toPath();
+    assert backend == Backend.DEX || backend == Backend.CF;
     ToolHelper.runR8(
         R8Command.builder()
-            .setOutput(dexOutputDir, OutputMode.DexIndexed)
+            .setOutput(
+                outputDir, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
             .addProgramFiles(EXAMPLE_JAR)
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+            .addLibraryFiles(TestBase.runtimeJar(backend))
             .addProguardConfigurationFiles(proguardConfig)
             .setDisableMinification(true)
             .build(),
-        o -> o.enableClassInlining = false);
-    return dexOutputDir.resolve("classes.dex");
+        o -> {
+          o.enableClassInlining = false;
+        });
+
+    return backend == Backend.DEX
+        ? Collections.singletonList(outputDir.resolve(Paths.get("classes.dex")))
+        : Arrays.stream(
+                outputDir
+                    .resolve(PACKAGE_NAME)
+                    .toFile()
+                    .listFiles(f -> f.toString().endsWith(".class")))
+            .map(File::toPath)
+            .collect(Collectors.toList());
   }
 }

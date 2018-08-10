@@ -102,6 +102,30 @@ public class CfInstructionSubject implements InstructionSubject {
     return instruction instanceof CfNew;
   }
 
+  @Override
+  public boolean isInstancePut() {
+    return instruction instanceof CfFieldInstruction
+        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.PUTFIELD;
+  }
+
+  @Override
+  public boolean isStaticPut() {
+    return instruction instanceof CfFieldInstruction
+        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.PUTSTATIC;
+  }
+
+  @Override
+  public boolean isInstanceGet() {
+    return instruction instanceof CfFieldInstruction
+        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.GETFIELD;
+  }
+
+  @Override
+  public boolean isStaticGet() {
+    return instruction instanceof CfFieldInstruction
+        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.GETSTATIC;
+  }
+
   public boolean isInvokeSpecial() {
     return instruction instanceof CfInvoke
         && ((CfInvoke) instruction).getOpcode() == Opcodes.INVOKESPECIAL;
