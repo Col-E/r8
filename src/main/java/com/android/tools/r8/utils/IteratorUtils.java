@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import java.util.ListIterator;
+import java.util.function.Predicate;
 
 public class IteratorUtils {
   public static <T> T peekPrevious(ListIterator<T> iterator) {
@@ -19,5 +20,26 @@ public class IteratorUtils {
     T previous = iterator.previous();
     assert previous == next;
     return next;
+  }
+
+  public static <T> boolean allRemainingMatch(ListIterator<T> iterator, Predicate<T> predicate) {
+    return !anyRemainingMatch(iterator, remaining -> !predicate.test(remaining));
+  }
+
+  public static <T> boolean anyRemainingMatch(ListIterator<T> iterator, Predicate<T> predicate) {
+    T state = peekNext(iterator);
+    boolean result = false;
+    while (iterator.hasNext()) {
+      T item = iterator.next();
+      if (predicate.test(item)) {
+        result = true;
+        break;
+      }
+    }
+    while (iterator.hasPrevious() && iterator.previous() != state) {
+      // Restore the state of the iterator.
+    }
+    assert peekNext(iterator) == state;
+    return result;
   }
 }

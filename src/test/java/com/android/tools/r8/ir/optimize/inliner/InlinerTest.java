@@ -9,10 +9,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.ir.optimize.inliner.exceptionhandling.ExceptionHandlingTestClass;
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass;
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceA;
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceB;
@@ -20,12 +22,15 @@ import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestC
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceD;
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceNoImpl;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -33,6 +38,30 @@ import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
 public class InlinerTest extends TestBase {
+
+  @Test
+  public void testExceptionHandling() throws Exception {
+    String className = ExceptionHandlingTestClass.class.getName();
+    AndroidApp inputApp = readClasses(ExceptionHandlingTestClass.class);
+    List<String> proguardConfig =
+        ImmutableList.of(
+            "-keep public class " + className + "{",
+            "  public static void main(...);",
+            "}",
+            "-forceinline public class " + className + "{",
+            "  private static void inlinee*(...);",
+            "}",
+            "-neverinline public class " + className + "{",
+            "  private static void *Test(...);",
+            "}");
+    R8Command.Builder commandBuilder =
+        ToolHelper.prepareR8CommandBuilder(inputApp)
+            .addProguardConfiguration(proguardConfig, Origin.unknown());
+    ToolHelper.allowTestProguardOptions(commandBuilder);
+    AndroidApp outputApp = ToolHelper.runR8(commandBuilder.build(), this::configure);
+    assertEquals(runOnJava(ExceptionHandlingTestClass.class), runOnArt(outputApp, className));
+  }
+
   @Test
   public void testInterfacesWithoutTargets() throws Exception {
     byte[][] classes = {

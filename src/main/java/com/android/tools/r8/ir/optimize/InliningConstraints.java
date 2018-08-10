@@ -190,8 +190,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forMoveException() {
-    // TODO(64432527): Revisit this constraint.
-    return ConstraintWithTarget.NEVER;
+    return ConstraintWithTarget.ALWAYS;
   }
 
   public ConstraintWithTarget forNewArrayEmpty(DexType type, DexType invocationContext) {

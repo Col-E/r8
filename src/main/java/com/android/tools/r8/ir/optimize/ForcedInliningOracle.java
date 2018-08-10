@@ -70,10 +70,8 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public ListIterator<BasicBlock> updateTypeInformationIfNeeded(IRCode inlinee,
-      ListIterator<BasicBlock> blockIterator, BasicBlock block, BasicBlock invokeSuccessor) {
-    return blockIterator;
-  }
+  public void updateTypeInformationIfNeeded(
+      IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {}
 
   @Override
   public boolean exceededAllowance() {

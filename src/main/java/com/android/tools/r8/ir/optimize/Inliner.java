@@ -591,11 +591,6 @@ public class Inliner {
                 result.buildInliningIR(code.valueNumberGenerator,
                     appInfo, converter.getGraphLense(), options, invokePosition);
             if (inlinee != null) {
-              // TODO(64432527): Get rid of this additional check by improved inlining.
-              if (block.hasCatchHandlers() && inlinee.computeNormalExitBlocks().isEmpty()) {
-                continue;
-              }
-
               // If this code did not go through the full pipeline, apply inlining to make sure
               // that force inline targets get processed.
               strategy.ensureMethodProcessed(target, inlinee);
@@ -611,10 +606,8 @@ public class Inliner {
               iterator.previous();
               strategy.markInlined(inlinee);
               if (!strategy.exceededAllowance() || result.ignoreInstructionBudget()) {
-                BasicBlock invokeSuccessor =
-                    iterator.inlineInvoke(code, inlinee, blockIterator, blocksToRemove, downcast);
-                blockIterator = strategy.
-                    updateTypeInformationIfNeeded(inlinee, blockIterator, block, invokeSuccessor);
+                iterator.inlineInvoke(code, inlinee, blockIterator, blocksToRemove, downcast);
+                strategy.updateTypeInformationIfNeeded(inlinee, blockIterator, block);
 
                 // If we inlined the invoke from a bridge method, it is no longer a bridge method.
                 if (method.accessFlags.isBridge()) {

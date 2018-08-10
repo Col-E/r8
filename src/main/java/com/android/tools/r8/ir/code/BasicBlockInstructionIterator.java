@@ -364,7 +364,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       castInstruction.setPosition(invoke.getPosition());
 
       // Splice in the check cast operation.
-      if (entryBlock.canThrow() || invokeBlock.hasCatchHandlers()) {
+      if (entryBlock.canThrow()) {
         // Since the cast-instruction may also fail we need to create a new block for the cast.
         //
         // Note that the downcast of the receiver is made at the call site, so we need to copy the
@@ -410,13 +410,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
 
     BasicBlock inlineExit = null;
     ImmutableList<BasicBlock> normalExits = inlinee.computeNormalExitBlocks();
-    if (normalExits.isEmpty()) {
-      assert inlineeCanThrow;
-      // TODO(sgjesse): Remove this restriction (see b/64432527).
-      assert !invokeBlock.hasCatchHandlers();
-      blocksToRemove.addAll(
-          invokePredecessor.unlink(invokeBlock, new DominatorTree(code)));
-    } else {
+    if (!normalExits.isEmpty()) {
       // Ensure and locate the single return instruction of the inlinee.
       InstructionListIterator inlineeIterator = ensureSingleReturnInstruction(inlinee, normalExits);
 
@@ -474,6 +468,25 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     if (invokeBlock.hasCatchHandlers()) {
       appendCatchHandlers(code, invokeBlock, inlinee, blocksIterator);
     }
+
+    // If there are no normal exists, then unlink the invoke block and all the blocks that it
+    // dominates. This must be done after the catch handlers have been appended to the inlinee,
+    // since the catch handlers are dominated by the inline block until then (meaning that the
+    // catch handlers would otherwise be removed although they are not actually dead).
+    if (normalExits.isEmpty()) {
+      assert inlineeCanThrow;
+      blocksToRemove.addAll(invokePredecessor.unlink(invokeBlock, new DominatorTree(code)));
+    }
+
+    // Position the iterator after the invoke block.
+    blocksIterator.next();
+    assert IteratorUtils.peekPrevious(blocksIterator) == invokeBlock;
+
+    // Check that the successor of the invoke block is still to be processed,
+    final BasicBlock finalInvokeSuccessor = invokeSuccessor;
+    assert invokeSuccessor == invokeBlock
+        || IteratorUtils.anyRemainingMatch(
+            blocksIterator, remaining -> remaining == finalInvokeSuccessor);
 
     return invokeSuccessor;
   }

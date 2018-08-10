@@ -62,11 +62,10 @@ public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
   @Parameters(name = "shrinker: {0} inlineMethod: {1}")
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as triggering inlining in Proguard is out of our control.
-    // TODO(b/64432527) Add configuration {Shrinker.R8_CF, true} when fixed. For now we fail to
-    // inline because of the exception handler.
     return ImmutableList.of(
         new Object[] {Shrinker.R8, true},
         new Object[] {Shrinker.R8, false},
+        new Object[] {Shrinker.R8_CF, true},
         new Object[] {Shrinker.R8_CF, false});
   }
 
