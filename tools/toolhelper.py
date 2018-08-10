@@ -3,9 +3,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import gradle
-import os
 import subprocess
-import sys
 import utils
 
 def run(tool, args, build=None, debug=True,

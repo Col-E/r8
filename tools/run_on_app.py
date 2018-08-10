@@ -200,10 +200,14 @@ def main(argv):
         additional_pg_conf = GenerateAdditionalProguardConfiguration(
             temp, os.path.abspath(pg_outdir))
         args.extend(['--pg-conf', additional_pg_conf])
-      toolhelper.run(options.compiler, args, build=not options.no_build,
+      exit_code = toolhelper.run(options.compiler, args,
+                     build=not options.no_build,
                      debug=not options.no_debug,
                      profile=options.profile,
                      track_memory_file=options.track_memory_to_file)
+      if exit_code != 0:
+        return exit_code
+
       if options.print_memoryuse:
         print('{}(MemoryUse): {}'
             .format(options.print_memoryuse,
