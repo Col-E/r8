@@ -5,6 +5,7 @@ package com.android.tools.r8.d8;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
@@ -77,7 +78,7 @@ public class DexVersionTests {
 
     @Override
     public void accept(
-        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       hasOutput = true;
     }
 

@@ -1487,8 +1487,8 @@ public abstract class R8RunArtTestsTest {
 
                         @Override
                         public synchronized void accept(
-                            byte[] data, String descriptor, DiagnosticsHandler handler) {
-                          builder.addClassProgramData(data, cfOrigin);
+                            ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                          builder.addClassProgramData(data.copyByteData(), cfOrigin);
                         }
 
                         @Override

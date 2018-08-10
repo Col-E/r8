@@ -5,6 +5,7 @@ package com.android.tools.r8.jar;
 
 import static org.objectweb.asm.Opcodes.ASM6;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.errors.Unimplemented;
@@ -168,7 +169,7 @@ public class CfApplicationWriter {
       verifyCf(result);
     }
     ExceptionUtils.withConsumeResourceHandler(
-        options.reporter, handler -> consumer.accept(result, desc, handler));
+        options.reporter, handler -> consumer.accept(ByteDataView.of(result), desc, handler));
   }
 
   private int getClassFileVersion(DexProgramClass clazz) {

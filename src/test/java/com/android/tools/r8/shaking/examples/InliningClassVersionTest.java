@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
@@ -125,9 +126,11 @@ public class InliningClassVersionTest extends TestBase {
     Path inputJar = temp.getRoot().toPath().resolve("input.jar");
     ClassFileConsumer consumer = new ClassFileConsumer.ArchiveConsumer(inputJar);
     consumer.accept(
-        downgradeClass(ToolHelper.getClassAsBytes(Base.class), OLD_VERSION), BASE_DESCRIPTOR, null);
+        ByteDataView.of(downgradeClass(ToolHelper.getClassAsBytes(Base.class), OLD_VERSION)),
+        BASE_DESCRIPTOR,
+        null);
     consumer.accept(
-        ToolHelper.getClassAsBytes(Inlinee.class),
+        ByteDataView.of(ToolHelper.getClassAsBytes(Inlinee.class)),
         DescriptorUtils.javaTypeToDescriptor(Inlinee.class.getName()),
         null);
     consumer.finished(null);

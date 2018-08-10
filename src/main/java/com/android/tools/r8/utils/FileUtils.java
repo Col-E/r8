@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ByteDataView;
 import com.google.common.io.Closer;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -148,6 +149,11 @@ public class FileUtils {
 
   public static void writeToFile(Path output, OutputStream defValue, byte[] contents)
       throws IOException {
+    writeToFile(output, defValue, ByteDataView.of(contents));
+  }
+
+  public static void writeToFile(Path output, OutputStream defValue, ByteDataView contents)
+      throws IOException {
     try (Closer closer = Closer.create()) {
       OutputStream outputStream =
           openPathWithDefault(
@@ -157,7 +163,7 @@ public class FileUtils {
               StandardOpenOption.CREATE,
               StandardOpenOption.TRUNCATE_EXISTING,
               StandardOpenOption.WRITE);
-      outputStream.write(contents);
+      outputStream.write(contents.getBuffer(), contents.getOffset(), contents.getLength());
     }
   }
 }

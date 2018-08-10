@@ -5,6 +5,7 @@ package com.android.tools.r8.jasmin;
 
 import static com.android.tools.r8.utils.DescriptorUtils.getPathFromDescriptor;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -395,7 +396,7 @@ public class JasminBuilder {
   public void writeClassFiles(ClassFileConsumer consumer, DiagnosticsHandler handler)
       throws Exception {
     for (ClassBuilder clazz : classes) {
-      consumer.accept(compile(clazz), clazz.getDescriptor(), handler);
+      consumer.accept(ByteDataView.of(compile(clazz)), clazz.getDescriptor(), handler);
     }
   }
 

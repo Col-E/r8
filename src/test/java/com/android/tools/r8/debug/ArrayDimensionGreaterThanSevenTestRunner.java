@@ -7,6 +7,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
@@ -72,7 +73,7 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
     Path out = temp.getRoot().toPath().resolve("out.jar");
     ArchiveConsumer consumer = new ArchiveConsumer(out);
     consumer.accept(
-        ArrayDimensionGreaterThanSevenTestDump.dump(),
+        ByteDataView.of(ArrayDimensionGreaterThanSevenTestDump.dump()),
         DescriptorUtils.javaTypeToDescriptor(NAME),
         null);
     consumer.finished(null);

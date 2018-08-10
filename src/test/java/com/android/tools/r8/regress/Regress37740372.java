@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.D8Command.Builder;
@@ -142,9 +143,9 @@ public class Regress37740372 extends SmaliTestBase {
 
     @Override
     public void accept(
-        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       assertEquals(0, fileIndex);
-      this.data = data;
+      this.data = data.copyByteData();
     }
   }
 

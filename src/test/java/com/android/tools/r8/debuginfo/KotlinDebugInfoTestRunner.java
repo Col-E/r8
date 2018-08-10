@@ -5,6 +5,7 @@ package com.android.tools.r8.debuginfo;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationMode;
@@ -21,7 +22,7 @@ public class KotlinDebugInfoTestRunner extends TestBase {
   private Path buildInput(byte[] clazz, String descriptor) {
     Path inputJar = temp.getRoot().toPath().resolve("input.jar");
     ArchiveConsumer inputJarConsumer = new ArchiveConsumer(inputJar);
-    inputJarConsumer.accept(clazz, descriptor, null);
+    inputJarConsumer.accept(ByteDataView.of(clazz), descriptor, null);
     inputJarConsumer.finished(null);
     return inputJar;
   }

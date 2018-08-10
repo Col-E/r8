@@ -5,6 +5,7 @@ package com.android.tools.r8.benchmarks;
 
 import static com.android.tools.r8.benchmarks.BenchmarkUtils.printRuntimeNanoseconds;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
@@ -117,11 +118,11 @@ public class FrameworkIncrementalDexingBenchmark {
           @Override
           public synchronized void accept(
               String primaryClassDescriptor,
-              byte[] data,
+              ByteDataView data,
               Set<String> descriptors,
               DiagnosticsHandler handler) {
-            ProgramResource resource =
-                ProgramResource.fromBytes(Origin.unknown(), Kind.DEX, data, descriptors);
+            ProgramResource resource = ProgramResource.fromBytes(
+                Origin.unknown(), Kind.DEX, data.copyByteData(), descriptors);
             for (String descriptor : descriptors) {
               assert !outputs.containsKey(descriptor);
               if (provider.resources.containsKey(descriptor)) {
@@ -159,11 +160,11 @@ public class FrameworkIncrementalDexingBenchmark {
           @Override
           public synchronized void accept(
               String primaryClassDescriptor,
-              byte[] data,
+              ByteDataView data,
               Set<String> descriptors,
               DiagnosticsHandler handler) {
-            ProgramResource resource =
-                ProgramResource.fromBytes(Origin.unknown(), Kind.DEX, data, descriptors);
+            ProgramResource resource = ProgramResource.fromBytes(
+                Origin.unknown(), Kind.DEX, data.copyByteData(), descriptors);
             for (String descriptor : descriptors) {
               if (provider.resources.containsKey(descriptor)) {
                 outputs.put(descriptor, resource);

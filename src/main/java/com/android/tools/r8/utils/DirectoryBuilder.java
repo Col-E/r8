@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ResourceException;
@@ -46,7 +47,7 @@ public class DirectoryBuilder implements OutputBuilder {
   @Override
   public void addFile(String name, DataEntryResource content, DiagnosticsHandler handler) {
     try (InputStream in = content.getByteStream()) {
-      addFile(name, ByteStreams.toByteArray(in), handler);
+      addFile(name, ByteDataView.of(ByteStreams.toByteArray(in)), handler);
     } catch (IOException e) {
       handler.error(new ExceptionDiagnostic(e, content.getOrigin()));
     } catch (ResourceException e) {
@@ -56,7 +57,7 @@ public class DirectoryBuilder implements OutputBuilder {
   }
 
   @Override
-  public synchronized void addFile(String name, byte[] content, DiagnosticsHandler handler) {
+  public synchronized void addFile(String name, ByteDataView content, DiagnosticsHandler handler) {
     Path target = root.resolve(name.replace(NAME_SEPARATOR, File.separatorChar));
     try {
       Files.createDirectories(target.getParent());

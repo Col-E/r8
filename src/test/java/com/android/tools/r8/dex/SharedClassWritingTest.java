@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.code.ConstString;
@@ -34,10 +35,14 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -161,10 +166,45 @@ public class SharedClassWritingTest {
 
     private final List<Set<String>> descriptors = new ArrayList<>();
 
+    private final Deque<ByteBuffer> freeBuffers = new ArrayDeque<>();
+    private final Set<ByteBuffer> activeBuffers = Sets.newIdentityHashSet();
+
+    @Override
+    public ByteBuffer acquireByteBuffer(int capacity) {
+      synchronized (freeBuffers) {
+        ByteBuffer buffer = freeBuffers.pollFirst();
+        // Ensure the buffer has sufficient capacity, eg, skip buffers that are too small.
+        if (buffer != null && buffer.capacity() < capacity) {
+          List<ByteBuffer> small = new ArrayList<>(freeBuffers.size());
+          do {
+            small.add(buffer);
+            buffer = freeBuffers.pollFirst();
+          } while (buffer != null && buffer.capacity() < capacity);
+          freeBuffers.addAll(small);
+        }
+        if (buffer == null) {
+          buffer = ByteBuffer.allocate(capacity);
+        }
+        assert !activeBuffers.contains(buffer);
+        activeBuffers.add(buffer);
+        return buffer;
+      }
+    }
+
+    @Override
+    public void releaseByteBuffer(ByteBuffer buffer) {
+      synchronized (freeBuffers) {
+        assert activeBuffers.contains(buffer);
+        activeBuffers.remove(buffer);
+        buffer.position(0);
+        freeBuffers.offerFirst(buffer);
+      }
+    }
+
     @Override
     public void accept(
         String primaryClassDescriptor,
-        byte[] data,
+        ByteDataView data,
         Set<String> descriptors,
         DiagnosticsHandler handler) {
       addDescriptors(descriptors);

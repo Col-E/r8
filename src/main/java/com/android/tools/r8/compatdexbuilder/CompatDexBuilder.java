@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatdexbuilder;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.CompatDxHelper;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
@@ -44,10 +45,10 @@ public class CompatDexBuilder {
 
     @Override
     public synchronized void accept(
-        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       super.accept(fileIndex, data, descriptors, handler);
       assert bytes == null;
-      bytes = data;
+      bytes = data.copyByteData();
     }
 
     byte[] getBytes() {

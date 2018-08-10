@@ -5,6 +5,7 @@ package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -111,7 +112,9 @@ public class MethodHandleTestRunner extends TestBase {
     ClassFileConsumer.ArchiveConsumer archiveConsumer = new ClassFileConsumer.ArchiveConsumer(out);
     for (Class<?> c : inputClasses) {
       archiveConsumer.accept(
-          getClassAsBytes(c), DescriptorUtils.javaTypeToDescriptor(c.getName()), null);
+          ByteDataView.of(getClassAsBytes(c)),
+          DescriptorUtils.javaTypeToDescriptor(c.getName()),
+          null);
     }
     archiveConsumer.finished(null);
     String expected = lookupType == LookupType.CONSTANT ? "error" : "exception";

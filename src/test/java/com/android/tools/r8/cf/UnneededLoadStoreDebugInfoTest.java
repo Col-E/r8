@@ -5,6 +5,7 @@ package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8;
@@ -57,7 +58,7 @@ public class UnneededLoadStoreDebugInfoTest extends TestBase {
   public void test() throws Exception {
     Path inputJar = temp.getRoot().toPath().resolve("input.jar");
     ArchiveConsumer consumer = new ArchiveConsumer(inputJar);
-    consumer.accept(Dump.dump(), DESCRIPTOR, null);
+    consumer.accept(ByteDataView.of(Dump.dump()), DESCRIPTOR, null);
     consumer.finished(null);
     ProcessResult runInput = ToolHelper.runJava(inputJar, CLASS_NAME);
     assertEquals(0, runInput.exitCode);

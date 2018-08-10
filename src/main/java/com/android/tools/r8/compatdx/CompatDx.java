@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatdx;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.CompatDxHelper;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
@@ -24,9 +25,11 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -501,20 +504,21 @@ public class CompatDx {
 
     @Override
     public void accept(
-        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       if (fileIndex > 0) {
         throw new CompilationError(
             "Compilation result could not fit into a single dex file. "
                 + "Reduce the input-program size or run with --multi-dex enabled");
       }
       assert bytes == null;
-      bytes = data;
+      // Store a copy of the bytes as we may not assume the backing is valid after accept returns.
+      bytes = data.copyByteData();
     }
 
     @Override
     public void finished(DiagnosticsHandler handler) {
       if (bytes != null) {
-        super.accept(0, bytes, null, handler);
+        super.accept(0, ByteDataView.of(bytes), null, handler);
       }
       super.finished(handler);
     }
@@ -530,14 +534,12 @@ public class CompatDx {
 
     @Override
     public void accept(
-        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
-      try {
-        Files.write(
-            output,
-            data,
-            StandardOpenOption.CREATE,
-            StandardOpenOption.TRUNCATE_EXISTING,
-            StandardOpenOption.WRITE);
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
+      StandardOpenOption[] options = {
+        StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING
+      };
+      try (OutputStream stream = new BufferedOutputStream(Files.newOutputStream(output, options))) {
+        stream.write(data.getBuffer(), data.getOffset(), data.getLength());
       } catch (IOException e) {
         handler.error(new ExceptionDiagnostic(e, new PathOrigin(output)));
       }
@@ -573,8 +575,8 @@ public class CompatDx {
               ZipEntry entry = entries.nextElement();
               if (ZipUtils.isClassFile(entry.getName())) {
                 try (InputStream entryStream = zipFile.getInputStream(entry)) {
-                  outputBuilder.addFile(
-                      entry.getName(), ByteStreams.toByteArray(entryStream), handler);
+                  byte[] bytes = ByteStreams.toByteArray(entryStream);
+                  outputBuilder.addFile(entry.getName(), ByteDataView.of(bytes), handler);
                 }
               }
             }

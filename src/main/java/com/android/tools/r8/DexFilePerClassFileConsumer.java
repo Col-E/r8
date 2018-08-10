@@ -10,6 +10,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DirectoryBuilder;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OutputBuilder;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
@@ -30,7 +31,7 @@ import java.util.zip.ZipOutputStream;
  * <p>This consumer receives DEX file content for each Java class-file input.
  */
 @KeepForSubclassing
-public interface DexFilePerClassFileConsumer extends ProgramConsumer {
+public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBufferProvider {
 
   /**
    * Callback to receive DEX data for a single Java class-file input and its companion classes.
@@ -41,16 +42,35 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
    * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
    * then the compiler guaranties to exit with an error.
    *
+   * <p>The {@link ByteDataView} {@param data} object can only be assumed valid during the duration
+   * of the accept. If the bytes are needed beyond that, a copy must be made elsewhere.
+   *
    * @param primaryClassDescriptor Class descriptor of the class from the input class-file.
-   * @param data DEX encoded data.
+   * @param data DEX encoded data in a ByteDataView wrapper.
    * @param descriptors Class descriptors for all classes defined in the DEX data.
    * @param handler Diagnostics handler for reporting.
    */
-  void accept(
+  default void accept(
+      String primaryClassDescriptor,
+      ByteDataView data,
+      Set<String> descriptors,
+      DiagnosticsHandler handler) {
+    // To avoid breaking binary compatiblity, old consumers not implementing the new API will be
+    // forwarded to. New consumers must implement the accept on ByteDataView.
+    accept(primaryClassDescriptor, data.copyByteData(), descriptors, handler);
+  }
+
+  // Any new implementation should not use or call the deprecated accept method.
+  @Deprecated
+  default void accept(
       String primaryClassDescriptor,
       byte[] data,
       Set<String> descriptors,
-      DiagnosticsHandler handler);
+      DiagnosticsHandler handler) {
+    handler.error(
+        new StringDiagnostic(
+            "Deprecated use of DexFilePerClassFileConsumer::accept(..., byte[], ...)"));
+  }
 
   /** Empty consumer to request the production of the resource but ignore its value. */
   static DexFilePerClassFileConsumer emptyConsumer() {
@@ -77,7 +97,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
     @Override
     public void accept(
         String primaryClassDescriptor,
-        byte[] data,
+        ByteDataView data,
         Set<String> descriptors,
         DiagnosticsHandler handler) {
       if (consumer != null) {
@@ -135,7 +155,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
     @Override
     public void accept(
         String primaryClassDescriptor,
-        byte[] data,
+        ByteDataView data,
         Set<String> descriptors,
         DiagnosticsHandler handler) {
       super.accept(primaryClassDescriptor, data, descriptors, handler);
@@ -217,13 +237,12 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer {
     @Override
     public void accept(
         String primaryClassDescriptor,
-        byte[] data,
+        ByteDataView data,
         Set<String> descriptors,
         DiagnosticsHandler handler) {
       super.accept(primaryClassDescriptor, data, descriptors, handler);
       outputBuilder.addFile(getDexFileName(primaryClassDescriptor), data, handler);
     }
-
 
     @Override
     public void accept(DataDirectoryResource directory, DiagnosticsHandler handler) {

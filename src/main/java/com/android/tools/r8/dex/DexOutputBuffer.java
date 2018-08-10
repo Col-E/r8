@@ -3,10 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.utils.EncodedValueUtils;
 import com.android.tools.r8.utils.LebUtils;
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
@@ -18,26 +21,57 @@ import java.nio.ShortBuffer;
 public class DexOutputBuffer {
   private static final int DEFAULT_BUFFER_SIZE = 256 * 1024;
 
+  private final ByteBufferProvider byteBufferProvider;
   private ByteBuffer byteBuffer;
 
-  public DexOutputBuffer() {
-    byteBuffer = allocate(DEFAULT_BUFFER_SIZE);
+  @VisibleForTesting
+  DexOutputBuffer() {
+    this(new ByteBufferProvider() {});
+  }
+
+  public DexOutputBuffer(ByteBufferProvider byteBufferProvider) {
+    this.byteBufferProvider = byteBufferProvider;
+    byteBuffer = allocateByteBuffer(DEFAULT_BUFFER_SIZE);
   }
 
   private void ensureSpaceFor(int bytes) {
     if (byteBuffer.remaining() < bytes) {
       int newSize = byteBuffer.capacity() + Math.max(byteBuffer.capacity(), bytes * 2);
-      ByteBuffer newBuffer = allocate(newSize);
+      ByteBuffer newBuffer = allocateByteBuffer(newSize);
       System.arraycopy(byteBuffer.array(), 0, newBuffer.array(), 0, byteBuffer.position());
       newBuffer.position(byteBuffer.position());
+      freeByteBuffer(byteBuffer);
       byteBuffer = newBuffer;
     }
   }
 
-  private ByteBuffer allocate(int size) {
-    ByteBuffer buffer = ByteBuffer.allocate(size);
+  private ByteBuffer allocateByteBuffer(int size) {
+    ByteBuffer buffer = byteBufferProvider.acquireByteBuffer(size);
+    if (!buffer.hasArray()) {
+      throw new CompilationError(
+          "Provided byte-buffer is required to have an array backing, but does not.");
+    }
+    if (buffer.capacity() < size) {
+      throw new CompilationError(
+          "Insufficient capacity of provided byte-buffer."
+              + " Requested capacity "
+              + size
+              + ", actual capacity: "
+              + buffer.capacity());
+    }
+    if (buffer.position() != 0) {
+      throw new CompilationError(
+          "Provided byte-buffer is required to start at position zero, but starts at "
+              + buffer.position()
+              + ".");
+    }
     buffer.order(ByteOrder.LITTLE_ENDIAN);
     return buffer;
+  }
+
+  private void freeByteBuffer(ByteBuffer buffer) {
+    assert buffer != null;
+    byteBufferProvider.releaseByteBuffer(buffer);
   }
 
   public void putUleb128(int value) {
@@ -129,5 +163,11 @@ public class DexOutputBuffer {
 
   public byte[] asArray() {
     return byteBuffer.array();
+  }
+
+  public ByteBuffer stealByteBuffer() {
+    ByteBuffer buffer = byteBuffer;
+    byteBuffer = null;
+    return buffer;
   }
 }

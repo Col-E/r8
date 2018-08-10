@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.benchmarks;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
@@ -30,7 +31,7 @@ public class IncrementalDexingBenchmark {
                   @Override
                   public void accept(
                       int fileIndex,
-                      byte[] data,
+                      ByteDataView data,
                       Set<String> descriptors,
                       DiagnosticsHandler handler) {
                     if (fileIndex != 0) {
