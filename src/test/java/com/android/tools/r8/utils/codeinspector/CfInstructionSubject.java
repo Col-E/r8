@@ -13,7 +13,6 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
 import com.android.tools.r8.cf.code.CfLabel;
-import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfPosition;
@@ -155,9 +154,5 @@ public class CfInstructionSubject implements InstructionSubject {
 
   public boolean isIfNull() {
     return instruction instanceof CfIf && ((CfIf) instruction).getOpcode() == Opcodes.IFNULL;
-  }
-
-  public boolean isLoad() {
-    return instruction instanceof CfLoad;
   }
 }
