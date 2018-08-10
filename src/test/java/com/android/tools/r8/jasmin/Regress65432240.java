@@ -7,16 +7,36 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.IfNez;
-import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.codeinspector.CfInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class Regress65432240 extends JasminTestBase {
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public Regress65432240(Backend backend) {
+    this.backend = backend;
+  }
 
   @Test
   public void testConstantNotIntoEntryBlock() throws Exception {
@@ -58,13 +78,37 @@ public class Regress65432240 extends JasminTestBase {
     String expected = runOnJava(builder, clazz.name);
 
     AndroidApp originalApplication = builder.build();
-    AndroidApp processedApplication = ToolHelper.runR8(originalApplication);
+    AndroidApp processedApplication =
+        ToolHelper.runR8(
+            ToolHelper.prepareR8CommandBuilder(originalApplication, emptyConsumer(backend))
+                .addLibraryFiles(runtimeJar(backend))
+                .build());
 
-    DexEncodedMethod method = getMethod(processedApplication, clazz.name, signature);
-    DexCode code = method.getCode().asDexCode();
-    assertTrue(code.instructions[0] instanceof IfNez);
+    CodeInspector inspector =
+        new CodeInspector(processedApplication, o -> o.enableCfFrontend = true);
+    ClassSubject inspectedClass = inspector.clazz(clazz.name);
+    MethodSubject method = inspectedClass.method(signature);
+    assertTrue(method.isPresent());
+    Iterator<InstructionSubject> iterator = method.iterateInstructions();
+    InstructionSubject instruction = null;
+    boolean found = false;
+    while (iterator.hasNext()) {
+      instruction = iterator.next();
+      if (!(instruction instanceof CfInstructionSubject)
+          || !((CfInstructionSubject) instruction).isLoad()) {
+        found = true;
+        break;
+      }
+    }
+    assertTrue(found && instruction.isIfNez());
 
-    String artResult = runOnArtR8(builder, clazz.name);
-    assertEquals(expected, artResult);
+    String result;
+    if (backend == Backend.DEX) {
+      result = runOnArt(processedApplication, clazz.name);
+    } else {
+      assert backend == Backend.CF;
+      result = runOnJava(processedApplication, clazz.name, Collections.emptyList());
+    }
+    assertEquals(expected, result);
   }
 }
