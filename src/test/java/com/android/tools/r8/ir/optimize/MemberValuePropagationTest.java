@@ -62,7 +62,7 @@ public class MemberValuePropagationTest {
   @Test
   public void testWriteOnlyField_putObject_gone() throws Exception {
     List<Path> processedApp = runR8(EXAMPLE_KEEP);
-    CodeInspector inspector = new CodeInspector(processedApp, null, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject clazz = inspector.clazz(QUALIFIED_CLASS_NAME);
     clazz.forAllMethods(
         methodSubject -> {
@@ -77,7 +77,7 @@ public class MemberValuePropagationTest {
   @Test
   public void testWriteOnlyField_dontoptimize() throws Exception {
     List<Path> processedApp = runR8(DONT_OPTIMIZE);
-    CodeInspector inspector = new CodeInspector(processedApp, null, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject clazz = inspector.clazz(QUALIFIED_CLASS_NAME);
     assert backend == Backend.DEX || backend == Backend.CF;
     clazz.forAllMethods(

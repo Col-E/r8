@@ -61,7 +61,7 @@ public class ForceInlineTest extends TestBase {
             .addLibraryFiles(library);
     ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(proguardConfiguration, Origin.unknown());
-    return new CodeInspector(ToolHelper.runR8(builder.build(), o -> o.enableCfFrontend = true));
+    return new CodeInspector(ToolHelper.runR8(builder.build()));
   }
 
   @Test

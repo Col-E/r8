@@ -11,18 +11,16 @@ import static org.junit.Assert.assertFalse;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfMonitor;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import org.junit.Test;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.MethodNode;
 
 public class SynchronizedNoopTestRunner {
   private byte[] data;
@@ -40,21 +38,9 @@ public class SynchronizedNoopTestRunner {
     CodeInspector inspector = new CodeInspector(a.build());
     DexEncodedMethod method =
         inspector.clazz(CLASS).method("void", "noop", Collections.emptyList()).getMethod();
-    ArrayList<AbstractInsnNode> insns = new ArrayList<>();
-    JarCode jarCode = method.getCode().asJarCode();
-    MethodNode node = jarCode.getNode();
-    assert node != null;
-    InsnList asmInsns = node.instructions;
-    for (int i = 0; i < asmInsns.size(); i++) {
-      insns.add(asmInsns.get(i));
-    }
-    boolean hasMonitor =
-        insns
-            .stream()
-            .anyMatch(
-                insn ->
-                    insn.getOpcode() == Opcodes.MONITORENTER
-                        || insn.getOpcode() == Opcodes.MONITOREXIT);
+    CfCode cfCode = method.getCode().asCfCode();
+    List<CfInstruction> insns = cfCode.getInstructions();
+    boolean hasMonitor = insns.stream().anyMatch(insn -> insn instanceof CfMonitor);
     assertFalse(hasMonitor);
   }
 }

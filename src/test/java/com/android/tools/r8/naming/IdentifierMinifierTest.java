@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.ConstStringInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.ConstStringInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
@@ -89,12 +89,7 @@ public class IdentifierMinifierTest extends TestBase {
 
   @Test
   public void identiferMinifierTest() throws Exception {
-    CodeInspector codeInspector =
-        new CodeInspector(
-            processedApp,
-            options -> {
-              options.enableCfFrontend = true;
-            });
+    CodeInspector codeInspector = new CodeInspector(processedApp);
     inspection.accept(codeInspector);
   }
 

@@ -388,7 +388,7 @@ public class MemberRebindingTest {
       originalInspection.accept(inspector);
     }
 
-    CodeInspector inspector = new CodeInspector(processed, null, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(processed);
     inspection.accept(inspector);
 
     // We don't run Art, as the test R8RunExamplesTest already does that.

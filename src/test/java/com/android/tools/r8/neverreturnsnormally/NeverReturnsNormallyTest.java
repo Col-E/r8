@@ -72,13 +72,7 @@ public class NeverReturnsNormallyTest extends TestBase {
         Origin.unknown());
     AndroidApp app =
         ToolHelper.runR8(builder.build(), opts -> opts.enableClassInlining = enableClassInliner);
-    inspection.accept(
-        new CodeInspector(
-            app,
-            options -> {
-              options.enableCfFrontend = true;
-            }),
-        mode);
+    inspection.accept(new CodeInspector(app), mode);
 
     if (backend == Backend.DEX) {
       // Run on Art to check generated code against verifier.

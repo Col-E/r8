@@ -63,7 +63,7 @@ public class IdenticalCatchHandlerTest extends TestBase {
   }
 
   private int countCatchHandlers(AndroidApp inputApp) throws Exception {
-    CodeInspector inspector = new CodeInspector(inputApp, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(inputApp);
     DexClass dexClass = inspector.clazz(TestClass.class).getDexClass();
     Code code = dexClass.virtualMethods()[0].getCode();
     if (code.isCfCode()) {

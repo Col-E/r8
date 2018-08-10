@@ -62,12 +62,7 @@ public class MoveStringConstantsTest extends TestBase {
               // setting (5) is just too small.
               options.inliningInstructionLimit = 10;
             });
-    inspection.accept(
-        new CodeInspector(
-            app,
-            options -> {
-              options.enableCfFrontend = true;
-            }));
+    inspection.accept(new CodeInspector(app));
 
     if (backend == Backend.DEX) {
       // Run on Art to check generated code against verifier.

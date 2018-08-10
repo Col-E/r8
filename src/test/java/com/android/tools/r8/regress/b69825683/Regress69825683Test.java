@@ -59,7 +59,7 @@ public class Regress69825683Test extends TestBase {
           .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
     }
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    CodeInspector inspector = new CodeInspector(app, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(app);
     List<FoundClassSubject> classes = inspector.allClasses();
 
     // Check that the synthetic class is still present.
@@ -103,7 +103,7 @@ public class Regress69825683Test extends TestBase {
           .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
     }
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    CodeInspector inspector = new CodeInspector(app, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(app);
     List<FoundClassSubject> classes = inspector.allClasses();
 
     // Check that the synthetic class is still present.

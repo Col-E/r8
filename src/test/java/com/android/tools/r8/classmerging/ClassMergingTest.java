@@ -866,8 +866,8 @@ public class ClassMergingTest extends TestBase {
     MethodSubject method = clazz.method("void", "main", ImmutableList.of("java.lang.String[]"));
     assertThat(method, isPresent());
     assertThat(
-        method.getMethod().getCode().asJarCode().toString(),
-        containsString("INVOKEINTERFACE classmerging/MergeDefaultMethodIntoClassTest$A.f"));
+        method.getMethod().getCode().asCfCode().toString(),
+        containsString("invokeinterface classmerging.MergeDefaultMethodIntoClassTest$A.f()V"));
 
     runTestOnInput(main, app, preservedClassNames::contains, getProguardConfig(JAVA8_EXAMPLE_KEEP));
   }

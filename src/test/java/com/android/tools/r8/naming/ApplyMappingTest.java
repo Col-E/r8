@@ -213,11 +213,7 @@ public class ApplyMappingTest extends TestBase {
 
   private static CodeInspector createDexInspector(AndroidApp outputApp)
       throws IOException, ExecutionException {
-    return new CodeInspector(
-        outputApp,
-        o -> {
-          o.enableCfFrontend = true;
-        });
+    return new CodeInspector(outputApp);
   }
 
   @Test

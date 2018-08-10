@@ -69,7 +69,7 @@ public class LambdaTestRunner {
 
   private static CfInvokeDynamic findFirstInMethod(AndroidApp app) throws Exception {
     String returnType = "void";
-    CodeInspector inspector = new CodeInspector(app, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(app);
     List<String> args = Collections.singletonList(String[].class.getTypeName());
     DexEncodedMethod method = inspector.clazz(CLASS).method(returnType, METHOD, args).getMethod();
     CfCode code = method.getCode().asCfCode();

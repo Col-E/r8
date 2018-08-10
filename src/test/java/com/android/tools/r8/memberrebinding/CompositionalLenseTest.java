@@ -93,7 +93,7 @@ public class CompositionalLenseTest extends TestBase {
       options.enableInlining = false;
       options.enableClassMerging = false;
     });
-    CodeInspector codeInspector = new CodeInspector(processedApp, o -> o.enableCfFrontend = true);
+    CodeInspector codeInspector = new CodeInspector(processedApp);
     ClassSubject classSubject = codeInspector.clazz(TestMain.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(CodeInspector.MAIN);

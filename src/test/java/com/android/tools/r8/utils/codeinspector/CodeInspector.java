@@ -79,6 +79,7 @@ public class CodeInspector {
     }
     Timing timing = new Timing("CodeInspector");
     InternalOptions options = new InternalOptions();
+    options.enableCfFrontend = true;
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }
@@ -89,7 +90,7 @@ public class CodeInspector {
 
   public CodeInspector(AndroidApp app) throws IOException, ExecutionException {
     this(
-        new ApplicationReader(app, new InternalOptions(), new Timing("CodeInspector"))
+        new ApplicationReader(app, runOptionsConsumer(null), new Timing("CodeInspector"))
             .read(app.getProguardMapOutputData()));
   }
 
@@ -102,13 +103,16 @@ public class CodeInspector {
 
   private static InternalOptions runOptionsConsumer(Consumer<InternalOptions> optionsConsumer) {
     InternalOptions internalOptions = new InternalOptions();
-    optionsConsumer.accept(internalOptions);
+    internalOptions.enableCfFrontend = true;
+    if (optionsConsumer != null) {
+      optionsConsumer.accept(internalOptions);
+    }
     return internalOptions;
   }
 
   public CodeInspector(AndroidApp app, Path proguardMap) throws IOException, ExecutionException {
     this(
-        new ApplicationReader(app, new InternalOptions(), new Timing("CodeInspector"))
+        new ApplicationReader(app, runOptionsConsumer(null), new Timing("CodeInspector"))
             .read(StringResource.fromFile(proguardMap)));
   }
 

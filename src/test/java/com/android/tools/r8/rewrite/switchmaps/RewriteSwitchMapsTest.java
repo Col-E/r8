@@ -61,7 +61,7 @@ public class RewriteSwitchMapsTest extends TestBase {
             .setProgramConsumer(emptyConsumer(backend))
             .build();
     AndroidApp result = ToolHelper.runR8(command);
-    CodeInspector inspector = new CodeInspector(result, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(result);
     Assert.assertFalse(inspector.clazz(SWITCHMAP_CLASS_NAME).isPresent());
   }
 }
