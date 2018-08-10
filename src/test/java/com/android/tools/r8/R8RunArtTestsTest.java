@@ -985,27 +985,28 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_0_4)))
           .build();
 
-  public static List<String> requireInliningToBeDisabled = ImmutableList.of(
-      // Test for a specific stack trace that gets destroyed by inlining.
-      "492-checker-inline-invoke-interface",
-      "493-checker-inline-invoke-interface",
-      "488-checker-inline-recursive-calls",
-      "487-checker-inline-calls",
-      "122-npe",
-      "141-class-unload",
+  public static List<String> requireInliningToBeDisabled =
+      ImmutableList.of(
+          // Test for a specific stack trace that gets destroyed by inlining.
+          "008-exceptions",
+          "492-checker-inline-invoke-interface",
+          "493-checker-inline-invoke-interface",
+          "488-checker-inline-recursive-calls",
+          "487-checker-inline-calls",
+          "122-npe",
+          "141-class-unload",
 
-      // Calls some internal art methods that cannot tolerate inlining.
-      "466-get-live-vreg",
+          // Calls some internal art methods that cannot tolerate inlining.
+          "466-get-live-vreg",
 
-      // Requires a certain call pattern to surface an Art bug.
-      "534-checker-bce-deoptimization",
+          // Requires a certain call pattern to surface an Art bug.
+          "534-checker-bce-deoptimization",
 
-      // Requires something to be allocated in a method so that it goes out of scope.
-      "059-finalizer-throw",
+          // Requires something to be allocated in a method so that it goes out of scope.
+          "059-finalizer-throw",
 
-      // Has tests in submethods, which we should not inline.
-      "625-checker-licm-regressions"
-  );
+          // Has tests in submethods, which we should not inline.
+          "625-checker-licm-regressions");
 
   private static List<String> requireClassInliningToBeDisabled = ImmutableList.of(
       // Test is registered to be failing (failingRunWithArt), it fails only on 4.0.4

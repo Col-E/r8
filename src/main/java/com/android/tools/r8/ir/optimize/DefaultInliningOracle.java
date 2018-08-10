@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IteratorUtils;
 import java.util.BitSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -366,21 +367,29 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public ListIterator<BasicBlock> updateTypeInformationIfNeeded(IRCode inlinee,
-      ListIterator<BasicBlock> blockIterator, BasicBlock block, BasicBlock invokeSuccessor) {
+  public void updateTypeInformationIfNeeded(
+      IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {
     if (inliner.options.enableNonNullTracking) {
-      // Move the cursor back to where the inlinee blocks are added.
-      blockIterator = code.blocks.listIterator(code.blocks.indexOf(block));
+      BasicBlock state = IteratorUtils.peekNext(blockIterator);
+      // Move the cursor back to where the first inlinee block was added.
+      while (blockIterator.hasPrevious() && blockIterator.previous() != block) {
+        // Do nothing.
+      }
+      assert IteratorUtils.peekNext(blockIterator) == block;
+
       // Kick off the tracker to add non-null IRs only to the inlinee blocks.
-      new NonNullTracker()
-          .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
-      // Move the cursor forward to where the inlinee blocks end.
-      blockIterator = code.blocks.listIterator(code.blocks.indexOf(invokeSuccessor));
+      new NonNullTracker().addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
+      assert !blockIterator.hasNext();
+
+      // Restore the old state of the iterator.
+      while (blockIterator.hasPrevious() && blockIterator.previous() != state) {
+        // Do nothing.
+      }
+      assert IteratorUtils.peekNext(blockIterator) == state;
     }
     // Update type env for inlined blocks.
     typeEnvironment.analyzeBlocks(inlinee.topologicallySortedBlocks());
     // TODO(b/69964136): need a test where refined env in inlinee affects the caller.
-    return blockIterator;
   }
 
   @Override

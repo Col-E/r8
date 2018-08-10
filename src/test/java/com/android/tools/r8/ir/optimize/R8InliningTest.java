@@ -90,7 +90,7 @@ public class R8InliningTest extends TestBase {
     return Paths.get(temp.getRoot().getCanonicalPath(), DEFAULT_DEX_FILENAME);
   }
 
-  private String getGeneratedProguardMap() throws IOException {
+  private String getGeneratedProguardMap() {
     Path mapFile = temp.getRoot().toPath().resolve(DEFAULT_MAP_FILENAME);
     if (Files.exists(mapFile)) {
       return mapFile.toAbsolutePath().toString();
@@ -116,9 +116,14 @@ public class R8InliningTest extends TestBase {
       commandBuilder.addProguardConfiguration(
           ImmutableList.of("-allowaccessmodification"), Origin.unknown());
     }
-    ToolHelper.runR8(commandBuilder.build(), o -> {
-      o.enableMinification = minification;
-    });
+    ToolHelper.runR8(
+        commandBuilder.build(),
+        o -> {
+          // Disable class inlining to prevent that the instantiation of Nullability is removed, and
+          // that the class is therefore made abstract.
+          o.enableClassInlining = false;
+          o.enableMinification = minification;
+        });
     String artOutput =
         ToolHelper.runArtNoVerificationErrors(out + "/classes.dex", "inlining.Inlining");
 

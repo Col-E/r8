@@ -270,42 +270,44 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   @Test
   public void testTrivialKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_trivial.MainKt";
-    runTest("lambdas_kstyle_trivial", mainClassName, optionsModifier, (app) -> {
-      Verifier verifier = new Verifier(app);
-      String pkg = "lambdas_kstyle_trivial";
+    runTest(
+        "lambdas_kstyle_trivial",
+        mainClassName,
+        optionsModifier,
+        (app) -> {
+          Verifier verifier = new Verifier(app);
+          String pkg = "lambdas_kstyle_trivial";
 
-      verifier.assertLambdaGroups(
-          allowAccessModification ?
-              new Group[]{
-                  kstyle("", 0, 4),
-                  kstyle("", 1, 8),
-                  kstyle("", 2, 2), // -\
-                  kstyle("", 2, 5), // - 3 groups different by main method
-                  kstyle("", 2, 4), // -/
-                  kstyle("", 3, 2),
-                  kstyle("", 22, 2)} :
-              new Group[]{
-                  kstyle(pkg, 0, 2),
-                  kstyle(pkg, 1, 4),
-                  kstyle(pkg, 2, 5), // - 2 groups different by main method
-                  kstyle(pkg, 2, 4), // -/
-                  kstyle(pkg, 3, 2),
-                  kstyle(pkg, 22, 2),
-                  kstyle(pkg + "/inner", 0, 2),
-                  kstyle(pkg + "/inner", 1, 4)}
-      );
+          verifier.assertLambdaGroups(
+              allowAccessModification
+                  ? new Group[] {
+                    kstyle("", 0, 4),
+                    kstyle("", 1, 9),
+                    kstyle("", 2, 2), // -\
+                    kstyle("", 2, 5), // - 3 groups different by main method
+                    kstyle("", 2, 4), // -/
+                    kstyle("", 3, 2),
+                    kstyle("", 22, 2)
+                  }
+                  : new Group[] {
+                    kstyle(pkg, 0, 2),
+                    kstyle(pkg, 1, 5),
+                    kstyle(pkg, 2, 5), // - 2 groups different by main method
+                    kstyle(pkg, 2, 4), // -/
+                    kstyle(pkg, 3, 2),
+                    kstyle(pkg, 22, 2),
+                    kstyle(pkg + "/inner", 0, 2),
+                    kstyle(pkg + "/inner", 1, 4)
+                  });
 
-      verifier.assertLambdas(
-          allowAccessModification ?
-              new Lambda[]{
-                  new Lambda(pkg, "MainKt$testStateless$6", 1) /* Banned for limited inlining */} :
-              new Lambda[]{
-                  new Lambda(pkg, "MainKt$testStateless$6", 1), /* Banned for limited inlining */
-                  new Lambda(pkg, "MainKt$testStateless$8", 2),
-                  new Lambda(pkg + "/inner", "InnerKt$testInnerStateless$7", 2)}
-
-      );
-    });
+          verifier.assertLambdas(
+              allowAccessModification
+                  ? new Lambda[] {}
+                  : new Lambda[] {
+                    new Lambda(pkg, "MainKt$testStateless$8", 2),
+                    new Lambda(pkg + "/inner", "InnerKt$testInnerStateless$7", 2)
+                  });
+        });
   }
 
   @Test

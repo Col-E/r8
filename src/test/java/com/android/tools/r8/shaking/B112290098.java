@@ -8,7 +8,6 @@ import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class B112290098 extends TestBase {

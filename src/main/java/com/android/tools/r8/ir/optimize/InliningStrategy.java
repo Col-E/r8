@@ -20,8 +20,8 @@ interface InliningStrategy {
 
   boolean isValidTarget(InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee);
 
-  ListIterator<BasicBlock> updateTypeInformationIfNeeded(IRCode inlinee,
-      ListIterator<BasicBlock> blockIterator, BasicBlock block, BasicBlock invokeSuccessor);
+  void updateTypeInformationIfNeeded(
+      IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block);
 
   DexType getReceiverTypeIfKnown(InvokeMethod invoke);
 }
