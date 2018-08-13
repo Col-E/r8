@@ -36,7 +36,7 @@ public class ProguardMapMarkerTest {
                   @Override
                   public void accept(
                       int fileIndex,
-                      byte[] data,
+                      ByteDataView data,
                       Set<String> descriptors,
                       DiagnosticsHandler handler) {}
 

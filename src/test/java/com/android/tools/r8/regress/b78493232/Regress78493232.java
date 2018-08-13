@@ -4,6 +4,7 @@
 package com.android.tools.r8.regress.b78493232;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
@@ -30,9 +31,10 @@ public class Regress78493232 extends AsmTestBase {
         ? Paths.get(args[0])
         : Paths.get("Regress78493232.jar");
     ArchiveConsumer consumer = new ArchiveConsumer(output);
-    consumer.accept(Regress78493232Dump.dump(), Regress78493232Dump.CLASS_DESC, null);
     consumer.accept(
-        ToolHelper.getClassAsBytes(Regress78493232Utils.class),
+        ByteDataView.of(Regress78493232Dump.dump()), Regress78493232Dump.CLASS_DESC, null);
+    consumer.accept(
+        ByteDataView.of(ToolHelper.getClassAsBytes(Regress78493232Utils.class)),
         Regress78493232Dump.UTILS_CLASS_DESC,
         null);
     consumer.finished(null);

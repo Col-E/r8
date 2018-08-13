@@ -70,7 +70,7 @@ public class R8CFExamplesTests extends TestBase {
     Path inputJar = temp.getRoot().toPath().resolve("input.jar");
     ClassFileConsumer inputConsumer = new ClassFileConsumer.ArchiveConsumer(inputJar);
     String descriptor = DescriptorUtils.javaTypeToDescriptor(clazz.getName());
-    inputConsumer.accept(ToolHelper.getClassAsBytes(clazz), descriptor, null);
+    inputConsumer.accept(ByteDataView.of(ToolHelper.getClassAsBytes(clazz)), descriptor, null);
     inputConsumer.finished(null);
     return inputJar;
   }
@@ -82,7 +82,8 @@ public class R8CFExamplesTests extends TestBase {
       Path path = testDirectory.resolve(className.replace('.', '/') + ".class");
       String descriptor = DescriptorUtils.javaTypeToDescriptor(className);
       try (InputStream inputStream = new FileInputStream(path.toFile())) {
-        inputConsumer.accept(ByteStreams.toByteArray(inputStream), descriptor, null);
+        inputConsumer.accept(
+            ByteDataView.of(ByteStreams.toByteArray(inputStream)), descriptor, null);
       }
     }
     inputConsumer.finished(null);

@@ -27,12 +27,12 @@ public class ExtractMarkerTest {
                   @Override
                   public void accept(
                       int fileIndex,
-                      byte[] data,
+                      ByteDataView data,
                       Set<String> descriptors,
                       DiagnosticsHandler handler) {
                     Marker marker;
                     try {
-                      marker = ExtractMarker.extractMarkerFromDexProgramData(data);
+                      marker = ExtractMarker.extractMarkerFromDexProgramData(data.copyByteData());
                     } catch (Exception e) {
                       throw new RuntimeException(e);
                     }

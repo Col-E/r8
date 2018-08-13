@@ -3,14 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.ByteBufferProvider;
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DataResourceProvider.Visitor;
+import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -228,30 +233,40 @@ public class ApplicationWriter {
           dexDataFutures.add(
               executorService.submit(
                   () -> {
-                    byte[] result = writeDexFile(mapping);
+                    ProgramConsumer consumer;
+                    ByteBufferProvider byteBufferProvider;
                     if (programConsumer != null) {
-                      programConsumer.accept(
-                          virtualFile.getId(),
-                          result,
-                          virtualFile.getClassDescriptors(),
-                          options.reporter);
+                      consumer = programConsumer;
+                      byteBufferProvider = programConsumer;
                     } else if (virtualFile.getPrimaryClassDescriptor() != null) {
-                      options
-                          .getDexFilePerClassFileConsumer()
+                      consumer = options.getDexFilePerClassFileConsumer();
+                      byteBufferProvider = options.getDexFilePerClassFileConsumer();
+                    } else {
+                      consumer = options.getDexIndexedConsumer();
+                      byteBufferProvider = options.getDexIndexedConsumer();
+                    }
+                    ByteBufferResult result = writeDexFile(mapping, byteBufferProvider);
+                    ByteDataView data =
+                        new ByteDataView(
+                            result.buffer.array(), result.buffer.arrayOffset(), result.length);
+                    if (consumer instanceof DexFilePerClassFileConsumer) {
+                      ((DexFilePerClassFileConsumer) consumer)
                           .accept(
                               virtualFile.getPrimaryClassDescriptor(),
-                              result,
+                              data,
                               virtualFile.getClassDescriptors(),
                               options.reporter);
                     } else {
-                      options
-                          .getDexIndexedConsumer()
+                      ((DexIndexedConsumer) consumer)
                           .accept(
                               virtualFile.getId(),
-                              result,
+                              data,
                               virtualFile.getClassDescriptors(),
                               options.reporter);
                     }
+                    // Release use of the backing buffer now that accept has returned.
+                    data.invalidate();
+                    byteBufferProvider.releaseByteBuffer(result.buffer);
                     return true;
                   }));
         }
@@ -451,8 +466,9 @@ public class ApplicationWriter {
     }
   }
 
-  private byte[] writeDexFile(ObjectToOffsetMapping mapping) {
-    FileWriter fileWriter = new FileWriter(mapping, application, options, namingLens);
+  private ByteBufferResult writeDexFile(
+      ObjectToOffsetMapping mapping, ByteBufferProvider provider) {
+    FileWriter fileWriter = new FileWriter(provider, mapping, application, options, namingLens);
     // Collect the non-fixed sections.
     fileWriter.collect();
     // Generate and write the bytes.

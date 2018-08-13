@@ -367,16 +367,15 @@ public class D8CommandTest {
     class MultiTypeConsumer implements DexIndexedConsumer, DexFilePerClassFileConsumer {
 
       @Override
-      public void accept(String primaryClassDescriptor, byte[] data, Set<String> descriptors,
-          DiagnosticsHandler handler) {
-
-      }
+      public void accept(
+          String primaryClassDescriptor,
+          ByteDataView data,
+          Set<String> descriptors,
+          DiagnosticsHandler handler) {}
 
       @Override
-      public void accept(int fileIndex, byte[] data, Set<String> descriptors,
-          DiagnosticsHandler handler) {
-
-      }
+      public void accept(
+          int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {}
 
       @Override
       public void finished(DiagnosticsHandler handler) {

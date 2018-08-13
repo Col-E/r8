@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -40,7 +41,7 @@ public class LocalEndTestRunner extends DebugTestBase {
     if (inputJarCache == null) {
       inputJarCache = temp.getRoot().toPath().resolve("input.jar");
       ClassFileConsumer jarWriter = new ArchiveConsumer(inputJarCache);
-      jarWriter.accept(LocalEndTestDump.dump(), DESC, null);
+      jarWriter.accept(ByteDataView.of(LocalEndTestDump.dump()), DESC, null);
       jarWriter.finished(null);
     }
     return inputJarCache;

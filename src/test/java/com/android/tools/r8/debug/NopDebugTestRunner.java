@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
@@ -31,7 +32,7 @@ public class NopDebugTestRunner extends DebugTestBase {
     Path inputJar = temp.getRoot().toPath().resolve("input.jar");
     ClassFileConsumer inputConsumer = new ClassFileConsumer.ArchiveConsumer(inputJar);
     String descriptor = DescriptorUtils.javaTypeToDescriptor(clazz.getName());
-    inputConsumer.accept(ToolHelper.getClassAsBytes(clazz), descriptor, null);
+    inputConsumer.accept(ByteDataView.of(ToolHelper.getClassAsBytes(clazz)), descriptor, null);
     inputConsumer.finished(null);
     return inputJar;
   }

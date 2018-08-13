@@ -38,11 +38,14 @@ public interface ClassFileConsumer extends ProgramConsumer {
    * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
    * then the compiler guaranties to exit with an error.
    *
+   * <p>The {@link ByteDataView} {@param data} object can only be assumed valid during the duration
+   * of the accept. If the bytes are needed beyond that, a copy must be made elsewhere.
+   *
    * @param data Java class-file encoded data.
    * @param descriptor Class descriptor of the class the data pertains to.
    * @param handler Diagnostics handler for reporting.
    */
-  void accept(byte[] data, String descriptor, DiagnosticsHandler handler);
+  void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler);
 
   /** Empty consumer to request the production of the resource but ignore its value. */
   static ClassFileConsumer emptyConsumer() {
@@ -67,7 +70,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public void accept(byte[] data, String descriptor, DiagnosticsHandler handler) {
+    public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
       if (consumer != null) {
         consumer.accept(data, descriptor, handler);
       }
@@ -116,7 +119,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public void accept(byte[] data, String descriptor, DiagnosticsHandler handler) {
+    public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
       super.accept(data, descriptor, handler);
       outputBuilder.addFile(getClassFileName(descriptor), data, handler);
     }
@@ -196,7 +199,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
     }
 
     @Override
-    public void accept(byte[] data, String descriptor, DiagnosticsHandler handler) {
+    public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
       super.accept(data, descriptor, handler);
       outputBuilder.addFile(ArchiveConsumer.getClassFileName(descriptor), data, handler);
     }

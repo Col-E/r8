@@ -5,6 +5,7 @@ package com.android.tools.r8.ir;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -29,7 +30,7 @@ public class PhiDefinitionsTestRunner extends TestBase {
     ClassFileConsumer consumer = new ClassFileConsumer.ArchiveConsumer(originalJar);
     for (Class clazz : PhiDefinitionsTest.CLASSES) {
       String descriptor = DescriptorUtils.javaTypeToDescriptor(clazz.getName());
-      consumer.accept(ToolHelper.getClassAsBytes(clazz), descriptor, null);
+      consumer.accept(ByteDataView.of(ToolHelper.getClassAsBytes(clazz)), descriptor, null);
     }
     consumer.finished(null);
     runOriginalJar(originalJar);
@@ -56,9 +57,9 @@ public class PhiDefinitionsTestRunner extends TestBase {
     Path dumpJar = temp.getRoot().toPath().resolve("dump.jar");
     ClassFileConsumer consumer = new ClassFileConsumer.ArchiveConsumer(dumpJar);
     String desc = 'L' + PhiDefinitionsTestDump.INTERNAL_NAME + ';';
-    consumer.accept(PhiDefinitionsTestDump.dump(), desc, null);
+    consumer.accept(ByteDataView.of(PhiDefinitionsTestDump.dump()), desc, null);
     String innerDesc = 'L' + PhiDefinitionsTestDump.INNER_INTERNAL_NAME + ';';
-    consumer.accept(PhiDefinitionsTestDump.dumpInner(), innerDesc, null);
+    consumer.accept(ByteDataView.of(PhiDefinitionsTestDump.dumpInner()), innerDesc, null);
     consumer.finished(null);
     runOriginalJar(dumpJar);
     return dumpJar;

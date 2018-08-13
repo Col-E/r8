@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationMode;
@@ -39,7 +40,7 @@ public class LambdaRenamingTestRunner extends TestBase {
     ArchiveConsumer buildInput = new ArchiveConsumer(inputJar);
     for (Class clazz : CLASSES) {
       buildInput.accept(
-          ToolHelper.getClassAsBytes(clazz),
+          ByteDataView.of(ToolHelper.getClassAsBytes(clazz)),
           DescriptorUtils.javaTypeToDescriptor(clazz.getName()),
           null);
     }

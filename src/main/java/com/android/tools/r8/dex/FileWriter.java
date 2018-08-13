@@ -6,6 +6,7 @@ package com.android.tools.r8.dex;
 import static com.android.tools.r8.utils.LebUtils.sizeAsUleb128;
 
 import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.Descriptor;
@@ -56,6 +57,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
@@ -72,14 +74,27 @@ import java.util.zip.Adler32;
 
 public class FileWriter {
 
+  /** Simple pair of a byte buffer and its written length. */
+  public static class ByteBufferResult {
+    // Ownership of the buffer is transferred to the receiver of this result structure.
+    public final ByteBuffer buffer;
+    public final int length;
+
+    private ByteBufferResult(ByteBuffer buffer, int length) {
+      this.buffer = buffer;
+      this.length = length;
+    }
+  }
+
   private final ObjectToOffsetMapping mapping;
   private final DexApplication application;
   private final InternalOptions options;
   private final NamingLens namingLens;
-  private final DexOutputBuffer dest = new DexOutputBuffer();
+  private final DexOutputBuffer dest;
   private final MixedSectionOffsets mixedSectionOffsets;
 
   public FileWriter(
+      ByteBufferProvider provider,
       ObjectToOffsetMapping mapping,
       DexApplication application,
       InternalOptions options,
@@ -88,6 +103,7 @@ public class FileWriter {
     this.application = application;
     this.options = options;
     this.namingLens = namingLens;
+    this.dest = new DexOutputBuffer(provider);
     this.mixedSectionOffsets = new MixedSectionOffsets(options);
   }
 
@@ -134,7 +150,7 @@ public class FileWriter {
     return this;
   }
 
-  public byte[] generate() {
+  public ByteBufferResult generate() {
     // Check restrictions on interface methods.
     checkInterfaceMethods();
 
@@ -198,8 +214,8 @@ public class FileWriter {
     writeSignature(layout);
     writeChecksum(layout);
 
-    // Turn into an array
-    return Arrays.copyOf(dest.asArray(), layout.getEndOfFile());
+    // Wrap backing buffer with actual length.
+    return new ByteBufferResult(dest.stealByteBuffer(), layout.getEndOfFile());
   }
 
   private void checkInterfaceMethods() {

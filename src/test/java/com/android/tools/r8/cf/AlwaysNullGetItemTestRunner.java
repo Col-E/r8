@@ -5,9 +5,10 @@ package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
@@ -64,7 +65,7 @@ public class AlwaysNullGetItemTestRunner {
     Path out = temp.getRoot().toPath().resolve("aaload-null.jar");
     ClassFileConsumer.ArchiveConsumer archiveConsumer = new ClassFileConsumer.ArchiveConsumer(out);
     archiveConsumer.accept(
-        AlwaysNullGetItemDump.dump(),
+        ByteDataView.of(AlwaysNullGetItemDump.dump()),
         DescriptorUtils.javaTypeToDescriptor(CLASS.getCanonicalName()),
         null);
     archiveConsumer.finished(null);

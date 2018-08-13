@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.BaseCompilerCommand;
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -84,9 +85,12 @@ public class AndroidAppConsumers {
 
           @Override
           public void accept(
-              int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+              int fileIndex,
+              ByteDataView data,
+              Set<String> descriptors,
+              DiagnosticsHandler handler) {
             super.accept(fileIndex, data, descriptors, handler);
-            addDexFile(fileIndex, data, descriptors);
+            addDexFile(fileIndex, data.copyByteData(), descriptors);
           }
 
           @Override
@@ -121,11 +125,11 @@ public class AndroidAppConsumers {
           @Override
           public void accept(
               String primaryClassDescriptor,
-              byte[] data,
+              ByteDataView data,
               Set<String> descriptors,
               DiagnosticsHandler handler) {
             super.accept(primaryClassDescriptor, data, descriptors, handler);
-            addDexFile(primaryClassDescriptor, data, descriptors);
+            addDexFile(primaryClassDescriptor, data.copyByteData(), descriptors);
           }
 
           synchronized void addDexFile(
@@ -157,9 +161,9 @@ public class AndroidAppConsumers {
           private List<DescriptorsWithContents> files = new ArrayList<>();
 
           @Override
-          public void accept(byte[] data, String descriptor, DiagnosticsHandler handler) {
+          public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
             super.accept(data, descriptor, handler);
-            addClassFile(data, descriptor);
+            addClassFile(data.copyByteData(), descriptor);
           }
 
           synchronized void addClassFile(byte[] data, String descriptor) {

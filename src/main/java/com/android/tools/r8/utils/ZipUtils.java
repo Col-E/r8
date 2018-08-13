@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.DEX_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.MODULE_INFO_CLASS;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.errors.CompilationError;
 import com.google.common.io.ByteStreams;
 import java.io.File;
@@ -73,27 +74,36 @@ public class ZipUtils {
   public static void writeToZipStream(
       ZipOutputStream stream, String entry, byte[] content, int compressionMethod)
       throws IOException {
+    writeToZipStream(stream, entry, ByteDataView.of(content), compressionMethod, false);
+  }
+
+  public static void writeToZipStream(
+      ZipOutputStream stream, String entry, ByteDataView content, int compressionMethod)
+      throws IOException {
     writeToZipStream(stream, entry, content, compressionMethod, false);
   }
 
   public static void writeToZipStream(
       ZipOutputStream stream,
       String entry,
-      byte[] content,
+      ByteDataView content,
       int compressionMethod,
       boolean setZeroTime)
       throws IOException {
+    byte[] buffer = content.getBuffer();
+    int offset = content.getOffset();
+    int length = content.getLength();
     CRC32 crc = new CRC32();
-    crc.update(content);
+    crc.update(buffer, offset, length);
     ZipEntry zipEntry = new ZipEntry(entry);
     zipEntry.setMethod(compressionMethod);
-    zipEntry.setSize(content.length);
+    zipEntry.setSize(length);
     zipEntry.setCrc(crc.getValue());
     if (setZeroTime) {
       zipEntry.setTime(0);
     }
     stream.putNextEntry(zipEntry);
-    stream.write(content);
+    stream.write(buffer, offset, length);
     stream.closeEntry();
   }
 

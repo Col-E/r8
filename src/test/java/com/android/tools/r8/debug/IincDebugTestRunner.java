@@ -5,6 +5,7 @@ package com.android.tools.r8.debug;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationMode;
@@ -90,7 +91,7 @@ public class IincDebugTestRunner extends DebugTestBase {
   private Path buildInput(byte[] clazz) {
     Path inputJar = temp.getRoot().toPath().resolve("input.jar");
     ArchiveConsumer inputJarConsumer = new ArchiveConsumer(inputJar);
-    inputJarConsumer.accept(clazz, IincDebugTestDump.DESCRIPTOR, null);
+    inputJarConsumer.accept(ByteDataView.of(clazz), IincDebugTestDump.DESCRIPTOR, null);
     inputJarConsumer.finished(null);
     return inputJar;
   }

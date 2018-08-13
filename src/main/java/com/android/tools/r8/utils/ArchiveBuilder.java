@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResource;
 import com.android.tools.r8.DiagnosticsHandler;
@@ -103,7 +104,7 @@ public class ArchiveBuilder implements OutputBuilder {
   @Override
   public void addFile(String name, DataEntryResource content, DiagnosticsHandler handler) {
     try (InputStream in = content.getByteStream()) {
-      addFile(name, ByteStreams.toByteArray(in), handler);
+      addFile(name, ByteDataView.of(ByteStreams.toByteArray(in)), handler);
     } catch (IOException e) {
       handleIOException(e, handler);
     } catch (ResourceException e) {
@@ -112,8 +113,8 @@ public class ArchiveBuilder implements OutputBuilder {
     }
   }
 
-   @Override
-   public synchronized void addFile(String name, byte[] content, DiagnosticsHandler handler) {
+  @Override
+  public synchronized void addFile(String name, ByteDataView content, DiagnosticsHandler handler) {
     try {
       ZipUtils.writeToZipStream(getStream(handler), name, content, ZipEntry.STORED);
     } catch (IOException e) {

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.origin.Origin;
@@ -20,7 +21,7 @@ public interface OutputBuilder {
 
   void addFile(String name, DataEntryResource content, DiagnosticsHandler handler);
 
-  void addFile(String name, byte[] content, DiagnosticsHandler handler);
+  void addFile(String name, ByteDataView content, DiagnosticsHandler handler);
 
   Path getPath();
 

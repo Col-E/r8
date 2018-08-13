@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
@@ -40,7 +41,8 @@ public class UninitializedInFrameTestRunner {
     Path output = temp.getRoot().toPath().resolve("output.jar");
 
     ArchiveConsumer inputConsumer = new ArchiveConsumer(input);
-    inputConsumer.accept(clazz, DescriptorUtils.javaTypeToDescriptor(CLASS.getName()), null);
+    inputConsumer.accept(
+        ByteDataView.of(clazz), DescriptorUtils.javaTypeToDescriptor(CLASS.getName()), null);
     inputConsumer.finished(null);
     ProcessResult runInput = ToolHelper.runJava(input, CLASS.getCanonicalName());
     if (runInput.exitCode != 0) {

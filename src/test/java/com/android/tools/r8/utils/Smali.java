@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -132,8 +133,8 @@ public class Smali {
 
     @Override
     public void accept(
-        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
-      contents = data;
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
+      contents = data.copyByteData();
     }
 
     @Override

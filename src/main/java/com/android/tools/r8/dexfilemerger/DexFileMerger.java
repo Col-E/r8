@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.dexfilemerger;
 
+import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexFileMergerHelper;
@@ -210,12 +211,14 @@ public class DexFileMerger {
 
     @Override
     public synchronized void accept(
-        int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
+        int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       if (singleFixedFileIndex != null && fileIndex != 0) {
         handler.error(new StringDiagnostic("Result does not fit into a single dex file."));
         return;
       }
-      writers.put(fileIndex, () -> writeEntry(fileIndex, data, descriptors, handler));
+      // Make a copy of the actual bytes as they will possibly be accessed later by the runner.
+      final byte[] bytes = data.copyByteData();
+      writers.put(fileIndex, () -> writeEntry(fileIndex, bytes, descriptors, handler));
 
       while (writers.containsKey(highestIndexWritten + 1)) {
         ++highestIndexWritten;
@@ -243,7 +246,11 @@ public class DexFileMerger {
         int fileIndex, byte[] data, Set<String> descriptors, DiagnosticsHandler handler) {
       try {
         ZipUtils.writeToZipStream(
-            getStream(handler), getDexFileName(fileIndex), data, ZipEntry.DEFLATED, true);
+            getStream(handler),
+            getDexFileName(fileIndex),
+            ByteDataView.of(data),
+            ZipEntry.DEFLATED,
+            true);
         hasWrittenSomething = true;
       } catch (IOException e) {
         handler.error(new ExceptionDiagnostic(e, origin));
