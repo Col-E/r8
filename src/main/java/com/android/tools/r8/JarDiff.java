@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.google.common.io.ByteStreams.toByteArray;
-
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexClass;
@@ -14,6 +12,7 @@ import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StreamUtils;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -135,7 +134,8 @@ public class JarDiff {
 
   private byte[] getClassAsBytes(ArchiveClassFileProvider inputJar, String descriptor)
       throws Exception {
-    return toByteArray(inputJar.getProgramResource(descriptor).getByteStream());
+    return StreamUtils.StreamToByteArrayClose(
+        inputJar.getProgramResource(descriptor).getByteStream());
   }
 
   private DexProgramClass getDexProgramClass(Path path, byte[] bytes) throws IOException {

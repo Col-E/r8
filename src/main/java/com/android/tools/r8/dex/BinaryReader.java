@@ -8,7 +8,7 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.LebUtils;
-import com.google.common.io.ByteStreams;
+import com.android.tools.r8.utils.StreamUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -20,7 +20,7 @@ public abstract class BinaryReader {
   protected final ByteBuffer buffer;
 
   protected BinaryReader(ProgramResource resource) throws ResourceException, IOException {
-    this(resource.getOrigin(), ByteStreams.toByteArray(resource.getByteStream()));
+    this(resource.getOrigin(), StreamUtils.StreamToByteArrayClose(resource.getByteStream()));
   }
 
   protected BinaryReader(Origin origin, byte[] bytes) {
