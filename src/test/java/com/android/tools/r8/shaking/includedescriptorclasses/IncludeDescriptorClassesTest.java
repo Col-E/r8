@@ -94,10 +94,11 @@ public class IncludeDescriptorClassesTest extends TestBase {
 
       Result result = runTest(mainClass, proguardConfig);
 
-      // Without includedescriptorclasses return type and argument type are removed.
+      // Without includedescriptorclasses return type is removed.
       result.assertKept(ClassWithNativeMethods.class);
-      result.assertRemoved(NativeArgumentType.class);
       result.assertRemoved(NativeReturnType.class);
+      // Argument type is not removed due to the concern about the broken type hierarchy.
+      result.assertRenamed(NativeArgumentType.class);
       // Field type is not removed due to the concern about the broken type hierarchy.
       result.assertRenamed(InstanceFieldType.class);
       result.assertRenamed(StaticFieldType.class);
