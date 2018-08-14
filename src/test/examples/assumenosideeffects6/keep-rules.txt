@@ -1,0 +1,18 @@
+# Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+# for details. All rights reserved. Use of this source code is governed by a
+# BSD-style license that can be found in the LICENSE file.
+
+# Keep the application entry point. Get rid of everything that is not
+# reachable from there.
+-keep public class assumenosideeffects6.Assumenosideeffects {
+  public static void main(...);
+}
+
+# Mark some methods to return null and have no side effects.
+-assumenosideeffects class assumenosideeffects6.A {
+  public static java.lang.Object methodStaticNull() return null;
+  public java.lang.Object methodNull() return null;
+}
+
+# Allow access modification to enable minification.
+-allowaccessmodification

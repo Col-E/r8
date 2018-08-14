@@ -417,12 +417,14 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertTrue(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertEquals(rule.getName().matches("returnsTrue"), rule.getReturnValue().getBoolean());
         matches |= 1 << 0;
       } else if (rule.getName().matches("returns1")) {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertTrue(rule.getReturnValue().isSingleValue());
         assertEquals(1, rule.getReturnValue().getValueRange().getMin());
         assertEquals(1, rule.getReturnValue().getValueRange().getMax());
@@ -432,6 +434,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertFalse(rule.getReturnValue().isSingleValue());
         assertEquals(2, rule.getReturnValue().getValueRange().getMin());
         assertEquals(4, rule.getReturnValue().getValueRange().getMax());
@@ -440,6 +443,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertFalse(rule.getReturnValue().isSingleValue());
         assertEquals(234, rule.getReturnValue().getValueRange().getMin());
         assertEquals(567, rule.getReturnValue().getValueRange().getMax());
@@ -448,15 +452,23 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertEquals("com.google.C", rule.getReturnValue().getField().clazz.toString());
         assertEquals("int", rule.getReturnValue().getField().type.toString());
         assertEquals("X", rule.getReturnValue().getField().name.toString());
         matches |= 1 << 4;
+      } else if (rule.getName().matches("returnsNull")) {
+        assertFalse(rule.getReturnValue().isBoolean());
+        assertFalse(rule.getReturnValue().isValueRange());
+        assertFalse(rule.getReturnValue().isField());
+        assertTrue(rule.getReturnValue().isNull());
+        assertTrue(rule.getReturnValue().isSingleValue());
+        matches |= 1 << 5;
       } else {
         fail("Unexpected");
       }
     }
-    assertEquals((1 << 5) - 1, matches);
+    assertEquals((1 << 6) - 1, matches);
   }
 
   @Test
@@ -474,12 +486,14 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertTrue(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertEquals(rule.getName().matches("isTrue"), rule.getReturnValue().getBoolean());
         matches |= 1 << 0;
       } else if (rule.getName().matches("is1")) {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertTrue(rule.getReturnValue().isSingleValue());
         assertEquals(1, rule.getReturnValue().getValueRange().getMin());
         assertEquals(1, rule.getReturnValue().getValueRange().getMax());
@@ -489,6 +503,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertFalse(rule.getReturnValue().isSingleValue());
         assertEquals(2, rule.getReturnValue().getValueRange().getMin());
         assertEquals(4, rule.getReturnValue().getValueRange().getMax());
@@ -497,6 +512,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertTrue(rule.getReturnValue().isValueRange());
         assertFalse(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertFalse(rule.getReturnValue().isSingleValue());
         assertEquals(234, rule.getReturnValue().getValueRange().getMin());
         assertEquals(567, rule.getReturnValue().getValueRange().getMax());
@@ -505,15 +521,23 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isBoolean());
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
+        assertFalse(rule.getReturnValue().isNull());
         assertEquals("com.google.C", rule.getReturnValue().getField().clazz.toString());
         assertEquals("int", rule.getReturnValue().getField().type.toString());
         assertEquals("X", rule.getReturnValue().getField().name.toString());
         matches |= 1 << 4;
+      } else if (rule.getName().matches("isNull")) {
+        assertFalse(rule.getReturnValue().isBoolean());
+        assertFalse(rule.getReturnValue().isValueRange());
+        assertFalse(rule.getReturnValue().isField());
+        assertTrue(rule.getReturnValue().isNull());
+        assertTrue(rule.getReturnValue().isSingleValue());
+        matches |= 1 << 5;
       } else {
         fail("Unexpected");
       }
     }
-    assertEquals((1 << 5) - 1, matches);
+    assertEquals((1 << 6) - 1, matches);
   }
 
   @Test

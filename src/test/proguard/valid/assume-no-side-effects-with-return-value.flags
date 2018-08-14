@@ -9,4 +9,5 @@
     public static int returns2To4() return 2..4;
     public static int returns234To567() return 234..567;
     public static int returnsField() return com.google.C.X;
+    public static Object returnsNull() return null;
 }
