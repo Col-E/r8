@@ -70,8 +70,8 @@ public class MemberValuePropagation {
     Instruction replacement = null;
     ValueType valueType = instruction.outValue().outType();
     if (rule != null && rule.hasReturnValue() && rule.getReturnValue().isSingleValue()) {
-      assert valueType != ValueType.OBJECT;
       Value value = code.createValue(valueType, instruction.getLocalInfo());
+      assert valueType != ValueType.OBJECT || rule.getReturnValue().isNull();
       replacement = new ConstNumber(value, rule.getReturnValue().getSingleValue());
     }
     if (replacement == null &&
@@ -132,12 +132,12 @@ public class MemberValuePropagation {
         DexEncodedMethod definition = appInfo
             .lookup(invoke.getType(), invokedMethod, callingContext);
 
-        // Process invokes marked as having no side effects.
         boolean invokeReplaced = false;
         ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
         if (lookup != null) {
           if (lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS
               && (invoke.outValue() == null || !invoke.outValue().isUsed())) {
+            // Remove invoke if marked as having no side effects and the return value is not used.
             iterator.remove();
             invokeReplaced = true;
           } else if (invoke.outValue() != null && invoke.outValue().isUsed()) {

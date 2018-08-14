@@ -968,6 +968,8 @@ public class ProguardConfigurationParser {
                     ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(true));
                   } else if (acceptString("false")) {
                     ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(false));
+                  } else if (acceptString("null")) {
+                    ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue());
                   } else {
                     TextPosition fieldOrValueStart = getPosition();
                     String qualifiedFieldNameOrInteger = acceptFieldNameOrIntegerForReturn();
