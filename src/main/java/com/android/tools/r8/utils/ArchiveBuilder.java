@@ -90,6 +90,7 @@ public class ArchiveBuilder implements OutputBuilder {
       name += DataResource.SEPARATOR;
     }
     ZipEntry entry = new ZipEntry(name);
+    entry.setTime(0);
     ZipOutputStream zip = getStream(handler);
     synchronized (this) {
       try {

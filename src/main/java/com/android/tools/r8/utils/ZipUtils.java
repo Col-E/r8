@@ -74,21 +74,11 @@ public class ZipUtils {
   public static void writeToZipStream(
       ZipOutputStream stream, String entry, byte[] content, int compressionMethod)
       throws IOException {
-    writeToZipStream(stream, entry, ByteDataView.of(content), compressionMethod, false);
+    writeToZipStream(stream, entry, ByteDataView.of(content), compressionMethod);
   }
 
   public static void writeToZipStream(
       ZipOutputStream stream, String entry, ByteDataView content, int compressionMethod)
-      throws IOException {
-    writeToZipStream(stream, entry, content, compressionMethod, false);
-  }
-
-  public static void writeToZipStream(
-      ZipOutputStream stream,
-      String entry,
-      ByteDataView content,
-      int compressionMethod,
-      boolean setZeroTime)
       throws IOException {
     byte[] buffer = content.getBuffer();
     int offset = content.getOffset();
@@ -99,9 +89,7 @@ public class ZipUtils {
     zipEntry.setMethod(compressionMethod);
     zipEntry.setSize(length);
     zipEntry.setCrc(crc.getValue());
-    if (setZeroTime) {
-      zipEntry.setTime(0);
-    }
+    zipEntry.setTime(0);
     stream.putNextEntry(zipEntry);
     stream.write(buffer, offset, length);
     stream.closeEntry();

@@ -135,7 +135,7 @@ public class CompatDexBuilder {
           ZipEntry entry = entries.nextElement();
           if (!entry.getName().endsWith(".class")) {
             try (InputStream stream = zipFile.getInputStream(entry)) {
-              addEntry(entry.getName(), stream, entry.getTime(), out);
+              addEntry(entry.getName(), stream, out);
             }
           } else {
             toDex.add(entry);
@@ -150,7 +150,7 @@ public class CompatDexBuilder {
         for (int i = 0; i < futures.size(); i++) {
           ZipEntry entry = toDex.get(i);
           DexConsumer consumer = futures.get(i).get();
-          addEntry(entry.getName() + ".dex", consumer.getBytes(), entry.getTime(), out);
+          addEntry(entry.getName() + ".dex", consumer.getBytes(), out);
         }
       }
     } finally {
@@ -178,20 +178,19 @@ public class CompatDexBuilder {
     return consumer;
   }
 
-  private static void addEntry(String name, InputStream stream, long time, ZipOutputStream out)
+  private static void addEntry(String name, InputStream stream, ZipOutputStream out)
       throws IOException {
-    addEntry(name, ByteStreams.toByteArray(stream), time, out);
+    addEntry(name, ByteStreams.toByteArray(stream), out);
   }
 
-  private static void addEntry(String name, byte[] bytes, long time, ZipOutputStream out)
-      throws IOException {
+  private static void addEntry(String name, byte[] bytes, ZipOutputStream out) throws IOException {
     ZipEntry zipEntry = new ZipEntry(name);
     CRC32 crc32 = new CRC32();
     crc32.update(bytes);
     zipEntry.setSize(bytes.length);
     zipEntry.setMethod(ZipEntry.STORED);
     zipEntry.setCrc(crc32.getValue());
-    zipEntry.setTime(time);
+    zipEntry.setTime(0);
     out.putNextEntry(zipEntry);
     out.write(bytes);
     out.closeEntry();

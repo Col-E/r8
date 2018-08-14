@@ -249,8 +249,7 @@ public class DexFileMerger {
             getStream(handler),
             getDexFileName(fileIndex),
             ByteDataView.of(data),
-            ZipEntry.DEFLATED,
-            true);
+            ZipEntry.DEFLATED);
         hasWrittenSomething = true;
       } catch (IOException e) {
         handler.error(new ExceptionDiagnostic(e, origin));
