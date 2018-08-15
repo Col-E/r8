@@ -179,10 +179,13 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
         ),
         Origin.unknown());
 
-    AndroidApp app = ToolHelper.runR8(builder.build(), options -> {
-      options.enableInlining = false;
-      options.enableClassMerging = false;
-    });
+    AndroidApp app =
+        ToolHelper.runR8(
+            builder.build(),
+            options -> {
+              options.enableInlining = false;
+              options.enableVerticalClassMerging = false;
+            });
     compareJvmAndArt(app, mainClass);
 
     CodeInspector codeInspector = new CodeInspector(app);

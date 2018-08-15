@@ -49,7 +49,7 @@ public class TreeShaking19Test extends TreeShakingTest {
         null,
         ImmutableList.of("src/test/examples/shaking19/keep-rules.txt"),
         // Disable vertical class merging to prevent A from being merged into B.
-        opt -> opt.enableClassMerging = false);
+        opt -> opt.enableVerticalClassMerging = false);
   }
 
   private static void unusedRemoved(CodeInspector inspector) {

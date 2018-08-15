@@ -85,7 +85,7 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
   }
 
   private void configure(InternalOptions options) {
-    options.enableClassMerging = enableClassMerging;
+    options.enableVerticalClassMerging = enableClassMerging;
   }
 
   @Override

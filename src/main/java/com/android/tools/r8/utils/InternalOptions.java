@@ -79,7 +79,7 @@ public class InternalOptions {
     itemFactory = proguardConfiguration.getDexItemFactory();
     // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
-      enableClassMerging = false;
+      enableVerticalClassMerging = false;
       enableDevirtualization = false;
       enableNonNullTracking = false;
       enableInlining = false;
@@ -97,7 +97,7 @@ public class InternalOptions {
   public boolean passthroughDexCode = false;
 
   // Optimization-related flags. These should conform to -dontoptimize.
-  public boolean enableClassMerging = false;
+  public boolean enableVerticalClassMerging = false;
   public boolean enableDevirtualization = true;
   public boolean enableNonNullTracking = true;
   public boolean enableInlining =

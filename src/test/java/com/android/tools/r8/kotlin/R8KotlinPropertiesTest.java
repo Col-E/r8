@@ -83,11 +83,12 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
           .addProperty("internalLateInitProp", JAVA_LANG_STRING, Visibility.INTERNAL)
           .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
 
-  private Consumer<InternalOptions> disableAggressiveClassOptimizations = o -> {
-    o.enableClassInlining = false;
-    o.enableClassMerging = false;
-    o.enableClassStaticizer = false;
-  };
+  private Consumer<InternalOptions> disableAggressiveClassOptimizations =
+      o -> {
+        o.enableClassInlining = false;
+        o.enableVerticalClassMerging = false;
+        o.enableClassStaticizer = false;
+      };
 
   @Test
   public void testMutableProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {

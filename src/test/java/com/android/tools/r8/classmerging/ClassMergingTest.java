@@ -77,7 +77,7 @@ public class ClassMergingTest extends TestBase {
       .resolve("classmerging").resolve("keep-rules-dontoptimize.txt");
 
   private void configure(InternalOptions options) {
-    options.enableClassMerging = true;
+    options.enableVerticalClassMerging = true;
     options.enableClassInlining = false;
     options.enableMinification = false;
     options.testing.nondeterministicCycleElimination = true;
@@ -407,7 +407,7 @@ public class ClassMergingTest extends TestBase {
         getProguardConfig(EXAMPLE_KEEP),
         options -> {
           configure(options);
-          options.enableClassMerging = false;
+          options.enableVerticalClassMerging = false;
           options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
           options.proguardMapConsumer =
               (proguardMap, handler) ->
@@ -472,7 +472,7 @@ public class ClassMergingTest extends TestBase {
         getProguardConfig(EXAMPLE_KEEP),
         options -> {
           configure(options);
-          options.enableClassMerging = false;
+          options.enableVerticalClassMerging = false;
           options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
           options.proguardMapConsumer =
               (proguardMap, handler) ->
@@ -543,7 +543,7 @@ public class ClassMergingTest extends TestBase {
             "-forceinline class classmerging.ProguardMethodMapTest$A { public void method(); }"),
         options -> {
           configure(options);
-          options.enableClassMerging = false;
+          options.enableVerticalClassMerging = false;
           options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
           options.proguardMapConsumer =
               (proguardMap, handler) ->

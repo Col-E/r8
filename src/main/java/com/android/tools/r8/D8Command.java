@@ -237,6 +237,9 @@ public final class D8Command extends BaseCompilerCommand {
     internal.enableInlining = false;
     assert internal.enableClassInlining;
     internal.enableClassInlining = false;
+    // TODO(christofferqa): Remove negation when enabling vertical class merging by default.
+    assert !internal.enableVerticalClassMerging;
+    internal.enableVerticalClassMerging = false;
     assert internal.enableClassStaticizer;
     internal.enableClassStaticizer = false;
     assert internal.enableSwitchMapRemoval;
