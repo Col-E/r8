@@ -14,5 +14,10 @@
   public static int noSideEffectInt(...);
 }
 
-# Allow access modification to enable minifcation.
+# Allow access modification to enable minification.
 -allowaccessmodification
+
+# Check that methods have been discarded.
+-checkdiscard class ** {
+  @assumenosideeffects1.CheckDiscarded *;
+}

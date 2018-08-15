@@ -20,5 +20,10 @@
   public static long method1L(...) return assumenosideeffects4.Assumenosideeffects.ASSUMED_VALUE_0L;
 }
 
-# Allow access modification to enable minifcation.
+# Allow access modification to enable minification.
 -allowaccessmodification
+
+# Check that methods have been discarded.
+-checkdiscard class ** {
+  @assumenosideeffects4.CheckDiscarded *;
+}

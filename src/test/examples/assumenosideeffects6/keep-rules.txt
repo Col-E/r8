@@ -16,3 +16,8 @@
 
 # Allow access modification to enable minification.
 -allowaccessmodification
+
+# Check that methods have been discarded.
+-checkdiscard class ** {
+  @assumenosideeffects6.CheckDiscarded *;
+}
