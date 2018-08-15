@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.DexIndexedConsumer;
@@ -171,7 +172,6 @@ public class ParameterTypeTest extends TestBase {
         "invokestatic " + mainClass.name + "/bar(" + sub.getDescriptor() + ")V",
         "return");
 
-
     final String mainClassName = mainClass.name;
     String proguardConfig = keepMainProguardConfiguration(mainClassName, false, false);
 
@@ -192,6 +192,81 @@ public class ParameterTypeTest extends TestBase {
     assertEquals(0, artResult.exitCode);
     assertThat(artResult.stdout, containsString(bar.name));
     assertEquals(-1, artResult.stderr.indexOf("ClassNotFoundException"));
+
+    CodeInspector inspector = new CodeInspector(processedApp);
+    ClassSubject subSubject = inspector.clazz(sub.name);
+    assertThat(subSubject, isPresent());
+  }
+
+  @Test
+  public void test_brokenTypeHierarchy_arrayType() throws Exception {
+    JasminBuilder jasminBuilder = new JasminBuilder();
+    // interface SuperInterface {
+    //   void foo();
+    // }
+    ClassBuilder sup = jasminBuilder.addInterface("SuperInterface");
+    MethodSignature foo = sup.addAbstractMethod("foo", ImmutableList.of(), "V");
+    // interface SubInterface extends SuperInterface
+    ClassBuilder sub = jasminBuilder.addInterface("SubInterface", sup.name);
+
+    // class Foo implements SuperInterface /* supposed to implement SubInterface */
+    ClassBuilder impl = jasminBuilder.addClass("Foo", "java/lang/Object", sup.name);
+    impl.addDefaultConstructor();
+    impl.addVirtualMethod(foo.name, ImmutableList.of(), "V",
+        ".limit locals 2",
+        ".limit stack 2",
+        "getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "ldc \"" + foo.name + "\"",
+        "invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V",
+        "return");
+
+    // class TestMain {
+    //   static bar(SubInterface[] array) {
+    //     // instance.foo();
+    //   }
+    //   public static void main(String[] args) {
+    //     // ART verifies the argument (Foo) is an instance of the parameter type (SubInterface).
+    //     bar(new Foo());
+    //   }
+    // }
+    ClassBuilder mainClass = jasminBuilder.addClass("Main");
+    MethodSignature bar =
+        mainClass.addStaticMethod("bar", ImmutableList.of("[" + sub.getDescriptor()), "V",
+            ".limit locals 2",
+            ".limit stack 2",
+            "getstatic java/lang/System/out Ljava/io/PrintStream;",
+            "ldc \"" + "bar" + "\"",
+            "invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V",
+            "return");
+    mainClass.addMainMethod(
+        ".limit locals 1",
+        ".limit stack 2",
+        "iconst_1",
+        "anewarray " + impl.name,
+        "invokestatic " + mainClass.name + "/bar(" + "[" + sub.getDescriptor() + ")V",
+        "return");
+
+    final String mainClassName = mainClass.name;
+    String proguardConfig = keepMainProguardConfiguration(mainClassName, false, false);
+
+    // Run input program on java.
+    Path outputDirectory = temp.newFolder().toPath();
+    jasminBuilder.writeClassFiles(outputDirectory);
+    ProcessResult javaResult = ToolHelper.runJava(outputDirectory, mainClassName);
+    assertEquals(0, javaResult.exitCode);
+    assertThat(javaResult.stdout, containsString(bar.name));
+    assertEquals(-1, javaResult.stderr.indexOf("ClassNotFoundException"));
+
+    AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
+        // Disable inlining to avoid the (short) tested method from being inlined and then removed.
+        internalOptions -> internalOptions.enableInlining = false);
+
+    // Run processed (output) program on ART
+    ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
+    assertNotEquals(0, artResult.exitCode);
+    assertEquals(-1, artResult.stderr.indexOf("ClassNotFoundException"));
+    assertThat(artResult.stderr,
+        containsString("type Precise Reference: Foo[] but expected Reference: SubInterface[]"));
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject subSubject = inspector.clazz(sub.name);
