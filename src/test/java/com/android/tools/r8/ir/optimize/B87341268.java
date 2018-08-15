@@ -15,14 +15,14 @@ import org.junit.Test;
 public class B87341268 extends TestBase {
   @Test
   public void test() throws Exception {
-    AndroidApp app = compileWithD8(readClasses(TestClass.class));
+    AndroidApp app = compileWithD8(readClasses(TestClassForB87341268.class));
     CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz(TestClass.class);
+    ClassSubject clazz = inspector.clazz(TestClassForB87341268.class);
     assertThat(clazz, isPresent());
   }
 }
 
-class TestClass {
+class TestClassForB87341268 {
   int loop(String arg) {
     long[] array = { 0L, 1L, 2L };
     int length = -1;
