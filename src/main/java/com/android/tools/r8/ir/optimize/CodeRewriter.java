@@ -1561,7 +1561,7 @@ public class CodeRewriter {
     }
   }
 
-  private DexClass definitionFor(DexType type) {
+  public DexClass definitionFor(DexType type) {
     if (cachedClass != null && cachedClass.type == type) {
       return cachedClass;
     }

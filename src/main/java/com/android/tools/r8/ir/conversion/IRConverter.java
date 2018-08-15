@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
+import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
@@ -93,6 +94,7 @@ public class IRConverter {
   private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
+  private final TwrCloseResourceRewriter twrCloseResourceRewriter;
   private final LambdaMerger lambdaMerger;
   private final ClassInliner classInliner;
   private final ClassStaticizer classStaticizer;
@@ -136,6 +138,9 @@ public class IRConverter {
     this.interfaceMethodRewriter =
         (options.enableDesugaring && enableInterfaceMethodDesugaring())
             ? new InterfaceMethodRewriter(this, options) : null;
+    this.twrCloseResourceRewriter =
+        (options.enableDesugaring && enableTwrCloseResourceDesugaring())
+            ? new TwrCloseResourceRewriter(this) : null;
     this.lambdaMerger = options.enableLambdaMerging
         ? new LambdaMerger(appInfo.dexItemFactory, options.reporter) : null;
     this.covariantReturnTypeAnnotationTransformer =
@@ -239,6 +244,10 @@ public class IRConverter {
     throw new Unreachable();
   }
 
+  private boolean enableTwrCloseResourceDesugaring() {
+    return enableTryWithResourcesDesugaring() && !options.canUseTwrCloseResourceMethod();
+  }
+
   private boolean enableTryWithResourcesDesugaring() {
     switch (options.tryWithResourcesDesugaring) {
       case Off:
@@ -289,6 +298,12 @@ public class IRConverter {
     }
   }
 
+  private void synthesizeTwrCloseResourceUtilityClass(Builder<?> builder) {
+    if (twrCloseResourceRewriter != null) {
+      twrCloseResourceRewriter.synthesizeUtilityClass(builder, options);
+    }
+  }
+
   private void processCovariantReturnTypeAnnotations(Builder<?> builder) {
     if (covariantReturnTypeAnnotationTransformer != null) {
       covariantReturnTypeAnnotationTransformer.process(builder);
@@ -308,6 +323,7 @@ public class IRConverter {
 
     synthesizeLambdaClasses(builder);
     desugarInterfaceMethods(builder, ExcludeDexResources);
+    synthesizeTwrCloseResourceUtilityClass(builder);
     processCovariantReturnTypeAnnotations(builder);
 
     handleSynthesizedClassMapping(builder);
@@ -475,6 +491,7 @@ public class IRConverter {
 
     synthesizeLambdaClasses(builder);
     desugarInterfaceMethods(builder, IncludeAllResources);
+    synthesizeTwrCloseResourceUtilityClass(builder);
 
     handleSynthesizedClassMapping(builder);
     finalizeLambdaMerging(application, directFeedback, builder, executorService);
@@ -679,7 +696,7 @@ public class IRConverter {
     printC1VisualizerHeader(method);
     printMethod(code, "Initial IR (SSA)");
 
-    DexClass holder = appInfo.definitionFor(method.method.holder);
+    DexClass holder = codeRewriter.definitionFor(method.method.holder);
     if (method.getCode() != null && method.getCode().isJarCode()
         && holder.hasKotlinInfo()) {
       computeKotlinNotNullParamHints(feedback, holder.getKotlinInfo(), method, code);
@@ -803,6 +820,10 @@ public class IRConverter {
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.rewriteMethodReferences(method, code);
       assert code.isConsistentSSA();
+    }
+
+    if (twrCloseResourceRewriter != null) {
+      twrCloseResourceRewriter.rewriteMethodCode(code);
     }
 
     if (lambdaMerger != null) {

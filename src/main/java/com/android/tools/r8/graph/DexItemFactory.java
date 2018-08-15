@@ -138,6 +138,7 @@ public class DexItemFactory {
   public final DexString objectDescriptor = createString("Ljava/lang/Object;");
   public final DexString objectArrayDescriptor = createString("[Ljava/lang/Object;");
   public final DexString classDescriptor = createString("Ljava/lang/Class;");
+  public final DexString autoCloseableDescriptor = createString("Ljava/lang/AutoCloseable;");
   public final DexString classArrayDescriptor = createString("[Ljava/lang/Class;");
   public final DexString fieldDescriptor = createString("Ljava/lang/reflect/Field;");
   public final DexString methodDescriptor = createString("Ljava/lang/reflect/Method;");
@@ -196,6 +197,7 @@ public class DexItemFactory {
   public final DexType annotationType = createType(annotationDescriptor);
   public final DexType throwableType = createType(throwableDescriptor);
   public final DexType classType = createType(classDescriptor);
+  public final DexType autoCloseableType = createType(autoCloseableDescriptor);
 
   public final DexType stringBuilderType = createType(stringBuilderDescriptor);
   public final DexType stringBufferType = createType(stringBufferDescriptor);
@@ -217,6 +219,10 @@ public class DexItemFactory {
       new AtomicFieldUpdaterMethods();
   public final Kotlin kotlin;
   public final PolymorphicMethods polymorphicMethods = new PolymorphicMethods();
+
+  public final DexString twrCloseResourceMethodName = createString("$closeResource");
+  public final DexProto twrCloseResourceMethodProto =
+      createProto(voidType, throwableType, autoCloseableType);
 
   // Dex system annotations.
   // See https://source.android.com/devices/tech/dalvik/dex-format.html#system-annotation

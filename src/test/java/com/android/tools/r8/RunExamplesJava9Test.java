@@ -50,6 +50,7 @@ public abstract class RunExamplesJava9Test
     final String testName;
     final String packageName;
     final String mainClass;
+    final List<String> args = new ArrayList<>();
 
     Integer androidJarVersion = null;
 
@@ -76,6 +77,11 @@ public abstract class RunExamplesJava9Test
 
     C withMethodCheck(Consumer<FoundMethodSubject> check) {
       return withClassCheck(clazz -> clazz.forAllMethods(check));
+    }
+
+    C withArg(String arg) {
+      args.add(arg);
+      return self();
     }
 
     <T extends InstructionSubject> C withInstructionCheck(
@@ -153,7 +159,7 @@ public abstract class RunExamplesJava9Test
         }
       }
 
-      execute(testName, qualifiedMainClass, new Path[]{inputFile}, new Path[]{out});
+      execute(testName, qualifiedMainClass, new Path[]{inputFile}, new Path[]{out}, args);
     }
 
     abstract C withMinApiLevel(int minApiLevel);
@@ -205,6 +211,11 @@ public abstract class RunExamplesJava9Test
   // Defines methods failing on JVM, specifies the output to be used for comparison.
   private static Map<String, String> expectedJvmResult =
       ImmutableMap.of(
+          "twr-close-resource",
+          "A\nE\nG\nH\nI\nJ\nK\n"
+              + "iA\niE\niG\niH\niI\niJ\niK\n"
+              + "1\n2\n3\n4\n5\n6\n7\n8\n99\n"
+              + "i1\ni2\ni3\ni4\ni5\ni6\ni7\ni8\ni99\n",
           "native-private-interface-methods",
           "0: s>i>a\n"
               + "1: d>i>s>i>a\n"
@@ -284,13 +295,21 @@ public abstract class RunExamplesJava9Test
         .run();
   }
 
+  @Test
+  public void testTwrCloseResourceMethod() throws Throwable {
+    TestRunner<?> test = test("twr-close-resource", "twrcloseresource", "TwrCloseResourceTest");
+    test
+        .withMinApiLevel(AndroidApiLevel.I.getLevel())
+        .withAndroidJar(AndroidApiLevel.K.getLevel())
+        .withArg(test.getInputJar().toAbsolutePath().toString())
+        .run();
+  }
+
   abstract RunExamplesJava9Test<B>.TestRunner<?> test(String testName, String packageName,
       String mainClass);
 
-  void execute(
-      String testName,
-      String qualifiedMainClass, Path[] jars, Path[] dexes)
-      throws IOException {
+  void execute(String testName,
+      String qualifiedMainClass, Path[] jars, Path[] dexes, List<String> args) throws IOException {
 
     boolean expectedToFail = expectedToFail(testName);
     if (expectedToFail) {
@@ -299,7 +318,11 @@ public abstract class RunExamplesJava9Test
     String output = ToolHelper.runArtNoVerificationErrors(
         Arrays.stream(dexes).map(Path::toString).collect(Collectors.toList()),
         qualifiedMainClass,
-        null);
+        builder -> {
+          for (String arg : args) {
+            builder.appendProgramArgument(arg);
+          }
+        });
     String jvmResult = null;
     if (expectedJvmResult.containsKey(testName)) {
       jvmResult = expectedJvmResult.get(testName);

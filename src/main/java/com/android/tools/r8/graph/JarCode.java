@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
+import java.util.function.BiFunction;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -44,9 +45,9 @@ public class JarCode extends Code {
   private final DexMethod method;
   private final Origin origin;
   private MethodNode node;
-  private ReparseContext context;
+  protected ReparseContext context;
 
-  private final JarApplicationReader application;
+  protected final JarApplicationReader application;
 
   public JarCode(
       DexMethod method, Origin origin, ReparseContext context, JarApplicationReader application) {
@@ -239,8 +240,12 @@ public class JarCode extends Code {
   }
 
   private void parseCode(ReparseContext context, boolean useJsrInliner) {
-    SecondVisitor classVisitor = new SecondVisitor(context, application, useJsrInliner);
+    SecondVisitor classVisitor = new SecondVisitor(createCodeLocator(context), useJsrInliner);
     new ClassReader(context.classCache).accept(classVisitor, ClassReader.SKIP_FRAMES);
+  }
+
+  protected BiFunction<String, String, JarCode> createCodeLocator(ReparseContext context) {
+    return new DefaultCodeLocator(context, application);
   }
 
   private boolean hasJsr(ReparseContext context) {
@@ -263,21 +268,34 @@ public class JarCode extends Code {
     return false;
   }
 
+  private static class DefaultCodeLocator implements BiFunction<String, String, JarCode> {
+    private final ReparseContext context;
+    private final JarApplicationReader application;
+    private int methodIndex = 0;
+
+    private DefaultCodeLocator(ReparseContext context, JarApplicationReader application) {
+      this.context = context;
+      this.application = application;
+    }
+
+    @Override
+    public JarCode apply(String name, String desc) {
+      JarCode code = context.codeList.get(methodIndex++).asJarCode();
+      assert code.method == application.getMethod(context.owner.type, name, desc);
+      return code;
+    }
+  }
+
   /**
    * Fills the MethodNodes of all the methods in the class and removes the ReparseContext.
    */
   private static class SecondVisitor extends ClassVisitor {
-
-    private final ReparseContext context;
-    private final JarApplicationReader application;
+    private final BiFunction<String, String, JarCode> codeLocator;
     private final boolean useJsrInliner;
-    private int methodIndex = 0;
 
-    public SecondVisitor(
-        ReparseContext context, JarApplicationReader application, boolean useJsrInliner) {
+    public SecondVisitor(BiFunction<String, String, JarCode> codeLocator, boolean useJsrInliner) {
       super(Opcodes.ASM6);
-      this.context = context;
-      this.application = application;
+      this.codeLocator = codeLocator;
       this.useJsrInliner = useJsrInliner;
     }
 
@@ -291,8 +309,7 @@ public class JarCode extends Code {
       JarCode code = null;
       MethodAccessFlags flags = JarClassFileReader.createMethodAccessFlags(name, access);
       if (!flags.isAbstract() && !flags.isNative()) {
-        code = context.codeList.get(methodIndex++).asJarCode();
-        assert code.method == application.getMethod(context.owner.type, name, desc);
+        code = codeLocator.apply(name, desc);
       }
       if (code != null) {
         code.context = null;

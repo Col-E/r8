@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
+import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -68,7 +69,9 @@ public class Inliner {
   }
 
   public boolean isBlackListed(DexEncodedMethod method) {
-    return blackList.contains(method.method) || appInfo.neverInline.contains(method.method);
+    return blackList.contains(method.method)
+        || appInfo.neverInline.contains(method.method)
+        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method.method, converter);
   }
 
   private ConstraintWithTarget instructionAllowedForInlining(

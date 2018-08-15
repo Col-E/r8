@@ -486,6 +486,10 @@ public class InternalOptions {
     return hasMinApi(AndroidApiLevel.L);
   }
 
+  public boolean canUseTwrCloseResourceMethod() {
+    return hasMinApi(AndroidApiLevel.K);
+  }
+
   public boolean canUsePrivateInterfaceMethods() {
     return hasMinApi(AndroidApiLevel.N);
   }
