@@ -122,7 +122,6 @@ public class ParameterTypeTest extends TestBase {
     assertThat(subInterface, isRenamed());
   }
 
-  @Ignore("b/112452064")
   @Test
   public void test_brokenTypeHierarchy_singleInterface() throws Exception {
     JasminBuilder jasminBuilder = new JasminBuilder();
@@ -199,7 +198,6 @@ public class ParameterTypeTest extends TestBase {
     assertThat(subSubject, isPresent());
   }
 
-  @Ignore("b/112452064")
   @Test
   public void test_brokenTypeHierarchy_doubleInterfaces() throws Exception {
     JasminBuilder jasminBuilder = new JasminBuilder();

@@ -911,8 +911,12 @@ public class Enqueuer {
     // Mark the type live here, so that the class exists at runtime. Note that this also marks all
     // supertypes as live, so even if the field is actually on a supertype, its class will be live.
     markTypeAsLive(field.clazz);
-    if (field.type.isClassType()) {
-      markTypeAsLive(field.type);
+    DexType fieldType = field.type;
+    if (fieldType.isArrayType()) {
+      fieldType = fieldType.toBaseType(appInfo.dexItemFactory);
+    }
+    if (fieldType.isClassType()) {
+      markTypeAsLive(fieldType);
     }
     // Find the actual field.
     DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
@@ -943,8 +947,12 @@ public class Enqueuer {
   private void markInstanceFieldAsLive(DexEncodedField field, KeepReason reason) {
     assert field != null;
     markTypeAsLive(field.field.clazz);
-    if (field.field.type.isClassType()) {
-      markTypeAsLive(field.field.type);
+    DexType fieldType = field.field.type;
+    if (fieldType.isArrayType()) {
+      fieldType = fieldType.toBaseType(appInfo.dexItemFactory);
+    }
+    if (fieldType.isClassType()) {
+      markTypeAsLive(fieldType);
     }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Adding instance field `%s` to live set.", field.field);
@@ -1374,6 +1382,14 @@ public class Enqueuer {
           }
           markMethodAsTargeted(superCallTarget, KeepReason.invokedViaSuperFrom(method));
           markVirtualMethodAsLive(superCallTarget, KeepReason.invokedViaSuperFrom(method));
+        }
+      }
+      for (DexType parameterType : method.method.proto.parameters.values) {
+        if (parameterType.isArrayType()) {
+          parameterType = parameterType.toBaseType(appInfo.dexItemFactory);
+        }
+        if (parameterType.isClassType()) {
+          markTypeAsLive(parameterType);
         }
       }
       processAnnotations(method.annotations.annotations);
