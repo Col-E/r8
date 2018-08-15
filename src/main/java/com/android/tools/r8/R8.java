@@ -369,11 +369,11 @@ public class R8 {
           timing.end();
         }
         appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
-        // Class merging requires inlining.
-        if (options.enableClassMerging && options.enableInlining) {
+        if (options.enableClassMerging) {
           timing.begin("ClassMerger");
           VerticalClassMerger classMerger =
-              new VerticalClassMerger(application, appViewWithLiveness, executorService, timing);
+              new VerticalClassMerger(
+                  application, appViewWithLiveness, executorService, options, timing);
           appView.setGraphLense(classMerger.run());
           timing.end();
           application = application.asDirect().rewrittenWithLense(appView.getGraphLense());

@@ -262,6 +262,31 @@ public class ClassMergingTest extends TestBase {
   }
 
   @Test
+  public void testMergeInterfaceWithoutInlining() throws Throwable {
+    String main = "classmerging.ConflictingInterfaceSignaturesTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("ConflictingInterfaceSignaturesTest.class"),
+          CF_DIR.resolve("ConflictingInterfaceSignaturesTest$A.class"),
+          CF_DIR.resolve("ConflictingInterfaceSignaturesTest$B.class"),
+          CF_DIR.resolve("ConflictingInterfaceSignaturesTest$InterfaceImpl.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.ConflictingInterfaceSignaturesTest",
+            "classmerging.ConflictingInterfaceSignaturesTest$InterfaceImpl");
+    runTestOnInput(
+        main,
+        readProgramFiles(programFiles),
+        preservedClassNames::contains,
+        getProguardConfig(EXAMPLE_KEEP),
+        options -> {
+          this.configure(options);
+          options.enableInlining = false;
+        });
+  }
+
+  @Test
   public void testMethodCollision() throws Throwable {
     String main = "classmerging.MethodCollisionTest";
     Path[] programFiles =

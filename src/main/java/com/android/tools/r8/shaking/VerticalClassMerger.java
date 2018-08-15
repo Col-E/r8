@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
@@ -163,6 +164,7 @@ public class VerticalClassMerger {
   private final ExecutorService executorService;
   private final GraphLense graphLense;
   private final MethodPoolCollection methodPoolCollection;
+  private final InternalOptions options;
   private final Timing timing;
   private Collection<DexMethod> invokes;
 
@@ -185,12 +187,14 @@ public class VerticalClassMerger {
       DexApplication application,
       AppView<AppInfoWithLiveness> appView,
       ExecutorService executorService,
+      InternalOptions options,
       Timing timing) {
     this.application = application;
     this.appInfo = appView.getAppInfo();
     this.executorService = executorService;
     this.graphLense = appView.getGraphLense();
     this.methodPoolCollection = new MethodPoolCollection(application);
+    this.options = options;
     this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder();
     this.timing = timing;
 
@@ -1494,20 +1498,20 @@ public class VerticalClassMerger {
   }
 
   private boolean disallowInlining(DexEncodedMethod method, DexType invocationContext) {
-    // TODO(christofferqa): Determine the situations where markForceInline() may fail, and ensure
-    // that we always return true here in these cases.
-    if (method.getCode().isJarCode()) {
-      JarCode jarCode = method.getCode().asJarCode();
-      ConstraintWithTarget constraint =
-          jarCode.computeInliningConstraint(
-              method,
-              appInfo,
-              new SingleTypeMapperGraphLense(method.method.holder, invocationContext),
-              invocationContext);
-      return constraint == ConstraintWithTarget.NEVER;
+    if (options.enableInlining) {
+      if (method.getCode().isJarCode()) {
+        JarCode jarCode = method.getCode().asJarCode();
+        ConstraintWithTarget constraint =
+            jarCode.computeInliningConstraint(
+                method,
+                appInfo,
+                new SingleTypeMapperGraphLense(method.method.holder, invocationContext),
+                invocationContext);
+        return constraint == ConstraintWithTarget.NEVER;
+      }
+      // TODO(christofferqa): For non-jar code we currently cannot guarantee that markForceInline()
+      // will succeed.
     }
-    // TODO(christofferqa): For non-jar code we currently cannot guarantee that markForceInline()
-    // will succeed.
     return true;
   }
 
