@@ -35,21 +35,12 @@ public class TreeShakingAssumevalues2Test extends TreeShakingTest {
   }
 
   @Test
-  public void testKeeprules() throws Exception {
+  public void test() throws Exception {
     runTest(
         null,
         TreeShakingAssumevalues2Test::assumevalues2CheckOutput,
         null,
         ImmutableList.of("src/test/examples/assumevalues2/keep-rules.txt"));
-  }
-
-  @Test
-  public void testKeeprulesdiscard() throws Exception {
-    runTest(
-        null,
-        TreeShakingAssumevalues2Test::assumevalues2CheckOutput,
-        null,
-        ImmutableList.of("src/test/examples/assumevalues2/keep-rules-discard.txt"));
   }
 
   private static void assumevalues2CheckOutput(String output1, String output2) {

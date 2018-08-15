@@ -16,5 +16,10 @@
   public static long method1L(...) return 0;
 }
 
-# Allow access modification to enable minifcation.
+# Allow access modification to enable minification.
 -allowaccessmodification
+
+# Check that methods have been discarded.
+-checkdiscard class ** {
+  @assumenosideeffects3.CheckDiscarded *;
+}

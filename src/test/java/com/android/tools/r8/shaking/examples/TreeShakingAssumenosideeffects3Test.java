@@ -41,21 +41,12 @@ public class TreeShakingAssumenosideeffects3Test extends TreeShakingTest {
   }
 
   @Test
-  public void testKeeprules() throws Exception {
+  public void test() throws Exception {
     runTest(
         null,
         TreeShakingAssumenosideeffects3Test::assumenosideeffects3CheckOutput,
         null,
         ImmutableList.of("src/test/examples/assumenosideeffects3/keep-rules.txt"));
-  }
-
-  @Test
-  public void testKeeprulesdiscard() throws Exception {
-    runTest(
-        null,
-        TreeShakingAssumenosideeffects3Test::assumenosideeffects3CheckOutput,
-        null,
-        ImmutableList.of("src/test/examples/assumenosideeffects3/keep-rules-discard.txt"));
   }
 
   private static void assumenosideeffects3CheckOutput(String output1, String output2) {

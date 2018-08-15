@@ -14,5 +14,10 @@
   public static long valueL return 2..3;
 }
 
-# Allow access modification to enable minifcation.
+# Allow access modification to enable minification.
 -allowaccessmodification
+
+# Check that methods have been discarded.
+-checkdiscard class ** {
+  @assumevalues2.CheckDiscarded *;
+}
