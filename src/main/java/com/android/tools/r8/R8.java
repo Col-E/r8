@@ -369,7 +369,7 @@ public class R8 {
           timing.end();
         }
         appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
-        if (options.enableClassMerging) {
+        if (options.enableVerticalClassMerging) {
           timing.begin("ClassMerger");
           VerticalClassMerger classMerger =
               new VerticalClassMerger(

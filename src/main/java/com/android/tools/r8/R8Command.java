@@ -61,6 +61,7 @@ public final class R8Command extends BaseCompilerCommand {
     private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
     private boolean disableTreeShaking = false;
     private boolean disableMinification = false;
+    private boolean enableVerticalClassMerging = false;
     private boolean forceProguardCompatibility = false;
     private StringConsumer proguardMapConsumer = null;
 
@@ -91,6 +92,10 @@ public final class R8Command extends BaseCompilerCommand {
 
     void internalForceProguardCompatibility() {
       this.forceProguardCompatibility = true;
+    }
+
+    void setEnableVerticalClassMerging(boolean enableVerticalClassMerging) {
+      this.enableVerticalClassMerging = enableVerticalClassMerging;
     }
 
     @Override
@@ -375,6 +380,7 @@ public final class R8Command extends BaseCompilerCommand {
               desugaring,
               configuration.isShrinking(),
               configuration.isObfuscating(),
+              enableVerticalClassMerging,
               forceProguardCompatibility,
               proguardMapConsumer,
               proguardCompatibilityRulesOutput,
@@ -440,6 +446,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final ProguardConfiguration proguardConfiguration;
   private final boolean enableTreeShaking;
   private final boolean enableMinification;
+  private final boolean enableVerticalClassMerging;
   private final boolean forceProguardCompatibility;
   private final StringConsumer proguardMapConsumer;
   private final Path proguardCompatibilityRulesOutput;
@@ -503,6 +510,7 @@ public final class R8Command extends BaseCompilerCommand {
       boolean enableDesugaring,
       boolean enableTreeShaking,
       boolean enableMinification,
+      boolean enableVerticalClassMerging,
       boolean forceProguardCompatibility,
       StringConsumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput,
@@ -516,6 +524,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.proguardConfiguration = proguardConfiguration;
     this.enableTreeShaking = enableTreeShaking;
     this.enableMinification = enableMinification;
+    this.enableVerticalClassMerging = enableVerticalClassMerging;
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.proguardMapConsumer = proguardMapConsumer;
     this.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
@@ -528,6 +537,7 @@ public final class R8Command extends BaseCompilerCommand {
     proguardConfiguration = null;
     enableTreeShaking = false;
     enableMinification = false;
+    enableVerticalClassMerging = false;
     forceProguardCompatibility = false;
     proguardMapConsumer = null;
     proguardCompatibilityRulesOutput = null;
@@ -580,6 +590,7 @@ public final class R8Command extends BaseCompilerCommand {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       internal.enableInlining = false;
       internal.enableClassInlining = false;
+      internal.enableVerticalClassMerging = false;
       internal.enableClassStaticizer = false;
       // TODO(zerny): Should we support outlining in debug mode? b/62937285
       internal.outline.enabled = false;
@@ -638,6 +649,8 @@ public final class R8Command extends BaseCompilerCommand {
     // EXPERIMENTAL flags.
     assert !internal.forceProguardCompatibility;
     internal.forceProguardCompatibility = forceProguardCompatibility;
+    assert !internal.enableVerticalClassMerging;
+    internal.enableVerticalClassMerging = enableVerticalClassMerging;
 
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 

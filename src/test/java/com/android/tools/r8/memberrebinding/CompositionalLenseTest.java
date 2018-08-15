@@ -89,10 +89,13 @@ public class CompositionalLenseTest extends TestBase {
                 "-dontobfuscate"), // to use the renamed names in test-mapping.txt
             Origin.unknown())
         .addLibraryFiles(runtimeJar(backend));
-    AndroidApp processedApp = ToolHelper.runR8(builder.build(), options -> {
-      options.enableInlining = false;
-      options.enableClassMerging = false;
-    });
+    AndroidApp processedApp =
+        ToolHelper.runR8(
+            builder.build(),
+            options -> {
+              options.enableInlining = false;
+              options.enableVerticalClassMerging = false;
+            });
     CodeInspector codeInspector = new CodeInspector(processedApp);
     ClassSubject classSubject = codeInspector.clazz(TestMain.class);
     assertThat(classSubject, isPresent());

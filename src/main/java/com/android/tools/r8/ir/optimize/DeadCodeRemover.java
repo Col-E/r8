@@ -109,7 +109,7 @@ public class DeadCodeRemover {
     for (BasicBlock block : code.blocks) {
       if (block.hasCatchHandlers()) {
         if (block.canThrow()) {
-          if (options.enableClassMerging) {
+          if (options.enableVerticalClassMerging) {
             // Handle the case where an exception class has been merged into its sub class.
             block.renameGuardsInCatchHandlers(graphLense);
             unlinkDeadCatchHandlers(block, graphLense);

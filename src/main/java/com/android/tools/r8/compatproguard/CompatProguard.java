@@ -8,13 +8,11 @@ import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -41,6 +39,9 @@ public class CompatProguard {
     public final List<String> proguardConfig;
     public boolean printHelpAndExit;
 
+    // Flags to enable experimental features.
+    public boolean enableVerticalClassMerging;
+
     CompatProguardOptions(
         List<String> proguardConfig,
         String output,
@@ -48,7 +49,8 @@ public class CompatProguard {
         boolean multiDex,
         boolean forceProguardCompatibility,
         String mainDexList,
-        boolean printHelpAndExit) {
+        boolean printHelpAndExit,
+        boolean verticalClassMerging) {
       this.output = output;
       this.minApi = minApi;
       this.forceProguardCompatibility = forceProguardCompatibility;
@@ -56,6 +58,7 @@ public class CompatProguard {
       this.mainDexList = mainDexList;
       this.proguardConfig = proguardConfig;
       this.printHelpAndExit = printHelpAndExit;
+      this.enableVerticalClassMerging = verticalClassMerging;
     }
 
     public static CompatProguardOptions parse(String[] args) {
@@ -65,6 +68,8 @@ public class CompatProguard {
       boolean multiDex = false;
       String mainDexList = null;
       boolean printHelpAndExit = false;
+      // Flags to enable experimental features.
+      boolean verticalClassMerging = false;
       // These flags are currently ignored.
       boolean minimalMainDex = false;
       boolean coreLibrary = false;
@@ -90,6 +95,8 @@ public class CompatProguard {
               mainDexList = args[++i];
             } else if (arg.startsWith("--main-dex-list=")) {
               mainDexList = arg.substring("--main-dex-list=".length());
+            } else if (arg.equals("--vertical-class-merging")) {
+              verticalClassMerging = true;
             } else if (arg.equals("--minimal-main-dex")) {
               minimalMainDex = true;
             } else if (arg.equals("--core-library")) {
@@ -123,7 +130,8 @@ public class CompatProguard {
           multiDex,
           forceProguardCompatibility,
           mainDexList,
-          printHelpAndExit);
+          printHelpAndExit,
+          verticalClassMerging);
     }
 
     public static void print() {
@@ -150,7 +158,7 @@ public class CompatProguard {
     CompatProguardOptions.print();
   }
 
-  private static void run(String[] args) throws IOException, CompilationFailedException {
+  private static void run(String[] args) throws CompilationFailedException {
     // Run R8 passing all the options from the command line as a Proguard configuration.
     CompatProguardOptions options = CompatProguardOptions.parse(args);
     if (options.printHelpAndExit || options.output == null) {
@@ -158,8 +166,9 @@ public class CompatProguard {
       printHelp();
       return;
     }
-    R8Command.Builder builder =
-        new CompatProguardCommandBuilder(options.forceProguardCompatibility);
+    CompatProguardCommandBuilder builder =
+        new CompatProguardCommandBuilder(
+            options.forceProguardCompatibility, options.enableVerticalClassMerging);
     builder
         .setOutput(Paths.get(options.output), OutputMode.DexIndexed)
         .addProguardConfiguration(options.proguardConfig, CommandLineOrigin.INSTANCE)
@@ -171,7 +180,7 @@ public class CompatProguard {
     R8.run(builder.build());
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     try {
       run(args);
     } catch (CompilationFailedException | AbortException e) {

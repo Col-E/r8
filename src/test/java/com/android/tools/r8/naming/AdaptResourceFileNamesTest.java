@@ -266,7 +266,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
         options -> {
           // TODO(christofferqa): Class inliner should respect -neverinline.
           options.enableClassInlining = false;
-          options.enableClassMerging = true;
+          options.enableVerticalClassMerging = true;
           options.dataResourceConsumer = dataResourceConsumer;
           options.proguardMapConsumer = proguardMapConsumer;
           options.testing.suppressExperimentalCfBackendWarning = true;
