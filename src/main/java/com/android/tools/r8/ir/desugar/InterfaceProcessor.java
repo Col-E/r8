@@ -4,6 +4,11 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.code.InvokeSuper;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.ClassAccessFlags;
@@ -13,11 +18,16 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
+import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -39,8 +49,8 @@ import java.util.Set;
 // Also moves static interface methods into a companion class.
 final class InterfaceProcessor {
   private final InterfaceMethodRewriter rewriter;
-  // All created companion classes indexed by interface classes.
-  final Map<DexProgramClass, DexProgramClass> companionClasses = new IdentityHashMap<>();
+  // All created companion and dispatch classes indexed by interface type.
+  final Map<DexType, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
 
   final BiMap<DexMethod, DexMethod> movedMethods = HashBiMap.create();
   final Map<DexEncodedMethod, DexEncodedMethod> methodsWithMovedCode = new IdentityHashMap<>();
@@ -59,6 +69,11 @@ final class InterfaceProcessor {
     List<DexEncodedMethod> remainingMethods = new ArrayList<>();
     for (DexEncodedMethod virtual : iface.virtualMethods()) {
       if (rewriter.isDefaultMethod(virtual)) {
+        if (!canMoveToCompanionClass(virtual)) {
+          throw new CompilationError("One or more instruction is preventing default interface "
+              + "method from being desugared: " + virtual.method.toSourceString(), iface.origin);
+        }
+
         // Create a new method in a companion class to represent default method implementation.
         DexMethod companionMethod = rewriter.defaultAsMethodOfCompanionClass(virtual.method);
 
@@ -193,7 +208,92 @@ final class InterfaceProcessor {
             DexEncodedMethod.EMPTY_ARRAY,
             rewriter.factory.getSkipNameValidationForTesting(),
             Collections.singletonList(iface));
-    companionClasses.put(iface, companionClass);
+    syntheticClasses.put(iface.type, companionClass);
+  }
+
+  List<DexEncodedMethod> process(DexLibraryClass iface) {
+    assert iface.isInterface();
+
+    // The list of methods to be created in dispatch class.
+    // NOTE: we do NOT check static methods being actually called on the interface against
+    //       static methods actually existing in that interface. It is essential for supporting
+    //       D8 desugaring when each class may be dexed separately since it allows us to assume
+    //       that all synthesized dispatch classes have the same set of methods so we don't
+    //       need to merge them.
+    List<DexEncodedMethod> dispatchMethods = new ArrayList<>();
+
+    // Process public static methods, for each of them create a method dispatching the call to it.
+    for (DexEncodedMethod direct : iface.directMethods()) {
+      MethodAccessFlags originalAccessFlags = direct.accessFlags;
+      if (!originalAccessFlags.isStatic() || !originalAccessFlags.isPublic()) {
+        // We assume only public static methods of library interfaces can be called
+        // from program classes, since there should not be protected or package private
+        // static methods on interfaces.
+        assert !originalAccessFlags.isStatic() || originalAccessFlags.isPrivate();
+        continue;
+      }
+
+      assert !rewriter.factory.isClassConstructor(direct.method);
+
+      DexMethod origMethod = direct.method;
+      DexEncodedMethod newEncodedMethod = new DexEncodedMethod(
+          rewriter.staticAsMethodOfDispatchClass(origMethod),
+          MethodAccessFlags.fromSharedAccessFlags(
+              Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false),
+          DexAnnotationSet.empty(),
+          ParameterAnnotationsList.empty(),
+          new SynthesizedCode(new ForwardMethodSourceCode(
+              null, origMethod.proto, null, origMethod, Type.STATIC)));
+      newEncodedMethod.markNeverInline();
+      dispatchMethods.add(newEncodedMethod);
+    }
+
+    ClassAccessFlags dispatchClassFlags =
+        ClassAccessFlags.fromSharedAccessFlags(
+            Constants.ACC_PUBLIC | Constants.ACC_FINAL | Constants.ACC_SYNTHETIC);
+
+    // Create dispatch class.
+    DexType dispatchClassType = rewriter.getDispatchClassType(iface.type);
+    DexProgramClass dispatchClass =
+        new DexProgramClass(
+            dispatchClassType,
+            null,
+            new SynthesizedOrigin("interface dispatch", getClass()),
+            dispatchClassFlags,
+            rewriter.factory.objectType,
+            DexTypeList.empty(),
+            iface.sourceFile,
+            null,
+            Collections.emptyList(),
+            DexAnnotationSet.empty(),
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedField.EMPTY_ARRAY,
+            dispatchMethods.toArray(new DexEncodedMethod[dispatchMethods.size()]),
+            DexEncodedMethod.EMPTY_ARRAY,
+            rewriter.factory.getSkipNameValidationForTesting(),
+            Collections.emptyList());
+    syntheticClasses.put(iface.type, dispatchClass);
+    return dispatchMethods;
+  }
+
+  private boolean canMoveToCompanionClass(DexEncodedMethod method) {
+    Code code = method.getCode();
+    assert code != null;
+    if (code.isDexCode()) {
+      for (Instruction insn : code.asDexCode().instructions) {
+        if (insn instanceof InvokeSuper) {
+          return false;
+        }
+      }
+    } else {
+      assert code.isCfCode();
+      for (CfInstruction insn : code.asCfCode().getInstructions()) {
+        if (insn instanceof CfInvoke && ((CfInvoke) insn).isInvokeSuper(method.method.holder)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   // Returns true if the given interface method must be kept on [iface] after moving its

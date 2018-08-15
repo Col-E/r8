@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
@@ -14,6 +15,8 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -35,14 +38,26 @@ public class AsmTestBase extends TestBase {
 
   protected void ensureSameOutput(String main, AndroidApiLevel apiLevel, byte[]... classes)
       throws Exception {
+    ensureSameOutput(main, apiLevel, Collections.emptyList(), classes);
+  }
+
+  protected void ensureSameOutput(String main, AndroidApiLevel apiLevel,
+      List<String> args, byte[]... classes) throws Exception {
     AndroidApp app = buildAndroidApp(classes);
     Consumer<InternalOptions> setMinApiLevel = o -> o.minApiLevel = apiLevel.getLevel();
-    ProcessResult javaResult = runOnJavaRaw(main, classes);
-    ProcessResult d8Result = runOnArtRaw(compileWithD8(app, setMinApiLevel), main);
-    ProcessResult r8Result = runOnArtRaw(compileWithR8(app, setMinApiLevel), main);
+    ProcessResult javaResult = runOnJavaRaw(main, Arrays.asList(classes), args);
+    Consumer<ArtCommandBuilder> cmdBuilder = builder -> {
+      for (String arg : args) {
+        builder.appendProgramArgument(arg);
+      }
+    };
+    ProcessResult d8Result = runOnArtRaw(
+        compileWithD8(app, setMinApiLevel), main, cmdBuilder, null);
+    ProcessResult r8Result = runOnArtRaw(
+        compileWithR8(app, setMinApiLevel), main, cmdBuilder, null);
     ProcessResult r8ShakenResult = runOnArtRaw(
         compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n",
-            setMinApiLevel), main);
+            setMinApiLevel), main, cmdBuilder, null);
     Assert.assertEquals(javaResult.stdout, d8Result.stdout);
     Assert.assertEquals(javaResult.stdout, r8Result.stdout);
     Assert.assertEquals(javaResult.stdout, r8ShakenResult.stdout);

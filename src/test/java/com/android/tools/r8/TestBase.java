@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DataResourceProvider.Visitor;
+import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
@@ -486,11 +487,19 @@ public class TestBase {
   /**
    * Run application on the specified version of Art with the specified main class.
    */
-  protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass, DexVm version)
-      throws IOException {
+  protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass,
+      Consumer<ArtCommandBuilder> cmdBuilder, DexVm version) throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZip(out, OutputMode.DexIndexed);
-    return ToolHelper.runArtRaw(ImmutableList.of(out.toString()), mainClass, null, version);
+    return ToolHelper.runArtRaw(ImmutableList.of(out.toString()), mainClass, cmdBuilder, version);
+  }
+
+  /**
+   * Run application on the specified version of Art with the specified main class.
+   */
+  protected ProcessResult runOnArtRaw(AndroidApp app, String mainClass, DexVm version)
+      throws IOException {
+    return runOnArtRaw(app, mainClass, null, version);
   }
 
   /**
@@ -590,12 +599,12 @@ public class TestBase {
   }
 
   protected ProcessResult runOnJavaRaw(String main, byte[]... classes) throws IOException {
-    return runOnJavaRaw(main, Arrays.asList(classes));
+    return runOnJavaRaw(main, Arrays.asList(classes), Collections.emptyList());
   }
 
-  protected ProcessResult runOnJavaRaw(String main, List<byte[]> classes) throws IOException {
-    Path file = writeToZip(classes);
-    return ToolHelper.runJavaNoVerify(file, main);
+  protected ProcessResult runOnJavaRaw(
+      String main, List<byte[]> classes, List<String> args) throws IOException {
+    return ToolHelper.runJavaNoVerify(Collections.singletonList(writeToZip(classes)), main, args);
   }
 
   private Path writeToZip(List<byte[]> classes) throws IOException {

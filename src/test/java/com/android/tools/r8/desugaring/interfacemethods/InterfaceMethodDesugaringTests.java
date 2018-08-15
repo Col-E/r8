@@ -11,9 +11,22 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
+import com.android.tools.r8.desugaring.interfacemethods.default0.TestMainDefault0;
+import com.android.tools.r8.desugaring.interfacemethods.default1.Derived1;
+import com.android.tools.r8.desugaring.interfacemethods.default1.DerivedComparator1;
+import com.android.tools.r8.desugaring.interfacemethods.default1.TestMainDefault1;
+import com.android.tools.r8.desugaring.interfacemethods.default2.Derived2;
+import com.android.tools.r8.desugaring.interfacemethods.default2.DerivedComparator2;
+import com.android.tools.r8.desugaring.interfacemethods.default2.TestMainDefault2;
+import com.android.tools.r8.desugaring.interfacemethods.static0.TestMainStatic0;
+import com.android.tools.r8.desugaring.interfacemethods.static1.TestMainStatic1;
+import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.objectweb.asm.ClassReader;
@@ -24,6 +37,11 @@ import org.objectweb.asm.Opcodes;
 
 @RunWith(VmTestRunner.class)
 public class InterfaceMethodDesugaringTests extends AsmTestBase {
+
+  private static List<String> getArgs(int startWith) {
+    return Collections.singletonList(
+        String.valueOf(ToolHelper.getMinApiLevelForDexVm().getLevel() >= startWith));
+  }
 
   @Test
   public void testInvokeSpecialToDefaultMethod() throws Exception {
@@ -65,6 +83,94 @@ public class InterfaceMethodDesugaringTests extends AsmTestBase {
             com.android.tools.r8.desugaring.interfacemethods.test2.RightTest.class),
         ToolHelper.getClassAsBytes(
             com.android.tools.r8.desugaring.interfacemethods.test2.Test2.class));
+  }
+
+  @Test
+  public void testInvokeStatic0a() throws Exception {
+    ensureSameOutput(
+        TestMainStatic0.class.getCanonicalName(),
+        AndroidApiLevel.K,
+        getArgs(AndroidApiLevel.N.getLevel()),
+        ToolHelper.getClassAsBytes(TestMainStatic0.class));
+  }
+
+  @Test
+  public void testInvokeStatic0b() throws Exception {
+    ensureSameOutput(
+        TestMainStatic0.class.getCanonicalName(),
+        ToolHelper.getMinApiLevelForDexVm(),
+        getArgs(AndroidApiLevel.N.getLevel()),
+        ToolHelper.getClassAsBytes(TestMainStatic0.class));
+  }
+
+  @Test
+  public void testInvokeStatic1a() throws Exception {
+    ensureSameOutput(
+        TestMainStatic1.class.getCanonicalName(),
+        AndroidApiLevel.K,
+        getArgs(AndroidApiLevel.N.getLevel()),
+        ToolHelper.getClassAsBytes(TestMainStatic1.class));
+  }
+
+  @Test
+  public void testInvokeStatic1b() throws Exception {
+    ensureSameOutput(
+        TestMainStatic1.class.getCanonicalName(),
+        ToolHelper.getMinApiLevelForDexVm(),
+        getArgs(AndroidApiLevel.N.getLevel()),
+        ToolHelper.getClassAsBytes(TestMainStatic1.class));
+  }
+
+  @Test
+  public void testInvokeDefault0a() throws Exception {
+    ensureSameOutput(
+        TestMainDefault0.class.getCanonicalName(),
+        AndroidApiLevel.K,
+        getArgs(AndroidApiLevel.N.getLevel()),
+        ToolHelper.getClassAsBytes(TestMainDefault0.class));
+  }
+
+  @Test
+  public void testInvokeDefault0b() throws Exception {
+    ensureSameOutput(
+        TestMainDefault0.class.getCanonicalName(),
+        ToolHelper.getMinApiLevelForDexVm(),
+        getArgs(AndroidApiLevel.N.getLevel()),
+        ToolHelper.getClassAsBytes(TestMainDefault0.class));
+  }
+
+  @Test(expected = CompilationError.class)
+  @IgnoreForRangeOfVmVersions(from = Version.V7_0_0, to = Version.DEFAULT) // No desugaring
+  public void testInvokeDefault1() throws Exception {
+    ensureSameOutput(
+        TestMainDefault1.class.getCanonicalName(),
+        ToolHelper.getMinApiLevelForDexVm(),
+        getArgs(AndroidApiLevel.N.getLevel()),
+        ToolHelper.getClassAsBytes(TestMainDefault1.class),
+        ToolHelper.getClassAsBytes(Derived1.class),
+        ToolHelper.getClassAsBytes(DerivedComparator1.class));
+  }
+
+  @Test()
+  public void testInvokeDefault2a() throws Exception {
+    ensureSameOutput(
+        TestMainDefault2.class.getCanonicalName(),
+        AndroidApiLevel.K,
+        getArgs(AndroidApiLevel.N.getLevel()),
+        ToolHelper.getClassAsBytes(TestMainDefault2.class),
+        ToolHelper.getClassAsBytes(Derived2.class),
+        ToolHelper.getClassAsBytes(DerivedComparator2.class));
+  }
+
+  @Test()
+  public void testInvokeDefault2b() throws Exception {
+    ensureSameOutput(
+        TestMainDefault2.class.getCanonicalName(),
+        ToolHelper.getMinApiLevelForDexVm(),
+        getArgs(AndroidApiLevel.N.getLevel()),
+        ToolHelper.getClassAsBytes(TestMainDefault2.class),
+        ToolHelper.getClassAsBytes(Derived2.class),
+        ToolHelper.getClassAsBytes(DerivedComparator2.class));
   }
 
   private static class MutableInteger {

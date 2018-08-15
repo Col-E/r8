@@ -966,12 +966,6 @@ public class ToolHelper {
     return runJava(path, main);
   }
 
-  public static ProcessResult runJavaNoVerify(Class clazz) throws Exception {
-    String main = clazz.getCanonicalName();
-    Path path = getClassPathForTests();
-    return runJavaNoVerify(path, main);
-  }
-
   public static ProcessResult runJava(Path classpath, String... args) throws IOException {
     return runJava(ImmutableList.of(classpath), args);
   }
@@ -984,16 +978,24 @@ public class ToolHelper {
     return runProcess(builder);
   }
 
-  public static ProcessResult runJavaNoVerify(Path classpath, String mainClass)
-      throws IOException {
-    return runJavaNoVerify(ImmutableList.of(classpath), mainClass);
+  public static ProcessResult runJavaNoVerify(
+      Path classpath, String mainClass, String... args) throws IOException {
+    return runJavaNoVerify(
+        Collections.singletonList(classpath), mainClass, Lists.newArrayList(args));
   }
 
-  public static ProcessResult runJavaNoVerify(List<Path> classpath, String mainClass)
-      throws IOException {
+  public static ProcessResult runJavaNoVerify(
+      List<Path> classpath, String mainClass, String... args) throws IOException {
+    return runJavaNoVerify(classpath, mainClass, Lists.newArrayList(args));
+  }
+
+  public static ProcessResult runJavaNoVerify(
+      List<Path> classpath, String mainClass, List<String> args) throws IOException {
     String cp = classpath.stream().map(Path::toString).collect(Collectors.joining(PATH_SEPARATOR));
-    ProcessBuilder builder = new ProcessBuilder(
+    ArrayList<String> cmdline = Lists.newArrayList(
         getJavaExecutable(), "-cp", cp, "-noverify", mainClass);
+    cmdline.addAll(args);
+    ProcessBuilder builder = new ProcessBuilder(cmdline);
     return runProcess(builder);
   }
 

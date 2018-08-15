@@ -279,6 +279,29 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
   }
 
   @Test
+  public void dexPerClassFileWithDispatchMethods() throws Throwable {
+    String testName = "dexPerClassFileWithDispatchMethods";
+    String testPackage = "interfacedispatchclasses";
+    String mainClass = "TestInterfaceDispatchClasses";
+
+    Path inputJarFile = Paths.get(EXAMPLE_DIR, testPackage + JAR_EXTENSION);
+
+    D8IncrementalTestRunner test = test(testName, testPackage, mainClass);
+    test.withInterfaceMethodDesugaring(OffOrAuto.Auto);
+
+    ProgramResource mergedFromCompiledSeparately =
+        test.mergeClassFiles(
+            Lists.newArrayList(test.compileClassesSeparately(inputJarFile).values()), null);
+    ProgramResource mergedFromCompiledTogether =
+        test.mergeClassFiles(
+            Lists.newArrayList(test.compileClassesTogether(inputJarFile, null).values()), null);
+
+    Assert.assertArrayEquals(
+        readResource(mergedFromCompiledSeparately),
+        readResource(mergedFromCompiledTogether));
+  }
+
+  @Test
   public void dexPerClassFileOutputFiles() throws Throwable {
     String testName = "dexPerClassFileNoDesugaring";
     String testPackage = "incremental";

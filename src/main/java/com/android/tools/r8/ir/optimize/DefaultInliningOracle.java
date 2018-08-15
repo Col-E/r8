@@ -160,6 +160,10 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
   private boolean passesInliningConstraints(InvokeMethod invoke, DexEncodedMethod candidate,
       Reason reason) {
+    if (candidate.getOptimizationInfo().neverInline()) {
+      return false;
+    }
+
     if (method == candidate) {
       // Cannot handle recursive inlining at this point.
       // Force inlined method should never be recursive.

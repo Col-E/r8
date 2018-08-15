@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -64,6 +65,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class InterfaceMethodRewriter {
 
   // Public for testing.
+  public static final String DISPATCH_CLASS_NAME_SUFFIX = "$-DC";
   public static final String COMPANION_CLASS_NAME_SUFFIX = "$-CC";
   public static final String DEFAULT_METHOD_PREFIX = "$default$";
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
@@ -74,15 +76,18 @@ public final class InterfaceMethodRewriter {
 
   // All forwarding methods generated during desugaring. We don't synchronize access
   // to this collection since it is only filled in ClassProcessor running synchronously.
-  private final Set<DexEncodedMethod> forwardingMethods = Sets.newIdentityHashSet();
+  private final Set<DexEncodedMethod> synthesizedMethods = Sets.newIdentityHashSet();
 
   // Caches default interface method info for already processed interfaces.
   private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();
 
+  /** Interfaces requiring dispatch classes created. */
+  private final Set<DexLibraryClass> requiredDispatchClasses = Sets.newConcurrentHashSet();
+
   /**
    * A set of dexitems we have reported missing to dedupe warnings.
    */
-  private final Set<DexItem> reportedMissing = Sets.newIdentityHashSet();
+  private final Set<DexItem> reportedMissing = Sets.newConcurrentHashSet();
 
   /**
    * Defines a minor variation in desugaring.
@@ -108,7 +113,7 @@ public final class InterfaceMethodRewriter {
   // Rewrites the references to static and default interface methods.
   // NOTE: can be called for different methods concurrently.
   public void rewriteMethodReferences(DexEncodedMethod encodedMethod, IRCode code) {
-    if (forwardingMethods.contains(encodedMethod)) {
+    if (synthesizedMethods.contains(encodedMethod)) {
       return;
     }
 
@@ -142,15 +147,32 @@ public final class InterfaceMethodRewriter {
             // exception but we can not report it as error since it can also be the intended
             // behavior.
             warnMissingType(encodedMethod.method, method.holder);
-          } else if (clazz.isInterface() && !clazz.isLibraryClass()) {
-            // NOTE: we intentionally don't desugar static calls into static interface
-            // methods coming from android.jar since it is only possible in case v24+
-            // version of android.jar is provided.
-            // WARNING: This may result in incorrect code on older platforms!
-            // Retarget call to an appropriate method of companion class.
-            instructions.replaceCurrentInstruction(
-                new InvokeStatic(staticAsMethodOfCompanionClass(method),
-                    invokeStatic.outValue(), invokeStatic.arguments()));
+          } else if (clazz.isInterface()) {
+            if (clazz.isLibraryClass()) {
+              // NOTE: we intentionally don't desugar static calls into static interface
+              // methods coming from android.jar since it is only possible in case v24+
+              // version of android.jar is provided.
+              //
+              // We assume such calls are properly guarded by if-checks like
+              //    'if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.XYZ) { ... }'
+              //
+              // WARNING: This may result in incorrect code on older platforms!
+              // Retarget call to an appropriate method of companion class.
+
+              if (!options.canLeaveStaticInterfaceMethodInvokes()) {
+                // On pre-L devices static calls to interface methods result in verifier
+                // rejecting the whole class. We have to create special dispatch classes,
+                // so the user class is not rejected because it make this call directly.
+                instructions.replaceCurrentInstruction(
+                    new InvokeStatic(staticAsMethodOfDispatchClass(method),
+                        invokeStatic.outValue(), invokeStatic.arguments()));
+                requiredDispatchClasses.add(clazz.asLibraryClass());
+              }
+            } else {
+              instructions.replaceCurrentInstruction(
+                  new InvokeStatic(staticAsMethodOfCompanionClass(method),
+                      invokeStatic.outValue(), invokeStatic.arguments()));
+            }
           }
           continue;
         }
@@ -168,6 +190,10 @@ public final class InterfaceMethodRewriter {
             // NOTE: we intentionally don't desugar super calls into interface methods
             // coming from android.jar since it is only possible in case v24+ version
             // of android.jar is provided.
+            //
+            // We assume such calls are properly guarded by if-checks like
+            //    'if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.XYZ) { ... }'
+            //
             // WARNING: This may result in incorrect code on older platforms!
             // Retarget call to an appropriate method of companion class.
             DexMethod amendedMethod = amendDefaultMethod(
@@ -263,6 +289,15 @@ public final class InterfaceMethodRewriter {
     return factory.createType(ccTypeDescriptor);
   }
 
+  // Gets the forwarding class for the interface `type`.
+  final DexType getDispatchClassType(DexType type) {
+    assert type.isClassType();
+    String descriptor = type.descriptor.toString();
+    String dcTypeDescriptor = descriptor.substring(0, descriptor.length() - 1)
+        + DISPATCH_CLASS_NAME_SUFFIX + ";";
+    return factory.createType(dcTypeDescriptor);
+  }
+
   // Checks if `type` is a companion class.
   private boolean isCompanionClassType(DexType type) {
     return type.descriptor.toString().endsWith(COMPANION_CLASS_NAME_SUFFIX + ";");
@@ -285,6 +320,16 @@ public final class InterfaceMethodRewriter {
   final DexMethod staticAsMethodOfCompanionClass(DexMethod method) {
     // No changes for static methods.
     return factory.createMethod(getCompanionClassType(method.holder), method.proto, method.name);
+  }
+
+  // Represent a static interface method as a method of dispatch class.
+  final DexMethod staticAsMethodOfDispatchClass(DexMethod method) {
+    return factory.createMethod(getDispatchClassType(method.holder), method.proto, method.name);
+  }
+
+  // Checks if the type ends with dispatch class suffix.
+  public static boolean hasDispatchClassSuffix(DexType clazz) {
+    return clazz.getName().endsWith(DISPATCH_CLASS_NAME_SUFFIX);
   }
 
   private DexMethod instanceAsMethodOfCompanionClass(DexMethod method, String prefix) {
@@ -327,21 +372,21 @@ public final class InterfaceMethodRewriter {
   public void desugarInterfaceMethods(Builder<?> builder, Flavor flavour) {
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
-    forwardingMethods.addAll(processClasses(builder, flavour));
+    synthesizedMethods.addAll(processClasses(builder, flavour));
 
-    // Process interfaces, create companion class if needed, move static methods
-    // to companion class, copy default interface methods to companion classes,
-    // make original default methods abstract, remove bridge methods.
-    Map<DexProgramClass, DexProgramClass> companionClasses =
-        processInterfaces(builder, flavour);
+    // Process interfaces, create companion or dispatch class if needed, move static
+    // methods to companion class, copy default interface methods to companion classes,
+    // make original default methods abstract, remove bridge methods, create dispatch
+    // classes if needed.
+    Map<DexType, DexProgramClass> synthesizedClasses = processInterfaces(builder, flavour);
 
-    for (Map.Entry<DexProgramClass, DexProgramClass> entry : companionClasses.entrySet()) {
+    for (Map.Entry<DexType, DexProgramClass> entry : synthesizedClasses.entrySet()) {
       // Don't need to optimize synthesized class since all of its methods
       // are just moved from interfaces and don't need to be re-processed.
-      builder.addSynthesizedClass(entry.getValue(), isInMainDexList(entry.getKey().type));
+      builder.addSynthesizedClass(entry.getValue(), isInMainDexList(entry.getKey()));
     }
 
-    for (DexEncodedMethod method : forwardingMethods) {
+    for (DexEncodedMethod method : synthesizedMethods) {
       converter.optimizeSynthesizedMethod(method);
     }
 
@@ -351,7 +396,8 @@ public final class InterfaceMethodRewriter {
 
   private void clear() {
     this.cache.clear();
-    this.forwardingMethods.clear();
+    this.synthesizedMethods.clear();
+    this.requiredDispatchClasses.clear();
   }
 
   private static boolean shouldProcess(
@@ -360,13 +406,15 @@ public final class InterfaceMethodRewriter {
         && clazz.isInterface() == mustBeInterface;
   }
 
-  private Map<DexProgramClass, DexProgramClass> processInterfaces(
-      Builder<?> builder, Flavor flavour) {
+  private Map<DexType, DexProgramClass> processInterfaces(Builder<?> builder, Flavor flavour) {
     InterfaceProcessor processor = new InterfaceProcessor(this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, true)) {
         processor.process(clazz.asProgramClass());
       }
+    }
+    for (DexLibraryClass iface : requiredDispatchClasses) {
+      synthesizedMethods.addAll(processor.process(iface));
     }
     if (converter.enableWholeProgramOptimizations &&
         (!processor.methodsWithMovedCode.isEmpty() || !processor.movedMethods.isEmpty())) {
@@ -374,7 +422,7 @@ public final class InterfaceMethodRewriter {
           new InterfaceMethodDesugaringLense(processor.movedMethods,
               processor.methodsWithMovedCode, converter.getGraphLense(), factory));
     }
-    return processor.companionClasses;
+    return processor.syntheticClasses;
   }
 
   private Set<DexEncodedMethod> processClasses(Builder<?> builder, Flavor flavour) {

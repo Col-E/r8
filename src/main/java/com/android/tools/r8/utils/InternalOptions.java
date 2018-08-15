@@ -482,6 +482,10 @@ public class InternalOptions {
     return hasMinApi(AndroidApiLevel.N);
   }
 
+  public boolean canLeaveStaticInterfaceMethodInvokes() {
+    return hasMinApi(AndroidApiLevel.L);
+  }
+
   public boolean canUsePrivateInterfaceMethods() {
     return hasMinApi(AndroidApiLevel.N);
   }

@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,15 +53,24 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
   }
 
   public static DexProgramClass resolveClassConflictImpl(DexProgramClass a, DexProgramClass b) {
-    // Currently only allow collapsing synthetic lambda classes.
+    // Currently only allow collapsing synthetic lambda or dispatch classes.
     if (a.originatesFromDexResource()
         && b.originatesFromDexResource()
         && a.accessFlags.isSynthetic()
         && b.accessFlags.isSynthetic()
-        && LambdaRewriter.hasLambdaClassPrefix(a.type)
-        && LambdaRewriter.hasLambdaClassPrefix(b.type)) {
+        && (bothAreLambdaClasses(a.type, b.type) || bothAreDispatchClasses(a.type, b.type))) {
       return a;
     }
     throw new CompilationError("Program type already present: " + a.type.toSourceString());
+  }
+
+  private static boolean bothAreLambdaClasses(DexType a, DexType b) {
+    return LambdaRewriter.hasLambdaClassPrefix(a) &&
+        LambdaRewriter.hasLambdaClassPrefix(b);
+  }
+
+  private static boolean bothAreDispatchClasses(DexType a, DexType b) {
+    return InterfaceMethodRewriter.hasDispatchClassSuffix(a) &&
+        InterfaceMethodRewriter.hasDispatchClassSuffix(b);
   }
 }

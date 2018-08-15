@@ -648,6 +648,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public static class OptimizationInfo {
+    public enum InlinePreference {
+      NeverInline, ForceInline, Default
+    }
 
     private int returnedArgument = -1;
     private boolean neverReturnsNull = false;
@@ -655,7 +658,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private boolean returnsConstant = false;
     private long returnedConstant = 0;
     private boolean publicized = false;
-    private boolean forceInline = false;
+    private InlinePreference inlining = InlinePreference.Default;
     private boolean useIdentifierNameString = false;
     private boolean checksNullReceiverBeforeAnySideEffect = false;
     private boolean triggersClassInitBeforeAnySideEffect = false;
@@ -677,7 +680,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       returnsConstant = template.returnsConstant;
       returnedConstant = template.returnedConstant;
       publicized = template.publicized;
-      forceInline = template.forceInline;
+      inlining = template.inlining;
       useIdentifierNameString = template.useIdentifierNameString;
       checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
       trivialInitializerInfo = template.trivialInitializerInfo;
@@ -754,7 +757,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     public boolean forceInline() {
-      return forceInline;
+      return inlining == InlinePreference.ForceInline;
+    }
+
+    public boolean neverInline() {
+      return inlining == InlinePreference.NeverInline;
     }
 
     public boolean useIdentifierNameString() {
@@ -790,11 +797,21 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     private void markForceInline() {
-      forceInline = true;
+      // For concurrent scenarios we should allow the flag to be already set
+      assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
+      inlining = InlinePreference.ForceInline;
     }
 
     private void unsetForceInline() {
-      forceInline = false;
+      // For concurrent scenarios we should allow the flag to be already unset
+      assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
+      inlining = InlinePreference.Default;
+    }
+
+    private void markNeverInline() {
+      // For concurrent scenarios we should allow the flag to be already set
+      assert inlining == InlinePreference.Default || inlining == InlinePreference.NeverInline;
+      inlining = InlinePreference.NeverInline;
     }
 
     private void markPublicized() {
@@ -880,6 +897,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   synchronized public void markForceInline() {
     ensureMutableOI().markForceInline();
+  }
+
+  synchronized public void markNeverInline() {
+    ensureMutableOI().markNeverInline();
   }
 
   public synchronized void unsetForceInline() {

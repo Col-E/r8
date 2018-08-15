@@ -84,6 +84,12 @@ public class CfInvoke extends CfInstruction {
     }
   }
 
+  public boolean isInvokeSuper(DexType clazz) {
+    return opcode == Opcodes.INVOKESPECIAL &&
+        method.holder != clazz &&
+        !method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME);
+  }
+
   @Override
   public boolean canThrow() {
     return true;

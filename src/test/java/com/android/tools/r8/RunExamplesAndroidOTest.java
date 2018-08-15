@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +34,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -58,6 +60,7 @@ public abstract class RunExamplesAndroidOTest
     final String testName;
     final String packageName;
     final String mainClass;
+    final List<String> args = new ArrayList<>();
 
     AndroidApiLevel androidJarVersion = null;
 
@@ -121,6 +124,11 @@ public abstract class RunExamplesAndroidOTest
       return self();
     }
 
+    C withArg(String arg) {
+      args.add(arg);
+      return self();
+    }
+
     void combinedOptionConsumer(InternalOptions options) {
       for (Consumer<InternalOptions> consumer : optionConsumers) {
         consumer.accept(options);
@@ -161,7 +169,7 @@ public abstract class RunExamplesAndroidOTest
         }
       }
 
-      execute(testName, qualifiedMainClass, new Path[]{inputFile}, new Path[]{out});
+      execute(testName, qualifiedMainClass, new Path[]{inputFile}, new Path[]{out}, args);
     }
 
     abstract C withMinApiLevel(AndroidApiLevel minApiLevel);
@@ -456,6 +464,15 @@ public abstract class RunExamplesAndroidOTest
         "interfacemethods.I2");
   }
 
+  @Test
+  public void testInterfaceDispatchClasses() throws Throwable {
+    test("interfacedispatchclasses", "interfacedispatchclasses", "TestInterfaceDispatchClasses")
+        .withMinApiLevel(AndroidApiLevel.K) // K to create dispatch classes
+        .withAndroidJar(AndroidApiLevel.O)
+        .withArg(String.valueOf(ToolHelper.getMinApiLevelForDexVm().getLevel() >= 24))
+        .run();
+  }
+
   private void testIntermediateWithMainDexList(
       String packageName,
       int expectedMainDexListSize,
@@ -488,14 +505,13 @@ public abstract class RunExamplesAndroidOTest
     full.build(input, fullDexes);
 
     // Builds with intermediate in both output mode.
-    Path dexesThroughIndexedIntermediate =
-        buildDexThroughIntermediate(packageName, input, OutputMode.DexIndexed, minApi, mainDexClasses);
-    Path dexesThroughFilePerInputClassIntermediate =
-        buildDexThroughIntermediate(packageName, input, OutputMode.DexFilePerClassFile, minApi,
-            mainDexClasses);
+    Path dexesThroughIndexedIntermediate = buildDexThroughIntermediate(
+        packageName, input, OutputMode.DexIndexed, minApi, mainDexClasses);
+    Path dexesThroughFilePerInputClassIntermediate = buildDexThroughIntermediate(
+        packageName, input, OutputMode.DexFilePerClassFile, minApi, mainDexClasses);
 
     // Collect main dex types.
-    CodeInspector fullInspector =  getMainDexInspector(fullDexes);
+    CodeInspector fullInspector = getMainDexInspector(fullDexes);
     CodeInspector indexedIntermediateInspector =
         getMainDexInspector(dexesThroughIndexedIntermediate);
     CodeInspector filePerInputClassIntermediateInspector =
@@ -552,10 +568,13 @@ public abstract class RunExamplesAndroidOTest
   abstract RunExamplesAndroidOTest<B>.TestRunner<?> test(String testName, String packageName,
       String mainClass);
 
-  void execute(
-      String testName,
-      String qualifiedMainClass, Path[] jars, Path[] dexes)
-      throws IOException {
+  void execute(String testName,
+      String qualifiedMainClass, Path[] jars, Path[] dexes) throws IOException {
+    execute(testName, qualifiedMainClass, jars, dexes, Collections.emptyList());
+  }
+
+  void execute(String testName,
+      String qualifiedMainClass, Path[] jars, Path[] dexes, List<String> args) throws IOException {
 
     boolean expectedToFail = expectedToFail(testName);
     if (expectedToFail && !ToolHelper.compareAgaintsGoldenFiles()) {
@@ -564,10 +583,16 @@ public abstract class RunExamplesAndroidOTest
     String output = ToolHelper.runArtNoVerificationErrors(
         Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
         qualifiedMainClass,
-        null);
+        builder -> {
+          for (String arg : args) {
+            builder.appendProgramArgument(arg);
+          }
+        });
     if (!expectedToFail && !skipRunningOnJvm(testName) && !ToolHelper.compareAgaintsGoldenFiles()) {
+      ArrayList<String> javaArgs = Lists.newArrayList(args);
+      javaArgs.add(0, qualifiedMainClass);
       ToolHelper.ProcessResult javaResult =
-          ToolHelper.runJava(ImmutableList.copyOf(jars), qualifiedMainClass);
+          ToolHelper.runJava(ImmutableList.copyOf(jars), javaArgs.toArray(new String[0]));
       assertEquals("JVM run failed", javaResult.exitCode, 0);
       assertTrue(
           "JVM output does not match art output.\n\tjvm: "
