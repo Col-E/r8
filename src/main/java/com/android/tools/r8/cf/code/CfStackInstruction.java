@@ -194,16 +194,19 @@ public class CfStackInstruction extends CfInstruction {
           // Input stack:
           Slot value1 = state.pop();
           Slot value2 = state.pop();
-          assert !value2.type.isWide();
-          if (value1.type.isWide()) {
+          if (value1.type.isWide() && value2.type.isWide()) {
             // Input stack: ..., value2, value1
-            dupX1(builder, state, value1, value2);
             // Output stack: ..., value1, value2, value1
-            throw new Unimplemented("Building IR for Dup2X2 wide not supported");
+            dupX1(builder, state, value1, value2);
+          } else if (value1.type.isWide()) {
+            throw new Unimplemented("Building IR for Dup2X2 narrow,narrow,wide not supported");
+          } else if (value2.type.isWide()) {
+            throw new Unimplemented("Building IR for Dup2X2 wide,narrow,narrow not supported");
           } else {
-            throw new Unimplemented("Building IR for Dup2X2 narrow not supported");
+            throw new Unimplemented(
+                "Building IR for Dup2X2 narrow,narrow,narrow,narrow not supported");
           }
-          // break;
+          break;
         }
       case Swap:
         {

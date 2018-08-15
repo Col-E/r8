@@ -64,9 +64,16 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DescriptorUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.IntList;
-import java.util.HashMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.ListIterator;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
@@ -78,28 +85,46 @@ import org.objectweb.asm.util.Printer;
  */
 public class CfPrinter {
 
+  private static final boolean PRINT_INSTRUCTION_INDEX = true;
+  private static final boolean PRINT_INLINE_LOCALS = true;
+
   private final String indent;
-  private final Map<CfLabel, String> labels;
+
+  // Sorted list of labels.
+  private final List<CfLabel> sortedLabels;
+  // Map from label to its sorted-order index.
+  private final Reference2IntMap<CfLabel> labelToIndex;
+  // Map from sorted-order label index to the locals live at that label.
+  private final List<List<LocalVariableInfo>> localsAtLabel;
 
   private final StringBuilder builder = new StringBuilder();
   private final ClassNameMapper mapper;
 
+  private int nextInstructionIndex = 0;
+  private final int instructionIndexSpace;
+
   /** Entry for printing single instructions without global knowledge (eg, label numbers). */
   public CfPrinter() {
     indent = "";
-    labels = null;
+    labelToIndex = null;
     mapper = null;
+    instructionIndexSpace = 0;
+
+    sortedLabels = Collections.emptyList();
+    localsAtLabel = Collections.emptyList();
   }
 
   /** Entry for printing a complete code object. */
   public CfPrinter(CfCode code, ClassNameMapper mapper) {
     this.mapper = mapper;
     indent = "  ";
-    labels = new HashMap<>();
-    int nextLabelNumber = 0;
+    instructionIndexSpace = ("" + code.getInstructions().size()).length();
+    labelToIndex = new Reference2IntOpenHashMap<>();
+    sortedLabels = new ArrayList<>();
     for (CfInstruction instruction : code.getInstructions()) {
       if (instruction instanceof CfLabel) {
-        labels.put((CfLabel) instruction, "L" + nextLabelNumber++);
+        labelToIndex.put((CfLabel) instruction, sortedLabels.size());
+        sortedLabels.add((CfLabel) instruction);
       }
     }
     builder.append(".method ");
@@ -108,7 +133,11 @@ public class CfPrinter {
     builder.append(".limit stack ").append(code.getMaxStack());
     newline();
     builder.append(".limit locals ").append(code.getMaxLocals());
-    for (LocalVariableInfo local : code.getLocalVariables()) {
+
+    List<LocalVariableInfo> localVariables = getSortedLocalVariables(code);
+    localsAtLabel = computeLocalsAtLabels(localVariables);
+
+    for (LocalVariableInfo local : localVariables) {
       DebugLocalInfo info = local.getLocal();
       newline();
       builder
@@ -148,6 +177,60 @@ public class CfPrinter {
     newline();
     builder.append(".end method");
     newline();
+  }
+
+  private List<List<LocalVariableInfo>> computeLocalsAtLabels(
+      List<LocalVariableInfo> localVariables) {
+    if (!PRINT_INLINE_LOCALS) {
+      return null;
+    }
+    List<List<LocalVariableInfo>> localsAtLabel = new ArrayList<>(sortedLabels.size());
+    Set<LocalVariableInfo> openLocals = new HashSet<>();
+    ListIterator<LocalVariableInfo> nextLocalVariableEntry = localVariables.listIterator();
+    for (CfLabel orderedLabel : sortedLabels) {
+      int thisIndex = labelToIndex.getInt(orderedLabel);
+      openLocals.removeIf(o -> labelToIndex.getInt(o.getEnd()) <= thisIndex);
+      while (nextLocalVariableEntry.hasNext()) {
+        LocalVariableInfo next = nextLocalVariableEntry.next();
+        int startIndex = labelToIndex.getInt(next.getStart());
+        int endIndex = labelToIndex.getInt(next.getEnd());
+        if (startIndex <= thisIndex) {
+          if (thisIndex < endIndex) {
+            openLocals.add(next);
+          }
+        } else {
+          nextLocalVariableEntry.previous();
+          break;
+        }
+      }
+      ArrayList<LocalVariableInfo> locals = new ArrayList<>(openLocals);
+      locals.sort((a, b) -> Integer.compare(a.getIndex(), b.getIndex()));
+      localsAtLabel.add(locals);
+    }
+    return localsAtLabel;
+  }
+
+  @NotNull
+  private List<LocalVariableInfo> getSortedLocalVariables(CfCode code) {
+    List<LocalVariableInfo> localVariables = new ArrayList<>(code.getLocalVariables());
+    localVariables.sort(
+        (a, b) -> {
+          // Start with locals starting early.
+          int first =
+              Integer.compare(labelToIndex.getInt(a.getStart()), labelToIndex.getInt(b.getStart()));
+          if (first != 0) {
+            return first;
+          }
+          // Then locals with longer scope (ie, reverse order).
+          int second =
+              Integer.compare(labelToIndex.getInt(b.getEnd()), labelToIndex.getInt(a.getEnd()));
+          if (second != 0) {
+            return second;
+          }
+          // Finally, locals with smallest index.
+          return Integer.compare(a.getIndex(), b.getIndex());
+        });
+    return localVariables;
   }
 
   private void print(String name) {
@@ -394,7 +477,17 @@ public class CfPrinter {
 
   public void print(CfLabel label) {
     newline();
+    instructionIndex();
     builder.append(getLabel(label)).append(':');
+    if (PRINT_INLINE_LOCALS) {
+      int labelNumber = labelToIndex.getInt(label);
+      List<LocalVariableInfo> locals = localsAtLabel.get(labelNumber);
+      appendComment(
+          "locals: "
+              + String.join(
+                  ", ",
+                  locals.stream().map(LocalVariableInfo::toString).collect(Collectors.toList())));
+    }
   }
 
   public void print(CfPosition instruction) {
@@ -549,7 +642,7 @@ public class CfPrinter {
   }
 
   private String getLabel(CfLabel label) {
-    return labels != null ? labels.get(label) : "L?";
+    return labelToIndex != null ? ("L" + labelToIndex.getInt(label)) : "L?";
   }
 
   private void newline() {
@@ -558,8 +651,15 @@ public class CfPrinter {
     }
   }
 
+  private void instructionIndex() {
+    if (PRINT_INSTRUCTION_INDEX) {
+      builder.append(String.format("%" + instructionIndexSpace + "d: ", nextInstructionIndex++));
+    }
+  }
+
   private void indent() {
     newline();
+    instructionIndex();
     builder.append(indent);
   }
 
