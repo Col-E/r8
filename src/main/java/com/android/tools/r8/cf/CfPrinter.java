@@ -652,7 +652,7 @@ public class CfPrinter {
   }
 
   private void instructionIndex() {
-    if (PRINT_INSTRUCTION_INDEX) {
+    if (PRINT_INSTRUCTION_INDEX && instructionIndexSpace > 0) {
       builder.append(String.format("%" + instructionIndexSpace + "d: ", nextInstructionIndex++));
     }
   }
