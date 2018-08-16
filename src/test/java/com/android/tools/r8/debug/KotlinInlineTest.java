@@ -11,12 +11,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class KotlinInlineTest extends KotlinDebugTestBase {
 
   public static final String DEBUGGEE_CLASS = "KotlinInline";
   public static final String SOURCE_FILE = "KotlinInline.kt";
+
+  private static KotlinD8Config d8Config;
+
+  @BeforeClass
+  public static void setup() {
+    d8Config = new KotlinD8Config(temp);
+  }
+
+  protected KotlinD8Config getD8Config() {
+    return d8Config;
+  }
 
   @Test
   public void testStepOverInline() throws Throwable {
