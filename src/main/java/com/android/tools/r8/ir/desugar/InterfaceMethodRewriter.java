@@ -33,8 +33,10 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 //
 // Default and static interface method desugaring rewriter (note that lambda
@@ -81,8 +83,9 @@ public final class InterfaceMethodRewriter {
   // Caches default interface method info for already processed interfaces.
   private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();
 
-  /** Interfaces requiring dispatch classes created. */
-  private final Set<DexLibraryClass> requiredDispatchClasses = Sets.newConcurrentHashSet();
+  /** Interfaces requiring dispatch classes to be created, and appropriate callers. */
+  private final ConcurrentMap<DexLibraryClass, Set<DexProgramClass>> requiredDispatchClasses =
+      new ConcurrentHashMap<>();
 
   /**
    * A set of dexitems we have reported missing to dedupe warnings.
@@ -166,7 +169,9 @@ public final class InterfaceMethodRewriter {
                 instructions.replaceCurrentInstruction(
                     new InvokeStatic(staticAsMethodOfDispatchClass(method),
                         invokeStatic.outValue(), invokeStatic.arguments()));
-                requiredDispatchClasses.add(clazz.asLibraryClass());
+                requiredDispatchClasses
+                    .computeIfAbsent(clazz.asLibraryClass(), k -> Sets.newConcurrentHashSet())
+                    .add(findDefinitionFor(encodedMethod.method.holder).asProgramClass());
               }
             } else {
               instructions.replaceCurrentInstruction(
@@ -413,8 +418,8 @@ public final class InterfaceMethodRewriter {
         processor.process(clazz.asProgramClass());
       }
     }
-    for (DexLibraryClass iface : requiredDispatchClasses) {
-      synthesizedMethods.addAll(processor.process(iface));
+    for (Entry<DexLibraryClass, Set<DexProgramClass>> entry : requiredDispatchClasses.entrySet()) {
+      synthesizedMethods.addAll(processor.process(entry.getKey(), entry.getValue()));
     }
     if (converter.enableWholeProgramOptimizations &&
         (!processor.methodsWithMovedCode.isEmpty() || !processor.movedMethods.isEmpty())) {

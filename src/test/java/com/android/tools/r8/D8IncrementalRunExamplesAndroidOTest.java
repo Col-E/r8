@@ -92,6 +92,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
           // interface or the main class/interface
           Assert.assertTrue(descriptor.contains(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX)
               || descriptor.endsWith(InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
+              || descriptor.endsWith(InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX + ";")
               || descriptor.equals(mainClassDescriptor));
         }
         String classDescriptor =

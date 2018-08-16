@@ -211,7 +211,7 @@ final class InterfaceProcessor {
     syntheticClasses.put(iface.type, companionClass);
   }
 
-  List<DexEncodedMethod> process(DexLibraryClass iface) {
+  List<DexEncodedMethod> process(DexLibraryClass iface, Set<DexProgramClass> callers) {
     assert iface.isInterface();
 
     // The list of methods to be created in dispatch class.
@@ -271,7 +271,7 @@ final class InterfaceProcessor {
             dispatchMethods.toArray(new DexEncodedMethod[dispatchMethods.size()]),
             DexEncodedMethod.EMPTY_ARRAY,
             rewriter.factory.getSkipNameValidationForTesting(),
-            Collections.emptyList());
+            callers);
     syntheticClasses.put(iface.type, dispatchClass);
     return dispatchMethods;
   }
