@@ -111,7 +111,7 @@ public final class FeatureClassMapping {
         List<FeatureJar> featureJars, String baseName, DiagnosticsHandler reporter)
         throws FeatureMappingException {
       FeatureClassMapping mapping = new FeatureClassMapping();
-      if (mapping.baseName != null) {
+      if (baseName != null) {
         mapping.baseName = baseName;
       }
       for (FeatureJar featureJar : featureJars) {

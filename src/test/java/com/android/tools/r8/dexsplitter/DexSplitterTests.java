@@ -226,13 +226,16 @@ public class DexSplitterTests {
   @Test
   public void splitFilesFromJar()
       throws IOException, CompilationFailedException, FeatureMappingException {
-    splitFromJars(true, true);
-    splitFromJars(false, true);
-    splitFromJars(true, false);
-    splitFromJars(false, false);
+    for (boolean useOptions : new boolean[]{false, true}) {
+      for (boolean explicitBase: new boolean[]{false, true}) {
+        for (boolean renameBase: new boolean[]{false, true}) {
+          splitFromJars(useOptions, explicitBase, renameBase);
+        }
+      }
+    }
   }
 
-  private void splitFromJars(boolean useOptions, boolean explicitBase)
+  private void splitFromJars(boolean useOptions, boolean explicitBase, boolean renameBase)
       throws IOException, CompilationFailedException, FeatureMappingException {
     Path inputZip = createInput(false);
     Path output = temp.newFolder().toPath().resolve("output");
@@ -276,7 +279,7 @@ public class DexSplitterTests {
       options.setOutput(output.toString());
       if (explicitBase) {
         options.addFeatureJar(baseJar.toString());
-      } else {
+      } else if (renameBase){
         // Ensure that we can rename base (if people called a feature base)
         options.setBaseOutputName("base_renamed");
       }
@@ -293,14 +296,14 @@ public class DexSplitterTests {
       if (explicitBase) {
         args.add("--feature-jar");
         args.add(baseJar.toString());
-      } else {
+      } else if (renameBase) {
         args.add("--base-output-name");
         args.add("base_renamed");
       }
 
       DexSplitter.main(args.toArray(new String[0]));
     }
-    String baseOutputName = explicitBase ? "base" : "base_renamed";
+    String baseOutputName = explicitBase || !renameBase ? "base" : "base_renamed";
     Path base = output.resolve(baseOutputName).resolve("classes.dex");
     Path feature = output.resolve(specificOutputName).resolve("classes.dex");;
     validateUnobfuscatedOutput(base, feature);
