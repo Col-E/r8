@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.resource;
 
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
@@ -14,12 +17,28 @@ import com.android.tools.r8.utils.TestDescriptionWatcher;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collection;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class DataResourceTest {
+
+  private TestBase.Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<TestBase.Backend> data() {
+    return Arrays.asList(TestBase.Backend.values());
+  }
+
+  public DataResourceTest(TestBase.Backend backend) {
+    this.backend = backend;
+  }
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -36,15 +55,23 @@ public class DataResourceTest {
 
     ProcessResult referenceResult = ToolHelper.runJava(inputJar, mainClassName);
 
+    assert backend == Backend.DEX || backend == Backend.CF;
     Path r8Out = temp.getRoot().toPath().resolve("r8out.jar");
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(inputJar)
-            .setProgramConsumer(new DexIndexedConsumer.ArchiveConsumer(r8Out, true));
+            .setProgramConsumer(
+                backend == Backend.DEX
+                    ? new DexIndexedConsumer.ArchiveConsumer(r8Out, true)
+                    : new ClassFileConsumer.ArchiveConsumer(r8Out, true));
     ToolHelper.runR8(builder.build());
 
-    ProcessResult r8Result = ToolHelper.runArtRaw(r8Out.toString(), mainClassName);
+    ProcessResult r8Result;
+    if (backend == Backend.DEX) {
+      r8Result = ToolHelper.runArtRaw(r8Out.toString(), mainClassName);
+    } else {
+      r8Result = ToolHelper.runJava(r8Out, mainClassName);
+    }
     Assert.assertEquals(referenceResult.stdout, r8Result.stdout);
-
   }
 }
