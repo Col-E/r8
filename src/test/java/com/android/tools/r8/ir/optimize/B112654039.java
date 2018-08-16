@@ -12,7 +12,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class B112654039 extends TestBase {
-  @Ignore("b/112654039")
+
   @Test
   public void test() throws Exception {
     AndroidApp app = readClasses(TestClassForB112654039.class);
