@@ -75,6 +75,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -117,6 +118,10 @@ public class IRConverter {
   private final OptimizationFeedback simpleOptimizationFeedback = new OptimizationFeedbackSimple();
   private DexString highestSortingString;
 
+  // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve
+  // the current class being optimized.
+  private ConcurrentHashMap<DexType, DexProgramClass> cachedClasses = new ConcurrentHashMap<>();
+
   private IRConverter(
       AppInfo appInfo,
       InternalOptions options,
@@ -132,7 +137,7 @@ public class IRConverter {
     this.graphLense = graphLense != null ? graphLense : GraphLense.getIdentityLense();
     this.options = options;
     this.printer = printer;
-    this.codeRewriter = new CodeRewriter(appInfo, libraryMethodsReturningReceiver(), options);
+    this.codeRewriter = new CodeRewriter(this, libraryMethodsReturningReceiver(), options);
     this.stringConcatRewriter = new StringConcatRewriter(options.itemFactory);
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(this) : null;
     this.interfaceMethodRewriter =
@@ -621,14 +626,29 @@ public class IRConverter {
     return result;
   }
 
+  public DexClass definitionFor(DexType type) {
+    DexProgramClass cached = cachedClasses.get(type);
+    return cached != null ? cached : appInfo.definitionFor(type);
+  }
+
   public void optimizeSynthesizedClass(DexProgramClass clazz) {
     try {
-      codeRewriter.enterCachedClass(clazz);
+      enterCachedClass(clazz);
       // Process the generated class, but don't apply any outlining.
       clazz.forEachMethod(this::optimizeSynthesizedMethod);
     } finally {
-      codeRewriter.leaveCachedClass(clazz);
+      leaveCachedClass(clazz);
     }
+  }
+
+  private void enterCachedClass(DexProgramClass clazz) {
+    DexProgramClass previous = cachedClasses.put(clazz.type, clazz);
+    assert previous == null;
+  }
+
+  private void leaveCachedClass(DexProgramClass clazz) {
+    DexProgramClass existing = cachedClasses.remove(clazz.type);
+    assert existing == clazz;
   }
 
   public void optimizeSynthesizedMethod(DexEncodedMethod method) {
@@ -696,7 +716,7 @@ public class IRConverter {
     printC1VisualizerHeader(method);
     printMethod(code, "Initial IR (SSA)");
 
-    DexClass holder = codeRewriter.definitionFor(method.method.holder);
+    DexClass holder = definitionFor(method.method.holder);
     if (method.getCode() != null && method.getCode().isJarCode()
         && holder.hasKotlinInfo()) {
       computeKotlinNotNullParamHints(feedback, holder.getKotlinInfo(), method, code);

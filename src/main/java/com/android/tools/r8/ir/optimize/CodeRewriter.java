@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialIns
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -79,6 +78,7 @@ import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -129,20 +129,16 @@ public class CodeRewriter {
   // This constant was determined by experimentation.
   private static final int STOP_SHARED_CONSTANT_THRESHOLD = 50;
 
+  public final IRConverter converter;
   private final AppInfo appInfo;
   private final DexItemFactory dexItemFactory;
   private final Set<DexMethod> libraryMethodsReturningReceiver;
   private final InternalOptions options;
 
-  // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve
-  // the current class being optimized. Since all methods of this class are optimized
-  // together and are not concurrent to other optimizations, we just store current
-  // synthetic class.
-  private DexProgramClass cachedClass = null;
-
-  public CodeRewriter(
-      AppInfo appInfo, Set<DexMethod> libraryMethodsReturningReceiver, InternalOptions options) {
-    this.appInfo = appInfo;
+  public CodeRewriter(IRConverter converter,
+      Set<DexMethod> libraryMethodsReturningReceiver, InternalOptions options) {
+    this.converter = converter;
+    this.appInfo = converter.appInfo;
     this.options = options;
     this.dexItemFactory = appInfo.dexItemFactory;
     this.libraryMethodsReturningReceiver = libraryMethodsReturningReceiver;
@@ -1562,20 +1558,7 @@ public class CodeRewriter {
   }
 
   public DexClass definitionFor(DexType type) {
-    if (cachedClass != null && cachedClass.type == type) {
-      return cachedClass;
-    }
-    return appInfo.definitionFor(type);
-  }
-
-  public void enterCachedClass(DexProgramClass clazz) {
-    assert cachedClass == null;
-    cachedClass = clazz;
-  }
-
-  public void leaveCachedClass(DexProgramClass clazz) {
-    assert cachedClass == clazz;
-    cachedClass = null;
+    return converter.definitionFor(type);
   }
 
   public void removeCasts(IRCode code, TypeEnvironment typeEnvironment) {

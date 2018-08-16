@@ -282,7 +282,7 @@ public final class InterfaceMethodRewriter {
    * @return may return null if no definition for the given type is available.
    */
   final DexClass findDefinitionFor(DexType type) {
-    return converter.appInfo.definitionFor(type);
+    return converter.definitionFor(type);
   }
 
   // Gets the companion class for the interface `type`.
