@@ -12,7 +12,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class B112654039 extends TestBase {
