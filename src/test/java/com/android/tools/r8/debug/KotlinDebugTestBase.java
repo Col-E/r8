@@ -8,23 +8,11 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Frame.Variable;
 import org.apache.harmony.jpda.tests.framework.jdwp.Location;
-import org.junit.BeforeClass;
 
 /**
  * A specialization for Kotlin-based tests which provides extra commands.
  */
 public abstract class KotlinDebugTestBase extends DebugTestBase {
-
-  private static KotlinD8Config d8Config;
-
-  @BeforeClass
-  public static void setup() {
-    d8Config = new KotlinD8Config(temp);
-  }
-
-  protected KotlinD8Config getD8Config() {
-    return d8Config;
-  }
 
   protected final JUnit3Wrapper.Command kotlinStepOver() {
     return testBaseBeforeStep -> {

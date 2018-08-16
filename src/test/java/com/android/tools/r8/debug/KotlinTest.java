@@ -6,9 +6,21 @@ package com.android.tools.r8.debug;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class KotlinTest extends KotlinDebugTestBase {
+
+  private static KotlinD8Config d8Config;
+
+  @BeforeClass
+  public static void setup() {
+    d8Config = new KotlinD8Config(temp);
+  }
+
+  protected KotlinD8Config getD8Config() {
+    return d8Config;
+  }
 
   // TODO(shertz) simplify test
   // TODO(shertz) add more variables ?
