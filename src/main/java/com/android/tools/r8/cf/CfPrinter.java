@@ -73,7 +73,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
@@ -210,7 +209,6 @@ public class CfPrinter {
     return localsAtLabel;
   }
 
-  @NotNull
   private List<LocalVariableInfo> getSortedLocalVariables(CfCode code) {
     List<LocalVariableInfo> localVariables = new ArrayList<>(code.getLocalVariables());
     localVariables.sort(
