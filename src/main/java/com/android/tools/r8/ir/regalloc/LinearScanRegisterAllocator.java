@@ -2434,8 +2434,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         for (Phi phi : successor.getPhis()) {
           live.remove(phi);
           phiOperands.add(phi.getOperand(successor.getPredecessors().indexOf(block)));
-          assert phi.getDebugValues().stream().allMatch(Value::needsRegister);
-          phiOperands.addAll(phi.getDebugValues());
         }
       }
       live.addAll(phiOperands);

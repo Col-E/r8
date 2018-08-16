@@ -34,7 +34,6 @@ public class Value {
 
     final DebugLocalInfo local;
     Map<Instruction, DebugUse> users = new HashMap<>();
-    Set<Phi> phiUsers = new HashSet<>();
 
     DebugData(DebugLocalInfo local) {
       this.local = local;
@@ -151,7 +150,6 @@ public class Value {
 
   public void clearLocalInfo() {
     assert debugData.users.isEmpty();
-    assert debugData.phiUsers.isEmpty();
     debugData = null;
   }
 
@@ -265,10 +263,6 @@ public class Value {
     return debugData == null ? null : Collections.unmodifiableSet(debugData.users.keySet());
   }
 
-  public Set<Phi> debugPhiUsers() {
-    return debugData == null ? null : Collections.unmodifiableSet(debugData.phiUsers);
-  }
-
   public int numberOfUsers() {
     int size = users.size();
     if (size <= 1) {
@@ -293,20 +287,12 @@ public class Value {
     return debugData == null ? 0 : debugData.users.size();
   }
 
-  public int numberOfDebugPhiUsers() {
-    return debugData == null ? 0 : debugData.phiUsers.size();
-  }
-
-  public int numberOfAllDebugUsers() {
-    return numberOfDebugUsers() + numberOfDebugPhiUsers();
-  }
-
   public int numberOfAllUsers() {
-    return numberOfAllNonDebugUsers() + numberOfAllDebugUsers();
+    return numberOfAllNonDebugUsers() + numberOfDebugUsers();
   }
 
   public boolean isUsed() {
-    return !users.isEmpty() || !phiUsers.isEmpty() || numberOfAllDebugUsers() > 0;
+    return !users.isEmpty() || !phiUsers.isEmpty() || numberOfDebugUsers() > 0;
   }
 
   public boolean usedInMonitorOperation() {
@@ -340,7 +326,6 @@ public class Value {
     uniquePhiUsers = null;
     if (debugData != null) {
       debugData.users.clear();
-      debugData.phiUsers.clear();
     }
   }
 
@@ -364,11 +349,6 @@ public class Value {
     debugData.users.putIfAbsent(user, DebugUse.LIVE);
   }
 
-  public void addDebugPhiUser(Phi user) {
-    assert hasLocalInfo();
-    debugData.phiUsers.add(user);
-  }
-
   public boolean isUninitializedLocal() {
     return definition != null && definition.isDebugLocalUninitialized();
   }
@@ -385,14 +365,6 @@ public class Value {
     assert false;
   }
 
-  public void removeDebugPhiUser(Phi user) {
-    if (debugData != null && debugData.phiUsers != null) {
-      debugData.phiUsers.remove(user);
-      return;
-    }
-    assert false;
-  }
-
   public boolean hasUsersInfo() {
     return users != null;
   }
@@ -404,7 +376,6 @@ public class Value {
     uniquePhiUsers = null;
     if (debugData != null) {
       debugData.users = null;
-      debugData.phiUsers = null;
     }
   }
 
@@ -423,9 +394,6 @@ public class Value {
         replaceUserInDebugData(user, newValue);
       }
       debugData.users.clear();
-      for (Phi user : debugPhiUsers()) {
-        user.replaceDebugValue(this, newValue);
-      }
     }
     clearUsers();
   }
@@ -468,14 +436,6 @@ public class Value {
         if (selectedInstructions.contains(user.getKey())) {
           replaceUserInDebugData(user, newValue);
           users.remove();
-        }
-      }
-      Iterator<Phi> phis = debugData.phiUsers.iterator();
-      while (phis.hasNext()) {
-        Phi user = phis.next();
-        if (selectedPhis.contains(user)) {
-          phis.remove();
-          user.replaceDebugValue(this, newValue);
         }
       }
     }

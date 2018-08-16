@@ -12,7 +12,6 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -24,7 +23,6 @@ public class Phi extends Value {
 
   private final BasicBlock block;
   private final List<Value> operands = new ArrayList<>();
-  private Set<Value> debugValues = null;
 
   // Trivial phis are eliminated during IR construction. When a trivial phi is eliminated
   // we need to update all references to it. A phi can be referenced from phis, instructions
@@ -100,15 +98,6 @@ public class Phi extends Value {
     }
   }
 
-  public void addDebugValue(Value value) {
-    assert value.hasLocalInfo();
-    if (debugValues == null) {
-      debugValues = new HashSet<>();
-    }
-    debugValues.add(value);
-    value.addDebugPhiUser(this);
-  }
-
   private void throwUndefinedValueError() {
     throw new CompilationError(
         "Undefined value encountered during compilation. "
@@ -172,14 +161,6 @@ public class Phi extends Value {
     }
     if (current.canBeNull() && newValue.isNeverNull()) {
       recomputeNeverNull();
-    }
-  }
-
-  void replaceDebugValue(Value current, Value newValue) {
-    assert current.hasLocalInfo();
-    assert current.getLocalInfo() == newValue.getLocalInfo();
-    if (debugValues.remove(current)) {
-      addDebugValue(newValue);
     }
   }
 
@@ -332,10 +313,6 @@ public class Phi extends Value {
   @Override
   public boolean needsRegister() {
     return true;
-  }
-
-  public Set<Value> getDebugValues() {
-    return debugValues != null ? debugValues : ImmutableSet.of();
   }
 
   public boolean usesValueOneTime(Value usedValue) {

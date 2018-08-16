@@ -1764,11 +1764,7 @@ public class CodeRewriter {
         }
       }
 
-      Iterable<Phi> phiUsers = value.debugPhiUsers() != null
-          ? Iterables.concat(value.uniquePhiUsers(), value.debugPhiUsers())
-          : value.uniquePhiUsers();
-
-      for (Phi user : phiUsers) {
+      for (Phi user : value.uniquePhiUsers()) {
         if (binop.getBlock().hasPathTo(user.getBlock())) {
           return false;
         }

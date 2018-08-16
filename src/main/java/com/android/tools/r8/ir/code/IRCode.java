@@ -127,10 +127,6 @@ public class IRCode {
           if (operand.hasLocalInfo()) {
             liveLocals.add(operand);
           }
-          assert phi.getDebugValues().stream().allMatch(Value::needsRegister);
-          assert phi.getDebugValues().stream().allMatch(Value::hasLocalInfo);
-          live.addAll(phi.getDebugValues());
-          liveLocals.addAll(phi.getDebugValues());
         }
       }
       Iterator<Instruction> iterator = block.getInstructions().descendingIterator();
@@ -449,10 +445,6 @@ public class IRCode {
           values.add(value);
           assert value.uniquePhiUsers().contains(phi);
         }
-        for (Value value : phi.getDebugValues()) {
-          values.add(value);
-          assert value.debugPhiUsers().contains(phi);
-        }
       }
       for (Instruction instruction : block.getInstructions()) {
         assert instruction.getBlock() == block;
@@ -507,10 +499,6 @@ public class IRCode {
     if (value.hasLocalInfo()) {
       for (Instruction debugUser : value.debugUsers()) {
         assert debugUser.getDebugValues().contains(value);
-      }
-      for (Phi phiUser : value.debugPhiUsers()) {
-        assert verifyPhi(phiUser);
-        assert phiUser.getDebugValues().contains(value);
       }
     }
     return true;
