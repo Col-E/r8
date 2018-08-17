@@ -123,8 +123,14 @@ public class IRCode {
         for (Phi phi : succ.getPhis()) {
           Value operand = phi.getOperand(predIndex);
           live.add(operand);
-          // TODO(zerny): Assert that operand.hasLocalInfo iff phi.hasLocalInfo
-          if (operand.hasLocalInfo()) {
+          if (phi.hasLocalInfo()) {
+            // If the phi has local information that implies that the local *must* be live at entry
+            // to the block (ie, phis can't end a local explicitly only instructions can).
+            // The graph also requires that any local live at entry to a block is at the latest
+            // started in the split edge prior to that block (ie, phis cannot start a local range).
+            // Therefore, if the phi has local information, that local is live and the operand must
+            // be live at block exit.
+            assert phi.getLocalInfo() == operand.getLocalInfo();
             liveLocals.add(operand);
           }
         }
@@ -444,6 +450,7 @@ public class IRCode {
         for (Value value : phi.getOperands()) {
           values.add(value);
           assert value.uniquePhiUsers().contains(phi);
+          assert !phi.hasLocalInfo() || phi.getLocalInfo() == value.getLocalInfo();
         }
       }
       for (Instruction instruction : block.getInstructions()) {
