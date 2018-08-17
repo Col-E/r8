@@ -27,7 +27,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.Assert;
@@ -218,92 +217,89 @@ public class MainDexTracingTest extends TestBase {
     Path out = temp.getRoot().toPath().resolve(testName + ZIP_EXTENSION);
 
     Path inputJar = Paths.get(buildDir, packageName + JAR_EXTENSION);
-    try {
-      // Build main-dex list using GenerateMainDexList and test the output from run.
-      GenerateMainDexListCommand.Builder mdlCommandBuilder = GenerateMainDexListCommand.builder();
-      GenerateMainDexListCommand mdlCommand = mdlCommandBuilder
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
-          .addProgramFiles(inputJar)
-          .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
-          .addMainDexRulesFiles(mainDexRules)
-          .build();
-      List<String> mainDexGeneratorMainDexList =
-          GenerateMainDexList.run(mdlCommand).stream()
-              .map(this::mainDexStringToDescriptor)
-              .sorted()
-              .collect(Collectors.toList());
+    // Build main-dex list using GenerateMainDexList and test the output from run.
+    GenerateMainDexListCommand.Builder mdlCommandBuilder = GenerateMainDexListCommand.builder();
+    GenerateMainDexListCommand mdlCommand = mdlCommandBuilder
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
+        .addProgramFiles(inputJar)
+        .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
+        .addMainDexRulesFiles(mainDexRules)
+        .build();
+    List<String> mainDexGeneratorMainDexList =
+        GenerateMainDexList.run(mdlCommand).stream()
+            .map(this::mainDexStringToDescriptor)
+            .sorted()
+            .collect(Collectors.toList());
 
-      class Box {
-        String content;
+    class Box {
+
+      String content;
+    }
+
+    // Build main-dex list using GenerateMainDexList and test the output from a consumer.
+    final Box mainDexListOutput = new Box();
+    mdlCommandBuilder = GenerateMainDexListCommand.builder();
+    mdlCommand = mdlCommandBuilder
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
+        .addProgramFiles(inputJar)
+        .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
+        .addMainDexRulesFiles(mainDexRules)
+        .setMainDexListConsumer((string, handler) -> mainDexListOutput.content = string)
+        .build();
+    GenerateMainDexList.run(mdlCommand);
+    List<String> mainDexGeneratorMainDexListFromConsumer =
+        StringUtils.splitLines(mainDexListOutput.content).stream()
+            .map(this::mainDexStringToDescriptor)
+            .sorted()
+            .collect(Collectors.toList());
+
+    // Build main-dex list using R8.
+    final Box r8MainDexListOutput = new Box();
+    R8Command.Builder r8CommandBuilder = R8Command.builder();
+    R8Command command =
+        r8CommandBuilder
+            .setMinApiLevel(minSdk.getLevel())
+            .addProgramFiles(inputJar)
+            .addProgramFiles(
+                Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
+            .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
+            .setOutput(out, OutputMode.DexIndexed)
+            .addMainDexRulesFiles(mainDexRules)
+            .setMainDexListConsumer((string, handler) -> r8MainDexListOutput.content = string)
+            .build();
+    ToolHelper.runR8WithFullResult(command, optionsConsumer);
+    List<String> r8MainDexList =
+        StringUtils.splitLines(r8MainDexListOutput.content).stream()
+            .map(this::mainDexStringToDescriptor)
+            .sorted()
+            .collect(Collectors.toList());
+    // Check that generated lists are the same as the reference list, except for lambda
+    // classes which are only produced when running R8.
+    String[] r8RefList = new String(Files.readAllBytes(
+        expectedR8MainDexList), StandardCharsets.UTF_8).split("\n");
+    for (int i = 0; i < r8RefList.length; i++) {
+      String reference = r8RefList[i].trim();
+      if (r8MainDexList.size() <= i) {
+        Assert.fail("R8 main dex list is missing '" + reference + "'");
       }
-
-      // Build main-dex list using GenerateMainDexList and test the output from a consumer.
-      final Box mainDexListOutput = new Box();
-      mdlCommandBuilder = GenerateMainDexListCommand.builder();
-      mdlCommand = mdlCommandBuilder
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
-          .addProgramFiles(inputJar)
-          .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
-          .addMainDexRulesFiles(mainDexRules)
-          .setMainDexListConsumer((string, handler) -> mainDexListOutput.content = string)
-          .build();
-      GenerateMainDexList.run(mdlCommand);
-      List<String> mainDexGeneratorMainDexListFromConsumer =
-          StringUtils.splitLines(mainDexListOutput.content).stream()
-              .map(this::mainDexStringToDescriptor)
-              .sorted()
-              .collect(Collectors.toList());
-
-      // Build main-dex list using R8.
-      final Box r8MainDexListOutput = new Box();
-      R8Command.Builder r8CommandBuilder = R8Command.builder();
-      R8Command command =
-          r8CommandBuilder
-              .setMinApiLevel(minSdk.getLevel())
-              .addProgramFiles(inputJar)
-              .addProgramFiles(
-                  Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
-              .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
-              .setOutput(out, OutputMode.DexIndexed)
-              .addMainDexRulesFiles(mainDexRules)
-              .setMainDexListConsumer((string, handler) -> r8MainDexListOutput.content = string)
-              .build();
-      ToolHelper.runR8WithFullResult(command, optionsConsumer);
-      List<String> r8MainDexList =
-          StringUtils.splitLines(r8MainDexListOutput.content).stream()
-              .map(this::mainDexStringToDescriptor)
-              .sorted()
-              .collect(Collectors.toList());
-      // Check that generated lists are the same as the reference list, except for lambda
-      // classes which are only produced when running R8.
-      String[] r8RefList = new String(Files.readAllBytes(
-          expectedR8MainDexList), StandardCharsets.UTF_8).split("\n");
-      for (int i = 0; i < r8RefList.length; i++) {
-        String reference = r8RefList[i].trim();
-        if (r8MainDexList.size() <= i) {
-          Assert.fail("R8 main dex list is missing '" + reference + "'");
+      checkSameMainDexEntry(reference, r8MainDexList.get(i));
+    }
+    String[] refList = new String(Files.readAllBytes(
+        expectedMainDexList), StandardCharsets.UTF_8).split("\n");
+    int nonLambdaOffset = 0;
+    for (int i = 0; i < refList.length; i++) {
+      String reference = refList[i].trim();
+      // The main dex list generator does not do any lambda desugaring.
+      if (!isLambda(reference)) {
+        if (mainDexGeneratorMainDexList.size() <= i - nonLambdaOffset) {
+          Assert.fail("Main dex list generator is missing '" + reference + "'");
         }
-        checkSameMainDexEntry(reference, r8MainDexList.get(i));
+        checkSameMainDexEntry(reference, mainDexGeneratorMainDexList.get(i - nonLambdaOffset));
+        checkSameMainDexEntry(
+            reference, mainDexGeneratorMainDexListFromConsumer.get(i - nonLambdaOffset));
+      } else {
+        nonLambdaOffset++;
       }
-      String[] refList = new String(Files.readAllBytes(
-          expectedMainDexList), StandardCharsets.UTF_8).split("\n");
-      int nonLambdaOffset = 0;
-      for (int i = 0; i < refList.length; i++) {
-        String reference = refList[i].trim();
-        // The main dex list generator does not do any lambda desugaring.
-        if (!isLambda(reference)) {
-          if (mainDexGeneratorMainDexList.size() <= i - nonLambdaOffset) {
-            Assert.fail("Main dex list generator is missing '" + reference + "'");
-          }
-          checkSameMainDexEntry(reference, mainDexGeneratorMainDexList.get(i - nonLambdaOffset));
-          checkSameMainDexEntry(
-              reference, mainDexGeneratorMainDexListFromConsumer.get(i - nonLambdaOffset));
-        } else {
-          nonLambdaOffset++;
-        }
-      }
-    } catch (ExecutionException e) {
-      throw e.getCause();
     }
   }
 

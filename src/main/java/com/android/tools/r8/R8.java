@@ -525,8 +525,7 @@ public class R8 {
 
       options.printWarnings();
     } catch (ExecutionException e) {
-      unwrapExecutionException(e);
-      throw new AssertionError(e); // unwrapping method should have thrown
+      throw unwrapExecutionException(e);
     } finally {
       options.signalFinishedToConsumers();
       // Dump timings.
@@ -545,7 +544,7 @@ public class R8 {
     }
   }
 
-  static void unwrapExecutionException(ExecutionException executionException) {
+  static RuntimeException unwrapExecutionException(ExecutionException executionException) {
     Throwable cause = executionException.getCause();
     if (cause instanceof CompilationError) {
       // add original exception as suppressed exception to provide the original stack trace

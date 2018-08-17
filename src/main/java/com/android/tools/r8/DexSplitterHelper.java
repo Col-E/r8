@@ -109,8 +109,7 @@ public final class DexSplitterHelper {
         }
       }
     } catch (ExecutionException e) {
-      R8.unwrapExecutionException(e);
-      throw new AssertionError(e); // unwrapping method should have thrown
+      throw R8.unwrapExecutionException(e);
     } catch (FeatureMappingException e) {
       options.reporter.error(e.getMessage());
     } finally {

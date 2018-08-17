@@ -105,8 +105,7 @@ public class DexFileMergerHelper {
         writer.write(executor);
         options.printWarnings();
       } catch (ExecutionException e) {
-        R8.unwrapExecutionException(e);
-        throw new AssertionError(e); // unwrapping method should have thrown
+        throw R8.unwrapExecutionException(e);
       } finally {
         options.signalFinishedToConsumers();
       }

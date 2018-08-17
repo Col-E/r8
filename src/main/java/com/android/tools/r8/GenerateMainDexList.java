@@ -16,6 +16,7 @@ import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -36,37 +37,41 @@ public class GenerateMainDexList {
   }
 
   private List<String> run(AndroidApp app, ExecutorService executor)
-      throws IOException, ExecutionException {
-    DexApplication application =
-        new ApplicationReader(app, options, timing).read(executor).toDirect();
-    AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
-    RootSet mainDexRootSet =
-        new RootSetBuilder(appInfo, application, options.mainDexKeepRules, options).run(executor);
-    Enqueuer enqueuer = new Enqueuer(appInfo, GraphLense.getIdentityLense(), options, true);
-    AppInfoWithLiveness mainDexAppInfo = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
-    // LiveTypes is the result.
-    Set<DexType> mainDexClasses =
-        new MainDexListBuilder(new HashSet<>(mainDexAppInfo.liveTypes), application).run();
+      throws IOException {
+    try {
+      DexApplication application =
+          new ApplicationReader(app, options, timing).read(executor).toDirect();
+      AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
+      RootSet mainDexRootSet =
+          new RootSetBuilder(appInfo, application, options.mainDexKeepRules, options).run(executor);
+      Enqueuer enqueuer = new Enqueuer(appInfo, GraphLense.getIdentityLense(), options, true);
+      AppInfoWithLiveness mainDexAppInfo = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
+      // LiveTypes is the result.
+      Set<DexType> mainDexClasses =
+          new MainDexListBuilder(new HashSet<>(mainDexAppInfo.liveTypes), application).run();
 
-    List<String> result = mainDexClasses.stream()
-        .map(c -> c.toSourceString().replace('.', '/') + ".class")
-        .sorted()
-        .collect(Collectors.toList());
+      List<String> result = mainDexClasses.stream()
+          .map(c -> c.toSourceString().replace('.', '/') + ".class")
+          .sorted()
+          .collect(Collectors.toList());
 
-    if (options.mainDexListConsumer != null) {
-      options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
+      if (options.mainDexListConsumer != null) {
+        options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
+      }
+
+      // Print -whyareyoukeeping results if any.
+      if (mainDexRootSet.reasonAsked.size() > 0) {
+        // Print reasons on the application after pruning, so that we reflect the actual result.
+        TreePruner pruner = new TreePruner(application, mainDexAppInfo.withLiveness(), options);
+        application = pruner.run();
+        ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(mainDexRootSet.reasonAsked);
+        reasonPrinter.run(application);
+      }
+
+      return result;
+    } catch (ExecutionException e) {
+      throw R8.unwrapExecutionException(e);
     }
-
-    // Print -whyareyoukeeping results if any.
-    if (mainDexRootSet.reasonAsked.size() > 0) {
-      // Print reasons on the application after pruning, so that we reflect the actual result.
-      TreePruner pruner = new TreePruner(application, mainDexAppInfo.withLiveness(), options);
-      application = pruner.run();
-      ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(mainDexRootSet.reasonAsked);
-      reasonPrinter.run(application);
-    }
-
-    return result;
   }
 
   /**
@@ -82,7 +87,7 @@ public class GenerateMainDexList {
    * @return classes to keep in the primary dex file.
    */
   public static List<String> run(GenerateMainDexListCommand command)
-      throws IOException, ExecutionException {
+      throws CompilationFailedException {
     ExecutorService executorService = ThreadUtils.getExecutorService(command.getInternalOptions());
     try {
       return run(command, executorService);
@@ -105,14 +110,28 @@ public class GenerateMainDexList {
    * @return classes to keep in the primary dex file.
    */
   public static List<String> run(GenerateMainDexListCommand command, ExecutorService executor)
-      throws IOException, ExecutionException {
+      throws CompilationFailedException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
-    return new GenerateMainDexList(options).run(app, executor);
+    ResultBox result = new ResultBox();
+
+    ExceptionUtils.withMainDexListHandler(
+        command.getReporter(),
+        () -> {
+          try {
+            result.content = new GenerateMainDexList(options).run(app, executor);
+          } finally {
+            executor.shutdown();
+          }
+        });
+    return result.content;
   }
 
-  public static void main(String[] args)
-      throws IOException, ExecutionException, CompilationFailedException {
+  private static class ResultBox {
+    List<String> content;
+  }
+
+  public static void main(String[] args) throws CompilationFailedException {
     GenerateMainDexListCommand.Builder builder = GenerateMainDexListCommand.parse(args);
     GenerateMainDexListCommand command = builder.build();
     if (command.isPrintHelp()) {
