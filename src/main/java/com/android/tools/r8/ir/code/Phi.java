@@ -21,8 +21,14 @@ import java.util.Set;
 
 public class Phi extends Value {
 
+  public enum RegisterReadType {
+    NORMAL,
+    DEBUG
+  }
+
   private final BasicBlock block;
   private final List<Value> operands = new ArrayList<>();
+  private RegisterReadType readType;
 
   // Trivial phis are eliminated during IR construction. When a trivial phi is eliminated
   // we need to update all references to it. A phi can be referenced from phis, instructions
@@ -30,9 +36,15 @@ public class Phi extends Value {
   // contain this phi.
   private List<Map<Integer, Value>> definitionUsers = new ArrayList<>();
 
-  public Phi(int number, BasicBlock block, ValueType type, DebugLocalInfo local) {
+  public Phi(
+      int number,
+      BasicBlock block,
+      ValueType type,
+      DebugLocalInfo local,
+      RegisterReadType readType) {
     super(number, type, local);
     this.block = block;
+    this.readType = readType;
     block.addPhi(this);
   }
 
@@ -61,7 +73,7 @@ public class Phi extends Value {
     for (BasicBlock pred : block.getPredecessors()) {
       EdgeType edgeType = pred.getEdgeType(block);
       // Since this read has been delayed we must provide the local info for the value.
-      Value operand = builder.readRegister(register, type, pred, edgeType, getLocalInfo());
+      Value operand = builder.readRegister(register, type, pred, edgeType, readType);
       operand.constrainType(type);
       appendOperand(operand);
     }
@@ -88,6 +100,11 @@ public class Phi extends Value {
       removeTrivialPhi();
     }
     recomputeNeverNull();
+  }
+
+  @Override
+  public void markNonDebugLocalRead() {
+    readType = RegisterReadType.NORMAL;
   }
 
   // Implementation assumes that canBeNull may change to neverNull, but

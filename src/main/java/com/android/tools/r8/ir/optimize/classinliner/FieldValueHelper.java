@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
@@ -84,8 +85,13 @@ final class FieldValueHelper {
       ins.put(block, value);
     } else {
       // Create phi, add it to the block, cache in ins map for future use.
-      Phi phi = new Phi(code.valueNumberGenerator.next(),
-          block, ValueType.fromDexType(field.type), null);
+      Phi phi =
+          new Phi(
+              code.valueNumberGenerator.next(),
+              block,
+              ValueType.fromDexType(field.type),
+              null,
+              RegisterReadType.NORMAL);
       ins.put(block, phi);
 
       List<Value> operands = new ArrayList<>();

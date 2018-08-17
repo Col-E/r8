@@ -559,6 +559,16 @@ public class JarState {
         this);
   }
 
+  public DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset) {
+    LocalsAtOffset localsAtOffset = getLocalsAtOffset(blockOffset);
+    for (LocalNodeInfo local : localsAtOffset.live) {
+      if (register == getLocalRegister(local.node.index, local.type)) {
+        return local.info;
+      }
+    }
+    return null;
+  }
+
   public List<Local> getLocalsToClose() {
     return localsToClose;
   }

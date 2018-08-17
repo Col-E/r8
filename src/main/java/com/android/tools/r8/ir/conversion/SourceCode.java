@@ -21,6 +21,8 @@ public interface SourceCode {
   int instructionIndex(int instructionOffset);
   int instructionOffset(int instructionIndex);
 
+  DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset);
+
   DebugLocalInfo getIncomingLocal(int register);
 
   DebugLocalInfo getOutgoingLocal(int register);

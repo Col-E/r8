@@ -68,6 +68,7 @@ import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
@@ -706,14 +707,6 @@ public class IRBuilder {
     addInstruction(new Argument(value));
   }
 
-  private Value getIncomingLocalValue(int register, DebugLocalInfo local) {
-    assert options.debug;
-    assert local != null;
-    // TODO(b/111251032): Here we lookup a value with type based on debug info. That's just wrong!
-    ValueType valueType = ValueType.fromDexType(local.type);
-    return readRegisterIgnoreLocal(register, valueType, local);
-  }
-
   private static boolean isValidFor(Value value, DebugLocalInfo local) {
     // Invalid debug-info may cause attempt to read a local that is not actually alive.
     // See b/37722432 and regression test {@code jasmin.InvalidDebugInfoTests::testInvalidInfoThrow}
@@ -726,7 +719,7 @@ public class IRBuilder {
       return;
     }
     // If the local was not introduced by the previous instruction, start it here.
-    Value incomingValue = getIncomingLocalValue(register, local);
+    Value incomingValue = readRegisterForDebugLocal(register, local);
     if (incomingValue.getLocalInfo() != local
         || currentBlock.isEmpty()
         || currentBlock.getInstructions().getLast().outValue() != incomingValue) {
@@ -744,7 +737,7 @@ public class IRBuilder {
     if (!options.debug) {
       return;
     }
-    Value value = getIncomingLocalValue(register, local);
+    Value value = readRegisterForDebugLocal(register, local);
     if (isValidFor(value, local)) {
       debugLocalEnds.add(value);
     }
@@ -1652,7 +1645,8 @@ public class IRBuilder {
 
   public Value readRegister(int register, ValueType type) {
     DebugLocalInfo local = getIncomingLocal(register);
-    Value value = readRegister(register, type, currentBlock, EdgeType.NON_EDGE, local);
+    Value value =
+        readRegister(register, type, currentBlock, EdgeType.NON_EDGE, RegisterReadType.NORMAL);
     // Check that any information about a current-local is consistent with the read.
     if (local != null && value.getLocalInfo() != local && !value.isUninitializedLocal()) {
       throw new InvalidDebugInfoException(
@@ -1667,22 +1661,36 @@ public class IRBuilder {
         || value.getDebugLocalEnds() != null
         || source.verifyLocalInScope(value.getLocalInfo());
     value.constrainType(type);
+    value.markNonDebugLocalRead();
     return value;
   }
 
-  private Value readRegisterIgnoreLocal(int register, ValueType type, DebugLocalInfo local) {
-    return readRegister(register, type, currentBlock, EdgeType.NON_EDGE, local);
+  private Value readRegisterForDebugLocal(int register, DebugLocalInfo local) {
+    assert options.debug;
+    // TODO(b/111251032): Here we lookup a value with type based on debug info. That's just wrong!
+    ValueType type = ValueType.fromDexType(local.type);
+    return readRegister(register, type, currentBlock, EdgeType.NON_EDGE, RegisterReadType.DEBUG);
   }
 
-  public Value readRegister(int register, ValueType type, BasicBlock block, EdgeType readingEdge,
-      DebugLocalInfo local) {
+  public Value readRegister(
+      int register,
+      ValueType type,
+      BasicBlock block,
+      EdgeType readingEdge,
+      RegisterReadType readType) {
     checkRegister(register);
     Value value = block.readCurrentDefinition(register, readingEdge);
-    return value != null ? value : readRegisterRecursive(register, block, readingEdge, type, local);
+    return value != null
+        ? value
+        : readRegisterRecursive(register, block, readingEdge, type, readType);
   }
 
   private Value readRegisterRecursive(
-      int register, BasicBlock block, EdgeType readingEdge, ValueType type, DebugLocalInfo local) {
+      int register,
+      BasicBlock block,
+      EdgeType readingEdge,
+      ValueType type,
+      RegisterReadType readType) {
     Value value = null;
     // Iterate back along the predecessor chain as long as there is a single sealed predecessor.
     List<Pair<BasicBlock, EdgeType>> stack = null;
@@ -1704,27 +1712,28 @@ public class IRBuilder {
     }
     // If the register still has unknown value create a phi value for it.
     if (value == null) {
-      if (block == entryBlock && local != null) {
+      if (block == entryBlock && readType == RegisterReadType.DEBUG) {
         assert block.getPredecessors().isEmpty();
         // If a debug-local is referenced at the entry block, lazily introduce an SSA value for it.
         // This value must *not* be added to the entry blocks current definitions since
         // uninitialized debug-locals may be referenced at the same register/local-index yet be of
         // different types (eg, int in one part of the CFG and float in a disjoint part).
-        value = getUninitializedDebugLocalValue(register, type, local);
-      } else if (!block.isSealed()) {
-        assert !blocks.isEmpty() : "No write to " + register;
-        Phi phi = new Phi(valueNumberGenerator.next(), block, type, local);
-        block.addIncompletePhi(register, phi, readingEdge);
-        value = phi;
+        value = getUninitializedDebugLocalValue(register, type);
       } else {
-        Phi phi = new Phi(valueNumberGenerator.next(), block, type, local);
-        // We need to write the phi before adding operands to break cycles. If the phi is trivial
-        // and is removed by addOperands, the definition is overwritten and looked up again below.
-        block.updateCurrentDefinition(register, phi, readingEdge);
-        phi.addOperands(this, register);
-        // Lookup the value for the register again at this point. Recursive trivial
-        // phi removal could have simplified what we wanted to return here.
-        value = block.readCurrentDefinition(register, readingEdge);
+        DebugLocalInfo local = getIncomingLocalAtBlock(register, block);
+        Phi phi = new Phi(valueNumberGenerator.next(), block, type, local, readType);
+        if (!block.isSealed()) {
+          block.addIncompletePhi(register, phi, readingEdge);
+          value = phi;
+        } else {
+          // We need to write the phi before adding operands to break cycles. If the phi is trivial
+          // and is removed by addOperands, the definition is overwritten and looked up again below.
+          block.updateCurrentDefinition(register, phi, readingEdge);
+          phi.addOperands(this, register);
+          // Lookup the value for the register again at this point. Recursive trivial
+          // phi removal could have simplified what we wanted to return here.
+          value = block.readCurrentDefinition(register, readingEdge);
+        }
       }
     }
     // If the stack of successors is non-empty then update their definitions with the value.
@@ -1738,9 +1747,15 @@ public class IRBuilder {
     return value;
   }
 
-  private Value getUninitializedDebugLocalValue(
-      int register, ValueType type, DebugLocalInfo local) {
-    assert type == ValueType.fromDexType(local.type);
+  private DebugLocalInfo getIncomingLocalAtBlock(int register, BasicBlock block) {
+    if (options.debug) {
+      int blockOffset = offsets.getInt(block);
+      return source.getIncomingLocalAtBlock(register, blockOffset);
+    }
+    return null;
+  }
+
+  private Value getUninitializedDebugLocalValue(int register, ValueType type) {
     if (uninitializedDebugLocalValues == null) {
       uninitializedDebugLocalValues = new Int2ReferenceOpenHashMap<>();
     }
@@ -1814,7 +1829,7 @@ public class IRBuilder {
     previousLocalValue =
         (incomingLocal == null || incomingLocal != outgoingLocal)
             ? null
-            : readRegisterIgnoreLocal(register, type, incomingLocal);
+            : readRegisterForDebugLocal(register, incomingLocal);
     return writeRegister(register, type, throwing, outgoingLocal);
   }
 

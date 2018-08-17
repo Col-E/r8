@@ -527,6 +527,11 @@ public class CfSourceCode implements SourceCode {
       int arrayRef, int payloadOffset, IRBuilder builder) {}
 
   @Override
+  public DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset) {
+    return getLocalVariables(blockOffset).locals.get(register);
+  }
+
+  @Override
   public DebugLocalInfo getIncomingLocal(int register) {
     return incomingLocals.get(register);
   }

@@ -571,6 +571,13 @@ public class JarSourceCode implements SourceCode {
   }
 
   @Override
+  public DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset) {
+    return blockOffset == EXCEPTIONAL_SYNC_EXIT_OFFSET
+        ? null
+        : state.getIncomingLocalAtBlock(register, blockOffset);
+  }
+
+  @Override
   public DebugLocalInfo getIncomingLocal(int register) {
     return generatingMethodSynchronization ? null : state.getIncomingLocalInfoForRegister(register);
   }

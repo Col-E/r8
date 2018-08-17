@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -526,7 +527,8 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
                 code.valueNumberGenerator.next(),
                 newExitBlock,
                 returnType,
-                null);
+                null,
+                RegisterReadType.NORMAL);
         phi.addOperands(operands);
         value = phi;
       }

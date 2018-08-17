@@ -28,6 +28,10 @@ public class Value {
     type = type.meet(constraint);
   }
 
+  public void markNonDebugLocalRead() {
+    assert !isPhi();
+  }
+
   // Lazily allocated internal data for the debug information of locals.
   // This is wrapped in a class to avoid multiple pointers in the value structure.
   private static class DebugData {

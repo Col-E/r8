@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -1428,8 +1429,13 @@ public class BasicBlock {
     predecessors.addAll(newPredecessors);
     // Insert a phi for the move-exception value.
     if (hasMoveException) {
-      Phi phi = new Phi(valueNumberGenerator.next(),
-          this, ValueType.OBJECT, move.getLocalInfo());
+      Phi phi =
+          new Phi(
+              valueNumberGenerator.next(),
+              this,
+              ValueType.OBJECT,
+              move.getLocalInfo(),
+              RegisterReadType.NORMAL);
       phi.addOperands(values);
       move.outValue().replaceUsers(phi);
     }

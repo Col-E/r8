@@ -112,14 +112,17 @@ public class DexSourceCode implements SourceCode {
   }
 
   @Override
+  public DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset) {
+    return null;
+  }
+
+  @Override
   public DebugLocalInfo getIncomingLocal(int register) {
-    // TODO(zerny): Support locals in the dex front-end. b/36378142
     return null;
   }
 
   @Override
   public DebugLocalInfo getOutgoingLocal(int register) {
-    // TODO(zerny): Support locals in the dex front-end. b/36378142
     return null;
   }
 

@@ -989,6 +989,11 @@ public class Outliner {
     }
 
     @Override
+    public DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset) {
+      return null;
+    }
+
+    @Override
     public DebugLocalInfo getIncomingLocal(int register) {
       return null;
     }
