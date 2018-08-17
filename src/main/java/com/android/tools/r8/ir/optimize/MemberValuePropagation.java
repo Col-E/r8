@@ -165,10 +165,12 @@ public class MemberValuePropagation {
             if (target.getOptimizationInfo().returnsConstant()) {
               long constant = target.getOptimizationInfo().getReturnedConstant();
               ValueType valueType = invoke.outType();
-              Value value = code.createValue(valueType);
+              Value value = code.createValue(valueType, invoke.getLocalInfo());
               Instruction knownConstReturn = new ConstNumber(value, constant);
               invoke.outValue().replaceUsers(value);
+              invoke.setOutValue(null);
               knownConstReturn.setPosition(invoke.getPosition());
+              invoke.moveDebugValues(knownConstReturn);
               iterator.add(knownConstReturn);
             }
           }
