@@ -16,6 +16,8 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -264,8 +266,12 @@ public class ParameterTypeTest extends TestBase {
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
     assertNotEquals(0, artResult.exitCode);
     assertEquals(-1, artResult.stderr.indexOf("ClassNotFoundException"));
-    assertThat(artResult.stderr,
-        containsString("type Precise Reference: Foo[] but expected Reference: SubInterface[]"));
+    DexVm.Version currentVersion = ToolHelper.getDexVm().getVersion();
+    String errorMessage =
+        currentVersion.isNewerThan(Version.V4_4_4)
+            ? "type Precise Reference: Foo[] but expected Reference: SubInterface[]"
+            : "[LFoo; is not instance of [LSubInterface;";
+    assertThat(artResult.stderr, containsString(errorMessage));
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject subSubject = inspector.clazz(sub.name);

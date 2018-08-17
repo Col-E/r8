@@ -11,6 +11,8 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -201,8 +203,12 @@ public class FieldTypeTest extends TestBase {
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
     assertNotEquals(0, artResult.exitCode);
     assertEquals(-1, artResult.stderr.indexOf("DoFieldPut"));
-    assertThat(artResult.stderr,
-        containsString("type Precise Reference: Impl1[] but expected Reference: Itf1[]"));
+    DexVm.Version currentVersion = ToolHelper.getDexVm().getVersion();
+    String errorMessage =
+        currentVersion.isNewerThan(Version.V4_4_4)
+            ? "type Precise Reference: Impl1[] but expected Reference: Itf1[]"
+            : "storing type '[LImpl1;' into field type '[LItf1;'";
+    assertThat(artResult.stderr, containsString(errorMessage));
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject itf1Subject = inspector.clazz(itf1.name);
