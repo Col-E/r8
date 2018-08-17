@@ -2225,7 +2225,10 @@ public class CodeRewriter {
               inValue.definition.addDebugValue(overwrittenLocal);
               overwrittenLocal.addDebugLocalEnd(inValue.definition);
             }
-            if (prevInstruction != null) {
+            if (prevInstruction != null &&
+                (prevInstruction.outValue() == null
+                    || !prevInstruction.outValue().hasLocalInfo()
+                    || !instruction.getDebugValues().contains(prevInstruction.outValue()))) {
               instruction.moveDebugValues(prevInstruction);
             }
             iterator.removeOrReplaceByDebugLocalRead();
