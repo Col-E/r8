@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.KeepingDiagnosticHandler;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.stream.Collectors;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,9 +51,9 @@ public class KotlinStdLibCompilationTest {
             .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer()),
         internalOptions -> internalOptions.enableCfFrontend = useCfFrontend);
-    // TODO(b/110804489): Find a way to recover from type-incorrect Kotlin frame markers.
     assertTrue(
-        handler.infos.stream().anyMatch(d -> d.getDiagnosticMessage().contains("invalid locals")));
+        "Unexpected diagnostics: " + getMessages(handler),
+        handler.infos.stream().noneMatch(d -> d.getDiagnosticMessage().contains("invalid locals")));
   }
 
   @Test
@@ -67,8 +68,14 @@ public class KotlinStdLibCompilationTest {
             .setProgramConsumer(ClassFileConsumer.emptyConsumer())
             .build(),
         internalOptions -> internalOptions.enableCfFrontend = useCfFrontend);
-    // TODO(b/110804489): Find a way to recover from type-incorrect Kotlin frame markers.
     assertTrue(
-        handler.infos.stream().anyMatch(d -> d.getDiagnosticMessage().contains("invalid locals")));
+        "Unexpected diagnostics: " + getMessages(handler),
+        handler.infos.stream().noneMatch(d -> d.getDiagnosticMessage().contains("invalid locals")));
+  }
+
+  private String getMessages(KeepingDiagnosticHandler handler) {
+    return String.join(
+        "\n",
+        handler.infos.stream().map(d -> d.getDiagnosticMessage()).collect(Collectors.toList()));
   }
 }

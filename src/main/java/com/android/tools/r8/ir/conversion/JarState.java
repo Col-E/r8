@@ -11,9 +11,9 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -87,7 +86,7 @@ public class JarState {
     final List<LocalNodeInfo> starts;
     final List<LocalNodeInfo> ends;
 
-    IdentityHashMap<DebugLocalInfo, DebugLocalInfo> liveInfosCache = null;
+    Int2ReferenceMap<DebugLocalInfo> liveInfosCache = null;
 
     static final LocalsAtOffset EMPTY = new LocalsAtOffset();
 
@@ -117,22 +116,23 @@ public class JarState {
       live.add(new LocalNodeInfo(node, info));
     }
 
-    boolean isLive(DebugLocalInfo info) {
+    boolean isLive(LocalNodeInfo local) {
       if (live.size() < 10) {
         for (LocalNodeInfo entry : live) {
-          if (entry.info == info) {
+          if (entry.node.index == local.node.index && entry.info == local.info) {
             return true;
           }
         }
         return false;
       }
       if (liveInfosCache == null) {
-        liveInfosCache = new IdentityHashMap<>(live.size());
+        liveInfosCache = new Int2ReferenceOpenHashMap<>(live.size());
         for (LocalNodeInfo entry : live) {
-          liveInfosCache.put(entry.info, entry.info);
+          assert !liveInfosCache.containsKey(entry.node.index);
+          liveInfosCache.put(entry.node.index, entry.info);
         }
       }
-      return liveInfosCache.containsKey(info);
+      return liveInfosCache.get(local.node.index) == local.info;
     }
   }
 
@@ -274,7 +274,7 @@ public class JarState {
     public List<Local> getLocalsToClose() {
       List<Local> toClose = new ArrayList<>(atExit.live.size());
       for (LocalNodeInfo liveAtExit : atExit.live) {
-        if (!atEntry.isLive(liveAtExit.info)) {
+        if (!atEntry.isLive(liveAtExit)) {
           int register = state.getLocalRegister(liveAtExit.node.index, liveAtExit.type);
           toClose.add(new Local(new Slot(register, liveAtExit.type), liveAtExit.info));
         }
@@ -285,7 +285,7 @@ public class JarState {
     public List<Local> getLocalsToOpen() {
       List<Local> toOpen = new ArrayList<>(atEntry.live.size());
       for (LocalNodeInfo liveAtEntry : atEntry.live) {
-        if (!atExit.isLive(liveAtEntry.info)) {
+        if (!atExit.isLive(liveAtEntry)) {
           int register = state.getLocalRegister(liveAtEntry.node.index, liveAtEntry.type);
           toOpen.add(new Local(new Slot(register, liveAtEntry.type), liveAtEntry.info));
         }
@@ -408,23 +408,6 @@ public class JarState {
     for (LocalsAtOffset entry : localsAtOffsetTable.subMap(start, end).values()) {
       entry.addLive(node, info);
     }
-  }
-
-  public List<Local> localsNotLiveAtAllSuccessors(IntSet successors) {
-    Local[] liveLocals = Arrays.copyOf(locals, locals.length);
-    List<Local> deadLocals = new ArrayList<>(locals.length);
-    IntIterator it = successors.iterator();
-    while (it.hasNext()) {
-      LocalsAtOffset localsAtOffset = getLocalsAt(it.nextInt());
-      for (int i = 0; i < liveLocals.length; i++) {
-        Local live = liveLocals[i];
-        if (live != null && live.info != null && !localsAtOffset.isLive(live.info)) {
-          deadLocals.add(live);
-          liveLocals[i] = null;
-        }
-      }
-    }
-    return deadLocals;
   }
 
   private LocalsAtOffset getLocalsAt(int offset) {
