@@ -12,36 +12,30 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.code.AddInt2Addr;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.Goto;
-import com.android.tools.r8.code.IfEqz;
-import com.android.tools.r8.code.Iget;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.MoveResult;
-import com.android.tools.r8.code.MulInt2Addr;
-import com.android.tools.r8.code.PackedSwitch;
-import com.android.tools.r8.code.PackedSwitchPayload;
-import com.android.tools.r8.code.Return;
-import com.android.tools.r8.code.Throw;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,27 +47,36 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8InliningTest extends TestBase {
 
+  private Backend backend;
+
   private static final String DEFAULT_DEX_FILENAME = "classes.dex";
   private static final String DEFAULT_MAP_FILENAME = "proguard.map";
 
-  @Parameters(name = "{0}, minification={1}, allowaccessmodification={2}")
+  @Parameters(name = "{0}, backend={1}, minification={2}, allowaccessmodification={3}")
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][]{
-        {"Inlining", false, false},
-        {"Inlining", false, true},
-        {"Inlining", true, false},
-        {"Inlining", true, true}
-    });
+    List<Object[]> configs = new ArrayList<>();
+    for (Backend backend : Backend.values()) {
+      for (boolean minification : new Boolean[] {false, true}) {
+        for (boolean allowaccessmodification : new Boolean[] {false, true}) {
+          configs.add(new Object[] {"Inlining", backend, minification, allowaccessmodification});
+        }
+      }
+    }
+    return configs;
   }
 
   private final String name;
   private final String keepRulesFile;
   private final boolean minification;
   private final boolean allowAccessModification;
+  private Path outputDir = null;
 
-  public R8InliningTest(String name, boolean minification, boolean allowAccessModification) {
+  public R8InliningTest(
+      String name, Backend backend, boolean minification, boolean allowAccessModification)
+      throws IOException {
     this.name = name.toLowerCase();
     this.keepRulesFile = ToolHelper.EXAMPLES_DIR + this.name + "/keep-rules.txt";
+    this.backend = backend;
     this.minification = minification;
     this.allowAccessModification = allowAccessModification;
   }
@@ -86,32 +89,50 @@ public class R8InliningTest extends TestBase {
     return Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, name, DEFAULT_DEX_FILENAME);
   }
 
-  private Path getGeneratedDexFile() throws IOException {
-    return Paths.get(temp.getRoot().getCanonicalPath(), DEFAULT_DEX_FILENAME);
+  private Path getGeneratedDexFile() {
+    return outputDir.resolve(DEFAULT_DEX_FILENAME);
   }
 
-  private String getGeneratedProguardMap() {
-    Path mapFile = temp.getRoot().toPath().resolve(DEFAULT_MAP_FILENAME);
+  private List<Path> getGeneratedFiles(Path dir) {
+    if (backend == Backend.DEX) {
+      return Collections.singletonList(dir.resolve(Paths.get(DEFAULT_DEX_FILENAME)));
+    } else {
+      assert backend == Backend.CF;
+      return Arrays.stream(
+              dir.resolve("inlining").toFile().listFiles(f -> f.toString().endsWith(".class")))
+          .map(File::toPath)
+          .collect(Collectors.toList());
+    }
+  }
+
+  private List<Path> getGeneratedFiles() {
+    return getGeneratedFiles(outputDir);
+  }
+
+  private String getGeneratedProguardMap() throws IOException {
+    Path mapFile = outputDir.resolve(DEFAULT_MAP_FILENAME);
     if (Files.exists(mapFile)) {
       return mapFile.toAbsolutePath().toString();
     }
     return null;
   }
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  @Rule public ExpectedException thrown = ExpectedException.none();
 
-  @Before
-  public void generateR8Version() throws Exception {
-    Path out = temp.getRoot().toPath();
-    Path mapFile = out.resolve(DEFAULT_MAP_FILENAME);
+  private void generateR8Version(Path out, Path mapFile, boolean inlining) throws Exception {
+    assert backend == Backend.DEX || backend == Backend.CF;
     R8Command.Builder commandBuilder =
         R8Command.builder()
             .addProgramFiles(getInputFile())
-            .setMinApiLevel(AndroidApiLevel.M.getLevel())
-            .setOutput(out, OutputMode.DexIndexed)
-            .setProguardMapOutputPath(mapFile)
-            .addProguardConfigurationFiles(Paths.get(keepRulesFile));
+            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .addProguardConfigurationFiles(Paths.get(keepRulesFile))
+            .addLibraryFiles(TestBase.runtimeJar(backend));
+    if (mapFile != null) {
+      commandBuilder.setProguardMapOutputPath(mapFile);
+    }
+    if (backend == Backend.DEX) {
+      commandBuilder.setMinApiLevel(AndroidApiLevel.M.getLevel());
+    }
     if (allowAccessModification) {
       commandBuilder.addProguardConfiguration(
           ImmutableList.of("-allowaccessmodification"), Origin.unknown());
@@ -123,14 +144,29 @@ public class R8InliningTest extends TestBase {
           // that the class is therefore made abstract.
           o.enableClassInlining = false;
           o.enableMinification = minification;
+          o.enableInlining = inlining;
         });
-    String artOutput =
-        ToolHelper.runArtNoVerificationErrors(out + "/classes.dex", "inlining.Inlining");
+  }
+
+  @Before
+  public void generateR8Version() throws Exception {
+    outputDir = temp.newFolder().toPath();
+    Path mapFile = outputDir.resolve(DEFAULT_MAP_FILENAME);
+    generateR8Version(outputDir, mapFile, true);
+    String output;
+    if (backend == Backend.DEX) {
+      output =
+          ToolHelper.runArtNoVerificationErrors(
+              outputDir.resolve(DEFAULT_DEX_FILENAME).toString(), "inlining.Inlining");
+    } else {
+      assert backend == Backend.CF;
+      output = ToolHelper.runJavaNoVerify(outputDir, "inlining.Inlining").stdout;
+    }
 
     // Compare result with Java to make sure we have the same behavior.
     ProcessResult javaResult = ToolHelper.runJava(getInputFile(), "inlining.Inlining");
     assertEquals(0, javaResult.exitCode);
-    assertEquals(javaResult.stdout, artOutput);
+    assertEquals(javaResult.stdout, output);
   }
 
   private void checkAbsentBooleanMethod(ClassSubject clazz, String name) {
@@ -157,8 +193,12 @@ public class R8InliningTest extends TestBase {
 
   @Test
   public void checkNoInvokes() throws Throwable {
-    CodeInspector inspector = new CodeInspector(getGeneratedDexFile().toAbsolutePath(),
-        getGeneratedProguardMap());
+    Assume.assumeFalse(
+        backend == Backend.CF
+            && allowAccessModification
+            && minification); // TODO(b/112685673) remove when fixed.
+    CodeInspector inspector =
+        new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
     ClassSubject clazz = inspector.clazz("inlining.Inlining");
 
     // Simple constant inlining.
@@ -180,124 +220,122 @@ public class R8InliningTest extends TestBase {
     checkAbsentBooleanMethod(clazz, "inlinableWithControlFlow");
   }
 
+  private long sumOfClassFileSizes(Path dir) {
+    long size = 0;
+    for (Path p : getGeneratedFiles(dir)) {
+      if (ZipUtils.isClassFile(p.toString())) {
+        size += p.toFile().length();
+      }
+    }
+    return size;
+  }
+
   @Test
   public void processedFileIsSmaller() throws Throwable {
-    long original = Files.size(getOriginalDexFile());
-    long generated = Files.size(getGeneratedDexFile());
-    final boolean ALWAYS_DUMP = false;  // Used for debugging.
-    if (ALWAYS_DUMP || generated > original) {
-      dump(getOriginalDexFile(), "Original");
-      dump(getGeneratedDexFile(), "Generated");
+    Path nonInlinedOutputDir = temp.newFolder().toPath();
+    generateR8Version(nonInlinedOutputDir, null, false);
+
+    long nonInlinedSize, inlinedSize;
+    if (backend == Backend.DEX) {
+      Path nonInlinedDexFile = nonInlinedOutputDir.resolve(DEFAULT_DEX_FILENAME);
+      nonInlinedSize = Files.size(nonInlinedDexFile);
+      inlinedSize = Files.size(getGeneratedDexFile());
+      final boolean ALWAYS_DUMP = false; // Used for debugging.
+      if (ALWAYS_DUMP || inlinedSize > nonInlinedSize) {
+        dump(nonInlinedDexFile, "No inlining");
+        dump(getGeneratedDexFile(), "Inlining enabled");
+      }
+    } else {
+      assert backend == Backend.CF;
+      nonInlinedSize = sumOfClassFileSizes(nonInlinedOutputDir);
+      inlinedSize = sumOfClassFileSizes(outputDir);
     }
-    assertTrue("Inlining failed to reduce size", original > generated);
+    assertTrue("Inlining failed to reduce size", nonInlinedSize > inlinedSize);
   }
 
   @Test
   public void invokeOnNullableReceiver() throws Exception {
+    Assume.assumeFalse(
+        backend == Backend.CF
+            && allowAccessModification
+            && minification); // TODO(b/112575866) remove when fixed.
     CodeInspector inspector =
-        new CodeInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
+        new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
     ClassSubject clazz = inspector.clazz("inlining.Nullability");
     MethodSubject m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
-    DexCode code;
-    if (allowAccessModification) {
-      assertFalse(m.isPresent());
-    } else {
-      assertTrue(m.isPresent());
-      code = m.getMethod().getCode().asDexCode();
-      checkInstructions(
-          code,
-          ImmutableList.of(
-              Iget.class,
-              InvokeVirtual.class,
-              MoveResult.class,
-              AddInt2Addr.class,
-              Return.class));
-    }
+    assertEquals(!allowAccessModification, m.isPresent());
 
     m = clazz.method("int", "notInlinable", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
-    code = m.getMethod().getCode().asDexCode();
-    checkInstructions(
-        code,
-        ImmutableList.of(
-            InvokeVirtual.class, MoveResult.class, Iget.class, AddInt2Addr.class, Return.class));
 
     m = clazz.method("int", "notInlinableDueToMissingNpe", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
-    code = m.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        IfEqz.class,
-        Iget.class,
-        Goto.class,
-        Const4.class,
-        Return.class));
 
     m = clazz.method("int", "notInlinableDueToSideEffect", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
-    code = m.getMethod().getCode().asDexCode();
-    checkInstructions(
-        code,
-        ImmutableList.of(
-            IfEqz.class,
-            InvokeVirtual.class,
-            MoveResult.class,
-            Goto.class,
-            Iget.class,
-            Return.class));
 
     m = clazz.method("int", "notInlinableOnThrow", ImmutableList.of("java.lang.Throwable"));
     assertTrue(m.isPresent());
-    code = m.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(Throw.class));
 
-    m = clazz.method("int", "notInlinableDueToMissingNpeBeforeThrow",
-        ImmutableList.of("java.lang.Throwable"));
+    m =
+        clazz.method(
+            "int",
+            "notInlinableDueToMissingNpeBeforeThrow",
+            ImmutableList.of("java.lang.Throwable"));
     assertTrue(m.isPresent());
-    code = m.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(
-        Throw.class,
-        Iget.class,
-        Return.class));
   }
 
   @Test
   public void invokeOnNonNullReceiver() throws Exception {
+    Assume.assumeFalse(
+        backend == Backend.CF
+            && allowAccessModification
+            && minification); // TODO(b/112685673) remove when fixed.
     CodeInspector inspector =
-        new CodeInspector(getGeneratedDexFile().toAbsolutePath(), getGeneratedProguardMap());
+        new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
     ClassSubject clazz = inspector.clazz("inlining.Nullability");
     MethodSubject m = clazz.method("int", "conditionalOperator", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
-    DexCode code = m.getMethod().getCode().asDexCode();
-    checkInstructions(
-        code,
-        ImmutableList.of(
-            IfEqz.class,
-            Iget.class,
-            Goto.class,
-            Const4.class,
-            Return.class));
 
-    m = clazz.method("int", "moreControlFlows",
-        ImmutableList.of("inlining.A", "inlining.Nullability$Factor"));
-    assertTrue(m.isPresent());
-    code = m.getMethod().getCode().asDexCode();
-    ImmutableList.Builder<Class<? extends Instruction>> builder = ImmutableList.builder();
-    // Enum#ordinal
-    builder.add(InvokeVirtual.class);
-    builder.add(MoveResult.class);
-    builder.add(PackedSwitch.class);
-    for (int i = 0; i < 4; ++i) {
-      builder.add(Const4.class);
-      builder.add(Goto.class);
+    // Verify that a.b() is resolved to an inline instance-get.
+    Iterator<InstructionSubject> iterator = m.iterateInstructions();
+    int instanceGetCount = 0;
+    int invokeCount = 0;
+    while (iterator.hasNext()) {
+      InstructionSubject instruction = iterator.next();
+      if (instruction.isInstanceGet()) {
+        ++instanceGetCount;
+      } else if (instruction.isInvoke()) {
+        ++invokeCount;
+      }
     }
-    builder.add(Const4.class);
-    builder.add(IfEqz.class);
-    builder.add(IfEqz.class);
-    builder.add(Iget.class);
-    builder.add(MulInt2Addr.class);
-    builder.add(Return.class);
-    builder.add(PackedSwitchPayload.class);
-    checkInstructions(code, builder.build());
-  }
+    assertEquals(1, instanceGetCount);
+    assertEquals(0, invokeCount);
 
+    m =
+        clazz.method(
+            "int",
+            "moreControlFlows",
+            ImmutableList.of("inlining.A", "inlining.Nullability$Factor"));
+    assertTrue(m.isPresent());
+
+    // Verify that a.b() is resolved to an inline instance-get.
+    iterator = m.iterateInstructions();
+    instanceGetCount = 0;
+    invokeCount = 0;
+    while (iterator.hasNext()) {
+      InstructionSubject instruction = iterator.next();
+      if (instruction.isInstanceGet()) {
+        ++instanceGetCount;
+      } else if (instruction.isInvoke()
+          && !((InvokeInstructionSubject) instruction)
+              .holder()
+              .toString()
+              .contains("java.lang.Enum")) {
+        ++invokeCount;
+      }
+    }
+    assertEquals(1, instanceGetCount);
+    assertEquals(0, invokeCount);
+  }
 }
