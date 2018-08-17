@@ -28,6 +28,11 @@ def main():
   for arg in sys.argv[1:]:
     if arg in ("--build", "--no-build"):
       build = arg == "--build"
+    elif arg in ("-help", "--help"):
+      print "asmifier.py [--no-build] [-debug] <classfile>*"
+      print "  --no-build  -- Don't run R8 dependencies."
+      print "  -debug      -- Include local variable information in output."
+      return
     else:
       args.append(arg)
   try:
