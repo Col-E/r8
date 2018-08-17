@@ -48,6 +48,11 @@ public abstract class ExceptionUtils {
     withCompilationHandler(reporter, action);
   }
 
+  public static void withMainDexListHandler(
+      Reporter reporter, CompileAction action) throws CompilationFailedException {
+    withCompilationHandler(reporter, action);
+  }
+
   public static void withCompilationHandler(Reporter reporter, CompileAction action)
       throws CompilationFailedException {
     try {

@@ -92,8 +92,7 @@ public class PrintSeeds {
           System.out,
           type -> descriptors.contains(type.toDescriptorString()));
     } catch (ExecutionException e) {
-      R8.unwrapExecutionException(e);
-      throw new AssertionError(e); // unwrapping method should have thrown
+      throw R8.unwrapExecutionException(e);
     }
   }
 }

@@ -150,6 +150,10 @@ public class GenerateMainDexListCommand extends BaseCommand {
     return mainDexListConsumer;
   }
 
+  Reporter getReporter() {
+    return reporter;
+  }
+
   private static void parse(String[] args, GenerateMainDexListCommand.Builder builder) {
     for (int i = 0; i < args.length; i++) {
       String arg = args[i].trim();

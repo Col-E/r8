@@ -3,14 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DiagnosticsChecker;
+import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.origin.Origin;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -152,6 +158,53 @@ public class GenerateMainDexListCommandTest {
     Path mainDexList2 = temp.newFile("main-dex-list-2.txt").toPath();
     parse("--main-dex-list", mainDexList1.toString());
     parse("--main-dex-list", mainDexList1.toString(), "--main-dex-list", mainDexList2.toString());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void missingAndroidJar() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "Tracing for legacy multi dex is not possible without all classpath libraries",
+        handler ->
+            GenerateMainDexList.run(
+                GenerateMainDexListCommand.builder(handler).build()));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void duplicateProgramClasses() throws Throwable {
+    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar");
+    DiagnosticsChecker.checkErrorsContains(
+        "Program type already present",
+        handler ->
+            GenerateMainDexList.run(
+                GenerateMainDexListCommand.builder(handler)
+                    .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+                    .addProgramFiles(input)
+                    .addProgramFiles(input)
+                    .build()));
+  }
+
+  @Test
+  public void emptyMainDex() throws Throwable {
+    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar");
+    List<String> result = GenerateMainDexList.run(
+        GenerateMainDexListCommand.builder()
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+            .addProgramFiles(input)
+            .build());
+    assertEquals(0, result.size());
+  }
+
+  @Test
+  public void nonEmptyMainDex() throws Throwable {
+    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar");
+    List<String> result = GenerateMainDexList.run(
+        GenerateMainDexListCommand.builder()
+            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+            .addProgramFiles(input)
+            .addMainDexRules(
+                ImmutableList.of("-keep class arithmetic.Arithmetic"), Origin.unknown())
+            .build());
+    assertEquals(1, result.size());
   }
 
   private GenerateMainDexListCommand parse(String... args) throws Throwable {
