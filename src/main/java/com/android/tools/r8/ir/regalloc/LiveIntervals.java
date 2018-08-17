@@ -469,6 +469,23 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return splitChild;
   }
 
+  public void undoSplits() {
+    List<LiveRange> ranges = new ArrayList<>(this.ranges);
+    for (LiveIntervals split : splitChildren) {
+      ranges.addAll(split.ranges);
+      for (LiveIntervalsUse use : split.uses) {
+        addUse(use);
+      }
+    }
+    Collections.sort(ranges);
+    this.ranges.clear();
+    for (LiveRange range : ranges) {
+      addRange(range);
+    }
+    splitChildren.clear();
+    recomputeLimit();
+  }
+
   private void recomputeLimit() {
     registerLimit = U16BIT_MAX;
     for (LiveIntervalsUse use : uses) {
