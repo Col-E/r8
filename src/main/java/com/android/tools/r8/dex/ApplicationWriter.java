@@ -314,8 +314,11 @@ public class ApplicationWriter {
     // Write the proguard map file after writing the dex files, as the map writer traverses
     // the DexProgramClass structures, which are destructively updated during dex file writing.
     if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
-      ExceptionUtils.withConsumeResourceHandler(
-          options.reporter, options.proguardMapConsumer, proguardMapSupplier.get());
+      String content = proguardMapSupplier.get();
+      if (content != null) {
+        ExceptionUtils.withConsumeResourceHandler(
+            options.reporter, options.proguardMapConsumer, content);
+      }
     }
     if (options.proguardSeedsConsumer != null && proguardSeedsData != null) {
       ExceptionUtils.withConsumeResourceHandler(

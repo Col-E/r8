@@ -53,6 +53,10 @@ public class ProguardMapSupplier {
   private final int minApiLevel;
 
   public String get() {
+    String body = getBody();
+    if (body == null || body.trim().length() == 0) {
+      return null;
+    }
     String shaLine = "";
     if (Version.isDev()) {
       shaLine = "# " + MARKER_KEY_COMPILER_HASH + ": " + VersionProperties.INSTANCE.getSha() + "\n";
@@ -73,7 +77,7 @@ public class ProguardMapSupplier {
         + minApiLevel
         + "\n"
         + shaLine
-        + getBody();
+        + body;
   }
 
   private String getBody() {
@@ -99,7 +103,6 @@ public class ProguardMapSupplier {
       }
       return bytes.toString();
     }
-    return "# This Proguard-map is intentionally empty"
-        + " because no names or line numbers have been changed.\n";
+    return null;
   }
 }
