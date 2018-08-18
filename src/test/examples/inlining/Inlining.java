@@ -28,6 +28,24 @@ public class Inlining {
     System.exit(1);
   }
 
+  static void marker0() {
+    System.err.printf("");
+    System.err.printf("");
+    System.err.printf("");
+  }
+
+  static void marker1() {
+    System.err.printf("");
+    System.err.printf("");
+    System.err.printf("");
+  }
+
+  static void marker2() {
+    System.err.printf("");
+    System.err.printf("");
+    System.err.printf("");
+  }
+
   public static void main(String[] args) {
     // Ensure the simple methods are called at least three times, to not be inlined due to being
     // called only once or twice.
@@ -110,6 +128,12 @@ public class Inlining {
     aNumber = new SubClassOfPublicClass().public_protectedMethod(0);
     System.out.println(aNumber);
 
+    marker0();
+    marker0();
+    marker0();
+    marker0();
+    marker0();
+
     Nullability n = new Nullability(2018);
     Assert(n.inlinable(a));
     Assert(n.notInlinable(a));
@@ -125,9 +149,10 @@ public class Inlining {
     } catch (IllegalArgumentException expected) {
       // Expected exception
     } catch (NullPointerException unexpected) {
-      System.out.println("Unexpected NullPointerException for notInlinableOnThrow");
+      System.out.println(
+          "Unexpected NullPointerException for notInlinableDueToMissingNpeBeforeThrow");
     } catch (Throwable unexpected) {
-      System.out.println("Unexpected exception for notInlinableOnThrow");
+      System.out.println("Unexpected exception for notInlinableDueToMissingNpeBeforeThrow");
     }
     try {
       Assert(n.notInlinableOnThrow(new IllegalArgumentException()));
@@ -138,6 +163,12 @@ public class Inlining {
     } catch (Throwable unexpected) {
       System.out.println("Unexpected exception for notInlinableOnThrow");
     }
+
+    marker1();
+    marker1();
+    marker1();
+    marker1();
+    marker1();
 
     n = null;
     ThrowingA aa = new ThrowingA(a.a());
@@ -199,9 +230,10 @@ public class Inlining {
     } catch (NullPointerException expected) {
       // Expected exception
     } catch (IllegalArgumentException unexpected) {
-      System.out.println("Unexpected IllegalArgumentException for notInlinableOnThrow");
+      System.out.println(
+          "Unexpected IllegalArgumentException for notInlinableDueToMissingNpeBeforeThrow");
     } catch (Throwable unexpected) {
-      System.out.println("Unexpected exception for notInlinableOnThrow");
+      System.out.println("Unexpected exception for notInlinableDueToMissingNpeBeforeThrow");
     }
     try {
       Assert(n.notInlinableOnThrow(new IllegalArgumentException()));
@@ -212,6 +244,12 @@ public class Inlining {
     } catch (Throwable unexpected) {
       System.out.println("Unexpected exception for notInlinableOnThrow");
     }
+
+    marker2();
+    marker2();
+    marker2();
+    marker2();
+    marker2();
 
     System.out.println(callInterfaceMethod(InterfaceImplementationContainer.getIFace()));
   }

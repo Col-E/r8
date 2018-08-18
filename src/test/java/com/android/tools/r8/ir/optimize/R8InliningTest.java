@@ -13,6 +13,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
@@ -23,19 +24,16 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -93,23 +91,22 @@ public class R8InliningTest extends TestBase {
     return outputDir.resolve(DEFAULT_DEX_FILENAME);
   }
 
-  private List<Path> getGeneratedFiles(Path dir) {
+  private List<Path> getGeneratedFiles(Path dir) throws IOException {
     if (backend == Backend.DEX) {
       return Collections.singletonList(dir.resolve(Paths.get(DEFAULT_DEX_FILENAME)));
     } else {
       assert backend == Backend.CF;
-      return Arrays.stream(
-              dir.resolve("inlining").toFile().listFiles(f -> f.toString().endsWith(".class")))
-          .map(File::toPath)
+      return Files.walk(dir)
+          .filter(f -> f.toString().endsWith(".class"))
           .collect(Collectors.toList());
     }
   }
 
-  private List<Path> getGeneratedFiles() {
+  private List<Path> getGeneratedFiles() throws IOException {
     return getGeneratedFiles(outputDir);
   }
 
-  private String getGeneratedProguardMap() throws IOException {
+  private String getGeneratedProguardMap() {
     Path mapFile = outputDir.resolve(DEFAULT_MAP_FILENAME);
     if (Files.exists(mapFile)) {
       return mapFile.toAbsolutePath().toString();
@@ -145,6 +142,7 @@ public class R8InliningTest extends TestBase {
           o.enableClassInlining = false;
           o.enableMinification = minification;
           o.enableInlining = inlining;
+          o.inliningInstructionLimit = 6;
         });
   }
 
@@ -193,10 +191,6 @@ public class R8InliningTest extends TestBase {
 
   @Test
   public void checkNoInvokes() throws Throwable {
-    Assume.assumeFalse(
-        backend == Backend.CF
-            && allowAccessModification
-            && minification); // TODO(b/112685673) remove when fixed.
     CodeInspector inspector =
         new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
     ClassSubject clazz = inspector.clazz("inlining.Inlining");
@@ -220,7 +214,7 @@ public class R8InliningTest extends TestBase {
     checkAbsentBooleanMethod(clazz, "inlinableWithControlFlow");
   }
 
-  private long sumOfClassFileSizes(Path dir) {
+  private long sumOfClassFileSizes(Path dir) throws IOException {
     long size = 0;
     for (Path p : getGeneratedFiles(dir)) {
       if (ZipUtils.isClassFile(p.toString())) {
@@ -253,44 +247,104 @@ public class R8InliningTest extends TestBase {
     assertTrue("Inlining failed to reduce size", nonInlinedSize > inlinedSize);
   }
 
+  // Count invokes of callee in two code sections in Inlining.main(). The section boundaries are
+  // marked with a bunch of calls to the marker0(), marker1() and marker2() methods.
+  private static int[] countInvokes(CodeInspector inspector, MethodSubject callee) {
+    // 'counters' counts the number of calls (invoke) to callee between marker0/1 and between
+    // marker1/2.
+    int[] counters = {0, 0};
+
+    if (!callee.isPresent()) {
+      // Method is not present, no invokes, only inlined uses possible.
+      return counters;
+    }
+
+    ClassSubject clazz = inspector.clazz("inlining.Inlining");
+    MethodSubject m = clazz.method("void", "main", ImmutableList.of("java.lang.String[]"));
+    assertTrue(m.isPresent());
+
+    // Find DexMethods for the marker0, marker1, marker2 methods.
+    DexMethod[] markers = new DexMethod[3];
+    for (int i = 0; i < 3; ++i) {
+      MethodSubject markerSubject = clazz.method("void", "marker" + i, Collections.emptyList());
+      assertTrue(markerSubject.isPresent());
+      markers[i] = markerSubject.getMethod().method;
+    }
+
+    // Count invokes to callee between markers.
+    Iterator<InstructionSubject> iterator = m.iterateInstructions();
+    int phase = -1;
+    while (iterator.hasNext()) {
+      InstructionSubject instruction = iterator.next();
+      if (!instruction.isInvoke()) {
+        continue;
+      }
+
+      DexMethod target = ((InvokeInstructionSubject) instruction).invokedMethod();
+
+      if (target == callee.getMethod().method) {
+        assertTrue(phase == 0 || phase == 1);
+        ++counters[phase];
+        continue;
+      }
+
+      for (int i = 0; i <= 2; ++i) {
+        if (target == markers[i]) {
+          assertTrue(phase == i - 1 || phase == i); // Make sure markers found in order.
+          phase = i;
+          break;
+        }
+      }
+    }
+    assertEquals(2, phase);
+    return counters;
+  }
+
+  private static void assertCounters(int expected0, int expected1, int[] counters) {
+    assert counters.length == 2;
+    assertEquals(expected0, counters[0]);
+    assertEquals(expected1, counters[1]);
+  }
+
   @Test
   public void invokeOnNullableReceiver() throws Exception {
-    Assume.assumeFalse(
-        backend == Backend.CF
-            && allowAccessModification
-            && minification); // TODO(b/112575866) remove when fixed.
     CodeInspector inspector =
         new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
+
+    // These constants describe the expected number of invoke instructions calling a possibly
+    // inlined method.
+    final int ALWAYS_INLINABLE = 0;
+    final int INLINABLE = allowAccessModification ? 0 : 1;
+    final int NEVER_INLINABLE = 1;
+
     ClassSubject clazz = inspector.clazz("inlining.Nullability");
-    MethodSubject m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
-    assertEquals(!allowAccessModification, m.isPresent());
+    MethodSubject m;
+
+    m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
+    assertCounters(INLINABLE, INLINABLE, countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinable", ImmutableList.of("inlining.A"));
-    assertTrue(m.isPresent());
+    assertCounters(INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinableDueToMissingNpe", ImmutableList.of("inlining.A"));
-    assertTrue(m.isPresent());
+    assertCounters(INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinableDueToSideEffect", ImmutableList.of("inlining.A"));
-    assertTrue(m.isPresent());
+    assertCounters(INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinableOnThrow", ImmutableList.of("java.lang.Throwable"));
-    assertTrue(m.isPresent());
+    assertCounters(ALWAYS_INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
 
     m =
         clazz.method(
             "int",
             "notInlinableDueToMissingNpeBeforeThrow",
             ImmutableList.of("java.lang.Throwable"));
-    assertTrue(m.isPresent());
+    assertCounters(ALWAYS_INLINABLE, NEVER_INLINABLE * 2, countInvokes(inspector, m));
   }
 
   @Test
   public void invokeOnNonNullReceiver() throws Exception {
-    Assume.assumeFalse(
-        backend == Backend.CF
-            && allowAccessModification
-            && minification); // TODO(b/112685673) remove when fixed.
     CodeInspector inspector =
         new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
     ClassSubject clazz = inspector.clazz("inlining.Nullability");
