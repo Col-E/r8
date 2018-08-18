@@ -44,6 +44,9 @@ import java.util.stream.Collectors;
 public class Inliner {
   private static final int INITIAL_INLINING_INSTRUCTION_ALLOWANCE = 1500;
 
+  // Threshold found empirically by testing on GMS Core.
+  private static final int CONTROL_FLOW_RESOLUTION_BLOCKS_THRESHOLD = 15;
+
   private final IRConverter converter;
   protected final AppInfoWithLiveness appInfo;
   final InternalOptions options;
@@ -594,6 +597,42 @@ public class Inliner {
                 result.buildInliningIR(code.valueNumberGenerator,
                     appInfo, converter.getGraphLense(), options, invokePosition);
             if (inlinee != null) {
+              if (block.hasCatchHandlers() && !(oracle instanceof ForcedInliningOracle)) {
+                // Inlining could lead to an explosion of move-exception and resolution moves. As an
+                // example, consider the following piece of code.
+                //   try {
+                //     ...
+                //     foo();
+                //     ...
+                //   } catch (A e) { ... }
+                //   } catch (B e) { ... }
+                //   } catch (C e) { ... }
+                //
+                // The generated code for the above example will have a move-exception instruction
+                // for each of the three catch handlers. Furthermore, the blocks with these move-
+                // exception instructions may require a number of resolution moves to setup the
+                // register state for the catch handlers. When inlining foo(), the generated code
+                // will have a move-exception instruction *for each of the instructions in foo()
+                // that can throw*, along with the necessary resolution moves for each exception-
+                // edge. We therefore abort inlining if the number of exception-edges explode.
+                int numberOfThrowingInstructionsInInlinee = 0;
+                for (BasicBlock inlineeBlock : inlinee.blocks) {
+                  numberOfThrowingInstructionsInInlinee +=
+                      inlineeBlock.numberOfThrowingInstructions();
+                }
+                // Estimate the number of "control flow resolution blocks", where we will insert a
+                // move-exception instruction (if needed), along with all the resolution moves that
+                // will be needed to setup the register state for the catch handler.
+                int estimatedNumberOfControlFlowResolutionBlocks =
+                    numberOfThrowingInstructionsInInlinee * block.numberOfCatchHandlers();
+                // Abort if inlining could lead to an explosion in the number of control flow
+                // resolution blocks that setup the register state before the actual catch handler.
+                if (estimatedNumberOfControlFlowResolutionBlocks
+                    >= CONTROL_FLOW_RESOLUTION_BLOCKS_THRESHOLD) {
+                  continue;
+                }
+              }
+
               // If this code did not go through the full pipeline, apply inlining to make sure
               // that force inline targets get processed.
               strategy.ensureMethodProcessed(target, inlinee);

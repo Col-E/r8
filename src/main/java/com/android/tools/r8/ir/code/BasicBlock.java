@@ -1228,6 +1228,20 @@ public class BasicBlock {
     other.catchHandlers = CatchHandlers.EMPTY_INDICES;
   }
 
+  public int numberOfCatchHandlers() {
+    return catchHandlers.size();
+  }
+
+  public int numberOfThrowingInstructions() {
+    int count = 0;
+    for (Instruction instruction : getInstructions()) {
+      if (instruction.instructionTypeCanThrow()) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   public boolean canThrow() {
     for (Instruction instruction : instructions) {
       if (instruction.instructionTypeCanThrow()) {
