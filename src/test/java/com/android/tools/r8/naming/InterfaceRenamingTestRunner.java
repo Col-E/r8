@@ -19,7 +19,6 @@ import com.android.tools.r8.origin.Origin;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -38,7 +37,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
     testCf(MinifyMode.JAVA, false);
   }
 
-  @Ignore("b/112701848")
   @Test
   public void testCfMinify_useUniqueClassMemberNames() throws Exception {
     testCf(MinifyMode.JAVA, true);
@@ -64,7 +62,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
     testDex(MinifyMode.JAVA, false);
   }
 
-  @Ignore("b/112701848")
   @Test
   public void testDexMinify_useUniqueClassMemberNames() throws Exception {
     testDex(MinifyMode.JAVA, true);
