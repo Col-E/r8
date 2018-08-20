@@ -484,8 +484,10 @@ public class IRConverter {
     // Build a new application with jumbo string info.
     Builder<?> builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
-
-    staticizeClasses(directFeedback);
+    // b/112831361
+    if (!options.isGeneratingClassFiles()) {
+      staticizeClasses(directFeedback);
+    }
 
     // Second inlining pass for dealing with double inline callers.
     if (inliner != null) {
