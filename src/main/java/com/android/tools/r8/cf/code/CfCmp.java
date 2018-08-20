@@ -75,6 +75,6 @@ public class CfCmp extends CfInstruction {
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     int right = state.pop().register;
     int left = state.pop().register;
-    builder.addCmp(type, bias, state.push(ValueType.fromNumericType(type)).register, left, right);
+    builder.addCmp(type, bias, state.push(ValueType.INT).register, left, right);
   }
 }
