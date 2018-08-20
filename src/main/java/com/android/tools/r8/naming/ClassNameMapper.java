@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISSING_FILE_IS_ERROR;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 
 import com.android.tools.r8.graph.DexField;
@@ -33,6 +34,11 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 public class ClassNameMapper implements ProguardMap {
+
+  public enum MissingFileAction {
+    MISSING_FILE_IS_EMPTY_MAP,
+    MISSING_FILE_IS_ERROR
+  }
 
   public static class Builder extends ProguardMap.Builder {
     private final ImmutableMap.Builder<String, ClassNamingForNameMapper.Builder> mapBuilder;
@@ -70,6 +76,17 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public static ClassNameMapper mapperFromFile(Path path) throws IOException {
+    return mapperFromFile(path, MISSING_FILE_IS_ERROR);
+  }
+
+  public static ClassNameMapper mapperFromFile(Path path, MissingFileAction missingFileAction)
+      throws IOException {
+    assert missingFileAction == MissingFileAction.MISSING_FILE_IS_EMPTY_MAP
+        || missingFileAction == MISSING_FILE_IS_ERROR;
+    if (missingFileAction == MissingFileAction.MISSING_FILE_IS_EMPTY_MAP
+        && !path.toFile().exists()) {
+      return mapperFromString("");
+    }
     return mapperFromInputStream(Files.newInputStream(path));
   }
 

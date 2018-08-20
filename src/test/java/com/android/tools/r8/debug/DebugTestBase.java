@@ -162,7 +162,8 @@ public abstract class DebugTestBase {
     ClassNameMapper classNameMapper =
         config.getProguardMap() == null
             ? null
-            : ClassNameMapper.mapperFromFile(config.getProguardMap());
+            : ClassNameMapper.mapperFromFile(
+                config.getProguardMap(), config.getMissingProguardMapAction());
 
     return new JUnit3Wrapper(config, debuggeeClass, commands, classNameMapper);
   }

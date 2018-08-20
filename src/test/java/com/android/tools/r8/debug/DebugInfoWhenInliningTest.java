@@ -4,6 +4,8 @@
 package com.android.tools.r8.debug;
 
 
+import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISSING_FILE_IS_EMPTY_MAP;
+
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
@@ -64,7 +66,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
     if (writeProguardMap) {
       Path proguardMapPath = outdir.resolve("proguard.map");
       builder.setProguardMapOutputPath(proguardMapPath);
-      config.setProguardMap(proguardMapPath);
+      config.setProguardMap(proguardMapPath, MISSING_FILE_IS_EMPTY_MAP);
     }
 
     ToolHelper.runR8(

@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISSING_FILE_IS_ERROR;
+
+import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +24,7 @@ public abstract class DebugTestConfig {
   private List<Path> paths = new ArrayList<>();
 
   private Path proguardMap = null;
+  private ClassNameMapper.MissingFileAction missingProguardMapAction;
 
   /** The expected runtime kind for the debuggee. */
   public abstract RuntimeKind getRuntimeKind();
@@ -61,8 +65,18 @@ public abstract class DebugTestConfig {
     return proguardMap;
   }
 
+  public ClassNameMapper.MissingFileAction getMissingProguardMapAction() {
+    return missingProguardMapAction;
+  }
+
   public DebugTestConfig setProguardMap(Path proguardMap) {
+    return setProguardMap(proguardMap, MISSING_FILE_IS_ERROR);
+  }
+
+  public DebugTestConfig setProguardMap(
+      Path proguardMap, ClassNameMapper.MissingFileAction missingProguardMapAction) {
     this.proguardMap = proguardMap;
+    this.missingProguardMapAction = missingProguardMapAction;
     return this;
   }
 

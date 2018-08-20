@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISSING_FILE_IS_EMPTY_MAP;
+
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
@@ -47,7 +49,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
             .setProguardMapOutputPath(proguardMapPath)
             .build());
     config = new DexDebugTestConfig(outjar);
-    config.setProguardMap(proguardMapPath);
+    config.setProguardMap(proguardMapPath, MISSING_FILE_IS_EMPTY_MAP);
   }
 
   /**
