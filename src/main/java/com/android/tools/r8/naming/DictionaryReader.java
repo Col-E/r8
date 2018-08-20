@@ -4,8 +4,8 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import java.io.BufferedReader;
@@ -64,9 +64,7 @@ public class DictionaryReader implements AutoCloseable {
           name = reader.readName();
         }
       } catch (IOException e) {
-        reporter.error(new StringDiagnostic(
-            "Unable to create dictionary from file " + path.toString(),
-            new PathOrigin(path)));
+        reporter.error(new ExceptionDiagnostic(e, new PathOrigin(path)));
       }
       return namesBuilder.build();
     } else {
