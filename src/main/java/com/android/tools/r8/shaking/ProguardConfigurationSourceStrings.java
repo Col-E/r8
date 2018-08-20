@@ -28,7 +28,7 @@ public class ProguardConfigurationSourceStrings implements ProguardConfiguration
   }
 
   private ProguardConfigurationSourceStrings(List<String> config) {
-    this(config, Paths.get("."), Origin.unknown());
+    this(config, Paths.get(""), Origin.unknown());
   }
 
   @VisibleForTesting
