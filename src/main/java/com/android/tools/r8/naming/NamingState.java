@@ -113,7 +113,7 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     if (state == null) {
       return true;
     }
-    assert state.getAssignedNameFor(original, proto) != candidate;
+    assert state.getAssignedNameFor(original, proto) != candidate || useUniqueMemberNames;
     return state.isAvailable(candidate);
   }
 
@@ -182,8 +182,9 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
           if (row != null) {
             // Either not renamed yet (0) or renamed (1). If renamed, return the same renamed name
             // so that other members with the same name can be renamed to the same renamed name.
-            assert row.values().size() <= 1;
-            result = Iterables.getOnlyElement(row.values(), null);
+            Set<DexString> renamedNames = Sets.newHashSet(row.values());
+            assert renamedNames.size() <= 1;
+            result = Iterables.getOnlyElement(renamedNames, null);
           }
         } else {
           result = renamings.get(original, proto);
