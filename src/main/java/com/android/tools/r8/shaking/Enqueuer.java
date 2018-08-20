@@ -764,6 +764,21 @@ public class Enqueuer {
 
   private void markMethodAsTargeted(DexEncodedMethod encodedMethod, KeepReason reason) {
     markTypeAsLive(encodedMethod.method.holder);
+    for (DexType parameterType : encodedMethod.method.proto.parameters.values) {
+      if (parameterType.isArrayType()) {
+        parameterType = parameterType.toBaseType(appInfo.dexItemFactory);
+      }
+      if (parameterType.isClassType()) {
+        markTypeAsLive(parameterType);
+      }
+    }
+    DexType returnType = encodedMethod.method.proto.returnType;
+    if (returnType.isArrayType()) {
+      returnType = returnType.toBaseType(appInfo.dexItemFactory);
+    }
+    if (returnType.isClassType()) {
+      markTypeAsLive(returnType);
+    }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Method `%s` is targeted.", encodedMethod.method);
     }
@@ -993,6 +1008,8 @@ public class Enqueuer {
       // as argument. As it is not possible to express a keep rule for these synthetic classes
       // always keep synthetic arguments to synthetic constructors. See b/69825683.
       if (encodedMethod.isInstanceInitializer() && encodedMethod.isSyntheticMethod()) {
+        // TODO(ager): Can we remove this now that we always mark parameter and return
+        // types as live.
         for (DexType type : encodedMethod.method.proto.parameters.values) {
           type = type.isArrayType() ? type.toBaseType(appInfo.dexItemFactory) : type;
           if (type.isPrimitiveType()) {
@@ -1384,6 +1401,8 @@ public class Enqueuer {
           markVirtualMethodAsLive(superCallTarget, KeepReason.invokedViaSuperFrom(method));
         }
       }
+      // TODO(ager): Can we remove the parameter and return type liveness marking here
+      // and only have it when marking a method as targeted?
       for (DexType parameterType : method.method.proto.parameters.values) {
         if (parameterType.isArrayType()) {
           parameterType = parameterType.toBaseType(appInfo.dexItemFactory);
@@ -1391,6 +1410,13 @@ public class Enqueuer {
         if (parameterType.isClassType()) {
           markTypeAsLive(parameterType);
         }
+      }
+      DexType returnType = method.method.proto.returnType;
+      if (returnType.isArrayType()) {
+        returnType = returnType.toBaseType(appInfo.dexItemFactory);
+      }
+      if (returnType.isClassType()) {
+        markTypeAsLive(returnType);
       }
       processAnnotations(method.annotations.annotations);
       method.parameterAnnotationsList.forEachAnnotation(this::processAnnotation);
