@@ -562,7 +562,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private void addRegisterIfUsed(Set<Integer> used, LiveIntervals intervals) {
-    boolean unused = intervals.isSpilledAndRematerializable(this);
+    boolean unused = intervals.isSpilledAndRematerializable();
     if (!unused) {
       used.add(realRegisterNumberFromAllocated(intervals.getRegister()));
       if (intervals.getType().isWide()) {
@@ -2313,6 +2313,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private void insertMoves() {
+    computeRematerializableBits();
+
     SpillMoveSet spillMoves = new SpillMoveSet(this, code);
     for (LiveIntervals intervals : liveIntervals) {
       if (intervals.hasSplits()) {
@@ -2332,6 +2334,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     resolveControlFlow(spillMoves);
     firstParallelMoveTemporary = maxRegisterNumber + 1;
     maxRegisterNumber += spillMoves.scheduleAndInsertMoves(maxRegisterNumber + 1);
+  }
+
+  private void computeRematerializableBits() {
+    for (LiveIntervals liveInterval : liveIntervals) {
+      liveInterval.computeRematerializable(this);
+    }
   }
 
   // Resolve control flow by inserting phi moves and by inserting moves when the live intervals

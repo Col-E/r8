@@ -341,11 +341,12 @@ class SpillMoveSet {
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(insertAt, tempRegister, position);
     for (SpillMove move : moves) {
       // Do not generate moves to spill a value that can be rematerialized.
-      if (move.to.isSpilledAndRematerializable(allocator)) {
+      if (move.to.isSpilledAndRematerializable()) {
         continue;
       }
       // Use rematerialization when possible and otherwise generate moves.
-      if (move.from.isSpilledAndRematerializable(allocator)) {
+      if (move.from.isSpilledAndRematerializable()) {
+        assert allocator.unadjustedRealRegisterFromAllocated(move.to.getRegister()) < 256;
         scheduler.addMove(
             new RegisterMove(move.to.getRegister(), move.type, move.from.getValue().definition));
       } else if (move.to.getRegister() != move.from.getRegister()) {

@@ -277,7 +277,7 @@ public class PeepholeOptimizer {
           Value outValue = current.outValue();
           int instructionNumber = current.getNumber();
           if (outValue.isConstant() && current.isConstNumber()) {
-            if (constantSpilledAtDefinition(current.asConstNumber(), allocator)) {
+            if (constantSpilledAtDefinition(current.asConstNumber())) {
               // Remove constant instructions that are spilled at their definition and are
               // therefore unused.
               iterator.remove();
@@ -324,13 +324,12 @@ public class PeepholeOptimizer {
     }
   }
 
-  private static boolean constantSpilledAtDefinition(
-      ConstNumber constNumber, LinearScanRegisterAllocator allocator) {
+  private static boolean constantSpilledAtDefinition(ConstNumber constNumber) {
     if (constNumber.outValue().isFixedRegisterValue()) {
       return false;
     }
     LiveIntervals definitionIntervals =
         constNumber.outValue().getLiveIntervals().getSplitCovering(constNumber.getNumber());
-    return definitionIntervals.isSpilledAndRematerializable(allocator);
+    return definitionIntervals.isSpilledAndRematerializable();
   }
 }

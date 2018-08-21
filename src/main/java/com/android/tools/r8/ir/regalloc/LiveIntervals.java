@@ -4,10 +4,11 @@
 package com.android.tools.r8.ir.regalloc;
 
 import static com.android.tools.r8.dex.Constants.U16BIT_MAX;
+import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
 import com.android.tools.r8.code.MoveType;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -47,6 +48,7 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   // live intervals that this live interval is connected to by phi moves. This is used to
   // conservatively determine if it is safe to use rematerialization for this value.
   private int maxNonSpilledRegister = NO_REGISTER;
+  private boolean isRematerializable = false;
 
   public LiveIntervals(Value value) {
     this.value = value;
@@ -104,27 +106,9 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return spilled;
   }
 
-  public boolean isRematerializable(LinearScanRegisterAllocator registerAllocator) {
-    if (value.isArgument()) {
-      return true;
-    }
-    // TODO(ager): rematerialize const string as well.
-    if (!value.isConstNumber()) {
-      return false;
-    }
-    // If one of the non-spilled splits uses a register that is higher than U8BIT_MAX we cannot
-    // rematerialize it using a ConstNumber instruction and we use spill moves instead of
-    // rematerialization. We use this check both before and after we have computed the set
-    // of unused registers. We therefore have to be careful to use the same max number for
-    // these computations. We use the unadjusted real register number to make sure that
-    // isRematerializable for the same intervals does not change from one phase of
-    // compilation to the next.
-    if (getMaxNonSpilledRegister() == NO_REGISTER) {
-      assert allSplitsAreSpilled();
-      return true;
-    }
-    int max = registerAllocator.unadjustedRealRegisterFromAllocated(getMaxNonSpilledRegister());
-    return max < Constants.U8BIT_MAX;
+  private boolean isRematerializable() {
+    assert splitParent == this;
+    return isRematerializable;
   }
 
   private boolean allSplitsAreSpilled() {
@@ -135,8 +119,8 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return true;
   }
 
-  public boolean isSpilledAndRematerializable(LinearScanRegisterAllocator allocator) {
-    return isSpilled() && isRematerializable(allocator);
+  public boolean isSpilledAndRematerializable() {
+    return isSpilled() && splitParent.isRematerializable();
   }
 
   public void link(LiveIntervals next) {
@@ -612,5 +596,50 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
       delta += 10000;
       splitChild.print(printer, number + delta, number);
     }
+  }
+
+  public void computeRematerializable(LinearScanRegisterAllocator allocator) {
+    assert splitParent == this;
+    if (value.isArgument()) {
+      isRematerializable = true;
+      return;
+    }
+    // TODO(ager): rematerialize const string as well.
+    if (!value.isConstNumber()) {
+      return;
+    }
+    // If one of the non-spilled splits uses a register that is higher than U8BIT_MAX we cannot
+    // rematerialize it using a ConstNumber instruction and we use spill moves instead of
+    // rematerialization. We use this check both before and after we have computed the set
+    // of unused registers. We therefore have to be careful to use the same max number for
+    // these computations. We use the unadjusted real register number to make sure that
+    // isRematerializable for the same intervals does not change from one phase of
+    // compilation to the next.
+    if (getMaxNonSpilledRegister() == NO_REGISTER) {
+      assert allSplitsAreSpilled();
+      isRematerializable = true;
+      return;
+    }
+
+    // If the constant is spilled when flowing to a phi and the phi has a register higher than what
+    // can be const rematerialized then this value is not rematerializable and needs a register even
+    // when spilled.
+    for (Phi phi : value.uniquePhiUsers()) {
+      int reg = allocator.unadjustedRealRegisterFromAllocated(phi.getLiveIntervals().getRegister());
+      if (reg >= U8BIT_MAX) {
+        for (int predIndex = 0; predIndex < phi.getOperands().size(); predIndex++) {
+          Value operand = phi.getOperand(predIndex);
+          if (operand == value) {
+            int predExit = phi.getBlock().getPredecessors().get(predIndex).exit().getNumber();
+            if (getSplitCovering(predExit).isSpilled()) {
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    int max = allocator.unadjustedRealRegisterFromAllocated(getMaxNonSpilledRegister());
+    isRematerializable = max < U8BIT_MAX;
   }
 }
