@@ -608,18 +608,6 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     if (!value.isConstNumber()) {
       return;
     }
-    // If one of the non-spilled splits uses a register that is higher than U8BIT_MAX we cannot
-    // rematerialize it using a ConstNumber instruction and we use spill moves instead of
-    // rematerialization. We use this check both before and after we have computed the set
-    // of unused registers. We therefore have to be careful to use the same max number for
-    // these computations. We use the unadjusted real register number to make sure that
-    // isRematerializable for the same intervals does not change from one phase of
-    // compilation to the next.
-    if (getMaxNonSpilledRegister() == NO_REGISTER) {
-      assert allSplitsAreSpilled();
-      isRematerializable = true;
-      return;
-    }
 
     // If the constant is spilled when flowing to a phi and the phi has a register higher than what
     // can be const rematerialized then this value is not rematerializable and needs a register even
@@ -639,6 +627,18 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
       }
     }
 
+    // If one of the non-spilled splits uses a register that is higher than U8BIT_MAX we cannot
+    // rematerialize it using a ConstNumber instruction and we use spill moves instead of
+    // rematerialization. We use this check both before and after we have computed the set
+    // of unused registers. We therefore have to be careful to use the same max number for
+    // these computations. We use the unadjusted real register number to make sure that
+    // isRematerializable for the same intervals does not change from one phase of
+    // compilation to the next.
+    if (getMaxNonSpilledRegister() == NO_REGISTER) {
+      assert allSplitsAreSpilled();
+      isRematerializable = true;
+      return;
+    }
     int max = allocator.unadjustedRealRegisterFromAllocated(getMaxNonSpilledRegister());
     isRematerializable = max < U8BIT_MAX;
   }
