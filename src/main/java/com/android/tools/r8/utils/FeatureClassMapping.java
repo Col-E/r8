@@ -12,11 +12,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -106,53 +106,39 @@ public final class FeatureClassMapping {
   }
 
   public static class Internal {
-    private static List<String> getClassFileDescriptors(String jar, DiagnosticsHandler reporter) {
-      Path jarPath = Paths.get(jar);
-      try {
-        return new ArchiveClassFileProvider(jarPath).getClassDescriptors()
-            .stream()
-            .map(DescriptorUtils::descriptorToJavaType)
-            .collect(Collectors.toList());
-      } catch (IOException e) {
-        reporter.error(new ExceptionDiagnostic(e, new JarFileOrigin(jarPath)));
-        throw new AbortException();
-      }
-    }
-
-    private static List<String> getNonClassFiles(String jar, DiagnosticsHandler reporter) {
-      try (ZipFile zipfile = new ZipFile(jar, StandardCharsets.UTF_8)) {
-          return zipfile.stream()
-              .filter(entry -> ZipUtils.isClassFile(entry.getName()))
-              .map(ZipEntry::getName)
-              .collect(Collectors.toList());
-        } catch (IOException e) {
-          reporter.error(new ExceptionDiagnostic(e, new JarFileOrigin(Paths.get(jar))));
-          throw new AbortException();
-        }
-    }
 
     public static FeatureClassMapping fromJarFiles(
-        List<FeatureJar> featureJars, List<String> baseJars, String baseName,
-        DiagnosticsHandler reporter)
+        List<FeatureJar> featureJars, String baseName, DiagnosticsHandler reporter)
         throws FeatureMappingException {
       FeatureClassMapping mapping = new FeatureClassMapping();
       if (baseName != null) {
         mapping.baseName = baseName;
       }
       for (FeatureJar featureJar : featureJars) {
-        for (String javaType : getClassFileDescriptors(featureJar.getJar(), reporter)) {
+        Path jarPath = Paths.get(featureJar.getJar());
+        ArchiveClassFileProvider provider = null;
+        try {
+          provider = new ArchiveClassFileProvider(jarPath);
+        } catch (IOException e) {
+          reporter.error(new ExceptionDiagnostic(e, new JarFileOrigin(jarPath)));
+          throw new AbortException();
+        }
+        for (String javaDescriptor : provider.getClassDescriptors()) {
+          String javaType = DescriptorUtils.descriptorToJavaType(javaDescriptor);
           mapping.addMapping(javaType, featureJar.getOutputName());
         }
-        for (String nonClass : getNonClassFiles(featureJar.getJar(), reporter)) {
-          mapping.addNonClassMapping(nonClass, featureJar.getOutputName());
-        }
-      }
-      for (String baseJar : baseJars) {
-        for (String javaType : getClassFileDescriptors(baseJar, reporter)) {
-          mapping.addBaseMapping(javaType);
-        }
-        for (String nonClass : getNonClassFiles(baseJar, reporter)) {
-          mapping.addBaseNonClassMapping(nonClass);
+        try (ZipFile zipfile = new ZipFile(jarPath.toString(), StandardCharsets.UTF_8)) {
+          Enumeration<? extends ZipEntry> entries = zipfile.entries();
+          while (entries.hasMoreElements()) {
+            ZipEntry entry = entries.nextElement();
+            String name = entry.getName();
+            if (!ZipUtils.isClassFile(name)) {
+              mapping.addNonClassMapping(name, featureJar.getOutputName());
+            }
+          }
+        } catch (IOException e) {
+          reporter.error(new ExceptionDiagnostic(e, new JarFileOrigin(jarPath)));
+          throw new AbortException();
         }
       }
       assert mapping.usesOnlyExactMappings;
@@ -162,14 +148,6 @@ public final class FeatureClassMapping {
   }
 
   private FeatureClassMapping() {}
-
-  public void addBaseMapping(String clazz) throws FeatureMappingException {
-    addMapping(clazz, baseName);
-  }
-
-  public void addBaseNonClassMapping(String name) {
-    addNonClassMapping(name, baseName);
-  }
 
   public void addMapping(String clazz, String feature) throws FeatureMappingException {
     addRule(clazz, feature, 0);
