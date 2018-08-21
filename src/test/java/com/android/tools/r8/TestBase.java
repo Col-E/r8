@@ -598,13 +598,26 @@ public class TestBase {
     return ToolHelper.runJava(out, mainClass).stdout;
   }
 
+  protected ProcessResult runOnJavaRawNoVerify(String main, byte[]... classes) throws IOException {
+    return runOnJavaRawNoVerify(main, Arrays.asList(classes), Collections.emptyList());
+  }
+
+  protected ProcessResult runOnJavaRawNoVerify(String main, List<byte[]> classes, List<String> args)
+      throws IOException {
+    return ToolHelper.runJavaNoVerify(Collections.singletonList(writeToZip(classes)), main, args);
+  }
+
   protected ProcessResult runOnJavaRaw(String main, byte[]... classes) throws IOException {
     return runOnJavaRaw(main, Arrays.asList(classes), Collections.emptyList());
   }
 
-  protected ProcessResult runOnJavaRaw(
-      String main, List<byte[]> classes, List<String> args) throws IOException {
-    return ToolHelper.runJavaNoVerify(Collections.singletonList(writeToZip(classes)), main, args);
+  protected ProcessResult runOnJavaRaw(String main, List<byte[]> classes, List<String> args)
+      throws IOException {
+    List<String> mainAndArgs = new ArrayList<>();
+    mainAndArgs.add(main);
+    mainAndArgs.addAll(args);
+    return ToolHelper.runJava(
+        Collections.singletonList(writeToZip(classes)), mainAndArgs.toArray(new String[0]));
   }
 
   private Path writeToZip(List<byte[]> classes) throws IOException {
