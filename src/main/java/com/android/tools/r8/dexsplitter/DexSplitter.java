@@ -90,6 +90,7 @@ public final class DexSplitter {
     private final DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
     private List<String> inputArchives = new ArrayList<>();
     private List<FeatureJar> featureJars = new ArrayList<>();
+    private List<String> baseJars = new ArrayList<>();
     private String baseOutputName = DEFAULT_BASE_NAME;
     private String output = DEFAULT_OUTPUT_DIR;
     private String featureSplitMapping;
@@ -136,6 +137,10 @@ public final class DexSplitter {
       inputArchives.add(inputArchive);
     }
 
+    public void addBaseJar(String baseJar) {
+      baseJars.add(baseJar);
+    }
+
     private void addFeatureJar(FeatureJar featureJar) {
       featureJars.add(featureJar);
     }
@@ -158,6 +163,10 @@ public final class DexSplitter {
 
     ImmutableList<FeatureJar> getFeatureJars() {
       return ImmutableList.copyOf(featureJars);
+    }
+
+    ImmutableList<String> getBaseJars() {
+      return ImmutableList.copyOf(baseJars);
     }
 
     // Shorthand error messages.
@@ -190,13 +199,17 @@ public final class DexSplitter {
     while (context.head() != null) {
       List<String> inputs = OptionsParsing.tryParseMulti(context, "--input");
       if (inputs != null) {
-        inputs.stream().forEach(options::addInputArchive);
+        inputs.forEach(options::addInputArchive);
         continue;
       }
       List<String> featureJars = OptionsParsing.tryParseMulti(context, "--feature-jar");
       if (featureJars != null) {
-        featureJars.stream().forEach(
-            (feature) -> options.addFeatureJar(parseFeatureJarArgument(feature)));
+        featureJars.forEach((feature) -> options.addFeatureJar(parseFeatureJarArgument(feature)));
+        continue;
+      }
+      List<String> baseJars = OptionsParsing.tryParseMulti(context, "--base-jar");
+      if (baseJars != null) {
+        baseJars.forEach(options::addBaseJar);
         continue;
       }
       String output = OptionsParsing.tryParseSingle(context, "--output", "-o");
@@ -236,8 +249,8 @@ public final class DexSplitter {
           Paths.get(options.getFeatureSplitMapping()), options.getDiagnosticsHandler());
     }
     assert !options.getFeatureJars().isEmpty();
-    return FeatureClassMapping.Internal.fromJarFiles(
-        options.getFeatureJars(), options.getBaseOutputName(), options.getDiagnosticsHandler());
+    return FeatureClassMapping.Internal.fromJarFiles(options.getFeatureJars(),
+        options.getBaseJars(), options.getBaseOutputName(), options.getDiagnosticsHandler());
   }
 
   private static void run(String[] args)
