@@ -8,70 +8,107 @@ import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISS
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-/**
- * Tests -renamesourcefileattribute.
- */
+/** Tests -renamesourcefileattribute. */
+@RunWith(Parameterized.class)
 public class RenameSourceFileDebugTest extends DebugTestBase {
 
   private static final String TEST_FILE = "TestFile.java";
 
-  private static DebugTestConfig config;
+  private static Map<Backend, DebugTestConfig> configs = new HashMap<>();
 
   @BeforeClass
   public static void initDebuggeePath() throws Exception {
-    AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
-    Path outdir = temp.newFolder().toPath();
-    Path outjar = outdir.resolve("r8_compiled.jar");
-    Path proguardMapPath = outdir.resolve("proguard.map");
-    ToolHelper.runR8(
-        ToolHelper.addProguardConfigurationConsumer(
-                R8Command.builder(),
-                pgConfig -> {
-                  pgConfig.setRenameSourceFileAttribute(TEST_FILE);
-                  pgConfig.addKeepAttributePatterns(
-                      ImmutableList.of("SourceFile", "LineNumberTable"));
-                })
-            .addProgramFiles(DEBUGGEE_JAR)
+    for (Backend backend : Backend.values()) {
+      Path outdir = temp.newFolder().toPath();
+      Path outjar = outdir.resolve("r8_compiled.jar");
+      Path proguardMapPath = outdir.resolve("proguard.map");
+      R8Command.Builder builder =
+          ToolHelper.addProguardConfigurationConsumer(
+                  R8Command.builder(),
+                  pgConfig -> {
+                    pgConfig.setRenameSourceFileAttribute(TEST_FILE);
+                    pgConfig.addKeepAttributePatterns(
+                        ImmutableList.of("SourceFile", "LineNumberTable"));
+                  })
+              .addProgramFiles(DEBUGGEE_JAR)
+              .setMode(CompilationMode.DEBUG)
+              .setProguardMapOutputPath(proguardMapPath);
+      DebugTestConfig config;
+      if (backend == Backend.DEX) {
+        AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
+        builder
             .setMinApiLevel(minSdk.getLevel())
             .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
-            .setMode(CompilationMode.DEBUG)
-            .setOutput(outjar, OutputMode.DexIndexed)
-            .setProguardMapOutputPath(proguardMapPath)
-            .build());
-    config = new DexDebugTestConfig(outjar);
-    config.setProguardMap(proguardMapPath, MISSING_FILE_IS_EMPTY_MAP);
+            .setOutput(outjar, OutputMode.DexIndexed);
+        config = new DexDebugTestConfig(outjar);
+      } else {
+        assert backend == Backend.CF;
+        builder
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+            .setOutput(outjar, OutputMode.ClassFile);
+        config = new CfDebugTestConfig(outjar);
+      }
+      ToolHelper.runR8(builder.build());
+      config.setProguardMap(proguardMapPath, MISSING_FILE_IS_EMPTY_MAP);
+      configs.put(backend, config);
+    }
+  }
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public RenameSourceFileDebugTest(Backend backend) {
+    this.backend = backend;
   }
 
   /**
-   * replica of {@link com.android.tools.r8.debug.ClassInitializationTest#testBreakpointInEmptyClassInitializer}
+   * replica of {@link
+   * com.android.tools.r8.debug.ClassInitializationTest#testBreakpointInEmptyClassInitializer}
    */
   @Test
   public void testBreakpointInEmptyClassInitializer() throws Throwable {
     final String CLASS = "ClassInitializerEmpty";
     runDebugTest(
-        config, CLASS, breakpoint(CLASS, "<clinit>"), run(), checkLine(TEST_FILE, 8), run());
+        configs.get(backend),
+        CLASS,
+        breakpoint(CLASS, "<clinit>"),
+        run(),
+        checkLine(TEST_FILE, 8),
+        run());
   }
 
   /**
-   * replica of {@link com.android.tools.r8.debug.LocalsTest#testNoLocal},
-   * except for checking overwritten class file.
+   * replica of {@link com.android.tools.r8.debug.LocalsTest#testNoLocal}, except for checking
+   * overwritten class file.
    */
   @Test
   public void testNoLocal() throws Throwable {
     final String className = "Locals";
     final String methodName = "noLocals";
     runDebugTest(
-        config,
+        configs.get(backend),
         className,
         breakpoint(className, methodName),
         run(),
@@ -85,13 +122,11 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
         run());
   }
 
-  /**
-   * replica of {@link com.android.tools.r8.debug.MultipleReturnsTest#testMultipleReturns}
-   */
+  /** replica of {@link com.android.tools.r8.debug.MultipleReturnsTest#testMultipleReturns} */
   @Test
   public void testMultipleReturns() throws Throwable {
     runDebugTest(
-        config,
+        configs.get(backend),
         "MultipleReturns",
         breakpoint("MultipleReturns", "multipleReturns"),
         run(),
