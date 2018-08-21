@@ -278,7 +278,7 @@ public class DexSplitterTests {
       options.addInputArchive(inputZip.toString());
       options.setOutput(output.toString());
       if (explicitBase) {
-        options.addBaseJar(baseJar.toString());
+        options.addFeatureJar(baseJar.toString());
       } else if (renameBase){
         // Ensure that we can rename base (if people called a feature base)
         options.setBaseOutputName("base_renamed");
@@ -294,7 +294,7 @@ public class DexSplitterTests {
           "--feature-jar",
           featureJar.toString().concat(":").concat(specificOutputName));
       if (explicitBase) {
-        args.add("--base-jar");
+        args.add("--feature-jar");
         args.add(baseJar.toString());
       } else if (renameBase) {
         args.add("--base-output-name");
