@@ -55,7 +55,7 @@ public class ProguardMapSupplier {
   public String get() {
     String body = getBody();
     if (body == null || body.trim().length() == 0) {
-      return "";
+      return null;
     }
     String shaLine = "";
     if (Version.isDev()) {
