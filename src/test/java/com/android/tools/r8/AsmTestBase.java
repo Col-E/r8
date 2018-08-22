@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.junit.Assert;
 
@@ -65,13 +64,19 @@ public class AsmTestBase extends TestBase {
 
   protected void ensureSameOutput(String main, byte[]... classes) throws Exception {
     AndroidApp app = buildAndroidApp(classes);
-    ensureSameOutput(main, app, classes);
+    ensureSameOutput(main, app, false, classes);
   }
 
-  private void ensureSameOutput(String main, AndroidApp app, byte[]... classes)
-      throws IOException, ExecutionException, CompilationFailedException,
-          ProguardRuleParserException {
-    ProcessResult javaResult = runOnJavaRaw(main, classes);
+  protected void ensureSameOutputJavaNoVerify(String main, byte[]... classes) throws Exception {
+    AndroidApp app = buildAndroidApp(classes);
+    ensureSameOutput(main, app, true, classes);
+  }
+
+  private void ensureSameOutput(
+      String main, AndroidApp app, boolean useJavaNoVerify, byte[]... classes)
+      throws IOException, CompilationFailedException {
+    ProcessResult javaResult =
+        useJavaNoVerify ? runOnJavaRawNoVerify(main, classes) : runOnJavaRaw(main, classes);
     ProcessResult d8Result = runOnArtRaw(compileWithD8(app), main);
     ProcessResult r8Result = runOnArtRaw(compileWithR8(app), main);
     ProcessResult r8ShakenResult = runOnArtRaw(
@@ -107,14 +112,13 @@ public class AsmTestBase extends TestBase {
   }
 
   protected void ensureSameOutputAfterMerging(String main, byte[]... classes)
-      throws IOException, ExecutionException, CompilationFailedException,
-          ProguardRuleParserException {
+      throws IOException, CompilationFailedException, ProguardRuleParserException {
     AndroidApp app = buildAndroidApp(classes);
     // Compile to dex files with D8.
     AndroidApp dexApp = compileWithD8(app);
     // Perform dex merging with D8 to read the dex files.
     AndroidApp mergedApp = compileWithD8(dexApp);
-    ensureSameOutput(main, mergedApp, classes);
+    ensureSameOutput(main, mergedApp, false, classes);
   }
 
   protected static AndroidApp readClassesAndAsmDump(List<Class> classes, List<byte[]> asmClasses)

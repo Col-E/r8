@@ -73,7 +73,7 @@ public class Regress78493232_WithPhi extends AsmTestBase {
       }
       return;
     }
-    ensureSameOutput(
+    ensureSameOutputJavaNoVerify(
         Regress78493232Dump_WithPhi.CLASS_NAME,
         Regress78493232Dump_WithPhi.dump(),
         ToolHelper.getClassAsBytes(Regress78493232Utils.class));
