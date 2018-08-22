@@ -620,7 +620,7 @@ public class TestBase {
         Collections.singletonList(writeToZip(classes)), mainAndArgs.toArray(new String[0]));
   }
 
-  private Path writeToZip(List<byte[]> classes) throws IOException {
+  protected Path writeToZip(List<byte[]> classes) throws IOException {
     File result = temp.newFile("tmp.zip");
     try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(result.toPath(),
         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
