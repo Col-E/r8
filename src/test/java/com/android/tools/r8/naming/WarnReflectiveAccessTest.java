@@ -17,7 +17,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.KeepingDiagnosticHandler;
@@ -27,9 +26,13 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 class WarnReflectiveAccessTestMain {
   int counter = 0;
@@ -52,16 +55,30 @@ class WarnReflectiveAccessTestMain {
     StringBuilder builder = new StringBuilder();
     builder.append("f");
     builder.append("o").append("o");
-    Method foo = instance.getClass().getDeclaredMethod(builder.toString());
+    Method foo = instance.getClass().getDeclaredMethod(builder.toString()); // Marked line.
     foo.invoke(instance);
   }
 }
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class WarnReflectiveAccessTest extends TestBase {
+
+  // See "Method foo" in WarnReflectiveAccessTestMain.main().
+  private static int LINE_NUMBER_OF_MARKED_LINE = 58;
 
   private KeepingDiagnosticHandler handler;
   private Reporter reporter;
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public WarnReflectiveAccessTest(Backend backend) {
+    this.backend = backend;
+  }
 
   @Before
   public void reset() {
@@ -84,25 +101,33 @@ public class WarnReflectiveAccessTest extends TestBase {
             + "java.lang.reflect.Method getDeclaredMethod(java.lang.String, java.lang.Class[]);\n"
             + "}\n"
         : "";
+    assert backend == Backend.DEX || backend == Backend.CF;
     R8Command.Builder commandBuilder =
         R8Command.builder(reporter)
             .addProguardConfiguration(
                 ImmutableList.of(
-                    "-keep" + minificationModifier + "class " + main.getCanonicalName() + " {"
+                    "-keep"
+                        + minificationModifier
+                        + "class "
+                        + main.getCanonicalName()
+                        + " {"
                         + " <methods>;"
                         + "}",
                     "-printmapping",
                     reflectionRules),
                 Origin.unknown())
-            .setOutput(out, OutputMode.DexIndexed);
+            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile);
     for (byte[] clazz : classes) {
       commandBuilder.addClassProgramData(clazz, Origin.unknown());
     }
-    commandBuilder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-    return ToolHelper.runR8(commandBuilder.build(), o -> {
-      o.enableInlining = false;
-      o.forceProguardCompatibility = forceProguardCompatibility;
-    });
+    commandBuilder.addLibraryFiles(TestBase.runtimeJar(backend));
+    return ToolHelper.runR8(
+        commandBuilder.build(),
+        o -> {
+          o.enableInlining = false;
+          o.forceProguardCompatibility = forceProguardCompatibility;
+          o.testing.suppressExperimentalCfBackendWarning = true;
+        });
   }
 
   private void reflectionWithBuilder(
@@ -125,14 +150,23 @@ public class WarnReflectiveAccessTest extends TestBase {
     assertEquals(0, javaOutput.exitCode);
     assertThat(javaOutput.stdout, containsString("TestMain::foo"));
 
-    ProcessResult artOutput = runOnArtRaw(processedApp,
-        enableMinification ? mainSubject.getFinalName() : main);
-    if (enableMinification) {
-      assertNotEquals(0, artOutput.exitCode);
-      assertThat(artOutput.stderr, containsString("NoSuchMethodError"));
+    String mainClassName = enableMinification ? mainSubject.getFinalName() : main;
+    ProcessResult output;
+    String errorString;
+    if (backend == Backend.DEX) {
+      output = runOnArtRaw(processedApp, mainClassName);
+      errorString = "NoSuchMethodError";
     } else {
-      assertEquals(0, artOutput.exitCode);
-      assertThat(artOutput.stdout, containsString("TestMain::foo"));
+      assert backend == Backend.CF;
+      output = runOnJavaRaw(processedApp, mainClassName, Collections.emptyList());
+      errorString = "method not found";
+    }
+    if (enableMinification) {
+      assertNotEquals(0, output.exitCode);
+      assertThat(output.stderr, containsString(errorString));
+    } else {
+      assertEquals(0, output.exitCode);
+      assertThat(output.stdout, containsString("TestMain::foo"));
     }
   }
 
@@ -140,32 +174,60 @@ public class WarnReflectiveAccessTest extends TestBase {
   public void test_explicit_minification_forceProguardCompatibility() throws Exception {
     reflectionWithBuilder(true, true, true);
     assertFalse(handler.warnings.isEmpty());
-    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 55, 1,
-        "Cannot determine", "getDeclaredMethod", "-identifiernamestring", "resolution failure");
+    DiagnosticsChecker.checkDiagnostic(
+        handler.warnings.get(0),
+        (Path) null,
+        LINE_NUMBER_OF_MARKED_LINE,
+        1,
+        "Cannot determine",
+        "getDeclaredMethod",
+        "-identifiernamestring",
+        "resolution failure");
   }
 
   @Test
   public void test_explicit_noMinification_forceProguardCompatibility() throws Exception {
     reflectionWithBuilder(true, false, true);
     assertFalse(handler.warnings.isEmpty());
-    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 55, 1,
-        "Cannot determine", "getDeclaredMethod", "-identifiernamestring", "resolution failure");
+    DiagnosticsChecker.checkDiagnostic(
+        handler.warnings.get(0),
+        (Path) null,
+        LINE_NUMBER_OF_MARKED_LINE,
+        1,
+        "Cannot determine",
+        "getDeclaredMethod",
+        "-identifiernamestring",
+        "resolution failure");
   }
 
   @Test
   public void test_explicit_minification_R8() throws Exception {
     reflectionWithBuilder(true, true, false);
     assertFalse(handler.warnings.isEmpty());
-    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 55, 1,
-        "Cannot determine", "getDeclaredMethod", "-identifiernamestring", "resolution failure");
+    DiagnosticsChecker.checkDiagnostic(
+        handler.warnings.get(0),
+        (Path) null,
+        LINE_NUMBER_OF_MARKED_LINE,
+        1,
+        "Cannot determine",
+        "getDeclaredMethod",
+        "-identifiernamestring",
+        "resolution failure");
   }
 
   @Test
   public void test_explicit_noMinification_R8() throws Exception {
     reflectionWithBuilder(true, false, false);
     assertFalse(handler.warnings.isEmpty());
-    DiagnosticsChecker.checkDiagnostic(handler.warnings.get(0), (Path) null, 55, 1,
-        "Cannot determine", "getDeclaredMethod", "-identifiernamestring", "resolution failure");
+    DiagnosticsChecker.checkDiagnostic(
+        handler.warnings.get(0),
+        (Path) null,
+        LINE_NUMBER_OF_MARKED_LINE,
+        1,
+        "Cannot determine",
+        "getDeclaredMethod",
+        "-identifiernamestring",
+        "resolution failure");
   }
 
   @Test

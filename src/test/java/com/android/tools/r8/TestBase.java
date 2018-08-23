@@ -593,9 +593,7 @@ public class TestBase {
   /** Run application on Java with the specified main class and provided arguments. */
   protected String runOnJava(AndroidApp app, String mainClass, List<String> args)
       throws IOException {
-    Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-    app.writeToZip(out, OutputMode.ClassFile);
-    return ToolHelper.runJava(out, mainClass).stdout;
+    return runOnJavaRaw(app, mainClass, args).stdout;
   }
 
   protected ProcessResult runOnJavaRawNoVerify(String main, byte[]... classes) throws IOException {
@@ -618,6 +616,16 @@ public class TestBase {
     mainAndArgs.addAll(args);
     return ToolHelper.runJava(
         Collections.singletonList(writeToZip(classes)), mainAndArgs.toArray(new String[0]));
+  }
+
+  protected ProcessResult runOnJavaRaw(AndroidApp app, String mainClass, List<String> args)
+      throws IOException {
+    Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
+    app.writeToZip(out, OutputMode.ClassFile);
+    List<String> mainAndArgs = new ArrayList<>();
+    mainAndArgs.add(mainClass);
+    mainAndArgs.addAll(args);
+    return ToolHelper.runJava(out, mainAndArgs.toArray(new String[0]));
   }
 
   protected Path writeToZip(List<byte[]> classes) throws IOException {
