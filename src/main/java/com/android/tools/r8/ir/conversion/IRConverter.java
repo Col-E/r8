@@ -950,6 +950,8 @@ public class IRConverter {
   }
 
   private void finalizeToDex(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    // Workaround massive dex2oat memory use for self-recursive methods.
+    CodeRewriter.disableDex2OatInliningForSelfRecursiveMethods(code, options);
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
     method.setCode(code, registerAllocator, options);

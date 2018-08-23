@@ -684,6 +684,13 @@ public class BasicBlock {
     catchHandlers = new CatchHandlers<>(guards, successorIndexes);
   }
 
+  public void addCatchHandler(BasicBlock rethrowBlock, DexType guard) {
+    assert !hasCatchHandlers();
+    successors.add(0, rethrowBlock);
+    rethrowBlock.getPredecessors().add(this);
+    catchHandlers = new CatchHandlers<>(ImmutableList.of(guard), ImmutableList.of(0));
+  }
+
   // Due to class merging, it is possible that two exception classes have been merged into one.
   // This function renames the guards according to the given graph lense.
   public void renameGuardsInCatchHandlers(GraphLense graphLense) {
@@ -1150,6 +1157,20 @@ public class BasicBlock {
     block.add(theSwitch);
     block.close(null);
     block.setNumber(blockNumber);
+    return block;
+  }
+
+  public static BasicBlock createRethrowBlock(IRCode code, Position position) {
+    BasicBlock block = new BasicBlock();
+    MoveException moveException =
+        new MoveException(new Value(code.valueNumberGenerator.next(), ValueType.OBJECT, null));
+    moveException.setPosition(position);
+    Throw throwInstruction = new Throw(moveException.outValue);
+    throwInstruction.setPosition(position);
+    block.add(moveException);
+    block.add(throwInstruction);
+    block.close(null);
+    block.setNumber(code.getHighestBlockNumber() + 1);
     return block;
   }
 
