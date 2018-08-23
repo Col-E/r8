@@ -3,9 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
+import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -161,6 +165,7 @@ public abstract class GraphLense {
 
   public <T extends DexItem> boolean assertNotModified(Iterable<T> items) {
     for (DexItem item : items) {
+      // TODO(b/67934123) There should be a common interface to perform the dispatch.
       if (item instanceof DexClass) {
         DexType type = ((DexClass) item).type;
         assert lookupType(type) == type;
@@ -176,6 +181,85 @@ public abstract class GraphLense {
       }
     }
     return true;
+  }
+
+  public ImmutableSet<DexItem> rewriteMixedItemsConservatively(Set<DexItem> original) {
+    ImmutableSet.Builder<DexItem> builder = ImmutableSet.builder();
+    for (DexItem item : original) {
+      // TODO(b/67934123) There should be a common interface to perform the dispatch.
+      if (item instanceof DexType) {
+        builder.add(lookupType((DexType) item));
+      } else if (item instanceof DexMethod) {
+        DexMethod method = (DexMethod) item;
+        if (isContextFreeForMethod(method)) {
+          builder.add(lookupMethod(method));
+        } else {
+          builder.addAll(lookupMethodInAllContexts(method));
+        }
+      } else if (item instanceof DexField) {
+        builder.add(lookupField((DexField) item));
+      } else {
+        throw new Unreachable();
+      }
+    }
+    return builder.build();
+  }
+
+  public Object2BooleanMap<DexItem> rewriteMixedItemsConservatively(
+      Object2BooleanMap<DexItem> original) {
+    Object2BooleanMap<DexItem> result = new Object2BooleanArrayMap<>();
+    for (Object2BooleanMap.Entry<DexItem> entry : original.object2BooleanEntrySet()) {
+      DexItem item = entry.getKey();
+      // TODO(b/67934123) There should be a common interface to perform the dispatch.
+      if (item instanceof DexType) {
+        result.put(lookupType((DexType) item), entry.getBooleanValue());
+      } else if (item instanceof DexMethod) {
+        DexMethod method = (DexMethod) item;
+        if (isContextFreeForMethod(method)) {
+          result.put(lookupMethod(method), entry.getBooleanValue());
+        } else {
+          for (DexMethod candidate: lookupMethodInAllContexts(method)) {
+            result.put(candidate, entry.getBooleanValue());
+          }
+        }
+      } else if (item instanceof DexField) {
+        result.put(lookupField((DexField) item), entry.getBooleanValue());
+      } else {
+        throw new Unreachable();
+      }
+    }
+    return result;
+  }
+
+  public ImmutableSortedSet<DexMethod> rewriteMethodsWithRenamedSignature(Set<DexMethod> methods) {
+    ImmutableSortedSet.Builder<DexMethod> builder =
+        new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
+    for (DexMethod method : methods) {
+      builder.add(getRenamedMethodSignature(method));
+    }
+    return builder.build();
+  }
+
+  public ImmutableSortedSet<DexMethod> rewriteMethodsConservatively(Set<DexMethod> original) {
+    ImmutableSortedSet.Builder<DexMethod> builder =
+        new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
+    if (isContextFreeForMethods()) {
+      for (DexMethod item : original) {
+        builder.add(lookupMethod(item));
+      }
+    } else {
+      for (DexMethod item : original) {
+        // Avoid using lookupMethodInAllContexts when possible.
+        if (isContextFreeForMethod(item)) {
+          builder.add(lookupMethod(item));
+        } else {
+          // The lense is context sensitive, but we do not have the context here. Therefore, we
+          // conservatively look up the method in all contexts.
+          builder.addAll(lookupMethodInAllContexts(item));
+        }
+      }
+    }
+    return builder.build();
   }
 
   private static class IdentityGraphLense extends GraphLense {
