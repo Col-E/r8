@@ -206,7 +206,7 @@ public class RootSetBuilder {
         switch (((ProguardKeepRule) rule).getType()) {
           case KEEP_CLASS_MEMBERS: {
             // If we're handling -if consequent part, that means precondition already met.
-            DexType precondition = ifRule != null ? null : clazz.type;
+            DexClass precondition = ifRule != null ? null : clazz;
             markMatchingVisibleMethods(clazz, memberKeepRules, rule, precondition);
             markMatchingFields(clazz, memberKeepRules, rule, precondition);
             break;
@@ -231,8 +231,8 @@ public class RootSetBuilder {
         if (memberKeepRules.isEmpty()) {
           markClass(clazz, rule);
         } else {
-          markMatchingFields(clazz, memberKeepRules, rule, clazz.type);
-          markMatchingMethods(clazz, memberKeepRules, rule, clazz.type);
+          markMatchingFields(clazz, memberKeepRules, rule, clazz);
+          markMatchingMethods(clazz, memberKeepRules, rule, clazz);
         }
       } else if (rule instanceof ProguardWhyAreYouKeepingRule
           || rule instanceof ProguardKeepPackageNamesRule) {
@@ -415,7 +415,7 @@ public class RootSetBuilder {
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      DexType onlyIfClassKept) {
+      DexClass onlyIfClassKept) {
     Set<Wrapper<DexMethod>> methodsMarked = new HashSet<>();
     Arrays.stream(clazz.directMethods()).forEach(method ->
         markMethod(method, memberKeepRules, methodsMarked, rule, onlyIfClassKept));
@@ -430,7 +430,7 @@ public class RootSetBuilder {
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      DexType onlyIfClassKept) {
+      DexClass onlyIfClassKept) {
     Arrays.stream(clazz.directMethods()).forEach(method ->
         markMethod(method, memberKeepRules, null, rule, onlyIfClassKept));
     Arrays.stream(clazz.virtualMethods()).forEach(method ->
@@ -441,7 +441,7 @@ public class RootSetBuilder {
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      DexType onlyIfClassKept) {
+      DexClass onlyIfClassKept) {
     clazz.forEachField(field -> markField(field, memberKeepRules, rule, onlyIfClassKept));
   }
 
@@ -667,7 +667,7 @@ public class RootSetBuilder {
     dependentNoShrinking.computeIfAbsent(item, x -> new IdentityHashMap<>())
         .put(definition, context);
     // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
-    noObfuscation.add(type);
+    noObfuscation.add(definition);
   }
 
   private void includeDescriptorClasses(DexItem item, ProguardKeepRule context) {
@@ -705,11 +705,7 @@ public class RootSetBuilder {
         noOptimization.add(item);
       }
       if (!modifiers.allowsObfuscation) {
-        if (item instanceof DexClass) {
-          noObfuscation.add(((DexClass) item).type);
-        } else {
-          noObfuscation.add(item);
-        }
+        noObfuscation.add(item);
       }
       if (modifiers.includeDescriptorClasses) {
         includeDescriptorClasses(item, keepRule);
@@ -770,24 +766,24 @@ public class RootSetBuilder {
     public final Set<DexItem> identifierNameStrings;
     public final Set<ProguardIfRule> ifRules;
 
-    private boolean isTypeEncodedMethodOrEncodedField(DexItem item) {
-      assert item instanceof DexType
+    // TODO(b/67934123): Introduce DexReference and DexDefinition and move the following check.
+    private boolean isDexDefinition(DexItem item) {
+      assert item instanceof DexClass
           || item instanceof DexEncodedMethod
           || item instanceof DexEncodedField;
-      return item instanceof DexType
+      return item instanceof DexClass
           || item instanceof DexEncodedMethod
           || item instanceof DexEncodedField;
     }
 
     private boolean legalNoObfuscationItems(Set<DexItem> items) {
-      assert items.stream().allMatch(this::isTypeEncodedMethodOrEncodedField);
+      assert items.stream().allMatch(this::isDexDefinition);
       return true;
     }
 
     private boolean legalDependentNoShrinkingItems(
         Map<DexItem, Map<DexItem, ProguardKeepRule>> dependentNoShrinking) {
-      assert dependentNoShrinking.keySet().stream()
-          .allMatch(this::isTypeEncodedMethodOrEncodedField);
+      assert dependentNoShrinking.keySet().stream().allMatch(this::isDexDefinition);
       return true;
     }
 
@@ -825,9 +821,7 @@ public class RootSetBuilder {
     }
 
     Map<DexItem, ProguardKeepRule> getDependentItems(DexItem item) {
-      assert item instanceof DexType
-          || item instanceof DexEncodedMethod
-          || item instanceof DexEncodedField;
+      assert isDexDefinition(item);
       return Collections
           .unmodifiableMap(dependentNoShrinking.getOrDefault(item, Collections.emptyMap()));
     }
@@ -843,7 +837,7 @@ public class RootSetBuilder {
     }
 
     Map<DexItem, ProguardKeepRule> getDependentStaticMembers(DexItem item) {
-      assert item instanceof DexType;
+      assert item instanceof DexClass;
       return getDependentItems(item).entrySet().stream()
           .filter(this::isStaticMember)
           .collect(Collectors.toMap(Entry::getKey, Entry::getValue));

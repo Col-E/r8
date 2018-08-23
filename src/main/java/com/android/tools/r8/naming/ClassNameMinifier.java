@@ -47,7 +47,6 @@ import java.util.stream.Collectors;
 class ClassNameMinifier {
 
   private final AppInfoWithLiveness appInfo;
-  private final RootSet rootSet;
   private final Reporter reporter;
   private final PackageObfuscationMode packageObfuscationMode;
   private final boolean isAccessModificationAllowed;
@@ -60,6 +59,8 @@ class ClassNameMinifier {
   private final ImmutableList<String> packageDictionary;
   private final ImmutableList<String> classDictionary;
   private final boolean keepInnerClassStructure;
+
+  private final Set<DexType> noObfuscationTypes;
   private final Set<DexType> keepPackageName;
 
   private final Namespace topLevelState;
@@ -74,17 +75,18 @@ class ClassNameMinifier {
       RootSet rootSet,
       InternalOptions options) {
     this.appInfo = appInfo;
-    this.rootSet = rootSet;
     this.reporter = options.reporter;
     this.packageObfuscationMode = options.proguardConfiguration.getPackageObfuscationMode();
     this.isAccessModificationAllowed = options.proguardConfiguration.isAccessModificationAllowed();
     this.packageDictionary = options.proguardConfiguration.getPackageObfuscationDictionary();
     this.classDictionary = options.proguardConfiguration.getClassObfuscationDictionary();
     this.keepInnerClassStructure = options.proguardConfiguration.getKeepAttributes().signature;
+    this.noObfuscationTypes =
+        DexClass.filter(rootSet.noObfuscation.stream())
+            .map(DexClass::getType)
+            .collect(Collectors.toSet());
     this.keepPackageName =
-        rootSet.keepPackageName.stream()
-            .filter(DexClass.class::isInstance)
-            .map(DexClass.class::cast)
+        DexClass.filter(rootSet.keepPackageName.stream())
             .map(DexClass::getType)
             .collect(Collectors.toSet());
 
@@ -111,7 +113,7 @@ class ClassNameMinifier {
     // Collect names we have to keep.
     timing.begin("reserve");
     for (DexClass clazz : classes) {
-      if (rootSet.noObfuscation.contains(clazz.type)) {
+      if (noObfuscationTypes.contains(clazz.type)) {
         assert !renaming.containsKey(clazz.type);
         registerClassAsUsed(clazz.type);
       }
@@ -176,7 +178,7 @@ class ClassNameMinifier {
   private void renameDanglingType(DexType type) {
     if (appInfo.wasPruned(type)
         && !renaming.containsKey(type)
-        && !rootSet.noObfuscation.contains(type)) {
+        && !noObfuscationTypes.contains(type)) {
       // We have a type that is defined in the program source but is only used in a proto or
       // return type. As we don't need the class, we can rename it to anything as long as it is
       // unique.

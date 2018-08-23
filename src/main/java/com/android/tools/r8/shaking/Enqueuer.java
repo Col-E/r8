@@ -653,10 +653,10 @@ public class Enqueuer {
 
       if (forceProguardCompatibility) {
         // Add all dependent members to the workqueue.
-        enqueueRootItems(rootSet.getDependentItems(type));
+        enqueueRootItems(rootSet.getDependentItems(holder));
       } else {
         // Add all dependent static members to the workqueue.
-        enqueueRootItems(rootSet.getDependentStaticMembers(type));
+        enqueueRootItems(rootSet.getDependentStaticMembers(holder));
       }
     }
   }
@@ -801,7 +801,7 @@ public class Enqueuer {
     // For all instance fields visible from the class, mark them live if we have seen a read.
     transitionFieldsForInstantiatedClass(clazz.type);
     // Add all dependent members to the workqueue.
-    enqueueRootItems(rootSet.getDependentItems(clazz.type));
+    enqueueRootItems(rootSet.getDependentItems(clazz));
   }
 
   /**
