@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import java.util.Collection;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public abstract class DexItem {
 
@@ -61,5 +62,9 @@ public abstract class DexItem {
 
   public String toSourceString() {
     return toString();
+  }
+
+  static <T extends DexItem> Stream<T> filter(Stream<DexItem> stream, Class<T> clazz) {
+    return stream.filter(clazz::isInstance).map(clazz::cast);
   }
 }

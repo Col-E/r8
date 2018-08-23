@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public abstract class DexClass extends DexItem {
 
@@ -412,5 +413,9 @@ public abstract class DexClass extends DexItem {
 
   public final boolean hasKotlinInfo() {
     return getKotlinInfo() != null;
+  }
+
+  public static Stream<DexClass> filter(Stream<DexItem> stream) {
+    return DexItem.filter(stream, DexClass.class);
   }
 }
