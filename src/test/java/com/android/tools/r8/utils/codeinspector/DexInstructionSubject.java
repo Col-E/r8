@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.code.CheckCast;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
@@ -145,6 +146,11 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isNewInstance() {
     return instruction instanceof NewInstance;
+  }
+
+  @Override
+  public boolean isCheckCast() {
+    return instruction instanceof CheckCast;
   }
 
   public boolean isInvokeSuper() {

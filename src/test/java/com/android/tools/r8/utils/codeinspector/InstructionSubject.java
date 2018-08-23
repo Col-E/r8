@@ -48,4 +48,6 @@ public interface InstructionSubject {
   boolean isInstanceGet();
 
   boolean isStaticGet();
+
+  boolean isCheckCast();
 }

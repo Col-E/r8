@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
@@ -133,6 +134,11 @@ public class CfInstructionSubject implements InstructionSubject {
   public boolean isStaticGet() {
     return instruction instanceof CfFieldInstruction
         && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.GETSTATIC;
+  }
+
+  @Override
+  public boolean isCheckCast() {
+    return instruction instanceof CfCheckCast;
   }
 
   public boolean isInvokeSpecial() {
