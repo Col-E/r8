@@ -1765,7 +1765,9 @@ public class Enqueuer {
       assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
     }
 
-    private AppInfoWithLiveness(AppInfoWithLiveness previous, DexApplication application,
+    private AppInfoWithLiveness(
+        AppInfoWithLiveness previous,
+        DexApplication application,
         Collection<DexType> removedClasses) {
       super(application);
       this.liveTypes = previous.liveTypes;
@@ -1804,17 +1806,18 @@ public class Enqueuer {
       assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
     }
 
-    private AppInfoWithLiveness(AppInfoWithLiveness previous,
+    private AppInfoWithLiveness(
+        AppInfoWithLiveness previous,
         DirectMappedDexApplication application,
         GraphLense lense) {
       super(application, lense);
       this.liveTypes = rewriteItems(previous.liveTypes, lense::lookupType);
       this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
       this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
-      this.targetedMethods = rewriteMethodsConservatively(previous.targetedMethods, lense);
+      this.targetedMethods = lense.rewriteMethodsConservatively(previous.targetedMethods);
       this.virtualMethodsTargetedByInvokeDirect =
-          rewriteMethodsConservatively(previous.virtualMethodsTargetedByInvokeDirect, lense);
-      this.liveMethods = rewriteMethodsConservatively(previous.liveMethods, lense);
+          lense.rewriteMethodsConservatively(previous.virtualMethodsTargetedByInvokeDirect);
+      this.liveMethods = lense.rewriteMethodsConservatively(previous.liveMethods);
       this.liveFields = rewriteItems(previous.liveFields, lense::lookupField);
       this.instanceFieldReads =
           rewriteKeysWhileMergingValues(previous.instanceFieldReads, lense::lookupField);
@@ -1826,15 +1829,15 @@ public class Enqueuer {
           rewriteKeysWhileMergingValues(previous.staticFieldWrites, lense::lookupField);
       this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
-      this.pinnedItems = rewriteMixedItemsConservatively(previous.pinnedItems, lense);
-      this.virtualInvokes = rewriteMethodsConservatively(previous.virtualInvokes, lense);
-      this.interfaceInvokes = rewriteMethodsConservatively(previous.interfaceInvokes, lense);
-      this.superInvokes = rewriteMethodsConservatively(previous.superInvokes, lense);
-      this.directInvokes = rewriteMethodsConservatively(previous.directInvokes, lense);
-      this.staticInvokes = rewriteMethodsConservatively(previous.staticInvokes, lense);
-      this.brokenSuperInvokes = rewriteMethodsConservatively(previous.brokenSuperInvokes, lense);
+      this.pinnedItems = lense.rewriteMixedItemsConservatively(previous.pinnedItems);
+      this.virtualInvokes = lense.rewriteMethodsConservatively(previous.virtualInvokes);
+      this.interfaceInvokes = lense.rewriteMethodsConservatively(previous.interfaceInvokes);
+      this.superInvokes = lense.rewriteMethodsConservatively(previous.superInvokes);
+      this.directInvokes = lense.rewriteMethodsConservatively(previous.directInvokes);
+      this.staticInvokes = lense.rewriteMethodsConservatively(previous.staticInvokes);
+      this.brokenSuperInvokes = lense.rewriteMethodsConservatively(previous.brokenSuperInvokes);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
-      // TODO(herhut): Migrate these to Descriptors, as well.
+      // TODO(b/67934123): Should distinguish either reference or definition is not modified.
       assert lense.assertNotModified(previous.noSideEffects.keySet());
       this.noSideEffects = previous.noSideEffects;
       assert lense.assertNotModified(previous.assumedValues.keySet());
@@ -1843,10 +1846,10 @@ public class Enqueuer {
           previous.alwaysInline.stream().map(this::definitionFor).filter(Objects::nonNull)
               .collect(Collectors.toList()));
       this.alwaysInline = previous.alwaysInline;
-      this.forceInline = rewriteMethodsWithRenamedSignature(previous.forceInline, lense);
-      this.neverInline = rewriteMethodsWithRenamedSignature(previous.neverInline, lense);
+      this.forceInline = lense.rewriteMethodsWithRenamedSignature(previous.forceInline);
+      this.neverInline = lense.rewriteMethodsWithRenamedSignature(previous.neverInline);
       this.identifierNameStrings =
-          rewriteMixedItemsConservatively(previous.identifierNameStrings, lense);
+          lense.rewriteMixedItemsConservatively(previous.identifierNameStrings);
       // Switchmap classes should never be affected by renaming.
       assert lense.assertNotModified(
           previous.switchMaps.keySet().stream().map(this::definitionFor).filter(Objects::nonNull)
@@ -1906,6 +1909,7 @@ public class Enqueuer {
     private boolean assertNoItemRemoved(Collection<DexItem> items, Collection<DexType> types) {
       Set<DexType> typeSet = ImmutableSet.copyOf(types);
       for (DexItem item : items) {
+        // TODO(b/67934123) There should be a common interface to extract this information.
         if (item instanceof DexType) {
           assert !typeSet.contains(item);
         } else if (item instanceof DexMethod) {
@@ -1968,44 +1972,6 @@ public class Enqueuer {
       return builder.build();
     }
 
-    private static ImmutableSortedSet<DexMethod> rewriteMethodsWithRenamedSignature(
-        Set<DexMethod> methods, GraphLense lense) {
-      ImmutableSortedSet.Builder<DexMethod> builder =
-          new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
-      for (DexMethod method : methods) {
-        builder.add(lense.getRenamedMethodSignature(method));
-      }
-      return builder.build();
-    }
-
-    private static ImmutableSortedSet<DexMethod> rewriteMethodsConservatively(
-        Set<DexMethod> original, GraphLense lense) {
-      ImmutableSortedSet.Builder<DexMethod> builder =
-          new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
-      if (lense.isContextFreeForMethods()) {
-        for (DexMethod item : original) {
-          builder.add(lense.lookupMethod(item));
-        }
-      } else {
-        for (DexMethod item : original) {
-          // Avoid using lookupMethodInAllContexts when possible.
-          if (lense.isContextFreeForMethod(item)) {
-            builder.add(lense.lookupMethod(item));
-          } else {
-            // The lense is context sensitive, but we do not have the context here. Therefore, we
-            // conservatively look up the method in all contexts.
-            builder.addAll(lense.lookupMethodInAllContexts(item));
-          }
-        }
-      }
-      return builder.build();
-    }
-
-    @Override
-    protected boolean hasAnyInstantiatedLambdas(DexType type) {
-      return instantiatedLambdas.contains(type);
-    }
-
     private static <T extends PresortedComparable<T>> ImmutableSortedSet<T> rewriteItems(
         Set<T> original, Function<T, T> rewrite) {
       ImmutableSortedSet.Builder<T> builder =
@@ -2037,53 +2003,9 @@ public class Enqueuer {
       return Collections.unmodifiableMap(result);
     }
 
-    private static ImmutableSet<DexItem> rewriteMixedItemsConservatively(
-        Set<DexItem> original, GraphLense lense) {
-      ImmutableSet.Builder<DexItem> builder = ImmutableSet.builder();
-      for (DexItem item : original) {
-        // TODO(b/67934123) There should be a common interface to perform the dispatch.
-        if (item instanceof DexType) {
-          builder.add(lense.lookupType((DexType) item));
-        } else if (item instanceof DexMethod) {
-          DexMethod method = (DexMethod) item;
-          if (lense.isContextFreeForMethod(method)) {
-            builder.add(lense.lookupMethod(method));
-          } else {
-            builder.addAll(lense.lookupMethodInAllContexts(method));
-          }
-        } else if (item instanceof DexField) {
-          builder.add(lense.lookupField((DexField) item));
-        } else {
-          throw new Unreachable();
-        }
-      }
-      return builder.build();
-    }
-
-    private static Object2BooleanMap<DexItem> rewriteMixedItemsConservatively(
-        Object2BooleanMap<DexItem> original, GraphLense lense) {
-      Object2BooleanMap<DexItem> result = new Object2BooleanArrayMap<>();
-      for (Object2BooleanMap.Entry<DexItem> entry : original.object2BooleanEntrySet()) {
-        DexItem item = entry.getKey();
-        // TODO(b/67934123) There should be a common interface to perform the dispatch.
-        if (item instanceof DexType) {
-          result.put(lense.lookupType((DexType) item), entry.getBooleanValue());
-        } else if (item instanceof DexMethod) {
-          DexMethod method = (DexMethod) item;
-          if (lense.isContextFreeForMethod(method)) {
-            result.put(lense.lookupMethod(method), entry.getBooleanValue());
-          } else {
-            for (DexMethod candidate: lense.lookupMethodInAllContexts(method)) {
-              result.put(candidate, entry.getBooleanValue());
-            }
-          }
-        } else if (item instanceof DexField) {
-          result.put(lense.lookupField((DexField) item), entry.getBooleanValue());
-        } else {
-          throw new Unreachable();
-        }
-      }
-      return result;
+    @Override
+    protected boolean hasAnyInstantiatedLambdas(DexType type) {
+      return instantiatedLambdas.contains(type);
     }
 
     private static <T> Set<T> mergeSets(Collection<T> first, Collection<T> second) {
