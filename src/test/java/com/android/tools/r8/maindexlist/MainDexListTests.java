@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -639,14 +640,18 @@ public class MainDexListTests extends TestBase {
         MethodAccessFlags access = MethodAccessFlags.fromSharedAccessFlags(0, false);
         access.setPublic();
         access.setStatic();
-        Code code = new SynthesizedCode(new ReturnVoidCode());
+        DexMethod voidReturnMethod =
+            factory.createMethod(
+                desc,
+                factory.createString("method" + i),
+                factory.voidDescriptor,
+                DexString.EMPTY_ARRAY);
+        Code code =
+            new SynthesizedCode(
+                callerPosition -> new ReturnVoidCode(voidReturnMethod, callerPosition));
         DexEncodedMethod method =
             new DexEncodedMethod(
-                factory.createMethod(
-                    desc,
-                    factory.createString("method" + i),
-                    factory.voidDescriptor,
-                    DexString.EMPTY_ARRAY),
+                voidReturnMethod,
                 access,
                 DexAnnotationSet.empty(),
                 ParameterAnnotationsList.empty(),
@@ -699,6 +704,12 @@ public class MainDexListTests extends TestBase {
 
   // Code stub to generate methods with "return-void" bodies.
   private static class ReturnVoidCode implements SourceCode {
+
+    private final Position position;
+
+    public ReturnVoidCode(DexMethod method, Position callerPosition) {
+      this.position = Position.synthetic(0, method, callerPosition);
+    }
 
     @Override
     public int instructionCount() {
@@ -797,7 +808,7 @@ public class MainDexListTests extends TestBase {
 
     @Override
     public Position getCurrentPosition() {
-      return Position.none();
+      return position;
     }
 
     @Override

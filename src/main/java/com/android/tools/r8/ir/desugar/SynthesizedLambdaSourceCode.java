@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 
 // Represents source code of synthesized lambda class methods.
@@ -16,14 +17,16 @@ abstract class SynthesizedLambdaSourceCode extends SyntheticSourceCode {
   final DexMethod currentMethod;
   final LambdaClass lambda;
 
-  SynthesizedLambdaSourceCode(LambdaClass lambda, DexMethod currentMethod, DexType receiver) {
-    super(receiver, currentMethod.proto);
+  SynthesizedLambdaSourceCode(
+      LambdaClass lambda, DexMethod currentMethod, Position callerPosition, DexType receiver) {
+    super(receiver, currentMethod, callerPosition);
     this.lambda = lambda;
     this.currentMethod = currentMethod;
   }
 
-  SynthesizedLambdaSourceCode(LambdaClass lambda, DexMethod currentMethod) {
-    this(lambda, currentMethod, lambda.type);
+  SynthesizedLambdaSourceCode(
+      LambdaClass lambda, DexMethod currentMethod, Position callerPosition) {
+    this(lambda, currentMethod, callerPosition, lambda.type);
   }
 
   final LambdaDescriptor descriptor() {

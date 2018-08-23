@@ -7,7 +7,9 @@ package com.android.tools.r8.ir.optimize.lambda.kotlin;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
@@ -18,8 +20,11 @@ final class ClassInitializerSourceCode extends SyntheticSourceCode {
   private final DexItemFactory factory;
   private final KotlinLambdaGroup group;
 
-  ClassInitializerSourceCode(DexItemFactory factory, KotlinLambdaGroup group) {
-    super(null, factory.createProto(factory.voidType));
+  ClassInitializerSourceCode(
+      DexMethod method, DexItemFactory factory, KotlinLambdaGroup group, Position callerPosition) {
+    super(null, method, callerPosition);
+    assert method.proto.returnType == factory.voidType;
+    assert method.proto.parameters == DexTypeList.empty();
     this.factory = factory;
     this.group = group;
   }

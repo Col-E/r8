@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -19,6 +20,7 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupClassBuilder;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
@@ -42,7 +44,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
   }
 
   abstract SyntheticSourceCode createInstanceInitializerSourceCode(
-      DexType groupClassType, DexProto initializerProto);
+      DexType groupClassType, DexMethod initializerMethod, Position callerPosition);
 
   // Always generate public final classes.
   @Override
@@ -109,14 +111,22 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
           }
         }
 
-        result.add(new DexEncodedMethod(
-            factory.createMethod(group.getGroupClassType(), methodProto, methodName),
-            accessFlags,
-            isMainMethod ? id.mainMethodAnnotations : DexAnnotationSet.empty(),
-            isMainMethod ? id.mainMethodParamAnnotations : ParameterAnnotationsList.empty(),
-            new SynthesizedCode(
-                new KotlinLambdaVirtualMethodSourceCode(factory, group.getGroupClassType(),
-                    methodProto, group.getLambdaIdField(factory), implMethods))));
+        DexMethod method = factory.createMethod(group.getGroupClassType(), methodProto, methodName);
+        result.add(
+            new DexEncodedMethod(
+                method,
+                accessFlags,
+                isMainMethod ? id.mainMethodAnnotations : DexAnnotationSet.empty(),
+                isMainMethod ? id.mainMethodParamAnnotations : ParameterAnnotationsList.empty(),
+                new SynthesizedCode(
+                    callerPosition ->
+                        new KotlinLambdaVirtualMethodSourceCode(
+                            factory,
+                            group.getGroupClassType(),
+                            method,
+                            group.getLambdaIdField(factory),
+                            implMethods,
+                            callerPosition))));
       }
     }
 
@@ -155,23 +165,35 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
     DexEncodedMethod[] result = new DexEncodedMethod[needsSingletonInstances ? 2 : 1];
     // Instance initializer mapping parameters into capture fields.
     DexProto initializerProto = group.createConstructorProto(factory);
-    result[0] = new DexEncodedMethod(
-        factory.createMethod(groupClassType, initializerProto, factory.constructorMethodName),
-        CONSTRUCTOR_FLAGS_RELAXED,  // always create access-relaxed constructor.
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        new SynthesizedCode(createInstanceInitializerSourceCode(groupClassType, initializerProto)));
+    DexMethod initializerMethod =
+        factory.createMethod(groupClassType, initializerProto, factory.constructorMethodName);
+    result[0] =
+        new DexEncodedMethod(
+            initializerMethod,
+            CONSTRUCTOR_FLAGS_RELAXED, // always create access-relaxed constructor.
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
+            new SynthesizedCode(
+                callerPosition ->
+                    createInstanceInitializerSourceCode(
+                        groupClassType, initializerMethod, callerPosition)));
 
     // Static class initializer for stateless lambdas.
     if (needsSingletonInstances) {
-      result[1] = new DexEncodedMethod(
-          factory.createMethod(groupClassType,
+      DexMethod method =
+          factory.createMethod(
+              groupClassType,
               factory.createProto(factory.voidType),
-              factory.classConstructorMethodName),
-          CLASS_INITIALIZER_FLAGS,
-          DexAnnotationSet.empty(),
-          ParameterAnnotationsList.empty(),
-          new SynthesizedCode(new ClassInitializerSourceCode(factory, group)));
+              factory.classConstructorMethodName);
+      result[1] =
+          new DexEncodedMethod(
+              method,
+              CLASS_INITIALIZER_FLAGS,
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              new SynthesizedCode(
+                  callerPosition ->
+                      new ClassInitializerSourceCode(method, factory, group, callerPosition)));
     }
 
     return result;

@@ -54,13 +54,17 @@ public class DexDebugEntry {
       builder.append("pc ");
     }
     builder.append(StringUtils.hexString(address, 2));
-    builder.append(", line ").append(line);
     if (sourceFile != null) {
       builder.append(", file ").append(sourceFile);
     }
+    builder.append(", line ").append(line);
     if (callerPosition != null) {
-      builder.append(", method ").append(method);
-      builder.append(" <-(").append(callerPosition).append(")");
+      builder.append(":").append(method.name);
+      Position caller = callerPosition;
+      while (caller != null) {
+        builder.append(";").append(caller.line).append(":").append(caller.method.name);
+        caller = caller.callerPosition;
+      }
     }
     if (prologueEnd) {
       builder.append(", prologue_end = true");

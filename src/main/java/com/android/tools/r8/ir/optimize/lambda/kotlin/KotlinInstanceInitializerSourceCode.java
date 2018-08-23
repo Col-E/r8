@@ -5,8 +5,9 @@
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 import java.util.function.IntFunction;
@@ -15,9 +16,13 @@ abstract class KotlinInstanceInitializerSourceCode extends SyntheticSourceCode {
   private final DexField idField;
   private final IntFunction<DexField> fieldGenerator;
 
-  KotlinInstanceInitializerSourceCode(DexType lambdaGroupType,
-      DexField idField, IntFunction<DexField> fieldGenerator, DexProto proto) {
-    super(lambdaGroupType, proto);
+  KotlinInstanceInitializerSourceCode(
+      DexType lambdaGroupType,
+      DexField idField,
+      IntFunction<DexField> fieldGenerator,
+      DexMethod method,
+      Position callerPosition) {
+    super(lambdaGroupType, method, callerPosition);
     this.idField = idField;
     this.fieldGenerator = fieldGenerator;
   }

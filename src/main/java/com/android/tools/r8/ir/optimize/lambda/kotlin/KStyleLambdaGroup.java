@@ -14,11 +14,11 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupClassBuilder;
@@ -196,10 +196,15 @@ final class KStyleLambdaGroup extends KotlinLambdaGroup {
 
     @Override
     SyntheticSourceCode createInstanceInitializerSourceCode(
-        DexType groupClassType, DexProto initializerProto) {
-      return new InstanceInitializerSourceCode(factory, groupClassType,
-          group.getLambdaIdField(factory), id -> group.getCaptureField(factory, id),
-          initializerProto, id.mainMethodProto.parameters.size());
+        DexType groupClassType, DexMethod initializerMethod, Position callerPosition) {
+      return new InstanceInitializerSourceCode(
+          factory,
+          groupClassType,
+          group.getLambdaIdField(factory),
+          id -> group.getCaptureField(factory, id),
+          initializerMethod,
+          id.mainMethodProto.parameters.size(),
+          callerPosition);
     }
   }
 
@@ -209,9 +214,15 @@ final class KStyleLambdaGroup extends KotlinLambdaGroup {
     private final int arity;
     private final DexMethod lambdaInitializer;
 
-    InstanceInitializerSourceCode(DexItemFactory factory, DexType lambdaGroupType,
-        DexField idField, IntFunction<DexField> fieldGenerator, DexProto proto, int arity) {
-      super(lambdaGroupType, idField, fieldGenerator, proto);
+    InstanceInitializerSourceCode(
+        DexItemFactory factory,
+        DexType lambdaGroupType,
+        DexField idField,
+        IntFunction<DexField> fieldGenerator,
+        DexMethod method,
+        int arity,
+        Position callerPosition) {
+      super(lambdaGroupType, idField, fieldGenerator, method, callerPosition);
       this.arity = arity;
       this.lambdaInitializer = factory.createMethod(factory.kotlin.functional.lambdaType,
           factory.createProto(factory.voidType, factory.intType), factory.constructorMethodName);

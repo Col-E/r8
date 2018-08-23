@@ -536,20 +536,23 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       builder.accessFlags.setAbstract();
     } else {
       // Create code that forwards the call to the target.
-      builder.setCode(new SynthesizedCode(
-          new ForwardMethodSourceCode(
-              accessFlags.isStatic() ? null : holder.type,
-              method.proto,
-              accessFlags.isStatic() ? null : method.holder,
-              method,
-              type),
-          registry -> {
-            if (accessFlags.isStatic()) {
-              registry.registerInvokeStatic(method);
-            } else {
-              registry.registerInvokeSuper(method);
-            }
-          }));
+      builder.setCode(
+          new SynthesizedCode(
+              callerPosition ->
+                  new ForwardMethodSourceCode(
+                      accessFlags.isStatic() ? null : holder.type,
+                      newMethod,
+                      accessFlags.isStatic() ? null : method.holder,
+                      method,
+                      type,
+                      callerPosition),
+              registry -> {
+                if (accessFlags.isStatic()) {
+                  registry.registerInvokeStatic(method);
+                } else {
+                  registry.registerInvokeSuper(method);
+                }
+              }));
     }
     builder.accessFlags.setSynthetic();
     return builder.build();

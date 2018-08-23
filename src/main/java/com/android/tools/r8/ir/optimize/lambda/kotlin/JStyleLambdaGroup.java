@@ -12,11 +12,11 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupClassBuilder;
@@ -186,10 +186,14 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
 
     @Override
     SyntheticSourceCode createInstanceInitializerSourceCode(
-        DexType groupClassType, DexProto initializerProto) {
+        DexType groupClassType, DexMethod initializerMethod, Position callerPosition) {
       return new InstanceInitializerSourceCode(
-          factory, groupClassType, group.getLambdaIdField(factory),
-          id -> group.getCaptureField(factory, id), initializerProto);
+          factory,
+          groupClassType,
+          group.getLambdaIdField(factory),
+          id -> group.getCaptureField(factory, id),
+          initializerMethod,
+          callerPosition);
     }
   }
 
@@ -198,9 +202,14 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
       extends KotlinInstanceInitializerSourceCode {
     private final DexMethod objectInitializer;
 
-    InstanceInitializerSourceCode(DexItemFactory factory, DexType lambdaGroupType,
-        DexField idField, IntFunction<DexField> fieldGenerator, DexProto proto) {
-      super(lambdaGroupType, idField, fieldGenerator, proto);
+    InstanceInitializerSourceCode(
+        DexItemFactory factory,
+        DexType lambdaGroupType,
+        DexField idField,
+        IntFunction<DexField> fieldGenerator,
+        DexMethod method,
+        Position callerPosition) {
+      super(lambdaGroupType, idField, fieldGenerator, method, callerPosition);
       this.objectInitializer = factory.objectMethods.constructor;
     }
 

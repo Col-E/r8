@@ -968,9 +968,11 @@ public class Outliner {
 
     final private Outline outline;
     int argumentMapIndex = 0;
+    private final Position position;
 
-    OutlineSourceCode(Outline outline) {
+    OutlineSourceCode(Outline outline, DexMethod method) {
       this.outline = outline;
+      this.position = Position.synthetic(0, method, null);
     }
 
     @Override
@@ -1131,7 +1133,7 @@ public class Outliner {
 
     @Override
     public Position getCurrentPosition() {
-      return Position.none();
+      return position;
     }
 
     @Override
@@ -1188,7 +1190,7 @@ public class Outliner {
         InternalOptions options,
         Origin origin) {
       assert getOwner() == encodedMethod;
-      OutlineSourceCode source = new OutlineSourceCode(outline);
+      OutlineSourceCode source = new OutlineSourceCode(outline, encodedMethod.method);
       return new IRBuilder(encodedMethod, appInfo, source, options).build();
     }
 

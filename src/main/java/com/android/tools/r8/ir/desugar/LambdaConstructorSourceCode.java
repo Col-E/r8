@@ -8,14 +8,15 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import java.util.Collections;
 
 // Source code representing synthesized lambda constructor.
 final class LambdaConstructorSourceCode extends SynthesizedLambdaSourceCode {
 
-  LambdaConstructorSourceCode(LambdaClass lambda) {
-    super(lambda, lambda.constructor);
+  LambdaConstructorSourceCode(LambdaClass lambda, Position callerPosition) {
+    super(lambda, lambda.constructor, callerPosition);
   }
 
   @Override

@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo.NO_THROW;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
@@ -27,6 +28,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
   protected final static Predicate<IRBuilder> endsBlock = x -> true;
 
   protected final DexType receiver;
+  protected final DexMethod method;
   protected final DexProto proto;
 
   // The next free register, note that we always
@@ -45,10 +47,13 @@ public abstract class SyntheticSourceCode implements SourceCode {
   private List<Consumer<IRBuilder>> constructors = new ArrayList<>();
   private List<Predicate<IRBuilder>> traceEvents = new ArrayList<>();
 
-  protected SyntheticSourceCode(DexType receiver, DexProto proto) {
-    assert proto != null;
+  private final Position position;
+
+  protected SyntheticSourceCode(DexType receiver, DexMethod method, Position callerPosition) {
+    assert method != null;
     this.receiver = receiver;
-    this.proto = proto;
+    this.method = method;
+    this.proto = method.proto;
 
     // Initialize register values for receiver and arguments
     this.receiverRegister = receiver != null ? nextRegister(ValueType.OBJECT) : -1;
@@ -60,6 +65,8 @@ public abstract class SyntheticSourceCode implements SourceCode {
     for (int i = 0; i < paramCount; i++) {
       this.paramRegisters[i] = nextRegister(ValueType.fromDexType(params[i]));
     }
+
+    position = Position.synthetic(0, method, callerPosition);
   }
 
   protected final void add(Consumer<IRBuilder> constructor) {
@@ -231,7 +238,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
 
   @Override
   public Position getCurrentPosition() {
-    return Position.none();
+    return position;
   }
 
   @Override

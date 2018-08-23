@@ -19,25 +19,22 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public final class SynthesizedCode extends Code {
 
-  private final Supplier<SourceCode> sourceCodeProvider;
+  public interface SourceCodeProvider {
+    SourceCode get(Position callerPosition);
+  }
+
+  private final SourceCodeProvider sourceCodeProvider;
   private final Consumer<UseRegistry> registryCallback;
 
-  public SynthesizedCode(SourceCode sourceCodeProvider) {
-    this(() -> sourceCodeProvider);
+  public SynthesizedCode(SourceCodeProvider sourceCodeProvider) {
+    this(sourceCodeProvider, SynthesizedCode::registerReachableDefinitionsDefault);
   }
 
-  public SynthesizedCode(Supplier<SourceCode> sourceCodeProvider) {
+  public SynthesizedCode(SourceCodeProvider sourceCodeProvider, Consumer<UseRegistry> callback) {
     this.sourceCodeProvider = sourceCodeProvider;
-    this.registryCallback = SynthesizedCode::registerReachableDefinitionsDefault;
-  }
-
-  public SynthesizedCode(
-      SourceCode sourceCode, Consumer<UseRegistry> callback) {
-    this.sourceCodeProvider = () -> sourceCode;
     this.registryCallback = callback;
   }
 
@@ -54,7 +51,7 @@ public final class SynthesizedCode extends Code {
       InternalOptions options,
       Origin origin) {
     assert getOwner() == encodedMethod;
-    return new IRBuilder(encodedMethod, appInfo, sourceCodeProvider.get(), options).build();
+    return new IRBuilder(encodedMethod, appInfo, sourceCodeProvider.get(null), options).build();
   }
 
   @Override
@@ -69,7 +66,11 @@ public final class SynthesizedCode extends Code {
     assert getOwner() == encodedMethod;
     IRBuilder builder =
         new IRBuilder(
-            encodedMethod, appInfo, sourceCodeProvider.get(), options, valueNumberGenerator);
+            encodedMethod,
+            appInfo,
+            sourceCodeProvider.get(callerPosition),
+            options,
+            valueNumberGenerator);
     return builder.build();
   }
 

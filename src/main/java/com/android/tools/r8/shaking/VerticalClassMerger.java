@@ -1036,6 +1036,7 @@ public class VerticalClassMerger {
       DexType holder = target.type;
       DexProto proto = method.method.proto;
       DexString name = method.method.name;
+      DexMethod newMethod = application.dexItemFactory.createMethod(holder, proto, name);
       MethodAccessFlags accessFlags = method.accessFlags.copy();
       accessFlags.setBridge();
       accessFlags.setSynthetic();
@@ -1045,20 +1046,32 @@ public class VerticalClassMerger {
         assert !invocationTarget.isStaticMethod();
         code =
             new SynthesizedCode(
-                new ForwardMethodSourceCode(
-                    holder, proto, holder, invocationTarget.method, Type.DIRECT),
+                callerPosition ->
+                    new ForwardMethodSourceCode(
+                        holder,
+                        newMethod,
+                        holder,
+                        invocationTarget.method,
+                        Type.DIRECT,
+                        callerPosition),
                 registry -> registry.registerInvokeDirect(invocationTarget.method));
       } else {
         assert invocationTarget.isStaticMethod();
         code =
             new SynthesizedCode(
-                new ForwardMethodSourceCode(
-                    holder, proto, null, invocationTarget.method, Type.STATIC),
+                callerPosition ->
+                    new ForwardMethodSourceCode(
+                        holder,
+                        newMethod,
+                        null,
+                        invocationTarget.method,
+                        Type.STATIC,
+                        callerPosition),
                 registry -> registry.registerInvokeStatic(invocationTarget.method));
       }
       DexEncodedMethod bridge =
           new DexEncodedMethod(
-              application.dexItemFactory.createMethod(holder, proto, name),
+              newMethod,
               accessFlags,
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),

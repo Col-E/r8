@@ -6,9 +6,10 @@ package com.android.tools.r8.ir.synthetic;
 
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.google.common.collect.Lists;
@@ -23,19 +24,25 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   private final Invoke.Type invokeType;
   private final boolean castResult;
 
-  public ForwardMethodSourceCode(DexType receiver, DexProto proto,
-      DexType targetReceiver, DexMethod target, Invoke.Type invokeType) {
-    this(receiver, proto, targetReceiver, target, invokeType, false);
+  public ForwardMethodSourceCode(
+      DexType receiver,
+      DexMethod method,
+      DexType targetReceiver,
+      DexMethod target,
+      Type invokeType,
+      Position callerPosition) {
+    this(receiver, method, targetReceiver, target, invokeType, callerPosition, false);
   }
 
   public ForwardMethodSourceCode(
       DexType receiver,
-      DexProto proto,
+      DexMethod method,
       DexType targetReceiver,
       DexMethod target,
-      Invoke.Type invokeType,
+      Type invokeType,
+      Position callerPosition,
       boolean castResult) {
-    super(receiver, proto);
+    super(receiver, method, callerPosition);
     assert (targetReceiver == null) == (invokeType == Invoke.Type.STATIC);
 
     this.target = target;

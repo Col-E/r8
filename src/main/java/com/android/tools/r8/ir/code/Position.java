@@ -107,12 +107,16 @@ public class Position {
     if (file != null) {
       builder.append(file).append(":");
     }
-    if (method != null && (forceMethod || callerPosition != null)) {
-      builder.append("[").append(method).append("]");
-    }
     builder.append("#").append(line);
+    if (method != null && (forceMethod || callerPosition != null)) {
+      builder.append(":").append(method.name);
+    }
     if (callerPosition != null) {
-      builder.append(" <- ").append(callerPosition.toString(true));
+      Position caller = callerPosition;
+      while (caller != null) {
+        builder.append(";").append(caller.line).append(":").append(caller.method.name);
+        caller = caller.callerPosition;
+      }
     }
     return builder.toString();
   }

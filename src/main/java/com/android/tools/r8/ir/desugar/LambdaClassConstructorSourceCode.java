@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import java.util.Collections;
@@ -13,8 +14,8 @@ import java.util.Collections;
 // Used for stateless lambdas to instantiate singleton instance.
 final class LambdaClassConstructorSourceCode extends SynthesizedLambdaSourceCode {
 
-  LambdaClassConstructorSourceCode(LambdaClass lambda) {
-    super(lambda, lambda.classConstructor, null /* Class initializer is static */);
+  LambdaClassConstructorSourceCode(LambdaClass lambda, Position callerPosition) {
+    super(lambda, lambda.classConstructor, callerPosition, null /* Class initializer is static */);
     assert lambda.instanceField != null;
   }
 

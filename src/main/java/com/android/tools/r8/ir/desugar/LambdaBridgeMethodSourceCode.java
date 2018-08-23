@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import java.util.ArrayList;
@@ -17,8 +18,9 @@ final class LambdaBridgeMethodSourceCode extends SynthesizedLambdaSourceCode {
 
   private final DexMethod mainMethod;
 
-  LambdaBridgeMethodSourceCode(LambdaClass lambda, DexMethod mainMethod, DexMethod bridgeMethod) {
-    super(lambda, bridgeMethod);
+  LambdaBridgeMethodSourceCode(
+      LambdaClass lambda, DexMethod mainMethod, DexMethod bridgeMethod, Position callerPosition) {
+    super(lambda, bridgeMethod, callerPosition);
     this.mainMethod = mainMethod;
   }
 
