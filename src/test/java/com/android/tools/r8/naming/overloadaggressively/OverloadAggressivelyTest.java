@@ -13,7 +13,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.origin.Origin;
@@ -21,33 +20,60 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class OverloadAggressivelyTest extends TestBase {
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public OverloadAggressivelyTest(Backend backend) {
+    this.backend = backend;
+  }
 
   private AndroidApp runR8(AndroidApp app, Class main, Path out, boolean overloadaggressively)
       throws Exception {
-     R8Command command =
+    assert backend == Backend.DEX || backend == Backend.CF;
+    R8Command command =
         ToolHelper.addProguardConfigurationConsumer(
-            ToolHelper.prepareR8CommandBuilder(app),
-            pgConfig -> {
-              pgConfig.setPrintMapping(true);
-              pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
-            })
-        .addProguardConfiguration(
-            ImmutableList.of(
-                keepMainProguardConfiguration(main),
-                overloadaggressively ? "-overloadaggressively" : ""),
-            Origin.unknown())
-        .setOutput(out, OutputMode.DexIndexed)
-        .build();
+                ToolHelper.prepareR8CommandBuilder(app),
+                pgConfig -> {
+                  pgConfig.setPrintMapping(true);
+                  pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
+                })
+            .addProguardConfiguration(
+                ImmutableList.of(
+                    keepMainProguardConfiguration(main),
+                    overloadaggressively ? "-overloadaggressively" : ""),
+                Origin.unknown())
+            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .addLibraryFiles(TestBase.runtimeJar(backend))
+            .build();
     return ToolHelper.runR8(command, o -> {
       o.enableInlining = false;
       o.forceProguardCompatibility = true;
     });
+  }
+
+  private ProcessResult runRaw(AndroidApp app, String main) throws IOException {
+    if (backend == Backend.DEX) {
+      return runOnArtRaw(app, main);
+    } else {
+      assert backend == Backend.CF;
+      return runOnJavaRaw(app, main, Collections.emptyList());
+    }
   }
 
   private void fieldUpdater(boolean overloadaggressively) throws Exception {
@@ -79,14 +105,14 @@ public class OverloadAggressivelyTest extends TestBase {
     String main = FieldUpdater.class.getCanonicalName();
     ProcessResult javaOutput = runOnJavaRaw(main, classes);
     assertEquals(0, javaOutput.exitCode);
-    ProcessResult artOutput = runOnArtRaw(processedApp, main);
+    ProcessResult output = runRaw(processedApp, main);
     // TODO(b/72858955): eventually, R8 should avoid this field resolution conflict.
     if (overloadaggressively) {
-      assertNotEquals(0, artOutput.exitCode);
-      assertTrue(artOutput.stderr.contains("ClassCastException"));
+      assertNotEquals(0, output.exitCode);
+      assertTrue(output.stderr.contains("ClassCastException"));
     } else {
-      assertEquals(0, artOutput.exitCode);
-      assertEquals(javaOutput.stdout.trim(), artOutput.stdout.trim());
+      assertEquals(0, output.exitCode);
+      assertEquals(javaOutput.stdout.trim(), output.stdout.trim());
       // ART may dump its own debugging info through stderr.
       // assertEquals(javaOutput.stderr.trim(), artOutput.stderr.trim());
     }
@@ -125,14 +151,14 @@ public class OverloadAggressivelyTest extends TestBase {
     String main = FieldResolution.class.getCanonicalName();
     ProcessResult javaOutput = runOnJavaRaw(main, classes);
     assertEquals(0, javaOutput.exitCode);
-    ProcessResult artOutput = runOnArtRaw(processedApp, main);
+    ProcessResult output = runRaw(processedApp, main);
     // TODO(b/72858955): R8 should avoid field resolution conflict even w/ -overloadaggressively.
     if (overloadaggressively) {
-      assertNotEquals(0, artOutput.exitCode);
-      assertTrue(artOutput.stderr.contains("IllegalArgumentException"));
+      assertNotEquals(0, output.exitCode);
+      assertTrue(output.stderr.contains("IllegalArgumentException"));
     } else {
-      assertEquals(0, artOutput.exitCode);
-      assertEquals(javaOutput.stdout.trim(), artOutput.stdout.trim());
+      assertEquals(0, output.exitCode);
+      assertEquals(javaOutput.stdout.trim(), output.stdout.trim());
       // ART may dump its own debugging info through stderr.
       // assertEquals(javaOutput.stderr.trim(), artOutput.stderr.trim());
     }
@@ -177,14 +203,14 @@ public class OverloadAggressivelyTest extends TestBase {
     String main = MethodResolution.class.getCanonicalName();
     ProcessResult javaOutput = runOnJavaRaw(main, classes);
     assertEquals(0, javaOutput.exitCode);
-    ProcessResult artOutput = runOnArtRaw(processedApp, main);
+    ProcessResult output = runRaw(processedApp, main);
     // TODO(b/72858955): R8 should avoid method resolution conflict even w/ -overloadaggressively.
     if (overloadaggressively) {
-      assertEquals(0, artOutput.exitCode);
-      assertNotEquals(javaOutput.stdout.trim(), artOutput.stdout.trim());
+      assertEquals(0, output.exitCode);
+      assertNotEquals(javaOutput.stdout.trim(), output.stdout.trim());
     } else {
-      assertEquals(0, artOutput.exitCode);
-      assertEquals(javaOutput.stdout.trim(), artOutput.stdout.trim());
+      assertEquals(0, output.exitCode);
+      assertEquals(javaOutput.stdout.trim(), output.stdout.trim());
       // ART may dump its own debugging info through stderr.
       // assertEquals(javaOutput.stderr.trim(), artOutput.stderr.trim());
     }
