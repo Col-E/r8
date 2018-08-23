@@ -236,14 +236,18 @@ final class InterfaceProcessor {
       assert !rewriter.factory.isClassConstructor(direct.method);
 
       DexMethod origMethod = direct.method;
-      DexEncodedMethod newEncodedMethod = new DexEncodedMethod(
-          rewriter.staticAsMethodOfDispatchClass(origMethod),
-          MethodAccessFlags.fromSharedAccessFlags(
-              Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false),
-          DexAnnotationSet.empty(),
-          ParameterAnnotationsList.empty(),
-          new SynthesizedCode(new ForwardMethodSourceCode(
-              null, origMethod.proto, null, origMethod, Type.STATIC)));
+      DexMethod newMethod = rewriter.staticAsMethodOfDispatchClass(origMethod);
+      DexEncodedMethod newEncodedMethod =
+          new DexEncodedMethod(
+              newMethod,
+              MethodAccessFlags.fromSharedAccessFlags(
+                  Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false),
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              new SynthesizedCode(
+                  callerPosition ->
+                      new ForwardMethodSourceCode(
+                          null, newMethod, null, origMethod, Type.STATIC, callerPosition)));
       newEncodedMethod.markNeverInline();
       dispatchMethods.add(newEncodedMethod);
     }

@@ -179,7 +179,9 @@ final class LambdaClass {
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new SynthesizedCode(() -> new LambdaMainMethodSourceCode(this, mainMethod)));
+            new SynthesizedCode(
+                callerPosition ->
+                    new LambdaMainMethodSourceCode(this, mainMethod, callerPosition)));
 
     // Synthesize bridge methods.
     for (DexProto bridgeProto : descriptor.bridges) {
@@ -196,7 +198,9 @@ final class LambdaClass {
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               new SynthesizedCode(
-                  () -> new LambdaBridgeMethodSourceCode(this, mainMethod, bridgeMethod)));
+                  callerPosition ->
+                      new LambdaBridgeMethodSourceCode(
+                          this, mainMethod, bridgeMethod, callerPosition)));
     }
     return methods;
   }
@@ -216,7 +220,8 @@ final class LambdaClass {
                 true),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new SynthesizedCode(() -> new LambdaConstructorSourceCode(this)));
+            new SynthesizedCode(
+                callerPosition -> new LambdaConstructorSourceCode(this, callerPosition)));
 
     // Class constructor for stateless lambda classes.
     if (stateless) {
@@ -227,7 +232,8 @@ final class LambdaClass {
                   Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new SynthesizedCode(new LambdaClassConstructorSourceCode(this)));
+              new SynthesizedCode(
+                  callerPosition -> new LambdaClassConstructorSourceCode(this, callerPosition)));
     }
     return methods;
   }
@@ -544,9 +550,15 @@ final class LambdaClass {
           MethodAccessFlags.fromSharedAccessFlags(
               Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC,
               false);
-      DexEncodedMethod accessorEncodedMethod = new DexEncodedMethod(
-          callTarget, accessorFlags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(),
-          new SynthesizedCode(new AccessorMethodSourceCode(LambdaClass.this)));
+      DexEncodedMethod accessorEncodedMethod =
+          new DexEncodedMethod(
+              callTarget,
+              accessorFlags,
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              new SynthesizedCode(
+                  callerPosition ->
+                      new AccessorMethodSourceCode(LambdaClass.this, callerPosition)));
       accessorClass.setDirectMethods(appendMethod(
           accessorClass.directMethods(), accessorEncodedMethod));
       rewriter.converter.optimizeSynthesizedMethod(accessorEncodedMethod);

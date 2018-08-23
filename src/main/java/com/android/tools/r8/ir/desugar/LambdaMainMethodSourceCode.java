@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.google.common.collect.Lists;
@@ -23,8 +24,8 @@ import java.util.List;
 // Source code representing synthesized lambda main method
 final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
 
-  LambdaMainMethodSourceCode(LambdaClass lambda, DexMethod mainMethod) {
-    super(lambda, mainMethod);
+  LambdaMainMethodSourceCode(LambdaClass lambda, DexMethod mainMethod, Position callerPosition) {
+    super(lambda, mainMethod, callerPosition);
   }
 
   private boolean checkSignatures(

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import java.util.ArrayList;
@@ -19,8 +20,9 @@ import java.util.List;
 // Source code representing synthesized accessor method.
 final class AccessorMethodSourceCode extends SynthesizedLambdaSourceCode {
 
-  AccessorMethodSourceCode(LambdaClass lambda) {
-    super(lambda, lambda.target.callTarget, null /* no receiver for static method */);
+  AccessorMethodSourceCode(LambdaClass lambda, Position callerPosition) {
+    super(
+        lambda, lambda.target.callTarget, callerPosition, null /* no receiver for static method */);
     // We should never need an accessor for interface methods since
     // they are supposed to be public.
     assert !descriptor().implHandle.type.isInvokeInterface();

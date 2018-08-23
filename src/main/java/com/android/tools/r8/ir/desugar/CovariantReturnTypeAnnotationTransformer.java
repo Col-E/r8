@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
@@ -157,20 +158,23 @@ public final class CovariantReturnTypeAnnotationTransformer {
     MethodAccessFlags newAccessFlags = method.accessFlags.copy();
     newAccessFlags.setBridge();
     newAccessFlags.setSynthetic();
+    DexMethod newMethod = factory.createMethod(method.method.holder, newProto, method.method.name);
     DexEncodedMethod newVirtualMethod =
         new DexEncodedMethod(
-            factory.createMethod(method.method.holder, newProto, method.method.name),
+            newMethod,
             newAccessFlags,
             method.annotations.keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)),
             method.parameterAnnotationsList.keepIf(Predicates.alwaysTrue()),
             new SynthesizedCode(
-                new ForwardMethodSourceCode(
-                    clazz.type,
-                    newProto,
-                    method.method.holder,
-                    method.method,
-                    Invoke.Type.VIRTUAL,
-                    true)));
+                callerPosition ->
+                    new ForwardMethodSourceCode(
+                        clazz.type,
+                        newMethod,
+                        method.method.holder,
+                        method.method,
+                        Invoke.Type.VIRTUAL,
+                        callerPosition,
+                        true)));
     // Optimize to generate DexCode instead of SynthesizedCode.
     converter.optimizeSynthesizedMethod(newVirtualMethod);
     return newVirtualMethod;

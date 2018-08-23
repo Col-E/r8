@@ -7,9 +7,10 @@ package com.android.tools.r8.ir.optimize.lambda.kotlin;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -22,9 +23,14 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
   private final DexField idField;
   private final List<DexEncodedMethod> implMethods;
 
-  KotlinLambdaVirtualMethodSourceCode(DexItemFactory factory, DexType groupClass,
-      DexProto proto, DexField idField, List<DexEncodedMethod> implMethods) {
-    super(groupClass, proto);
+  KotlinLambdaVirtualMethodSourceCode(
+      DexItemFactory factory,
+      DexType groupClass,
+      DexMethod method,
+      DexField idField,
+      List<DexEncodedMethod> implMethods,
+      Position callerPosition) {
+    super(groupClass, method, callerPosition);
     this.factory = factory;
     this.idField = idField;
     this.implMethods = implMethods;
