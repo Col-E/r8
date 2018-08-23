@@ -128,6 +128,7 @@ public class CodeRewriter {
   private static final int MAX_FILL_ARRAY_SIZE = 8 * Constants.KILOBYTE;
   // This constant was determined by experimentation.
   private static final int STOP_SHARED_CONSTANT_THRESHOLD = 50;
+  private static final int SELF_RECURSION_LIMIT = 4;
 
   public final IRConverter converter;
   private final AppInfo appInfo;
@@ -257,6 +258,41 @@ public class CodeRewriter {
           replacedBlocks.add(target);
         }
       }
+    }
+  }
+
+  // For method with many self-recursive calls, insert a try-catch to disable inlining.
+  // Marshmallow dex2oat aggressively inlines and eats up all the memory on devices.
+  public static void disableDex2OatInliningForSelfRecursiveMethods(
+      IRCode code, InternalOptions options) {
+    if (!options.canHaveDex2OatInliningIssue() || code.hasCatchHandlers()) {
+      // Catch handlers disables inlining, so if the method already has catch handlers
+      // there is nothing to do.
+      return;
+    }
+    InstructionIterator it = code.instructionIterator();
+    int selfRecursionFanOut = 0;
+    Instruction lastSelfRecursiveCall = null;
+    while (it.hasNext()) {
+      Instruction i = it.next();
+      if (i.isInvokeMethod() && i.asInvokeMethod().getInvokedMethod() == code.method.method) {
+        selfRecursionFanOut++;
+        lastSelfRecursiveCall = i;
+      }
+    }
+    if (selfRecursionFanOut > SELF_RECURSION_LIMIT) {
+      assert lastSelfRecursiveCall != null;
+      // Split out the last recursive call in its own block.
+      InstructionListIterator splitIterator =
+          lastSelfRecursiveCall.getBlock().listIterator(lastSelfRecursiveCall);
+      splitIterator.previous();
+      BasicBlock newBlock = splitIterator.split(code, 1);
+      // Generate rethrow block.
+      BasicBlock rethrowBlock =
+          BasicBlock.createRethrowBlock(code, lastSelfRecursiveCall.getPosition());
+      code.blocks.add(rethrowBlock);
+      // Add catch handler to the block containing the last recursive call.
+      newBlock.addCatchHandler(rethrowBlock, options.itemFactory.throwableType);
     }
   }
 

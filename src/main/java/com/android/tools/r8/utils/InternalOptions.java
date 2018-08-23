@@ -637,6 +637,14 @@ public class InternalOptions {
     return minApiLevel < AndroidApiLevel.N.getLevel();
   }
 
+  // dex2oat on Marshmallow VMs does aggressive inlining which can eat up all the memory on
+  // devices for self-recursive methods.
+  //
+  // See b/111960171
+  public boolean canHaveDex2OatInliningIssue() {
+    return minApiLevel < AndroidApiLevel.N.getLevel();
+  }
+
   // Art 7.0.0 and later Art JIT may perform an invalid optimization if a string new-instance does
   // not flow directly to the init call.
   //
