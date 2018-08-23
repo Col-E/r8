@@ -80,9 +80,6 @@ public class ProxiesTest extends TestBase {
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableDevirtualization = false);
     inspection.accept(new CodeInspector(app));
     String result = backend == Backend.DEX ? runOnArt(app, mainClass) : runOnJava(app, mainClass);
-    if (ToolHelper.isWindows()) {
-      result = result.replace(System.lineSeparator(), "\n");
-    }
     assertEquals(expectedResult, result);
   }
 
