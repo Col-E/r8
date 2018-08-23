@@ -583,8 +583,9 @@ public final class R8Command extends BaseCompilerCommand {
     internal.minimalMainDex = internal.debug;
     internal.mainDexListConsumer = mainDexListConsumer;
     internal.lineNumberOptimization =
-        internal.debug || (forceProguardCompatibility && !proguardConfiguration.isOptimizing())
-            ? LineNumberOptimization.OFF : LineNumberOptimization.ON;
+        !internal.debug && (proguardConfiguration.isOptimizing() || internal.enableMinification)
+            ? LineNumberOptimization.ON
+            : LineNumberOptimization.OFF;
 
     if (internal.debug) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
