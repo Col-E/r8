@@ -17,9 +17,11 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfThrow;
+import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.Opcodes;
 
 public class CfInstructionSubject implements InstructionSubject {
@@ -86,6 +88,12 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public boolean isReturnVoid() {
     return instruction instanceof CfReturnVoid;
+  }
+
+  @Override
+  public boolean isReturnObject() {
+    return instruction instanceof CfReturn
+        && ((CfReturn) instruction).getType() == ValueType.OBJECT;
   }
 
   @Override

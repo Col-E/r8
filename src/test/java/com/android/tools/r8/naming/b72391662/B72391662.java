@@ -10,9 +10,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageSuper;
 import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageTestClass;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
@@ -22,22 +22,99 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class B72391662 extends ProguardCompatibilityTestBase {
 
   private static final List<Class> CLASSES = ImmutableList.of(
       TestMain.class, Interface.class, Super.class, TestClass.class,
       OtherPackageSuper.class, OtherPackageTestClass.class);
 
-  private void doTest_keepAll(
-      Shrinker shrinker,
-      String repackagePrefix,
-      boolean allowAccessModification,
-      boolean minify) throws Exception {
+  private final Shrinker shrinker;
+  private final String repackagePrefix;
+  private final boolean allowAccessModification;
+  private final boolean minify;
+
+  @Parameterized.Parameters(name = "Shrinker: {0}, Prefix: {1}, AllowAccessMod: {2}, Minify: {3}")
+  public static Collection<Object[]> data() {
+    List<Object[]> result = new ArrayList<>();
+    for (Shrinker shrinker :
+        new Shrinker[] {
+          Shrinker.R8,
+          Shrinker.R8_COMPAT,
+          Shrinker.PROGUARD6_THEN_D8,
+          Shrinker.R8_CF,
+          Shrinker.R8_COMPAT_CF
+        }) {
+      for (boolean useRepackagePrefix : new boolean[] {false, true}) {
+        String repackagePrefix;
+        if (useRepackagePrefix) {
+          switch (shrinker) {
+            case R8:
+              repackagePrefix = "r8";
+              break;
+            case R8_COMPAT:
+              repackagePrefix = "rc";
+              break;
+            case PROGUARD6_THEN_D8:
+              repackagePrefix = "pg";
+              break;
+            case R8_CF:
+              repackagePrefix = "r8cf";
+              break;
+            case R8_COMPAT_CF:
+              repackagePrefix = "rccf";
+              break;
+            default:
+              assert false;
+              throw new Unreachable();
+          }
+        } else {
+          repackagePrefix = null;
+        }
+        for (boolean allowAccessModification : new boolean[] {false, true}) {
+          for (boolean minify : new boolean[] {false, true}) {
+            result.add(new Object[] {shrinker, repackagePrefix, allowAccessModification, minify});
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  public B72391662(
+      Shrinker shrinker, String repackagePrefix, boolean allowAccessModification, boolean minify) {
+    this.shrinker = shrinker;
+    this.repackagePrefix = repackagePrefix;
+    this.allowAccessModification = allowAccessModification;
+    this.minify = minify;
+  }
+
+  private String run(AndroidApp app, String main) throws IOException {
+    if (generatesDex(shrinker)) {
+      return runOnArt(app, main);
+    } else {
+      assert generatesCf(shrinker);
+      return runOnJava(app, main, Collections.emptyList());
+    }
+  }
+
+  private static boolean vmVersionIgnored() {
+    return !ToolHelper.getDexVm().getVersion().isAtLeast(Version.V7_0_0);
+  }
+
+  @Test
+  public void test_keepAll() throws Exception {
+    Assume.assumeFalse(generatesDex(shrinker) && vmVersionIgnored());
     Class mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
     List<String> config = ImmutableList.of(
@@ -58,7 +135,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     );
 
     AndroidApp app = runShrinker(shrinker, CLASSES, config);
-    assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
+    assertEquals("123451234567\nABC\n", run(app, mainClass.getCanonicalName()));
 
     CodeInspector codeInspector =
         isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
@@ -85,49 +162,8 @@ public class B72391662 extends ProguardCompatibilityTestBase {
   }
 
   @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
-  public void test_keepAll_R8() throws Exception {
-    doTest_keepAll(Shrinker.R8, "r8", true, true);
-    doTest_keepAll(Shrinker.R8, "r8", true, false);
-    doTest_keepAll(Shrinker.R8, "r8", false, true);
-    doTest_keepAll(Shrinker.R8, "r8", false, false);
-    doTest_keepAll(Shrinker.R8, null, true, true);
-    doTest_keepAll(Shrinker.R8, null, true, false);
-    doTest_keepAll(Shrinker.R8, null, false, true);
-    doTest_keepAll(Shrinker.R8, null, false, false);
-  }
-
-  @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
-  public void test_keepAll_R8Compat() throws Exception {
-    doTest_keepAll(Shrinker.R8_COMPAT, "rc", true, true);
-    doTest_keepAll(Shrinker.R8_COMPAT, "rc", true, false);
-    doTest_keepAll(Shrinker.R8_COMPAT, "rc", false, true);
-    doTest_keepAll(Shrinker.R8_COMPAT, "rc", false, false);
-    doTest_keepAll(Shrinker.R8_COMPAT, null, true, true);
-    doTest_keepAll(Shrinker.R8_COMPAT, null, true, false);
-    doTest_keepAll(Shrinker.R8_COMPAT, null, false, true);
-    doTest_keepAll(Shrinker.R8_COMPAT, null, false, false);
-  }
-
-  @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
-  public void test_keepAll_Proguard6() throws Exception {
-    doTest_keepAll(Shrinker.PROGUARD6_THEN_D8, "pg", true, true);
-    doTest_keepAll(Shrinker.PROGUARD6_THEN_D8, "pg", true, false);
-    doTest_keepAll(Shrinker.PROGUARD6_THEN_D8, "pg", false, true);
-    doTest_keepAll(Shrinker.PROGUARD6_THEN_D8, "pg", false, false);
-    doTest_keepAll(Shrinker.PROGUARD6_THEN_D8, null, true, true);
-    doTest_keepAll(Shrinker.PROGUARD6_THEN_D8, null, true, false);
-    doTest_keepAll(Shrinker.PROGUARD6_THEN_D8, null, false, true);
-    doTest_keepAll(Shrinker.PROGUARD6_THEN_D8, null, false, false);
-  }
-
-  private void doTest_keepNonPublic(
-      Shrinker shrinker,
-      String repackagePrefix,
-      boolean allowAccessModification,
-      boolean minify) throws Exception {
+  public void test_keepNonPublic() throws Exception {
+    Assume.assumeFalse(generatesDex(shrinker) && vmVersionIgnored());
     Class mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
     List<String> config = ImmutableList.of(
@@ -148,7 +184,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     );
 
     AndroidApp app = runShrinker(shrinker, CLASSES, config);
-    assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
+    assertEquals("123451234567\nABC\n", run(app, mainClass.getCanonicalName()));
 
     CodeInspector codeInspector =
         isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
@@ -175,49 +211,8 @@ public class B72391662 extends ProguardCompatibilityTestBase {
   }
 
   @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
-  public void test_keepNonPublic_R8() throws Exception {
-    doTest_keepNonPublic(Shrinker.R8, "r8", true, true);
-    doTest_keepNonPublic(Shrinker.R8, "r8", true, false);
-    doTest_keepNonPublic(Shrinker.R8, "r8", false, true);
-    doTest_keepNonPublic(Shrinker.R8, "r8", false, false);
-    doTest_keepNonPublic(Shrinker.R8, null, true, true);
-    doTest_keepNonPublic(Shrinker.R8, null, true, false);
-    doTest_keepNonPublic(Shrinker.R8, null, false, true);
-    doTest_keepNonPublic(Shrinker.R8, null, false, false);
-  }
-
-  @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
-  public void test_keepNonPublic_R8Compat() throws Exception {
-    doTest_keepNonPublic(Shrinker.R8_COMPAT, "rc", true, true);
-    doTest_keepNonPublic(Shrinker.R8_COMPAT, "rc", true, false);
-    doTest_keepNonPublic(Shrinker.R8_COMPAT, "rc", false, true);
-    doTest_keepNonPublic(Shrinker.R8_COMPAT, "rc", false, false);
-    doTest_keepNonPublic(Shrinker.R8_COMPAT, null, true, true);
-    doTest_keepNonPublic(Shrinker.R8_COMPAT, null, true, false);
-    doTest_keepNonPublic(Shrinker.R8_COMPAT, null, false, true);
-    doTest_keepNonPublic(Shrinker.R8_COMPAT, null, false, false);
-  }
-
-  @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
-  public void test_keepNonPublic_Proguard6() throws Exception {
-    doTest_keepNonPublic(Shrinker.PROGUARD6_THEN_D8, "pg", true, true);
-    doTest_keepNonPublic(Shrinker.PROGUARD6_THEN_D8, "pg", true, false);
-    doTest_keepNonPublic(Shrinker.PROGUARD6_THEN_D8, "pg", false, true);
-    doTest_keepNonPublic(Shrinker.PROGUARD6_THEN_D8, "pg", false, false);
-    doTest_keepNonPublic(Shrinker.PROGUARD6_THEN_D8, null, true, true);
-    doTest_keepNonPublic(Shrinker.PROGUARD6_THEN_D8, null, true, false);
-    doTest_keepNonPublic(Shrinker.PROGUARD6_THEN_D8, null, false, true);
-    doTest_keepNonPublic(Shrinker.PROGUARD6_THEN_D8, null, false, false);
-  }
-
-  private void doTest_keepPublic(
-      Shrinker shrinker,
-      String repackagePrefix,
-      boolean allowAccessModification,
-      boolean minify) throws Exception {
+  public void test_keepPublic() throws Exception {
+    Assume.assumeFalse(generatesDex(shrinker) && vmVersionIgnored());
     Class mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
     Iterable<String> config = ImmutableList.of(
@@ -245,7 +240,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     }
 
     AndroidApp app = runShrinker(shrinker, CLASSES, config);
-    assertEquals("123451234567\nABC\n", runOnArt(app, mainClass.getCanonicalName()));
+    assertEquals("123451234567\nABC\n", run(app, mainClass.getCanonicalName()));
 
     CodeInspector codeInspector =
         isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
@@ -263,44 +258,5 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     boolean publicizeCondition = isR8(shrinker) ? allowAccessModification
         : minify && repackagePrefix != null && allowAccessModification;
     assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
-  }
-
-  @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
-  public void test_keepPublic_R8() throws Exception {
-    doTest_keepPublic(Shrinker.R8, "r8", true, true);
-    doTest_keepPublic(Shrinker.R8, "r8", true, false);
-    doTest_keepPublic(Shrinker.R8, "r8", false, true);
-    doTest_keepPublic(Shrinker.R8, "r8", false, false);
-    doTest_keepPublic(Shrinker.R8, null, true, true);
-    doTest_keepPublic(Shrinker.R8, null, true, false);
-    doTest_keepPublic(Shrinker.R8, null, false, true);
-    doTest_keepPublic(Shrinker.R8, null, false, false);
-  }
-
-  @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
-  public void test_keepPublic_R8Compat() throws Exception {
-    doTest_keepPublic(Shrinker.R8_COMPAT, "rc", true, true);
-    doTest_keepPublic(Shrinker.R8_COMPAT, "rc", true, false);
-    doTest_keepPublic(Shrinker.R8_COMPAT, "rc", false, true);
-    doTest_keepPublic(Shrinker.R8_COMPAT, "rc", false, false);
-    doTest_keepPublic(Shrinker.R8_COMPAT, null, true, true);
-    doTest_keepPublic(Shrinker.R8_COMPAT, null, true, false);
-    doTest_keepPublic(Shrinker.R8_COMPAT, null, false, true);
-    doTest_keepPublic(Shrinker.R8_COMPAT, null, false, false);
-  }
-
-  @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
-  public void test_keepPublic_Proguard6() throws Exception {
-    doTest_keepPublic(Shrinker.PROGUARD6_THEN_D8, "pg", true, true);
-    doTest_keepPublic(Shrinker.PROGUARD6_THEN_D8, "pg", true, false);
-    doTest_keepPublic(Shrinker.PROGUARD6_THEN_D8, "pg", false, true);
-    doTest_keepPublic(Shrinker.PROGUARD6_THEN_D8, "pg", false, false);
-    doTest_keepPublic(Shrinker.PROGUARD6_THEN_D8, null, true, true);
-    doTest_keepPublic(Shrinker.PROGUARD6_THEN_D8, null, true, false);
-    doTest_keepPublic(Shrinker.PROGUARD6_THEN_D8, null, false, true);
-    doTest_keepPublic(Shrinker.PROGUARD6_THEN_D8, null, false, false);
   }
 }

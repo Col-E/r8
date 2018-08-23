@@ -37,6 +37,7 @@ import com.android.tools.r8.code.IputShort;
 import com.android.tools.r8.code.IputWide;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Nop;
+import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.Sget;
 import com.android.tools.r8.code.SgetBoolean;
@@ -120,6 +121,11 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isReturnVoid() {
     return instruction instanceof ReturnVoid;
+  }
+
+  @Override
+  public boolean isReturnObject() {
+    return instruction instanceof ReturnObject;
   }
 
   @Override

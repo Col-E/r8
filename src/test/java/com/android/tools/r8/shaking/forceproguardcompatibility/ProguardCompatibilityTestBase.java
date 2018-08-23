@@ -50,6 +50,19 @@ public class ProguardCompatibilityTestBase extends TestBase {
         || shrinker == Shrinker.R8_CF;
   }
 
+  protected static boolean generatesDex(Shrinker shrinker) {
+    return shrinker == Shrinker.PROGUARD6_THEN_D8
+        || shrinker == Shrinker.R8_COMPAT
+        || shrinker == Shrinker.R8;
+  }
+
+  protected static boolean generatesCf(Shrinker shrinker) {
+    return shrinker == Shrinker.PROGUARD5
+        || shrinker == Shrinker.PROGUARD6
+        || shrinker == Shrinker.R8_COMPAT_CF
+        || shrinker == Shrinker.R8_CF;
+  }
+
   protected AndroidApp runShrinker(
       Shrinker mode, List<Class> programClasses, Iterable<String> proguardConfigs)
       throws Exception {

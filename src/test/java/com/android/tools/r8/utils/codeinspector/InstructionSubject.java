@@ -33,6 +33,8 @@ public interface InstructionSubject {
 
   boolean isReturnVoid();
 
+  boolean isReturnObject();
+
   boolean isThrow();
 
   boolean isInvoke();
