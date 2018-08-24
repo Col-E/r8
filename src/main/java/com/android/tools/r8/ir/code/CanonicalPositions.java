@@ -14,19 +14,15 @@ import java.util.Map;
  */
 public class CanonicalPositions {
   private final Position callerPosition;
-  private final boolean preserveCaller;
   private final Map<Position, Position> canonicalPositions;
   private final Position preamblePosition;
 
-  /** For callerPosition and preserveCaller see canonicalizeCallerPosition. */
   public CanonicalPositions(
       Position callerPosition,
-      boolean preserveCaller,
       int expectedPositionsCount,
       DexMethod method) {
     canonicalPositions =
         new HashMap<>(1 + (callerPosition == null ? 0 : 1) + expectedPositionsCount);
-    this.preserveCaller = preserveCaller;
     this.callerPosition = callerPosition;
     if (callerPosition != null) {
       canonicalPositions.put(callerPosition, callerPosition);
@@ -43,7 +39,7 @@ public class CanonicalPositions {
   }
 
   /**
-   * Update the internal set if this is the first occurence of the position's value and return
+   * Update the internal set if this is the first occurrence of the position's value and return
    * canonical instance of position.
    */
   public Position getCanonical(Position position) {
@@ -57,10 +53,6 @@ public class CanonicalPositions {
    * false.
    */
   public Position canonicalizeCallerPosition(Position caller) {
-    if (!preserveCaller) {
-      return null;
-    }
-
     if (caller == null) {
       return callerPosition;
     }

@@ -200,8 +200,7 @@ public class CfSourceCode implements SourceCode {
       DexEncodedMethod method,
       DexMethod originalMethod,
       Position callerPosition,
-      Origin origin,
-      boolean preserveCaller) {
+      Origin origin) {
     this.code = code;
     this.method = method;
     this.origin = origin;
@@ -216,8 +215,7 @@ public class CfSourceCode implements SourceCode {
       }
     }
     this.state = new CfState(origin);
-    canonicalPositions =
-        new CanonicalPositions(callerPosition, preserveCaller, cfPositionCount, originalMethod);
+    canonicalPositions = new CanonicalPositions(callerPosition, cfPositionCount, originalMethod);
   }
 
   @Override

@@ -78,11 +78,7 @@ public class DexSourceCode implements SourceCode {
   private final DexMethod originalMethod;
 
   public DexSourceCode(
-      DexCode code,
-      DexEncodedMethod method,
-      DexMethod originalMethod,
-      Position callerPosition,
-      boolean preserveCaller) {
+      DexCode code, DexEncodedMethod method, DexMethod originalMethod, Position callerPosition) {
     this.code = code;
     this.proto = method.method.proto;
     this.accessFlags = method.accessFlags;
@@ -96,7 +92,6 @@ public class DexSourceCode implements SourceCode {
     canonicalPositions =
         new CanonicalPositions(
             callerPosition,
-            preserveCaller,
             debugEntries == null ? 0 : debugEntries.size(),
             originalMethod);
   }
