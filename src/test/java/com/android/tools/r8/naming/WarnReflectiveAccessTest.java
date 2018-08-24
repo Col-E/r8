@@ -63,7 +63,7 @@ class WarnReflectiveAccessTestMain {
 public class WarnReflectiveAccessTest extends TestBase {
 
   // See "Method foo" in WarnReflectiveAccessTestMain.main().
-  private static int LINE_NUMBER_OF_MARKED_LINE = 58;
+  private static int LINE_NUMBER_OF_MARKED_LINE = 57;
 
   private KeepingDiagnosticHandler handler;
   private Reporter reporter;
