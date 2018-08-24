@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
@@ -119,9 +120,7 @@ public class Minifier {
 
     @Override
     void forAllRenamedTypes(Consumer<DexType> consumer) {
-      renaming.keySet().stream()
-          .filter(DexType.class::isInstance)
-          .map(DexType.class::cast)
+      DexReference.filterDexType(DexReference.filterDexReference(renaming.keySet().stream()))
           .forEach(consumer);
     }
 

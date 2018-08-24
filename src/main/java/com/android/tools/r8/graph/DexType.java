@@ -18,7 +18,7 @@ import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class DexType extends IndexedDexItem implements PresortedComparable<DexType> {
+public class DexType extends DexReference implements PresortedComparable<DexType> {
 
   private final static int ROOT_LEVEL = 0;
   private final static int UNKNOWN_LEVEL = -1;
@@ -310,6 +310,16 @@ public class DexType extends IndexedDexItem implements PresortedComparable<DexTy
   @Override
   public int getOffset(ObjectToOffsetMapping mapping) {
     return mapping.getOffsetFor(this);
+  }
+
+  @Override
+  public boolean isDexType() {
+    return true;
+  }
+
+  @Override
+  public DexType asDexType() {
+    return this;
   }
 
   @Override

@@ -10,11 +10,12 @@ import static com.android.tools.r8.utils.DescriptorUtils.getPackageBinaryNameFro
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -82,12 +83,12 @@ class ClassNameMinifier {
     this.classDictionary = options.proguardConfiguration.getClassObfuscationDictionary();
     this.keepInnerClassStructure = options.proguardConfiguration.getKeepAttributes().signature;
     this.noObfuscationTypes =
-        DexClass.filter(rootSet.noObfuscation.stream())
-            .map(DexClass::getType)
+        DexReference.filterDexType(
+            DexDefinition.mapToReference(rootSet.noObfuscation.stream()))
             .collect(Collectors.toSet());
     this.keepPackageName =
-        DexClass.filter(rootSet.keepPackageName.stream())
-            .map(DexClass::getType)
+        DexReference.filterDexType(
+            DexDefinition.mapToReference(rootSet.keepPackageName.stream()))
             .collect(Collectors.toSet());
 
     // Initialize top-level naming state.
@@ -187,16 +188,16 @@ class ClassNameMinifier {
     }
   }
 
-  private void parseError(DexItem item, Origin origin, GenericSignatureFormatError e) {
+  private void parseError(DexDefinition item, Origin origin, GenericSignatureFormatError e) {
     StringBuilder message = new StringBuilder("Invalid signature for ");
-    if (item instanceof DexClass) {
+    if (item.isDexClass()) {
       message.append("class ");
-      message.append(((DexClass) item).getType().toSourceString());
-    } else if (item instanceof DexEncodedField) {
+      message.append((item.asDexClass()).getType().toSourceString());
+    } else if (item.isDexEncodedField()) {
       message.append("field ");
       message.append(item.toSourceString());
     } else {
-      assert item instanceof DexEncodedMethod;
+      assert item.isDexEncodedMethod();
       message.append("method ");
       message.append(item.toSourceString());
     }

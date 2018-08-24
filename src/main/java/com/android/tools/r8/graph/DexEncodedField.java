@@ -63,6 +63,21 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     return field;
   }
 
+  @Override
+  public DexReference toReference() {
+    return field;
+  }
+
+  @Override
+  public boolean isDexEncodedField() {
+    return true;
+  }
+
+  @Override
+  public DexEncodedField asDexEncodedField() {
+    return this;
+  }
+
   public boolean hasAnnotation() {
     return !annotations.isEmpty();
   }

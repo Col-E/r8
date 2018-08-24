@@ -64,6 +64,16 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
   }
 
   @Override
+  public boolean isDexField() {
+    return true;
+  }
+
+  @Override
+  public DexField asDexField() {
+    return this;
+  }
+
+  @Override
   public int compareTo(DexField other) {
     return sortedCompareTo(other.getSortedIndex());
   }

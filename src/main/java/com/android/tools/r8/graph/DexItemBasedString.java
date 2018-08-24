@@ -8,7 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import java.util.Arrays;
 
 public class DexItemBasedString extends DexString {
-  public final IndexedDexItem basedOn;
+  public final DexReference basedOn;
 
   DexItemBasedString(DexType basedOn) {
     super(basedOn.toString());

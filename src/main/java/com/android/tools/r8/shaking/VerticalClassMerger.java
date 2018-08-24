@@ -11,13 +11,14 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -221,7 +222,9 @@ public class VerticalClassMerger {
     // TODO(christofferqa): Remove the invariant that the graph lense should not modify any
     // methods from the sets alwaysInline and noSideEffects (see use of assertNotModified).
     extractPinnedItems(appInfo.alwaysInline, AbortReason.ALWAYS_INLINE);
-    extractPinnedItems(appInfo.noSideEffects.keySet(), AbortReason.NO_SIDE_EFFECTS);
+    extractPinnedItems(
+        DexDefinition.mapToReference(appInfo.noSideEffects.keySet().stream())::iterator,
+        AbortReason.NO_SIDE_EFFECTS);
 
     for (DexProgramClass clazz : classes) {
       for (DexEncodedMethod method : clazz.methods()) {
@@ -258,23 +261,21 @@ public class VerticalClassMerger {
     }
   }
 
-  private <T extends DexItem> void extractPinnedItems(Iterable<T> items, AbortReason reason) {
-    for (DexItem item : items) {
-      if (item instanceof DexType || item instanceof DexClass) {
-        DexType type = item instanceof DexType ? (DexType) item : ((DexClass) item).type;
-        markTypeAsPinned(type, reason);
-      } else if (item instanceof DexField || item instanceof DexEncodedField) {
+  private <T extends DexReference> void extractPinnedItems(Iterable<T> items, AbortReason reason) {
+    for (DexReference item : items) {
+      if (item.isDexType()) {
+        markTypeAsPinned(item.asDexType(), reason);
+      } else if (item.isDexField()) {
         // Pin the holder and the type of the field.
-        DexField field =
-            item instanceof DexField ? (DexField) item : ((DexEncodedField) item).field;
+        DexField field = item.asDexField();
         markTypeAsPinned(field.clazz, reason);
         markTypeAsPinned(field.type, reason);
-      } else if (item instanceof DexMethod || item instanceof DexEncodedMethod) {
+      } else {
+        assert item.isDexMethod();
         // Pin the holder, the return type and the parameter types of the method. If we were to
         // merge any of these types into their sub classes, then we would implicitly change the
         // signature of this method.
-        DexMethod method =
-            item instanceof DexMethod ? (DexMethod) item : ((DexEncodedMethod) item).method;
+        DexMethod method = item.asDexMethod();
         markTypeAsPinned(method.holder, reason);
         markTypeAsPinned(method.proto.returnType, reason);
         for (DexType parameterType : method.proto.parameters.values) {
@@ -548,14 +549,14 @@ public class VerticalClassMerger {
     timing.begin("fixup");
     GraphLense result = new TreeFixer().fixupTypeReferences(mergingGraphLense);
     timing.end();
-    assert result.assertNotModified(
+    assert result.assertDefinitionNotModified(
         appInfo
             .alwaysInline
             .stream()
             .map(appInfo::definitionFor)
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
-    assert result.assertNotModified(appInfo.noSideEffects.keySet());
+    assert result.assertDefinitionNotModified(appInfo.noSideEffects.keySet());
     // TODO(christofferqa): Enable this assert.
     // assert result.assertNotModified(appInfo.pinnedItems);
     return result;
