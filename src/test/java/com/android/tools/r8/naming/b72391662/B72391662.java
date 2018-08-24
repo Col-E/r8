@@ -17,6 +17,7 @@ import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageSuper;
 import com.android.tools.r8.naming.b72391662.subpackage.OtherPackageTestClass;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -135,7 +136,9 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     );
 
     AndroidApp app = runShrinker(shrinker, CLASSES, config);
-    assertEquals("123451234567\nABC\n", run(app, mainClass.getCanonicalName()));
+    assertEquals(
+        StringUtils.withNativeLineSeparator("123451234567\nABC\n"),
+        run(app, mainClass.getCanonicalName()));
 
     CodeInspector codeInspector =
         isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
@@ -184,7 +187,9 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     );
 
     AndroidApp app = runShrinker(shrinker, CLASSES, config);
-    assertEquals("123451234567\nABC\n", run(app, mainClass.getCanonicalName()));
+    assertEquals(
+        StringUtils.withNativeLineSeparator("123451234567\nABC\n"),
+        run(app, mainClass.getCanonicalName()));
 
     CodeInspector codeInspector =
         isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
@@ -240,7 +245,9 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     }
 
     AndroidApp app = runShrinker(shrinker, CLASSES, config);
-    assertEquals("123451234567\nABC\n", run(app, mainClass.getCanonicalName()));
+    assertEquals(
+        StringUtils.withNativeLineSeparator("123451234567\nABC\n"),
+        run(app, mainClass.getCanonicalName()));
 
     CodeInspector codeInspector =
         isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);

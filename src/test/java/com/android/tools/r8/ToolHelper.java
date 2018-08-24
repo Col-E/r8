@@ -970,22 +970,12 @@ public class ToolHelper {
     return runJava(ImmutableList.of(classpath), args);
   }
 
-  private static ProcessResult withUnixLineSeparators(ProcessResult processResult) {
-    if (!isWindows()) {
-      return processResult;
-    }
-    return new ProcessResult(
-        processResult.exitCode,
-        processResult.stdout.replace(System.lineSeparator(), "\n"),
-        processResult.stderr.replace(System.lineSeparator(), "\n"));
-  }
-
   public static ProcessResult runJava(List<Path> classpath, String... args) throws IOException {
     String cp = classpath.stream().map(Path::toString).collect(Collectors.joining(PATH_SEPARATOR));
     List<String> cmdline = new ArrayList<String>(Arrays.asList(getJavaExecutable(), "-cp", cp));
     cmdline.addAll(Arrays.asList(args));
     ProcessBuilder builder = new ProcessBuilder(cmdline);
-    return withUnixLineSeparators(runProcess(builder));
+    return runProcess(builder);
   }
 
   public static ProcessResult runJavaNoVerify(
@@ -1006,7 +996,7 @@ public class ToolHelper {
         getJavaExecutable(), "-cp", cp, "-noverify", mainClass);
     cmdline.addAll(args);
     ProcessBuilder builder = new ProcessBuilder(cmdline);
-    return withUnixLineSeparators(runProcess(builder));
+    return runProcess(builder);
   }
 
   public static ProcessResult forkD8(Path dir, String... args)

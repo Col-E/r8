@@ -146,6 +146,16 @@ public class StringUtils {
     return builder.toString();
   }
 
+  public static String withNativeLineSeparator(String s) {
+    s = s.replace("\r\n", "\n");
+    if (LINE_SEPARATOR.equals("\r\n")) {
+      return s.replace("\n", "\r\n");
+    } else {
+      assert LINE_SEPARATOR.equals("\n");
+      return s;
+    }
+  }
+
   public static String joinLines(String... lines) {
     return join(LINE_SEPARATOR, lines);
   }

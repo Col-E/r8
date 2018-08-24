@@ -20,6 +20,7 @@ import com.android.tools.r8.shaking.proxy.testclasses.SubClass;
 import com.android.tools.r8.shaking.proxy.testclasses.SubInterface;
 import com.android.tools.r8.shaking.proxy.testclasses.TestClass;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -80,7 +81,7 @@ public class ProxiesTest extends TestBase {
     AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableDevirtualization = false);
     inspection.accept(new CodeInspector(app));
     String result = backend == Backend.DEX ? runOnArt(app, mainClass) : runOnJava(app, mainClass);
-    assertEquals(expectedResult, result);
+    assertEquals(StringUtils.withNativeLineSeparator(expectedResult), result);
   }
 
   private int countInstructionInX(CodeInspector inspector, Predicate<InstructionSubject> invoke) {
