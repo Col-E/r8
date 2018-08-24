@@ -378,7 +378,8 @@ def x20Dependencies = [
         "proguard/proguard_internal_159423826",
         "framework",
         "goyt",
-        "desugar/desugar_20180308"
+        "desugar/desugar_20180308",
+        "benchmarks/kotlin-benches"
     ],
 ]
 
