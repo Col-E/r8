@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.util.Arrays;
@@ -196,11 +195,7 @@ public class DexCode extends Code {
     assert getOwner() == encodedMethod;
     DexSourceCode source =
         new DexSourceCode(
-            this,
-            encodedMethod,
-            graphLense.getOriginalMethodSignature(encodedMethod.method),
-            null,
-            options.lineNumberOptimization == LineNumberOptimization.ON);
+            this, encodedMethod, graphLense.getOriginalMethodSignature(encodedMethod.method), null);
     IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options);
     return builder.build();
   }
@@ -220,8 +215,7 @@ public class DexCode extends Code {
             this,
             encodedMethod,
             graphLense.getOriginalMethodSignature(encodedMethod.method),
-            callerPosition,
-            options.lineNumberOptimization == LineNumberOptimization.ON);
+            callerPosition);
     IRBuilder builder =
         new IRBuilder(encodedMethod, appInfo, source, options, valueNumberGenerator);
     return builder.build();

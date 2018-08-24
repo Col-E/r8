@@ -19,7 +19,6 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import java.util.Collections;
 import java.util.List;
 import org.objectweb.asm.Label;
@@ -250,8 +249,7 @@ public class CfCode extends Code {
             encodedMethod,
             graphLense.getOriginalMethodSignature(encodedMethod.method),
             callerPosition,
-            origin,
-            options.lineNumberOptimization == LineNumberOptimization.ON);
+            origin);
     return new IRBuilder(encodedMethod, appInfo, source, options, generator).build();
   }
 
