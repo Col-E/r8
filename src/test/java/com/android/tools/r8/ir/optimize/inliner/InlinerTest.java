@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -139,8 +138,7 @@ public class InlinerTest extends TestBase {
     // Materialize file for execution.
     Path generatedFile = temp.getRoot().toPath().resolve("classes.jar");
     assert backend == Backend.DEX || backend == Backend.CF;
-    compiled.writeToZip(
-        generatedFile, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile);
+    compiled.writeToZip(generatedFile, outputMode(backend));
 
     String output =
         backend == Backend.DEX

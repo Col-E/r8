@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.DescriptorUtils.isValidJavaType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -76,13 +75,9 @@ public class IdentifierMinifierTest extends TestBase {
                   pgConfig.setPrintMapping(true);
                   pgConfig.setPrintMappingFile(out.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE));
                 })
-            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .setOutput(out, outputMode(backend))
+            .addLibraryFiles(runtimeJar(backend))
             .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get));
-    if (backend == Backend.DEX) {
-      builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-    } else if (backend == Backend.CF) {
-      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
-    }
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(appFileName));
     processedApp = ToolHelper.runR8(builder.build(), o -> o.debug = false);
   }

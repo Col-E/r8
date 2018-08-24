@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.optimize.devirtualize;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -46,7 +45,6 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
   }
 
   private AndroidApp runR8(AndroidApp app, Class main, Path out) throws Exception {
-    assert backend == Backend.DEX || backend == Backend.CF;
     R8Command command =
         ToolHelper.addProguardConfigurationConsumer(
                 ToolHelper.prepareR8CommandBuilder(app, emptyConsumer(backend)),
@@ -56,7 +54,7 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
                 })
             .addProguardConfiguration(
                 ImmutableList.of(keepMainProguardConfiguration(main)), Origin.unknown())
-            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .setOutput(out, outputMode(backend))
             .addLibraryFiles(runtimeJar(backend))
             .build();
     return ToolHelper.runR8(command);

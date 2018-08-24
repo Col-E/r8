@@ -8,7 +8,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -45,7 +44,6 @@ public class OverloadAggressivelyTest extends TestBase {
 
   private AndroidApp runR8(AndroidApp app, Class main, Path out, boolean overloadaggressively)
       throws Exception {
-    assert backend == Backend.DEX || backend == Backend.CF;
     R8Command command =
         ToolHelper.addProguardConfigurationConsumer(
                 ToolHelper.prepareR8CommandBuilder(app),
@@ -58,7 +56,7 @@ public class OverloadAggressivelyTest extends TestBase {
                     keepMainProguardConfiguration(main),
                     overloadaggressively ? "-overloadaggressively" : ""),
                 Origin.unknown())
-            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .setOutput(out, outputMode(backend))
             .addLibraryFiles(TestBase.runtimeJar(backend))
             .build();
     return ToolHelper.runR8(command, o -> {

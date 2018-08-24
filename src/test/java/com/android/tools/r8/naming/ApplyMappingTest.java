@@ -11,7 +11,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
@@ -296,25 +295,18 @@ public class ApplyMappingTest extends TestBase {
   private R8Command.Builder getCommandForInstrumentation(
       Path out, Path flag, Path mainApp, Path instrApp) throws IOException {
     return R8Command.builder()
-        .addLibraryFiles(
-            backend == Backend.DEX
-                ? ToolHelper.getDefaultAndroidJar()
-                : ToolHelper.getJava8RuntimeJar(),
-            mainApp)
+        .addLibraryFiles(runtimeJar(backend), mainApp)
         .addProgramFiles(instrApp)
-        .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+        .setOutput(out, outputMode(backend))
         .addProguardConfigurationFiles(flag);
   }
 
   private R8Command.Builder getCommandForApps(Path out, Path flag, Path... jars)
       throws IOException {
     return R8Command.builder()
-        .addLibraryFiles(
-            backend == Backend.DEX
-                ? ToolHelper.getDefaultAndroidJar()
-                : ToolHelper.getJava8RuntimeJar())
+        .addLibraryFiles(runtimeJar(backend))
         .addProgramFiles(jars)
-        .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+        .setOutput(out, outputMode(backend))
         .addProguardConfigurationFiles(flag);
   }
 

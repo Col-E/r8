@@ -12,7 +12,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DiagnosticsChecker;
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -101,7 +100,6 @@ public class WarnReflectiveAccessTest extends TestBase {
             + "java.lang.reflect.Method getDeclaredMethod(java.lang.String, java.lang.Class[]);\n"
             + "}\n"
         : "";
-    assert backend == Backend.DEX || backend == Backend.CF;
     R8Command.Builder commandBuilder =
         R8Command.builder(reporter)
             .addProguardConfiguration(
@@ -116,7 +114,7 @@ public class WarnReflectiveAccessTest extends TestBase {
                     "-printmapping",
                     reflectionRules),
                 Origin.unknown())
-            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile);
+            .setOutput(out, outputMode(backend));
     for (byte[] clazz : classes) {
       commandBuilder.addClassProgramData(clazz, Origin.unknown());
     }

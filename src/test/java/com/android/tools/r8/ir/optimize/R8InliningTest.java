@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -121,7 +120,7 @@ public class R8InliningTest extends TestBase {
     R8Command.Builder commandBuilder =
         R8Command.builder()
             .addProgramFiles(getInputFile())
-            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .setOutput(out, outputMode(backend))
             .addProguardConfigurationFiles(Paths.get(keepRulesFile))
             .addLibraryFiles(TestBase.runtimeJar(backend));
     if (mapFile != null) {

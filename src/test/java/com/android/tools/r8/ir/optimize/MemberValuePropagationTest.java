@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBase.Backend;
@@ -109,8 +108,7 @@ public class MemberValuePropagationTest {
     assert backend == Backend.DEX || backend == Backend.CF;
     ToolHelper.runR8(
         R8Command.builder()
-            .setOutput(
-                outputDir, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .setOutput(outputDir, TestBase.outputMode(backend))
             .addProgramFiles(EXAMPLE_JAR)
             .addLibraryFiles(TestBase.runtimeJar(backend))
             .addProguardConfigurationFiles(proguardConfig)

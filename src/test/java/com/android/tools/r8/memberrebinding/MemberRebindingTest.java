@@ -6,7 +6,6 @@ package com.android.tools.r8.memberrebinding;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBase.Backend;
@@ -93,12 +92,9 @@ public class MemberRebindingTest {
     String out = temp.getRoot().getCanonicalPath();
     // NOTE: It is important to turn off inlining to ensure
     // dex inspection of invokes is predictable.
-    assert backend == Backend.DEX || backend == Backend.CF;
     R8Command.Builder builder =
         R8Command.builder()
-            .setOutput(
-                Paths.get(out),
-                backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .setOutput(Paths.get(out), TestBase.outputMode(backend))
             .addLibraryFiles(JAR_LIBRARY, TestBase.runtimeJar(backend));
     if (backend == Backend.DEX) {
       builder.setMinApiLevel(minApiLevel);

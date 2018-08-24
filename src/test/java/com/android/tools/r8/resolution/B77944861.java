@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -51,7 +50,6 @@ public class B77944861 extends TestBase {
   }
 
   private AndroidApp runR8(AndroidApp app, Class main, Path out) throws Exception {
-    assert backend == Backend.DEX || backend == Backend.CF;
     R8Command command =
         ToolHelper.addProguardConfigurationConsumer(
                 ToolHelper.prepareR8CommandBuilder(app),
@@ -61,7 +59,7 @@ public class B77944861 extends TestBase {
                 })
             .addProguardConfiguration(
                 ImmutableList.of(keepMainProguardConfiguration(main)), Origin.unknown())
-            .setOutput(out, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile)
+            .setOutput(out, outputMode(backend))
             .addLibraryFiles(TestBase.runtimeJar(backend))
             .build();
     return ToolHelper.runR8(command, o -> {

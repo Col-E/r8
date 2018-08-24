@@ -727,6 +727,15 @@ public class TestBase {
     }
   }
 
+  public static OutputMode outputMode(Backend backend) {
+    if (backend == Backend.DEX) {
+      return OutputMode.DexIndexed;
+    } else {
+      assert backend == Backend.CF;
+      return OutputMode.ClassFile;
+    }
+  }
+
   public static Path runtimeJar(Backend backend) {
     if (backend == Backend.DEX) {
       return ToolHelper.getDefaultAndroidJar();
