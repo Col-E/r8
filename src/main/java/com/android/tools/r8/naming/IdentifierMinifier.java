@@ -15,11 +15,9 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemBasedString;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
@@ -34,7 +32,7 @@ class IdentifierMinifier {
   private final AppInfoWithLiveness appInfo;
   private final ProguardClassFilter adaptClassStrings;
   private final NamingLens lens;
-  private final Object2BooleanMap<DexItem> identifierNameStrings;
+  private final Object2BooleanMap<DexReference> identifierNameStrings;
 
   IdentifierMinifier(
       AppInfoWithLiveness appInfo, ProguardClassFilter adaptClassStrings, NamingLens lens) {
@@ -197,17 +195,17 @@ class IdentifierMinifier {
   }
 
   private DexString materialize(DexItemBasedString itemBasedString) {
-    if (itemBasedString.basedOn instanceof DexType) {
-      DexString renamed = lens.lookupDescriptor((DexType) itemBasedString.basedOn);
+    if (itemBasedString.basedOn.isDexType()) {
+      DexString renamed = lens.lookupDescriptor(itemBasedString.basedOn.asDexType());
       if (!renamed.toString().equals(itemBasedString.toString())) {
         return appInfo.dexItemFactory.createString(descriptorToJavaType(renamed.toString()));
       }
       return renamed;
-    } else if (itemBasedString.basedOn instanceof DexMethod) {
-      return lens.lookupName((DexMethod) itemBasedString.basedOn);
+    } else if (itemBasedString.basedOn.isDexMethod()) {
+      return lens.lookupName(itemBasedString.basedOn.asDexMethod());
     } else {
-      assert itemBasedString.basedOn instanceof DexField;
-      return lens.lookupName((DexField) itemBasedString.basedOn);
+      assert itemBasedString.basedOn.isDexField();
+      return lens.lookupName(itemBasedString.basedOn.asDexField());
     }
   }
 }

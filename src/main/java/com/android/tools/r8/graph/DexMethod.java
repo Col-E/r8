@@ -56,6 +56,16 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
   }
 
   @Override
+  public boolean isDexMethod() {
+    return true;
+  }
+
+  @Override
+  public DexMethod asDexMethod() {
+    return this;
+  }
+
+  @Override
   public int computeHashCode() {
     return holder.hashCode()
         + proto.hashCode() * 7

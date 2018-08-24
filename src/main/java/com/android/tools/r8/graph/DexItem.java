@@ -64,6 +64,22 @@ public abstract class DexItem {
     return toString();
   }
 
+  public boolean isDexReference() {
+    return false;
+  }
+
+  public DexReference asDexReference() {
+    return null;
+  }
+
+  public boolean isDexDefinition() {
+    return false;
+  }
+
+  public DexDefinition asDexDefinition() {
+    return null;
+  }
+
   static <T extends DexItem> Stream<T> filter(Stream<DexItem> stream, Class<T> clazz) {
     return stream.filter(clazz::isInstance).map(clazz::cast);
   }

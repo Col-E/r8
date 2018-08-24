@@ -583,22 +583,18 @@ public class DexItemFactory {
     return strings.get(new DexString(source));
   }
 
-  // TODO(b/67934123) Unify into one method,
-  public DexItemBasedString createItemBasedString(DexType type) {
+  public DexItemBasedString createItemBasedString(DexReference reference) {
     assert !sorted;
-    return canonicalize(identifiers, new DexItemBasedString(type));
-  }
-
-  // TODO(b/67934123) Unify into one method,
-  public DexItemBasedString createItemBasedString(DexField field) {
-    assert !sorted;
-    return canonicalize(identifiers, new DexItemBasedString(field));
-  }
-
-  // TODO(b/67934123) Unify into one method,
-  public DexItemBasedString createItemBasedString(DexMethod method) {
-    assert !sorted;
-    return canonicalize(identifiers, new DexItemBasedString(method));
+    DexItemBasedString dexItemBasedString;
+    if (reference.isDexType()) {
+      dexItemBasedString = new DexItemBasedString(reference.asDexType());
+    } else if (reference.isDexMethod()) {
+      dexItemBasedString = new DexItemBasedString(reference.asDexMethod());
+    } else {
+      assert reference.isDexField();
+      dexItemBasedString = new DexItemBasedString(reference.asDexField());
+    }
+    return canonicalize(identifiers, dexItemBasedString);
   }
 
   // Debugging support to extract marking string.

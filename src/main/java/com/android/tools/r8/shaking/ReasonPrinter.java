@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
@@ -19,16 +20,16 @@ import java.util.Set;
 
 public class ReasonPrinter {
 
-  private final Set<DexItem> itemsQueried;
+  private final Set<DexDefinition> itemsQueried;
   private ReasonFormatter formatter;
 
   private final Map<DexEncodedField, KeepReason> liveFields;
   private final Map<DexEncodedMethod, KeepReason> liveMethods;
-  private final Map<DexItem, KeepReason> reachablityReasons;
+  private final Map<DexDefinition, KeepReason> reachablityReasons;
   private final Map<DexType, KeepReason> instantiatedTypes;
 
-  ReasonPrinter(Set<DexItem> itemsQueried, Map<DexEncodedField, KeepReason> liveFields,
-      Map<DexEncodedMethod, KeepReason> liveMethods, Map<DexItem, KeepReason> reachablityReasons,
+  ReasonPrinter(Set<DexDefinition> itemsQueried, Map<DexEncodedField, KeepReason> liveFields,
+      Map<DexEncodedMethod, KeepReason> liveMethods, Map<DexDefinition, KeepReason> reachablityReasons,
       Map<DexType, KeepReason> instantiatedTypes) {
     this.itemsQueried = itemsQueried;
     this.liveFields = liveFields;

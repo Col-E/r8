@@ -4,9 +4,19 @@
 package com.android.tools.r8.graph;
 
 public abstract class Descriptor<T extends DexItem, S extends Descriptor<T,S>>
-    extends IndexedDexItem implements PresortedComparable<S> {
+    extends DexReference implements PresortedComparable<S> {
 
   public abstract boolean match(T entry);
 
   public abstract DexType getHolder();
+
+  @Override
+  public boolean isDescriptor() {
+    return true;
+  }
+
+  @Override
+  public Descriptor asDescriptor() {
+    return this;
+  }
 }

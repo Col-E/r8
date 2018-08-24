@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -26,6 +27,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -115,7 +117,7 @@ public class Enqueuer {
 
   private final ProtoLiteExtension protoLiteExtension;
   private final Set<DexField> protoLiteFields = Sets.newIdentityHashSet();
-  private final Set<DexItem> identifierNameStrings = Sets.newIdentityHashSet();
+  private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
 
   /**
    * Set of method signatures used in invoke-super instructions that either cannot be resolved or
@@ -156,7 +158,9 @@ public class Enqueuer {
    * its implementation may be removed and it may be marked abstract.
    */
   private final SetWithReason<DexEncodedMethod> targetedMethods = new SetWithReason<>();
-  /** Set of virtual methods that are the immediate target of an invoke-direct. */
+  /**
+   * Set of virtual methods that are the immediate target of an invoke-direct.
+   * */
   private final Set<DexMethod> virtualMethodsTargetedByInvokeDirect = Sets.newIdentityHashSet();
   /**
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
@@ -199,13 +203,13 @@ public class Enqueuer {
   /**
    * A set of dexitems we have reported missing to dedupe warnings.
    */
-  private final Set<DexItem> reportedMissing = Sets.newIdentityHashSet();
+  private final Set<DexReference> reportedMissing = Sets.newIdentityHashSet();
 
   /**
    * A set of items that we are keeping due to keep rules. This may differ from the rootSet due to
    * dependent keep rules.
    */
-  private final Set<DexItem> pinnedItems = Sets.newIdentityHashSet();
+  private final Set<DexDefinition> pinnedItems = Sets.newIdentityHashSet();
 
   /**
    * A map from classes to annotations that need to be processed should the classes ever become
@@ -241,26 +245,26 @@ public class Enqueuer {
     this.forceProguardCompatibility = forceProguardCompatibility;
   }
 
-  private void enqueueRootItems(Map<DexItem, ProguardKeepRule> items) {
+  private void enqueueRootItems(Map<DexDefinition, ProguardKeepRule> items) {
     items.entrySet().forEach(this::enqueueRootItem);
     pinnedItems.addAll(items.keySet());
   }
 
-  private void enqueueRootItem(Map.Entry<DexItem, ProguardKeepRule> root) {
-    DexItem item = root.getKey();
+  private void enqueueRootItem(Map.Entry<DexDefinition, ProguardKeepRule> root) {
+    DexDefinition item = root.getKey();
     KeepReason reason = KeepReason.dueToKeepRule(root.getValue());
-    if (item instanceof DexClass) {
-      DexClass clazz = (DexClass) item;
+    if (item.isDexClass()) {
+      DexClass clazz = item.asDexClass();
       workList.add(Action.markInstantiated(clazz, reason));
       if (forceProguardCompatibility && clazz.hasDefaultInitializer()) {
         ProguardKeepRule rule = ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
         proguardCompatibilityWorkList.add(Action.markMethodLive(
             clazz.getDefaultInitializer(), KeepReason.dueToProguardCompatibilityKeepRule(rule)));
       }
-    } else if (item instanceof DexEncodedField) {
-      workList.add(Action.markFieldKept((DexEncodedField) item, reason));
-    } else if (item instanceof DexEncodedMethod) {
-      workList.add(Action.markMethodKept((DexEncodedMethod) item, reason));
+    } else if (item.isDexEncodedField()) {
+      workList.add(Action.markFieldKept(item.asDexEncodedField(), reason));
+    } else if (item.isDexEncodedMethod()) {
+      workList.add(Action.markMethodKept(item.asDexEncodedMethod(), reason));
     } else {
       throw new IllegalArgumentException(item.toString());
     }
@@ -1167,13 +1171,13 @@ public class Enqueuer {
     }
   }
 
-  public ReasonPrinter getReasonPrinter(Set<DexItem> queriedItems) {
+  public ReasonPrinter getReasonPrinter(Set<DexDefinition> queriedItems) {
     // If no reason was asked, just return a no-op printer to avoid computing the information.
     // This is the common path.
     if (queriedItems.isEmpty()) {
       return ReasonPrinter.getNoOpPrinter();
     }
-    Map<DexItem, KeepReason> reachability = new HashMap<>();
+    Map<DexDefinition, KeepReason> reachability = new HashMap<>();
     for (SetWithReason<DexEncodedMethod> mappings : reachableVirtualMethods.values()) {
       reachability.putAll(mappings.getReasons());
     }
@@ -1510,19 +1514,19 @@ public class Enqueuer {
     if (itemBasedString == null) {
       return;
     }
-    if (itemBasedString.basedOn instanceof DexType) {
-      DexClass clazz = appInfo.definitionFor((DexType) itemBasedString.basedOn);
+    if (itemBasedString.basedOn.isDexType()) {
+      DexClass clazz = appInfo.definitionFor(itemBasedString.basedOn.asDexType());
       if (clazz != null) {
         markClassAsInstantiatedWithCompatRule(clazz);
       }
-    } else if (itemBasedString.basedOn instanceof DexField) {
-      DexEncodedField encodedField = appInfo.definitionFor((DexField) itemBasedString.basedOn);
+    } else if (itemBasedString.basedOn.isDexField()) {
+      DexEncodedField encodedField = appInfo.definitionFor(itemBasedString.basedOn.asDexField());
       if (encodedField != null) {
         markFieldAsKeptWithCompatRule(encodedField);
       }
     } else {
-      assert itemBasedString.basedOn instanceof DexMethod;
-      DexEncodedMethod encodedMethod = appInfo.definitionFor((DexMethod) itemBasedString.basedOn);
+      assert itemBasedString.basedOn.isDexMethod();
+      DexEncodedMethod encodedMethod = appInfo.definitionFor(itemBasedString.basedOn.asDexMethod());
       if (encodedMethod != null) {
         markMethodAsKeptWithCompatRule(encodedMethod);
       }
@@ -1672,15 +1676,15 @@ public class Enqueuer {
     /**
      * Set of all items that have to be kept independent of whether they are used.
      */
-    final Set<DexItem> pinnedItems;
+    final Set<DexReference> pinnedItems;
     /**
      * All items with assumenosideeffects rule.
      */
-    public final Map<DexItem, ProguardMemberRule> noSideEffects;
+    public final Map<DexDefinition, ProguardMemberRule> noSideEffects;
     /**
      * All items with assumevalues rule.
      */
-    public final Map<DexItem, ProguardMemberRule> assumedValues;
+    public final Map<DexDefinition, ProguardMemberRule> assumedValues;
     /**
      * All methods that should be inlined if possible due to a configuration directive.
      */
@@ -1698,7 +1702,7 @@ public class Enqueuer {
      * Bound boolean value indicates the rule is explicitly specified by users (<code>true</code>)
      * or not, i.e., implicitly added by R8 (<code>false</code>).
      */
-    public final Object2BooleanMap<DexItem> identifierNameStrings;
+    public final Object2BooleanMap<DexReference> identifierNameStrings;
     /**
      * Set of fields that have been identified as proto-lite fields by the
      * {@link ProtoLiteExtension}.
@@ -1742,7 +1746,8 @@ public class Enqueuer {
           instanceFieldReads.keySet(), staticFieldReads.keySet());
       this.fieldsWritten = enqueuer.mergeFieldAccesses(
           instanceFieldWrites.keySet(), staticFieldWrites.keySet());
-      this.pinnedItems = rewritePinnedItemsToDescriptors(enqueuer.pinnedItems);
+      this.pinnedItems =
+          DexDefinition.mapToReference(enqueuer.pinnedItems.stream()).collect(Collectors.toSet());
       this.virtualInvokes = joinInvokedMethods(enqueuer.virtualInvokes);
       this.interfaceInvokes = joinInvokedMethods(enqueuer.interfaceInvokes);
       this.superInvokes = joinInvokedMethods(enqueuer.superInvokes, TargetWithContext::getTarget);
@@ -1829,7 +1834,7 @@ public class Enqueuer {
           rewriteKeysWhileMergingValues(previous.staticFieldWrites, lense::lookupField);
       this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
-      this.pinnedItems = lense.rewriteMixedItemsConservatively(previous.pinnedItems);
+      this.pinnedItems = lense.rewriteReferencesConservatively(previous.pinnedItems);
       this.virtualInvokes = lense.rewriteMethodsConservatively(previous.virtualInvokes);
       this.interfaceInvokes = lense.rewriteMethodsConservatively(previous.interfaceInvokes);
       this.superInvokes = lense.rewriteMethodsConservatively(previous.superInvokes);
@@ -1837,21 +1842,20 @@ public class Enqueuer {
       this.staticInvokes = lense.rewriteMethodsConservatively(previous.staticInvokes);
       this.brokenSuperInvokes = lense.rewriteMethodsConservatively(previous.brokenSuperInvokes);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
-      // TODO(b/67934123): Should distinguish either reference or definition is not modified.
-      assert lense.assertNotModified(previous.noSideEffects.keySet());
+      assert lense.assertDefinitionNotModified(previous.noSideEffects.keySet());
       this.noSideEffects = previous.noSideEffects;
-      assert lense.assertNotModified(previous.assumedValues.keySet());
+      assert lense.assertDefinitionNotModified(previous.assumedValues.keySet());
       this.assumedValues = previous.assumedValues;
-      assert lense.assertNotModified(
+      assert lense.assertDefinitionNotModified(
           previous.alwaysInline.stream().map(this::definitionFor).filter(Objects::nonNull)
               .collect(Collectors.toList()));
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = lense.rewriteMethodsWithRenamedSignature(previous.forceInline);
       this.neverInline = lense.rewriteMethodsWithRenamedSignature(previous.neverInline);
       this.identifierNameStrings =
-          lense.rewriteMixedItemsConservatively(previous.identifierNameStrings);
+          lense.rewriteReferencesConservatively(previous.identifierNameStrings);
       // Switchmap classes should never be affected by renaming.
-      assert lense.assertNotModified(
+      assert lense.assertDefinitionNotModified(
           previous.switchMaps.keySet().stream().map(this::definitionFor).filter(Objects::nonNull)
               .collect(Collectors.toList()));
       this.switchMaps = previous.switchMaps;
@@ -1906,19 +1910,17 @@ public class Enqueuer {
       return switchMaps.get(field);
     }
 
-    private boolean assertNoItemRemoved(Collection<DexItem> items, Collection<DexType> types) {
+    private boolean assertNoItemRemoved(Collection<DexReference> items, Collection<DexType> types) {
       Set<DexType> typeSet = ImmutableSet.copyOf(types);
-      for (DexItem item : items) {
-        // TODO(b/67934123) There should be a common interface to extract this information.
-        if (item instanceof DexType) {
-          assert !typeSet.contains(item);
-        } else if (item instanceof DexMethod) {
-          assert !typeSet.contains(((DexMethod) item).getHolder());
-        } else if (item instanceof DexField) {
-          assert !typeSet.contains(((DexField) item).getHolder());
+      for (DexReference item : items) {
+        DexType typeToCheck;
+        if (item.isDexType()) {
+          typeToCheck = item.asDexType();
         } else {
-          assert false;
+          assert item.isDescriptor();
+          typeToCheck = item.asDescriptor().getHolder();
         }
+        assert !typeSet.contains(typeToCheck);
       }
       return true;
     }
@@ -1933,13 +1935,13 @@ public class Enqueuer {
           .collect(ImmutableSortedSet.toImmutableSortedSet(PresortedComparable::slowCompare));
     }
 
-    private Object2BooleanMap<DexItem> joinIdentifierNameStrings(
-        Set<DexItem> explicit, Set<DexItem> implicit) {
-      Object2BooleanMap<DexItem> result = new Object2BooleanArrayMap<>();
-      for (DexItem e : explicit) {
+    private Object2BooleanMap<DexReference> joinIdentifierNameStrings(
+        Set<DexReference> explicit, Set<DexReference> implicit) {
+      Object2BooleanMap<DexReference> result = new Object2BooleanArrayMap<>();
+      for (DexReference e : explicit) {
         result.putIfAbsent(e, true);
       }
-      for (DexItem i : implicit) {
+      for (DexReference i : implicit) {
         result.putIfAbsent(i, false);
       }
       return result;
@@ -1951,23 +1953,6 @@ public class Enqueuer {
           new ImmutableSortedSet.Builder<>(PresortedComparable<T>::slowCompareTo);
       for (KeyedDexItem<T> item : set) {
         builder.add(item.getKey());
-      }
-      return builder.build();
-    }
-
-    private ImmutableSet<DexItem> rewritePinnedItemsToDescriptors(Collection<DexItem> source) {
-      ImmutableSet.Builder<DexItem> builder = ImmutableSet.builder();
-      for (DexItem item : source) {
-        // TODO(b/67934123) There should be a common interface to extract this information.
-        if (item instanceof DexClass) {
-          builder.add(((DexClass) item).type);
-        } else if (item instanceof DexEncodedMethod) {
-          builder.add(((DexEncodedMethod) item).method);
-        } else if (item instanceof DexEncodedField) {
-          builder.add(((DexEncodedField) item).field);
-        } else {
-          throw new Unreachable();
-        }
       }
       return builder.build();
     }
@@ -2025,26 +2010,15 @@ public class Enqueuer {
       return this;
     }
 
-    // TODO(b/67934123) Unify into one method,
-    public boolean isPinned(DexType item) {
-      return pinnedItems.contains(item);
-    }
-
-    // TODO(b/67934123) Unify into one method,
-    public boolean isPinned(DexMethod item) {
-      return pinnedItems.contains(item);
-    }
-
-    // TODO(b/67934123) Unify into one method,
-    public boolean isPinned(DexField item) {
-      return pinnedItems.contains(item);
+    public boolean isPinned(DexReference reference) {
+      return pinnedItems.contains(reference);
     }
 
     public boolean isProtoLiteField(DexField field) {
       return protoLiteFields.contains(field);
     }
 
-    public Iterable<DexItem> getPinnedItems() {
+    public Iterable<DexReference> getPinnedItems() {
       return pinnedItems;
     }
 

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableSet;
@@ -139,6 +138,17 @@ public abstract class GraphLense {
 
   public abstract DexField lookupField(DexField field);
 
+  public DexReference lookupReference(DexReference reference) {
+    if (reference.isDexType()) {
+      return lookupType(reference.asDexType());
+    } else if (reference.isDexMethod()) {
+      return lookupMethod(reference.asDexMethod());
+    } else {
+      assert reference.isDexField();
+      return lookupField(reference.asDexField());
+    }
+  }
+
   // The method lookupMethod() maps a pair INVOKE=(method signature, invoke type) to a new pair
   // INVOKE'=(method signature', invoke type'). This mapping can be context sensitive, meaning that
   // the result INVOKE' depends on where the invocation INVOKE is in the program. This is, for
@@ -163,58 +173,42 @@ public abstract class GraphLense {
     return this instanceof IdentityGraphLense;
   }
 
-  public <T extends DexItem> boolean assertNotModified(Iterable<T> items) {
-    for (DexItem item : items) {
-      // TODO(b/67934123) There should be a common interface to perform the dispatch.
-      if (item instanceof DexClass) {
-        DexType type = ((DexClass) item).type;
-        assert lookupType(type) == type;
-      } else if (item instanceof DexEncodedMethod) {
-        DexEncodedMethod method = (DexEncodedMethod) item;
-        // We allow changes to bridge methods as these get retargeted even if they are kept.
-        assert method.accessFlags.isBridge() || lookupMethod(method.method) == method.method;
-      } else if (item instanceof DexEncodedField) {
-        DexField field = ((DexEncodedField) item).field;
-        assert lookupField(field) == field;
-      } else {
-        assert false;
-      }
+  public <T extends DexDefinition> boolean assertDefinitionNotModified(Iterable<T> items) {
+    for (DexDefinition item : items) {
+      DexReference dexReference = item.toReference();
+      DexReference lookupedReference = lookupReference(dexReference);
+      // We allow changes to bridge methods as these get retargeted even if they are kept.
+      boolean isBridge =
+          item.isDexEncodedMethod() && item.asDexEncodedMethod().accessFlags.isBridge();
+      assert isBridge || dexReference == lookupedReference;
     }
     return true;
   }
 
-  public ImmutableSet<DexItem> rewriteMixedItemsConservatively(Set<DexItem> original) {
-    ImmutableSet.Builder<DexItem> builder = ImmutableSet.builder();
-    for (DexItem item : original) {
-      // TODO(b/67934123) There should be a common interface to perform the dispatch.
-      if (item instanceof DexType) {
-        builder.add(lookupType((DexType) item));
-      } else if (item instanceof DexMethod) {
-        DexMethod method = (DexMethod) item;
+  public ImmutableSet<DexReference> rewriteReferencesConservatively(Set<DexReference> original) {
+    ImmutableSet.Builder<DexReference> builder = ImmutableSet.builder();
+    for (DexReference item : original) {
+      if (item.isDexMethod()) {
+        DexMethod method = item.asDexMethod();
         if (isContextFreeForMethod(method)) {
           builder.add(lookupMethod(method));
         } else {
           builder.addAll(lookupMethodInAllContexts(method));
         }
-      } else if (item instanceof DexField) {
-        builder.add(lookupField((DexField) item));
       } else {
-        throw new Unreachable();
+        builder.add(lookupReference(item));
       }
     }
     return builder.build();
   }
 
-  public Object2BooleanMap<DexItem> rewriteMixedItemsConservatively(
-      Object2BooleanMap<DexItem> original) {
-    Object2BooleanMap<DexItem> result = new Object2BooleanArrayMap<>();
-    for (Object2BooleanMap.Entry<DexItem> entry : original.object2BooleanEntrySet()) {
-      DexItem item = entry.getKey();
-      // TODO(b/67934123) There should be a common interface to perform the dispatch.
-      if (item instanceof DexType) {
-        result.put(lookupType((DexType) item), entry.getBooleanValue());
-      } else if (item instanceof DexMethod) {
-        DexMethod method = (DexMethod) item;
+  public Object2BooleanMap<DexReference> rewriteReferencesConservatively(
+      Object2BooleanMap<DexReference> original) {
+    Object2BooleanMap<DexReference> result = new Object2BooleanArrayMap<>();
+    for (Object2BooleanMap.Entry<DexReference> entry : original.object2BooleanEntrySet()) {
+      DexReference item = entry.getKey();
+      if (item.isDexMethod()) {
+        DexMethod method = item.asDexMethod();
         if (isContextFreeForMethod(method)) {
           result.put(lookupMethod(method), entry.getBooleanValue());
         } else {
@@ -222,10 +216,8 @@ public abstract class GraphLense {
             result.put(candidate, entry.getBooleanValue());
           }
         }
-      } else if (item instanceof DexField) {
-        result.put(lookupField((DexField) item), entry.getBooleanValue());
       } else {
-        throw new Unreachable();
+        result.put(lookupReference(item), entry.getBooleanValue());
       }
     }
     return result;

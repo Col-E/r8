@@ -12,11 +12,11 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemBasedString;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 public class IdentifierNameStringMarker {
   private final AppInfo appInfo;
   private final DexItemFactory dexItemFactory;
-  private final Object2BooleanMap<DexItem> identifierNameStrings;
+  private final Object2BooleanMap<DexReference> identifierNameStrings;
   private final InternalOptions options;
 
   public IdentifierNameStringMarker(AppInfoWithLiveness appInfo, InternalOptions options) {
@@ -287,11 +287,11 @@ public class IdentifierNameStringMarker {
   private void warnUndeterminedIdentifierIfNecessary(
       AppInfo appInfo,
       InternalOptions options,
-      DexItem member,
+      DexReference member,
       DexType originHolder,
       Instruction instruction,
       DexString original) {
-    assert member instanceof DexField || member instanceof DexMethod;
+    assert member.isDexField() || member.isDexMethod();
     // Only issue warnings for -identifiernamestring rules explicitly added by the user.
     boolean matchedByExplicitRule = identifierNameStrings.getBoolean(member);
     if (!matchedByExplicitRule) {

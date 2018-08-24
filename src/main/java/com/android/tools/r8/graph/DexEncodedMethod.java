@@ -603,6 +603,21 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return method;
   }
 
+  @Override
+  public DexReference toReference() {
+    return method;
+  }
+
+  @Override
+  public boolean isDexEncodedMethod() {
+    return true;
+  }
+
+  @Override
+  public DexEncodedMethod asDexEncodedMethod() {
+    return this;
+  }
+
   public boolean hasAnnotation() {
     return !annotations.isEmpty() || !parameterAnnotationsList.isEmpty();
   }
