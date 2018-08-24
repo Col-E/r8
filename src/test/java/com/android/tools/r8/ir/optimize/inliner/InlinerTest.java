@@ -13,7 +13,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.ir.optimize.inliner.exceptionhandling.ExceptionHandlingTestClass;
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass;
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceA;
@@ -30,14 +29,29 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class InlinerTest extends TestBase {
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public InlinerTest(Backend backend) {
+    this.backend = backend;
+  }
 
   @Test
   public void testExceptionHandling() throws Exception {
@@ -55,11 +69,17 @@ public class InlinerTest extends TestBase {
             "  private static void *Test(...);",
             "}");
     R8Command.Builder commandBuilder =
-        ToolHelper.prepareR8CommandBuilder(inputApp)
-            .addProguardConfiguration(proguardConfig, Origin.unknown());
+        ToolHelper.prepareR8CommandBuilder(inputApp, emptyConsumer(backend))
+            .addProguardConfiguration(proguardConfig, Origin.unknown())
+            .addLibraryFiles(runtimeJar(backend));
     ToolHelper.allowTestProguardOptions(commandBuilder);
     AndroidApp outputApp = ToolHelper.runR8(commandBuilder.build(), this::configure);
-    assertEquals(runOnJava(ExceptionHandlingTestClass.class), runOnArt(outputApp, className));
+    assert backend == Backend.DEX || backend == Backend.CF;
+    assertEquals(
+        runOnJava(ExceptionHandlingTestClass.class),
+        backend == Backend.DEX
+            ? runOnArt(outputApp, className)
+            : runOnJava(outputApp, className, Collections.emptyList()));
   }
 
   @Test
@@ -83,8 +103,12 @@ public class InlinerTest extends TestBase {
     AndroidApp app = runR8(buildAndroidApp(classes), InterfaceTargetsTestClass.class);
 
     String javaOutput = runOnJava(InterfaceTargetsTestClass.class);
-    String artOutput = runOnArt(app, InterfaceTargetsTestClass.class);
-    assertEquals(javaOutput, artOutput);
+    assert backend == Backend.DEX || backend == Backend.CF;
+    String output =
+        backend == Backend.DEX
+            ? runOnArt(app, InterfaceTargetsTestClass.class)
+            : runOnJava(app, InterfaceTargetsTestClass.class);
+    assertEquals(javaOutput, output);
 
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(InterfaceTargetsTestClass.class);
@@ -109,15 +133,20 @@ public class InlinerTest extends TestBase {
 
   private AndroidApp runR8(AndroidApp app, Class mainClass) throws Exception {
     AndroidApp compiled =
-        compileWithR8(app, getProguardConfig(mainClass.getCanonicalName()), this::configure);
+        compileWithR8(
+            app, getProguardConfig(mainClass.getCanonicalName()), this::configure, backend);
 
     // Materialize file for execution.
-    Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
-    compiled.writeToZip(generatedDexFile, OutputMode.DexIndexed);
+    Path generatedFile = temp.getRoot().toPath().resolve("classes.jar");
+    assert backend == Backend.DEX || backend == Backend.CF;
+    compiled.writeToZip(
+        generatedFile, backend == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile);
 
-    // Run with ART.
-    String artOutput = ToolHelper.runArtNoVerificationErrors(
-        generatedDexFile.toString(), mainClass.getCanonicalName());
+    String output =
+        backend == Backend.DEX
+            ? ToolHelper.runArtNoVerificationErrors(
+                generatedFile.toString(), mainClass.getCanonicalName())
+            : ToolHelper.runJava(generatedFile, mainClass.getCanonicalName()).stdout;
 
     // Compare with Java.
     ProcessResult javaResult = ToolHelper.runJava(
@@ -128,7 +157,12 @@ public class InlinerTest extends TestBase {
       System.err.println(javaResult.stderr);
       fail("JVM failed for: " + mainClass);
     }
-    assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
+    assertEquals(
+        backend == Backend.DEX
+            ? "JVM and ART output differ."
+            : "Outputs of source and processed programs running on JVM differ.",
+        javaResult.stdout,
+        output);
 
     return compiled;
   }
