@@ -246,19 +246,24 @@ public class AppInfoWithSubtyping extends AppInfo {
     List<DexType> callSiteInterfaces = LambdaDescriptor.getInterfaces(callSite, this);
     if (callSiteInterfaces == null) {
       if (!isStringConcat(callSite.bootstrapMethod)) {
-        Diagnostic message =
-            new StringDiagnostic("Unknown bootstrap method " + callSite.bootstrapMethod);
-        reporter.warning(message);
+        if (reporter != null) {
+          Diagnostic message =
+              new StringDiagnostic("Unknown bootstrap method " + callSite.bootstrapMethod);
+          reporter.warning(message);
+        }
       }
       return Collections.emptySet();
     }
     Set<DexEncodedMethod> result = new HashSet<>();
     for (DexType iface : callSiteInterfaces) {
       if (iface.isUnknown()) {
-        StringDiagnostic message =
-            new StringDiagnostic(
-                "Lambda expression implements missing library interface " + iface.toSourceString());
-        reporter.warning(message);
+        if (reporter != null) {
+          StringDiagnostic message =
+              new StringDiagnostic(
+                  "Lambda expression implements missing library interface "
+                      + iface.toSourceString());
+          reporter.warning(message);
+        }
         // Skip this interface. If the lambda only implements missing library interfaces and not any
         // program interfaces, then minification and tree shaking are not interested in this
         // DexCallSite anyway, so skipping this interface is harmless. On the other hand, if

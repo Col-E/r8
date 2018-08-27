@@ -34,6 +34,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Lambda desugaring rewriter.
@@ -193,6 +194,12 @@ public class LambdaRewriter {
       DexProgramClass synthesizedClass = lambdaClass.getLambdaClass();
       converter.optimizeSynthesizedClass(synthesizedClass);
       builder.addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
+    }
+  }
+
+  public Set<DexCallSite> getDesugaredCallSites() {
+    synchronized (knownCallSites) {
+      return knownCallSites.keySet();
     }
   }
 

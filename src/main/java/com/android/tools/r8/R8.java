@@ -13,6 +13,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -393,6 +394,7 @@ public class R8 {
       }
 
       timing.begin("Create IR");
+      Set<DexCallSite> desugaredCallSites;
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
         IRConverter converter =
@@ -400,6 +402,7 @@ public class R8 {
                 appView.getAppInfo(), options, timing, printer, appView.getGraphLense());
         application = converter.optimize(application, executorService);
         appView.setGraphLense(converter.getGraphLense());
+        desugaredCallSites = converter.getDesugaredCallSites();
       } finally {
         timing.end();
       }
@@ -483,7 +486,9 @@ public class R8 {
       // will happen. Just avoid the overhead.
       NamingLens namingLens =
           options.enableMinification
-              ? new Minifier(appView.getAppInfo().withLiveness(), rootSet, options).run(timing)
+              ? new Minifier(
+                      appView.getAppInfo().withLiveness(), rootSet, desugaredCallSites, options)
+                  .run(timing)
               : NamingLens.getIdentityLens();
       timing.end();
 

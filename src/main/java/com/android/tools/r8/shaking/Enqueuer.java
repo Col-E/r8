@@ -114,6 +114,7 @@ public class Enqueuer {
       Maps.newIdentityHashMap();
   private final Map<DexType, Set<TargetWithContext<DexField>>> staticFieldsWritten =
       Maps.newIdentityHashMap();
+  private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
 
   private final ProtoLiteExtension protoLiteExtension;
   private final Set<DexField> protoLiteFields = Sets.newIdentityHashSet();
@@ -484,6 +485,7 @@ public class Enqueuer {
 
     @Override
     public void registerCallSite(DexCallSite callSite) {
+      callSites.add(callSite);
       super.registerCallSite(callSite);
       for (DexEncodedMethod method :
           appInfo.lookupLambdaImplementedMethods(callSite, options.reporter)) {
@@ -1669,6 +1671,11 @@ public class Enqueuer {
      */
     public final SortedSet<DexMethod> staticInvokes;
     /**
+     * Set of live call sites in the code. Note that if desugaring has taken place call site objects
+     * will have been removed from the code.
+     */
+    public final Set<DexCallSite> callSites;
+    /**
      * Set of method signatures used in invoke-super instructions that either cannot be resolved or
      * resolve to a private method (leading to an IllegalAccessError).
      */
@@ -1753,6 +1760,7 @@ public class Enqueuer {
       this.superInvokes = joinInvokedMethods(enqueuer.superInvokes, TargetWithContext::getTarget);
       this.directInvokes = joinInvokedMethods(enqueuer.directInvokes);
       this.staticInvokes = joinInvokedMethods(enqueuer.staticInvokes);
+      this.callSites = enqueuer.callSites;
       this.brokenSuperInvokes =
           ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, enqueuer.brokenSuperInvokes);
       this.noSideEffects = enqueuer.rootSet.noSideEffects;
@@ -1798,6 +1806,7 @@ public class Enqueuer {
       this.superInvokes = previous.superInvokes;
       this.directInvokes = previous.directInvokes;
       this.staticInvokes = previous.staticInvokes;
+      this.callSites = previous.callSites;
       this.brokenSuperInvokes = previous.brokenSuperInvokes;
       this.protoLiteFields = previous.protoLiteFields;
       this.alwaysInline = previous.alwaysInline;
@@ -1840,6 +1849,9 @@ public class Enqueuer {
       this.superInvokes = lense.rewriteMethodsConservatively(previous.superInvokes);
       this.directInvokes = lense.rewriteMethodsConservatively(previous.directInvokes);
       this.staticInvokes = lense.rewriteMethodsConservatively(previous.staticInvokes);
+      // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
+      // after second tree shaking.
+      this.callSites = previous.callSites;
       this.brokenSuperInvokes = lense.rewriteMethodsConservatively(previous.brokenSuperInvokes);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
       assert lense.assertDefinitionNotModified(previous.noSideEffects.keySet());
@@ -1891,6 +1903,7 @@ public class Enqueuer {
       this.superInvokes = previous.superInvokes;
       this.directInvokes = previous.directInvokes;
       this.staticInvokes = previous.staticInvokes;
+      this.callSites = previous.callSites;
       this.brokenSuperInvokes = previous.brokenSuperInvokes;
       this.protoLiteFields = previous.protoLiteFields;
       this.alwaysInline = previous.alwaysInline;
