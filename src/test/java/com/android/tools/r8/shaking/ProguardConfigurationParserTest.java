@@ -1037,6 +1037,28 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void parse_optimizations() throws Exception {
+    for (String option :
+        ImmutableList.of(
+            "-optimizations",
+            "-optimizations xxx",
+            "-optimizations     xxx",
+            "-optimizations xxx/yyy",
+            "-optimizations     xxx/yyy",
+            "-optimizations xxx/yyy,zzz*",
+            "-optimizations xxx/yyy  ,  zzz*",
+            "-optimizations !xxx",
+            "-optimizations   !  xxx",
+            "-optimizations !xxx,!yyy",
+            "-optimizations   !  xxx,  !  yyy",
+            "-optimizations !code/simplification/advanced,code/simplification/*")) {
+      reset();
+      parser.parse(createConfigurationForTesting(ImmutableList.of(option)));
+      verifyParserEndsCleanly();
+    }
+  }
+
+  @Test
   public void parsePrintUsage() throws Exception {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);

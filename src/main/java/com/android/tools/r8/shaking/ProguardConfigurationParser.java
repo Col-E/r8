@@ -513,8 +513,8 @@ public class ProguardConfigurationParser {
       if (!acceptString("optimizations")) {
         return false;
       }
-      skipWhitespace();
       do {
+        skipWhitespace();
         skipOptimizationName();
         skipWhitespace();
       } while (acceptChar(','));
@@ -525,11 +525,7 @@ public class ProguardConfigurationParser {
       if (acceptChar('!')) {
         skipWhitespace();
       }
-      for (char next = peekChar();
-          Character.isAlphabetic(next) || next == '/' || next == '*';
-          next = peekChar()) {
-        readChar();
-      }
+      acceptString(next -> Character.isAlphabetic(next) || next == '/' || next == '*');
     }
 
     private void skipSingleArgument() {
