@@ -33,4 +33,9 @@ public class PrimitiveTypeLatticeElement extends TypeLatticeElement {
   public String toString() {
     return "PRIMITIVE";
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode() * 2;
+  }
 }

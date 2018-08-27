@@ -120,6 +120,6 @@ public class MoveException extends Instruction {
     Set<DexType> exceptionTypes = collectExceptionTypes(appInfo.dexItemFactory);
     return TypeLatticeElement.join(
         appInfo,
-        exceptionTypes.stream().map(t -> TypeLatticeElement.fromDexType(t, false)));
+        exceptionTypes.stream().map(t -> TypeLatticeElement.fromDexType(appInfo, t, false)));
   }
 }

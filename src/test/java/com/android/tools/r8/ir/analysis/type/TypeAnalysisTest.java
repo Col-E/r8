@@ -58,7 +58,6 @@ public class TypeAnalysisTest extends SmaliTestBase {
   private static final InternalOptions TEST_OPTIONS = new InternalOptions();
   private static final TypeLatticeElement NULL = NullLatticeElement.getInstance();
   private static final TypeLatticeElement PRIMITIVE = PrimitiveTypeLatticeElement.getInstance();
-  private static final TypeLatticeElement TOP = Top.getInstance();
 
   private final String dirName;
   private final String smaliFileName;
@@ -127,7 +126,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         subtract.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract, irCode);
     analysis.forEach((v, l) -> {
-      assertEither(l, PRIMITIVE, NULL, TOP);
+      assertEither(l, PRIMITIVE, NULL);
     });
   }
 

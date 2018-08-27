@@ -53,7 +53,7 @@ public class ArrayTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public TypeLatticeElement arrayGet(AppInfo appInfo) {
-    return fromDexType(getArrayElementType(appInfo.dexItemFactory), true);
+    return fromDexType(appInfo, getArrayElementType(appInfo.dexItemFactory), true);
   }
 
   @Override
@@ -67,13 +67,11 @@ public class ArrayTypeLatticeElement extends TypeLatticeElement {
       return false;
     }
     ArrayTypeLatticeElement other = (ArrayTypeLatticeElement) o;
-    return arrayType == other.arrayType;
+    return arrayType.equals(other.arrayType);
   }
 
   @Override
   public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + arrayType.hashCode();
-    return result;
+    return super.hashCode() * arrayType.hashCode() * 41;
   }
 }

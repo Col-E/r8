@@ -28,4 +28,9 @@ public class Bottom extends TypeLatticeElement {
   public String toString() {
     return "BOTTOM (empty)";
   }
+
+  @Override
+  public int hashCode() {
+    return Integer.MIN_VALUE;
+  }
 }

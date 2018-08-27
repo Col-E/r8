@@ -68,10 +68,10 @@ public class TypeAnalysis implements TypeEnvironment {
         TypeLatticeElement derived;
         if (argumentsSeen < 0) {
           // Receiver
-          derived = TypeLatticeElement.fromDexType(encodedMethod.method.holder, false);
+          derived = TypeLatticeElement.fromDexType(appInfo, encodedMethod.method.holder, false);
         } else {
           DexType argType = encodedMethod.method.proto.parameters.values[argumentsSeen];
-          derived = TypeLatticeElement.fromDexType(argType, true);
+          derived = TypeLatticeElement.fromDexType(appInfo, argType, true);
         }
         argumentsSeen++;
         assert outValue != null;

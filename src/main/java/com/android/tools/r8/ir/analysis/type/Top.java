@@ -28,4 +28,9 @@ public class Top extends TypeLatticeElement {
   public String toString() {
     return "TOP (everything)";
   }
+
+  @Override
+  public int hashCode() {
+    return Integer.MAX_VALUE;
+  }
 }

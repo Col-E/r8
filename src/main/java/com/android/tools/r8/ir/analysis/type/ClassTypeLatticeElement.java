@@ -5,28 +5,42 @@ package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ClassTypeLatticeElement extends TypeLatticeElement {
   private final DexType classType;
+  private final Set<DexType> interfaces;
 
   ClassTypeLatticeElement(DexType classType, boolean isNullable) {
+    this(classType, isNullable, ImmutableSet.of());
+  }
+
+  ClassTypeLatticeElement(DexType classType, boolean isNullable, Set<DexType> interfaces) {
     super(isNullable);
     assert classType.isClassType();
     this.classType = classType;
+    this.interfaces = Collections.unmodifiableSet(interfaces);
   }
 
   public DexType getClassType() {
     return classType;
   }
 
+  Set<DexType> getInterfaces() {
+    return interfaces;
+  }
+
   @Override
   TypeLatticeElement asNullable() {
-    return isNullable() ? this : new ClassTypeLatticeElement(classType, true);
+    return isNullable() ? this : new ClassTypeLatticeElement(classType, true, interfaces);
   }
 
   @Override
   public TypeLatticeElement asNonNullable() {
-    return isNullable() ? new ClassTypeLatticeElement(classType, false) : this;
+    return isNullable() ? new ClassTypeLatticeElement(classType, false, interfaces) : this;
   }
 
   @Override
@@ -46,7 +60,15 @@ public class ClassTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public String toString() {
-    return isNullableString() + classType.toString();
+    StringBuilder builder = new StringBuilder();
+    builder.append(isNullableString()).append(classType.toString());
+    if (!interfaces.isEmpty()) {
+      builder.append(" [");
+      builder.append(
+          interfaces.stream().map(DexType::toString).collect(Collectors.joining(", ")));
+      builder.append("]");
+    }
+    return builder.toString();
   }
 
   @Override
@@ -55,13 +77,18 @@ public class ClassTypeLatticeElement extends TypeLatticeElement {
       return false;
     }
     ClassTypeLatticeElement other = (ClassTypeLatticeElement) o;
-    return classType == other.classType;
+    if (!classType.equals(other.classType)) {
+      return false;
+    }
+    if (interfaces.size() != other.interfaces.size()) {
+      return false;
+    }
+    return interfaces.containsAll(other.interfaces);
   }
 
   @Override
   public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + classType.hashCode();
-    return result;
+    int prime = (!classType.isUnknown() && classType.isInterface()) ? 3 : 17;
+    return super.hashCode() * classType.hashCode() * prime;
   }
 }

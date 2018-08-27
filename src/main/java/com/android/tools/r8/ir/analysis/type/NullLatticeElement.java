@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import com.android.tools.r8.graph.AppInfo;
+
 public class NullLatticeElement extends TypeLatticeElement {
   private static final NullLatticeElement INSTANCE = new NullLatticeElement();
 
@@ -22,6 +24,11 @@ public class NullLatticeElement extends TypeLatticeElement {
 
   public static NullLatticeElement getInstance() {
     return INSTANCE;
+  }
+
+  @Override
+  public TypeLatticeElement arrayGet(AppInfo appInfo) {
+    return this;
   }
 
   @Override
