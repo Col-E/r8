@@ -3,13 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.CachedHashValueDexItem;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -17,7 +16,7 @@ import java.util.function.Function;
 
 abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueDexItem> {
 
-  protected final AppInfoWithSubtyping appInfo;
+  protected final AppInfoWithLiveness appInfo;
   protected final RootSet rootSet;
   protected final ImmutableList<String> dictionary;
 
@@ -26,15 +25,13 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   protected final NamingState<StateType, ?> globalState;
   protected final boolean useUniqueMemberNames;
   protected final boolean overloadAggressively;
-  protected final Reporter reporter;
 
-  MemberNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
+  MemberNameMinifier(AppInfoWithLiveness appInfo, RootSet rootSet, InternalOptions options) {
     this.appInfo = appInfo;
     this.rootSet = rootSet;
     this.dictionary = options.proguardConfiguration.getObfuscationDictionary();
     this.useUniqueMemberNames = options.proguardConfiguration.isUseUniqueClassMemberNames();
     this.overloadAggressively = options.proguardConfiguration.isOverloadAggressively();
-    this.reporter = options.reporter;
     this.globalState = NamingState.createRoot(
         appInfo.dexItemFactory, dictionary, getKeyTransform(), useUniqueMemberNames);
   }

@@ -85,10 +85,10 @@ public final class DexCallSite extends IndexedDexItem implements Comparable<DexC
 
   @Override
   public int computeHashCode() {
-    return methodName.hashCode()
-        + methodProto.hashCode() * 7
-        + bootstrapMethod.hashCode() * 31
-        + bootstrapArgs.hashCode() * 101;
+    // Call sites are equal only when this == other, which was already computed by the caller of
+    // computeEquals. Do not share call site entries, each invoke-custom must have its own
+    // call site, but the content of the entry (encoded array) in the data section can be shared.
+    return System.identityHashCode(this);
   }
 
   @Override

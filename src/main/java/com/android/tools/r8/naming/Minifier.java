@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -32,11 +33,17 @@ public class Minifier {
 
   private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
+  private final Set<DexCallSite> desugaredCallSites;
   private final InternalOptions options;
 
-  public Minifier(AppInfoWithLiveness appInfo, RootSet rootSet, InternalOptions options) {
+  public Minifier(
+      AppInfoWithLiveness appInfo,
+      RootSet rootSet,
+      Set<DexCallSite> desugaredCallSites,
+      InternalOptions options) {
     this.appInfo = appInfo;
     this.rootSet = rootSet;
+    this.desugaredCallSites = desugaredCallSites;
     this.options = options;
   }
 
@@ -48,7 +55,8 @@ public class Minifier {
     timing.end();
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appInfo, rootSet, options).computeRenaming(timing);
+        new MethodNameMinifier(appInfo, rootSet, desugaredCallSites, options)
+            .computeRenaming(timing);
     timing.end();
     timing.begin("MinifyFields");
     Map<DexField, DexString> fieldRenaming =

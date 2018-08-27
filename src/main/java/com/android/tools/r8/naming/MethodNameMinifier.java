@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -11,6 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -91,11 +91,18 @@ import java.util.function.Function;
  */
 class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
+  private final Set<DexCallSite> desugaredCallSites;
+
   private final Equivalence<DexMethod> equivalence;
   private final Map<DexCallSite, DexString> callSiteRenaming = new IdentityHashMap<>();
 
-  MethodNameMinifier(AppInfoWithSubtyping appInfo, RootSet rootSet, InternalOptions options) {
+  MethodNameMinifier(
+      AppInfoWithLiveness appInfo,
+      RootSet rootSet,
+      Set<DexCallSite> desugaredCallSites,
+      InternalOptions options) {
     super(appInfo, rootSet, options);
+    this.desugaredCallSites = desugaredCallSites;
     equivalence =
         overloadAggressively
             ? MethodSignatureEquivalence.get()
@@ -230,6 +237,11 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
             method, collectedStates, globalStateMap, sourceMethodsMap, originStates, iface));
       }
     });
+    // Collect the live call sites for multi-interface lambda expression renaming. For code with
+    // desugared lambdas this is a conservative estimate, as we don't track if the generated
+    // lambda classes survive into the output. As multi-interface lambda expressions are rare
+    // this is not a big deal.
+    Set<DexCallSite> liveCallSites = Sets.union(desugaredCallSites, appInfo.callSites);
     // If the input program contains a multi-interface lambda expression that implements
     // interface methods with different protos, we need to make sure that
     // the implemented lambda methods are renamed to the same name.
@@ -240,11 +252,13 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     // Note that if the input does not use multi-interface lambdas,
     // unificationParent will remain empty.
     Map<Wrapper<DexMethod>, Wrapper<DexMethod>> unificationParent = new HashMap<>();
-    appInfo.dexItemFactory.forAllCallSites(
+    liveCallSites.forEach(
         callSite -> {
           Set<Wrapper<DexMethod>> callSiteMethods = new HashSet<>();
+          // Don't report errors, as the set of call sites is a conservative estimate, and can
+          // refer to interfaces which has been removed.
           Set<DexEncodedMethod> implementedMethods =
-              appInfo.lookupLambdaImplementedMethods(callSite, reporter);
+              appInfo.lookupLambdaImplementedMethods(callSite, null);
           if (implementedMethods.isEmpty()) {
             return;
           }

@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -71,6 +72,7 @@ import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -205,6 +207,14 @@ public class IRConverter {
 
   public GraphLense getGraphLense() {
     return graphLense;
+  }
+
+  public Set<DexCallSite> getDesugaredCallSites() {
+    if (lambdaRewriter != null) {
+      return lambdaRewriter.getDesugaredCallSites();
+    } else {
+      return Collections.emptySet();
+    }
   }
 
   /**
