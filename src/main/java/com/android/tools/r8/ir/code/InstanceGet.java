@@ -137,7 +137,7 @@ public class InstanceGet extends FieldInstruction {
   @Override
   public TypeLatticeElement evaluate(
       AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
-    return TypeLatticeElement.fromDexType(field.type, true);
+    return TypeLatticeElement.fromDexType(appInfo, field.type, true);
   }
 
   @Override

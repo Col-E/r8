@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -120,9 +121,9 @@ public class NullabilityTest extends TestBase {
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          InvokeVirtual.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
-          NonNull.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
-          NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
+          InvokeVirtual.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
+          NonNull.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, false),
+          NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
@@ -136,9 +137,9 @@ public class NullabilityTest extends TestBase {
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          InvokeVirtual.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
-          NonNull.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
-          NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
+          InvokeVirtual.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
+          NonNull.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, false),
+          NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
@@ -153,8 +154,8 @@ public class NullabilityTest extends TestBase {
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           // An element inside a non-null array could be null.
-          ArrayGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
-          NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
+          ArrayGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
+          NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> {
         if (l.isArrayTypeLatticeElement()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
@@ -179,8 +180,8 @@ public class NullabilityTest extends TestBase {
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           // An element inside a non-null array could be null.
-          ArrayGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
-          NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
+          ArrayGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
+          NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> {
         if (l.isArrayTypeLatticeElement()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
@@ -206,11 +207,11 @@ public class NullabilityTest extends TestBase {
       DexType testClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(FieldAccessTest.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          Argument.class, new ClassTypeLatticeElement(testClass, true),
-          NonNull.class, new ClassTypeLatticeElement(testClass, false),
+          Argument.class, fromDexType(appInfo, testClass, true),
+          NonNull.class, fromDexType(appInfo, testClass, false),
           // instance may not be initialized.
-          InstanceGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
-          NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
+          InstanceGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
+          NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
@@ -226,11 +227,11 @@ public class NullabilityTest extends TestBase {
       DexType testClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(FieldAccessTest.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          Argument.class, new ClassTypeLatticeElement(testClass, true),
-          NonNull.class, new ClassTypeLatticeElement(testClass, false),
+          Argument.class, fromDexType(appInfo, testClass, true),
+          NonNull.class, fromDexType(appInfo, testClass, false),
           // instance may not be initialized.
-          InstanceGet.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, true),
-          NewInstance.class, new ClassTypeLatticeElement(assertionErrorType, false));
+          InstanceGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
+          NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
       typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }

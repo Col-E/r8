@@ -1626,7 +1626,7 @@ public class CodeRewriter {
       if (!inTypeLattice.isTop()) {
         TypeLatticeElement outTypeLattice = typeEnvironment.getLatticeElement(outValue);
         TypeLatticeElement castTypeLattice =
-            TypeLatticeElement.fromDexType(castType, inTypeLattice.isNullable());
+            TypeLatticeElement.fromDexType(appInfo, castType, inTypeLattice.isNullable());
         // Special case: null cast, e.g., getMethod(..., (Class[]) null);
         // This cast should be kept no matter what.
         if (inTypeLattice.mustBeNull()) {

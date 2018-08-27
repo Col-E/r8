@@ -97,7 +97,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return hierarchyLevel == INTERFACE_LEVEL;
   }
 
-  boolean isUnknown() {
+  public boolean isUnknown() {
     return hierarchyLevel == UNKNOWN_LEVEL;
   }
 
@@ -509,7 +509,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return getPackageOrName(false);
   }
 
-  /** Get the fully qualified name using '/' in place of '.', ala the "internal type name" in ASM */
+  /** Get the fully qualified name using '/' in place of '.', aka the "internal type name" in ASM */
   public String getInternalName() {
     assert isClassType() || isArrayType();
     return DescriptorUtils.descriptorToInternalName(toDescriptorString());
@@ -520,54 +520,57 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return type.directSubtypes.contains(this);
   }
 
-  public DexType computeLeastUpperBound(AppInfo appInfo, DexType other) {
+  public DexType computeLeastUpperBoundOfClasses(AppInfo appInfo, DexType other) {
     DexType objectType = appInfo.dexItemFactory.objectType;
     // If we have no definition for either class, stop proceeding.
     if (hierarchyLevel == UNKNOWN_LEVEL || other.hierarchyLevel == UNKNOWN_LEVEL) {
       return objectType;
     }
-    // If either one is interface,
-    //   1) one of them is a super type of the other
-    //   2) otherwise, the object type is the least upper bound.
-    if (isInterface() || other.isInterface()) {
-      if (isSubtypeOf(other, appInfo)) {
-        return other;
-      }
-      if (other.isSubtypeOf(this, appInfo)) {
-        return this;
-      }
+    if (this == objectType || other == objectType) {
       return objectType;
     }
-    // To make the logic simple, change the role if the other is lower than this.
-    if (other.hierarchyLevel < this.hierarchyLevel) {
-      return other.computeLeastUpperBound(appInfo, this);
+    if (this == other) {
+      return this;
     }
+
+    DexType t1;
+    DexType t2;
+    if (other.hierarchyLevel < this.hierarchyLevel) {
+      t1 = other;
+      t2 = this;
+    } else {
+      t1 = this;
+      t2 = other;
+    }
+    // From now on, t2.hierarchyLevel >= t1.hierarchyLevel
     DexClass dexClass;
     // Make both of other and this in the same level.
-    while (other.hierarchyLevel > this.hierarchyLevel) {
-      dexClass = appInfo.definitionFor(other);
-      if (dexClass == null) {
+    while (t2.hierarchyLevel > t1.hierarchyLevel) {
+      dexClass = appInfo.definitionFor(t2);
+      if (dexClass == null || dexClass.superType == null) {
         return objectType;
       }
-      other = dexClass.superType;
+      t2 = dexClass.superType;
     }
     // At this point, they are at the same level.
-    // lub starts from this, and will move up; other starts from itself, and will move up, too.
+    // lubType starts from t1, and will move up; t2 starts from itself, and will move up, too.
     // They move up in their own hierarchy tree, and will repeat the process until they meet.
     // (It will stop at anytime when either one's definition is not found.)
-    DexType lub = this;
-    while (other != lub) {
-      dexClass = appInfo.definitionFor(other);
+    DexType lubType = t1;
+    while (t2 != lubType) {
+      dexClass = appInfo.definitionFor(t2);
       if (dexClass == null) {
-        return objectType;
+        lubType = objectType;
+        break;
       }
-      other = dexClass.superType;
-      dexClass = appInfo.definitionFor(lub);
+      t2 = dexClass.superType;
+      dexClass = appInfo.definitionFor(lubType);
       if (dexClass == null) {
-        return objectType;
+        lubType = objectType;
+        break;
       }
-      lub = dexClass.superType;
+      lubType = dexClass.superType;
     }
-    return lub;
+    return lubType;
   }
 }

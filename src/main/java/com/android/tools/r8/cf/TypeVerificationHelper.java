@@ -68,7 +68,7 @@ public class TypeVerificationHelper {
   }
 
   private TypeLatticeElement getLatticeElement(DexType type) {
-    return TypeLatticeElement.fromDexType(type, true);
+    return TypeLatticeElement.fromDexType(appInfo, type, true);
   }
 
   public Map<Value, DexType> computeVerificationTypes() {

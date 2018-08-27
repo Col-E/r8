@@ -5,9 +5,17 @@ package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Value;
+import com.google.common.collect.ImmutableSet;
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Stream;
 
@@ -68,17 +76,17 @@ abstract public class TypeLatticeElement {
     if (l1.isTop() || l2.isTop()) {
       return Top.getInstance();
     }
-    if (l1 instanceof NullLatticeElement) {
+    if (l1.mustBeNull()) {
       return l2.asNullable();
     }
-    if (l2 instanceof NullLatticeElement) {
+    if (l2.mustBeNull()) {
       return l1.asNullable();
     }
-    if (l1 instanceof PrimitiveTypeLatticeElement) {
-      return l2 instanceof PrimitiveTypeLatticeElement ? l1 : Top.getInstance();
+    if (l1.isPrimitive()) {
+      return l2.isPrimitive() ? l1 : Top.getInstance();
     }
-    if (l2 instanceof PrimitiveTypeLatticeElement) {
-      // By the above case !(l1 instanceof PrimitiveTypeLatticeElement)
+    if (l2.isPrimitive()) {
+      // By the above case, !(l1.isPrimitive())
       return Top.getInstance();
     }
     // From now on, l1 and l2 are reference types, i.e., either ArrayType or ClassType.
@@ -88,6 +96,7 @@ abstract public class TypeLatticeElement {
     }
     // From now on, l1.getClass() == l2.getClass()
     if (l1.isArrayTypeLatticeElement()) {
+      assert l2.isArrayTypeLatticeElement();
       ArrayTypeLatticeElement a1 = l1.asArrayTypeLatticeElement();
       ArrayTypeLatticeElement a2 = l2.asArrayTypeLatticeElement();
       // Identical types are the same elements
@@ -118,31 +127,115 @@ abstract public class TypeLatticeElement {
         return objectArrayType(appInfo, min, isNullable);
       }
       // For different class element types, compute the least upper bound of element types.
-      DexType lub = a1BaseReferenceType.computeLeastUpperBound(appInfo, a2BaseReferenceType);
+      DexType lub =
+          a1BaseReferenceType.computeLeastUpperBoundOfClasses(appInfo, a2BaseReferenceType);
       // Create the full array type.
       DexType arrayTypeLub = appInfo.dexItemFactory.createArrayType(a1Nesting, lub);
       return new ArrayTypeLatticeElement(arrayTypeLub, isNullable);
     }
     if (l1.isClassTypeLatticeElement()) {
+      assert l2.isClassTypeLatticeElement();
       ClassTypeLatticeElement c1 = l1.asClassTypeLatticeElement();
       ClassTypeLatticeElement c2 = l2.asClassTypeLatticeElement();
-      if (c1.getClassType() == c2.getClassType()) {
-        return c1.isNullable() ? c1 : c2;
-      } else {
-        DexType lub = c1.getClassType().computeLeastUpperBound(appInfo, c2.getClassType());
-        return new ClassTypeLatticeElement(lub, isNullable);
-      }
+      DexType lubType =
+          c1.getClassType().computeLeastUpperBoundOfClasses(appInfo, c2.getClassType());
+      return new ClassTypeLatticeElement(lubType, isNullable,
+          computeLeastUpperBoundOfInterfaces(appInfo, c1.getInterfaces(), c2.getInterfaces()));
     }
     throw new Unreachable("unless a new type lattice is introduced.");
   }
 
-  static BinaryOperator<TypeLatticeElement> joiner(AppInfo appInfo) {
+  private enum InterfaceMarker {
+    LEFT,
+    RIGHT
+  }
+
+  private static class InterfaceWithMarker {
+    final DexType itf;
+    final InterfaceMarker marker;
+
+    InterfaceWithMarker(DexType itf, InterfaceMarker marker) {
+      this.itf = itf;
+      this.marker = marker;
+    }
+  }
+
+  static Set<DexType> computeLeastUpperBoundOfInterfaces(
+      AppInfo appInfo, Set<DexType> s1, Set<DexType> s2) {
+    Map<DexType, Set<InterfaceMarker>> seen = new IdentityHashMap<>();
+    Queue<InterfaceWithMarker> worklist = new ArrayDeque<>();
+    for (DexType itf1 : s1) {
+      worklist.add(new InterfaceWithMarker(itf1, InterfaceMarker.LEFT));
+    }
+    for (DexType itf2 : s2) {
+      worklist.add(new InterfaceWithMarker(itf2, InterfaceMarker.RIGHT));
+    }
+    while (!worklist.isEmpty()) {
+      InterfaceWithMarker item = worklist.poll();
+      DexType itf = item.itf;
+      InterfaceMarker marker = item.marker;
+      Set<InterfaceMarker> markers = seen.computeIfAbsent(itf, k -> new HashSet<>());
+      // If this interface is a lower one in this set, skip.
+      if (markers.contains(marker)) {
+        continue;
+      }
+      // If this interface is already visited by the other set, add marker for this set and skip.
+      if (markers.size() == 1) {
+        markers.add(marker);
+        continue;
+      }
+      // Otherwise, this type is freshly visited.
+      markers.add(marker);
+      // Put super interfaces into the worklist.
+      DexClass itfClass = appInfo.definitionFor(itf);
+      if (itfClass != null) {
+        for (DexType superItf : itfClass.interfaces.values) {
+          markers = seen.computeIfAbsent(superItf, k -> new HashSet<>());
+          if (!markers.contains(marker)) {
+            worklist.add(new InterfaceWithMarker(superItf, marker));
+          }
+        }
+      }
+    }
+
+    ImmutableSet.Builder<DexType> commonBuilder = ImmutableSet.builder();
+    for (Map.Entry<DexType, Set<InterfaceMarker>> entry : seen.entrySet()) {
+      // Keep commonly visited interfaces only
+      if (entry.getValue().size() < 2) {
+        continue;
+      }
+      commonBuilder.add(entry.getKey());
+    }
+    Set<DexType> commonlyVisited = commonBuilder.build();
+
+    ImmutableSet.Builder<DexType> lubBuilder = ImmutableSet.builder();
+    for (DexType itf : commonlyVisited) {
+      // If there is a strict sub interface of this interface, it is not the least element.
+      if (commonlyVisited.stream().anyMatch(other -> other.isStrictSubtypeOf(itf, appInfo))) {
+        continue;
+      }
+      lubBuilder.add(itf);
+    }
+    return lubBuilder.build();
+  }
+
+  private static Set<DexType> computeLeastUpperBoundOfInterfaces(
+      AppInfo appInfo, Set<DexType> interfaces) {
+    return computeLeastUpperBoundOfInterfaces(appInfo, interfaces, interfaces);
+  }
+
+  public static BinaryOperator<TypeLatticeElement> joiner(AppInfo appInfo) {
     return (l1, l2) -> join(appInfo, l1, l2);
   }
 
   public static TypeLatticeElement join(AppInfo appInfo, Stream<TypeLatticeElement> types) {
     BinaryOperator<TypeLatticeElement> joiner = joiner(appInfo);
     return types.reduce(Bottom.getInstance(), joiner, joiner);
+  }
+
+  public static TypeLatticeElement join(
+      AppInfo appInfo, Stream<DexType> types, boolean isNullable) {
+    return join(appInfo, types.map(t -> fromDexType(appInfo, t, isNullable)));
   }
 
   /**
@@ -223,7 +316,7 @@ abstract public class TypeLatticeElement {
         isNullable);
   }
 
-  public static TypeLatticeElement fromDexType(DexType type, boolean isNullable) {
+  public static TypeLatticeElement fromDexType(AppInfo appInfo, DexType type, boolean isNullable) {
     if (type == DexItemFactory.nullValueType) {
       return NullLatticeElement.getInstance();
     }
@@ -231,7 +324,12 @@ abstract public class TypeLatticeElement {
       return PrimitiveTypeLatticeElement.getInstance();
     }
     if (type.isClassType()) {
-      return new ClassTypeLatticeElement(type, isNullable);
+      if (!type.isUnknown() && type.isInterface()) {
+        return new ClassTypeLatticeElement(
+            appInfo.dexItemFactory.objectType, isNullable, ImmutableSet.of(type));
+      }
+      return new ClassTypeLatticeElement(type, isNullable,
+          computeLeastUpperBoundOfInterfaces(appInfo, type.implementedInterfaces(appInfo)));
     }
     assert type.isArrayType();
     return new ArrayTypeLatticeElement(type, isNullable);
@@ -242,11 +340,11 @@ abstract public class TypeLatticeElement {
   }
 
   public TypeLatticeElement arrayGet(AppInfo appInfo) {
-    return Top.getInstance();
+    return Bottom.getInstance();
   }
 
   public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
-    TypeLatticeElement castTypeLattice = fromDexType(castType, isNullable());
+    TypeLatticeElement castTypeLattice = fromDexType(appInfo, castType, isNullable());
     // Special case: casting null.
     if (mustBeNull()) {
       return castTypeLattice;
@@ -274,6 +372,6 @@ abstract public class TypeLatticeElement {
 
   @Override
   public int hashCode() {
-    return isNullable ? 1 : 0;
+    return isNullable ? 1 : -1;
   }
 }

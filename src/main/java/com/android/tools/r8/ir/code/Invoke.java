@@ -282,6 +282,6 @@ public abstract class Invoke extends Instruction {
     if (returnType.isVoidType()) {
       throw new Unreachable("void methods have no type.");
     }
-    return TypeLatticeElement.fromDexType(returnType, true);
+    return TypeLatticeElement.fromDexType(appInfo, returnType, true);
   }
 }

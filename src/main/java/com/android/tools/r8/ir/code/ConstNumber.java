@@ -23,7 +23,6 @@ import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.type.NullLatticeElement;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.Top;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -272,16 +271,9 @@ public class ConstNumber extends ConstInstruction {
   @Override
   public TypeLatticeElement evaluate(
       AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
-    if (!isZero()) {
-      return PrimitiveTypeLatticeElement.getInstance();
-    }
-    if (outType().isObject()) {
+    if (isZero() && outType().isObject()) {
       return NullLatticeElement.getInstance();
     }
-    if (outType().isSingle() || outType().isWide()) {
-      return PrimitiveTypeLatticeElement.getInstance();
-    }
-    assert outType().isObject();
-    return Top.getInstance();
+    return PrimitiveTypeLatticeElement.getInstance();
   }
 }
