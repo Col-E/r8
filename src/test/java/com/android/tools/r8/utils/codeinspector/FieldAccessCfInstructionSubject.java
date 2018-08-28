@@ -21,4 +21,9 @@ public class FieldAccessCfInstructionSubject extends CfInstructionSubject
   public TypeSubject holder() {
     return new TypeSubject(codeInspector, ((CfFieldInstruction) instruction).getField().getHolder());
   }
+
+  @Override
+  public String name() {
+    return ((CfFieldInstruction) instruction).getField().name.toString();
+  }
 }

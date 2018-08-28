@@ -21,4 +21,9 @@ public class FieldAccessDexInstructionSubject extends DexInstructionSubject
   public TypeSubject holder() {
     return new TypeSubject(codeInspector, instruction.getField().getHolder());
   }
+
+  @Override
+  public String name() {
+    return instruction.getField().name.toString();
+  }
 }

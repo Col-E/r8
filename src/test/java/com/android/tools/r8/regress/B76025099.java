@@ -5,51 +5,68 @@ package com.android.tools.r8.regress;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.IputObject;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldAccessInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.function.Function;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import regress_76025099.Main;
 import regress_76025099.impl.Impl;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class B76025099 extends TestBase {
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public B76025099(Backend backend) {
+    this.backend = backend;
+  }
+
   private static final String PRG =
       ToolHelper.EXAMPLES_BUILD_DIR + "regress_76025099" + FileUtils.JAR_EXTENSION;
 
   private AndroidApp runR8(AndroidApp app) throws Exception {
-     R8Command command =
+    R8Command command =
         ToolHelper.addProguardConfigurationConsumer(
-            ToolHelper.prepareR8CommandBuilder(app),
-            pgConfig -> {
-              pgConfig.setPrintMapping(true);
-              pgConfig.setPrintMappingFile(map);
-            })
-        .addProguardConfigurationFiles(pgConfig)
-        .setOutput(tempRoot.toPath(), OutputMode.DexIndexed)
-        .build();
+                ToolHelper.prepareR8CommandBuilder(app, emptyConsumer(backend)),
+                pgConfig -> {
+                  pgConfig.setPrintMapping(true);
+                  pgConfig.setPrintMappingFile(map);
+                })
+            .addLibraryFiles(runtimeJar(backend))
+            .addProguardConfigurationFiles(pgConfig)
+            .setOutput(tempRoot.toPath(), outputMode(backend))
+            .build();
     return ToolHelper.runR8(command, o -> {
       o.enableMinification = false;
     });
@@ -77,6 +94,7 @@ public class B76025099 extends TestBase {
 
   @Test
   public void testProguardAndD8() throws Exception {
+    Assume.assumeTrue(backend == Backend.DEX);
     if (!isRunProguard()) {
       return;
     }
@@ -102,6 +120,17 @@ public class B76025099 extends TestBase {
     verifyFieldAccess(processedApp, jvmOutput);
   }
 
+  private static InstructionSubject findInstructionOrNull(
+      Iterator<InstructionSubject> iterator, Function<InstructionSubject, Boolean> predicate) {
+    while (iterator.hasNext()) {
+      InstructionSubject instruction = iterator.next();
+      if (predicate.apply(instruction)) {
+        return instruction;
+      }
+    }
+    return null;
+  }
+
   private void verifyFieldAccess(AndroidApp processedApp, ProcessResult jvmOutput)
       throws Exception {
     CodeInspector inspector = new CodeInspector(processedApp);
@@ -109,17 +138,29 @@ public class B76025099 extends TestBase {
     assertThat(impl, isPresent());
     MethodSubject init = impl.init(ImmutableList.of("java.lang.String"));
     assertThat(init, isPresent());
-    DexCode dexCode = init.getMethod().getCode().asDexCode();
-    checkInstructions(
-        dexCode, ImmutableList.of(InvokeDirect.class, IputObject.class, ReturnVoid.class));
-    IputObject iput = (IputObject) dexCode.instructions[1];
-    DexField fld = iput.getField();
-    assertEquals("name", fld.name.toString());
-    assertEquals(impl.getDexClass().type, fld.getHolder());
+    Iterator<InstructionSubject> iterator = init.iterateInstructions();
 
-    ProcessResult artOutput = runOnArtRaw(processedApp, mainName);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(jvmOutput.stdout, artOutput.stdout);
+    assertNotNull(findInstructionOrNull(iterator, InstructionSubject::isInvoke));
+
+    InstructionSubject instruction =
+        findInstructionOrNull(iterator, InstructionSubject::isInstancePut);
+    assertNotNull(instruction);
+    FieldAccessInstructionSubject fieldAccessInstruction =
+        (FieldAccessInstructionSubject) instruction;
+    assertEquals("name", fieldAccessInstruction.name());
+    assertTrue(fieldAccessInstruction.holder().is(impl.getDexClass().type.toString()));
+
+    assertNotNull(findInstructionOrNull(iterator, InstructionSubject::isReturnVoid));
+
+    ProcessResult output;
+    if (backend == Backend.DEX) {
+      output = runOnArtRaw(processedApp, mainName);
+    } else {
+      assert backend == Backend.CF;
+      output = runOnJavaRaw(processedApp, mainName, Collections.emptyList());
+    }
+    assertEquals(0, output.exitCode);
+    assertEquals(jvmOutput.stdout, output.stdout);
   }
 
 }
