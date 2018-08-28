@@ -7,7 +7,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.IteratorUtils;
 import java.util.BitSet;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 import java.util.function.Predicate;
 
 final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
@@ -31,7 +32,6 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   private final Inliner inliner;
   private final DexEncodedMethod method;
   private final IRCode code;
-  private final TypeEnvironment typeEnvironment;
   private final CallSiteInformation callSiteInformation;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final InliningInfo info;
@@ -43,7 +43,6 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       Inliner inliner,
       DexEncodedMethod method,
       IRCode code,
-      TypeEnvironment typeEnvironment,
       CallSiteInformation callSiteInformation,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       InternalOptions options,
@@ -52,7 +51,6 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
     this.inliner = inliner;
     this.method = method;
     this.code = code;
-    this.typeEnvironment = typeEnvironment;
     this.callSiteInformation = callSiteInformation;
     this.isProcessedConcurrently = isProcessedConcurrently;
     info = Log.ENABLED ? new InliningInfo(method) : null;
@@ -70,7 +68,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
   private DexEncodedMethod validateCandidate(InvokeMethod invoke, DexType invocationContext) {
     DexEncodedMethod candidate =
-        invoke.computeSingleTarget(inliner.appInfo, typeEnvironment, invocationContext);
+        invoke.computeSingleTarget(inliner.appInfo, invocationContext);
     if ((candidate == null)
         || (candidate.getCode() == null)
         || inliner.appInfo.definitionFor(candidate.method.getHolder()).isLibraryClass()) {
@@ -268,8 +266,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
     // one of the following conditions is true:
     // * the candidate inlinee checks null receiver before any side effect
     // * the receiver is known to be non-null
-    boolean receiverIsNeverNull =
-        !typeEnvironment.getLatticeElement(invoke.getReceiver()).isNullable();
+    boolean receiverIsNeverNull = !invoke.getReceiver().getTypeLattice().isNullable();
     if (!receiverIsNeverNull
         && !candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
       if (info != null) {
@@ -350,7 +347,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
         Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
       }
       inliner.performInlining(
-          target, inlinee, typeEnvironment, isProcessedConcurrently, callSiteInformation);
+          target, inlinee, isProcessedConcurrently, callSiteInformation);
     }
   }
 
@@ -382,7 +379,8 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       assert IteratorUtils.peekNext(blockIterator) == block;
 
       // Kick off the tracker to add non-null IRs only to the inlinee blocks.
-      new NonNullTracker().addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
+      Set<Value> nonNullValues = new NonNullTracker()
+          .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
       assert !blockIterator.hasNext();
 
       // Restore the old state of the iterator.
@@ -390,10 +388,10 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
         // Do nothing.
       }
       assert IteratorUtils.peekNext(blockIterator) == state;
+      // TODO(b/72693244): could be done when Value is created.
+      new TypeAnalysis(inliner.appInfo, code.method).narrowing(nonNullValues);
     }
-    // Update type env for inlined blocks.
-    typeEnvironment.analyzeBlocks(inlinee.topologicallySortedBlocks());
-    // TODO(b/69964136): need a test where refined env in inlinee affects the caller.
+    // TODO(b/72693244): need a test where refined env in inlinee affects the caller.
   }
 
   @Override

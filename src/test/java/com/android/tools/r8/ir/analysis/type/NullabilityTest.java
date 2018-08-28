@@ -64,9 +64,10 @@ public class NullabilityTest extends TestBase {
         foo.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     NonNullTracker nonNullTracker = new NonNullTracker();
     nonNullTracker.addNonNull(irCode);
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, foo, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, foo);
+    analysis.widening(foo, irCode);
     inspector.accept(appInfo, analysis);
-    verifyLastInvoke(irCode, analysis, npeCaught);
+    verifyLastInvoke(irCode, npeCaught);
   }
 
   private static void verifyClassTypeLattice(
@@ -95,7 +96,7 @@ public class NullabilityTest extends TestBase {
     }
   }
 
-  private void verifyLastInvoke(IRCode code, TypeAnalysis analysis, boolean npeCaught) {
+  private void verifyLastInvoke(IRCode code, boolean npeCaught) {
     InstructionIterator it = code.instructionIterator();
     boolean metInvokeVirtual = false;
     while (it.hasNext()) {
@@ -104,7 +105,7 @@ public class NullabilityTest extends TestBase {
         InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
         if (invoke.getInvokedMethod().name.toString().contains("hash")) {
           metInvokeVirtual = true;
-          TypeLatticeElement l = analysis.getLatticeElement(invoke.getReceiver());
+          TypeLatticeElement l = invoke.getReceiver().getTypeLattice();
           assertEquals(npeCaught, l.isNullable());
         }
       }

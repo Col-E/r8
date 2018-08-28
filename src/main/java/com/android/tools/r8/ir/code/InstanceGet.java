@@ -24,7 +24,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
 
 public class InstanceGet extends FieldInstruction {
@@ -135,8 +134,7 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     return TypeLatticeElement.fromDexType(appInfo, field.type, true);
   }
 

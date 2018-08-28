@@ -22,6 +22,11 @@ public class NullLatticeElement extends TypeLatticeElement {
     return this;
   }
 
+  @Override
+  public TypeLatticeElement asNonNullable() {
+    return Bottom.getInstance();
+  }
+
   public static NullLatticeElement getInstance() {
     return INSTANCE;
   }

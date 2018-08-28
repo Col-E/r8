@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.UTFDataFormatException;
-import java.util.function.Function;
 
 public class ConstString extends ConstInstruction {
 
@@ -125,8 +124,7 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     return TypeLatticeElement.fromDexType(appInfo, appInfo.dexItemFactory.stringType, false);
   }
 }

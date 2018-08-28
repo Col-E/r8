@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import java.util.function.Function;
 
 public class CheckCast extends Instruction {
 
@@ -119,9 +118,8 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
-    return getLatticeElement.apply(object()).checkCast(appInfo, type);
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
+    return object().getTypeLatticeRaw().checkCast(appInfo, type);
   }
 
   @Override

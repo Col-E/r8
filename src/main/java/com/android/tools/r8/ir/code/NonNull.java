@@ -12,7 +12,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import java.util.function.Function;
 
 public class NonNull extends Instruction {
   private final static String ERROR_MESSAGE = "This fake IR should be removed after inlining.";
@@ -91,10 +90,17 @@ public class NonNull extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
-    TypeLatticeElement l = getLatticeElement.apply(src());
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
+    TypeLatticeElement l = src().getTypeLatticeRaw();
+    // Flipping the nullability bit for reference type is the main use case.
     if (l.isClassTypeLatticeElement() || l.isArrayTypeLatticeElement()) {
+      return l.asNonNullable();
+    }
+    // non_null_rcv <- non-null NULL ?!
+    // The chances are that the in is phi, and the only available operand is null. If another
+    // operand is, say, class A, phi's type is nullable A, and the out value of this instruction
+    // would be non-null A. Until that phi is saturated, we will ignore the current null.
+    if (l.mustBeNull()) {
       return l.asNonNullable();
     }
     return l;

@@ -35,7 +35,6 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsageBuilder;
-import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -1597,7 +1596,7 @@ public class CodeRewriter {
     return converter.definitionFor(type);
   }
 
-  public void removeCasts(IRCode code, TypeEnvironment typeEnvironment) {
+  public void removeCasts(IRCode code) {
     InstructionIterator it = code.instructionIterator();
     boolean needToRemoveTrivialPhis = false;
     while (it.hasNext()) {
@@ -1622,9 +1621,9 @@ public class CodeRewriter {
         continue;
       }
 
-      TypeLatticeElement inTypeLattice = typeEnvironment.getLatticeElement(inValue);
+      TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
       if (!inTypeLattice.isTop()) {
-        TypeLatticeElement outTypeLattice = typeEnvironment.getLatticeElement(outValue);
+        TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
         TypeLatticeElement castTypeLattice =
             TypeLatticeElement.fromDexType(appInfo, castType, inTypeLattice.isNullable());
         // Special case: null cast, e.g., getMethod(..., (Class[]) null);
@@ -2433,7 +2432,7 @@ public class CodeRewriter {
     assert code.isConsistentSSA();
   }
 
-  public void simplifyIf(IRCode code, TypeEnvironment typeEnvironment) {
+  public void simplifyIf(IRCode code) {
     for (BasicBlock block : code.blocks) {
       // Skip removed (= unreachable) blocks.
       if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {
@@ -2542,9 +2541,8 @@ public class CodeRewriter {
             && (theIf.getType() == Type.EQ || theIf.getType() == Type.NE)) {
           if (inValues.get(0).isNeverNull()) {
             simplifyIfWithKnownCondition(code, block, theIf, 1);
-          } else if (typeEnvironment != null) {
-            // TODO(b/72693244): annotate type lattice to value
-            TypeLatticeElement l = typeEnvironment.getLatticeElement(inValues.get(0));
+          } else {
+            TypeLatticeElement l = inValues.get(0).getTypeLattice();
             if (!l.isPrimitive() && !l.isNullable()) {
               simplifyIfWithKnownCondition(code, block, theIf, 1);
             }

@@ -124,7 +124,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     IRCode irCode =
         subtract.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract);
+    analysis.widening(subtract, irCode);
     analysis.forEach((v, l) -> {
       assertEither(l, PRIMITIVE, NULL);
     });
@@ -139,7 +140,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     IRCode irCode =
         fib.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, fib, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, fib);
+    analysis.widening(fib, irCode);
     analysis.forEach((v, l) -> {
       assertEither(l, PRIMITIVE, NULL);
     });
@@ -154,7 +156,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     IRCode irCode =
         test1.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, test1, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, test1);
+    analysis.widening(test1, irCode);
     Value array = null;
     InstructionIterator iterator = irCode.instructionIterator();
     while (iterator.hasNext()) {
@@ -186,7 +189,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     IRCode irCode =
         test4.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, test4, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, test4);
+    analysis.widening(test4, irCode);
     Value array = null;
     InstructionIterator iterator = irCode.instructionIterator();
     while (iterator.hasNext()) {
@@ -218,7 +222,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     IRCode irCode =
         loop2.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2);
+    analysis.widening(loop2, irCode);
     analysis.forEach((v, l) -> {
       if (l.isClassTypeLatticeElement()) {
         ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
@@ -238,7 +243,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     IRCode irCode =
         test2.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, test2, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, test2);
+    analysis.widening(test2, irCode);
     analysis.forEach((v, l) -> {
       if (l.isClassTypeLatticeElement()) {
         ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
@@ -265,7 +271,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         NewInstance.class, new ClassTypeLatticeElement(test, false));
     IRCode irCode =
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
+    analysis.widening(method, irCode);
     analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }
 
@@ -284,7 +291,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
       StaticGet.class, new ClassTypeLatticeElement(test, true));
     IRCode irCode =
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, method, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
+    analysis.widening(method, irCode);
     analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }
 

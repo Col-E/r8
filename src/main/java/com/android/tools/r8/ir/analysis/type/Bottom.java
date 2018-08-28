@@ -15,12 +15,12 @@ public class Bottom extends TypeLatticeElement {
     return this;
   }
 
-  static Bottom getInstance() {
+  public static Bottom getInstance() {
     return INSTANCE;
   }
 
   @Override
-  boolean isBottom() {
+  public boolean isBottom() {
     return true;
   }
 

@@ -68,6 +68,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
   public class TestApplication {
 
     public final DexApplication application;
+    public final AppInfo appInfo;
     public final DexEncodedMethod method;
     public final IRCode code;
     public final List<IRCode> additionalCode;
@@ -92,6 +93,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
         ValueNumberGenerator valueNumberGenerator,
         InternalOptions options) {
       this.application = application;
+      this.appInfo = new AppInfo(application);
       this.method = method;
       this.code = code;
       this.additionalCode = additionalCode;

@@ -5,7 +5,11 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.ir.analysis.type.Bottom;
+import com.android.tools.r8.ir.analysis.type.Top;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LongInterval;
@@ -99,6 +103,7 @@ public class Value {
   public static final Value UNDEFINED = new Value(UNDEFINED_NUMBER, ValueType.OBJECT, null);
 
   protected final int number;
+  // TODO(b/72693244): deprecate once typeLattice is landed.
   protected ValueType type;
   public Instruction definition = null;
   private LinkedList<Instruction> users = new LinkedList<>();
@@ -109,12 +114,14 @@ public class Value {
   private Value previousConsecutive = null;
   private LiveIntervals liveIntervals;
   private int needsRegister = -1;
+  // TODO(b/72693244): deprecate once typeLattice is landed.
   private boolean neverNull = false;
   private boolean isThis = false;
   private boolean isArgument = false;
   private boolean knownToBeBoolean = false;
   private LongInterval valueRange;
   private DebugData debugData;
+  private TypeLatticeElement typeLattice = Bottom.getInstance();
 
   public Value(int number, ValueType type, DebugLocalInfo local) {
     this.number = number;
@@ -719,5 +726,36 @@ public class Value {
     return isConstant()
         && getConstInstruction().isConstNumber()
         && getConstInstruction().asConstNumber().isZero();
+  }
+
+  public void widening(AppInfo appInfo, TypeLatticeElement newType) {
+    // TODO(b/72693244): Enable assertion.
+    // During WIDENING (due to fix-point iteration), type update is monotonically upwards,
+    //   i.e., towards something wider.
+    //assert !TypeLatticeElement.strictlyLessThan(appInfo, newType, typeLattice)
+    //    : "During WIDENING, " + newType + " < " + typeLattice
+    //    + " at " + (isPhi() ? asPhi().printPhi() : definition.toString());
+    typeLattice = newType;
+  }
+
+  public void narrowing(AppInfo appInfo, TypeLatticeElement newType) {
+    // TODO(b/72693244): Enable assertion.
+    // During NARROWING (e.g., after inlining), type update is monotonically downwards,
+    //   i.e., towards something narrower, with more specific type info.
+    //assert !TypeLatticeElement.strictlyLessThan(appInfo, typeLattice, newType)
+    //    : "During NARROWING, " + typeLattice + " < " + newType
+    //    + " at " + (isPhi() ? asPhi().printPhi() : definition.toString());
+    typeLattice = newType;
+  }
+
+  // TODO(b/72693244): At the end, both type analysis and optimizations use the same accessor.
+  public TypeLatticeElement getTypeLatticeRaw() {
+    // Type analysis and update should use this to reflect the type lattice as-is.
+    return typeLattice;
+  }
+
+  public TypeLatticeElement getTypeLattice() {
+    // Optimizations should use this to regard an uninitialized type lattice as the Top.
+    return typeLattice.isBottom() ? Top.getInstance() : typeLattice;
   }
 }

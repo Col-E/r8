@@ -25,7 +25,6 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.Arrays;
-import java.util.function.Function;
 
 public class ArrayGet extends Instruction {
 
@@ -167,9 +166,8 @@ public class ArrayGet extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
-    return getLatticeElement.apply(array()).arrayGet(appInfo);
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
+    return array().getTypeLatticeRaw().arrayGet(appInfo);
   }
 
   @Override

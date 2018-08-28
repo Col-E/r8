@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import java.util.function.Function;
 
 public class ArrayLength extends Instruction {
 
@@ -107,8 +106,7 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     return PrimitiveTypeLatticeElement.getInstance();
   }
 

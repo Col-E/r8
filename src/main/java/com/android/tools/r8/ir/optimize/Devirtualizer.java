@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
@@ -34,8 +35,8 @@ public class Devirtualizer {
     this.appInfo = appInfo;
   }
 
-  public void devirtualizeInvokeInterface(
-      IRCode code, TypeEnvironment typeEnvironment, DexType invocationContext) {
+  public void devirtualizeInvokeInterface(IRCode code, DexType invocationContext) {
+    TypeAnalysis typeAnalysis = new TypeAnalysis(appInfo, code.method);
     Map<InvokeInterface, InvokeVirtual> devirtualizedCall = new IdentityHashMap<>();
     DominatorTree dominatorTree = new DominatorTree(code);
     Map<Value, Map<DexType, Value>> castedReceiverCache = new IdentityHashMap<>();
@@ -74,8 +75,7 @@ public class Devirtualizer {
           continue;
         }
         InvokeInterface invoke = current.asInvokeInterface();
-        DexEncodedMethod target =
-            invoke.computeSingleTarget(appInfo, typeEnvironment, invocationContext);
+        DexEncodedMethod target = invoke.computeSingleTarget(appInfo, invocationContext);
         if (target == null) {
           continue;
         }
@@ -108,13 +108,15 @@ public class Devirtualizer {
         // (out <-) invoke-virtual a, ... A#foo
         if (holderType != invoke.getInvokedMethod().getHolder()) {
           Value receiver = invoke.getReceiver();
-          TypeLatticeElement receiverTypeLattice = typeEnvironment.getLatticeElement(receiver);
+          TypeLatticeElement receiverTypeLattice = receiver.getTypeLattice();
           TypeLatticeElement castTypeLattice =
               TypeLatticeElement.fromDexType(appInfo, holderType, receiverTypeLattice.isNullable());
           // Avoid adding trivial cast and up-cast.
           // We should not use strictlyLessThan(castType, receiverType), which detects downcast,
           // due to side-casts, e.g., A (unused) < I, B < I, and cast from A to B.
-          if (!TypeLatticeElement.lessThanOrEqual(appInfo, receiverTypeLattice, castTypeLattice)) {
+          if (receiverTypeLattice.isTop()
+              || !TypeLatticeElement.lessThanOrEqual(
+                  appInfo, receiverTypeLattice, castTypeLattice)) {
             Value newReceiver = null;
             // If this value is ever downcast'ed to the same holder type before, and that casted
             // value is safely accessible, i.e., the current line is dominated by that cast, use it.
@@ -173,11 +175,10 @@ public class Devirtualizer {
               }
             }
 
+            // TODO(b/72693244): Analyze it when creating a new Value or after replace*Users
             receiver.replaceSelectiveUsers(
                 newReceiver, ImmutableSet.of(devirtualizedInvoke), ImmutableMap.of());
-            // TODO(b/72693244): Analyze it when creating a new Value or after replace*Users
-            typeEnvironment.enqueue(newReceiver);
-            typeEnvironment.analyze();
+            typeAnalysis.narrowing(ImmutableList.of(newReceiver));
           }
         }
       }
