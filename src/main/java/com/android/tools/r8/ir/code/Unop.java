@@ -11,7 +11,6 @@ import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import java.util.function.Function;
 
 abstract public class Unop extends Instruction {
 
@@ -60,8 +59,7 @@ abstract public class Unop extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     return PrimitiveTypeLatticeElement.getInstance();
   }
 }

@@ -1092,8 +1092,7 @@ public abstract class Instruction {
     return Bottom.getInstance();
   }
 
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     assert outValue == null;
     throw new Unreachable("Instructions without outValue have no type.");
   }

@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -62,12 +63,13 @@ public class NonNullTracker {
     throw new Unreachable("Should conform to throwsOnNullInput.");
   }
 
-  public void addNonNull(IRCode code) {
-    addNonNullInPart(code, code.blocks.listIterator(), b -> true);
+  public Set<Value> addNonNull(IRCode code) {
+    return addNonNullInPart(code, code.blocks.listIterator(), b -> true);
   }
 
-  public void addNonNullInPart(
+  public Set<Value> addNonNullInPart(
       IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester) {
+    ImmutableSet.Builder<Value> nonNullValueCollector = ImmutableSet.builder();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (!blockTester.test(block)) {
@@ -112,8 +114,10 @@ public class NonNullTracker {
         // ...
         // A: non_null_rcv <- non-null(rcv)
         // ...y
+        // TODO(b/72693244): Attach lattice when Value is created.
         Value nonNullValue =
             code.createValue(ValueType.OBJECT, knownToBeNonNullValue.getLocalInfo());
+        nonNullValueCollector.add(nonNullValue);
         NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
         nonNull.setPosition(current.getPosition());
         if (blockWithNonNullInstruction !=  block) {
@@ -210,8 +214,10 @@ public class NonNullTracker {
               }
               // Avoid adding a non-null for the value without meaningful users.
               if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
+                // TODO(b/72693244): Attach lattice when Value is created.
                 Value nonNullValue = code.createValue(
                     knownToBeNonNullValue.outType(), knownToBeNonNullValue.getLocalInfo());
+                nonNullValueCollector.add(nonNullValue);
                 NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, theIf);
                 InstructionListIterator targetIterator = target.listIterator();
                 nonNull.setPosition(targetIterator.next().getPosition());
@@ -225,6 +231,7 @@ public class NonNullTracker {
         }
       }
     }
+    return nonNullValueCollector.build();
   }
 
   private IntList findDominatedPredecessorIndexesInPhi(

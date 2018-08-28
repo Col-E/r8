@@ -4,14 +4,18 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Objects;
 
 public class BasicBlockInstructionIterator implements InstructionIterator, InstructionListIterator {
 
@@ -330,8 +334,12 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
 
   @Override
   public BasicBlock inlineInvoke(
-      IRCode code, IRCode inlinee, ListIterator<BasicBlock> blocksIterator,
-      List<BasicBlock> blocksToRemove, DexType downcast) {
+      AppInfo appInfo,
+      IRCode code,
+      IRCode inlinee,
+      ListIterator<BasicBlock> blocksIterator,
+      List<BasicBlock> blocksToRemove,
+      DexType downcast) {
     assert blocksToRemove != null;
     boolean inlineeCanThrow = canThrow(inlinee);
 
@@ -406,6 +414,11 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
 
     assert entryBlock.getInstructions().stream().noneMatch(Instruction::isArgument);
 
+    // The initial analysis for the inlinee should be performed *before* linking the return value,
+    // which could be propagated and may narrow other types in the original context.
+    TypeAnalysis typeAnalysis = new TypeAnalysis(appInfo, code.method);
+    typeAnalysis.widening(inlinee.method, inlinee);
+
     // The inline entry is the first block now the argument instructions are gone.
     BasicBlock inlineEntry = inlinee.blocks.getFirst();
 
@@ -419,7 +432,17 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       assert inlineeIterator.peekNext().isReturn();
       if (invoke.outValue() != null) {
         Return returnInstruction = inlineeIterator.peekNext().asReturn();
+        ImmutableList<Value> usersOfReturn =
+            invoke.outValue().uniqueUsers().stream()
+                .map(Instruction::outValue)
+                .filter(Objects::nonNull)
+                .collect(ImmutableList.toImmutableList());
+        ImmutableList<Value> phiUsersOfReturn =
+            ImmutableList.copyOf(invoke.outValue().uniquePhiUsers());
         invoke.outValue().replaceUsers(returnInstruction.returnValue());
+        // The return type is flown to the original context.
+        typeAnalysis.narrowing(Iterables.concat(
+            ImmutableList.of(returnInstruction.returnValue()), usersOfReturn, phiUsersOfReturn));
       }
 
       // Split before return and unlink return.

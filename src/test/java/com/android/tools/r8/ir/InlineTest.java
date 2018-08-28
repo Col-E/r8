@@ -102,7 +102,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(0).listIterator();
     iterator.nextUntil(instruction -> instruction.isInvoke());
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
 
@@ -111,7 +111,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(0).listIterator();
     iterator.nextUntil(instruction -> instruction.isInvoke());
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }
@@ -183,7 +183,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(0).listIterator();
     iterator.nextUntil(instruction -> instruction.isInvoke());
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(1), result);
   }
@@ -279,7 +279,8 @@ public class InlineTest extends IrInjectionTestBase {
       Instruction invoke = iterator.nextUntil(instruction -> instruction.isInvoke());
       if (invoke != null) {
         iterator.previous();
-        iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+        iterator.inlineInvoke(
+            test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         assert blocksToRemove.isEmpty();
       }
     }
@@ -296,7 +297,8 @@ public class InlineTest extends IrInjectionTestBase {
       Instruction invoke = iterator.nextUntil(instruction -> instruction.isInvoke());
       if (invoke != null) {
         iterator.previous();
-        iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+        iterator.inlineInvoke(
+            test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         assert blocksToRemove.isEmpty();
       }
     }
@@ -400,7 +402,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(1).listIterator();
     iterator.nextUntil(instruction -> instruction.isInvoke());
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
 
@@ -409,7 +411,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(1).listIterator();
     iterator.nextUntil(instruction -> instruction.isInvoke());
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }
@@ -514,7 +516,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(0).listIterator();
     iterator.nextUntil(instruction -> instruction.isInvoke());
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
 
@@ -523,7 +525,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(0).listIterator();
     iterator.nextUntil(instruction -> instruction.isInvoke());
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }
@@ -627,7 +629,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(0).listIterator();
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
 
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
@@ -637,7 +639,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(0).listIterator();
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }
@@ -759,7 +761,8 @@ public class InlineTest extends IrInjectionTestBase {
         Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
         if (invoke != null) {
           iterator.previous();
-          iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+          iterator.inlineInvoke(
+              test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         }
       }
       test.code.removeBlocks(blocksToRemove);
@@ -782,7 +785,8 @@ public class InlineTest extends IrInjectionTestBase {
         Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
         if (invoke != null) {
           iterator.previous();
-          iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+          iterator.inlineInvoke(
+              test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         }
       }
       test.code.removeBlocks(blocksToRemove);
@@ -916,7 +920,8 @@ public class InlineTest extends IrInjectionTestBase {
         Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
         if (invoke != null) {
           iterator.previous();
-          iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+          iterator.inlineInvoke(
+              test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         }
       }
       test.code.removeBlocks(blocksToRemove);
@@ -939,7 +944,8 @@ public class InlineTest extends IrInjectionTestBase {
         Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
         if (invoke != null) {
           iterator.previous();
-          iterator.inlineInvoke(test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+          iterator.inlineInvoke(
+              test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         }
       }
       test.code.removeBlocks(blocksToRemove);
@@ -1148,7 +1154,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(1).listIterator();
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
 
@@ -1158,7 +1164,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(1).listIterator();
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }

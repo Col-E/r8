@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -529,12 +528,11 @@ public class Inliner {
   public void performInlining(
       DexEncodedMethod method,
       IRCode code,
-      TypeEnvironment typeEnvironment,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation) {
 
     DefaultInliningOracle oracle = createDefaultOracle(
-        method, code, typeEnvironment,
+        method, code,
         isProcessedConcurrently, callSiteInformation,
         options.inliningInstructionLimit,
         INITIAL_INLINING_INSTRUCTION_ALLOWANCE - numberOfInstructions(code));
@@ -545,7 +543,6 @@ public class Inliner {
   public DefaultInliningOracle createDefaultOracle(
       DexEncodedMethod method,
       IRCode code,
-      TypeEnvironment typeEnvironment,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation,
       int inliningInstructionLimit,
@@ -555,7 +552,6 @@ public class Inliner {
         this,
         method,
         code,
-        typeEnvironment,
         callSiteInformation,
         isProcessedConcurrently,
         options,
@@ -648,7 +644,8 @@ public class Inliner {
               iterator.previous();
               strategy.markInlined(inlinee);
               if (!strategy.exceededAllowance() || result.ignoreInstructionBudget()) {
-                iterator.inlineInvoke(code, inlinee, blockIterator, blocksToRemove, downcast);
+                iterator.inlineInvoke(
+                    appInfo, code, inlinee, blockIterator, blocksToRemove, downcast);
                 strategy.updateTypeInformationIfNeeded(inlinee, blockIterator, block);
 
                 // If we inlined the invoke from a bridge method, it is no longer a bridge method.

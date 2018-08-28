@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -37,8 +37,8 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public DexEncodedMethod computeSingleTarget(
-      AppInfoWithLiveness appInfo, TypeEnvironment typeEnvironment, DexType invocationContext) {
-    DexType refinedReceiverType = typeEnvironment.getRefinedReceiverType(this);
+      AppInfoWithLiveness appInfo, DexType invocationContext) {
+    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appInfo, this);
     return appInfo.lookupSingleVirtualTarget(getInvokedMethod(), refinedReceiverType);
   }
 

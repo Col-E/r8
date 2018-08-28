@@ -282,7 +282,7 @@ abstract public class TypeLatticeElement {
    *
    * @return {@code true} if the type of corresponding {@link Value} is not determined yet.
    */
-  boolean isBottom() {
+  public boolean isBottom() {
     return false;
   }
 

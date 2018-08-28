@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.List;
-import java.util.function.Function;
 
 public abstract class Invoke extends Instruction {
 
@@ -276,8 +275,7 @@ public abstract class Invoke extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     DexType returnType = getReturnType();
     if (returnType.isVoidType()) {
       throw new Unreachable("void methods have no type.");

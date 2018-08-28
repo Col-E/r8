@@ -175,7 +175,7 @@ public final class ClassInliner {
         code.removeAllTrivialPhis();
         assert code.isConsistentSSA();
         if (anyInlinedMethods) {
-          codeRewriter.simplifyIf(code, null);
+          codeRewriter.simplifyIf(code);
         }
         rootsIterator.remove();
         repeat = true;

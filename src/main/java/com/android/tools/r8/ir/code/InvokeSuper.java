@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -42,7 +41,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
 
   @Override
   public DexEncodedMethod computeSingleTarget(
-      AppInfoWithLiveness appInfo, TypeEnvironment typeEnvironment, DexType invocationContext) {
+      AppInfoWithLiveness appInfo, DexType invocationContext) {
     if (invocationContext == null) {
       return null;
     }

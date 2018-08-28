@@ -25,7 +25,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeEnvironment;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
 import com.android.tools.r8.ir.code.AlwaysMaterializingUser;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -777,18 +776,17 @@ public class IRConverter {
       nonNullTracker.addNonNull(code);
       assert code.isConsistentSSA();
     }
-    TypeEnvironment typeEnvironment = TypeAnalysis.getDefaultTypeEnvironment();
     if (options.enableInlining && inliner != null) {
-      typeEnvironment = new TypeAnalysis(appInfo, method, code);
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       assert !options.debug;
+      new TypeAnalysis(appInfo, method).widening(method, code);
       inliner.performInlining(
-          method, code, typeEnvironment, isProcessedConcurrently, callSiteInformation);
+          method, code, isProcessedConcurrently, callSiteInformation);
     }
     if (devirtualizer != null) {
-      devirtualizer.devirtualizeInvokeInterface(code, typeEnvironment, method.method.getHolder());
+      devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
     }
-    codeRewriter.removeCasts(code, typeEnvironment);
+    codeRewriter.removeCasts(code);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
     codeRewriter.simplifyArrayConstruction(code);
@@ -797,7 +795,7 @@ public class IRConverter {
     new SparseConditionalConstantPropagation(code).run();
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
-    codeRewriter.simplifyIf(code, typeEnvironment);
+    codeRewriter.simplifyIf(code);
     new RedundantFieldLoadElimination(appInfo, code, enableWholeProgramOptimizations).run();
 
     if (options.testing.invertConditionals) {
@@ -836,12 +834,11 @@ public class IRConverter {
       // Class inliner should work before lambda merger, so if it inlines the
       // lambda, it is not get collected by merger.
       assert options.enableInlining && inliner != null;
-      TypeEnvironment effectivelyFinalTypeEnvironment = typeEnvironment;
       classInliner.processMethodCode(
           appInfo.withLiveness(), codeRewriter, method, code, isProcessedConcurrently,
           methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline),
           Suppliers.memoize(() -> inliner.createDefaultOracle(
-              method, code, effectivelyFinalTypeEnvironment,
+              method, code,
               isProcessedConcurrently, callSiteInformation,
               Integer.MAX_VALUE / 2, Integer.MAX_VALUE / 2)
           )

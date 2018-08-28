@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import java.util.List;
-import java.util.function.Function;
 
 public class InvokeMultiNewArray extends Invoke {
 
@@ -75,8 +74,7 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     return TypeLatticeElement.newArray(type, false);
   }
 

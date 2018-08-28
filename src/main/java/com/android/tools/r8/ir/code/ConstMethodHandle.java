@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import java.util.function.Function;
 
 public class ConstMethodHandle extends ConstInstruction {
 
@@ -91,8 +90,7 @@ public class ConstMethodHandle extends ConstInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     return TypeLatticeElement.fromDexType(appInfo, appInfo.dexItemFactory.methodHandleType, false);
   }
 

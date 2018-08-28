@@ -269,8 +269,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     if (isZero() && outType().isObject()) {
       return NullLatticeElement.getInstance();
     }

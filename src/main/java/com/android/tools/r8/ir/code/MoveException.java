@@ -18,7 +18,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 
 public class MoveException extends Instruction {
 
@@ -115,8 +114,7 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(
-      AppInfo appInfo, Function<Value, TypeLatticeElement> getLatticeElement) {
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
     Set<DexType> exceptionTypes = collectExceptionTypes(appInfo.dexItemFactory);
     return TypeLatticeElement.join(
         appInfo,

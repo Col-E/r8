@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
+
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -16,70 +19,84 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public class TypeAnalysis implements TypeEnvironment {
-  private final AppInfo appInfo;
-  private final DexEncodedMethod encodedMethod;
+public class TypeAnalysis {
 
-  private final Deque<Value> worklist = new ArrayDeque<>();
-  private final Map<Value, TypeLatticeElement> typeMap = Maps.newHashMap();
-
-  public TypeAnalysis(AppInfo appInfo, DexEncodedMethod encodedMethod, IRCode code) {
-    this.appInfo = appInfo;
-    this.encodedMethod = encodedMethod;
-    analyzeBlocks(code.topologicallySortedBlocks());
+  private enum Mode {
+    UNSET,
+    WIDENING,   // initial analysis, including fixed-point iteration for phis.
+    NARROWING,  // updating with more specific info, e.g., passing the return value of the inlinee.
   }
 
-  @Override
-  public void analyze() {
+  private Mode mode = Mode.UNSET;
+
+  private final AppInfo appInfo;
+  private final DexEncodedMethod context;
+
+  private final Deque<Value> worklist = new ArrayDeque<>();
+  // TODO(b/72693244): Rewrite tests to not rely on this type map.
+  private final Map<Value, TypeLatticeElement> typeMap = Maps.newHashMap();
+
+  public TypeAnalysis(AppInfo appInfo, DexEncodedMethod encodedMethod) {
+    this.appInfo = appInfo;
+    this.context = encodedMethod;
+  }
+
+  private void analyze() {
     while (!worklist.isEmpty()) {
       analyzeValue(worklist.poll());
     }
   }
 
-  @Override
-  public void analyzeBlocks(List<BasicBlock> blocks) {
+  public void widening(DexEncodedMethod encodedMethod, IRCode code) {
+    mode = Mode.WIDENING;
     assert worklist.isEmpty();
-    for (BasicBlock block : blocks) {
-      processBasicBlock(block);
-    }
+    code.topologicallySortedBlocks().forEach(b -> analyzeBasicBlock(encodedMethod, b));
     analyze();
   }
 
-  @Override
-  public void enqueue(Value v) {
+  public void narrowing(Iterable<Value> values) {
+    mode = Mode.NARROWING;
+    assert worklist.isEmpty();
+    values.forEach(this::enqueue);
+    analyze();
+  }
+
+  private void enqueue(Value v) {
     assert v != null;
     if (!worklist.contains(v)) {
       worklist.add(v);
     }
   }
 
-  private void processBasicBlock(BasicBlock block) {
+  private void analyzeBasicBlock(DexEncodedMethod encodedMethod, BasicBlock block) {
     int argumentsSeen = encodedMethod.accessFlags.isStatic() ? 0 : -1;
     for (Instruction instruction : block.getInstructions()) {
       Value outValue = instruction.outValue();
-      // Argument, a quasi instruction, needs to be handled specially:
-      //   1) We can derive its type from the method signature; and
-      //   2) It does not have an out value, so we can skip the env updating.
+      if (outValue == null) {
+        continue;
+      }
+      // The type for Argument, a quasi instruction, can be inferred from the method signature.
       if (instruction.isArgument()) {
         TypeLatticeElement derived;
         if (argumentsSeen < 0) {
           // Receiver
-          derived = TypeLatticeElement.fromDexType(appInfo, encodedMethod.method.holder, false);
+          derived = fromDexType(appInfo, encodedMethod.method.holder,
+              // Now we try inlining even when the receiver could be null.
+              encodedMethod != context);
         } else {
           DexType argType = encodedMethod.method.proto.parameters.values[argumentsSeen];
-          derived = TypeLatticeElement.fromDexType(appInfo, argType, true);
+          derived = fromDexType(appInfo, argType, true);
         }
         argumentsSeen++;
-        assert outValue != null;
         updateTypeOfValue(outValue, derived);
+        // Note that we don't need to enqueue the out value of arguments here because it's constant.
+        // TODO(b/72693244): Generalize this, i.e., apply the same approach to other instructions
+        //   whose type lattice would be just constant, e.g., const-string, uop, bop, etc.
       } else {
-        if (outValue != null) {
-          enqueue(outValue);
-        }
+        enqueue(outValue);
       }
     }
     for (Phi phi : block.getPhis()) {
@@ -91,17 +108,32 @@ public class TypeAnalysis implements TypeEnvironment {
     TypeLatticeElement derived =
         value.isPhi()
             ? computePhiType(value.asPhi())
-            : value.definition.evaluate(appInfo, this::getLatticeElement);
+            : value.definition.evaluate(appInfo);
     updateTypeOfValue(value, derived);
   }
 
   private void updateTypeOfValue(Value value, TypeLatticeElement type) {
-    TypeLatticeElement current = getLatticeElement(value);
+    assert mode != Mode.UNSET;
+
+    TypeLatticeElement current = value.getTypeLatticeRaw();
     if (current.equals(type)) {
       return;
     }
-    // TODO(b/72693244): attach type lattice directly to Value.
-    setLatticeElement(value, type);
+
+    // TODO(b/72693244): This means some newly added Instruction's out value has not updated ever.
+    // An initial type lattice should be set somehow, and this line should be an assertion instead.
+    if (type.isBottom()) {
+      return;
+    }
+    if (mode == Mode.WIDENING) {
+      value.widening(appInfo, type);
+    } else {
+      assert mode == Mode.NARROWING;
+      value.narrowing(appInfo, type);
+    }
+    // Only for the testing purpose.
+    typeMap.put(value, type);
+
     // propagate the type change to (instruction) users if any.
     for (Instruction instruction : value.uniqueUsers()) {
       Value outValue = instruction.outValue();
@@ -118,22 +150,13 @@ public class TypeAnalysis implements TypeEnvironment {
   private TypeLatticeElement computePhiType(Phi phi) {
     // Type of phi(v1, v2, ..., vn) is the least upper bound of all those n operands.
     return TypeLatticeElement.join(
-        appInfo, phi.getOperands().stream().map(this::getLatticeElement));
+        appInfo, phi.getOperands().stream().map(Value::getTypeLatticeRaw));
   }
 
-  private void setLatticeElement(Value value, TypeLatticeElement type) {
-    typeMap.put(value, type);
-  }
-
-  @Override
-  public TypeLatticeElement getLatticeElement(Value value) {
-    return typeMap.getOrDefault(value, Bottom.getInstance());
-  }
-
-  @Override
-  public DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke) {
+  public static DexType getRefinedReceiverType(
+      AppInfoWithSubtyping appInfo, InvokeMethodWithReceiver invoke) {
     DexType receiverType = invoke.getInvokedMethod().getHolder();
-    TypeLatticeElement lattice = getLatticeElement(invoke.getReceiver());
+    TypeLatticeElement lattice = invoke.getReceiver().getTypeLattice();
     if (lattice.isClassTypeLatticeElement()) {
       DexType refinedType = lattice.asClassTypeLatticeElement().getClassType();
       if (refinedType.isSubtypeOf(receiverType, appInfo)) {
@@ -141,35 +164,6 @@ public class TypeAnalysis implements TypeEnvironment {
       }
     }
     return receiverType;
-  }
-
-  private static final TypeEnvironment DEFAULT_ENVIRONMENT = new TypeEnvironment() {
-    @Override
-    public void analyze() {
-    }
-
-    @Override
-    public void analyzeBlocks(List<BasicBlock> blocks) {
-    }
-
-    @Override
-    public void enqueue(Value value) {
-    }
-
-    @Override
-    public TypeLatticeElement getLatticeElement(Value value) {
-      return Top.getInstance();
-    }
-
-    @Override
-    public DexType getRefinedReceiverType(InvokeMethodWithReceiver invoke) {
-      return invoke.getInvokedMethod().holder;
-    }
-  };
-
-  // TODO(b/72693244): By annotating type lattice to value, remove the default type env at all.
-  public static TypeEnvironment getDefaultTypeEnvironment() {
-    return DEFAULT_ENVIRONMENT;
   }
 
   @VisibleForTesting
