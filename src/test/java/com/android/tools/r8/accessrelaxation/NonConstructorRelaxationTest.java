@@ -20,15 +20,30 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.Collection;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase {
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public NonConstructorRelaxationTest(Backend backend) {
+    super(backend);
+  }
+
   private static final String STRING = "java.lang.String";
 
   @Test
   public void testStaticMethodRelaxation() throws Exception {
     Class mainClass = C.class;
-    R8Command.Builder builder = loadProgramFiles(mainClass.getPackage());
+    R8Command.Builder builder = loadProgramFiles(backend, mainClass.getPackage());
 
     // Note: we use '-checkdiscard' to indirectly check that the access relaxation is
     // done which leads to inlining of all pB*** methods so they are removed. Without
@@ -60,7 +75,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
         Origin.unknown());
 
     AndroidApp app = ToolHelper.runR8(builder.build());
-    compareJvmAndArt(app, mainClass);
+    compareReferenceJVMAndProcessed(app, mainClass);
 
     CodeInspector codeInspector = new CodeInspector(app);
     assertPublic(codeInspector, A.class,
@@ -82,7 +97,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
   @Test
   public void testInstanceMethodRelaxation() throws Exception {
     Class mainClass = TestMain.class;
-    R8Command.Builder builder = loadProgramFiles(mainClass.getPackage());
+    R8Command.Builder builder = loadProgramFiles(backend, mainClass.getPackage());
 
     builder.addProguardConfiguration(
         ImmutableList.of(
@@ -108,7 +123,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
         Origin.unknown());
 
     AndroidApp app = ToolHelper.runR8(builder.build());
-    compareJvmAndArt(app, mainClass);
+    compareReferenceJVMAndProcessed(app, mainClass);
 
     CodeInspector codeInspector = new CodeInspector(app);
     assertPublic(codeInspector, Base.class,

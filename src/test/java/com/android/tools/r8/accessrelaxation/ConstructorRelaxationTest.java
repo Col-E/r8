@@ -15,8 +15,12 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 class L1 {
   private final String x;
@@ -154,16 +158,26 @@ class CtorTestMain {
   }
 }
 
+@RunWith(Parameterized.class)
 public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
   private static final String INIT= "<init>";
   private static final List<Class> CLASSES =
       ImmutableList.of(L1.class, L2_1.class, L2_2.class, L3_1.class, L3_2.class);
 
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public ConstructorRelaxationTest(Backend backend) {
+    super(backend);
+  }
+
   @Test
   public void test() throws Exception {
     Class mainClass = CtorTestMain.class;
     R8Command.Builder builder =
-        loadProgramFiles(Iterables.concat(CLASSES, ImmutableList.of(mainClass)));
+        loadProgramFiles(backend, Iterables.concat(CLASSES, ImmutableList.of(mainClass)));
     builder.addProguardConfiguration(
         ImmutableList.of(
             "-keep class " + mainClass.getCanonicalName() + "{",
@@ -186,7 +200,7 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
               options.enableInlining = false;
               options.enableVerticalClassMerging = false;
             });
-    compareJvmAndArt(app, mainClass);
+    compareReferenceJVMAndProcessed(app, mainClass);
 
     CodeInspector codeInspector = new CodeInspector(app);
     for (Class clazz : CLASSES) {
