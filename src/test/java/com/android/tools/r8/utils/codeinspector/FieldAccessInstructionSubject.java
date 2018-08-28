@@ -8,5 +8,7 @@ package com.android.tools.r8.utils.codeinspector;
 public interface FieldAccessInstructionSubject extends InstructionSubject {
   TypeSubject holder();
 
+  TypeSubject type();
+
   String name();
 }

@@ -1225,9 +1225,6 @@ public class CodeRewriter {
 
   // Replace result uses for methods where something is known about what is returned.
   public void rewriteMoveResult(IRCode code) {
-    if (options.isGeneratingClassFiles()) {
-      return;
-    }
     AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
@@ -1256,7 +1253,9 @@ public class CodeRewriter {
                   Value argument = invoke.arguments().get(argumentIndex);
                   assert invoke.outType().verifyCompatible(argument.outType());
                   invoke.outValue().replaceUsers(argument);
-                  invoke.setOutValue(null);
+                  if (!options.isGeneratingClassFiles()) {
+                    invoke.setOutValue(null);
+                  }
                 }
               }
             }

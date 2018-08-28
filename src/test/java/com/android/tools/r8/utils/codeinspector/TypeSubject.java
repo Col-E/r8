@@ -30,6 +30,10 @@ public class TypeSubject extends Subject {
     return dexType.equals(codeInspector.toDexType(type));
   }
 
+  public boolean is(TypeSubject type) {
+    return dexType == type.dexType;
+  }
+
   public String toString() {
     return dexType.toSourceString();
   }

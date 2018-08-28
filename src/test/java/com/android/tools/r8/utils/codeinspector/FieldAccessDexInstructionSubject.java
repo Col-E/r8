@@ -23,6 +23,11 @@ public class FieldAccessDexInstructionSubject extends DexInstructionSubject
   }
 
   @Override
+  public TypeSubject type() {
+    return new TypeSubject(codeInspector, instruction.getField().type);
+  }
+
+  @Override
   public String name() {
     return instruction.getField().name.toString();
   }

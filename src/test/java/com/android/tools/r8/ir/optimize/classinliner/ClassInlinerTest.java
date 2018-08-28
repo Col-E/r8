@@ -12,15 +12,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.NewInstance;
-import com.android.tools.r8.code.Sget;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.ir.optimize.classinliner.builders.BuildersTestClass;
 import com.android.tools.r8.ir.optimize.classinliner.builders.ControlFlow;
 import com.android.tools.r8.ir.optimize.classinliner.builders.Pair;
@@ -48,17 +42,47 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldAccessInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.NewInstanceInstructionSubject;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class ClassInlinerTest extends TestBase {
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public ClassInlinerTest(Backend backend) {
+    this.backend = backend;
+  }
+
+  private String run(AndroidApp app, Class mainClass) throws IOException {
+    if (backend == Backend.DEX) {
+      return runOnArt(app, mainClass);
+    } else {
+      assert backend == Backend.CF;
+      return runOnJava(app, mainClass);
+    }
+  }
+
   @Test
   public void testTrivial() throws Exception {
     byte[][] classes = {
@@ -78,8 +102,8 @@ public class ClassInlinerTest extends TestBase {
     AndroidApp app = runR8(buildAndroidApp(classes), TrivialTestClass.class);
 
     String javaOutput = runOnJava(TrivialTestClass.class);
-    String artOutput = runOnArt(app, TrivialTestClass.class);
-    assertEquals(javaOutput, artOutput);
+    String output = run(app, TrivialTestClass.class);
+    assertEquals(javaOutput, output);
 
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(TrivialTestClass.class);
@@ -150,8 +174,8 @@ public class ClassInlinerTest extends TestBase {
     AndroidApp app = runR8(buildAndroidApp(classes), BuildersTestClass.class);
 
     String javaOutput = runOnJava(BuildersTestClass.class);
-    String artOutput = runOnArt(app, BuildersTestClass.class);
-    assertEquals(javaOutput, artOutput);
+    String output = run(app, BuildersTestClass.class);
+    assertEquals(javaOutput, output);
 
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(BuildersTestClass.class);
@@ -212,16 +236,20 @@ public class ClassInlinerTest extends TestBase {
         "  return");
 
     AndroidApp compiled =
-        compileWithR8(builder.build(), getProguardConfig(mainClass.name), this::configure);
+        compileWithR8(builder.build(), getProguardConfig(mainClass.name), this::configure, backend);
 
     // Check that the code fails with an IncompatibleClassChangeError with Java.
     ProcessResult javaResult =
         runOnJavaRaw(mainClass.name, builder.buildClasses().toArray(new byte[2][]));
     assertThat(javaResult.stderr, containsString("IncompatibleClassChangeError"));
 
+    assert backend == Backend.DEX || backend == Backend.CF;
     // Check that the code fails with an IncompatibleClassChangeError with ART.
-    ProcessResult artResult = runOnArtRaw(compiled, mainClass.name);
-    assertThat(artResult.stderr, containsString("IncompatibleClassChangeError"));
+    ProcessResult result =
+        backend == Backend.DEX
+            ? runOnArtRaw(compiled, mainClass.name)
+            : runOnJavaRaw(compiled, mainClass.name, Collections.emptyList());
+    assertThat(result.stderr, containsString("IncompatibleClassChangeError"));
   }
 
   @Test
@@ -235,8 +263,8 @@ public class ClassInlinerTest extends TestBase {
     AndroidApp app = runR8(buildAndroidApp(classes), CodeTestClass.class);
 
     String javaOutput = runOnJava(CodeTestClass.class);
-    String artOutput = runOnArt(app, CodeTestClass.class);
-    assertEquals(javaOutput, artOutput);
+    String output = run(app, CodeTestClass.class);
+    assertEquals(javaOutput, output);
 
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(C.class);
@@ -271,8 +299,8 @@ public class ClassInlinerTest extends TestBase {
     AndroidApp app = runR8(buildAndroidApp(classes), InvalidRootsTestClass.class);
 
     String javaOutput = runOnJava(InvalidRootsTestClass.class);
-    String artOutput = runOnArt(app, InvalidRootsTestClass.class);
-    assertEquals(javaOutput, artOutput);
+    String output = run(app, InvalidRootsTestClass.class);
+    assertEquals(javaOutput, output);
 
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(InvalidRootsTestClass.class);
@@ -304,6 +332,7 @@ public class ClassInlinerTest extends TestBase {
 
   @Test
   public void testDesugaredLambdas() throws Exception {
+    Assume.assumeFalse(backend == Backend.CF); // No desugaring with CF backend.
     byte[][] classes = {
         ToolHelper.getClassAsBytes(LambdasTestClass.class),
         ToolHelper.getClassAsBytes(LambdasTestClass.Iface.class),
@@ -312,8 +341,8 @@ public class ClassInlinerTest extends TestBase {
     AndroidApp app = runR8(buildAndroidApp(classes), LambdasTestClass.class);
 
     String javaOutput = runOnJava(LambdasTestClass.class);
-    String artOutput = runOnArt(app, LambdasTestClass.class);
-    assertEquals(javaOutput, artOutput);
+    String output = run(app, LambdasTestClass.class);
+    assertEquals(javaOutput, output);
 
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(LambdasTestClass.class);
@@ -345,33 +374,40 @@ public class ClassInlinerTest extends TestBase {
       ClassSubject clazz, String methodName, String retValue, String... params) {
     assertNotNull(clazz);
     MethodSignature signature = new MethodSignature(methodName, retValue, params);
-    DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
-    return filterInstructionKind(code, NewInstance.class)
-        .map(insn -> ((NewInstance) insn).getType().toSourceString());
+    Iterator<InstructionSubject> iterator = clazz.method(signature).iterateInstructions();
+    return Streams.stream(iterator)
+        .filter(InstructionSubject::isNewInstance)
+        .map(is -> ((NewInstanceInstructionSubject) is).getType().toSourceString());
   }
 
   private Stream<String> collectStaticGetTypesWithRetValue(
       ClassSubject clazz, String methodName, String retValue, String... params) {
     assertNotNull(clazz);
     MethodSignature signature = new MethodSignature(methodName, retValue, params);
-    DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
-    return filterInstructionKind(code, Sget.class)
-        .map(Instruction::getField)
-        .filter(field -> field.clazz == field.type)
-        .map(field -> field.clazz.toSourceString());
+    Iterator<InstructionSubject> iterator = clazz.method(signature).iterateInstructions();
+    return Streams.stream(iterator)
+        .filter(InstructionSubject::isStaticGet)
+        .map(is -> (FieldAccessInstructionSubject) is)
+        .filter(fais -> fais.holder().is(fais.type()))
+        .map(fais -> fais.holder().toString());
   }
 
   private AndroidApp runR8(AndroidApp app, Class mainClass) throws Exception {
     AndroidApp compiled =
-        compileWithR8(app, getProguardConfig(mainClass.getCanonicalName()), this::configure);
+        compileWithR8(
+            app, getProguardConfig(mainClass.getCanonicalName()), this::configure, backend);
 
     // Materialize file for execution.
-    Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
-    compiled.writeToZip(generatedDexFile, OutputMode.DexIndexed);
+    Path generatedFile = temp.getRoot().toPath().resolve("classes.jar");
+    compiled.writeToZip(generatedFile, outputMode(backend));
 
-    // Run with ART.
-    String artOutput = ToolHelper.runArtNoVerificationErrors(
-        generatedDexFile.toString(), mainClass.getCanonicalName());
+    assert backend == Backend.DEX || backend == Backend.CF;
+
+    String output =
+        backend == Backend.DEX
+            ? ToolHelper.runArtNoVerificationErrors(
+                generatedFile.toString(), mainClass.getCanonicalName())
+            : ToolHelper.runJava(generatedFile, mainClass.getCanonicalName()).stdout;
 
     // Compare with Java.
     ToolHelper.ProcessResult javaResult = ToolHelper.runJava(
@@ -380,9 +416,14 @@ public class ClassInlinerTest extends TestBase {
     if (javaResult.exitCode != 0) {
       System.out.println(javaResult.stdout);
       System.err.println(javaResult.stderr);
-      fail("JVM failed for: " + mainClass);
+      fail("JVM on original program failed for: " + mainClass);
     }
-    assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
+    assertEquals(
+        backend == Backend.DEX
+            ? "JVM and ART output differ."
+            : "Output of original and processed program differ on JVM.",
+        javaResult.stdout,
+        output);
 
     return compiled;
   }
@@ -397,5 +438,6 @@ public class ClassInlinerTest extends TestBase {
   private void configure(InternalOptions options) {
     options.enableClassInlining = true;
     options.classInliningInstructionLimit = 10000;
+    options.inliningInstructionLimit = 6;
   }
 }
