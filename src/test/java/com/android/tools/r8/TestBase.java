@@ -6,6 +6,7 @@ package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.objectweb.asm.Opcodes.ASM6;
 
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
@@ -52,6 +53,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
 
 public class TestBase {
   public enum Backend {
@@ -602,7 +605,7 @@ public class TestBase {
 
   protected ProcessResult runOnJavaRawNoVerify(String main, List<byte[]> classes, List<String> args)
       throws IOException {
-    return ToolHelper.runJavaNoVerify(Collections.singletonList(writeToZip(classes)), main, args);
+    return ToolHelper.runJavaNoVerify(Collections.singletonList(writeToJar(classes)), main, args);
   }
 
   protected ProcessResult runOnJavaRaw(String main, byte[]... classes) throws IOException {
@@ -615,7 +618,7 @@ public class TestBase {
     mainAndArgs.add(main);
     mainAndArgs.addAll(args);
     return ToolHelper.runJava(
-        Collections.singletonList(writeToZip(classes)), mainAndArgs.toArray(new String[0]));
+        Collections.singletonList(writeToJar(classes)), mainAndArgs.toArray(new String[0]));
   }
 
   protected ProcessResult runOnJavaRaw(AndroidApp app, String mainClass, List<String> args)
@@ -628,33 +631,57 @@ public class TestBase {
     return ToolHelper.runJava(out, mainAndArgs.toArray(new String[0]));
   }
 
-  protected Path writeToZip(List<byte[]> classes) throws IOException {
-    File result = temp.newFile("tmp.zip");
-    try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(result.toPath(),
-        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
+  private String extractClassName(byte[] ccc) {
+    class ClassNameExtractor extends ClassVisitor {
+      private String className;
+
+      private ClassNameExtractor() {
+        super(ASM6);
+      }
+
+      @Override
+      public void visit(
+          int version,
+          int access,
+          String name,
+          String signature,
+          String superName,
+          String[] interfaces) {
+        className =
+            name.replace(
+                DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR,
+                DescriptorUtils.JAVA_PACKAGE_SEPARATOR);
+      }
+
+      String getClassName() {
+        return className;
+      }
+    }
+
+    ClassReader reader = new ClassReader(ccc);
+    ClassNameExtractor extractor = new ClassNameExtractor();
+    reader.accept(
+        extractor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+    return extractor.getClassName();
+  }
+
+  protected Path writeToJar(List<byte[]> classes) throws IOException {
+    Path result = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
+    try (ZipOutputStream out =
+        new ZipOutputStream(
+            Files.newOutputStream(
+                result, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
       for (byte[] clazz : classes) {
-        String name = loadClassFromDump(clazz).getTypeName();
+        String name = extractClassName(clazz);
         ZipUtils.writeToZipStream(
             out, DescriptorUtils.getPathFromJavaType(name), clazz, ZipEntry.STORED);
       }
     }
-    return result.toPath();
+    return result;
   }
 
-  protected Path writeToZip(JasminBuilder jasminBuilder) throws Exception {
-    return writeToZip(jasminBuilder.buildClasses());
-  }
-
-  protected static Class loadClassFromDump(byte[] dump) {
-    return new DumpLoader().loadClass(dump);
-  }
-
-  private static class DumpLoader extends ClassLoader {
-
-    @SuppressWarnings("deprecation")
-    public Class loadClass(byte[] clazz) {
-      return defineClass(clazz, 0, clazz.length);
-    }
+  protected Path writeToJar(JasminBuilder jasminBuilder) throws Exception {
+    return writeToJar(jasminBuilder.buildClasses());
   }
 
   /**

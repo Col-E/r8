@@ -144,14 +144,6 @@ public class AsmTestBase extends TestBase {
     byte[] dump() throws Exception;
   }
 
-  protected static Class loadClassFromAsmClass(AsmDump asmDump) {
-    try {
-      return loadClassFromDump(asmDump.dump());
-    } catch (Exception e) {
-      throw new ClassFormatError(e.toString());
-    }
-  }
-
   protected static byte[] getBytesFromAsmClass(AsmDump asmDump) {
     try {
       return asmDump.dump();

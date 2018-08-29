@@ -55,7 +55,7 @@ public class MissingInterfaceTest extends TestBase {
 
   @Before
   public void setUp() throws Exception {
-    libJar = writeToZip(ImmutableList.of(ToolHelper.getClassAsBytes(GoingToBeMissed.class)));
+    libJar = writeToJar(ImmutableList.of(ToolHelper.getClassAsBytes(GoingToBeMissed.class)));
     libDex = temp.getRoot().toPath().resolve("lib.zip");
     AndroidApp libApp = ToolHelper.runD8(readClasses(GoingToBeMissed.class));
     libApp.writeToZip(libDex, OutputMode.DexIndexed);

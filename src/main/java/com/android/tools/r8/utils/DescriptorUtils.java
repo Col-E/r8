@@ -368,7 +368,7 @@ public class DescriptorUtils {
     assert name.endsWith(CLASS_EXTENSION) :
         "Name " + name + " must have " + CLASS_EXTENSION + " suffix";
     String descriptor = name.substring(0, name.length() - CLASS_EXTENSION.length());
-    if (descriptor.contains(".")) {
+    if (descriptor.indexOf(JAVA_PACKAGE_SEPARATOR) != -1) {
       throw new CompilationError("Unexpected class file name: " + name);
     }
     return 'L' + descriptor + ';';
@@ -383,6 +383,6 @@ public class DescriptorUtils {
 
   public static String getPathFromJavaType(String typeName) {
     assert isValidJavaType(typeName);
-    return typeName.replace(".", "/") + ".class";
+    return typeName.replace(JAVA_PACKAGE_SEPARATOR, DESCRIPTOR_PACKAGE_SEPARATOR) + ".class";
   }
 }

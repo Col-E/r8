@@ -324,7 +324,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
         "return"
     );
 
-    Path output = writeToZip(builder);
+    Path output = writeToJar(builder);
     addExtraClasspath(output);
     return JASMIN_MAIN_CLASS;
   }

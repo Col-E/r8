@@ -476,7 +476,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
         "return"
     );
 
-    Path javaOutput = writeToZip(jasminBuilder);
+    Path javaOutput = writeToJar(jasminBuilder);
     ProcessResult javaResult = ToolHelper.runJava(javaOutput, "Foo");
     if (javaResult.exitCode != 0) {
       System.err.println(javaResult.stderr);
