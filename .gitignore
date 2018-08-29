@@ -27,6 +27,8 @@ third_party/android_jar/lib
 third_party/android_jar/lib.tar.gz
 third_party/android_jar/lib-v[0-9][0-9]
 third_party/android_jar/lib-v[0-9][0-9].tar.gz
+third_party/benchmarks/kotlin-benches
+third_party/benchmarks/kotlin-benches.tar.gz
 third_party/benchmarks/santa-tracker
 third_party/benchmarks/santa-tracker.tar.gz
 third_party/desugar/desugar_*/
@@ -74,7 +76,8 @@ gradle-app.setting
 gradlew
 gradlew.bat
 gradle/*
-r8.iml
+*.dex
+*.iml
 r8.ipr
 r8.iws
 #*#
