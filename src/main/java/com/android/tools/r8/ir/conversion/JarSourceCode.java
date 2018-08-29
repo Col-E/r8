@@ -190,6 +190,8 @@ public class JarSourceCode implements SourceCode {
   private final DexMethod originalMethod;
   private final Position callerPosition;
 
+  private boolean hasExitingInstruction = false;
+
   public JarSourceCode(
       DexType clazz,
       MethodNode node,
@@ -400,6 +402,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   private void computeBlockEntryJarStates(IRBuilder builder) {
+    hasExitingInstruction = false;
     Int2ReferenceSortedMap<BlockInfo> CFG = builder.getCFG();
     Queue<JarStateWorklistItem> worklist = new LinkedList<>();
     BlockInfo entry = CFG.get(IRBuilder.INITIAL_BLOCK_OFFSET);
@@ -419,10 +422,15 @@ public class JarSourceCode implements SourceCode {
         blockEnd += 1;
       }
       for (int i = item.instructionIndex; i < blockEnd; ++i) {
-        state.beginTransaction(i + 1, i + 1 != blockEnd);
+        boolean hasNextInstruction = i + 1 != blockEnd;
+        state.beginTransaction(i + 1, hasNextInstruction);
         AbstractInsnNode insn = getInstruction(i);
         updateState(insn);
         state.endTransaction();
+        if (!hasNextInstruction) {
+          hasExitingInstruction |=
+              isReturn(insn) || (isThrow(insn) && item.blockInfo.exceptionalSuccessors.isEmpty());
+        }
       }
       // At the end of the current block, propagate the state to all successors and add the ones
       // that changed to the worklist.
@@ -487,6 +495,18 @@ public class JarSourceCode implements SourceCode {
     }
     for (Local toOpen : localChange.getLocalsToOpen()) {
       builder.addDebugLocalStart(toOpen.slot.register, toOpen.info);
+    }
+
+    // If there are no explicit exits from the method (ie, this method is a loop without an explict
+    // return or an unhandled throw) then we cannot guarentee that a local live in a successor will
+    // ensure it is marked as such (via an explict 'end' marker) and thus be live in predecessors.
+    // In this case we insert an 'end' point on all explicit goto instructions ensuring that any
+    // back-edge will explicitly keep locals live at that point.
+    if (!hasExitingInstruction && getInstruction(predecessorOffset).getOpcode() == Opcodes.GOTO) {
+      assert !isExceptional;
+      for (Local local : localChange.getLocalsToPreserve()) {
+        builder.addDebugLocalEnd(local.slot.register, local.info);
+      }
     }
   }
 

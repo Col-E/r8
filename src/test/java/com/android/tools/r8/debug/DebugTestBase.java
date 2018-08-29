@@ -1171,6 +1171,22 @@ public abstract class DebugTestBase {
           Assert.fail("expected local '" + localName + "' is not present at " + locationString);
         }
 
+        private void checkIncorrectLocal(String localName, Value expected, Value actual) {
+          if (expected.equals(actual)) {
+            return;
+          }
+          String locationString = convertCurrentLocationToString();
+          Assert.fail(
+              "Incorrect value for local '"
+                  + localName
+                  + "' at "
+                  + locationString
+                  + ", expected "
+                  + expected
+                  + ", actual "
+                  + actual);
+        }
+
         @Override
         public void checkNoLocal(String localName) {
           Optional<Variable> localVar = getVariableAt(mirror, getLocation(), localName);
@@ -1207,8 +1223,7 @@ public abstract class DebugTestBase {
           assert valuesCount == 1;
           Value localValue = replyPacket.getNextValueAsValue();
 
-          Assert.assertEquals("Incorrect value for local '" + localName + "'",
-              expectedValue, localValue);
+          checkIncorrectLocal(localName, expectedValue, localValue);
         }
 
         /**
