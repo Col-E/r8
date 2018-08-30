@@ -1422,18 +1422,24 @@ public class CodeRewriter {
 
   // Check if the static put is a constant derived from the class holding the method.
   // This checks for java.lang.Class.getName and java.lang.Class.getSimpleName.
-  private boolean isClassNameConstant(DexEncodedMethod method, StaticPut put) {
+  private boolean isClassNameConstantOf(DexClass clazz, StaticPut put) {
     if (put.getField().type != dexItemFactory.stringType) {
       return false;
     }
-    if (put.inValue().definition != null && put.inValue().definition.isInvokeVirtual()) {
-      InvokeVirtual invoke = put.inValue().definition.asInvokeVirtual();
+    if (put.inValue().definition != null) {
+      return isClassNameConstantOf(clazz, put.inValue().definition);
+    }
+    return false;
+  }
+
+  private boolean isClassNameConstantOf(DexClass clazz, Instruction instruction) {
+    if (instruction.isInvokeVirtual()) {
+      InvokeVirtual invoke = instruction.asInvokeVirtual();
       if ((invoke.getInvokedMethod() == dexItemFactory.classMethods.getSimpleName
           || invoke.getInvokedMethod() == dexItemFactory.classMethods.getName)
           && !invoke.inValues().get(0).isPhi()
           && invoke.inValues().get(0).definition.isConstClass()
-          && invoke.inValues().get(0).definition.asConstClass().getValue()
-          == method.method.getHolder()) {
+          && invoke.inValues().get(0).definition.asConstClass().getValue() == clazz.type) {
         return true;
       }
     }
@@ -1445,62 +1451,21 @@ public class CodeRewriter {
       return;
     }
 
-    // Collect relevant static put which are dominated by the exit block, and not dominated by a
-    // static get.
-    // This does not check for instructions that can throw. However, as classes which throw in the
-    // class initializer are never visible to the program (see Java Virtual Machine Specification
-    // section 5.5, https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.5), this
-    // does not matter (except maybe for removal of const-string instructions, but that is
-    // acceptable).
-    if (code.computeNormalExitBlocks().isEmpty()) {
+    DexClass clazz = definitionFor(method.method.getHolder());
+    if (clazz == null) {
       return;
     }
-    DexClass clazz = definitionFor(method.method.getHolder());
-    assert clazz != null;
-    DominatorTree dominatorTree = new DominatorTree(code);
+
+    // Collect straight-line static puts up to the first side-effect that is not
+    // a static put on a field on this class with a value that can be hoisted to
+    // the field initial value.
     Set<StaticPut> puts = Sets.newIdentityHashSet();
-    Map<DexField, StaticPut> dominatingPuts = Maps.newIdentityHashMap();
-    for (BasicBlock block : dominatorTree.normalExitDominatorBlocks()) {
-      InstructionListIterator iterator = block.listIterator(block.getInstructions().size());
-      while (iterator.hasPrevious()) {
-        Instruction current = iterator.previous();
-        if (current.isStaticPut()) {
-          StaticPut put = current.asStaticPut();
-          DexField field = put.getField();
-          if (clazz.definesStaticField(field)) {
-            if (put.inValue().isConstant()) {
-              if ((field.type.isClassType() || field.type.isArrayType())
-                  && put.inValue().isZero()) {
-                // Collect put of zero as a potential default value.
-                dominatingPuts.putIfAbsent(put.getField(), put);
-                puts.add(put);
-              } else if (field.type.isPrimitiveType() || field.type == dexItemFactory.stringType) {
-                // Collect put as a potential default value.
-                dominatingPuts.putIfAbsent(put.getField(), put);
-                puts.add(put);
-              }
-            } else if (isClassNameConstant(method, put)) {
-              // Collect put of class name constant as a potential default value.
-              dominatingPuts.putIfAbsent(put.getField(), put);
-              puts.add(put);
-            }
-          }
-        }
-        if (current.isStaticGet()) {
-          // If a static field is read, any collected potential default value cannot be a
-          // default value.
-          DexField field = current.asStaticGet().getField();
-          if (dominatingPuts.containsKey(field)) {
-            dominatingPuts.remove(field);
-            Iterables.removeIf(puts, put -> put.getField() == field);
-          }
-        }
-      }
-    }
+    Map<DexField, StaticPut> finalFieldPut = Maps.newIdentityHashMap();
+    computeUnnecessaryStaticPuts(code, method, clazz, puts, finalFieldPut);
 
     if (!puts.isEmpty()) {
       // Set initial values for static fields from the definitive static put instructions collected.
-      for (StaticPut put : dominatingPuts.values()) {
+      for (StaticPut put : finalFieldPut.values()) {
         DexField field = put.getField();
         DexEncodedField encodedField = appInfo.definitionFor(field);
         if (field.type == dexItemFactory.stringType) {
@@ -1554,24 +1519,22 @@ public class CodeRewriter {
         }
       }
 
-      // Remove the static put instructions now replaced by static filed initial values.
+      // Remove the static put instructions now replaced by static field initial values.
       List<Instruction> toRemove = new ArrayList<>();
-      for (BasicBlock block : dominatorTree.normalExitDominatorBlocks()) {
-        InstructionListIterator iterator = block.listIterator();
-        while (iterator.hasNext()) {
-          Instruction current = iterator.next();
-          if (current.isStaticPut() && puts.contains(current.asStaticPut())) {
-            iterator.remove();
-            // Collect, for removal, the instruction that created the value for the static put,
-            // if all users are gone. This is done even if these instructions can throw as for
-            // the current patterns matched these exceptions are not detectable.
-            StaticPut put = current.asStaticPut();
-            if (put.inValue().uniqueUsers().size() == 0) {
-              if (put.inValue().isConstString()) {
-                toRemove.add(put.inValue().definition);
-              } else if (put.inValue().definition.isInvokeVirtual()) {
-                toRemove.add(put.inValue().definition);
-              }
+      InstructionIterator iterator = code.instructionIterator();
+      while (iterator.hasNext()) {
+        Instruction current = iterator.next();
+        if (current.isStaticPut() && puts.contains(current.asStaticPut())) {
+          iterator.remove();
+          // Collect, for removal, the instruction that created the value for the static put,
+          // if all users are gone. This is done even if these instructions can throw as for
+          // the current patterns matched these exceptions are not detectable.
+          StaticPut put = current.asStaticPut();
+          if (put.inValue().uniqueUsers().size() == 0) {
+            if (put.inValue().isConstString()) {
+              toRemove.add(put.inValue().definition);
+            } else if (put.inValue().definition.isInvokeVirtual()) {
+              toRemove.add(put.inValue().definition);
             }
           }
         }
@@ -1579,15 +1542,67 @@ public class CodeRewriter {
 
       // Remove the instructions collected for removal.
       if (toRemove.size() > 0) {
-        for (BasicBlock block : dominatorTree.normalExitDominatorBlocks()) {
-          InstructionListIterator iterator = block.listIterator();
-          while (iterator.hasNext()) {
-            if (toRemove.contains(iterator.next())) {
-              iterator.remove();
-            }
+        iterator = code.instructionIterator();
+        while (iterator.hasNext()) {
+          if (toRemove.contains(iterator.next())) {
+            iterator.remove();
           }
         }
       }
+    }
+  }
+
+  private void computeUnnecessaryStaticPuts(IRCode code, DexEncodedMethod clinit, DexClass clazz,
+      Set<StaticPut> puts, Map<DexField, StaticPut> finalFieldPut) {
+    final int color = code.reserveMarkingColor();
+    try {
+      BasicBlock block = code.blocks.getFirst();
+      while (!block.isMarked(color) && block.getPredecessors().size() <= 1) {
+        block.mark(color);
+        InstructionListIterator it = block.listIterator();
+        while (it.hasNext()) {
+          Instruction instruction = it.next();
+          if (instructionHasSideEffects(instruction)) {
+            if (isClassNameConstantOf(clazz, instruction)) {
+              continue;
+            } else if (instruction.isStaticPut()) {
+              StaticPut put = instruction.asStaticPut();
+              if (put.getField().clazz != clazz.type) {
+                // Can cause clinit on another class which can read uninitialized static fields
+                // of this class.
+                return;
+              }
+              DexField field = put.getField();
+              if (clazz.definesStaticField(field)) {
+                if (put.inValue().isConstant()) {
+                  if ((field.type.isClassType() || field.type.isArrayType())
+                      && put.inValue().isZero()) {
+                    finalFieldPut.put(put.getField(), put);
+                    puts.add(put);
+                  } else if (field.type.isPrimitiveType()
+                      || field.type == dexItemFactory.stringType) {
+                    finalFieldPut.put(put.getField(), put);
+                    puts.add(put);
+                  }
+                } else if (isClassNameConstantOf(clazz, put)) {
+                  // Collect put of class name constant as a potential default value.
+                  finalFieldPut.put(put.getField(), put);
+                  puts.add(put);
+                }
+              }
+            } else if (!(instruction.isConstString() || instruction.isConstClass())) {
+              // Allow const string and const class which can only throw exceptions as their
+              // side-effect. Bail out for anything else.
+              return;
+            }
+          }
+        }
+        if (block.exit().isGoto()) {
+          block = block.exit().asGoto().getTarget();
+        }
+      }
+    } finally {
+      code.returnMarkingColor(color);
     }
   }
 
