@@ -294,8 +294,8 @@ public class FileWriter {
   private static void addSignaturesFromMethod(DexEncodedMethod method,
       Map<DexCode, String> codeToSignatureMap,
       ClassNameMapper proguardMap) {
-    if (method.getCode() == null) {
-      assert method.accessFlags.isAbstract() || method.accessFlags.isNative();
+    if (!method.hasCode()) {
+      assert method.shouldNotHaveCode();
     } else {
       Signature signature;
       String originalClassName;
@@ -585,8 +585,8 @@ public class FileWriter {
       dest.putUleb128(nextOffset - currentOffset);
       currentOffset = nextOffset;
       dest.putUleb128(method.accessFlags.getAsDexAccessFlags());
-      if (method.getCode() == null) {
-        assert method.accessFlags.isAbstract() || method.accessFlags.isNative();
+      if (!method.hasCode()) {
+        assert method.shouldNotHaveCode();
         dest.putUleb128(0);
       } else {
         dest.putUleb128(mixedSectionOffsets.getOffsetFor(method.getCode().asDexCode()));

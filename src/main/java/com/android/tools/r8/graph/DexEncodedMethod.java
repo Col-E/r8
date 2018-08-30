@@ -115,7 +115,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     this.annotations = annotations;
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
-    assert code == null || !accessFlags.isAbstract();
+    assert code == null || !shouldNotHaveCode();
     setCodeOwnership();
   }
 
@@ -315,6 +315,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     parameterAnnotationsList.collectMixedSectionItems(mixedItems);
   }
 
+  public boolean shouldNotHaveCode() {
+    return accessFlags.isAbstract() || accessFlags.isNative();
+  }
+
+  public boolean hasCode() {
+    return code != null;
+  }
+
   public Code getCode() {
     return code;
   }
@@ -400,6 +408,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public DexEncodedMethod toAbstractMethod() {
+    // 'final' wants this to be *not* overridden, while 'abstract' wants this to be implemented in
+    // a subtype, i.e., self contradict.
+    assert !accessFlags.isFinal();
     accessFlags.setAbstract();
     voidCodeOwnership();
     this.code = null;
@@ -431,7 +442,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public DexEncodedMethod toEmptyThrowingMethodDex() {
-    assert !accessFlags.isAbstract() && !accessFlags.isNative();
+    assert !shouldNotHaveCode();
     Builder builder = builder(this);
     Instruction insn[] = {new Const(0, 0), new Throw(0)};
     DexCode emptyThrowingCode = generateCodeFromTemplate(1, 0, insn);
@@ -440,7 +451,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public DexEncodedMethod toEmptyThrowingMethodCf() {
-    assert !accessFlags.isAbstract() && !accessFlags.isNative();
+    assert !shouldNotHaveCode();
     Builder builder = builder(this);
     CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
     CfCode emptyThrowingCode =
