@@ -83,4 +83,19 @@ public class UnicodeSetRegressionTest {
           "PROCESSED\n" + error.dump(fromJar, true) + "\nEND PROCESSED");
     }
   }
+
+  @Test
+  public void testUnicodeSetFromJarToCF() throws Throwable {
+    Path combinedInput = temp.getRoot().toPath().resolve("all.zip");
+    Path oatFile = temp.getRoot().toPath().resolve("all.oat");
+    R8Command.Builder builder =
+        R8Command.builder()
+            .addProgramFiles(Paths.get(JAR_FILE))
+            .setOutput(Paths.get(combinedInput.toString()), OutputMode.ClassFile)
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+    AndroidAppConsumers compatSink = new AndroidAppConsumers(builder);
+    // Ignore missing classes since we don't want to link to the IBM text library.
+    ToolHelper.runR8(builder.build(), options -> options.ignoreMissingClasses = true);
+    AndroidApp result = compatSink.build();
+  }
 }
