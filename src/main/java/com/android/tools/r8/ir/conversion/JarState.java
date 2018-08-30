@@ -271,6 +271,17 @@ public class JarState {
       this.state = state;
     }
 
+    public List<Local> getLocalsToPreserve() {
+      List<Local> live = new ArrayList<>(atExit.live.size());
+      for (LocalNodeInfo liveAtExit : atExit.live) {
+        if (atEntry.isLive(liveAtExit)) {
+          int register = state.getLocalRegister(liveAtExit.node.index, liveAtExit.type);
+          live.add(new Local(new Slot(register, liveAtExit.type), liveAtExit.info));
+        }
+      }
+      return live;
+    }
+
     public List<Local> getLocalsToClose() {
       List<Local> toClose = new ArrayList<>(atExit.live.size());
       for (LocalNodeInfo liveAtExit : atExit.live) {

@@ -83,10 +83,9 @@ public class DebugStreamComparator {
         }
         currentLine = nextLine;
         while (frameEntryLines.size() > nextDepth + 1) {
-          // If the depth decreases by more than one we have popped the filtered frames.
-          // Verify they are placeholder lines.
-          int placeholder = frameEntryLines.pop();
-          assert placeholder == PLACEHOLDER_LINE;
+          // If the depth decreases by more than one we have popped the filtered frames or an
+          // exception has unwinded the stack.
+          frameEntryLines.pop();
         }
         int lineOnEntry = frameEntryLines.pop();
         assert nextDepth == frameEntryLines.size();

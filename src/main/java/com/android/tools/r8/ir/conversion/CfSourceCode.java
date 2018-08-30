@@ -49,6 +49,7 @@ import java.util.List;
 public class CfSourceCode implements SourceCode {
 
   private BlockInfo currentBlockInfo;
+  private boolean hasExitingInstruction = false;
 
   private static class TryHandlerList {
 
@@ -264,12 +265,14 @@ public class CfSourceCode implements SourceCode {
         return instructionIndex;
       }
       // If the throwable instruction is "throw" it closes the block.
+      hasExitingInstruction |= instruction instanceof CfThrow;
       return (instruction instanceof CfThrow) ? instructionIndex : -1;
     }
     if (isControlFlow(instruction)) {
       for (int target : getTargets(instructionIndex)) {
         builder.ensureNormalSuccessorBlock(instructionIndex, target);
       }
+      hasExitingInstruction |= instruction.isReturn();
       return instructionIndex;
     }
     return -1;
@@ -328,7 +331,6 @@ public class CfSourceCode implements SourceCode {
     setLocalVariableLists();
     buildArgumentInstructions(builder);
     recordStateForTarget(0, state.getSnapshot());
-    // TODO: addDebugLocalUninitialized + addDebugLocalStart for non-argument locals live at 0
     // TODO(b/109789541): Generate method synchronization for DEX backend.
     inPrelude = false;
   }
@@ -383,6 +385,20 @@ public class CfSourceCode implements SourceCode {
     for (Entry<DebugLocalInfo> entry : atTarget.int2ObjectEntrySet()) {
       if (atSource.get(entry.getIntKey()) != entry.getValue()) {
         builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
+      }
+    }
+
+    // If there are no explicit exits from the method (ie, this method is a loop without an explict
+    // return or an unhandled throw) then we cannot guarentee that a local live in a successor will
+    // ensure it is marked as such (via an explict 'end' marker) and thus be live in predecessors.
+    // In this case we insert an 'end' point on all explicit goto instructions ensuring that any
+    // back-edge will explicitly keep locals live at that point.
+    if (!hasExitingInstruction && code.getInstructions().get(predecessorOffset) instanceof CfGoto) {
+      assert !isExceptional;
+      for (Entry<DebugLocalInfo> entry : atSource.int2ObjectEntrySet()) {
+        if (atTarget.get(entry.getIntKey()) == entry.getValue()) {
+          builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
+        }
       }
     }
   }
