@@ -10,7 +10,7 @@ import utils.Utils
 ext {
     androidSupportVersion = '25.4.0'
     apacheCommonsVersion = '1.12'
-    asmVersion = '6.0'
+    asmVersion = '6.2.1'
     autoValueVersion = '1.5'
     espressoVersion = '3.0.0'
     fastutilVersion = '7.2.0'
