@@ -129,8 +129,7 @@ final class StaticizingProcessor {
 
       // CHECK: no abstract or native instance methods.
       if (Streams.stream(candidateClass.methods()).anyMatch(
-          method -> !method.isStaticMethod() &&
-              (method.accessFlags.isAbstract() || method.accessFlags.isNative()))) {
+          method -> !method.isStaticMethod() && (method.shouldNotHaveCode()))) {
         it.remove();
         continue;
       }

@@ -130,14 +130,20 @@ public class TreePruner {
     }
     for (int i = firstUnreachable; i < methods.length; i++) {
       DexEncodedMethod method = methods[i];
-      if (appInfo.liveMethods.contains(methods[i].getKey())) {
+      if (appInfo.liveMethods.contains(method.getKey())) {
         reachableMethods.add(method);
       } else if (options.debugKeepRules && isDefaultConstructor(method)) {
         // Keep the method but rewrite its body, if it has one.
-        reachableMethods.add(methods[i].accessFlags.isAbstract()
-            ? method
-            : method.toMethodThatLogsError(application.dexItemFactory));
+        reachableMethods.add(
+            method.shouldNotHaveCode() && !method.hasCode()
+                ? method
+                : method.toMethodThatLogsError(application.dexItemFactory));
       } else if (appInfo.targetedMethods.contains(method.getKey())) {
+        // If the method is already abstract, and doesn't have code, let it be.
+        if (method.shouldNotHaveCode() && !method.hasCode()) {
+          reachableMethods.add(method);
+          continue;
+        }
         if (Log.ENABLED) {
           Log.debug(getClass(), "Making method %s abstract.", method.method);
         }

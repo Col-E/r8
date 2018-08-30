@@ -43,7 +43,7 @@ public class SourceFileRewriter {
       clazz.sourceFile = dexRenameSourceFile;
       clazz.forEachMethod(encodedMethod -> {
         // Abstract methods do not have code_item.
-        if (encodedMethod.accessFlags.isAbstract()) {
+        if (encodedMethod.shouldNotHaveCode()) {
           return;
         }
         Code code = encodedMethod.getCode();

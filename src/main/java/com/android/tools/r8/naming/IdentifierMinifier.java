@@ -78,7 +78,7 @@ class IdentifierMinifier {
 
   private void adaptClassStringsInMethod(DexEncodedMethod encodedMethod) {
     // Abstract methods do not have code_item.
-    if (encodedMethod.accessFlags.isAbstract()) {
+    if (encodedMethod.shouldNotHaveCode()) {
       return;
     }
     Code code = encodedMethod.getCode();
@@ -157,7 +157,7 @@ class IdentifierMinifier {
       return;
     }
     // Abstract methods do not have code_item.
-    if (encodedMethod.accessFlags.isAbstract()) {
+    if (encodedMethod.shouldNotHaveCode()) {
       return;
     }
     Code code = encodedMethod.getCode();

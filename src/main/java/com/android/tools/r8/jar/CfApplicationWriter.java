@@ -274,7 +274,7 @@ public class CfApplicationWriter {
     }
     writeAnnotations(visitor::visitAnnotation, method.annotations.annotations);
     writeParameterAnnotations(visitor, method.parameterAnnotationsList);
-    if (!method.accessFlags.isAbstract() && !method.accessFlags.isNative()) {
+    if (!method.shouldNotHaveCode()) {
       writeCode(method.getCode(), visitor);
     }
     visitor.visitEnd();
