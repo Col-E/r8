@@ -10,6 +10,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import java.io.IOException;
 import java.nio.file.Path;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class NonExitingMethodTestRunner extends DebugTestBase {
@@ -44,6 +45,11 @@ public class NonExitingMethodTestRunner extends DebugTestBase {
 
   @Test
   public void test() throws Exception {
+    Assume.assumeTrue(
+        "Skipping test "
+            + testName.getMethodName()
+            + " because debug tests are not yet supported on Windows",
+        !ToolHelper.isWindows());
     new DebugStreamComparator()
         .add("CF", streamDebugTest(cfConfig(), CLASS.getCanonicalName(), NO_FILTER))
         .add("D8", streamDebugTest(d8Config(), CLASS.getCanonicalName(), NO_FILTER))
