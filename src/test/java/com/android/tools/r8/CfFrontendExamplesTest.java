@@ -205,8 +205,8 @@ public class CfFrontendExamplesTest extends TestBase {
         "regress_37658666.Regress",
         (expectedBytes, actualBytes) -> {
           // javac emits LDC(-0.0f) instead of the shorter FCONST_0 FNEG emitted by CfConstNumber.
-          String ldc = "mv.visitLdcInsn(new Float(\"-0.0\"));";
-          String constNeg = "mv.visitInsn(FCONST_0);\nmv.visitInsn(FNEG);";
+          String ldc = "methodVisitor.visitLdcInsn(new Float(\"-0.0\"));";
+          String constNeg = "methodVisitor.visitInsn(FCONST_0);\nmethodVisitor.visitInsn(FNEG);";
           assertEquals(asmToString(expectedBytes).replace(ldc, constNeg), asmToString(actualBytes));
         });
   }

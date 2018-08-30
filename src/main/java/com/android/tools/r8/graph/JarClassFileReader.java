@@ -63,8 +63,6 @@ public class JarClassFileReader {
 
   // Hidden ASM "synthetic attribute" bit we need to clear.
   private static final int ACC_SYNTHETIC_ATTRIBUTE = 0x40000;
-  // Descriptor used by ASM for missing annotations.
-  public static final String SYNTHETIC_ANNOTATION = "Ljava/lang/Synthetic;";
 
   private final JarApplicationReader application;
   private final Consumer<DexClass> classConsumer;
@@ -461,7 +459,7 @@ public class JarClassFileReader {
     private final int parameterCount;
     private List<DexAnnotation> annotations = null;
     private DexValue defaultAnnotation = null;
-    private int fakeParameterAnnotations = 0;
+    private int annotableParameterCount = -1;
     private List<List<DexAnnotation>> parameterAnnotationsLists = null;
     private List<DexValue> parameterNames = null;
     private List<DexValue> parameterFlags = null;
@@ -512,33 +510,30 @@ public class JarClassFileReader {
     }
 
     @Override
-    public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
-      // ASM decided to workaround a javac bug that incorrectly deals with synthesized parameter
-      // annotations. However, that leads us to have different behavior than javac+jvm and
-      // dx+art. The workaround is to use a non-existing descriptor "Ljava/lang/Synthetic;" for
-      // exactly this case. In order to remove the workaround we ignore all annotations
-      // with that descriptor. If javac is fixed, the ASM workaround will not be hit and we will
-      // never see this non-existing annotation descriptor. ASM uses the same check to make
-      // sure to undo their workaround for the javac bug in their MethodWriter.
-      if (desc.equals(SYNTHETIC_ANNOTATION)) {
-        // We can iterate through all the parameters twice. Once for visible and once for
-        // invisible parameter annotations. We only record the number of fake parameter
-        // annotations once.
-        if (parameterAnnotationsLists == null) {
-          fakeParameterAnnotations++;
-        }
-        return null;
+    public void visitAnnotableParameterCount(int parameterCount, boolean visible) {
+      if (annotableParameterCount != -1) {
+        // TODO(113565942): We assume that the runtime visible and runtime invisible parameter
+        // count is always the same. It doesn't have to be according to the classfile format, so
+        // we really should split it into two sets.
+        assert annotableParameterCount == parameterCount;
       }
+      annotableParameterCount = parameterCount;
+    }
+
+    @Override
+    public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
       if (parameterAnnotationsLists == null) {
-        int adjustedParameterCount = parameterCount - fakeParameterAnnotations;
-        parameterAnnotationsLists = new ArrayList<>(adjustedParameterCount);
-        for (int i = 0; i < adjustedParameterCount; i++) {
+        if (annotableParameterCount == -1) {
+          annotableParameterCount = parameterCount;
+        }
+        parameterAnnotationsLists = new ArrayList<>(annotableParameterCount);
+        for (int i = 0; i < annotableParameterCount; i++) {
           parameterAnnotationsLists.add(new ArrayList<>());
         }
       }
       assert mv == null;
       return createAnnotationVisitor(desc, visible,
-          parameterAnnotationsLists.get(parameter - fakeParameterAnnotations), parent.application);
+          parameterAnnotationsLists.get(parameter), parent.application);
     }
 
     @Override
@@ -596,7 +591,7 @@ public class JarClassFileReader {
         for (int i = 0; i < parameterAnnotationsLists.size(); i++) {
           sets[i] = createAnnotationSet(parameterAnnotationsLists.get(i));
         }
-        annotationsList = new ParameterAnnotationsList(sets, fakeParameterAnnotations);
+        annotationsList = new ParameterAnnotationsList(sets);
       }
       InternalOptions internalOptions = parent.application.options;
       if (parameterNames != null && internalOptions.canUseParameterNameAnnotations()) {

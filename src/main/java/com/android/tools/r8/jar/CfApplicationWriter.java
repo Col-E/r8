@@ -34,7 +34,6 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.DexValue.UnknownDexValue;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
@@ -283,19 +282,19 @@ public class CfApplicationWriter {
 
   private void writeParameterAnnotations(
       MethodVisitor visitor, ParameterAnnotationsList parameterAnnotations) {
+    // TODO(113565942): We currently assume that the annotable parameter count
+    // it the same for visible and invisible annotations. That doesn't actually
+    // seem to be the case in the class file format.
+    visitor.visitAnnotableParameterCount(
+        parameterAnnotations.getAnnotableParameterCount(), true);
+    visitor.visitAnnotableParameterCount(
+        parameterAnnotations.getAnnotableParameterCount(), false);
+
     for (int i = 0; i < parameterAnnotations.size(); i++) {
-      if (parameterAnnotations.isMissing(i)) {
-        AnnotationVisitor av =
-            visitor.visitParameterAnnotation(i, JarClassFileReader.SYNTHETIC_ANNOTATION, false);
-        if (av != null) {
-          av.visitEnd();
-        }
-      } else {
-        int iFinal = i;
-        writeAnnotations(
-            (d, vis) -> visitor.visitParameterAnnotation(iFinal, d, vis),
-            parameterAnnotations.get(i).annotations);
-      }
+      int iFinal = i;
+      writeAnnotations(
+          (d, vis) -> visitor.visitParameterAnnotation(iFinal, d, vis),
+          parameterAnnotations.get(i).annotations);
     }
   }
 

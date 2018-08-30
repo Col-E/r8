@@ -60,6 +60,10 @@ public class ParameterAnnotationsList extends DexItem {
     this.missingParameterAnnotations = missingParameterAnnotations;
   }
 
+  public int getAnnotableParameterCount() {
+    return size();
+  }
+
   @Override
   public int hashCode() {
     return Arrays.hashCode(values);
