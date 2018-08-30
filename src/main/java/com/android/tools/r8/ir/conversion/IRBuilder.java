@@ -463,10 +463,12 @@ public class IRBuilder {
       it.previous();
       for (List<Value> values : uninitializedDebugLocalValues.values()) {
         for (Value value : values) {
-          Instruction def = new DebugLocalUninitialized(value);
-          def.setBlock(entryBlock);
-          def.setPosition(Position.none());
-          it.add(def);
+          if (value.isUsed()) {
+            Instruction def = new DebugLocalUninitialized(value);
+            def.setBlock(entryBlock);
+            def.setPosition(Position.none());
+            it.add(def);
+          }
         }
       }
     }
@@ -2235,6 +2237,10 @@ public class IRBuilder {
 
   boolean isNonLongIntegerType(NumericType type) {
     return type != NumericType.FLOAT && type != NumericType.DOUBLE && type != NumericType.LONG;
+  }
+
+  public ValueNumberGenerator getValueNumberGenerator() {
+    return valueNumberGenerator;
   }
 
   @Override

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
@@ -50,7 +49,7 @@ public enum ValueType {
     }
     if (isPreciseType() && other.isPreciseType()) {
       // Precise types must be identical, hitting the first check above.
-      throw new CompilationError("Cannot compute meet of types: " + this + " and " + other);
+      return null;
     }
     switch (this) {
       case OBJECT:
@@ -100,11 +99,10 @@ public enum ValueType {
       default:
         throw new Unreachable("Unexpected value-type in meet: " + this);
     }
-    throw new CompilationError("Cannot compute meet of types: " + this + " and " + other);
+    return null;
   }
 
   public boolean verifyCompatible(ValueType other) {
-    // Computing meet will throw on incompatible types.
     assert meet(other) != null;
     return true;
   }

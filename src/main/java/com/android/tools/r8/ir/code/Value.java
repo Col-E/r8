@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -29,7 +30,11 @@ import java.util.Set;
 public class Value {
 
   public void constrainType(ValueType constraint) {
-    type = type.meet(constraint);
+    ValueType meet = type.meet(constraint);
+    if (meet == null) {
+      throw new CompilationError("Cannot compute meet of types: " + type + " and " + constraint);
+    }
+    type = meet;
   }
 
   public void markNonDebugLocalRead() {
