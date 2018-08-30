@@ -84,6 +84,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
@@ -327,6 +328,7 @@ public class IRBuilder {
   final private ValueNumberGenerator valueNumberGenerator;
   private final DexEncodedMethod method;
   private final AppInfo appInfo;
+  private final Origin origin;
 
   // Source code to build IR from. Null if already built.
   private SourceCode source;
@@ -347,8 +349,12 @@ public class IRBuilder {
   private boolean hasImpreciseInstructionOutValueTypes = false;
 
   public IRBuilder(
-      DexEncodedMethod method, AppInfo appInfo, SourceCode source, InternalOptions options) {
-    this(method, appInfo, source, options, new ValueNumberGenerator());
+      DexEncodedMethod method,
+      AppInfo appInfo,
+      SourceCode source,
+      InternalOptions options,
+      Origin origin) {
+    this(method, appInfo, source, options, origin, new ValueNumberGenerator());
   }
 
   public IRBuilder(
@@ -356,6 +362,7 @@ public class IRBuilder {
       AppInfo appInfo,
       SourceCode source,
       InternalOptions options,
+      Origin origin,
       ValueNumberGenerator valueNumberGenerator) {
     assert source != null;
     this.method = method;
@@ -364,6 +371,7 @@ public class IRBuilder {
     this.valueNumberGenerator =
         valueNumberGenerator != null ? valueNumberGenerator : new ValueNumberGenerator();
     this.options = options;
+    this.origin = origin;
   }
 
   public boolean isGeneratingClassFiles() {
@@ -496,7 +504,7 @@ public class IRBuilder {
 
     if (hasImpreciseTypes()) {
       TypeConstraintResolver resolver = new TypeConstraintResolver();
-      resolver.resolve(ir);
+      resolver.resolve(ir, this);
     }
 
     // Clear the code so we don't build multiple times.
@@ -505,6 +513,10 @@ public class IRBuilder {
 
     assert ir.isConsistentSSA();
     return ir;
+  }
+
+  public void constrainType(Value value, ValueType constraint) {
+    value.constrainType(constraint, method.method, origin, options.reporter);
   }
 
   private boolean hasImpreciseTypes() {
@@ -1662,7 +1674,7 @@ public class IRBuilder {
     assert !value.hasLocalInfo()
         || value.getDebugLocalEnds() != null
         || source.verifyLocalInScope(value.getLocalInfo());
-    value.constrainType(type);
+    constrainType(value, type);
     value.markNonDebugLocalRead();
     return value;
   }
