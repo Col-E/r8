@@ -8,7 +8,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.code.IfEqz;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.code.SgetBoolean;
 import com.android.tools.r8.code.Sput;
 import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexCode;
@@ -387,28 +389,20 @@ public class StaticValuesTest extends SmaliTestBase {
     CodeInspector inspector = new CodeInspector(processedApplication);
     assertTrue(inspector.clazz("Test").clinit().isPresent());
 
-    DexValue value;
     assertTrue(inspector.clazz("Test").field("int", "intField").hasExplicitStaticValue());
-    value = inspector.clazz("Test").field("int", "intField").getStaticValue();
+    DexValue value = inspector.clazz("Test").field("int", "intField").getStaticValue();
     assertTrue(value instanceof DexValueInt);
-    assertEquals(3, ((DexValueInt) value).getValue());
+    assertEquals(1, ((DexValueInt) value).getValue());
 
     assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
     assertTrue(value instanceof DexValueString);
-    assertEquals(("7"), ((DexValueString) value).getValue().toString());
+    // We stop at control-flow and therefore the initial value for the string field will be 5.
+    assertEquals(("5"), ((DexValueString) value).getValue().toString());
 
     DexCode code = inspector.clazz("Test").clinit().getMethod().getCode().asDexCode();
-    for (Instruction instruction : code.instructions) {
-      if (instruction instanceof Sput) {
-        Sput put = (Sput) instruction;
-        // Only int put ot intField2.
-        assertEquals(put.getField().name.toString(), "intField2");
-      } else {
-        // No Object (String) puts.
-        assertFalse(instruction instanceof SputObject);
-      }
-    }
+    assertTrue(code.instructions[0] instanceof SgetBoolean);
+    assertTrue(code.instructions[1] instanceof IfEqz);
 
     String result = runArt(processedApplication);
 
