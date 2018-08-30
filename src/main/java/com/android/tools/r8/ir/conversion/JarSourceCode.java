@@ -434,14 +434,14 @@ public class JarSourceCode implements SourceCode {
       }
       // At the end of the current block, propagate the state to all successors and add the ones
       // that changed to the worklist.
-      item.blockInfo.normalSuccessors.iterator().forEachRemaining(offset -> {
+      item.blockInfo.normalSuccessors.iterator().forEachRemaining((Integer offset) -> {
         if (state.recordStateForTarget(offset)) {
           if (offset >= 0) {
             worklist.add(new JarStateWorklistItem(CFG.get(offset.intValue()), offset));
           }
         }
       });
-      item.blockInfo.exceptionalSuccessors.iterator().forEachRemaining(offset -> {
+      item.blockInfo.exceptionalSuccessors.iterator().forEachRemaining((Integer offset) -> {
         if (state.recordStateForExceptionalTarget(offset)) {
           if (offset >= 0) {
             worklist.add(new JarStateWorklistItem(CFG.get(offset.intValue()), offset));
