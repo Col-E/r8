@@ -70,10 +70,36 @@ public class Phi extends Value {
     if (block.getPredecessors().size() == 0) {
       throwUndefinedValueError();
     }
+
+    List<Value> operands = new ArrayList<>(block.getPredecessors().size());
     for (BasicBlock pred : block.getPredecessors()) {
       EdgeType edgeType = pred.getEdgeType(block);
-      // Since this read has been delayed we must provide the local info for the value.
       Value operand = builder.readRegister(register, type, pred, edgeType, readType);
+      operands.add(operand);
+    }
+
+    if (readType == RegisterReadType.DEBUG) {
+      for (Value operand : operands) {
+        if (type.meet(operand.outType()) == null) {
+          BasicBlock block = getBlock();
+          InstructionListIterator it = block.listIterator();
+          Value value = new Value(builder.getValueNumberGenerator().next(), type, null);
+          Position position = block.getPosition();
+          Instruction definition = new DebugLocalUninitialized(value);
+          definition.setBlock(block);
+          definition.setPosition(position);
+          it.add(definition);
+          // Update current definition and all users.
+          block.updateCurrentDefinition(register, value, EdgeType.NON_EDGE);
+          replaceUsers(value);
+          // Remove the phi from the block.
+          block.removePhi(this);
+          return;
+        }
+      }
+    }
+
+    for (Value operand : operands) {
       operand.constrainType(type);
       appendOperand(operand);
     }
