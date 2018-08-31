@@ -1191,7 +1191,7 @@ public class Outliner {
         Origin origin) {
       assert getOwner() == encodedMethod;
       OutlineSourceCode source = new OutlineSourceCode(outline, encodedMethod.method);
-      return new IRBuilder(encodedMethod, appInfo, source, options, origin).build();
+      return new IRBuilder(encodedMethod, appInfo, source, options).build();
     }
 
     @Override

@@ -51,8 +51,7 @@ public final class SynthesizedCode extends Code {
       InternalOptions options,
       Origin origin) {
     assert getOwner() == encodedMethod;
-    return new IRBuilder(encodedMethod, appInfo, sourceCodeProvider.get(null), options, origin)
-        .build();
+    return new IRBuilder(encodedMethod, appInfo, sourceCodeProvider.get(null), options).build();
   }
 
   @Override
@@ -71,7 +70,6 @@ public final class SynthesizedCode extends Code {
             appInfo,
             sourceCodeProvider.get(callerPosition),
             options,
-            origin,
             valueNumberGenerator);
     return builder.build();
   }
