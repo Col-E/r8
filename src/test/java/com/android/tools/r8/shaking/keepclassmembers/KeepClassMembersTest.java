@@ -59,9 +59,9 @@ public class KeepClassMembersTest extends ProguardCompatibilityTestBase {
         assertThat(getIMethod, isPresent());
         assertThat(iField, isPresent());
       } else {
-        // Force Proguard compatibility keeps the instance method, but makes it abstract as
-        // the class does not have a constructor, and therefore cannot be instantiated.
-        assertThat(getIMethod, isAbstract());
+        // Force Proguard compatibility keeps the instance method, even though the class does
+        // not have a constructor.
+        assertThat(getIMethod, not(isAbstract()));
         // As the method is abstract the referenced field is not present.
         assertThat(iField, not(isPresent()));
       }

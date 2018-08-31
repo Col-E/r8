@@ -76,8 +76,9 @@ public class TreePruner {
         usagePrinter.printUnusedClass(clazz);
       } else {
         newClasses.add(clazz);
-        if (!appInfo.instantiatedTypes.contains(clazz.type) &&
-            (!options.debugKeepRules || !clazz.hasDefaultInitializer())) {
+        if (!appInfo.instantiatedTypes.contains(clazz.type)
+            && !options.forceProguardCompatibility
+            && (!options.debugKeepRules || !clazz.hasDefaultInitializer())) {
           // The class is only needed as a type but never instantiated. Make it abstract to reflect
           // this.
           if (clazz.accessFlags.isFinal()) {
