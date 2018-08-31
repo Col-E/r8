@@ -33,7 +33,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Mul;
@@ -530,6 +529,22 @@ public class Outliner {
       return true;
     }
 
+    private DexType argumentTypeFromInvoke(InvokeMethod invoke, int index) {
+      assert invoke.isInvokeMethodWithReceiver() || invoke.isInvokePolymorphic();
+      if (index == 0) {
+        return invoke.getInvokedMethod().getHolder();
+      }
+      DexProto methodProto;
+      if (invoke.isInvokePolymorphic()) {
+        // Type of argument of a polymorphic call must be taken from the call site.
+        methodProto = invoke.asInvokePolymorphic().getProto();
+      } else {
+        methodProto = invoke.getInvokedMethod().proto;
+      }
+      // -1 due to receiver.
+      return methodProto.parameters.values[index - 1];
+    }
+
     // Add the current instruction to the outline.
     private void includeInstruction(Instruction instruction) {
       List<Value> inValues = orderedInValues(instruction, returnValue);
@@ -564,30 +579,23 @@ public class Outliner {
             argumentsMap.add(-1);
             continue;
           }
-          if (instruction.isInvoke()
-              && instruction.asInvoke().getType() != Type.STATIC
-              && instruction.asInvoke().getType() != Type.CUSTOM) {
+          if (instruction.isInvokeMethodWithReceiver() || instruction.isInvokePolymorphic()) {
             InvokeMethod invoke = instruction.asInvokeMethod();
             int argumentIndex = arguments.indexOf(value);
             // For virtual calls only re-use the receiver argument.
             if (i == 0 && argumentIndex != -1) {
+              DexType receiverType = argumentTypeFromInvoke(invoke, i);
+              // Ensure that the outline argument type is specific enough.
+              if (receiverType.isClassType()) {
+                if (receiverType.isSubtypeOf(argumentTypes.get(argumentIndex), appInfo)) {
+                  argumentTypes.set(argumentIndex, receiverType);
+                }
+              }
               argumentsMap.add(argumentIndex);
             } else {
               arguments.add(value);
               argumentRegisters += value.requiredRegisters();
-              if (i == 0) {
-                argumentTypes.add(invoke.getInvokedMethod().getHolder());
-              } else {
-                DexProto methodProto;
-                if (instruction.asInvoke().getType() == Type.POLYMORPHIC) {
-                  // Type of argument of a polymorphic call must be take from the call site.
-                  methodProto = instruction.asInvokePolymorphic().getProto();
-                } else {
-                  methodProto = invoke.getInvokedMethod().proto;
-                }
-                // -1 due to receiver.
-                argumentTypes.add(methodProto.parameters.values[i - 1]);
-              }
+              argumentTypes.add(argumentTypeFromInvoke(invoke, i));
               argumentsMap.add(arguments.size() - 1);
             }
           } else {

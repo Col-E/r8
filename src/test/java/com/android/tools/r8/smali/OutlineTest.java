@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.smali;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.code.Const4;
@@ -1550,5 +1552,308 @@ public class OutlineTest extends SmaliTestBase {
 
     // Verify the code.
     runDex2Oat(processedApplication);
+  }
+
+  private static boolean isOutlineInvoke(Instruction instruction) {
+    return instruction instanceof InvokeStatic
+        && instruction.getMethod().holder.toSourceString().equals(OutlineOptions.CLASS_NAME);
+  }
+
+  private void assertHasOutlineInvoke(DexEncodedMethod method) {
+    assertTrue(
+        Arrays
+            .stream(method.getCode().asDexCode().instructions)
+            .anyMatch(OutlineTest::isOutlineInvoke));
+  }
+
+  @Test
+  public void b113145696_superClassUseFirst() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+
+    // Code where the outline argument is first used as java.lang.Object and afterwards
+    // java.util.ArrayList.
+    List<String> codeToOutline = ImmutableList.of(
+        "    invoke-virtual      { v1, v2 }, Ljava/io/PrintStream;->print(Ljava/lang/Object;)V",
+        "    invoke-virtual      { v2 }, Ljava/util/ArrayList;->isEmpty()Z",
+        "    move-result         v0",
+        "    return              v0"
+    );
+
+    String returnType = "boolean";
+    List<String> parameters = ImmutableList.of("java.io.PrintStream", "java.util.ArrayList");
+    MethodSignature signature1 = builder.addPrivateInstanceMethod(
+        returnType,
+        DEFAULT_METHOD_NAME + "1",
+        parameters,
+        0,
+        codeToOutline.toArray(new String[0])
+    );
+
+    MethodSignature signature2 = builder.addPrivateInstanceMethod(
+        returnType,
+        DEFAULT_METHOD_NAME + "2",
+        parameters,
+        0,
+        codeToOutline.toArray(new String[0])
+    );
+
+    builder.addMainMethod(
+        3,
+        "    new-instance        v0, LTest;",
+        "    invoke-direct       { v0 }, LTest;-><init>()V",
+        "    sget-object         v1, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "    new-instance        v2, Ljava/util/ArrayList;",
+        "    invoke-direct       { v2 }, Ljava/util/ArrayList;-><init>()V",
+        "    invoke-virtual      { v0, v1, v2 }, " +
+        "                            LTest;->method1(Ljava/io/PrintStream;Ljava/util/ArrayList;)Z",
+        "    move-result         v3",
+        "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
+        "    invoke-virtual      { v0, v1, v2 }, " +
+        "                            LTest;->method2(Ljava/io/PrintStream;Ljava/util/ArrayList;)Z",
+        "    move-result         v3",
+        "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
+        "    return-void"
+    );
+
+    // Outline 2 times two instructions.
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 2;
+      outline.minSize = 2;
+      outline.maxSize = 2;
+    });
+
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
+
+    // Check that outlining happened.
+    assertHasOutlineInvoke(getMethod(processedApplication, signature1));
+    assertHasOutlineInvoke(getMethod(processedApplication, signature2));
+    assertThat(
+        new CodeInspector(processedApplication)
+            .clazz(OutlineOptions.CLASS_NAME)
+            .method(
+                "boolean",
+                "outline0",
+                ImmutableList.of("java.io.PrintStream", "java.util.ArrayList")),
+        isPresent());
+
+    // Run code and check result.
+    String result = runArt(processedApplication);
+    assertEquals("[]true[]true", result);
+  }
+
+  @Test
+  public void b113145696_superInterfaceUseFirst() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+
+    List<String> codeToOutline = ImmutableList.of(
+        "    invoke-interface      { v1 }, Ljava/lang/Iterable;->iterator()Ljava/util/Iterator;",
+        "    invoke-interface      { v1 }, Ljava/util/Collection;->isEmpty()Z",
+        "    move-result         v0",
+        "    return              v0"
+    );
+
+    String returnType = "boolean";
+    List<String> parameters = ImmutableList.of("java.util.List");
+    MethodSignature signature1 = builder.addPrivateInstanceMethod(
+        returnType,
+        DEFAULT_METHOD_NAME + "1",
+        parameters,
+        0,
+        codeToOutline.toArray(new String[0])
+    );
+
+    MethodSignature signature2 = builder.addPrivateInstanceMethod(
+        returnType,
+        DEFAULT_METHOD_NAME + "2",
+        parameters,
+        0,
+        codeToOutline.toArray(new String[0])
+    );
+
+    builder.addMainMethod(
+        3,
+        "    new-instance        v0, LTest;",
+        "    invoke-direct       { v0 }, LTest;-><init>()V",
+        "    sget-object         v1, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "    new-instance        v2, Ljava/util/ArrayList;",
+        "    invoke-direct       { v2 }, Ljava/util/ArrayList;-><init>()V",
+        "    invoke-virtual      { v0, v2 }, LTest;->method1(Ljava/util/List;)Z",
+        "    move-result         v3",
+        "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
+        "    invoke-virtual      { v0, v2 }, LTest;->method2(Ljava/util/List;)Z",
+        "    move-result         v3",
+        "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
+        "    return-void"
+    );
+
+    // Outline 2 times two instructions.
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 2;
+      outline.minSize = 2;
+      outline.maxSize = 2;
+    });
+
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
+
+    // Check that outlining happened.
+    assertHasOutlineInvoke(getMethod(processedApplication, signature1));
+    assertHasOutlineInvoke(getMethod(processedApplication, signature2));
+    assertThat(
+        new CodeInspector(processedApplication)
+            .clazz(OutlineOptions.CLASS_NAME)
+            .method("boolean", "outline0", ImmutableList.of("java.util.Collection")),
+        isPresent());
+
+    // Run code and check result.
+    String result = runArt(processedApplication);
+    assertEquals("truetrue", result);
+  }
+
+  @Test
+  public void b113145696_interfaceUseFirst() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+
+    // Code where the outline argument is first used as java.lang.Iterable and afterwards
+    // java.util.ArrayList.
+    List<String> codeToOutline = ImmutableList.of(
+        "    invoke-interface    { v1 }, Ljava/lang/Iterable;->iterator()Ljava/util/Iterator;",
+        "    invoke-virtual      { v1 }, Ljava/util/ArrayList;->isEmpty()Z",
+        "    move-result         v0",
+        "    return              v0"
+    );
+
+    String returnType = "boolean";
+    List<String> parameters = ImmutableList.of("java.util.ArrayList");
+    MethodSignature signature1 = builder.addPrivateInstanceMethod(
+        returnType,
+        DEFAULT_METHOD_NAME + "1",
+        parameters,
+        0,
+        codeToOutline.toArray(new String[0])
+    );
+
+    MethodSignature signature2 = builder.addPrivateInstanceMethod(
+        returnType,
+        DEFAULT_METHOD_NAME + "2",
+        parameters,
+        0,
+        codeToOutline.toArray(new String[0])
+    );
+
+    builder.addMainMethod(
+        3,
+        "    new-instance        v0, LTest;",
+        "    invoke-direct       { v0 }, LTest;-><init>()V",
+        "    sget-object         v1, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "    new-instance        v2, Ljava/util/ArrayList;",
+        "    invoke-direct       { v2 }, Ljava/util/ArrayList;-><init>()V",
+        "    invoke-virtual      { v0, v2 }, LTest;->method1(Ljava/util/ArrayList;)Z",
+        "    move-result         v3",
+        "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
+        "    invoke-virtual      { v0, v2 }, LTest;->method2(Ljava/util/ArrayList;)Z",
+        "    move-result         v3",
+        "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
+        "    return-void"
+    );
+
+    // Outline 2 times two instructions.
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 2;
+      outline.minSize = 2;
+      outline.maxSize = 2;
+    });
+
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
+
+    // Check that outlining happened.
+    assertHasOutlineInvoke(getMethod(processedApplication, signature1));
+    assertHasOutlineInvoke(getMethod(processedApplication, signature2));
+    assertThat(
+        new CodeInspector(processedApplication)
+            .clazz(OutlineOptions.CLASS_NAME)
+            .method("boolean", "outline0", ImmutableList.of("java.util.ArrayList")),
+        isPresent());
+
+    // Run code and check result.
+    String result = runArt(processedApplication);
+    assertEquals("truetrue", result);
+  }
+
+  @Test
+  public void b113145696_classUseFirst() throws Exception {
+    SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+
+    // Code where the outline argument is first used as java.lang.Iterable and afterwards
+    // java.util.ArrayList.
+    List<String> codeToOutline = ImmutableList.of(
+        "    invoke-virtual      { v1 }, Ljava/util/ArrayList;->isEmpty()Z",
+        "    move-result         v0",
+        "    invoke-interface    { v1 }, Ljava/lang/Iterable;->iterator()Ljava/util/Iterator;",
+        "    return              v0"
+    );
+
+    String returnType = "boolean";
+    List<String> parameters = ImmutableList.of("java.util.ArrayList");
+    MethodSignature signature1 = builder.addPrivateInstanceMethod(
+        returnType,
+        DEFAULT_METHOD_NAME + "1",
+        parameters,
+        0,
+        codeToOutline.toArray(new String[0])
+    );
+
+    MethodSignature signature2 = builder.addPrivateInstanceMethod(
+        returnType,
+        DEFAULT_METHOD_NAME + "2",
+        parameters,
+        0,
+        codeToOutline.toArray(new String[0])
+    );
+
+    builder.addMainMethod(
+        3,
+        "    new-instance        v0, LTest;",
+        "    invoke-direct       { v0 }, LTest;-><init>()V",
+        "    sget-object         v1, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+        "    new-instance        v2, Ljava/util/ArrayList;",
+        "    invoke-direct       { v2 }, Ljava/util/ArrayList;-><init>()V",
+        "    invoke-virtual      { v0, v2 }, LTest;->method1(Ljava/util/ArrayList;)Z",
+        "    move-result         v3",
+        "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
+        "    invoke-virtual      { v0, v2 }, LTest;->method2(Ljava/util/ArrayList;)Z",
+        "    move-result         v3",
+        "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
+        "    return-void"
+    );
+
+    // Outline 2 times two instructions.
+    Consumer<InternalOptions> options = configureOptions(outline -> {
+      outline.threshold = 2;
+      outline.minSize = 2;
+      outline.maxSize = 2;
+    });
+
+    AndroidApp originalApplication = buildApplication(builder);
+    AndroidApp processedApplication = processApplication(originalApplication, options);
+    assertEquals(2, getNumberOfProgramClasses(processedApplication));
+
+    // Check that outlining happened.
+    assertHasOutlineInvoke(getMethod(processedApplication, signature1));
+    assertHasOutlineInvoke(getMethod(processedApplication, signature2));
+    assertThat(
+        new CodeInspector(processedApplication)
+            .clazz(OutlineOptions.CLASS_NAME)
+            .method("boolean", "outline0", ImmutableList.of("java.util.ArrayList")),
+        isPresent());
+
+    // Run code and check result.
+    String result = runArt(processedApplication);
+    assertEquals("truetrue", result);
   }
 }
