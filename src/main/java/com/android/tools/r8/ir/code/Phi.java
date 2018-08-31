@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock.EdgeType;
@@ -23,7 +24,8 @@ public class Phi extends Value {
 
   public enum RegisterReadType {
     NORMAL,
-    DEBUG
+    DEBUG,
+    NORMAL_AND_DEBUG
   }
 
   private final BasicBlock block;
@@ -78,9 +80,19 @@ public class Phi extends Value {
       operands.add(operand);
     }
 
-    if (readType == RegisterReadType.DEBUG) {
+    if (readType != RegisterReadType.NORMAL) {
       for (Value operand : operands) {
         if (type.meet(operand.outType()) == null) {
+          // If the phi has been requested from instructions and from local info, throw out locals
+          // and retry compilation.
+          if (readType == RegisterReadType.NORMAL_AND_DEBUG) {
+            throw new InvalidDebugInfoException(
+                "Type information in locals-table is inconsistent with instructions."
+                    + " Value of type " + operand.outType()
+                    + " cannot be used as local of type " + type + ".");
+          }
+          // Otherwise only local info requested the phi and we replace with an uninitialized value.
+          assert readType == RegisterReadType.DEBUG;
           BasicBlock block = getBlock();
           InstructionListIterator it = block.listIterator();
           Value value = new Value(builder.getValueNumberGenerator().next(), type, null);
@@ -130,7 +142,9 @@ public class Phi extends Value {
 
   @Override
   public void markNonDebugLocalRead() {
-    readType = RegisterReadType.NORMAL;
+    if (readType == RegisterReadType.DEBUG) {
+      readType = RegisterReadType.NORMAL_AND_DEBUG;
+    }
   }
 
   // Implementation assumes that canBeNull may change to neverNull, but
