@@ -13,6 +13,7 @@ import sys
 import tarfile
 import tempfile
 
+ANDROID_JAR = 'third_party/android_jar/lib-v{api}/android.jar'
 TOOLS_DIR = os.path.abspath(os.path.normpath(os.path.join(__file__, '..')))
 REPO_ROOT = os.path.realpath(os.path.join(TOOLS_DIR, '..'))
 MEMORY_USE_TMP_FILE = 'memory_use.tmp'
@@ -288,3 +289,6 @@ def verify_with_dex2oat(dex_file):
       env = {"LD_LIBRARY_PATH":
         os.path.join(TOOLS_DIR, 'linux', 'art', 'lib')}
     )
+
+def get_android_jar(api):
+  return os.path.join(REPO_ROOT, ANDROID_JAR.format(api=api))

@@ -17,7 +17,7 @@ import time
 import utils
 import uuid
 
-ANDROID_JAR = 'third_party/android_jar/lib-v{api}/android.jar'
+
 DEFAULT_AAPT = 'aapt' # Assume in path.
 DEFAULT_D8 = os.path.join(utils.REPO_ROOT, 'tools', 'd8.py')
 DEFAULT_DEXSPLITTER = os.path.join(utils.REPO_ROOT, 'tools', 'dexsplitter.py')
@@ -82,8 +82,6 @@ def get_bin_path(app):
   utils.makedirs_if_needed(bin_path)
   return bin_path
 
-def get_android_jar(api):
-  return os.path.join(utils.REPO_ROOT, ANDROID_JAR.format(api=api))
 
 def get_guava_jar():
   return os.path.join(utils.REPO_ROOT,
@@ -112,7 +110,7 @@ def run_aapt_pack(aapt, api, app):
   with utils.ChangedWorkingDirectory(get_sample_dir(app)):
     args = ['package',
             '-v', '-f',
-            '-I', get_android_jar(api),
+            '-I', utils.get_android_jar(api),
             '-M', 'AndroidManifest.xml',
             '-A', 'assets',
             '-S', 'res',
@@ -126,7 +124,7 @@ def run_aapt_split_pack(aapt, api, app):
   with utils.ChangedWorkingDirectory(get_sample_dir(app)):
     args = ['package',
             '-v', '-f',
-            '-I', get_android_jar(api),
+            '-I', utils.get_android_jar(api),
             '-M', 'split_manifest/AndroidManifest.xml',
             '-S', 'res',
             '-F', os.path.join(get_bin_path(app), 'split_resources.ap_')]
@@ -135,8 +133,9 @@ def run_aapt_split_pack(aapt, api, app):
 def compile_with_javac(api, app):
   with utils.ChangedWorkingDirectory(get_sample_dir(app)):
     files = glob.glob(SRC_LOCATION.format(app=app))
+    classpath = '%s:%s' % (utils.get_android_jar(api), get_guava_jar())
     command = [DEFAULT_JAVAC,
-               '-classpath', '%s:%s' % (get_android_jar(api), get_guava_jar()),
+               '-classpath', classpath,
                '-sourcepath', '%s:%s:%s' % (
                    get_src_path(app),
                    get_gen_path(app),
@@ -153,7 +152,7 @@ def dex(app, api):
         files.append(os.path.join(root, filename))
   command = [DEFAULT_D8,
              '--output', get_bin_path(app),
-             '--classpath', get_android_jar(api),
+             '--classpath', utils.get_android_jar(api),
              '--min-api', str(api)]
   command.extend(files)
   command.append(get_guava_jar())
