@@ -10,6 +10,7 @@ import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
+import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
@@ -21,6 +22,7 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.Opcodes;
@@ -139,6 +141,23 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public boolean isCheckCast() {
     return instruction instanceof CfCheckCast;
+  }
+
+  @Override
+  public boolean isIf() {
+    return instruction instanceof CfIf || instruction instanceof CfIfCmp;
+  }
+
+  @Override
+  public boolean isPackedSwitch() {
+    return instruction instanceof CfSwitch
+        && ((CfSwitch) instruction).getKind() == CfSwitch.Kind.TABLE;
+  }
+
+  @Override
+  public boolean isSparseSwitch() {
+    return instruction instanceof CfSwitch
+        && ((CfSwitch) instruction).getKind() == CfSwitch.Kind.LOOKUP;
   }
 
   public boolean isInvokeSpecial() {

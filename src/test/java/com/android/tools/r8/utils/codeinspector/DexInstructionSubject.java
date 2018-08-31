@@ -9,7 +9,17 @@ import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
 import com.android.tools.r8.code.Goto;
+import com.android.tools.r8.code.IfEq;
 import com.android.tools.r8.code.IfEqz;
+import com.android.tools.r8.code.IfGe;
+import com.android.tools.r8.code.IfGez;
+import com.android.tools.r8.code.IfGt;
+import com.android.tools.r8.code.IfGtz;
+import com.android.tools.r8.code.IfLe;
+import com.android.tools.r8.code.IfLez;
+import com.android.tools.r8.code.IfLt;
+import com.android.tools.r8.code.IfLtz;
+import com.android.tools.r8.code.IfNe;
 import com.android.tools.r8.code.IfNez;
 import com.android.tools.r8.code.Iget;
 import com.android.tools.r8.code.IgetBoolean;
@@ -38,6 +48,7 @@ import com.android.tools.r8.code.IputShort;
 import com.android.tools.r8.code.IputWide;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Nop;
+import com.android.tools.r8.code.PackedSwitch;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.Sget;
@@ -47,6 +58,7 @@ import com.android.tools.r8.code.SgetChar;
 import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.code.SgetShort;
 import com.android.tools.r8.code.SgetWide;
+import com.android.tools.r8.code.SparseSwitch;
 import com.android.tools.r8.code.Sput;
 import com.android.tools.r8.code.SputBoolean;
 import com.android.tools.r8.code.SputByte;
@@ -207,5 +219,31 @@ public class DexInstructionSubject implements InstructionSubject {
         || instruction instanceof SputChar
         || instruction instanceof SputWide
         || instruction instanceof SputObject;
+  }
+
+  @Override
+  public boolean isIf() {
+    return instruction instanceof IfEq
+        || instruction instanceof IfEqz
+        || instruction instanceof IfGe
+        || instruction instanceof IfGez
+        || instruction instanceof IfGt
+        || instruction instanceof IfGtz
+        || instruction instanceof IfLe
+        || instruction instanceof IfLez
+        || instruction instanceof IfLt
+        || instruction instanceof IfLtz
+        || instruction instanceof IfNe
+        || instruction instanceof IfNez;
+  }
+
+  @Override
+  public boolean isPackedSwitch() {
+    return instruction instanceof PackedSwitch;
+  }
+
+  @Override
+  public boolean isSparseSwitch() {
+    return instruction instanceof SparseSwitch;
   }
 }

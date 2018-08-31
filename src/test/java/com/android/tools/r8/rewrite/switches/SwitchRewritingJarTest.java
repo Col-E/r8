@@ -4,29 +4,101 @@
 package com.android.tools.r8.rewrite.switches;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.IfEq;
-import com.android.tools.r8.code.IfEqz;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.PackedSwitch;
-import com.android.tools.r8.code.SparseSwitch;
-import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class SwitchRewritingJarTest extends JasminTestBase {
+
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public SwitchRewritingJarTest(Backend backend) {
+    this.backend = backend;
+  }
+
+  static class Statistics {
+    int ifCount = 0;
+    int packedSwitchCount = 0;
+    int sparseSwitchCount = 0;
+
+    Statistics() {}
+
+    Statistics(int ifCount, int packedSwitchCount, int sparseSwitchCount) {
+      this.ifCount = ifCount;
+      this.packedSwitchCount = packedSwitchCount;
+      this.sparseSwitchCount = sparseSwitchCount;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      Statistics that = (Statistics) o;
+      return ifCount == that.ifCount
+          && packedSwitchCount == that.packedSwitchCount
+          && sparseSwitchCount == that.sparseSwitchCount;
+    }
+
+    @Override
+    public String toString() {
+      return "Statistics{"
+          + "ifCount="
+          + ifCount
+          + ", packedSwitchCount="
+          + packedSwitchCount
+          + ", sparseSwitchCount="
+          + sparseSwitchCount
+          + '}';
+    }
+  }
+
+  private Statistics countInstructions(Iterator<InstructionSubject> iterator) {
+    Statistics statistics = new Statistics();
+    while (iterator.hasNext()) {
+      InstructionSubject instruction = iterator.next();
+      if (instruction.isIf()) {
+        ++statistics.ifCount;
+      } else if (instruction.isPackedSwitch()) {
+        ++statistics.packedSwitchCount;
+      } else if (instruction.isSparseSwitch()) {
+        ++statistics.sparseSwitchCount;
+      }
+    }
+    return statistics;
+  }
+
+  private MethodSubject getMethodSubject(
+      AndroidApp app, String className, MethodSignature signature)
+      throws IOException, ExecutionException {
+    CodeInspector inspector = new CodeInspector(app);
+    ClassSubject testClass = inspector.clazz(className);
+    return testClass.method(signature);
+  }
 
   private void runSingleCaseJarTest(boolean packed, int key) throws Exception {
     JasminBuilder builder = new JasminBuilder();
@@ -69,19 +141,17 @@ public class SwitchRewritingJarTest extends JasminTestBase {
         "    invokevirtual java/io/PrintStream/print(I)V",
         "    return");
 
-    AndroidApp app = builder.build();
-    app = ToolHelper.runR8(app);
+    AndroidApp app =
+        ToolHelper.runR8(
+            ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
+                .addLibraryFiles(runtimeJar(backend))
+                .build());
 
-    MethodSignature signature = new MethodSignature("test", "int", ImmutableList.of("int"));
-    DexEncodedMethod method = getMethod(app, "Test", signature);
-    DexCode code = method.getCode().asDexCode();
-    if (key == 0) {
-      assertEquals(5, code.instructions.length);
-      assertTrue(code.instructions[0] instanceof IfEqz);
-    } else {
-      assertEquals(6, code.instructions.length);
-      assertTrue(code.instructions[1] instanceof IfEq);
-    }
+    Iterator<InstructionSubject> iterator =
+        getMethodSubject(app, "Test", new MethodSignature("test", "int", ImmutableList.of("int")))
+            .iterateInstructions();
+    Statistics stat = countInstructions(iterator);
+    assertEquals(new Statistics(1, 0, 0), stat);
   }
 
   @Test
@@ -127,24 +197,26 @@ public class SwitchRewritingJarTest extends JasminTestBase {
         "    invokevirtual java/io/PrintStream/print(I)V",
         "    return");
 
-    AndroidApp app = compileWithR8(builder);
+    AndroidApp app =
+        ToolHelper.runR8(
+            ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
+                .addLibraryFiles(runtimeJar(backend))
+                .build());
 
-    MethodSignature signature = new MethodSignature("test", "int", ImmutableList.of("int"));
-    DexEncodedMethod method = getMethod(app, "Test", signature);
-    DexCode code = method.getCode().asDexCode();
+    MethodSubject method =
+        getMethodSubject(app, "Test", new MethodSignature("test", "int", ImmutableList.of("int")));
+    Statistics stat = countInstructions(method.iterateInstructions());
     if (SwitchRewritingTest.twoCaseWillUsePackedSwitch(key1, key2)) {
-      assertTrue(code.instructions[0] instanceof PackedSwitch);
-    } else {
-      if (key1 == 0) {
-        if (key2 == 3) {
-          assertTrue(code.instructions[1] instanceof IfEqz);
-        } else {
-          assertTrue(code.instructions[0] instanceof IfEqz);
-        }
-      } else {
-        // Const instruction before if.
-        assertTrue(code.instructions[1] instanceof IfEq);
+      int expectedPackedSwitchCount = 1;
+      int expectedSparseSwitchCount = 0;
+      // TODO(b/113648554) Implement packed (table) switch support in the CF backend.
+      if (backend == Backend.CF) {
+        expectedSparseSwitchCount += expectedPackedSwitchCount;
+        expectedPackedSwitchCount = 0;
       }
+      assertEquals(new Statistics(0, expectedPackedSwitchCount, expectedSparseSwitchCount), stat);
+    } else {
+      assertEquals(new Statistics(2, 0, 0), stat);
     }
   }
 
@@ -208,28 +280,33 @@ public class SwitchRewritingJarTest extends JasminTestBase {
         "    invokevirtual java/io/PrintStream/print(I)V",
         "    return");
 
-    AndroidApp app = compileWithR8(builder);
+    AndroidApp app =
+        ToolHelper.runR8(
+            ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
+                .addLibraryFiles(runtimeJar(backend))
+                .build());
 
     MethodSignature signature = new MethodSignature("test", "int", ImmutableList.of("int"));
-    DexEncodedMethod method = getMethod(app, "Test", signature);
-    DexCode code = method.getCode().asDexCode();
-    int packedSwitchCount = 0;
-    int sparseSwitchCount = 0;
-    for (Instruction instruction : code.instructions) {
-      if (instruction instanceof PackedSwitch) {
-        packedSwitchCount++;
-      }
-      if (instruction instanceof SparseSwitch) {
-        sparseSwitchCount++;
-      }
-    }
+
+    Statistics stat =
+        countInstructions(getMethodSubject(app, "Test", signature).iterateInstructions());
+
+    int expectedPackedSwitchCount, expectedSparseSwitchCount;
     if (keyStep <= 2) {
-      assertEquals(1, packedSwitchCount);
-      assertEquals(0, sparseSwitchCount);
+      expectedPackedSwitchCount = 1;
+      expectedSparseSwitchCount = 0;
     } else {
-      assertEquals(0, packedSwitchCount);
-      assertEquals(1, sparseSwitchCount);
+      expectedPackedSwitchCount = 0;
+      expectedSparseSwitchCount = 1;
     }
+
+    // TODO(b/113648554) Implement packed (table) switch support in the CF backend.
+    if (backend == Backend.CF) {
+      expectedSparseSwitchCount += expectedPackedSwitchCount;
+      expectedPackedSwitchCount = 0;
+    }
+
+    assertEquals(new Statistics(0, expectedPackedSwitchCount, expectedSparseSwitchCount), stat);
   }
 
   @Test
@@ -246,11 +323,17 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     // This is the maximal value possible with Jasmin with the generated code above. It depends on
     // the source, so making smaller source can raise this limit. However we never get close to the
     // class file max.
-    runLargerSwitchJarTest(0, 1, 5503, null);
+    int totalKeys = backend == Backend.CF ? 4376 : 5503;
+    runLargerSwitchJarTest(0, 1, totalKeys, null);
   }
 
-  private void runConvertCasesToIf(List<Integer> keys, int defaultValue, int expectedIfs,
-      int expectedPackedSwitches, int expectedSparceSwitches) throws Exception {
+  private void runConvertCasesToIf(
+      List<Integer> keys,
+      int defaultValue,
+      int expectedIfs,
+      int expectedPackedSwitches,
+      int expectedSparseSwitches)
+      throws Exception {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
 
@@ -280,35 +363,37 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
     appBuilder.addClassProgramData(builder.buildClasses());
     appBuilder.addProgramFiles(ToolHelper.getClassFileForTestClass(CheckSwitchInTestClass.class));
-    AndroidApp app = compileWithR8(appBuilder.build());
+    AndroidApp app =
+        ToolHelper.runR8(
+            ToolHelper.prepareR8CommandBuilder(appBuilder.build(), emptyConsumer(backend))
+                .addLibraryFiles(runtimeJar(backend))
+                .build());
 
     CodeInspector inspector = new CodeInspector(app);
-    MethodSubject method = inspector.clazz("Test").method("int", "test", ImmutableList.of("int"));
-    DexCode code = method.getMethod().getCode().asDexCode();
+    Statistics stat =
+        countInstructions(
+            inspector
+                .clazz("Test")
+                .method("int", "test", ImmutableList.of("int"))
+                .iterateInstructions());
 
-    int packedSwitches = 0;
-    int sparseSwitches = 0;
-    int ifs = 0;
-    for (Instruction instruction : code.instructions) {
-      if (instruction instanceof PackedSwitch) {
-        packedSwitches++;
-      }
-      if (instruction instanceof SparseSwitch) {
-        sparseSwitches++;
-      }
-      if (instruction instanceof IfEq || instruction instanceof IfEqz) {
-        ifs++;
-      }
+    // TODO(b/113648554) Implement packed (table) switch support in the CF backend.
+    if (backend == Backend.CF) {
+      expectedSparseSwitches += expectedPackedSwitches;
+      expectedPackedSwitches = 0;
     }
 
-    assertEquals(expectedPackedSwitches, packedSwitches);
-    assertEquals(expectedSparceSwitches, sparseSwitches);
-    assertEquals(expectedIfs, ifs);
+    assertEquals(new Statistics(expectedIfs, expectedPackedSwitches, expectedSparseSwitches), stat);
 
     // Run the code
     List<String> args = keys.stream().map(Object::toString).collect(Collectors.toList());
     args.add(Integer.toString(defaultValue));
-    runOnArt(app, CheckSwitchInTestClass.class, args);
+    if (backend == Backend.DEX) {
+      runOnArt(app, CheckSwitchInTestClass.class, args);
+    } else {
+      assert backend == Backend.CF;
+      runOnJava(app, CheckSwitchInTestClass.class, args);
+    }
   }
 
   @Test

@@ -50,4 +50,10 @@ public interface InstructionSubject {
   boolean isStaticGet();
 
   boolean isCheckCast();
+
+  boolean isIf(); // Also include CF/if_cmp* instructions.
+
+  boolean isPackedSwitch();
+
+  boolean isSparseSwitch();
 }
