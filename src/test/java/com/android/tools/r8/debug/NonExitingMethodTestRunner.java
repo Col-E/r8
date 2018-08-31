@@ -8,11 +8,16 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Assume;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(VmTestRunner.class)
 public class NonExitingMethodTestRunner extends DebugTestBase {
 
   public static final Class CLASS = NonExitingMethodTest.class;
@@ -44,6 +49,7 @@ public class NonExitingMethodTestRunner extends DebugTestBase {
   }
 
   @Test
+  @IgnoreIfVmOlderThan(Version.V6_0_1)
   public void test() throws Exception {
     Assume.assumeTrue(
         "Skipping test "
