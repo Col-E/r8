@@ -36,7 +36,7 @@ public class TypeConstraintResolver {
 
   private final Map<Value, Value> unificationParents = new HashMap<>();
 
-  public void resolve(IRCode code, IRBuilder builder) {
+  public void resolve(IRCode code) {
     List<Value> impreciseValues = new ArrayList<>();
     for (BasicBlock block : code.blocks) {
       for (Phi phi : block.getPhis()) {
@@ -66,7 +66,7 @@ public class TypeConstraintResolver {
       }
     }
     for (Value value : impreciseValues) {
-      builder.constrainType(value, getPreciseType(value));
+      value.constrainType(getPreciseType(value));
     }
   }
 

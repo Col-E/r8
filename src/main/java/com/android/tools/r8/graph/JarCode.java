@@ -172,7 +172,7 @@ public class JarCode extends Code {
             application,
             graphLense.getOriginalMethodSignature(encodedMethod.method),
             callerPosition);
-    return new IRBuilder(encodedMethod, appInfo, source, options, origin, generator).build();
+    return new IRBuilder(encodedMethod, appInfo, source, options, generator).build();
   }
 
   @Override

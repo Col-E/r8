@@ -3,20 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.MethodDiagnostic;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.Bottom;
 import com.android.tools.r8.ir.analysis.type.Top;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LongInterval;
-import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
@@ -32,13 +29,10 @@ import java.util.Set;
 
 public class Value {
 
-  public void constrainType(
-      ValueType constraint, DexMethod method, Origin origin, Reporter reporter) {
+  public void constrainType(ValueType constraint) {
     ValueType meet = type.meet(constraint);
     if (meet == null) {
-      throw reporter.fatalError(
-          new MethodDiagnostic(
-              "Cannot compute meet of types: " + type + " and " + constraint, method, origin));
+      throw new CompilationError("Cannot compute meet of types: " + type + " and " + constraint);
     }
     type = meet;
   }
