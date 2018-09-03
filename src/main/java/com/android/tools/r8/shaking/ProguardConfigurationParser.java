@@ -260,7 +260,7 @@ public class ProguardConfigurationParser {
         configurationBuilder.setPrintUsage(true);
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
-          configurationBuilder.setPrintUsageFile(parseFileName());
+          configurationBuilder.setPrintUsageFile(parseFileName(false));
         }
       } else if (acceptString("verbose")) {
         configurationBuilder.setVerbose(true);
@@ -275,9 +275,10 @@ public class ProguardConfigurationParser {
           warnOverridingOptions("repackageclasses", "flattenpackagehierarchy", optionStart);
         }
         skipWhitespace();
-        if (acceptChar('\'')) {
+        char quote = acceptQuoteIfPresent();
+        if (isQuote(quote)) {
           configurationBuilder.setPackagePrefix(parsePackageNameOrEmptyString());
-          expectChar('\'');
+          expectClosingQuote(quote);
         } else {
           configurationBuilder.setPackagePrefix("");
         }
@@ -290,9 +291,10 @@ public class ProguardConfigurationParser {
           }
         } else {
           skipWhitespace();
-          if (acceptChar('\'')) {
+          char quote = acceptQuoteIfPresent();
+          if (isQuote(quote)) {
             configurationBuilder.setFlattenPackagePrefix(parsePackageNameOrEmptyString());
-            expectChar('\'');
+            expectClosingQuote(quote);
           } else {
             configurationBuilder.setFlattenPackagePrefix("");
           }
@@ -305,16 +307,16 @@ public class ProguardConfigurationParser {
         configurationBuilder.setPrintConfiguration(true);
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
-          configurationBuilder.setPrintConfigurationFile(parseFileName());
+          configurationBuilder.setPrintConfigurationFile(parseFileName(false));
         }
       } else if (acceptString("printmapping")) {
         configurationBuilder.setPrintMapping(true);
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
-          configurationBuilder.setPrintMappingFile(parseFileName());
+          configurationBuilder.setPrintMappingFile(parseFileName(false));
         }
       } else if (acceptString("applymapping")) {
-        configurationBuilder.setApplyMappingFile(parseFileName());
+        configurationBuilder.setApplyMappingFile(parseFileName(false));
       } else if (acceptString("assumenosideeffects")) {
         ProguardAssumeNoSideEffectRule rule = parseAssumeNoSideEffectsRule(optionStart);
         configurationBuilder.addRule(rule);
@@ -330,7 +332,7 @@ public class ProguardConfigurationParser {
         positionAfterInclude = position;
       } else if (acceptString("basedirectory")) {
         skipWhitespace();
-        baseDirectory = parseFileName();
+        baseDirectory = parseFileName(false);
       } else if (acceptString("injars")) {
         configurationBuilder.addInjars(parseClassPath());
       } else if (acceptString("libraryjars")) {
@@ -339,14 +341,14 @@ public class ProguardConfigurationParser {
         configurationBuilder.setPrintSeeds(true);
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
-          configurationBuilder.setSeedFile(parseFileName());
+          configurationBuilder.setSeedFile(parseFileName(false));
         }
       } else if (acceptString("obfuscationdictionary")) {
-        configurationBuilder.setObfuscationDictionary(parseFileName());
+        configurationBuilder.setObfuscationDictionary(parseFileName(false));
       } else if (acceptString("classobfuscationdictionary")) {
-        configurationBuilder.setClassObfuscationDictionary(parseFileName());
+        configurationBuilder.setClassObfuscationDictionary(parseFileName(false));
       } else if (acceptString("packageobfuscationdictionary")) {
-        configurationBuilder.setPackageObfuscationDictionary(parseFileName());
+        configurationBuilder.setPackageObfuscationDictionary(parseFileName(false));
       } else if (acceptString("alwaysinline")) {
         InlineRule rule = parseInlineRule(Type.ALWAYS, optionStart);
         configurationBuilder.addRule(rule);
@@ -425,7 +427,7 @@ public class ProguardConfigurationParser {
 
     private void parseInclude() throws ProguardRuleParserException {
       TextPosition start = getPosition();
-      Path included = parseFileName();
+      Path included = parseFileName(false);
       try {
         new ProguardConfigurationSourceParser(new ProguardConfigurationSourceFile(included))
             .parse();
@@ -975,6 +977,7 @@ public class ProguardConfigurationParser {
                         Integer max = min;
                         skipWhitespace();
                         if (acceptString("..")) {
+                          skipWhitespace();
                           max = acceptInteger();
                           if (max == null) {
                             throw parseError("Expected integer value");
@@ -1048,7 +1051,42 @@ public class ProguardConfigurationParser {
       return arguments;
     }
 
-    private Path parseFileName() throws ProguardRuleParserException {
+    private String replaceSystemPropertyReferences(String fileName)
+        throws ProguardRuleParserException{
+      StringBuilder result = new StringBuilder();
+      int copied = 0;  // Last endIndex for substring.
+      int start = -1;
+      for (int i = 0; i < fileName.length(); i++) {
+        if (fileName.charAt(i) == '<') {
+          if (copied < i) {
+            result.append(fileName.substring(copied, i));
+            copied = i;
+          }
+          start = i;
+        } else if (fileName.charAt(i) == '>') {
+          if (start != -1 && start < i) {
+            String systemProperty = fileName.substring(start + 1, i);
+            String v = null;
+            if (systemProperty.length() > 0) {
+              v = System.getProperty(systemProperty);
+            }
+            if (v == null) {
+              throw parseError("Value of system property '" + systemProperty + "' not found");
+            }
+            result.append(v);
+            start = -1;
+            copied = i + 1;
+          }
+        }
+      }
+
+      if (copied == 0) return fileName;
+
+      result.append(fileName.substring(copied, fileName.length()));
+      return result.toString();
+    }
+
+    private Path parseFileName(boolean stopAfterPathSeparator) throws ProguardRuleParserException {
       TextPosition start = getPosition();
       skipWhitespace();
 
@@ -1056,24 +1094,36 @@ public class ProguardConfigurationParser {
         throw parseError("Options with file names are not supported", start);
       }
 
+      final char quote = acceptQuoteIfPresent();
+      final boolean quoted = isQuote(quote);
       String fileName = acceptString(character ->
-          character != File.pathSeparatorChar
-              && !Character.isWhitespace(character)
-              && character != '(');
+          (!quoted || character != quote)
+              && (quoted || character != File.pathSeparatorChar || !stopAfterPathSeparator)
+              && (quoted || !Character.isWhitespace(character))
+              && (quoted ||  character != '('));
       if (fileName == null) {
         throw parseError("File name expected", start);
       }
+      if (quoted) {
+        if (eof()) {
+          throw parseError("No closing " + quote + " quote", start);
+        }
+        acceptChar(quote);
+      }
+
+      fileName = replaceSystemPropertyReferences(fileName);
+
       return baseDirectory.resolve(fileName);
     }
 
     private List<FilteredClassPath> parseClassPath() throws ProguardRuleParserException {
       List<FilteredClassPath> classPath = new ArrayList<>();
       skipWhitespace();
-      Path file = parseFileName();
+      Path file = parseFileName(true);
       ImmutableList<String> filters = parseClassPathFilters();
       classPath.add(new FilteredClassPath(file, filters));
       while (acceptChar(File.pathSeparatorChar)) {
-        file = parseFileName();
+        file = parseFileName(true);
         filters = parseClassPathFilters();
         classPath.add(new FilteredClassPath(file, filters));
       }
@@ -1183,6 +1233,13 @@ public class ProguardConfigurationParser {
       return peekChar() == c;
     }
 
+    private boolean hasNextChar(Predicate<Character> predicate) {
+      if (eof()) {
+        return false;
+      }
+      return predicate.test(peekChar());
+    }
+
     private boolean isOptionalArgumentGiven() {
       return !eof() && !hasNextChar('-');
     }
@@ -1193,6 +1250,23 @@ public class ProguardConfigurationParser {
         return true;
       }
       return false;
+    }
+
+    private char acceptQuoteIfPresent() {
+      final char NO_QUOTE = '\0';
+      return hasNextChar(this::isQuote) ? readChar() : NO_QUOTE;
+    }
+
+    private void expectClosingQuote(char quote) throws ProguardRuleParserException {
+      assert isQuote(quote);
+      if (!hasNextChar(quote)) {
+        throw parseError("Missing closing quote");
+      }
+      acceptChar(quote);
+    }
+
+    private boolean isQuote(char c) {
+      return c == '\'' || c == '"';
     }
 
     private char peekChar() {
@@ -1388,12 +1462,14 @@ public class ProguardConfigurationParser {
 
     private List<String> acceptPatternList() throws ProguardRuleParserException {
       List<String> patterns = new ArrayList<>();
+      skipWhitespace();
       String pattern = acceptPattern();
       while (pattern != null) {
         patterns.add(pattern);
         skipWhitespace();
         TextPosition start = getPosition();
         if (acceptChar(',')) {
+          skipWhitespace();
           pattern = acceptPattern();
           if (pattern == null) {
             throw parseError("Expected list element", start);
@@ -1414,7 +1490,6 @@ public class ProguardConfigurationParser {
     }
 
     private String acceptString(Predicate<Integer> codepointAcceptor) {
-      skipWhitespace();
       int start = position;
       int end = position;
       while (!eof(end)) {
@@ -1499,6 +1574,7 @@ public class ProguardConfigurationParser {
       ProguardPathList.Builder builder = ProguardPathList.builder();
       skipWhitespace();
       boolean negated = acceptChar('!');
+      skipWhitespace();
       String fileFilter = acceptString(this::pathFilterMatcher);
       if (fileFilter == null) {
         throw parseError("Path filter expected");

@@ -30,7 +30,7 @@ public class ProguardConfigurationSourceFile implements ProguardConfigurationSou
     if (baseDirectory == null) {
       // Path parent can be null only if it's root dir or if its a one element path relative to
       // current directory.
-      baseDirectory = Paths.get(".");
+      baseDirectory = Paths.get("");
     }
     return baseDirectory;
   }

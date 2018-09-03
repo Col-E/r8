@@ -37,11 +37,16 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -1033,7 +1038,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isPrintConfiguration());
-    assertEquals("." + File.separator + "file_name", config.getPrintConfigurationFile().toString());
+    assertEquals("file_name", config.getPrintConfigurationFile().toString());
   }
 
   @Test
@@ -1917,6 +1922,247 @@ public class ProguardConfigurationParserTest extends TestBase {
           ImmutableList.of(rule1, rule2),
           true);
     }
+  }
+
+  private void testFlagWithFilenames(
+      String flag,
+      List<String> values,
+      Function<ProguardConfiguration, Path> extractPath,
+      BiConsumer<String, String> check) {
+    for (String value : values) {
+      reset();
+      parser.parse(createConfigurationForTesting(ImmutableList.of(flag + " " + value)));
+      verifyParserEndsCleanly();
+      ProguardConfiguration config = parser.getConfig();
+      check.accept(value, extractPath.apply(config).toString());
+    }
+  }
+
+  @Test
+  public void parseSingleFleNameOptions() {
+    List<String> fileNames = ImmutableList.of(
+        "xxx",
+        "xxx" + File.pathSeparatorChar + "xxx");
+    testFlagWithFilenames("-printusage", fileNames,
+        ProguardConfiguration::getPrintUsageFile, Assert::assertEquals);
+    testFlagWithFilenames("-printconfiguration", fileNames,
+        ProguardConfiguration::getPrintConfigurationFile, Assert::assertEquals);
+    testFlagWithFilenames("-printmapping", fileNames,
+        ProguardConfiguration::getPrintMappingFile, Assert::assertEquals);
+    testFlagWithFilenames("-applymapping", fileNames,
+        ProguardConfiguration::getApplyMappingFile, Assert::assertEquals);
+    // The parsed value of -basedirectory is not available in the configuration.
+    testFlagWithFilenames("-basedirectory", fileNames, (x) -> Paths.get(""), (x, y) -> {});
+    testFlagWithFilenames("-printseeds", fileNames,
+        ProguardConfiguration::getSeedFile, Assert::assertEquals);
+    // TODO(sgjesse): Add tests for -obfuscationdictionary, -classobfuscationdictionary,
+    // -packageobfuscationdictionary and -include
+  }
+
+  private void checkQuotedFileName(String quoted, String parsed) {
+    assertTrue(quoted.charAt(0) == '\'' || quoted.charAt(0) == '\"');
+    assertTrue(quoted.charAt(0) == quoted.charAt(quoted.length() - 1));
+    assertEquals(quoted.substring(1, quoted.length() - 1), parsed);
+  }
+
+  @Test
+  public void parseSingleFleNameOptionsQuoted() {
+    List<String> fileNames = new ArrayList<>();
+    fileNames.add("'xxx'");
+    fileNames.add("\"xxx\"");
+    fileNames.add("'xxx xxx\'");
+    fileNames.add("\"xxx xxx\"");
+    fileNames.add("\"'xxx'\"");
+    fileNames.add("\" xxx xxx (\"");
+    fileNames.add("' xxx xxx ('");
+    // Java Path implementation on Windows does not allow " or trailing
+    // spaces in file names.
+    if (!ToolHelper.isWindows()) {
+      fileNames.add("'\"xxx\"'");
+      fileNames.add("\" xxx xxx \"");
+      fileNames.add("' xxx xxx '");
+    }
+    testFlagWithFilenames("-printusage", fileNames,
+        ProguardConfiguration::getPrintUsageFile, this::checkQuotedFileName);
+    testFlagWithFilenames("-printconfiguration", fileNames,
+        ProguardConfiguration::getPrintConfigurationFile, this::checkQuotedFileName);
+    testFlagWithFilenames("-printmapping", fileNames,
+        ProguardConfiguration::getPrintMappingFile, this::checkQuotedFileName);
+    testFlagWithFilenames("-applymapping", fileNames,
+        ProguardConfiguration::getApplyMappingFile, this::checkQuotedFileName);
+    // The parsed value of -basedirectory is not available in the configuration.
+    testFlagWithFilenames("-basedirectory", fileNames, (x) -> Paths.get(""), (x, y) -> {});
+    testFlagWithFilenames("-printseeds", fileNames,
+        ProguardConfiguration::getSeedFile, this::checkQuotedFileName);
+    // TODO(sgjesse): Add tests for -obfuscationdictionary, -classobfuscationdictionary,
+    // -packageobfuscationdictionary and -include
+  }
+
+  private void testFlagWithFilenamesWithSystemProperty(
+      String flag,
+      List<String> values,
+      Function<ProguardConfiguration, Path> extractPath,
+      BiConsumer<String, String> check) {
+    for (String value : values) {
+      reset();
+      parser.parse(createConfigurationForTesting(ImmutableList.of(flag + " " + value)));
+      verifyParserEndsCleanly();
+      ProguardConfiguration config = parser.getConfig();
+      Path path = extractPath.apply(config);
+      check.accept(
+          value
+              .replaceAll("<java.home>", Matcher.quoteReplacement(System.getProperty("java.home")))
+              .replaceAll("<user.home>", Matcher.quoteReplacement(System.getProperty("user.home"))),
+          path.toString());
+    }
+  }
+
+  @Test
+  public void parseFlagWithFilenamesWithSystemProperty() {
+    List<String> fileNames = new ArrayList<>();
+    fileNames.add("<java.home>");
+    fileNames.add("<user.home>");
+    if (!ToolHelper.isWindows()) {
+      // If the system property has e.g. C:\ prefix, then these file names
+      // will not work on Windows.
+      fileNames.add("xxx<java.home>");
+      fileNames.add("xxx<user.home>");
+    }
+    fileNames.add("<java.home>" +  File.separatorChar + "xxx");
+    fileNames.add("<user.home>" +  File.separatorChar + "xxx");
+    if (!ToolHelper.isWindows()) {
+      fileNames.add("xxx<java.home>/xxx");
+      fileNames.add("xxx<user.home>/xxx");
+      fileNames.add("<java.home><java.home>");
+      fileNames.add("<user.home><user.home>");
+      fileNames.add("<java.home><user.home>");
+      fileNames.add("<user.home><java.home>");
+      // The characters < and > are not allowed in paths on Windows.
+      fileNames.add(">");
+      fileNames.add("<");
+      fileNames.add("<<<<");
+      fileNames.add("><");
+      fileNames.add(">><<");
+    }
+    testFlagWithFilenamesWithSystemProperty("-printusage", fileNames,
+        ProguardConfiguration::getPrintUsageFile, Assert::assertEquals);
+    testFlagWithFilenamesWithSystemProperty("-printconfiguration", fileNames,
+        ProguardConfiguration::getPrintConfigurationFile, Assert::assertEquals);
+    testFlagWithFilenamesWithSystemProperty("-printmapping", fileNames,
+        ProguardConfiguration::getPrintMappingFile, Assert::assertEquals);
+    testFlagWithFilenamesWithSystemProperty("-applymapping", fileNames,
+        ProguardConfiguration::getApplyMappingFile, Assert::assertEquals);
+    // The parsed value of -basedirectory is not available in the configuration.
+    testFlagWithFilenamesWithSystemProperty("-basedirectory", fileNames,
+        (x) -> Paths.get(""), (x, y) -> {});
+    testFlagWithFilenamesWithSystemProperty("-printseeds", fileNames,
+        ProguardConfiguration::getSeedFile, Assert::assertEquals);
+    // TODO(sgjesse): Add tests for -obfuscationdictionary, -classobfuscationdictionary,
+    // -packageobfuscationdictionary and -include
+  }
+
+  @Test
+  public void pasteFlagWithFilenamesWithSystemProperty_empty() throws Exception {
+    try {
+      parser.parse(createConfigurationForTesting(ImmutableList.of("-printusage <>")));
+      fail("Expect to fail due to the lack of file name.");
+    } catch (AbortException e) {
+      checkDiagnostics(handler.errors, null, 1, 15, "Value of system property '' not found");
+    }
+  }
+
+  @Test
+  public void pasteFlagWithFilenamesWithSystemProperty_notFound() throws Exception {
+    // Find a non-existent system property.
+    String property = "x";
+    while (System.getProperty(property) != null) {
+      property = property + "x";
+    }
+
+    try {
+      parser.parse(
+          createConfigurationForTesting(ImmutableList.of("-printusage <" + property + ">")));
+      fail("Expect to fail due to the lack of file name.");
+    } catch (AbortException e) {
+      checkDiagnostics(
+          handler.errors, null, 1, 16, "Value of system property '" + property + "' not found");
+    }
+  }
+
+  private void testFlagWithQuotedValue(
+      String flag, String value, BiConsumer<PackageObfuscationMode, String> checker) {
+    reset();
+    parser.parse(createConfigurationForTesting(ImmutableList.of(flag + " " + value)));
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    checker.accept(config.getPackageObfuscationMode(), config.getPackagePrefix());
+  }
+
+  private void testFlagWithQuotedValueFailure(
+      String flag, String value, Supplier<Void> checker) {
+    try {
+      reset();
+      parser.parse(createConfigurationForTesting(ImmutableList.of(flag + " " + value)));
+      fail("Expect to fail due to un-closed quote.");
+    } catch (AbortException e) {
+      checker.get();
+    }
+  }
+
+  @Test
+  public void parseRepackageclassesQuotes() {
+    testFlagWithQuotedValue("-repackageclasses", "'xxx'", (mode, prefix) -> {
+      assertEquals(PackageObfuscationMode.REPACKAGE, mode);
+      assertEquals("xxx", prefix);
+    });
+    testFlagWithQuotedValue("-repackageclasses", "\"xxx\"", (mode, prefix) -> {
+      assertEquals(PackageObfuscationMode.REPACKAGE, mode);
+      assertEquals("xxx", prefix);
+    });
+    testFlagWithQuotedValueFailure("-repackageclasses", "'xxx", () -> {
+      checkDiagnostics(handler.errors, null, 1, 23, "Missing closing quote");
+      return null;
+    });
+    testFlagWithQuotedValueFailure("-repackageclasses", "'xxx\"", () -> {
+      checkDiagnostics(handler.errors, null, 1, 23, "Missing closing quote");
+      return null;
+    });
+    testFlagWithQuotedValueFailure("-repackageclasses", "\"xxx", () -> {
+      checkDiagnostics(handler.errors, null, 1, 23, "Missing closing quote");
+      return null;
+    });
+    testFlagWithQuotedValueFailure("-repackageclasses", "\"xxx'", () -> {
+      checkDiagnostics(handler.errors, null, 1, 23, "Missing closing quote");
+      return null;
+    });
+  }
+
+  @Test
+  public void parseFlattenpackagehierarchyQuotes() {
+    testFlagWithQuotedValue("-flattenpackagehierarchy", "'xxx'", (mode, prefix) -> {
+      assertEquals(PackageObfuscationMode.FLATTEN, mode);
+      assertEquals("xxx", prefix);
+    });
+    testFlagWithQuotedValue("-flattenpackagehierarchy", "\"xxx\"", (mode, prefix) -> {
+      assertEquals(PackageObfuscationMode.FLATTEN, mode);
+      assertEquals("xxx", prefix);
+    });
+    testFlagWithQuotedValueFailure("-flattenpackagehierarchy", "'xxx", () -> {
+      checkDiagnostics(handler.errors, null, 1, 30, "Missing closing quote");
+      return null;
+    });
+    testFlagWithQuotedValueFailure("-flattenpackagehierarchy", "'xxx\"", () -> {
+      checkDiagnostics(handler.errors, null, 1, 30, "Missing closing quote");
+      return null;
+    });
+    testFlagWithQuotedValueFailure("-flattenpackagehierarchy", "\"xxx", () -> {
+      checkDiagnostics(handler.errors, null, 1, 30, "Missing closing quote");
+      return null;
+    });
+    testFlagWithQuotedValueFailure("-flattenpackagehierarchy", "\"xxx'", () -> {
+      checkDiagnostics(handler.errors, null, 1, 30, "Missing closing quote");
+      return null;
+    });
   }
 
   private ProguardConfiguration parseAndVerifyParserEndsCleanly(List<String> config) {
