@@ -580,8 +580,8 @@ public class Enqueuer {
         DexType baseType = type.toBaseType(appInfo.dexItemFactory);
         if (baseType.isClassType()) {
           DexClass baseClass = appInfo.definitionFor(baseType);
-          if (baseClass != null && baseClass.isProgramClass()
-              && baseClass.hasDefaultInitializer()) {
+          if (baseClass != null && baseClass.isProgramClass()) {
+            // Don't require any constructor, see b/112386012.
             markClassAsInstantiatedWithCompatRule(baseClass);
           } else {
             // This also handles reporting of missing classes.
