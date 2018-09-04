@@ -4,9 +4,12 @@
 
 package com.android.tools.r8;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -39,5 +42,18 @@ public class ArchiveClassFileProviderTest {
     Path zipFile = createZip();
     new ArchiveClassFileProvider(zipFile);
     ArchiveProgramResourceProvider.fromArchive(zipFile).getProgramResources();
+  }
+
+  @Test
+  public void testMultiReleaseJars() throws IOException {
+    Path jar = temporaryFolder.getRoot().toPath().resolve("classes.jar");
+    try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(jar))) {
+      output.putNextEntry(new ZipEntry("meta-inf/9/Test.class"));
+      output.closeEntry();
+      output.putNextEntry(new ZipEntry("/meta-inf/9/Test.class"));
+      output.closeEntry();
+    }
+    ArchiveClassFileProvider provider = new ArchiveClassFileProvider(jar);
+    assertTrue(provider.getClassDescriptors().isEmpty());
   }
 }
