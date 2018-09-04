@@ -3,7 +3,7 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-# Run D8, DX or Goyt on 'third_party/framework/framework_<version>.jar'.
+# Run D8 or DX on 'third_party/framework/framework_<version>.jar'.
 # Report Golem-compatible CodeSize and RunTimeRaw values:
 #
 #     <NAME>-Total(CodeSize): <size>
@@ -30,19 +30,17 @@ import utils
 
 DX_JAR = os.path.join(utils.REPO_ROOT, 'tools', 'linux', 'dx', 'framework',
     'dx.jar')
-GOYT_EXE = os.path.join('third_party', 'goyt',
-    'goyt_170197324')
 FRAMEWORK_JAR = os.path.join('third_party', 'framework',
     'framework_14082017_desugared.jar')
 MIN_SDK_VERSION = '24'
 
 def parse_arguments():
   parser = argparse.ArgumentParser(
-      description = 'Run D8, DX or Goyt on'
+      description = 'Run D8 or DX'
           ' third_party/framework/framework*.jar.'
           ' Report Golem-compatible CodeSize and RunTimeRaw values.')
   parser.add_argument('--tool',
-      choices = ['dx', 'd8', 'd8-release', 'goyt', 'goyt-release'],
+      choices = ['dx', 'd8', 'd8-release'],
       required = True,
       help = 'Compiler tool to use.')
   parser.add_argument('--name',
@@ -70,20 +68,11 @@ def Main():
     if not output_dir:
       output_dir = temp_dir
 
-    if args.tool in ['dx', 'goyt', 'goyt-release']:
-      tool_args = ['--dex', '--output=' + output_dir, '--multi-dex',
-          '--min-sdk-version=' + MIN_SDK_VERSION]
-
     xmx = None
-    if args.tool.startswith('goyt'):
-      tool_file = GOYT_EXE
-      tool_args = ['--num-threads=8'] + tool_args
-      if args.tool == 'goyt-release':
-        tool_args.append('--no-locals')
-      else:
-        tool_args.append('--no-optimize')
-    elif args.tool == 'dx':
+    if args.tool == 'dx':
       tool_file = DX_JAR
+      tool_args = ['--dex', '--output=' + output_dir, '--multi-dex',
+                   '--min-sdk-version=' + MIN_SDK_VERSION]
       xmx = '-Xmx1600m'
     else:
       tool_file = utils.D8_JAR
