@@ -105,6 +105,9 @@ public class ZipUtils {
     if (name.endsWith(MODULE_INFO_CLASS)) {
       return false;
     }
+    if (name.startsWith("meta-inf") || name.startsWith("/meta-inf")) {
+      return false;
+    }
     return name.endsWith(CLASS_EXTENSION);
   }
 }
