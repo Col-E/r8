@@ -660,4 +660,17 @@ public class InternalOptions {
   public boolean canHaveNumberConversionRegisterAllocationBug() {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }
+
+  // Some Lollipop mediatek VMs have a peculiar bug where the inliner crashes if there is a
+  // simple constructor that just forwards its arguments to the super constructor. Strangely,
+  // this happens only for specific signatures: so far the only reproduction we have is for
+  // a constructor accepting two doubles and one object.
+  //
+  // To workaround this we insert a materializing const instruction before the super init
+  // call. Having a temporary register seems to disable the buggy optimizations.
+  //
+  // See b/68378480.
+  public boolean canHaveForwardingInitInliningBug() {
+    return minApiLevel < AndroidApiLevel.M.getLevel();
+  }
 }
