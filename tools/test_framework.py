@@ -20,6 +20,7 @@
 from __future__ import print_function
 from glob import glob
 import argparse
+import golem
 import os
 import re
 import subprocess
@@ -43,6 +44,10 @@ def parse_arguments():
       choices = ['dx', 'd8', 'd8-release'],
       required = True,
       help = 'Compiler tool to use.')
+  parser.add_argument('--golem',
+      help = 'Running on golem, link in third_party resources.',
+      default = False,
+      action = 'store_true')
   parser.add_argument('--name',
       required = True,
       help = 'Results will be printed using the specified benchmark name (e.g.'
@@ -62,7 +67,8 @@ def Main():
   utils.check_java_version()
   args = parse_arguments()
   output_dir = args.output
-
+  if args.golem:
+    golem.link_third_party()
   with utils.TempDir() as temp_dir:
 
     if not output_dir:

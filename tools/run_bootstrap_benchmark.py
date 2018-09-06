@@ -3,15 +3,27 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import argparse
 import os
 import sys
 
+import golem
 import minify_tool
 import toolhelper
 import utils
 
 PINNED_R8_JAR = os.path.join(utils.REPO_ROOT, 'third_party/r8/r8.jar')
 PINNED_PGR8_JAR = os.path.join(utils.REPO_ROOT, 'third_party/r8/r8-pg6.0.1.jar')
+
+def parse_arguments(argv):
+  parser = argparse.ArgumentParser(
+      description = 'Run r8 bootstrap benchmarks.')
+  parser.add_argument('--golem',
+      help = 'Link in third party dependencies.',
+      default = False,
+      action = 'store_true')
+  return parser.parse_args(argv)
+
 
 def dex(input, output):
   return_code = toolhelper.run(
@@ -28,6 +40,9 @@ def dex(input, output):
     sys.exit(return_code)
 
 if __name__ == '__main__':
+  options = parse_arguments(sys.argv[1:])
+  if options.golem:
+    golem.link_third_party()
   with utils.TempDir() as temp:
     memory_file = os.path.join(temp, 'memory.dump')
     r8_output = os.path.join(temp, 'r8.zip')

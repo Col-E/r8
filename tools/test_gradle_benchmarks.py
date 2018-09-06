@@ -5,10 +5,11 @@
 
 from __future__ import print_function
 import argparse
+import gradle
+import golem
 import os
 import sys
 import utils
-import gradle
 from enum import Enum
 
 BENCHMARKS_ROOT_DIR = os.path.join(utils.REPO_ROOT, 'third_party', 'benchmarks')
@@ -18,6 +19,9 @@ def parse_arguments():
     description='Run D8 or DX on gradle apps located in'
                 ' third_party/benchmarks/.'
                 ' Report Golem-compatible RunTimeRaw values.')
+  parser.add_argument('--golem',
+                      help = 'Running on golem, link in third_party resources.',
+                      default = False, action = 'store_true')
   parser.add_argument('--skip_download',
                     help='Don\'t automatically pull down dependencies.',
                     default=False, action='store_true')
@@ -153,6 +157,8 @@ def PrintBuildTimeForGolem(benchmark, stdOut):
 
 def Main():
   args = parse_arguments()
+  if args.golem:
+    golem.link_third_party()
 
   if args.tool == 'd8':
     tool = Benchmark.Tools.D8
@@ -205,7 +211,7 @@ def Main():
               ['clean']),
 
   ]
-  if not args.skip_download:
+  if not args.skip_download and not args.golem:
     EnsurePresence(os.path.join('third_party', 'benchmarks', 'android-sdk'),
                    'android SDK')
     EnsurePresence(os.path.join('third_party', 'gradle-plugin'),

@@ -12,6 +12,7 @@ import time
 
 import gmail_data
 import gmscore_data
+import golem
 import toolhelper
 import utils
 import youtube_data
@@ -35,6 +36,10 @@ def ParseOptions(argv):
                     help='',
                     default=os.getcwd())
   result.add_option('--no-build',
+                    help='',
+                    default=False,
+                    action='store_true')
+  result.add_option('--golem',
                     help='',
                     default=False,
                     action='store_true')
@@ -104,6 +109,8 @@ def main(argv):
   utils.check_java_version()
   app_provided_pg_conf = False;
   (options, args) = ParseOptions(argv)
+  if options.golem:
+    golem.link_third_party()
   outdir = options.out
   data = None
   if options.app == 'gmscore':
@@ -200,8 +207,9 @@ def main(argv):
         additional_pg_conf = GenerateAdditionalProguardConfiguration(
             temp, os.path.abspath(pg_outdir))
         args.extend(['--pg-conf', additional_pg_conf])
+      build = not options.no_build and not options.golem
       exit_code = toolhelper.run(options.compiler, args,
-                     build=not options.no_build,
+                     build=build,
                      debug=not options.no_debug,
                      profile=options.profile,
                      track_memory_file=options.track_memory_to_file)

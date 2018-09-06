@@ -20,6 +20,7 @@ import time
 
 import gmail_data
 import gmscore_data
+import golem
 import proguard
 import utils
 import youtube_data
@@ -36,6 +37,10 @@ def parse_arguments(argv):
       default = os.getcwd())
   parser.add_argument('--compatdx',
       help = 'Use CompatDx (D8) instead of DX.',
+      default = False,
+      action = 'store_true')
+  parser.add_argument('--golem',
+      help = 'Link in third party dependencies.',
       default = False,
       action = 'store_true')
   parser.add_argument('--print-runtimeraw',
@@ -57,7 +62,8 @@ def parse_arguments(argv):
 def Main(argv):
   utils.check_java_version()
   options = parse_arguments(argv)
-
+  if options.golem:
+    golem.link_third_party()
   outdir = options.out
 
   if options.app == 'gmscore':
