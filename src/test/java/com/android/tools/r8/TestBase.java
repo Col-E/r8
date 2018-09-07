@@ -39,6 +39,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -91,8 +92,17 @@ public class TestBase {
    * Write lines of text to a temporary file.
    */
   protected Path writeTextToTempFile(String... lines) throws IOException {
+    return writeTextToTempFile(System.lineSeparator(), Arrays.asList(lines));
+  }
+
+  /**
+   * Write lines of text to a temporary file, along with the specified line separator.
+   */
+  protected Path writeTextToTempFile(String lineSeparator, List<String> lines)
+      throws IOException {
     Path file = temp.newFile().toPath();
-    FileUtils.writeTextFile(file, lines);
+    String contents = String.join(lineSeparator, lines) + lineSeparator;
+    Files.write(file, contents.getBytes(StandardCharsets.UTF_8));
     return file;
   }
 
