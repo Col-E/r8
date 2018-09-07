@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -996,7 +997,8 @@ public class IRConverter {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
     DeadCodeRemover.removeDeadCode(code, codeRewriter, graphLense, options);
-    materializeInstructionBeforeLongOperationsWorkaround(code, options);
+    materializeInstructionBeforeLongOperationsWorkaround(code);
+    workaroundForwardingInitializerBug(code);
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);
     registerAllocator.allocateRegisters(options.debug);
     printMethod(code, "After register allocation (non-SSA)");
@@ -1012,8 +1014,42 @@ public class IRConverter {
     return registerAllocator;
   }
 
-  private static void materializeInstructionBeforeLongOperationsWorkaround(
-      IRCode code, InternalOptions options) {
+  private void workaroundForwardingInitializerBug(IRCode code) {
+    if (!options.canHaveForwardingInitInliningBug()) {
+      return;
+    }
+    // Only constructors.
+    if (!code.method.isInstanceInitializer()) {
+      return;
+    }
+    // Only constructors with certain signatures.
+    DexTypeList paramTypes = code.method.method.proto.parameters;
+    if (paramTypes.size() != 3 ||
+        paramTypes.values[0] != options.itemFactory.doubleType ||
+        paramTypes.values[1] != options.itemFactory.doubleType ||
+        !paramTypes.values[2].isClassType()) {
+      return;
+    }
+    // Only if the constructor contains a super constructor call taking only parameters as
+    // inputs.
+    for (BasicBlock block : code.blocks) {
+      InstructionListIterator it = block.listIterator();
+      Instruction superConstructorCall = it.nextUntil((i) ->
+          i.isInvokeDirect() &&
+          i.asInvokeDirect().getInvokedMethod().name == options.itemFactory.constructorMethodName &&
+          i.asInvokeDirect().arguments().size() == 4 &&
+          i.asInvokeDirect().arguments().stream().allMatch(Value::isArgument));
+      if (superConstructorCall != null) {
+        // We force a materializing const instruction in front of the super call to make
+        // sure that there is at least one temporary register in the method. That disables
+        // the inlining that is crashing on these devices.
+        ensureInstructionBefore(code, superConstructorCall, it);
+        break;
+      }
+    }
+  }
+
+  private void materializeInstructionBeforeLongOperationsWorkaround(IRCode code) {
     if (!options.canHaveDex2OatLinkedListBug()) {
       return;
     }
@@ -1022,25 +1058,25 @@ public class IRConverter {
       Instruction firstMaterializing =
           it.nextUntil(IRConverter::isMaterializingInstructionOnArtArmVersionM);
       if (needsInstructionBeforeLongOperation(firstMaterializing)) {
-        ensureInstructionBeforeLongOperation(code, block, firstMaterializing, it);
+        ensureInstructionBefore(code, firstMaterializing, it);
       }
     }
   }
 
-  private static void ensureInstructionBeforeLongOperation(
-      IRCode code, BasicBlock block, Instruction firstMaterializing, InstructionListIterator it) {
+  private static void ensureInstructionBefore(
+      IRCode code, Instruction addBefore, InstructionListIterator it) {
     // Force materialize a constant-zero before the long operation.
     Instruction check = it.previous();
-    assert firstMaterializing == check;
-    Value fixitValue = code.createValue(ValueType.INT);
+    assert addBefore == check;
     // Forced definition of const-zero
+    Value fixitValue = code.createValue(ValueType.INT);
     Instruction fixitDefinition = new AlwaysMaterializingDefinition(fixitValue);
-    fixitDefinition.setBlock(block);
-    fixitDefinition.setPosition(firstMaterializing.getPosition());
+    fixitDefinition.setBlock(addBefore.getBlock());
+    fixitDefinition.setPosition(addBefore.getPosition());
     it.add(fixitDefinition);
     // Forced user of the forced definition to ensure it has a user and thus live range.
     Instruction fixitUser = new AlwaysMaterializingUser(fixitValue);
-    fixitUser.setBlock(block);
+    fixitUser.setBlock(addBefore.getBlock());
     it.add(fixitUser);
   }
 
