@@ -252,6 +252,23 @@ public abstract class BaseCompilerCommand extends BaseCommand {
             ? new DexIndexedConsumer.ArchiveConsumer(path, consumeDataResources)
             : new DexIndexedConsumer.DirectoryConsumer(path, consumeDataResources);
       }
+      if (mode == OutputMode.DexFilePerClass) {
+        if (FileUtils.isArchive(path)) {
+          return new DexFilePerClassFileConsumer.ArchiveConsumer(path, consumeDataResources) {
+            @Override
+            public boolean combineSyntheticClassesWithPrimaryClass() {
+              return false;
+            }
+          };
+        } else {
+          return new DexFilePerClassFileConsumer.DirectoryConsumer(path, consumeDataResources) {
+            @Override
+            public boolean combineSyntheticClassesWithPrimaryClass() {
+              return false;
+            }
+          };
+        }
+      }
       if (mode == OutputMode.DexFilePerClassFile) {
         return FileUtils.isArchive(path)
             ? new DexFilePerClassFileConsumer.ArchiveConsumer(path, consumeDataResources)

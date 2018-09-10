@@ -179,7 +179,8 @@ public class ApplicationWriter {
     // Distribute classes into dex files.
     VirtualFile.Distributor distributor;
     if (options.isGeneratingDexFilePerClassFile()) {
-      distributor = new VirtualFile.FilePerInputClassDistributor(this);
+      distributor = new VirtualFile.FilePerInputClassDistributor(this,
+          options.getDexFilePerClassFileConsumer().combineSyntheticClassesWithPrimaryClass());
     } else if (!options.canUseMultidex()
         && options.mainDexKeepRules.isEmpty()
         && application.mainDexList.isEmpty()
