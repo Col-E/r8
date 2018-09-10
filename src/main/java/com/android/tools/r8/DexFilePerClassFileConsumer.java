@@ -33,6 +33,8 @@ import java.util.zip.ZipOutputStream;
 @KeepForSubclassing
 public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBufferProvider {
 
+  static final boolean SHOULD_COMBINE_SYNTHETIC_CLASSES = true;
+
   /**
    * Callback to receive DEX data for a single Java class-file input and its companion classes.
    *
@@ -72,6 +74,18 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
             "Deprecated use of DexFilePerClassFileConsumer::accept(..., byte[], ...)"));
   }
 
+  /**
+   * Combine synthetic classes with their primary class.
+   *
+   * If true all synthesized classes are combined together with the primary class they are derived
+   * from in a single DEX file. This has the property that a classfile given as input will give rise to at most one DEX file as output.
+   *
+   * If false every class will give rise to its own DEX file, e.g., every DEX file will contain exactly one class.
+   */
+  default boolean combineSyntheticClassesWithPrimaryClass() {
+    return SHOULD_COMBINE_SYNTHETIC_CLASSES;
+  }
+
   /** Empty consumer to request the production of the resource but ignore its value. */
   static DexFilePerClassFileConsumer emptyConsumer() {
     return ForwardingConsumer.EMPTY_CONSUMER;
@@ -102,6 +116,15 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
         DiagnosticsHandler handler) {
       if (consumer != null) {
         consumer.accept(primaryClassDescriptor, data, descriptors, handler);
+      }
+    }
+
+    @Override
+    public boolean combineSyntheticClassesWithPrimaryClass() {
+      if (consumer == null) {
+        return SHOULD_COMBINE_SYNTHETIC_CLASSES;
+      } else {
+        return consumer.combineSyntheticClassesWithPrimaryClass();
       }
     }
 
@@ -137,7 +160,8 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
       this(archive, consumer, false);
     }
 
-    public ArchiveConsumer(Path archive, DexFilePerClassFileConsumer consumer, boolean consumeDataResouces) {
+    public ArchiveConsumer(Path archive, DexFilePerClassFileConsumer consumer,
+        boolean consumeDataResouces) {
       super(consumer);
       this.outputBuilder = new ArchiveBuilder(archive);
       this.consumeDataResources = consumeDataResouces;

@@ -237,9 +237,12 @@ public class VirtualFile {
    * may then be distributed in several individual virtual files.
    */
   public static class FilePerInputClassDistributor extends Distributor {
+    private final boolean combineSyntheticClassesWithPrimaryClass;
 
-    FilePerInputClassDistributor(ApplicationWriter writer) {
+    FilePerInputClassDistributor(ApplicationWriter writer,
+        boolean combineSyntheticClassesWithPrimaryClass) {
       super(writer);
+      this.combineSyntheticClassesWithPrimaryClass = combineSyntheticClassesWithPrimaryClass;
     }
 
     @Override
@@ -248,7 +251,7 @@ public class VirtualFile {
       Collection<DexProgramClass> synthetics = new ArrayList<>();
       // Assign dedicated virtual files for all program classes.
       for (DexProgramClass clazz : application.classes()) {
-        if (clazz.getSynthesizedFrom().isEmpty()) {
+        if (!combineSyntheticClassesWithPrimaryClass || clazz.getSynthesizedFrom().isEmpty()) {
           VirtualFile file = new VirtualFile(virtualFiles.size(), writer.namingLens, clazz);
           virtualFiles.add(file);
           file.addClass(clazz);

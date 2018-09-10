@@ -166,7 +166,7 @@ public class D8CommandParser extends BaseCompilerCommandParser {
           }
           compilationMode = CompilationMode.RELEASE;
         } else if (arg.equals("--file-per-class")) {
-          outputMode = OutputMode.DexFilePerClassFile;
+          outputMode = OutputMode.DexFilePerClass;
         } else if (arg.equals("--output")) {
           String output = expandedArgs[++i];
           if (outputPath != null) {
