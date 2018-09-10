@@ -1203,7 +1203,7 @@ public class ProguardConfigurationParser {
       }
       if (peekChar() == '#') {
         while (!eof() && peekChar() != '\n') {
-          position++;;
+          position++;
         }
         skipWhitespace();
       }
@@ -1306,7 +1306,7 @@ public class ProguardConfigurationParser {
     }
 
     private String acceptString() {
-      return acceptString(character -> character != ' ' && character != '\n');
+      return acceptString(c -> !Character.isWhitespace(c));
     }
 
     private Integer acceptInteger() {
@@ -1610,6 +1610,7 @@ public class ProguardConfigurationParser {
       }
       return name;
     }
+
     private String snippetForPosition(TextPosition start) {
       // TODO(ager): really should deal with \r as well to get column right.
       String[] lines = contents.split("\n", -1);  // -1 to get trailing empty lines represented.
