@@ -58,7 +58,6 @@ import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
-import com.android.tools.r8.shaking.protolite.ProtoLitePruner;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -109,7 +108,6 @@ public class IRConverter {
   private final LensCodeRewriter lensCodeRewriter;
   private final NonNullTracker nonNullTracker;
   private final Inliner inliner;
-  private final ProtoLitePruner protoLiteRewriter;
   private final IdentifierNameStringMarker identifierNameStringMarker;
   private final Devirtualizer devirtualizer;
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
@@ -165,9 +163,6 @@ public class IRConverter {
               new MemberValuePropagation(appInfo.withLiveness()) : null;
       this.lensCodeRewriter = new LensCodeRewriter(graphLense, appInfo.withSubtyping());
       if (appInfo.hasLiveness()) {
-        // When disabling the pruner here, also disable the ProtoLiteExtension in R8.java.
-        this.protoLiteRewriter =
-            options.forceProguardCompatibility ? null : new ProtoLitePruner(appInfo.withLiveness());
         if (!appInfo.withLiveness().identifierNameStrings.isEmpty() && options.enableMinification) {
           this.identifierNameStringMarker =
               new IdentifierNameStringMarker(appInfo.withLiveness(), options);
@@ -177,7 +172,6 @@ public class IRConverter {
         this.devirtualizer =
             options.enableDevirtualization ? new Devirtualizer(appInfo.withLiveness()) : null;
       } else {
-        this.protoLiteRewriter = null;
         this.identifierNameStringMarker = null;
         this.devirtualizer = null;
       }
@@ -187,7 +181,6 @@ public class IRConverter {
       this.outliner = null;
       this.memberValuePropagation = null;
       this.lensCodeRewriter = null;
-      this.protoLiteRewriter = null;
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
     }
@@ -743,9 +736,6 @@ public class IRConverter {
     }
 
     if (!method.isProcessed()) {
-      if (protoLiteRewriter != null && protoLiteRewriter.appliesTo(method)) {
-        protoLiteRewriter.rewriteProtoLiteSpecialMethod(code, method);
-      }
       if (lensCodeRewriter != null) {
         lensCodeRewriter.rewrite(code, method);
       } else {

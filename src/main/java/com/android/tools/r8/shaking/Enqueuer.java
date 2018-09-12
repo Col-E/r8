@@ -44,7 +44,6 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
@@ -116,8 +115,6 @@ public class Enqueuer {
       Maps.newIdentityHashMap();
   private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
 
-  private final ProtoLiteExtension protoLiteExtension;
-  private final Set<DexField> protoLiteFields = Sets.newIdentityHashSet();
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
 
   /**
@@ -228,7 +225,7 @@ public class Enqueuer {
       GraphLense graphLense,
       InternalOptions options,
       boolean forceProguardCompatibility) {
-    this(appInfo, graphLense, options, forceProguardCompatibility, null, null);
+    this(appInfo, graphLense, options, forceProguardCompatibility, null);
   }
 
   public Enqueuer(
@@ -236,13 +233,11 @@ public class Enqueuer {
       GraphLense graphLense,
       InternalOptions options,
       boolean forceProguardCompatibility,
-      ProguardConfiguration.Builder compatibility,
-      ProtoLiteExtension protoLiteExtension) {
+      ProguardConfiguration.Builder compatibility) {
     this.appInfo = appInfo;
     this.graphLense = graphLense;
     this.compatibility = compatibility;
     this.options = options;
-    this.protoLiteExtension = protoLiteExtension;
     this.forceProguardCompatibility = forceProguardCompatibility;
   }
 
@@ -1378,11 +1373,7 @@ public class Enqueuer {
       markParameterAndReturnTypesAsLive(method);
       processAnnotations(method.annotations.annotations);
       method.parameterAnnotationsList.forEachAnnotation(this::processAnnotation);
-      if (protoLiteExtension != null && protoLiteExtension.appliesTo(method)) {
-        protoLiteExtension.processMethod(method, new UseRegistry(method), protoLiteFields);
-      } else {
-        method.registerCodeReferences(new UseRegistry(method));
-      }
+      method.registerCodeReferences(new UseRegistry(method));
       // Add all dependent members to the workqueue.
       enqueueRootItems(rootSet.getDependentItems(method));
     }
@@ -1711,11 +1702,6 @@ public class Enqueuer {
      */
     public final Object2BooleanMap<DexReference> identifierNameStrings;
     /**
-     * Set of fields that have been identified as proto-lite fields by the
-     * {@link ProtoLiteExtension}.
-     */
-    final Set<DexField> protoLiteFields;
-    /**
      * A set of types that have been removed by the {@link TreePruner}.
      */
     final Set<DexType> prunedTypes;
@@ -1770,7 +1756,6 @@ public class Enqueuer {
       this.neverInline = enqueuer.rootSet.neverInline;
       this.identifierNameStrings = joinIdentifierNameStrings(
           enqueuer.rootSet.identifierNameStrings, enqueuer.identifierNameStrings);
-      this.protoLiteFields = enqueuer.protoLiteFields;
       this.prunedTypes = Collections.emptySet();
       this.switchMaps = Collections.emptyMap();
       this.ordinalsMaps = Collections.emptyMap();
@@ -1808,7 +1793,6 @@ public class Enqueuer {
       this.staticInvokes = previous.staticInvokes;
       this.callSites = previous.callSites;
       this.brokenSuperInvokes = previous.brokenSuperInvokes;
-      this.protoLiteFields = previous.protoLiteFields;
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = previous.forceInline;
       this.neverInline = previous.neverInline;
@@ -1872,7 +1856,6 @@ public class Enqueuer {
               .collect(Collectors.toList()));
       this.switchMaps = previous.switchMaps;
       this.ordinalsMaps = rewriteKeys(previous.ordinalsMaps, lense::lookupType);
-      this.protoLiteFields = previous.protoLiteFields;
       // Sanity check sets after rewriting.
       assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
       assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
@@ -1905,7 +1888,6 @@ public class Enqueuer {
       this.staticInvokes = previous.staticInvokes;
       this.callSites = previous.callSites;
       this.brokenSuperInvokes = previous.brokenSuperInvokes;
-      this.protoLiteFields = previous.protoLiteFields;
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = previous.forceInline;
       this.neverInline = previous.neverInline;
@@ -2025,10 +2007,6 @@ public class Enqueuer {
 
     public boolean isPinned(DexReference reference) {
       return pinnedItems.contains(reference);
-    }
-
-    public boolean isProtoLiteField(DexField field) {
-      return protoLiteFields.contains(field);
     }
 
     public Iterable<DexReference> getPinnedItems() {

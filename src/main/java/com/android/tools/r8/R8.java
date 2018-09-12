@@ -46,7 +46,6 @@ import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.VerticalClassMerger;
-import com.android.tools.r8.shaking.protolite.ProtoLiteExtension;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -289,18 +288,14 @@ public class R8 {
                     options.proguardConfiguration.getRules(),
                     options)
                 .run(executorService);
-        ProtoLiteExtension protoLiteExtension =
-            options.forceProguardCompatibility
-                ? null
-                : new ProtoLiteExtension(appView.getAppInfo());
+
         Enqueuer enqueuer =
             new Enqueuer(
                 appView.getAppInfo(),
                 appView.getGraphLense(),
                 options,
                 options.forceProguardCompatibility,
-                compatibility,
-                protoLiteExtension);
+                compatibility);
         appView.setAppInfo(enqueuer.traceApplication(rootSet, executorService, timing));
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
