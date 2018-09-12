@@ -22,7 +22,7 @@ LINKED_THIRD_PARTY_DIRECTORIES = [
 ]
 
 # Path to our internally updated third party
-THIRD_PARTY_SOURCE = "/usr/local/google/home/golem/src/r8/third_party"
+THIRD_PARTY_SOURCE = "/usr/local/google/home/golem/r8/third_party"
 
 def link_third_party():
   assert os.path.exists('third_party')
