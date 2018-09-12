@@ -4,9 +4,6 @@
 
 package com.android.tools.r8;
 
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.InternalCompilerError;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.util.function.UnaryOperator;
@@ -24,11 +21,6 @@ public class D8RunExamplesJava9Test extends RunExamplesJava9Test<D8Command.Build
       return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel));
     }
 
-    D8TestRunner withClasspath(Path... classpath) {
-      return withBuilderTransformation(b -> b.addClasspathFiles(classpath));
-    }
-
-
     @Override
     void build(Path inputFile, Path out) throws Throwable {
       D8Command.Builder builder = D8Command.builder();
@@ -40,17 +32,7 @@ public class D8RunExamplesJava9Test extends RunExamplesJava9Test<D8Command.Build
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .addProgramFiles(inputFile)
           .setOutput(out, OutputMode.DexIndexed);
-      try {
-        ToolHelper.runD8(builder, this::combinedOptionConsumer);
-      } catch (Unimplemented | CompilationError | InternalCompilerError re) {
-        throw re;
-      } catch (RuntimeException re) {
-        throw re.getCause() == null ? re : re.getCause();
-      }
-    }
-
-    D8TestRunner withIntermediate(boolean intermediate) {
-      return withBuilderTransformation(builder -> builder.setIntermediate(intermediate));
+      ToolHelper.runD8(builder, this::combinedOptionConsumer);
     }
 
     @Override

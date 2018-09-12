@@ -69,6 +69,6 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
   private static boolean assumeClassesAreEqual(DexProgramClass a) {
     return LambdaRewriter.hasLambdaClassPrefix(a.type)
         || InterfaceMethodRewriter.hasDispatchClassSuffix(a.type)
-        || a.type.toString().equals(TwrCloseResourceRewriter.UTILITY_CLASS_DESCRIPTOR);
+        || a.type.descriptor.toString().equals(TwrCloseResourceRewriter.UTILITY_CLASS_DESCRIPTOR);
   }
 }

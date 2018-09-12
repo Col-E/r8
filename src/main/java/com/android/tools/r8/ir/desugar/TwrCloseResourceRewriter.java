@@ -125,7 +125,7 @@ public final class TwrCloseResourceRewriter {
             twrCloseResourceMethod.holder,
             null,
             new SynthesizedOrigin("twr utility class", getClass()),
-            ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC),
+            ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC),
             factory.objectType,
             DexTypeList.empty(),
             null,
