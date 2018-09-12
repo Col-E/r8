@@ -31,7 +31,8 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     this.rootSet = rootSet;
     this.dictionary = options.proguardConfiguration.getObfuscationDictionary();
     this.useUniqueMemberNames = options.proguardConfiguration.isUseUniqueClassMemberNames();
-    this.overloadAggressively = options.proguardConfiguration.isOverloadAggressively();
+    this.overloadAggressively =
+        options.proguardConfiguration.isOverloadAggressivelyWithoutUseUniqueClassMemberNames();
     this.globalState = NamingState.createRoot(
         appInfo.dexItemFactory, dictionary, getKeyTransform(), useUniqueMemberNames);
   }

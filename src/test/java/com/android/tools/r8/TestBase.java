@@ -641,6 +641,13 @@ public class TestBase {
     return ToolHelper.runJava(out, mainAndArgs.toArray(new String[0]));
   }
 
+  protected ProcessResult runOnJavaRawNoVerify(AndroidApp app, String mainClass, List<String> args)
+      throws IOException {
+    Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
+    app.writeToZip(out, OutputMode.ClassFile);
+    return ToolHelper.runJavaNoVerify(out, mainClass, args.toArray(new String[0]));
+  }
+
   private String extractClassName(byte[] ccc) {
     class ClassNameExtractor extends ClassVisitor {
       private String className;

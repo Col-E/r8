@@ -50,7 +50,8 @@ public class CheckCastRemovalTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-keep class " + CLASS_NAME + " { *; }",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, o -> o.enableClassInlining = false);
+    AndroidApp app =
+        compileWithR8(builder, pgConfigs, o -> o.enableClassInlining = false, Backend.DEX);
 
     DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
     assertNotNull(method);
@@ -89,7 +90,8 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "-keep class B { *; }",
         "-keep class C { *; }",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, opts -> opts.enableClassInlining = false);
+    AndroidApp app =
+        compileWithR8(builder, pgConfigs, opts -> opts.enableClassInlining = false, Backend.DEX);
 
     DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
     assertNotNull(method);
@@ -129,7 +131,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "-keep class C { *; }",
         "-dontoptimize",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, Backend.DEX);
 
     DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
     assertNotNull(method);
@@ -168,7 +170,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-keep class " + CLASS_NAME + " { *; }",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, Backend.DEX);
 
     DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
     assertNotNull(method);
@@ -205,7 +207,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-keep class " + CLASS_NAME + " { *; }",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, Backend.DEX);
 
     DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
     assertNotNull(method);

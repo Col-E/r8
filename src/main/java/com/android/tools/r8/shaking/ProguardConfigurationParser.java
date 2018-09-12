@@ -127,6 +127,13 @@ public class ProguardConfigurationParser {
           configurationBuilder.getKeepParameterNamesOptionOrigin(),
           configurationBuilder.getKeepParameterNamesOptionPosition()));
     }
+    if (configurationBuilder.isOverloadAggressively()
+        && configurationBuilder.isUseUniqueClassMemberNames()) {
+      reporter.warning(
+          new StringDiagnostic(
+              "The -overloadaggressively flag has no effect if -useuniqueclassmembernames"
+                  + " is also specified."));
+    }
   }
 
   /**

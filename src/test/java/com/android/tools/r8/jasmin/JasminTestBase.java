@@ -106,11 +106,12 @@ public class JasminTestBase extends TestBase {
   protected AndroidApp compileWithR8(
       JasminBuilder builder,
       List<String> proguardConfigs,
-      Consumer<InternalOptions> optionsConsumer)
+      Consumer<InternalOptions> optionsConsumer,
+      Backend backend)
       throws Exception {
     R8Command command =
-        ToolHelper.prepareR8CommandBuilder(builder.build())
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+        ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
+            .addLibraryFiles(runtimeJar(backend))
             .addProguardConfiguration(proguardConfigs, Origin.unknown())
             .build();
     return ToolHelper.runR8(command, optionsConsumer);

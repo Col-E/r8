@@ -9,23 +9,42 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class ValidNameConflictTest extends JasminTestBase {
+  private static final String REPEATED_NAME = "hopeTheresNoSuchNameInRuntimeLibraries";
+
+  private final Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  public ValidNameConflictTest(Backend backend) {
+    this.backend = backend;
+  }
+
   private final String CLASS_NAME = "Example";
   private final String SUPER_CLASS = "Super";
   private final String ANOTHER_CLASS = "Test";
@@ -64,8 +83,8 @@ public class ValidNameConflictTest extends JasminTestBase {
   private JasminBuilder buildFieldNameConflictClassFile() {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
-    classBuilder.addStaticField("same", "Ljava/lang/Object;", null);
-    classBuilder.addStaticField("same", "Ljava/lang/String;", "\"" + MSG + "\"");
+    classBuilder.addStaticField(REPEATED_NAME, "Ljava/lang/Object;", null);
+    classBuilder.addStaticField(REPEATED_NAME, "Ljava/lang/String;", "\"" + MSG + "\"");
     classBuilder.addMainMethod(
         buildCodeForVisitingDeclaredMembers(
             ImmutableList.of(
@@ -77,6 +96,15 @@ public class ValidNameConflictTest extends JasminTestBase {
                 "  aconst_null",
                 "  invokevirtual java/lang/reflect/Field/get(Ljava/lang/Object;)Ljava/lang/Object;")));
     return builder;
+  }
+
+  private ProcessResult runRaw(AndroidApp app, String main) throws IOException {
+    if (backend == Backend.DEX) {
+      return runOnArtRaw(app, main);
+    } else {
+      assert backend == Backend.CF;
+      return runOnJavaRawNoVerify(app, main, Collections.emptyList());
+    }
   }
 
   @Test
@@ -92,22 +120,22 @@ public class ValidNameConflictTest extends JasminTestBase {
             + "}\n"
             + "-printmapping\n",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
-    FieldSubject f1 = clazz.field("java.lang.String", "same");
+    FieldSubject f1 = clazz.field("java.lang.String", REPEATED_NAME);
     assertTrue(f1.isPresent());
     assertFalse(f1.isRenamed());
-    FieldSubject f2 = clazz.field("java.lang.Object", "same");
+    FieldSubject f2 = clazz.field("java.lang.Object", REPEATED_NAME);
     assertTrue(f2.isPresent());
     assertFalse(f2.isRenamed());
     assertEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -120,22 +148,22 @@ public class ValidNameConflictTest extends JasminTestBase {
         keepMainProguardConfiguration(CLASS_NAME),
         "-useuniqueclassmembernames",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
-    FieldSubject f1 = clazz.field("java.lang.String", "same");
+    FieldSubject f1 = clazz.field("java.lang.String", REPEATED_NAME);
     assertTrue(f1.isPresent());
     assertTrue(f1.isRenamed());
-    FieldSubject f2 = clazz.field("java.lang.Object", "same");
+    FieldSubject f2 = clazz.field("java.lang.Object", REPEATED_NAME);
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
     assertEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -150,22 +178,22 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-useuniqueclassmembernames",
         "-overloadaggressively",  // no-op
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
-    FieldSubject f1 = clazz.field("java.lang.String", "same");
+    FieldSubject f1 = clazz.field("java.lang.String", REPEATED_NAME);
     assertTrue(f1.isPresent());
     assertTrue(f1.isRenamed());
-    FieldSubject f2 = clazz.field("java.lang.Object", "same");
+    FieldSubject f2 = clazz.field("java.lang.Object", REPEATED_NAME);
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
     assertEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -177,22 +205,22 @@ public class ValidNameConflictTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
-    FieldSubject f1 = clazz.field("java.lang.String", "same");
+    FieldSubject f1 = clazz.field("java.lang.String", REPEATED_NAME);
     assertTrue(f1.isPresent());
     assertTrue(f1.isRenamed());
-    FieldSubject f2 = clazz.field("java.lang.Object", "same");
+    FieldSubject f2 = clazz.field("java.lang.Object", REPEATED_NAME);
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
     assertNotEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -205,33 +233,31 @@ public class ValidNameConflictTest extends JasminTestBase {
         keepMainProguardConfiguration(CLASS_NAME),
         "-overloadaggressively",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
-    FieldSubject f1 = clazz.field("java.lang.String", "same");
+    FieldSubject f1 = clazz.field("java.lang.String", REPEATED_NAME);
     assertTrue(f1.isPresent());
     assertTrue(f1.isRenamed());
-    FieldSubject f2 = clazz.field("java.lang.Object", "same");
+    FieldSubject f2 = clazz.field("java.lang.Object", REPEATED_NAME);
     assertTrue(f2.isPresent());
     assertTrue(f2.isRenamed());
     assertEquals(f1.getFinalName(), f2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   private JasminBuilder buildMethodNameConflictClassFile() {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(ANOTHER_CLASS);
-    classBuilder.addStaticMethod("same", ImmutableList.of(), "Ljava/lang/Object;",
-        "aconst_null",
-        "areturn");
-    classBuilder.addStaticMethod("same", ImmutableList.of(), "Ljava/lang/String;",
-        "ldc \"" + MSG + "\"",
-        "areturn");
+    classBuilder.addStaticMethod(
+        REPEATED_NAME, ImmutableList.of(), "Ljava/lang/Object;", "aconst_null", "areturn");
+    classBuilder.addStaticMethod(
+        REPEATED_NAME, ImmutableList.of(), "Ljava/lang/String;", "ldc \"" + MSG + "\"", "areturn");
     classBuilder = builder.addClass(CLASS_NAME);
     classBuilder.addMainMethod(
         buildCodeForVisitingDeclaredMembers(
@@ -261,22 +287,22 @@ public class ValidNameConflictTest extends JasminTestBase {
             + "}\n",
         keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
-    MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = clazz.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertFalse(m1.isRenamed());
-    MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = clazz.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertFalse(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -289,22 +315,22 @@ public class ValidNameConflictTest extends JasminTestBase {
         keepMainProguardConfiguration(CLASS_NAME),
         "-useuniqueclassmembernames",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
-    MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = clazz.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertTrue(m1.isRenamed());
-    MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = clazz.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -319,22 +345,22 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-useuniqueclassmembernames",
         "-overloadaggressively",  // no-op
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
-    MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = clazz.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertTrue(m1.isRenamed());
-    MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = clazz.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -346,22 +372,24 @@ public class ValidNameConflictTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
-    MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = clazz.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertTrue(m1.isRenamed());
-    MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = clazz.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     assertNotEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(
+        new HashSet<String>(StringUtils.splitLines(javaOutput.stdout)),
+        new HashSet<String>(StringUtils.splitLines(output.stdout)));
   }
 
   @Test
@@ -374,41 +402,45 @@ public class ValidNameConflictTest extends JasminTestBase {
         keepMainProguardConfiguration(CLASS_NAME),
         "-overloadaggressively",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject clazz = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(clazz.isPresent());
-    MethodSubject m1 = clazz.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = clazz.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertTrue(m1.isRenamed());
-    MethodSubject m2 = clazz.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = clazz.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   private JasminBuilder buildMethodNameConflictInHierarchy() {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(SUPER_CLASS);
-    classBuilder.addVirtualMethod("same", ImmutableList.of(), "Ljava/lang/Object;",
-        "aconst_null",
-        "areturn");
-    classBuilder.addVirtualMethod("same", ImmutableList.of(), "Ljava/lang/String;",
-        "ldc \"" + MSG + "\"",
-        "areturn");
+    classBuilder.addVirtualMethod(
+        REPEATED_NAME, ImmutableList.of(), "Ljava/lang/Object;", "aconst_null", "areturn");
+    classBuilder.addVirtualMethod(
+        REPEATED_NAME, ImmutableList.of(), "Ljava/lang/String;", "ldc \"" + MSG + "\"", "areturn");
     classBuilder = builder.addClass(ANOTHER_CLASS, SUPER_CLASS);
-    classBuilder.addVirtualMethod("same", ImmutableList.of(), "Ljava/lang/Object;",
+    classBuilder.addVirtualMethod(
+        REPEATED_NAME,
+        ImmutableList.of(),
+        "Ljava/lang/Object;",
         "aload_0",
-        "invokespecial " + SUPER_CLASS + "/same()Ljava/lang/Object;",
+        "invokespecial " + SUPER_CLASS + "/" + REPEATED_NAME + "()Ljava/lang/Object;",
         "areturn");
-    classBuilder.addVirtualMethod("same", ImmutableList.of(), "Ljava/lang/String;",
+    classBuilder.addVirtualMethod(
+        REPEATED_NAME,
+        ImmutableList.of(),
+        "Ljava/lang/String;",
         "aload_0",
-        "invokespecial " + SUPER_CLASS + "/same()Ljava/lang/String;",
+        "invokespecial " + SUPER_CLASS + "/" + REPEATED_NAME + "()Ljava/lang/String;",
         "areturn");
     classBuilder = builder.addClass(CLASS_NAME);
     classBuilder.addMainMethod(
@@ -443,25 +475,25 @@ public class ValidNameConflictTest extends JasminTestBase {
             + "}\n",
         keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
-    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = sup.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertFalse(m1.isRenamed());
-    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = sup.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertFalse(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
-    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject subM1 = sub.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM1.isPresent());
     assertFalse(subM1.isRenamed());
-    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject subM2 = sub.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertFalse(subM2.isRenamed());
     assertEquals(subM1.getFinalName(), subM2.getFinalName());
@@ -470,9 +502,9 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -485,25 +517,25 @@ public class ValidNameConflictTest extends JasminTestBase {
         keepMainProguardConfiguration(CLASS_NAME),
         "-useuniqueclassmembernames",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
-    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = sup.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertTrue(m1.isRenamed());
-    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = sup.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
-    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject subM1 = sub.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM1.isPresent());
     assertTrue(subM1.isRenamed());
-    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject subM2 = sub.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
     assertEquals(subM1.getFinalName(), subM2.getFinalName());
@@ -512,9 +544,9 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -529,25 +561,25 @@ public class ValidNameConflictTest extends JasminTestBase {
         "-useuniqueclassmembernames",
         "-overloadaggressively",  // no-op
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
-    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = sup.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertTrue(m1.isRenamed());
-    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = sup.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
-    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject subM1 = sub.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM1.isPresent());
     assertTrue(subM1.isRenamed());
-    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject subM2 = sub.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
     assertEquals(subM1.getFinalName(), subM2.getFinalName());
@@ -556,9 +588,9 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 
   @Test
@@ -570,25 +602,25 @@ public class ValidNameConflictTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         keepMainProguardConfiguration(CLASS_NAME),
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
     ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
-    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = sup.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertTrue(m1.isRenamed());
-    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = sup.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     assertNotEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
-    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject subM1 = sub.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM1.isPresent());
     assertTrue(subM1.isRenamed());
-    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject subM2 = sub.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
     assertNotEquals(subM1.getFinalName(), subM2.getFinalName());
@@ -597,9 +629,11 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(
+        new HashSet<String>(StringUtils.splitLines(javaOutput.stdout)),
+        new HashSet<String>(StringUtils.splitLines(output.stdout)));
   }
 
   @Test
@@ -612,26 +646,26 @@ public class ValidNameConflictTest extends JasminTestBase {
         keepMainProguardConfiguration(CLASS_NAME),
         "-overloadaggressively",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);
 
     ClassSubject sup = codeInspector.clazz(SUPER_CLASS);
     assertTrue(sup.isPresent());
-    MethodSubject m1 = sup.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject m1 = sup.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(m1.isPresent());
     assertTrue(m1.isRenamed());
-    MethodSubject m2 = sup.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject m2 = sup.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
     assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
-    MethodSubject subM1 = sub.method("java.lang.String", "same", ImmutableList.of());
+    MethodSubject subM1 = sub.method("java.lang.String", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM1.isPresent());
     assertTrue(subM1.isRenamed());
-    MethodSubject subM2 = sub.method("java.lang.Object", "same", ImmutableList.of());
+    MethodSubject subM2 = sub.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
     assertEquals(subM1.getFinalName(), subM2.getFinalName());
@@ -640,8 +674,8 @@ public class ValidNameConflictTest extends JasminTestBase {
     assertEquals(m1.getFinalName(), subM1.getFinalName());
     assertEquals(m2.getFinalName(), subM2.getFinalName());
 
-    ProcessResult artOutput = runOnArtRaw(app, CLASS_NAME);
-    assertEquals(0, artOutput.exitCode);
-    assertEquals(javaOutput.stdout, artOutput.stdout);
+    ProcessResult output = runRaw(app, CLASS_NAME);
+    assertEquals(0, output.exitCode);
+    assertEquals(javaOutput.stdout, output.stdout);
   }
 }

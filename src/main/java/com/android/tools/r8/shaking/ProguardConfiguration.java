@@ -208,6 +208,10 @@ public class ProguardConfiguration {
       return useUniqueClassMemberNames;
     }
 
+    boolean isOverloadAggressively() {
+      return overloadAggressively;
+    }
+
     public void setKeepParameterNames(boolean keepParameterNames, Origin optionOrigin,
         Position optionPosition) {
       assert optionOrigin != null || !keepParameterNames;
@@ -552,8 +556,8 @@ public class ProguardConfiguration {
     return rules;
   }
 
-  public boolean isOverloadAggressively() {
-    return overloadAggressively;
+  public boolean isOverloadAggressivelyWithoutUseUniqueClassMemberNames() {
+    return overloadAggressively && !useUniqueClassMemberNames;
   }
 
   public ImmutableList<String> getObfuscationDictionary() {
