@@ -87,25 +87,25 @@ def Main():
   (options, args) = parse_options()
   if options.golem:
     golem.link_third_party()
-  temp = '/tmp/output'
-  dex_path = os.path.join(temp, "classes.jar")
-  proguard_conf = os.path.join(temp, 'proguard.conf')
-  with open(proguard_conf, 'w') as f:
-    f.write(PROGUARD_CONF)
-  benchmark_jar = get_jar_for_benchmark(options.benchmark)
-  r8_args = [
-      '--lib', utils.get_android_jar(26), # Only works with api 26
-      '--output', dex_path,
-      '--pg-conf', proguard_conf,
-      '--min-api', str(options.api),
-      benchmark_jar
-  ]
-  toolhelper.run('r8', r8_args, build=not options.golem)
-  if options.use_device:
-    result = run_art_device(dex_path)
-  else:
-    result = run_art(dex_path)
-  print('Kotlin_{}(RunTimeRaw): {} ms'.format(options.benchmark, result))
+  with utils.TempDir() as temp:
+    dex_path = os.path.join(temp, "classes.jar")
+    proguard_conf = os.path.join(temp, 'proguard.conf')
+    with open(proguard_conf, 'w') as f:
+      f.write(PROGUARD_CONF)
+    benchmark_jar = get_jar_for_benchmark(options.benchmark)
+    r8_args = [
+        '--lib', utils.get_android_jar(26), # Only works with api 26
+        '--output', dex_path,
+        '--pg-conf', proguard_conf,
+        '--min-api', str(options.api),
+        benchmark_jar
+    ]
+    toolhelper.run('r8', r8_args, build=not options.golem)
+    if options.use_device:
+      result = run_art_device(dex_path)
+    else:
+      result = run_art(dex_path)
+    print('Kotlin_{}(RunTimeRaw): {} ms'.format(options.benchmark, result))
 
 if __name__ == '__main__':
   sys.exit(Main())
