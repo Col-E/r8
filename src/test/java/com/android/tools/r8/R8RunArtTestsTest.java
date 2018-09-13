@@ -1408,8 +1408,7 @@ public abstract class R8RunArtTestsTest {
       boolean disableInlining,
       boolean disableClassInlining,
       boolean hasMissingClasses)
-      throws IOException, ProguardRuleParserException, ExecutionException,
-      CompilationFailedException {
+      throws CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultPath, compilationMode, null,
         disableInlining, disableClassInlining, hasMissingClasses);
   }
@@ -1423,8 +1422,7 @@ public abstract class R8RunArtTestsTest {
       boolean disableInlining,
       boolean disableClassInlining,
       boolean hasMissingClasses)
-      throws IOException, ProguardRuleParserException, ExecutionException,
-        CompilationFailedException {
+      throws CompilationFailedException {
     assert mode != null;
     switch (compilerUnderTest) {
       case D8_AFTER_R8CF:
@@ -1956,8 +1954,6 @@ public abstract class R8RunArtTestsTest {
             specification.hasMissingClasses);
       } catch (CompilationFailedException e) {
         throw new CompilationError(e.getMessage(), e);
-      } catch (ExecutionException e) {
-        throw e.getCause();
       }
       System.err.println("Should have failed R8/D8 compilation with a CompilationError.");
       return;

@@ -69,17 +69,15 @@ public class SmaliTestBase extends TestBase {
     }
   }
 
-  protected AndroidApp processApplication(AndroidApp application) {
+  protected AndroidApp processApplication(AndroidApp application)
+      throws CompilationFailedException {
     return processApplication(application, null);
   }
 
-  protected AndroidApp processApplication(AndroidApp application,
-      Consumer<InternalOptions> optionsConsumer) {
-    try {
-      return ToolHelper.runR8(application, optionsConsumer);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  protected AndroidApp processApplication(
+      AndroidApp application, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationFailedException {
+    return ToolHelper.runR8(application, optionsConsumer);
   }
 
   protected Path runR8(SmaliBuilder builder, List<String> proguardConfigurations) {
@@ -224,7 +222,12 @@ public class SmaliTestBase extends TestBase {
         returnType, parameters, locals, instructions);
 
     // Process the application with R8.
-    AndroidApp processdApplication = processApplication(application);
+    AndroidApp processdApplication = null;
+    try {
+      processdApplication = processApplication(application);
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException(e);
+    }
     assertEquals(1, getNumberOfProgramClasses(processdApplication));
 
     // Return the processed method for inspection.

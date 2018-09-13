@@ -12,7 +12,6 @@ import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import java.io.IOException;
@@ -170,19 +169,16 @@ public abstract class R8RunExamplesCommon {
                   .setOutput(getOutputFile(), outputMode)
                   .setMode(mode)
                   .build();
-        ExceptionUtils.withR8CompilationHandler(
-            command.getReporter(),
-            () ->
-                ToolHelper.runR8(
-                    command,
-                    options -> {
-                      options.lineNumberOptimization = LineNumberOptimization.OFF;
-                      options.enableCfFrontend = frontend == Frontend.CF;
-                      if (output == Output.CF) {
-                        // Class inliner is not supported with CF backend yet.
-                        options.enableClassInlining = false;
-                      }
-                    }));
+          ToolHelper.runR8(
+              command,
+              options -> {
+                options.lineNumberOptimization = LineNumberOptimization.OFF;
+                options.enableCfFrontend = frontend == Frontend.CF;
+                if (output == Output.CF) {
+                  // Class inliner is not supported with CF backend yet.
+                  options.enableClassInlining = false;
+                }
+              });
         break;
       }
       default:

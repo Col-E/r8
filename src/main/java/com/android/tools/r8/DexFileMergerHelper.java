@@ -115,7 +115,7 @@ public class DexFileMergerHelper {
   }
 
   public static void runD8ForTesting(D8Command command, boolean dontCreateMarkerInD8)
-      throws IOException {
+      throws CompilationFailedException {
     InternalOptions options = command.getInternalOptions();
     options.testing.dontCreateMarkerInD8 = dontCreateMarkerInD8;
     D8.runForTesting(command.getInputApp(), options);

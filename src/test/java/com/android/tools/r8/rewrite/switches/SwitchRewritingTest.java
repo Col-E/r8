@@ -7,6 +7,7 @@ package com.android.tools.r8.rewrite.switches;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstHigh16;
@@ -39,7 +40,8 @@ public class SwitchRewritingTest extends SmaliTestBase {
         || instruction instanceof ConstHigh16
         || instruction instanceof Const;
   }
-  private void runSingleCaseDexTest(boolean packed, int key) {
+
+  private void runSingleCaseDexTest(boolean packed, int key) throws CompilationFailedException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
     String switchInstruction;
     String switchData;
@@ -100,7 +102,7 @@ public class SwitchRewritingTest extends SmaliTestBase {
   }
 
   @Test
-  public void singleCaseDex() {
+  public void singleCaseDex() throws CompilationFailedException {
     for (boolean packed : new boolean[]{true, false}) {
       runSingleCaseDexTest(packed, Integer.MIN_VALUE);
       runSingleCaseDexTest(packed, -1);
@@ -110,7 +112,8 @@ public class SwitchRewritingTest extends SmaliTestBase {
     }
   }
 
-  private void runTwoCaseSparseToPackedOrIfsDexTest(int key1, int key2) {
+  private void runTwoCaseSparseToPackedOrIfsDexTest(int key1, int key2)
+      throws CompilationFailedException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -162,7 +165,7 @@ public class SwitchRewritingTest extends SmaliTestBase {
   }
 
   @Test
-  public void twoCaseSparseToPackedOrIfsDex() {
+  public void twoCaseSparseToPackedOrIfsDex() throws CompilationFailedException {
     for (int delta = 1; delta <= 3; delta++) {
       runTwoCaseSparseToPackedOrIfsDexTest(0, delta);
       runTwoCaseSparseToPackedOrIfsDexTest(-delta, 0);

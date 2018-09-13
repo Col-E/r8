@@ -840,39 +840,32 @@ public class ToolHelper {
         .setProguardMapConsumer(StringConsumer.emptyConsumer());
   }
 
-  public static AndroidApp runR8(AndroidApp app) throws IOException {
+  public static AndroidApp runR8(AndroidApp app) throws CompilationFailedException {
     return runR8WithProgramConsumer(app, DexIndexedConsumer.emptyConsumer());
   }
 
   public static AndroidApp runR8WithProgramConsumer(AndroidApp app, ProgramConsumer programConsumer)
-      throws IOException {
-    try {
-      return runR8(prepareR8CommandBuilder(app, programConsumer).build());
-    } catch (CompilationFailedException e) {
-      throw new RuntimeException(e);
-    }
+      throws CompilationFailedException {
+    return runR8(prepareR8CommandBuilder(app, programConsumer).build());
   }
 
   public static AndroidApp runR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws IOException {
-    try {
-      return runR8(prepareR8CommandBuilder(app).build(), optionsConsumer);
-    } catch (CompilationFailedException e) {
-      throw new RuntimeException(e);
-    }
+      throws CompilationFailedException {
+    return runR8(prepareR8CommandBuilder(app).build(), optionsConsumer);
   }
 
-  public static AndroidApp runR8(R8Command command) throws IOException {
+  public static AndroidApp runR8(R8Command command) throws CompilationFailedException {
     return runR8(command, null);
   }
 
   public static AndroidApp runR8(R8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws IOException {
+      throws CompilationFailedException {
     return runR8WithFullResult(command, optionsConsumer);
   }
 
   public static AndroidApp runR8WithFullResult(
-      R8Command command, Consumer<InternalOptions> optionsConsumer) throws IOException {
+      R8Command command, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationFailedException {
     // TODO(zerny): Should we really be adding the android library in ToolHelper?
     AndroidApp app = command.getInputApp();
     if (app.getLibraryResourceProviders().isEmpty()) {
@@ -891,39 +884,32 @@ public class ToolHelper {
     return compatSink.build();
   }
 
-  public static void addFilteredAndroidJar(BaseCommand.Builder builder, AndroidApiLevel apiLevel)
-      throws IOException {
+  public static void addFilteredAndroidJar(BaseCommand.Builder builder, AndroidApiLevel apiLevel) {
     addFilteredAndroidJar(getAppBuilder(builder), apiLevel);
   }
 
-  public static void addFilteredAndroidJar(AndroidApp.Builder builder, AndroidApiLevel apiLevel)
-      throws IOException {
+  public static void addFilteredAndroidJar(AndroidApp.Builder builder, AndroidApiLevel apiLevel) {
     builder.addFilteredLibraryArchives(Collections.singletonList(
         new FilteredClassPath(getAndroidJar(apiLevel),
             ImmutableList.of("!junit/**", "!android/test/**"))));
   }
 
-  public static AndroidApp runD8(AndroidApp app) throws IOException {
+  public static AndroidApp runD8(AndroidApp app) throws CompilationFailedException {
     return runD8(app, null);
   }
 
   public static AndroidApp runD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws IOException {
-    try {
-      return runD8(D8Command.builder(app), optionsConsumer);
-    } catch (CompilationFailedException e) {
-      throw new RuntimeException(e);
-    }
+      throws CompilationFailedException {
+    return runD8(D8Command.builder(app), optionsConsumer);
   }
 
-  public static AndroidApp runD8(D8Command.Builder builder)
-      throws IOException, CompilationFailedException {
+  public static AndroidApp runD8(D8Command.Builder builder) throws CompilationFailedException {
     return runD8(builder, null);
   }
 
   public static AndroidApp runD8(
       D8Command.Builder builder, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(builder);
     D8Command command = builder.build();
     InternalOptions options = command.getInternalOptions();

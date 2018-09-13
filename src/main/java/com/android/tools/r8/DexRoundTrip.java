@@ -5,10 +5,8 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -20,11 +18,10 @@ public class DexRoundTrip {
     InternalOptions options = command.getInternalOptions();
     AndroidApp app = command.getInputApp();
     options.passthroughDexCode = false;
-    ExceptionUtils.withD8CompilationHandler(options.reporter, () -> D8.runForTesting(app, options));
+    D8.runForTesting(app, options);
   }
 
-  public static void main(String[] args)
-      throws CompilationFailedException, IOException, ResourceException {
+  public static void main(String[] args) throws CompilationFailedException {
     D8Command.Builder builder = D8Command.builder();
     for (String arg : args) {
       Path file = Paths.get(arg);

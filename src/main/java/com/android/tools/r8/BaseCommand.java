@@ -172,7 +172,7 @@ public abstract class BaseCommand {
                   try {
                     app.addProgramFile(path);
                     programFiles.add(path);
-                  } catch (IOException | CompilationError e) {
+                  } catch (CompilationError e) {
                     error(new ProgramInputOrigin(path), e);
                   }
                 });

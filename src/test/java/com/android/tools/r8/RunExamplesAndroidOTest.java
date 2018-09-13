@@ -149,7 +149,7 @@ public abstract class RunExamplesAndroidOTest
 
     void run() throws Throwable {
       if (minSdkErrorExpected(testName)) {
-        thrown.expect(ApiLevelException.class);
+        thrown.expect(CompilationFailedException.class);
       }
 
       String qualifiedMainClass = packageName + "." + mainClass;

@@ -5,12 +5,12 @@ package com.android.tools.r8.jasmin;
 
 import static java.util.Collections.emptyList;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.utils.ThrowingBiFunction;
@@ -572,7 +572,7 @@ public class MemberResolutionTest extends JasminTestBase {
             ProcessResult result = process.get();
             Assert.assertFalse(compiler != null && predicate.test(compiler));
             Assert.assertTrue(result.stderr.contains(name));
-          } catch (CompilationError e) {
+          } catch (CompilationFailedException e) {
             Assert.assertTrue(compiler == null || predicate.test(compiler));
           } catch (Exception e) {
             Assert.fail();

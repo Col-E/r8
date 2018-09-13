@@ -8,9 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -94,17 +92,17 @@ public class AsmTestBase extends TestBase {
       throws Exception {
     // TODO(zerny): Port this to use diagnostics handler.
     AndroidApp app = buildAndroidApp(classes);
-    CompilationError r8Error = null;
-    CompilationError r8ShakenError = null;
+    CompilationFailedException r8Error = null;
+    CompilationFailedException r8ShakenError = null;
     try {
       runOnArtRaw(compileWithR8(app), main);
-    } catch (CompilationError e) {
+    } catch (CompilationFailedException e) {
       r8Error = e;
     }
     try {
       runOnArtRaw(compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n"),
           main);
-    } catch (CompilationError e) {
+    } catch (CompilationFailedException e) {
       r8ShakenError = e;
     }
     Assert.assertNotNull(r8Error);
@@ -112,7 +110,7 @@ public class AsmTestBase extends TestBase {
   }
 
   protected void ensureSameOutputAfterMerging(String main, byte[]... classes)
-      throws IOException, CompilationFailedException, ProguardRuleParserException {
+      throws IOException, CompilationFailedException {
     AndroidApp app = buildAndroidApp(classes);
     // Compile to dex files with D8.
     AndroidApp dexApp = compileWithD8(app);

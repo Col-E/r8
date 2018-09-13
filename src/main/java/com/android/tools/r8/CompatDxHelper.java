@@ -6,10 +6,10 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import java.io.IOException;
 
 public class CompatDxHelper {
-  public static void run(D8Command command, Boolean minimalMainDex) throws IOException {
+  public static void run(D8Command command, Boolean minimalMainDex)
+      throws CompilationFailedException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
     // DX does not desugar.

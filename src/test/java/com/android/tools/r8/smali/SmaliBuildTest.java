@@ -6,6 +6,7 @@ package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -28,7 +29,7 @@ public class SmaliBuildTest extends SmaliTestBase {
   }
 
   @Test
-  public void buildWithoutLibrary() {
+  public void buildWithoutLibrary() throws CompilationFailedException {
     // Build simple "Hello, world!" application.
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
     builder.addMainMethod(

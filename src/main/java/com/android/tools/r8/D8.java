@@ -110,7 +110,7 @@ public final class D8 {
     }
     InternalOptions options = command.getInternalOptions();
     AndroidApp app = command.getInputApp();
-    ExceptionUtils.withD8CompilationHandler(options.reporter, () -> runForTesting(app, options));
+    runForTesting(app, options);
   }
 
   /**
@@ -126,13 +126,18 @@ public final class D8 {
     ExceptionUtils.withMainProgramHandler(() -> run(args));
   }
 
-  static void runForTesting(AndroidApp inputApp, InternalOptions options) throws IOException {
+  static void runForTesting(AndroidApp inputApp, InternalOptions options)
+      throws CompilationFailedException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
-    try {
-      run(inputApp, options, executor);
-    } finally {
-      executor.shutdown();
-    }
+    ExceptionUtils.withD8CompilationHandler(
+        options.reporter,
+        () -> {
+          try {
+            run(inputApp, options, executor);
+          } finally {
+            executor.shutdown();
+          }
+        });
   }
 
   // Compute the marker to be placed in the main dex file.

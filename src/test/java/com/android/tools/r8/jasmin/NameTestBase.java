@@ -7,8 +7,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.InvalidPathException;
 import java.util.Arrays;
@@ -112,8 +112,8 @@ class NameTestBase extends JasminTestBase {
       try {
         runOnArtD8(jasminBuilder, mainClassName);
         fail("D8 should have rejected this case.");
-      } catch (CompilationError t) {
-        assertTrue(t.getMessage().contains(expectedNameInFailingD8Message));
+      } catch (CompilationFailedException t) {
+        assertTrue(t.getCause().getMessage().contains(expectedNameInFailingD8Message));
       }
 
       // Make sure ART also fail, if D8 rejects it.

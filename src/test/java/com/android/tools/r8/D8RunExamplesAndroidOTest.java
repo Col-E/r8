@@ -4,20 +4,15 @@
 
 package com.android.tools.r8;
 
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.InternalCompilerError;
-import com.android.tools.r8.errors.Unimplemented;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
 import java.nio.file.Path;
 import java.util.function.UnaryOperator;
-import org.hamcrest.core.CombinableMatcher;
-import org.hamcrest.core.IsInstanceOf;
-import org.hamcrest.core.StringContains;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
-import org.junit.internal.matchers.ThrowableMessageMatcher;
 
 public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command.Builder> {
 
@@ -37,7 +32,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
     }
 
     @Override
-    void build(Path inputFile, Path out, OutputMode mode) throws Throwable {
+    void build(Path inputFile, Path out, OutputMode mode) throws CompilationFailedException {
       D8Command.Builder builder = D8Command.builder().setOutput(out, mode);
       for (UnaryOperator<D8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
@@ -46,13 +41,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
           ToolHelper.getAndroidJar(
               androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
       builder.addProgramFiles(inputFile);
-      try {
-        ToolHelper.runD8(builder, this::combinedOptionConsumer);
-      } catch (Unimplemented | CompilationError | InternalCompilerError re) {
-        throw re;
-      } catch (RuntimeException re) {
-        throw re.getCause() == null ? re : re.getCause();
-      }
+      ToolHelper.runD8(builder, this::combinedOptionConsumer);
     }
 
     D8TestRunner withIntermediate(boolean intermediate) {
@@ -77,7 +66,7 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
 
       // compilation should have failed on CompilationError since A is declaring a default method.
       Assert.fail();
-    } catch (CompilationError e) {
+    } catch (CompilationFailedException e) {
       // Expected.
     }
   }
@@ -363,13 +352,14 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
             .withClasspath(lib1.getInputJar())
             .withClasspath(lib2.getInputJar())
             .withMinApiLevel(minApi);
-    thrown.expect(
-        new CombinableMatcher<CompilationError>(new IsInstanceOf(CompilationError.class))
-        .and(new ThrowableMessageMatcher<CompilationError>(
-            new StringContains("desugaringwithmissingclasstest2.ImplementMethodsWithDefault")))
-        .and(new ThrowableMessageMatcher<CompilationError>(
-            new StringContains("desugaringwithmissingclasslib3.C"))));
-    test.build();
+    try {
+      test.build();
+      Assert.fail("Expected build to fail with CompilationFailedException");
+    } catch (CompilationFailedException e) {
+      String message = e.getCause().getMessage();
+      assertTrue(message.contains("desugaringwithmissingclasstest2.ImplementMethodsWithDefault"));
+      assertTrue(message.contains("desugaringwithmissingclasslib3.C"));
+    }
   }
 
   @Test

@@ -12,7 +12,6 @@ import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceProvider;
-import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DirectoryClassFileProvider;
@@ -303,12 +302,12 @@ public class AndroidApp {
     }
 
     /** Add program file resources. */
-    public Builder addProgramFiles(Path... files) throws NoSuchFileException {
+    public Builder addProgramFiles(Path... files) {
       return addProgramFiles(Arrays.asList(files));
     }
 
     /** Add program file resources. */
-    public Builder addProgramFiles(Collection<Path> files) throws NoSuchFileException {
+    public Builder addProgramFiles(Collection<Path> files) {
       for (Path file : files) {
         addProgramFile(file);
       }
@@ -366,12 +365,12 @@ public class AndroidApp {
     }
 
     /** Add library file resources. */
-    public Builder addLibraryFiles(Path... files) throws IOException {
+    public Builder addLibraryFiles(Path... files) {
       return addLibraryFiles(Arrays.asList(files));
     }
 
     /** Add library file resources. */
-    public Builder addLibraryFiles(Collection<Path> files) throws IOException {
+    public Builder addLibraryFiles(Collection<Path> files) {
       for (Path file : files) {
         addClasspathOrLibraryProvider(file, libraryResourceProviders);
       }
@@ -578,9 +577,11 @@ public class AndroidApp {
           mainDexListClasses);
     }
 
-    public void addProgramFile(Path file) throws NoSuchFileException {
+    public void addProgramFile(Path file) {
       if (!Files.exists(file)) {
-        throw new NoSuchFileException(file.toString());
+        PathOrigin pathOrigin = new PathOrigin(file);
+        NoSuchFileException noSuchFileException = new NoSuchFileException(file.toString());
+        reporter.error(new ExceptionDiagnostic(noSuchFileException, pathOrigin));
       }
       if (isDexFile(file)) {
         addProgramResources(ProgramResource.fromFile(Kind.DEX, file));
@@ -610,12 +611,18 @@ public class AndroidApp {
     }
 
     private void addClasspathOrLibraryProvider(
-        Path file, List<ClassFileResourceProvider> providerList) throws IOException {
+        Path file, List<ClassFileResourceProvider> providerList) {
       if (!Files.exists(file)) {
-        throw new NoSuchFileException(file.toString());
+        reporter.error(
+            new ExceptionDiagnostic(
+                new NoSuchFileException(file.toString()), new PathOrigin(file)));
       }
       if (isArchive(file)) {
-        providerList.add(new ArchiveClassFileProvider(file));
+        try {
+          providerList.add(new ArchiveClassFileProvider(file));
+        } catch (IOException e) {
+          reporter.error(new ExceptionDiagnostic(e, new PathOrigin(file)));
+        }
       } else if (Files.isDirectory(file) ) {
         providerList.add(DirectoryClassFileProvider.fromDirectory(file));
       } else {

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -175,7 +176,7 @@ public class TargetLookupTest extends SmaliTestBase {
   }
 
   @Test
-  public void lookupFieldWithDefaultInInterface() {
+  public void lookupFieldWithDefaultInInterface() throws CompilationFailedException {
     SmaliBuilder builder = new SmaliBuilder();
 
     builder.addInterface("Interface");

@@ -106,10 +106,8 @@ public class TestBase {
     return file;
   }
 
-  /**
-   * Build an AndroidApp with the specified test classes as byte array.
-   */
-  protected AndroidApp buildAndroidApp(byte[]... classes) throws IOException {
+  /** Build an AndroidApp with the specified test classes as byte array. */
+  protected AndroidApp buildAndroidApp(byte[]... classes) {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (byte[] clazz : classes) {
       builder.addClassProgramData(clazz, Origin.unknown());
@@ -342,7 +340,8 @@ public class TestBase {
   }
 
   /** Compile an application with R8. */
-  protected AndroidApp compileWithR8(Class... classes) throws IOException {
+  protected AndroidApp compileWithR8(Class... classes)
+      throws IOException, CompilationFailedException {
     return ToolHelper.runR8(readClasses(classes));
   }
 

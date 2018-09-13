@@ -139,7 +139,7 @@ public abstract class RunExamplesJava9Test
 
     void run() throws Throwable {
       if (minSdkErrorExpected(testName)) {
-        thrown.expect(ApiLevelException.class);
+        thrown.expect(CompilationFailedException.class);
       }
 
       String qualifiedMainClass = packageName + "." + mainClass;

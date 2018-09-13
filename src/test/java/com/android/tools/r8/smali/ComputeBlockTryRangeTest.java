@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.smali;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
@@ -13,7 +14,7 @@ import org.junit.Test;
 public class ComputeBlockTryRangeTest extends SmaliTestBase {
 
   @Test
-  public void jumpIntoTryRange() {
+  public void jumpIntoTryRange() throws CompilationFailedException {
 
     SmaliBuilder builder = new SmaliBuilder("Test");
 

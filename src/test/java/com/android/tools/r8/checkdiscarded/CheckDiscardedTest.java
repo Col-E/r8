@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.checkdiscarded;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.checkdiscarded.testclasses.Main;
 import com.android.tools.r8.checkdiscarded.testclasses.UnusedClass;
 import com.android.tools.r8.checkdiscarded.testclasses.UsedClass;
 import com.android.tools.r8.checkdiscarded.testclasses.WillBeGone;
 import com.android.tools.r8.checkdiscarded.testclasses.WillStay;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -28,7 +28,7 @@ public class CheckDiscardedTest extends TestBase {
         + checkDiscardRule(checkMembers, annotation);
     try {
       compileWithR8(classes, proguardConfig, this::noInlining);
-    } catch (CompilationError e) {
+    } catch (CompilationFailedException e) {
       Assert.assertTrue(shouldFail);
       return;
     }

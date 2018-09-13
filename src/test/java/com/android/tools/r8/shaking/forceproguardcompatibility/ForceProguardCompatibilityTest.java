@@ -9,10 +9,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompatProguardCommandBuilder;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.invokesuper.Consumer;
@@ -588,7 +588,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     builder.setProgramConsumer(emptyConsumer(backend)).addLibraryFiles(runtimeJar(backend));
     try {
       app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    } catch (CompilationError e) {
+    } catch (CompilationFailedException e) {
       assertTrue(!forceProguardCompatibility && (!innerClasses || !enclosingMethod));
       return;
     }

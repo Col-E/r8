@@ -185,7 +185,7 @@ public class MainDexListTests extends TestBase {
     try {
       verifyMainDexContains(TWO_LARGE_CLASSES, getTwoLargeClassesAppPath(), false);
       fail("Expect to fail, for there are too many classes for the main-dex list.");
-    } catch (AbortException e) {
+    } catch (CompilationFailedException e) {
       assertEquals(1, errors.size());
       String message = errors.get(0).getDiagnosticMessage();
       // Make sure {@link MonoDexDistributor} was _not_ used.
@@ -229,7 +229,7 @@ public class MainDexListTests extends TestBase {
     try {
       verifyMainDexContains(MANY_CLASSES, getManyClassesMultiDexAppPath(), false);
       fail("Expect to fail, for there are too many classes for the main-dex list.");
-    } catch (AbortException e) {
+    } catch (CompilationFailedException e) {
       assertEquals(1, errors.size());
       String message = errors.get(0).getDiagnosticMessage();
       // Make sure {@link MonoDexDistributor} was _not_ used.

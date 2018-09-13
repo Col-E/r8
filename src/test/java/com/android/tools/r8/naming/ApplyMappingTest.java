@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
@@ -17,7 +18,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -287,8 +287,8 @@ public class ApplyMappingTest extends TestBase {
     try {
       runR8(getCommandForApps(out, flag, MINIFICATION_JAR).build());
       fail("Expect to detect renaming conflict");
-    } catch (ProguardMapError e) {
-      assertTrue(e.getMessage().contains("functionFromIntToInt"));
+    } catch (CompilationFailedException e) {
+      assertTrue(e.getCause().getMessage().contains("functionFromIntToInt"));
     }
   }
 
@@ -310,8 +310,7 @@ public class ApplyMappingTest extends TestBase {
         .addProguardConfigurationFiles(flag);
   }
 
-  private static AndroidApp runR8(R8Command command)
-      throws ProguardRuleParserException, ExecutionException, IOException {
+  private static AndroidApp runR8(R8Command command) throws CompilationFailedException {
     return ToolHelper.runR8(
         command,
         options -> {

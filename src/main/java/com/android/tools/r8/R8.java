@@ -126,16 +126,7 @@ public class R8 {
   public static void run(R8Command command) throws CompilationFailedException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
-    ExecutorService executor = ThreadUtils.getExecutorService(options);
-    ExceptionUtils.withR8CompilationHandler(
-        command.getReporter(),
-        () -> {
-          try {
-            run(app, options, executor);
-          } finally {
-            executor.shutdown();
-          }
-        });
+    runForTesting(app, options);
   }
 
   /**
@@ -218,13 +209,18 @@ public class R8 {
     return result;
   }
 
-  static void runForTesting(AndroidApp app, InternalOptions options) throws IOException {
+  static void runForTesting(AndroidApp app, InternalOptions options)
+      throws CompilationFailedException {
     ExecutorService executor = ThreadUtils.getExecutorService(options);
-    try {
-      run(app, options, executor);
-    } finally {
-      executor.shutdown();
-    }
+    ExceptionUtils.withR8CompilationHandler(
+        options.reporter,
+        () -> {
+          try {
+            run(app, options, executor);
+          } finally {
+            executor.shutdown();
+          }
+        });
   }
 
   private static void run(AndroidApp app, InternalOptions options, ExecutorService executor)
