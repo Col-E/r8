@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.Sets;
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
@@ -136,6 +137,8 @@ public class ReasonPrinter {
 
     private int indentation = -1;
 
+    private PrintStream output = System.out;
+
     void pushIsLivePrefix() {
       prefixes.push("is live because ");
     }
@@ -159,27 +162,27 @@ public class ReasonPrinter {
     void startItem(DexItem item) {
       indentation++;
       indent();
-      System.out.println(item.toSourceString());
+      output.println(item.toSourceString());
     }
 
     private void indent() {
       for (int i = 0; i < indentation; i++) {
-        System.out.print("  ");
+        output.print("  ");
       }
     }
 
     void addReason(String thing) {
       indent();
-      System.out.print("|- ");
+      output.print("|- ");
       String prefix = prefixes.peek();
-      System.out.print(prefix);
-      System.out.println(thing);
+      output.print(prefix);
+      output.println(thing);
     }
 
     void addMessage(String thing) {
       indent();
-      System.out.print("|  ");
-      System.out.println(thing);
+      output.print("|  ");
+      output.println(thing);
     }
 
     void endItem() {
