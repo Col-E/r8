@@ -1296,13 +1296,13 @@ public class ToolHelper {
     return runArtNoVerificationErrorsRaw(files, mainClass, extras, version).stdout;
   }
 
-  private static void failOnProcessFailure(ProcessResult result) {
+  protected static void failOnProcessFailure(ProcessResult result) {
     if (result.exitCode != 0) {
-      fail("Unexpected art failure: '" + result.stderr + "'\n" + result.stdout);
+      fail("Unexpected failure: '" + result.stderr + "'\n" + result.stdout);
     }
   }
 
-  private static void failOnVerificationErrors(ProcessResult result) {
+  protected static void failOnVerificationErrors(ProcessResult result) {
     if (result.stderr.contains("Verification error")) {
       fail("Verification error: \n" + result.stderr);
     }
