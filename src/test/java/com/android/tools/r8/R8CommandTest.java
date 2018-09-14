@@ -15,6 +15,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -22,10 +23,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -461,6 +465,116 @@ public class R8CommandTest {
             .build());
     assertTrue(Files.exists(emptyZip));
     assertEquals(0, new ZipFile(emptyZip.toFile(), StandardCharsets.UTF_8).size());
+  }
+
+  private Path writeZipWithDataResource(String name) throws Exception {
+    Path dataResourceZip = temp.newFolder().toPath().resolve(name);
+    try (ZipOutputStream out =
+        new ZipOutputStream(
+            Files.newOutputStream(
+                dataResourceZip,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING))) {
+      // Write a directory entry and a normal entry.
+      ZipUtils.writeToZipStream(out, "org/", new byte[] {}, ZipEntry.STORED);
+      ZipUtils.writeToZipStream(
+          out, "org/resource.txt", "Hello world!".getBytes(), ZipEntry.STORED);
+    }
+    return dataResourceZip;
+  }
+
+  @Test
+  public void defaultResourceProcessing() throws Exception {
+    Path dataResourceZip = writeZipWithDataResource("dataResource.zip");
+    Path outputZip = temp.getRoot().toPath().resolve("output.zip");
+    R8.run(
+        R8Command.builder()
+            .addProgramFiles(dataResourceZip)
+            .setOutput(outputZip, OutputMode.ClassFile)
+            .build());
+    assertTrue(Files.exists(outputZip));
+    assertEquals(2, new ZipFile(outputZip.toFile(), StandardCharsets.UTF_8).size());
+  }
+
+  public void runCustomResourceProcessing(boolean includeDataResources, int expectedZipEntries)
+      throws Exception {
+    Path dataResourceZip = writeZipWithDataResource("dataResource.zip");
+    Path outputZip = temp.newFolder().toPath().resolve("output.zip");
+    R8.run(
+        R8Command.builder()
+            .addProgramFiles(dataResourceZip)
+            .setOutput(outputZip, OutputMode.ClassFile, includeDataResources)
+            .build());
+    assertTrue(Files.exists(outputZip));
+    assertEquals(
+        expectedZipEntries, new ZipFile(outputZip.toFile(), StandardCharsets.UTF_8).size());
+  }
+
+  private Path simpleProguardConfiguration() throws Exception {
+    Path proguardConfiguration = temp.newFile("printseedsandprintusage.txt").toPath();
+    FileUtils.writeTextFile(proguardConfiguration, ImmutableList.of("-keep class A { *; }"));
+    return proguardConfiguration;
+  }
+
+  @Test
+  public void noTreeShakingOption() throws Throwable {
+    // Default "keep all" rule implies no tree shaking.
+    assertFalse(parse().getEnableTreeShaking());
+    assertFalse(parse("--no-tree-shaking").getEnableTreeShaking());
+
+    // With a Proguard configuration --no-tree-shaking takes effect.
+    String proguardConfiguration = simpleProguardConfiguration().toAbsolutePath().toString();
+    assertTrue(parse("--pg-conf", proguardConfiguration).getEnableTreeShaking());
+    assertFalse(
+        parse("--no-tree-shaking", "--pg-conf", proguardConfiguration).getEnableTreeShaking());
+  }
+
+  @Test
+  public void noMinificationOption() throws Throwable {
+    // Default "keep all" rule implies no tree minification.
+    assertFalse(parse().getEnableMinification());
+    assertFalse(parse("--no-minification").getEnableMinification());
+
+    // With a Proguard configuration --no-tree-shaking takes effect.
+    String proguardConfiguration = simpleProguardConfiguration().toAbsolutePath().toString();
+    assertTrue(parse("--pg-conf", proguardConfiguration).getEnableMinification());
+    assertFalse(
+        parse("--no-minification", "--pg-conf", proguardConfiguration).getEnableMinification());
+  }
+
+  @Test
+  public void defaultDataResourcesOption() throws Throwable {
+    Path dataResourceZip = writeZipWithDataResource("dataResource.zip");
+    Path outputZip = temp.newFolder().toPath().resolve("output.zip");
+
+    R8.run(
+        parse(
+            dataResourceZip.toAbsolutePath().toString(),
+            "--output",
+            outputZip.toAbsolutePath().toString()));
+    assertTrue(Files.exists(outputZip));
+    assertEquals(2, new ZipFile(outputZip.toFile(), StandardCharsets.UTF_8).size());
+  }
+
+  @Test
+  public void noDataResourcesOption() throws Throwable {
+    Path dataResourceZip = writeZipWithDataResource("dataResource.zip");
+    Path outputZip = temp.newFolder().toPath().resolve("output.zip");
+
+    R8.run(
+        parse(
+            "--no-data-resources",
+            dataResourceZip.toAbsolutePath().toString(),
+            "--output",
+            outputZip.toAbsolutePath().toString()));
+    assertTrue(Files.exists(outputZip));
+    assertEquals(0, new ZipFile(outputZip.toFile(), StandardCharsets.UTF_8).size());
+  }
+
+  @Test
+  public void customResourceProcessing() throws Exception {
+    runCustomResourceProcessing(true, 2);
+    runCustomResourceProcessing(false, 0);
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {

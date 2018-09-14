@@ -239,6 +239,47 @@ public final class R8Command extends BaseCompilerCommand {
       return self();
     }
 
+    /**
+     * Set the output path-and-mode.
+     *
+     * <p>Setting the output path-and-mode will override any previous set consumer or any previous
+     * output path-and-mode, and implicitly sets the appropriate program consumer to write the
+     * output.
+     *
+     * <p>By default data resources from the input will be included in the output. (see {@link
+     * #setOutput(Path, OutputMode, boolean) for details}
+     *
+     * @param outputPath Path to write the output to. Must be an archive or and existing directory.
+     * @param outputMode Mode in which to write the output.
+     */
+    @Override
+    public Builder setOutput(Path outputPath, OutputMode outputMode) {
+      setOutput(outputPath, outputMode, true);
+      return self();
+    }
+
+    /**
+     * Set the output path-and-mode and control if data resources are included.
+     *
+     * <p>In addition to setting the output path-and-mode (see {@link #setOutput(Path, OutputMode)})
+     * this can control if data resources should be included or not.
+     *
+     * <p>Data resources are non Java classfile items in the input.
+     *
+     * <p>If data resources are not included they are ignored in the input and will not produce
+     * anything in the output. If data resources are included they are processed according to the
+     * configuration and written to the output.
+     *
+     * @param outputPath Path to write the output to. Must be an archive or and existing directory.
+     * @param outputMode Mode in which to write the output.
+     * @param includeDataResources If data resources from the input should be included in the
+     *     output.
+     */
+    @Override
+    public Builder setOutput(Path outputPath, OutputMode outputMode, boolean includeDataResources) {
+      return super.setOutput(outputPath, outputMode, includeDataResources);
+    }
+
     @Override
     public Builder addProgramResourceProvider(ProgramResourceProvider programProvider) {
       return super.addProgramResourceProvider(
@@ -250,7 +291,7 @@ public final class R8Command extends BaseCompilerCommand {
         Path path,
         OutputMode mode,
         boolean consumeDataResources) {
-      return super.createProgramOutputConsumer(path, mode, false);
+      return super.createProgramOutputConsumer(path, mode, consumeDataResources);
     }
 
     @Override
