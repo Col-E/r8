@@ -13,6 +13,7 @@ import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.SmaliWriter;
@@ -582,13 +583,8 @@ public class TestBase {
    */
   protected String runOnJava(Class mainClass) throws Exception {
     ProcessResult result = ToolHelper.runJava(mainClass);
-    if (result.exitCode != 0) {
-      System.out.println("Std out:");
-      System.out.println(result.stdout);
-      System.out.println("Std err:");
-      System.out.println(result.stderr);
-      assertEquals(0, result.exitCode);
-    }
+    ToolHelper.failOnProcessFailure(result);
+    ToolHelper.failOnVerificationErrors(result);
     return result.stdout;
   }
 
@@ -604,9 +600,17 @@ public class TestBase {
   }
 
   /** Run application on Java with the specified main class and provided arguments. */
+  protected String runOnJava(AndroidApp app, String mainClass, String... args) throws IOException {
+    return runOnJava(app, mainClass, Arrays.asList(args));
+  }
+
+  /** Run application on Java with the specified main class and provided arguments. */
   protected String runOnJava(AndroidApp app, String mainClass, List<String> args)
       throws IOException {
-    return runOnJavaRaw(app, mainClass, args).stdout;
+    ProcessResult result = runOnJavaRaw(app, mainClass, args);
+    ToolHelper.failOnProcessFailure(result);
+    ToolHelper.failOnVerificationErrors(result);
+    return result.stdout;
   }
 
   protected ProcessResult runOnJavaRawNoVerify(String main, byte[]... classes) throws IOException {
@@ -646,6 +650,18 @@ public class TestBase {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZip(out, OutputMode.ClassFile);
     return ToolHelper.runJavaNoVerify(out, mainClass, args.toArray(new String[0]));
+  }
+
+  /** Run application on Art or Java with the specified main class. */
+  protected String runOnVM(AndroidApp app, String mainClass, Backend backend) throws IOException {
+    switch (backend) {
+      case CF:
+        return runOnJava(app, mainClass);
+      case DEX:
+        return runOnArt(app, mainClass);
+      default:
+        throw new Unreachable("Unexpected backend: " + backend);
+    }
   }
 
   private String extractClassName(byte[] ccc) {
