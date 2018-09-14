@@ -7,6 +7,7 @@ package com.android.tools.r8.desugaring.interfacemethods;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
@@ -20,7 +21,6 @@ import com.android.tools.r8.desugaring.interfacemethods.default2.DerivedComparat
 import com.android.tools.r8.desugaring.interfacemethods.default2.TestMainDefault2;
 import com.android.tools.r8.desugaring.interfacemethods.static0.TestMainStatic0;
 import com.android.tools.r8.desugaring.interfacemethods.static1.TestMainStatic1;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -139,7 +139,7 @@ public class InterfaceMethodDesugaringTests extends AsmTestBase {
         ToolHelper.getClassAsBytes(TestMainDefault0.class));
   }
 
-  @Test(expected = CompilationError.class)
+  @Test(expected = CompilationFailedException.class)
   @IgnoreForRangeOfVmVersions(from = Version.V7_0_0, to = Version.DEFAULT) // No desugaring
   public void testInvokeDefault1() throws Exception {
     ensureSameOutput(
