@@ -235,11 +235,16 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      * @param outputMode Mode in which to write the output.
      */
     public B setOutput(Path outputPath, OutputMode outputMode) {
+      return setOutput(outputPath, outputMode, false);
+    }
+
+    // This is only public in R8Command.
+    protected B setOutput(Path outputPath, OutputMode outputMode, boolean includeDataResources) {
       assert outputPath != null;
       assert outputMode != null;
       this.outputPath = outputPath;
       this.outputMode = outputMode;
-      programConsumer = createProgramOutputConsumer(outputPath, outputMode, false);
+      programConsumer = createProgramOutputConsumer(outputPath, outputMode, includeDataResources);
       return self();
     }
 

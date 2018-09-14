@@ -5,6 +5,9 @@
 package com.android.tools.r8.compatproguard;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.compatproguard.CompatProguard.CompatProguardOptions;
 import org.junit.Test;
@@ -16,9 +19,20 @@ public class CompatProguardTest {
   }
 
   @Test
+  public void testDefaultDataResources() throws Exception {
+    CompatProguardOptions options = parseArgs();
+    assertNull(options.output);
+    assertEquals(1, options.minApi);
+    assertFalse(options.forceProguardCompatibility);
+    assertTrue(options.includeDataResources);
+    assertFalse(options.multiDex);
+    assertNull(options.mainDexList);
+    assertEquals(0, options.proguardConfig.size());
+  }
+
+  @Test
   public void testShortLine() throws Exception {
-    CompatProguardOptions options;
-    options = parseArgs("-");
+    CompatProguardOptions options = parseArgs("-");
     assertEquals(1, options.proguardConfig.size());
   }
 
@@ -65,18 +79,20 @@ public class CompatProguardTest {
 
   @Test
   public void testInclude() throws Exception {
-    CompatProguardOptions options;
-
-    options = parseArgs("-include --my-include-file.txt");
+    CompatProguardOptions options = parseArgs("-include --my-include-file.txt");
     assertEquals(1, options.proguardConfig.size());
     assertEquals("-include --my-include-file.txt", options.proguardConfig.get(0));
   }
 
   @Test
   public void testNoLocalsOption() throws Exception {
-    CompatProguardOptions options;
-
-    options = parseArgs("--no-locals");
+    CompatProguardOptions options = parseArgs("--no-locals");
     assertEquals(0, options.proguardConfig.size());
+  }
+
+  @Test
+  public void testNoDataResources() throws Exception {
+    CompatProguardOptions options = parseArgs("--no-data-resources");
+    assertFalse(options.includeDataResources);
   }
 }

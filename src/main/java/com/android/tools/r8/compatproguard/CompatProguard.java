@@ -34,6 +34,7 @@ public class CompatProguard {
     public final String output;
     public final int minApi;
     public final boolean forceProguardCompatibility;
+    public final boolean includeDataResources;
     public final boolean multiDex;
     public final String mainDexList;
     public final List<String> proguardConfig;
@@ -48,12 +49,14 @@ public class CompatProguard {
         int minApi,
         boolean multiDex,
         boolean forceProguardCompatibility,
+        boolean includeDataResources,
         String mainDexList,
         boolean printHelpAndExit,
         boolean verticalClassMerging) {
       this.output = output;
       this.minApi = minApi;
       this.forceProguardCompatibility = forceProguardCompatibility;
+      this.includeDataResources = includeDataResources;
       this.multiDex = multiDex;
       this.mainDexList = mainDexList;
       this.proguardConfig = proguardConfig;
@@ -65,6 +68,7 @@ public class CompatProguard {
       String output = null;
       int minApi = 1;
       boolean forceProguardCompatibility = false;
+      boolean includeDataResources = true;
       boolean multiDex = false;
       String mainDexList = null;
       boolean printHelpAndExit = false;
@@ -87,6 +91,8 @@ public class CompatProguard {
               minApi = Integer.valueOf(args[++i]);
             } else if (arg.equals("--force-proguard-compatibility")) {
               forceProguardCompatibility = true;
+            } else if (arg.equals("--no-data-resources")) {
+              includeDataResources = false;
             } else if (arg.equals("--output")) {
               output = args[++i];
             } else if (arg.equals("--multi-dex")) {
@@ -129,6 +135,7 @@ public class CompatProguard {
           minApi,
           multiDex,
           forceProguardCompatibility,
+          includeDataResources,
           mainDexList,
           printHelpAndExit,
           verticalClassMerging);
@@ -142,6 +149,8 @@ public class CompatProguard {
       System.out.println("--multi-dex          : ignored (provided for compatibility)");
       System.out.println("--no-locals          : ignored (provided for compatibility)");
       System.out.println("--core-library       : ignored (provided for compatibility)");
+      System.out.println("--force-proguard-compatibility : Proguard compatibility mode");
+      System.out.println("--no-data-resources  : ignore all data resources");
     }
   }
 
@@ -170,7 +179,7 @@ public class CompatProguard {
         new CompatProguardCommandBuilder(
             options.forceProguardCompatibility, options.enableVerticalClassMerging);
     builder
-        .setOutput(Paths.get(options.output), OutputMode.DexIndexed)
+        .setOutput(Paths.get(options.output), OutputMode.DexIndexed, options.includeDataResources)
         .addProguardConfiguration(options.proguardConfig, CommandLineOrigin.INSTANCE)
         .setMinApiLevel(options.minApi);
     if (options.mainDexList != null) {

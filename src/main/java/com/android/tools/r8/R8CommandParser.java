@@ -27,6 +27,7 @@ public class R8CommandParser extends BaseCompilerCommandParser {
     OutputMode outputMode = null;
     Path outputPath = null;
     boolean hasDefinedApiLevel = false;
+    private boolean includeDataResources = true;
   }
 
   static final String USAGE_MESSAGE =
@@ -49,6 +50,7 @@ public class R8CommandParser extends BaseCompilerCommandParser {
               "  --pg-map-output <file>   # Output the resulting name and line mapping to <file>.",
               "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
               "  --no-minification        # Force disable minification of names.",
+              "  --no-data-resources      # Ignore all data resources.",
               "  --no-desugaring          # Force disable desugaring.",
               "  --main-dex-rules <file>  # Proguard keep rules for classes to place in the",
               "                           # primary dex file.",
@@ -91,7 +93,7 @@ public class R8CommandParser extends BaseCompilerCommandParser {
     }
     Path outputPath = state.outputPath != null ? state.outputPath : Paths.get(".");
     OutputMode outputMode = state.outputMode != null ? state.outputMode : OutputMode.DexIndexed;
-    builder.setOutput(outputPath, outputMode);
+    builder.setOutput(outputPath, outputMode, state.includeDataResources);
     return builder;
   }
 
@@ -175,6 +177,8 @@ public class R8CommandParser extends BaseCompilerCommandParser {
         builder.addProguardConfigurationFiles(Paths.get(expandedArgs[++i]));
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutputPath(Paths.get(expandedArgs[++i]));
+      } else if (arg.equals("--no-data-resources")) {
+        state.includeDataResources = false;
       } else {
         if (arg.startsWith("--")) {
           builder.error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));
