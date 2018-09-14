@@ -76,7 +76,13 @@ public class AppInfo {
   }
 
   public DexEncodedMethod definitionFor(DexMethod method) {
-    return (DexEncodedMethod) getDefinitions(method.getHolder()).get(method);
+    DexType holderType = method.getHolder();
+    DexEncodedMethod cached = (DexEncodedMethod) getDefinitions(holderType).get(method);
+    if (cached != null && cached.isObsolete()) {
+      definitions.remove(holderType);
+      cached = (DexEncodedMethod) getDefinitions(holderType).get(method);
+    }
+    return cached;
   }
 
   public DexEncodedField definitionFor(DexField field) {

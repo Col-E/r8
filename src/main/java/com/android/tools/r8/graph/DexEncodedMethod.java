@@ -104,6 +104,28 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
   private int classFileVersion = -1;
 
+  // This flag indicates the current instance is no longer up-to-date as another instance was
+  // created based on this. Any further (public) operations on this instance will raise an error
+  // to catch potential bugs due to the inconsistency (e.g., http://b/111893131)
+  // Any newly added `public` method should check if `this` instance is obsolete.
+  private boolean obsolete = false;
+
+  private void checkIfObsolete() {
+    assert !obsolete;
+  }
+
+  public boolean isObsolete() {
+    // Do not be cheating. This util can be used only if you're going to do appropriate action,
+    // e.g., using GraphLense#mapDexEncodedMethod to look up the correct, up-to-date instance.
+    return obsolete;
+  }
+
+  private void setObsolete() {
+    // By assigning an Exception, you can see when/how this instance becomes obsolete v.s.
+    // when/how such obsolete instance is used.
+    obsolete = true;
+  }
+
   public DexEncodedMethod(
       DexMethod method,
       MethodAccessFlags accessFlags,
@@ -131,18 +153,22 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public boolean isProcessed() {
+    checkIfObsolete();
     return compilationState != CompilationState.NOT_PROCESSED;
   }
 
   public boolean isInstanceInitializer() {
+    checkIfObsolete();
     return accessFlags.isConstructor() && !accessFlags.isStatic();
   }
 
   public boolean isDefaultInitializer() {
+    checkIfObsolete();
     return isInstanceInitializer() && method.proto.parameters.isEmpty();
   }
 
   public boolean isClassInitializer() {
+    checkIfObsolete();
     return accessFlags.isConstructor() && accessFlags.isStatic();
   }
 
@@ -151,6 +177,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
    * invoke-interface.
    */
   public boolean isVirtualMethod() {
+    checkIfObsolete();
     return !accessFlags.isStatic() && !accessFlags.isPrivate() && !accessFlags.isConstructor();
   }
 
@@ -159,18 +186,22 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
    * and is non-abstract.
    */
   public boolean isNonAbstractVirtualMethod() {
+    checkIfObsolete();
     return isVirtualMethod() && !accessFlags.isAbstract();
   }
 
   public boolean isPublicized() {
+    checkIfObsolete();
     return optimizationInfo.isPublicized();
   }
 
   public boolean isPublicMethod() {
+    checkIfObsolete();
     return accessFlags.isPublic();
   }
 
   public boolean isPrivateMethod() {
+    checkIfObsolete();
     return accessFlags.isPrivate();
   }
 
@@ -178,6 +209,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
    * Returns true if this method can be invoked via invoke-direct.
    */
   public boolean isDirectMethod() {
+    checkIfObsolete();
     return (accessFlags.isPrivate() || accessFlags.isConstructor()) && !accessFlags.isStatic();
   }
 
@@ -185,25 +217,27 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
    * Returns true if this method can be invoked via invoke-static.
    */
   public boolean isStaticMethod() {
+    checkIfObsolete();
     return accessFlags.isStatic();
   }
-
 
   /**
    * Returns true if this method is synthetic.
    */
   public boolean isSyntheticMethod() {
+    checkIfObsolete();
     return accessFlags.isSynthetic();
   }
 
-
-  public boolean isInliningCandidate(DexEncodedMethod container, Reason inliningReason,
-      AppInfoWithSubtyping appInfo) {
+  public boolean isInliningCandidate(
+      DexEncodedMethod container, Reason inliningReason, AppInfoWithSubtyping appInfo) {
+    checkIfObsolete();
     return isInliningCandidate(container.method.getHolder(), inliningReason, appInfo);
   }
 
-  public boolean isInliningCandidate(DexType containerType, Reason inliningReason,
-      AppInfoWithSubtyping appInfo) {
+  public boolean isInliningCandidate(
+      DexType containerType, Reason inliningReason, AppInfoWithSubtyping appInfo) {
+    checkIfObsolete();
     if (isClassInitializer()) {
       // This will probably never happen but never inline a class initializer.
       return false;
@@ -229,6 +263,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public boolean markProcessed(ConstraintWithTarget state) {
+    checkIfObsolete();
     CompilationState prevCompilationState = compilationState;
     switch (state.constraint) {
       case ALWAYS:
@@ -251,16 +286,19 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public void markNotProcessed() {
+    checkIfObsolete();
     compilationState = CompilationState.NOT_PROCESSED;
   }
 
   public IRCode buildIR(
       AppInfo appInfo, GraphLense graphLense, InternalOptions options, Origin origin) {
+    checkIfObsolete();
     return code == null ? null : code.buildIR(this, appInfo, graphLense, options, origin);
   }
 
   public IRCode buildInliningIRForTesting(
       InternalOptions options, ValueNumberGenerator valueNumberGenerator) {
+    checkIfObsolete();
     return buildInliningIR(
         null, GraphLense.getIdentityLense(), options, valueNumberGenerator, null, Origin.unknown());
   }
@@ -272,32 +310,34 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
+    checkIfObsolete();
     return code.buildInliningIR(
         this, appInfo, graphLense, options, valueNumberGenerator, callerPosition, origin);
   }
 
   public void setCode(Code code) {
+    checkIfObsolete();
     voidCodeOwnership();
     this.code = code;
     setCodeOwnership();
   }
 
-  public void setCode(
-      IRCode ir,
-      RegisterAllocator registerAllocator,
-      InternalOptions options) {
+  public void setCode(IRCode ir, RegisterAllocator registerAllocator, InternalOptions options) {
+    checkIfObsolete();
     final DexBuilder builder = new DexBuilder(ir, registerAllocator, options);
     setCode(builder.build(method.getArity()));
   }
 
   @Override
   public String toString() {
+    checkIfObsolete();
     return "Encoded method " + method;
   }
 
   @Override
   public void collectIndexedItems(IndexedItemCollection indexedItems,
       DexMethod method, int instructionOffset) {
+    checkIfObsolete();
     this.method.collectIndexedItems(indexedItems);
     if (code != null) {
       code.collectIndexedItems(indexedItems, this.method);
@@ -324,10 +364,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public Code getCode() {
+    checkIfObsolete();
     return code;
   }
 
   public void removeCode() {
+    checkIfObsolete();
     voidCodeOwnership();
     code = null;
   }
@@ -345,34 +387,41 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public boolean hasDebugPositions() {
+    checkIfObsolete();
     assert code != null && code.isDexCode();
     return code.asDexCode().hasDebugPositions();
   }
 
   public int getClassFileVersion() {
+    checkIfObsolete();
     assert classFileVersion >= 0;
     return classFileVersion;
   }
 
   public boolean hasClassFileVersion() {
+    checkIfObsolete();
     return classFileVersion >= 0;
   }
 
   public void upgradeClassFileVersion(int version) {
+    checkIfObsolete();
     assert version >= 0;
     assert !hasClassFileVersion() || version >= getClassFileVersion();
     classFileVersion = version;
   }
 
   public String qualifiedName() {
+    checkIfObsolete();
     return method.qualifiedName();
   }
 
   public String descriptor() {
+    checkIfObsolete();
     return descriptor(NamingLens.getIdentityLens());
   }
 
   public String descriptor(NamingLens namingLens) {
+    checkIfObsolete();
     StringBuilder builder = new StringBuilder();
     builder.append("(");
     for (DexType type : method.proto.parameters.values) {
@@ -384,6 +433,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public String toSmaliString(ClassNameMapper naming) {
+    checkIfObsolete();
     StringBuilder builder = new StringBuilder();
     builder.append(".method ");
     builder.append(accessFlags.toSmaliString());
@@ -404,10 +454,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   @Override
   public String toSourceString() {
+    checkIfObsolete();
     return method.toSourceString();
   }
 
   public DexEncodedMethod toAbstractMethod() {
+    checkIfObsolete();
     // 'final' wants this to be *not* overridden, while 'abstract' wants this to be implemented in
     // a subtype, i.e., self contradict.
     assert !accessFlags.isFinal();
@@ -442,15 +494,22 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public DexEncodedMethod toEmptyThrowingMethodDex() {
+    checkIfObsolete();
     assert !shouldNotHaveCode();
     Builder builder = builder(this);
     Instruction insn[] = {new Const(0, 0), new Throw(0)};
     DexCode emptyThrowingCode = generateCodeFromTemplate(1, 0, insn);
     builder.setCode(emptyThrowingCode);
+    // Note that we are not marking this instance obsolete, since this util is only used by
+    // TreePruner while keeping non-live yet targeted, empty method. Such method can be retrieved
+    // again only during the 2nd round of tree sharking, and seeing an obsolete empty body v.s.
+    // seeing this empty throwing code do not matter.
+    // If things are changed, the cure point is obsolete instances inside RootSet.
     return builder.build();
   }
 
   public DexEncodedMethod toEmptyThrowingMethodCf() {
+    checkIfObsolete();
     assert !shouldNotHaveCode();
     Builder builder = builder(this);
     CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
@@ -463,10 +522,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
             Collections.emptyList(),
             Collections.emptyList());
     builder.setCode(emptyThrowingCode);
+    // Note that we are not marking this instance obsolete:
+    //   refer to Dex-backend version of this method above.
     return builder.build();
   }
 
   public DexEncodedMethod toMethodThatLogsError(DexItemFactory itemFactory) {
+    checkIfObsolete();
     Signature signature = MethodSignature.fromDexMethod(method);
     // TODO(herhut): Construct this out of parts to enable reuse, maybe even using descriptors.
     DexString message = itemFactory.createString(
@@ -508,29 +570,38 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
     Builder builder = builder(this);
     builder.setCode(code);
+    setObsolete();
     return builder.build();
   }
 
   public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method) {
+    checkIfObsolete();
     if (this.method == method) {
       return this;
     }
     Builder builder = builder(this);
     builder.setMethod(method);
+    // TODO(b/112847660): Fix type fixers that use this method: ProguardMapApplier
+    // TODO(b/112847660): Fix type fixers that use this method: Staticizer
+    // TODO(b/112847660): Fix type fixers that use this method: VerticalClassMerger
+    // setObsolete();
     return builder.build();
   }
 
   public DexEncodedMethod toRenamedMethod(DexString name, DexItemFactory factory) {
+    checkIfObsolete();
     if (method.name == name) {
       return this;
     }
     DexMethod newMethod = factory.createMethod(method.holder, method.proto, name);
     Builder builder = builder(this);
     builder.setMethod(newMethod);
+    setObsolete();
     return builder.build();
   }
 
   public DexEncodedMethod toForwardingMethod(DexClass holder, DexItemFactory itemFactory) {
+    checkIfObsolete();
     assert accessFlags.isPublic();
     // Clear the final flag, as this method is now overwritten. Do this before creating the builder
     // for the forwarding method, as the forwarding method will copy the access flags from this,
@@ -566,14 +637,18 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
               }));
     }
     builder.accessFlags.setSynthetic();
+    // Note that we are not marking this instance obsolete, since it is not: the newly synthesized
+    // forwarding method has a separate code that literally forwards to the current method.
     return builder.build();
   }
 
   public DexEncodedMethod toStaticMethodWithoutThis() {
+    checkIfObsolete();
     assert !accessFlags.isStatic();
     Builder builder = builder(this);
     builder.setStatic();
     builder.withoutThisParameter();
+    setObsolete();
     return builder.build();
   }
 
@@ -584,8 +659,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
    * this will also update the highestSortingString to the index of the strings up to which the code
    * was rewritten to avoid rewriting again unless needed.
    */
-  public synchronized void rewriteCodeWithJumboStrings(ObjectToOffsetMapping mapping,
-      DexApplication application, boolean force) {
+  public synchronized void rewriteCodeWithJumboStrings(
+      ObjectToOffsetMapping mapping, DexApplication application, boolean force) {
+    checkIfObsolete();
     assert code == null || code.isDexCode();
     if (code == null) {
       return;
@@ -606,34 +682,42 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public String codeToString() {
+    checkIfObsolete();
     return code == null ? "<no code>" : code.toString(this, null);
   }
 
   @Override
   public DexMethod getKey() {
+    // Here, we can't check if the current instance of DexEncodedMethod is obsolete
+    // because itself can be used as a key while making mappings to avoid using obsolete instances.
     return method;
   }
 
   @Override
   public DexReference toReference() {
+    checkIfObsolete();
     return method;
   }
 
   @Override
   public boolean isDexEncodedMethod() {
+    checkIfObsolete();
     return true;
   }
 
   @Override
   public DexEncodedMethod asDexEncodedMethod() {
+    checkIfObsolete();
     return this;
   }
 
   public boolean hasAnnotation() {
+    checkIfObsolete();
     return !annotations.isEmpty() || !parameterAnnotationsList.isEmpty();
   }
 
   public void registerCodeReferences(UseRegistry registry) {
+    checkIfObsolete();
     if (code != null) {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Registering definitions reachable from `%s`.", method);
@@ -957,10 +1041,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public OptimizationInfo getOptimizationInfo() {
+    checkIfObsolete();
     return optimizationInfo;
   }
 
   public void copyMetadataFromInlinee(DexEncodedMethod inlinee) {
+    checkIfObsolete();
     // Record that the current method uses identifier name string if the inlinee did so.
     if (inlinee.getOptimizationInfo().useIdentifierNameString()) {
       markUseIdentifierNameString();
@@ -1034,26 +1120,31 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   @Override
   public DexEncodedMethod asResultOfResolve() {
+    checkIfObsolete();
     return this;
   }
 
   @Override
   public DexEncodedMethod asSingleTarget() {
+    checkIfObsolete();
     return this;
   }
 
   @Override
   public boolean hasSingleTarget() {
+    checkIfObsolete();
     return true;
   }
 
   @Override
   public List<DexEncodedMethod> asListOfTargets() {
+    checkIfObsolete();
     return Collections.singletonList(this);
   }
 
   @Override
   public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
+    checkIfObsolete();
     consumer.accept(this);
   }
 

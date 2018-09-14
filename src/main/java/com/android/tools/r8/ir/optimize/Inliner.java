@@ -165,9 +165,15 @@ public class Inliner {
           .sorted(DexEncodedMethod::slowCompare)
           .collect(Collectors.toList());
       for (DexEncodedMethod method : methods) {
-        converter.processMethod(method, feedback, x -> false, CallSiteInformation.empty(),
+        DexEncodedMethod mappedMethod =
+            converter.getGraphLense().mapDexEncodedMethod(appInfo, method);
+        converter.processMethod(
+            mappedMethod,
+            feedback,
+            x -> false,
+            CallSiteInformation.empty(),
             Outliner::noProcessing);
-        assert method.isProcessed();
+        assert mappedMethod.isProcessed();
       }
     }
   }
