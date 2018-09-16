@@ -8,11 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -28,36 +24,28 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.NonNullTracker;
+import com.android.tools.r8.ir.optimize.NonNullTrackerTestBase;
 import com.android.tools.r8.ir.optimize.nonnull.FieldAccessTest;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import org.junit.Test;
 
-public class NullabilityTest extends TestBase {
-  private static final InternalOptions TEST_OPTIONS = new InternalOptions();
-
+public class NullabilityTest extends NonNullTrackerTestBase {
   private void buildAndTest(
       Class<?> mainClass,
       MethodSignature signature,
       boolean npeCaught,
       BiConsumer<AppInfo, TypeAnalysis> inspector)
       throws Exception {
-    AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(mainClass));
-    DexApplication dexApplication =
-        new ApplicationReader(app, TEST_OPTIONS, new Timing("NullabilityTest.appReader"))
-            .read().toDirect();
-    AppInfo appInfo = new AppInfo(dexApplication);
+    AppInfo appInfo = build(mainClass);
     CodeInspector codeInspector = new CodeInspector(appInfo.app);
     DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();
     IRCode irCode =

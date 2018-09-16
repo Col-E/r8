@@ -7,11 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
@@ -26,15 +22,11 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterNullCheck;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.function.Consumer;
 import org.junit.Test;
 
-public class NonNullTrackerTest extends TestBase {
-  private static final InternalOptions TEST_OPTIONS = new InternalOptions();
+public class NonNullTrackerTest extends NonNullTrackerTestBase {
 
   private void buildAndTest(
       Class<?> testClass,
@@ -42,11 +34,7 @@ public class NonNullTrackerTest extends TestBase {
       int expectedNumberOfNonNull,
       Consumer<IRCode> testAugmentedIRCode)
       throws Exception {
-    AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(testClass));
-    DexApplication dexApplication =
-        new ApplicationReader(app, TEST_OPTIONS, new Timing("NonNullMarkerTest.appReader"))
-            .read().toDirect();
-    AppInfo appInfo = new AppInfo(dexApplication);
+    AppInfo appInfo = build(testClass);
     CodeInspector codeInspector = new CodeInspector(appInfo.app);
     DexEncodedMethod foo = codeInspector.clazz(testClass.getName()).method(signature).getMethod();
     IRCode irCode =
