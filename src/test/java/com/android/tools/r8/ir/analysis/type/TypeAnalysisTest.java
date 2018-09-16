@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -114,6 +115,17 @@ public class TypeAnalysisTest extends SmaliTestBase {
     inspection.accept(new AppInfo(dexApplication));
   }
 
+  private static void forEachOutValue(
+      IRCode irCode, BiConsumer<Value, TypeLatticeElement> consumer) {
+    irCode.instructionIterator().forEachRemaining(instruction -> {
+      Value outValue = instruction.outValue();
+      if (outValue != null) {
+        TypeLatticeElement element = outValue.getTypeLattice();
+        consumer.accept(outValue, element);
+      }
+    });
+  }
+
   // Simple one path with a lot of arithmetic operations.
   private static void arithmetic(AppInfo appInfo) {
     CodeInspector inspector = new CodeInspector(appInfo.app);
@@ -126,7 +138,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         subtract.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract);
     analysis.widening(subtract, irCode);
-    analysis.forEach((v, l) -> {
+    forEachOutValue(irCode, (v, l) -> {
       assertEither(l, PRIMITIVE, NULL);
     });
   }
@@ -142,7 +154,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         fib.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, fib);
     analysis.widening(fib, irCode);
-    analysis.forEach((v, l) -> {
+    forEachOutValue(irCode, (v, l) -> {
       assertEither(l, PRIMITIVE, NULL);
     });
   }
@@ -169,7 +181,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     }
     assertNotNull(array);
     final Value finalArray = array;
-    analysis.forEach((v, l) -> {
+    forEachOutValue(irCode, (v, l) -> {
       if (v == finalArray) {
         assertTrue(l.isArrayTypeLatticeElement());
         ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
@@ -202,7 +214,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     }
     assertNotNull(array);
     final Value finalArray = array;
-    analysis.forEach((v, l) -> {
+    forEachOutValue(irCode, (v, l) -> {
       if (v == finalArray) {
         assertTrue(l.isArrayTypeLatticeElement());
         ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
@@ -224,7 +236,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         loop2.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2);
     analysis.widening(loop2, irCode);
-    analysis.forEach((v, l) -> {
+    forEachOutValue(irCode, (v, l) -> {
       if (l.isClassTypeLatticeElement()) {
         ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
         assertEquals("Ljava/io/PrintStream;", lattice.getClassType().toDescriptorString());
@@ -245,7 +257,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         test2.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, test2);
     analysis.widening(test2, irCode);
-    analysis.forEach((v, l) -> {
+    forEachOutValue(irCode, (v, l) -> {
       if (l.isClassTypeLatticeElement()) {
         ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
         assertEquals("Ljava/lang/Throwable;", lattice.getClassType().toDescriptorString());
@@ -273,7 +285,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
     analysis.widening(method, irCode);
-    analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
+    forEachOutValue(irCode, (v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }
 
   // One more complicated example.
@@ -293,7 +305,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
     analysis.widening(method, irCode);
-    analysis.forEach((v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
+    forEachOutValue(irCode, (v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }
 
   private static void assertEither(TypeLatticeElement actual, TypeLatticeElement... expected) {

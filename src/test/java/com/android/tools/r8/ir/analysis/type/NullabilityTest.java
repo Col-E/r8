@@ -51,7 +51,7 @@ public class NullabilityTest extends TestBase {
       Class<?> mainClass,
       MethodSignature signature,
       boolean npeCaught,
-      BiConsumer<AppInfo, TypeAnalysis> inspector)
+      BiConsumer<AppInfo, IRCode> inspector)
       throws Exception {
     AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(mainClass));
     DexApplication dexApplication =
@@ -66,7 +66,7 @@ public class NullabilityTest extends TestBase {
     nonNullTracker.addNonNull(irCode);
     TypeAnalysis analysis = new TypeAnalysis(appInfo, foo);
     analysis.widening(foo, irCode);
-    inspector.accept(appInfo, analysis);
+    inspector.accept(appInfo, irCode);
     verifyLastInvoke(irCode, npeCaught);
   }
 
@@ -113,11 +113,21 @@ public class NullabilityTest extends TestBase {
     assertTrue(metInvokeVirtual);
   }
 
+  private void forEachOutValue(IRCode irCode, BiConsumer<Value, TypeLatticeElement> consumer) {
+    irCode.instructionIterator().forEachRemaining(instruction -> {
+      Value outValue = instruction.outValue();
+      if (outValue != null) {
+        TypeLatticeElement element = outValue.getTypeLattice();
+        consumer.accept(outValue, element);
+      }
+    });
+  }
+
   @Test
   public void nonNullAfterSafeInvokes() throws Exception {
     MethodSignature signature =
         new MethodSignature("foo", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, signature, false, (appInfo, typeAnalysis) -> {
+    buildAndTest(NonNullAfterInvoke.class, signature, false, (appInfo, irCode) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
@@ -125,7 +135,7 @@ public class NullabilityTest extends TestBase {
           InvokeVirtual.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
           NonNull.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, false),
           NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
-      typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
+      forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
 
@@ -133,7 +143,7 @@ public class NullabilityTest extends TestBase {
   public void stillNullAfterExceptionCatch_invoke() throws Exception {
     MethodSignature signature =
         new MethodSignature("bar", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, signature, true, (appInfo, typeAnalysis) -> {
+    buildAndTest(NonNullAfterInvoke.class, signature, true, (appInfo, irCode) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
@@ -141,7 +151,7 @@ public class NullabilityTest extends TestBase {
           InvokeVirtual.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
           NonNull.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, false),
           NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
-      typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
+      forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
 
@@ -149,7 +159,7 @@ public class NullabilityTest extends TestBase {
   public void nonNullAfterSafeArrayAccess() throws Exception {
     MethodSignature signature =
         new MethodSignature("foo", "int", new String[]{"java.lang.String[]"});
-    buildAndTest(NonNullAfterArrayAccess.class, signature, false, (appInfo, typeAnalysis) -> {
+    buildAndTest(NonNullAfterArrayAccess.class, signature, false, (appInfo, irCode) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
@@ -157,7 +167,7 @@ public class NullabilityTest extends TestBase {
           // An element inside a non-null array could be null.
           ArrayGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
           NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
-      typeAnalysis.forEach((v, l) -> {
+      forEachOutValue(irCode, (v, l) -> {
         if (l.isArrayTypeLatticeElement()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
           assertEquals(
@@ -175,7 +185,7 @@ public class NullabilityTest extends TestBase {
   public void stillNullAfterExceptionCatch_aget() throws Exception {
     MethodSignature signature =
         new MethodSignature("bar", "int", new String[]{"java.lang.String[]"});
-    buildAndTest(NonNullAfterArrayAccess.class, signature, true, (appInfo, typeAnalysis) -> {
+    buildAndTest(NonNullAfterArrayAccess.class, signature, true, (appInfo, irCode) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
@@ -183,7 +193,7 @@ public class NullabilityTest extends TestBase {
           // An element inside a non-null array could be null.
           ArrayGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
           NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
-      typeAnalysis.forEach((v, l) -> {
+      forEachOutValue(irCode, (v, l) -> {
         if (l.isArrayTypeLatticeElement()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
           assertEquals(
@@ -201,7 +211,7 @@ public class NullabilityTest extends TestBase {
   public void nonNullAfterSafeFieldAccess() throws Exception {
     MethodSignature signature = new MethodSignature("foo", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
-    buildAndTest(NonNullAfterFieldAccess.class, signature, false, (appInfo, typeAnalysis) -> {
+    buildAndTest(NonNullAfterFieldAccess.class, signature, false, (appInfo, irCode) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterFieldAccess.class.getCanonicalName()));
@@ -213,7 +223,7 @@ public class NullabilityTest extends TestBase {
           // instance may not be initialized.
           InstanceGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
           NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
-      typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
+      forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
 
@@ -221,7 +231,7 @@ public class NullabilityTest extends TestBase {
   public void stillNullAfterExceptionCatch_iget() throws Exception {
     MethodSignature signature = new MethodSignature("bar", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
-    buildAndTest(NonNullAfterFieldAccess.class, signature, true, (appInfo, typeAnalysis) -> {
+    buildAndTest(NonNullAfterFieldAccess.class, signature, true, (appInfo, irCode) -> {
       DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterFieldAccess.class.getCanonicalName()));
@@ -233,7 +243,7 @@ public class NullabilityTest extends TestBase {
           // instance may not be initialized.
           InstanceGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
           NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
-      typeAnalysis.forEach((v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
+      forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
 }
