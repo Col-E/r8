@@ -13,7 +13,7 @@ import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -82,7 +82,7 @@ public class CfBuilder {
   private final Int2ReferenceMap<LocalVariableInfo> openLocalVariables =
       new Int2ReferenceOpenHashMap<>();
 
-  private AppInfoWithSubtyping appInfo;
+  private AppInfo appInfo;
 
   private Map<NewInstance, List<InvokeDirect>> initializers;
   private List<InvokeDirect> thisInitializers;
@@ -125,8 +125,9 @@ public class CfBuilder {
       CodeRewriter rewriter,
       GraphLense graphLense,
       InternalOptions options,
-      AppInfoWithSubtyping appInfo) {
+      AppInfo appInfo) {
     this.options = options;
+    this.appInfo = appInfo;
     computeInitializers();
     types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
     splitExceptionalBlocks();
@@ -141,7 +142,6 @@ public class CfBuilder {
     int instructionTableCount =
         DexBuilder.instructionNumberToIndex(code.numberRemainingInstructions());
     DexBuilder.removeRedundantDebugPositions(code, instructionTableCount);
-    this.appInfo = appInfo;
     CfCode code = buildCfCode();
     return code;
   }
