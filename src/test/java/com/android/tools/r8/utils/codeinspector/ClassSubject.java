@@ -48,6 +48,10 @@ public abstract class ClassSubject extends Subject {
 
   public abstract FieldSubject field(String type, String name);
 
+  public FoundClassSubject asFoundClassSubject() {
+    return null;
+  }
+
   public abstract boolean isAbstract();
 
   public abstract boolean isAnnotation();

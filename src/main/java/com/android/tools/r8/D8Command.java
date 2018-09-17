@@ -8,7 +8,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -75,13 +74,7 @@ public final class D8Command extends BaseCompilerCommand {
     }
 
     private void addClasspathFile(Path file) {
-      guard(() -> {
-        try {
-          getAppBuilder().addClasspathFile(file);
-        } catch (IOException e) {
-          error(new ClasspathInputOrigin(file), e);
-        }
-      });
+      guard(() -> getAppBuilder().addClasspathFile(file));
     }
 
     /** Add classfile resources provider for class-path resources. */

@@ -89,6 +89,7 @@ public class JasminBuilder {
     private boolean makeInit = false;
     private boolean hasInit = false;
     private final List<String> clinit = new ArrayList<>();
+    private boolean isAbstract = false;
     private boolean isInterface = false;
     private String access = "public";
 
@@ -249,7 +250,9 @@ public class JasminBuilder {
           .append('\n');
       builder.append(".source ").append(getSourceFile()).append('\n');
       builder.append(".class");
-      if (isInterface) {
+      if (isAbstract) {
+        builder.append(" abstract");
+      } else if (isInterface) {
         builder.append(" interface abstract");
       }
       builder.append(" ").append(access).append(" ").append(name).append('\n');
@@ -281,7 +284,11 @@ public class JasminBuilder {
       return builder.toString();
     }
 
-    void setIsInterface() {
+    public void setIsAbstract() {
+      isAbstract = true;
+    }
+
+    public void setIsInterface() {
       isInterface = true;
     }
 

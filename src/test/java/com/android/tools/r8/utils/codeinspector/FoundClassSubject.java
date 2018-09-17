@@ -132,6 +132,11 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public FoundClassSubject asFoundClassSubject() {
+    return this;
+  }
+
+  @Override
   public boolean isAbstract() {
     return dexClass.accessFlags.isAbstract();
   }
@@ -244,6 +249,25 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public String getFinalSignatureAttribute() {
     return codeInspector.getFinalSignatureAttribute(dexClass.annotations);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = codeInspector.hashCode();
+    result = 31 * result + dexClass.hashCode();
+    result = 31 * result + (naming != null ? naming.hashCode() : 0);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == null || other.getClass() != this.getClass()) {
+      return false;
+    }
+    FoundClassSubject otherSubject = (FoundClassSubject) other;
+    return codeInspector == otherSubject.codeInspector
+        && dexClass == otherSubject.dexClass
+        && naming == otherSubject.naming;
   }
 
   @Override
