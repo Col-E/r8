@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexType;
+
 public class Bottom extends TypeLatticeElement {
   private static final Bottom INSTANCE = new Bottom();
 
@@ -22,6 +25,16 @@ public class Bottom extends TypeLatticeElement {
   @Override
   public boolean isBottom() {
     return true;
+  }
+
+  @Override
+  public TypeLatticeElement arrayGet(AppInfo appInfo) {
+    return this;
+  }
+
+  @Override
+  public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
+    return this;
   }
 
   @Override
