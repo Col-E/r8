@@ -15,12 +15,8 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Map;
-import java.util.function.BiConsumer;
 
 public class TypeAnalysis {
 
@@ -36,8 +32,6 @@ public class TypeAnalysis {
   private final DexEncodedMethod context;
 
   private final Deque<Value> worklist = new ArrayDeque<>();
-  // TODO(b/72693244): Rewrite tests to not rely on this type map.
-  private final Map<Value, TypeLatticeElement> typeMap = Maps.newHashMap();
 
   public TypeAnalysis(AppInfo appInfo, DexEncodedMethod encodedMethod) {
     this.appInfo = appInfo;
@@ -131,8 +125,6 @@ public class TypeAnalysis {
       assert mode == Mode.NARROWING;
       value.narrowing(appInfo, type);
     }
-    // Only for the testing purpose.
-    typeMap.put(value, type);
 
     // propagate the type change to (instruction) users if any.
     for (Instruction instruction : value.uniqueUsers()) {
@@ -166,8 +158,4 @@ public class TypeAnalysis {
     return receiverType;
   }
 
-  @VisibleForTesting
-  void forEach(BiConsumer<Value, TypeLatticeElement> consumer) {
-    typeMap.forEach(consumer);
-  }
 }
