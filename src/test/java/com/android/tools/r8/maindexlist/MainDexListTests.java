@@ -54,7 +54,6 @@ import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -83,6 +82,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.BeforeClass;
@@ -101,6 +101,10 @@ public class MainDexListTests extends TestBase {
   private static final int MANY_CLASSES_SINGLE_DEX_METHODS_PER_CLASS = 2;
   private static final int MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS = 10;
   private static List<String> MANY_CLASSES;
+
+  interface Runner {
+    void run() throws Throwable;
+  }
 
   @ClassRule
   public static TemporaryFolder generatedApplicationsFolder =
@@ -181,20 +185,24 @@ public class MainDexListTests extends TestBase {
   }
 
   @Test
-  public void cannotFitBothIntoMainDex() throws Throwable {
-    try {
-      verifyMainDexContains(TWO_LARGE_CLASSES, getTwoLargeClassesAppPath(), false);
-      fail("Expect to fail, for there are too many classes for the main-dex list.");
-    } catch (CompilationFailedException e) {
-      assertEquals(1, errors.size());
-      String message = errors.get(0).getDiagnosticMessage();
-      // Make sure {@link MonoDexDistributor} was _not_ used.
-      assertFalse(message.contains("single dex file"));
-      // Make sure what exceeds the limit is the number of methods.
-      assertTrue(
-          message.contains(
-              "# methods: " + String.valueOf(TWO_LARGE_CLASSES.size() * MAX_METHOD_COUNT)));
-    }
+  public void cannotFitBothIntoMainDex() {
+    verifyMainDexContains(TWO_LARGE_CLASSES, getTwoLargeClassesAppPath(), false, test -> {
+      try {
+        test.run();
+        fail("Expect to fail, for there are too many classes for the main-dex list.");
+      } catch (Throwable e) {
+        assert e instanceof CompilationFailedException;
+        assertEquals(1, errors.size());
+        String message = errors.get(0).getDiagnosticMessage();
+        // Make sure {@link MonoDexDistributor} was _not_ used.
+        assertFalse(message.contains("single dex file"));
+        // Make sure what exceeds the limit is the number of methods.
+        assertTrue(
+            message.contains(
+                "# methods: " + String.valueOf(TWO_LARGE_CLASSES.size() * MAX_METHOD_COUNT)));
+        errors.clear();
+      }
+    });
   }
 
   @Test
@@ -225,21 +233,26 @@ public class MainDexListTests extends TestBase {
   }
 
   @Test
-  public void cannotFitAllIntoMainDex() throws Throwable {
-    try {
-      verifyMainDexContains(MANY_CLASSES, getManyClassesMultiDexAppPath(), false);
-      fail("Expect to fail, for there are too many classes for the main-dex list.");
-    } catch (CompilationFailedException e) {
-      assertEquals(1, errors.size());
-      String message = errors.get(0).getDiagnosticMessage();
-      // Make sure {@link MonoDexDistributor} was _not_ used.
-      assertFalse(message.contains("single dex file"));
-      // Make sure what exceeds the limit is the number of methods.
-      assertTrue(
-          message.contains(
-              "# methods: "
-                  + String.valueOf(MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS)));
-    }
+  public void cannotFitAllIntoMainDex() {
+    verifyMainDexContains(MANY_CLASSES, getManyClassesMultiDexAppPath(), false, test -> {
+      try {
+        test.run();
+        fail("Expect to fail, for there are too many classes for the main-dex list.");
+      } catch (Throwable e) {
+        assert e instanceof CompilationFailedException;
+        assertEquals(1, errors.size());
+        String message = errors.get(0).getDiagnosticMessage();
+        // Make sure {@link MonoDexDistributor} was _not_ used.
+        assertFalse(message.contains("single dex file"));
+        // Make sure what exceeds the limit is the number of methods.
+        assertTrue(
+            message.contains(
+                "# methods: "
+                    + String
+                    .valueOf(MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS)));
+        errors.clear();
+      }
+    });
   }
 
   @Test
@@ -518,8 +531,7 @@ public class MainDexListTests extends TestBase {
   private void doVerifyMainDexContains(
       List<String> mainDex, Path app, boolean singleDexApp, boolean minimalMainDex,
       MultiDexTestMode testMode)
-      throws IOException, ExecutionException, ProguardRuleParserException,
-      CompilationFailedException {
+      throws IOException, ExecutionException, CompilationFailedException {
     AndroidApp originalApp = AndroidApp.builder().addProgramFiles(app).build();
     CodeInspector originalInspector = new CodeInspector(originalApp);
     for (String clazz : mainDex) {
@@ -600,9 +612,26 @@ public class MainDexListTests extends TestBase {
 
   private void verifyMainDexContains(List<String> mainDex, Path app, boolean singleDexApp)
       throws Throwable {
+    try {
+      verifyMainDexContains(mainDex, app, singleDexApp, test -> {
+        try {
+          test.run();
+        } catch (Throwable e) {
+          throw new RuntimeException(e);
+        }
+      });
+    } catch (RuntimeException e) {
+      throw e.getCause();
+    }
+  }
+
+  private void verifyMainDexContains(
+      List<String> mainDex, Path app, boolean singleDexApp, Consumer<Runner> runner) {
     for (MultiDexTestMode multiDexTestMode : MultiDexTestMode.values()) {
-      doVerifyMainDexContains(mainDex, app, singleDexApp, false, multiDexTestMode);
-      doVerifyMainDexContains(mainDex, app, singleDexApp, true, multiDexTestMode);
+      runner.accept(() ->
+          doVerifyMainDexContains(mainDex, app, singleDexApp, false, multiDexTestMode));
+      runner.accept(() ->
+          doVerifyMainDexContains(mainDex, app, singleDexApp, true, multiDexTestMode));
     }
   }
 
