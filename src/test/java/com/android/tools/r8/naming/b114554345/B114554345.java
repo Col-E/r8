@@ -12,7 +12,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,7 +35,6 @@ public class B114554345 extends TestBase {
     this.backend = backend;
   }
 
-  @Ignore("b/114554345")
   @Test
   public void test() throws Exception {
     AndroidApp input =

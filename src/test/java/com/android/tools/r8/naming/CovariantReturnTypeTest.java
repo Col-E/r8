@@ -25,89 +25,67 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class CovariantReturnTypeTest extends TestBase {
 
-  @Ignore("b/115613850")
   @Test
   public void test() throws Exception {
-    for (int i = 0; i < 3; i++) {
-      JasminBuilder appBuilder = new JasminBuilder();
-      ClassBuilder classBuilder = appBuilder.addClass("package.TestClass");
+    String[] returnNullByteCode =
+        new String[] { ".limit stack 1", ".limit locals 1", "aconst_null", "areturn" };
 
-      classBuilder.addVirtualMethod(
-          "method1",
-          "Ljava/lang/Object;",
-          ".limit stack 1",
-          ".limit locals 1",
-          "aconst_null",
-          "areturn");
-      classBuilder.addVirtualMethod(
-          "method1", "Lpackage/A;", ".limit stack 1", ".limit locals 1", "aconst_null", "areturn");
-      classBuilder.addVirtualMethod(
-          "method1", "Lpackage/B;", ".limit stack 1", ".limit locals 1", "aconst_null", "areturn");
+    // This test class is generated using Jasmin to have uses of covariant return types which
+    // are not just the javac generated bridges (javac would complain that the methods have the
+    // same erasure).
+    JasminBuilder appBuilder = new JasminBuilder();
+    ClassBuilder classBuilder = appBuilder.addClass("package.TestClass");
 
-      classBuilder.addVirtualMethod(
-          "method2", "Lpackage/A;", ".limit stack 1", ".limit locals 1", "aconst_null", "areturn");
-      classBuilder.addVirtualMethod(
-          "method2",
-          "Ljava/lang/Object;",
-          ".limit stack 1",
-          ".limit locals 1",
-          "aconst_null",
-          "areturn");
-      classBuilder.addVirtualMethod(
-          "method2", "Lpackage/B;", ".limit stack 1", ".limit locals 1", "aconst_null", "areturn");
+    classBuilder.addVirtualMethod("method1", "Ljava/lang/Object;", returnNullByteCode);
+    classBuilder.addVirtualMethod("method1", "Lpackage/A;", returnNullByteCode);
+    classBuilder.addVirtualMethod("method1", "Lpackage/B;", returnNullByteCode);
 
-      classBuilder.addVirtualMethod(
-          "method3", "Lpackage/A;", ".limit stack 1", ".limit locals 1", "aconst_null", "areturn");
-      classBuilder.addVirtualMethod(
-          "method3", "Lpackage/B;", ".limit stack 1", ".limit locals 1", "aconst_null", "areturn");
-      classBuilder.addVirtualMethod(
-          "method3",
-          "Ljava/lang/Object;",
-          ".limit stack 1",
-          ".limit locals 1",
-          "aconst_null",
-          "areturn");
+    classBuilder.addVirtualMethod("method2", "Lpackage/A;", returnNullByteCode);
+    classBuilder.addVirtualMethod("method2", "Ljava/lang/Object;", returnNullByteCode);
+    classBuilder.addVirtualMethod("method2", "Lpackage/B;", returnNullByteCode);
 
-      appBuilder.addInterface("package.A");
-      appBuilder.addInterface("package.B");
+    classBuilder.addVirtualMethod("method3", "Lpackage/A;", returnNullByteCode);
+    classBuilder.addVirtualMethod("method3", "Lpackage/B;", returnNullByteCode);
+    classBuilder.addVirtualMethod("method3", "Ljava/lang/Object;", returnNullByteCode);
 
-      Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
-      AndroidApp output =
-          compileWithR8(
-              appBuilder.build(),
-              keepMainProguardConfiguration("package.TestClass"),
-              options -> {
-                options.enableTreeShaking = false;
-                options.proguardMapConsumer = new FileConsumer(proguardMapPath);
-              });
+    appBuilder.addInterface("package.A");
+    appBuilder.addInterface("package.B");
 
-      CodeInspector inspector = new CodeInspector(output, proguardMapPath);
-      ClassSubject clazz = inspector.clazz("package.TestClass");
-      assertThat(clazz, isPresent());
+    Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
+    AndroidApp output =
+        compileWithR8(
+            appBuilder.build(),
+            keepMainProguardConfiguration("package.TestClass"),
+            options -> {
+              options.enableTreeShaking = false;
+              options.proguardMapConsumer = new FileConsumer(proguardMapPath);
+            });
 
-      Map<String, Set<MethodSubject>> methodSubjectsByName = new HashMap<>();
-      for (String name : ImmutableList.of("method1", "method2", "method3")) {
-        methodSubjectsByName.put(
-            name,
-            ImmutableSet.of(
-                clazz.method("java.lang.Object", name, ImmutableList.of()),
-                clazz.method("package.A", name, ImmutableList.of()),
-                clazz.method("package.B", name, ImmutableList.of())));
-      }
+    CodeInspector inspector = new CodeInspector(output, proguardMapPath);
+    ClassSubject clazz = inspector.clazz("package.TestClass");
+    assertThat(clazz, isPresent());
 
-      Set<String> minifiedMethodNames = new HashSet<>();
-      for (Set<MethodSubject> methodSubjects : methodSubjectsByName.values()) {
-        for (MethodSubject methodSubject : methodSubjects) {
-          assertThat(methodSubject, isRenamed());
-          minifiedMethodNames.add(methodSubject.getFinalName());
-        }
-      }
-      assertEquals(3, minifiedMethodNames.size());
+    Map<String, Set<MethodSubject>> methodSubjectsByName = new HashMap<>();
+    for (String name : ImmutableList.of("method1", "method2", "method3")) {
+      methodSubjectsByName.put(
+          name,
+          ImmutableSet.of(
+              clazz.method("java.lang.Object", name, ImmutableList.of()),
+              clazz.method("package.A", name, ImmutableList.of()),
+              clazz.method("package.B", name, ImmutableList.of())));
     }
+
+    Set<String> minifiedMethodNames = new HashSet<>();
+    for (Set<MethodSubject> methodSubjects : methodSubjectsByName.values()) {
+      for (MethodSubject methodSubject : methodSubjects) {
+        assertThat(methodSubject, isRenamed());
+        minifiedMethodNames.add(methodSubject.getFinalName());
+      }
+    }
+    assertEquals(3, minifiedMethodNames.size());
   }
 }

@@ -53,22 +53,20 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     return new NamingState<>(this, itemFactory, dictionary, keyTransform, useUniqueMemberNames);
   }
 
-  private InternalState findInternalStateFor(ProtoType proto) {
-    KeyType key = keyTransform.apply(proto);
+  private InternalState findInternalStateFor(KeyType key) {
     InternalState result = usedNames.get(key);
     if (result == null && parent != null) {
-      result = parent.findInternalStateFor(proto);
+      result = parent.findInternalStateFor(key);
     }
     return result;
   }
 
-  private InternalState getOrCreateInternalStateFor(ProtoType proto) {
+  private InternalState getOrCreateInternalStateFor(KeyType key) {
     // TODO(herhut): Maybe allocate these sparsely and search via state chain.
-    KeyType key = keyTransform.apply(proto);
     InternalState result = usedNames.get(key);
     if (result == null) {
       if (parent != null) {
-        InternalState parentState = parent.getOrCreateInternalStateFor(proto);
+        InternalState parentState = parent.getOrCreateInternalStateFor(key);
         result = parentState.createChild();
       } else {
         result = new InternalState(itemFactory, null, dictionary);
@@ -78,30 +76,33 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     return result;
   }
 
-  private DexString getAssignedNameFor(DexString name, ProtoType proto) {
-    InternalState state = findInternalStateFor(proto);
+  private DexString getAssignedNameFor(DexString name, KeyType key) {
+    InternalState state = findInternalStateFor(key);
     if (state == null) {
       return null;
     }
-    return state.getAssignedNameFor(name, proto);
+    return state.getAssignedNameFor(name, key);
   }
 
   public DexString assignNewNameFor(DexString original, ProtoType proto, boolean markAsUsed) {
-    DexString result = getAssignedNameFor(original, proto);
+    KeyType key = keyTransform.apply(proto);
+    DexString result = getAssignedNameFor(original, key);
     if (result == null) {
-      InternalState state = getOrCreateInternalStateFor(proto);
-      result = state.getNameFor(original, proto, markAsUsed);
+      InternalState state = getOrCreateInternalStateFor(key);
+      result = state.getNameFor(original, key, markAsUsed);
     }
     return result;
   }
 
   public void reserveName(DexString name, ProtoType proto) {
-    InternalState state = getOrCreateInternalStateFor(proto);
+    KeyType key = keyTransform.apply(proto);
+    InternalState state = getOrCreateInternalStateFor(key);
     state.reserveName(name);
   }
 
   public boolean isReserved(DexString name, ProtoType proto) {
-    InternalState state = findInternalStateFor(proto);
+    KeyType key = keyTransform.apply(proto);
+    InternalState state = findInternalStateFor(key);
     if (state == null) {
       return false;
     }
@@ -109,28 +110,35 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
   }
 
   public boolean isAvailable(DexString original, ProtoType proto, DexString candidate) {
-    InternalState state = findInternalStateFor(proto);
+    KeyType key = keyTransform.apply(proto);
+    InternalState state = findInternalStateFor(key);
     if (state == null) {
       return true;
     }
-    assert state.getAssignedNameFor(original, proto) != candidate || useUniqueMemberNames;
+    assert !useUniqueMemberNames
+        || isNullOrEqualTo(state.getAssignedNameFor(original, key), candidate);
     return state.isAvailable(candidate);
   }
 
+  private static <T> boolean isNullOrEqualTo(T a, T b) {
+    return a == null || a == b;
+  }
+
   public void addRenaming(DexString original, ProtoType proto, DexString newName) {
-    InternalState state = getOrCreateInternalStateFor(proto);
-    state.addRenaming(original, proto, newName);
+    KeyType key = keyTransform.apply(proto);
+    InternalState state = getOrCreateInternalStateFor(key);
+    state.addRenaming(original, key, newName);
   }
 
   private class InternalState {
 
     private static final int INITIAL_NAME_COUNT = 1;
-    private final char[] EMPTY_CHAR_ARRARY = new char[0];
+    private final char[] EMPTY_CHAR_ARRAY = new char[0];
 
     protected final DexItemFactory itemFactory;
     private final InternalState parentInternalState;
     private Set<DexString> reservedNames = null;
-    private Table<DexString, ProtoType, DexString> renamings = null;
+    private Table<DexString, KeyType, DexString> renamings = null;
     private int nameCount;
     private final Iterator<String> dictionaryIterator;
 
@@ -172,11 +180,11 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       reservedNames.add(name);
     }
 
-    DexString getAssignedNameFor(DexString original, ProtoType proto) {
+    DexString getAssignedNameFor(DexString original, KeyType proto) {
       DexString result = null;
       if (renamings != null) {
         if (useUniqueMemberNames) {
-          Map<ProtoType, DexString> row = renamings.row(original);
+          Map<KeyType, DexString> row = renamings.row(original);
           if (row != null) {
             // Either not renamed yet (0) or renamed (1). If renamed, return the same renamed name
             // so that other members with the same name can be renamed to the same renamed name.
@@ -194,7 +202,7 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       return result;
     }
 
-    DexString getNameFor(DexString original, ProtoType proto, boolean markAsUsed) {
+    DexString getNameFor(DexString original, KeyType proto, boolean markAsUsed) {
       DexString name = getAssignedNameFor(original, proto);
       if (name != null) {
         return name;
@@ -208,7 +216,7 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       return name;
     }
 
-    void addRenaming(DexString original, ProtoType proto, DexString newName) {
+    void addRenaming(DexString original, KeyType proto, DexString newName) {
       if (renamings == null) {
         renamings = HashBasedTable.create();
       }
@@ -219,7 +227,7 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       if (dictionaryIterator.hasNext()) {
         return dictionaryIterator.next();
       } else {
-        return StringUtils.numberToIdentifier(EMPTY_CHAR_ARRARY, nameCount++, false);
+        return StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, nameCount++, false);
       }
     }
   }
