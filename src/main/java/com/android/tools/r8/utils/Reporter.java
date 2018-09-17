@@ -35,35 +35,31 @@ public class Reporter implements DiagnosticsHandler {
   }
 
   @Override
-  public void info(Diagnostic info) {
+  public synchronized void info(Diagnostic info) {
     clientHandler.info(info);
   }
 
   @Override
-  public void warning(Diagnostic warning) {
+  public synchronized void warning(Diagnostic warning) {
     clientHandler.warning(warning);
   }
 
   @Override
-  public void error(Diagnostic error) {
+  public synchronized void error(Diagnostic error) {
     clientHandler.error(error);
-    synchronized (this) {
-      lastError = error;
-      errorCount++;
-    }
+    lastError = error;
+    errorCount++;
   }
 
   public void error(String message) {
     error(new StringDiagnostic(message));
   }
 
-  public void error(Diagnostic error, Throwable suppressedException) {
+  public synchronized void error(Diagnostic error, Throwable suppressedException) {
     clientHandler.error(error);
-    synchronized (this) {
-      lastError = error;
-      errorCount++;
-      suppressedExceptions.add(suppressedException);
-    }
+    lastError = error;
+    errorCount++;
+    suppressedExceptions.add(suppressedException);
   }
 
   /**
