@@ -4,7 +4,7 @@
 package com.android.tools.r8.cf;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -25,11 +25,11 @@ public class TypeVerificationHelper {
 
   private final IRCode code;
   private final DexItemFactory factory;
-  private final AppInfoWithSubtyping appInfo;
+  private final AppInfo appInfo;
 
   private Map<Value, DexType> types;
 
-  public TypeVerificationHelper(IRCode code, DexItemFactory factory, AppInfoWithSubtyping appInfo) {
+  public TypeVerificationHelper(IRCode code, DexItemFactory factory, AppInfo appInfo) {
     this.code = code;
     this.factory = factory;
     this.appInfo = appInfo;

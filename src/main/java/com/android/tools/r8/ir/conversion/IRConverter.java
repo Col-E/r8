@@ -942,7 +942,7 @@ public class IRConverter {
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(method, code, options.itemFactory);
-    CfCode result = builder.build(codeRewriter, graphLense, options, appInfo.withSubtyping());
+    CfCode result = builder.build(codeRewriter, graphLense, options, appInfo);
     method.setCode(result);
     markProcessed(method, code, feedback);
   }
