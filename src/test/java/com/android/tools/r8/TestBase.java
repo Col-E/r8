@@ -109,6 +109,11 @@ public class TestBase {
 
   /** Build an AndroidApp with the specified test classes as byte array. */
   protected AndroidApp buildAndroidApp(byte[]... classes) {
+    return buildAndroidApp(Arrays.asList(classes));
+  }
+
+  /** Build an AndroidApp with the specified test classes as byte array. */
+  protected AndroidApp buildAndroidApp(List<byte[]> classes) {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (byte[] clazz : classes) {
       builder.addClassProgramData(clazz, Origin.unknown());
@@ -443,16 +448,16 @@ public class TestBase {
   }
 
   /**
-   * Generate a Proguard configuration for keeping the "public static void main(String[])" method of
-   * the specified class.
+   * Generate a Proguard configuration for keeping the "static void main(String[])" method of the
+   * specified class.
    */
   public static String keepMainProguardConfiguration(Class clazz) {
     return keepMainProguardConfiguration(clazz, ImmutableList.of());
   }
 
   /**
-   * Generate a Proguard configuration for keeping the "public static void main(String[])" method of
-   * the specified class.
+   * Generate a Proguard configuration for keeping the "static void main(String[])" method of the
+   * specified class.
    */
   public static String keepMainProguardConfiguration(Class clazz, List<String> additionalLines) {
     String modifier = (clazz.getModifiers() & Modifier.PUBLIC) == Modifier.PUBLIC ? "public " : "";
@@ -479,9 +484,8 @@ public class TestBase {
   }
 
   /**
-   * Generate a Proguard configuration for keeping the "public static void main(String[])" method of
-   * the specified class and specify if -allowaccessmodification and -dontobfuscate are added as
-   * well.
+   * Generate a Proguard configuration for keeping the "static void main(String[])" method of the
+   * specified class and specify if -allowaccessmodification and -dontobfuscate are added as well.
    */
   public static String keepMainProguardConfiguration(
       Class clazz, boolean allowaccessmodification, boolean obfuscate) {
@@ -495,6 +499,22 @@ public class TestBase {
     return keepMainProguardConfiguration(clazz)
         + (allowaccessmodification ? "-allowaccessmodification\n" : "")
         + (obfuscate ? "-printmapping\n" : "-dontobfuscate\n");
+  }
+
+  /**
+   * Generate a Proguard configuration for keeping the "static void main(String[])" method of the
+   * specified class and add rules to inline methods with the force inlining annotation.
+   */
+  public static String keepMainProguardConfigurationWithForceInlining(Class clazz) {
+    return "-forceinline @com.android.tools.r8.ForceInline class ** { *; }"
+        + System.lineSeparator()
+        + keepMainProguardConfiguration(clazz);
+  }
+
+  public static String keepMainProguardConfigurationWithForceInlining(String clazz) {
+    return "-forceinline @com.android.tools.r8.ForceInline class ** { *; }"
+        + System.lineSeparator()
+        + keepMainProguardConfiguration(clazz);
   }
 
   /**

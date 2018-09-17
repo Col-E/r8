@@ -346,6 +346,9 @@ public class IRBuilder {
   // Flag indicating if the instructions define values with imprecise types.
   private boolean hasImpreciseInstructionOutValueTypes = false;
 
+  // Flag indicating if a const string is ever loaded.
+  private boolean hasConstString = false;
+
   public IRBuilder(
       DexEncodedMethod method, AppInfo appInfo, SourceCode source, InternalOptions options) {
     this(method, appInfo, source, options, new ValueNumberGenerator());
@@ -483,7 +486,8 @@ public class IRBuilder {
     joinPredecessorsWithIdenticalPhis();
 
     // Package up the IR code.
-    IRCode ir = new IRCode(options, method, blocks, valueNumberGenerator, hasDebugPositions);
+    IRCode ir = new IRCode(
+        options, method, blocks, valueNumberGenerator, hasDebugPositions, hasConstString);
 
     // Verify critical edges are split so we have a place to insert phi moves if necessary.
     assert ir.verifySplitCriticalEdges();
@@ -686,6 +690,7 @@ public class IRBuilder {
    */
   public void add(Instruction ir) {
     assert !ir.isJumpInstruction();
+    hasConstString |= ir.isConstString();
     addInstruction(ir);
   }
 

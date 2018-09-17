@@ -27,6 +27,10 @@ public abstract class ClassSubject extends Subject {
 
   public abstract MethodSubject method(String returnType, String name, List<String> parameters);
 
+  public MethodSubject mainMethod() {
+    return method("void", "main", ImmutableList.of("java.lang.String[]"));
+  }
+
   public MethodSubject clinit() {
     return method("void", "<clinit>", ImmutableList.of());
   }

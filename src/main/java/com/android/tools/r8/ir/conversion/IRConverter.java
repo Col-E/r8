@@ -50,6 +50,7 @@ import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
+import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
@@ -111,6 +112,7 @@ public class IRConverter {
   private final IdentifierNameStringMarker identifierNameStringMarker;
   private final Devirtualizer devirtualizer;
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
+  private final StringOptimizer stringOptimizer;
 
   public final boolean enableWholeProgramOptimizations;
 
@@ -152,6 +154,7 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
             : null;
+    this.stringOptimizer = new StringOptimizer();
     this.enableWholeProgramOptimizations = enableWholeProgramOptimizations;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
@@ -774,6 +777,7 @@ public class IRConverter {
       inliner.performInlining(
           method, code, isProcessedConcurrently, callSiteInformation);
     }
+    stringOptimizer.computeConstStringLength(code, appInfo.dexItemFactory);
     if (devirtualizer != null) {
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
     }

@@ -84,6 +84,9 @@ public class IdentifierNameStringMarker {
   }
 
   public void decoupleIdentifierNameStringsInMethod(DexEncodedMethod encodedMethod, IRCode code) {
+    if (!code.hasConstString) {
+      return;
+    }
     DexType originHolder = code.method.method.getHolder();
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {

@@ -363,6 +363,10 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return descriptor.content[0] == 'Z';
   }
 
+  public boolean isIntType() {
+    return descriptor.content[0] == 'I';
+  }
+
   public boolean isArrayType() {
     char firstChar = (char) descriptor.content[0];
     return firstChar == '[';

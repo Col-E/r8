@@ -124,7 +124,7 @@ public class ConstantRemovalTest {
     blocks.add(block);
 
     InternalOptions options = new InternalOptions();
-    IRCode code = new IRCode(options, null, blocks, new ValueNumberGenerator(), false);
+    IRCode code = new IRCode(options, null, blocks, new ValueNumberGenerator(), false, false);
     PeepholeOptimizer.optimize(code,
         new MockLinearScanRegisterAllocator(code, options));
 

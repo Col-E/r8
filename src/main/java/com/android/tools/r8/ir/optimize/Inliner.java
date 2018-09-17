@@ -661,6 +661,7 @@ public class Inliner {
                 }
 
                 method.copyMetadataFromInlinee(target);
+                code.copyMetadataFromInlinee(inlinee);
               }
             }
           }

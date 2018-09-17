@@ -83,6 +83,9 @@ public class IRCode {
 
   public final boolean hasDebugPositions;
 
+  // TODO(jsjeon): maybe making similar to DexEncodedMethod.OptimizationInfo?
+  public boolean hasConstString;
+
   public final InternalOptions options;
 
   public IRCode(
@@ -90,13 +93,19 @@ public class IRCode {
       DexEncodedMethod method,
       LinkedList<BasicBlock> blocks,
       ValueNumberGenerator valueNumberGenerator,
-      boolean hasDebugPositions) {
+      boolean hasDebugPositions,
+      boolean hasConstString) {
     this.options = options;
     this.method = method;
     this.blocks = blocks;
     this.valueNumberGenerator = valueNumberGenerator;
     this.hasDebugPositions = hasDebugPositions;
+    this.hasConstString = hasConstString;
     allThrowingInstructionsHavePositions = computeAllThrowingInstructionsHavePositions();
+  }
+
+  public void copyMetadataFromInlinee(IRCode inlinee) {
+    this.hasConstString |= inlinee.hasConstString;
   }
 
   /**
