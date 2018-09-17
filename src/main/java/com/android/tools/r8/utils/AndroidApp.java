@@ -334,14 +334,14 @@ public class AndroidApp {
     /**
      * Add classpath file resources.
      */
-    public Builder addClasspathFiles(Path... files) throws IOException {
+    public Builder addClasspathFiles(Path... files) {
       return addClasspathFiles(Arrays.asList(files));
     }
 
     /**
      * Add classpath file resources.
      */
-    public Builder addClasspathFiles(Collection<Path> files) throws IOException {
+    public Builder addClasspathFiles(Collection<Path> files) {
       for (Path file : files) {
         addClasspathFile(file);
       }
@@ -351,7 +351,7 @@ public class AndroidApp {
     /**
      * Add classpath file resources.
      */
-    public Builder addClasspathFile(Path file) throws IOException {
+    public Builder addClasspathFile(Path file) {
       addClasspathOrLibraryProvider(file, classpathResourceProviders);
       return this;
     }
@@ -378,7 +378,7 @@ public class AndroidApp {
     }
 
     /** Add library file resource. */
-    public Builder addLibraryFile(Path file) throws IOException {
+    public Builder addLibraryFile(Path file) {
       addClasspathOrLibraryProvider(file, libraryResourceProviders);
       return this;
     }
@@ -577,7 +577,7 @@ public class AndroidApp {
           mainDexListClasses);
     }
 
-    public void addProgramFile(Path file) {
+    public Builder addProgramFile(Path file) {
       if (!Files.exists(file)) {
         PathOrigin pathOrigin = new PathOrigin(file);
         NoSuchFileException noSuchFileException = new NoSuchFileException(file.toString());
@@ -592,6 +592,7 @@ public class AndroidApp {
       } else {
         throw new CompilationError("Unsupported source file type", new PathOrigin(file));
       }
+      return this;
     }
 
     private void addProgramResources(ProgramResource... resources) {

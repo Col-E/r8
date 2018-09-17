@@ -12,7 +12,6 @@ import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
-import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -206,7 +205,7 @@ public abstract class BaseCommand {
                 path -> {
                   try {
                     app.addLibraryFile(path);
-                  } catch (IOException | CompilationError e) {
+                  } catch (CompilationError e) {
                     error(new LibraryInputOrigin(path), e);
                   }
                 });
