@@ -383,13 +383,13 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = clazz.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertNotEquals(m1.getFinalName(), m2.getFinalName());
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ProcessResult output = runRaw(app, CLASS_NAME);
     assertEquals(0, output.exitCode);
     assertEquals(
-        new HashSet<String>(StringUtils.splitLines(javaOutput.stdout)),
-        new HashSet<String>(StringUtils.splitLines(output.stdout)));
+        new HashSet<>(StringUtils.splitLines(javaOutput.stdout)),
+        new HashSet<>(StringUtils.splitLines(output.stdout)));
   }
 
   @Test
@@ -613,7 +613,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = sup.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertNotEquals(m1.getFinalName(), m2.getFinalName());
+    assertEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
@@ -623,7 +623,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject subM2 = sub.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
-    assertNotEquals(subM1.getFinalName(), subM2.getFinalName());
+    assertEquals(subM1.getFinalName(), subM2.getFinalName());
 
     // No matter what, overloading methods should be renamed to the same name.
     assertEquals(m1.getFinalName(), subM1.getFinalName());
@@ -632,8 +632,8 @@ public class ValidNameConflictTest extends JasminTestBase {
     ProcessResult output = runRaw(app, CLASS_NAME);
     assertEquals(0, output.exitCode);
     assertEquals(
-        new HashSet<String>(StringUtils.splitLines(javaOutput.stdout)),
-        new HashSet<String>(StringUtils.splitLines(output.stdout)));
+        new HashSet<>(StringUtils.splitLines(javaOutput.stdout)),
+        new HashSet<>(StringUtils.splitLines(output.stdout)));
   }
 
   @Test

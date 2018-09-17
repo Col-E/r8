@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
-import com.android.tools.r8.utils.MethodSignatureRelaxedEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -106,7 +106,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     equivalence =
         overloadAggressively
             ? MethodSignatureEquivalence.get()
-            : new MethodSignatureRelaxedEquivalence(appInfo);
+            : MethodJavaSignatureEquivalence.get();
   }
 
   @Override
@@ -142,9 +142,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     timing.end();
     // Phase 2: Reserve all the names that are required for interfaces.
     timing.begin("Phase 2");
-    DexType.forAllInterfaces(appInfo.dexItemFactory, iface -> {
-      reserveNamesInInterfaces(iface, frontierMap);
-    });
+    DexType.forAllInterfaces(
+        appInfo.dexItemFactory, iface -> reserveNamesInInterfaces(iface, frontierMap));
     timing.end();
     // Phase 3: Assign names to interface methods. These are assigned by finding a name that is
     //          free in all naming states that may hold an implementation.
@@ -166,14 +165,17 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
   private void assignNamesToClassesMethods(DexType type, boolean doPrivates) {
     DexClass holder = appInfo.definitionFor(type);
     if (holder != null && !holder.isLibraryClass()) {
-      Map<DexMethod, DexString> renamingAtThisLevel = new IdentityHashMap<>();
+      Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel = new HashMap<>();
       NamingState<DexProto, ?> state =
           computeStateIfAbsent(type, k -> getState(holder.superType).createChild());
       holder.forEachMethod(method ->
           assignNameToMethod(method, state, renamingAtThisLevel, doPrivates));
       if (!doPrivates && !useUniqueMemberNames) {
-        renamingAtThisLevel.forEach((method, candidate) ->
-            state.addRenaming(method.name, method.proto, candidate));
+        renamingAtThisLevel.forEach(
+            (key, candidate) -> {
+              DexMethod method = key.get();
+              state.addRenaming(method.name, method.proto, candidate);
+            });
       }
     }
     type.forAllExtendsSubtypes(subtype -> assignNamesToClassesMethods(subtype, doPrivates));
@@ -182,7 +184,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
   private void assignNameToMethod(
       DexEncodedMethod encodedMethod,
       NamingState<DexProto, ?> state,
-      Map<DexMethod, DexString> renamingAtThisLevel,
+      Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel,
       boolean doPrivates) {
     if (encodedMethod.accessFlags.isPrivate() != doPrivates) {
       return;
@@ -191,9 +193,10 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     if (!state.isReserved(method.name, method.proto)
         && !encodedMethod.accessFlags.isConstructor()) {
       DexString renamedName =
-          state.assignNewNameFor(method.name, method.proto, useUniqueMemberNames);
+          renamingAtThisLevel.computeIfAbsent(
+              equivalence.wrap(method),
+              key -> state.assignNewNameFor(method.name, method.proto, useUniqueMemberNames));
       renaming.put(method, renamedName);
-      renamingAtThisLevel.put(method, renamedName);
     }
   }
 
@@ -385,7 +388,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     // unrelated interfaces. This saves some space. The alternative would be to use a global state
     // for allocating names, which would save the work to search here.
     DexString previousCandidate = null;
-    DexString candidate = null;
+    DexString candidate;
     do {
       candidate = originState.assignNewNameFor(false);
       // If the state returns the same candidate for two consecutive trials, it should be this case:
