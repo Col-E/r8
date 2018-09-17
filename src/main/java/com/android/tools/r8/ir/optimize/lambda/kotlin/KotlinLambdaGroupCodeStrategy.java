@@ -208,7 +208,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     DexMethod newTarget = mapInitializerMethod(context.factory, method);
     List<Value> newArguments = mapInitializerArgs(lambdaIdValue, invoke.arguments(), method.proto);
     context.instructions().replaceCurrentInstruction(
-        new InvokeDirect(newTarget, context.code.createValue(ValueType.OBJECT), newArguments)
+        new InvokeDirect(newTarget, null /* no return value */, newArguments)
     );
   }
 

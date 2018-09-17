@@ -31,6 +31,9 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   public InvokeDirect(DexMethod target, Value result, List<Value> arguments, boolean itf) {
     super(target, result, arguments);
     this.itf = itf;
+    // invoke-direct <init> should have no out value.
+    assert !target.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)
+        || result == null;
   }
 
   @Override
