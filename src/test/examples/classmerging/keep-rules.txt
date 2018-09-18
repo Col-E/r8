@@ -46,12 +46,17 @@
 -keep public class classmerging.SimpleInterfaceAccessTest {
   public static void main(...);
 }
+-keep public class classmerging.SyntheticBridgeSignaturesTest {
+  public static void main(...);
+}
 -keep public class classmerging.SuperCallRewritingTest {
   public static void main(...);
 }
 -keep public class classmerging.TemplateMethodTest {
   public static void main(...);
 }
+
+-printmapping
 
 # TODO(herhut): Consider supporting merging of inner-class attributes.
 # -keepattributes *

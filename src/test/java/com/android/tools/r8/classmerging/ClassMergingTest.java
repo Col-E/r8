@@ -801,6 +801,44 @@ public class ClassMergingTest extends TestBase {
         String.format("-keep class %s { public static void main(...); }", main));
   }
 
+  @Test
+  public void testSyntheticBridgeSignatures() throws Throwable {
+    // Try both with and without inlining. If the bridge signatures are not updated properly, and
+    // inlining is enabled, then there can be issues with our inlining invariants regarding the
+    // outermost caller. If inlining is disabled, there is a risk that the methods will end up
+    // having the wrong signatures, or that the generated Proguard maps are incorrect (this will be
+    // caught by the debugging test, which is carried out by the call to runTestOnInput()).
+    for (boolean allowInlining : ImmutableList.of(false, true)) {
+      String main = "classmerging.SyntheticBridgeSignaturesTest";
+      Path[] programFiles =
+          new Path[] {
+            CF_DIR.resolve("SyntheticBridgeSignaturesTest.class"),
+            CF_DIR.resolve("SyntheticBridgeSignaturesTest$A.class"),
+            CF_DIR.resolve("SyntheticBridgeSignaturesTest$ASub.class"),
+            CF_DIR.resolve("SyntheticBridgeSignaturesTest$B.class"),
+            CF_DIR.resolve("SyntheticBridgeSignaturesTest$BSub.class")
+          };
+      Set<String> preservedClassNames =
+          ImmutableSet.of(
+              "classmerging.SyntheticBridgeSignaturesTest",
+              "classmerging.SyntheticBridgeSignaturesTest$ASub",
+              "classmerging.SyntheticBridgeSignaturesTest$BSub");
+      runTestOnInput(
+          main,
+          readProgramFiles(programFiles),
+          preservedClassNames::contains,
+          getProguardConfig(EXAMPLE_KEEP),
+          options -> {
+            this.configure(options);
+            if (!allowInlining) {
+              options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+            }
+          },
+          // TODO(christofferqa): The debug test fails when inlining is not allowed.
+          allowInlining ? new VerticalClassMergerDebugTest(main) : null);
+    }
+  }
+
   private static String jasminCodeForPrinting(String message) {
     return buildCode(
         "getstatic java/lang/System/out Ljava/io/PrintStream;",
