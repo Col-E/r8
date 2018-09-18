@@ -144,6 +144,11 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isCheckCast(String type) {
+    return isCheckCast() && ((CfCheckCast) instruction).getType().toString().equals(type);
+  }
+
+  @Override
   public boolean isIf() {
     return instruction instanceof CfIf || instruction instanceof CfIfCmp;
   }

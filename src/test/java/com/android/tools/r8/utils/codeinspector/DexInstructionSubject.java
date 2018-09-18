@@ -165,6 +165,11 @@ public class DexInstructionSubject implements InstructionSubject {
     return instruction instanceof CheckCast;
   }
 
+  @Override
+  public boolean isCheckCast(String type) {
+    return isCheckCast() && ((CheckCast) instruction).getType().toString().equals(type);
+  }
+
   public boolean isInvokeSuper() {
     return instruction instanceof InvokeSuper || instruction instanceof InvokeSuperRange;
   }

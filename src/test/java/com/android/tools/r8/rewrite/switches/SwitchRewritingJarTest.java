@@ -92,14 +92,6 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     return statistics;
   }
 
-  private MethodSubject getMethodSubject(
-      AndroidApp app, String className, MethodSignature signature)
-      throws IOException, ExecutionException {
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject testClass = inspector.clazz(className);
-    return testClass.method(signature);
-  }
-
   private void runSingleCaseJarTest(boolean packed, int key) throws Exception {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");

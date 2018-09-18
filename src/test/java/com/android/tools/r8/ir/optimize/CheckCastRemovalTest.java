@@ -4,34 +4,42 @@
 package com.android.tools.r8.ir.optimize;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.code.AgetObject;
-import com.android.tools.r8.code.AputObject;
-import com.android.tools.r8.code.CheckCast;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.IgetObject;
-import com.android.tools.r8.code.InvokeDirect;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.code.NewArray;
-import com.android.tools.r8.code.NewInstance;
-import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class CheckCastRemovalTest extends JasminTestBase {
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Collection<Backend> data() {
+    return Arrays.asList(Backend.values());
+  }
+
+  private final Backend backend;
   private final String CLASS_NAME = "Example";
+
+  public CheckCastRemovalTest(Backend backend) {
+    this.backend = backend;
+  }
 
   @Test
   public void exactMatch() throws Exception {
@@ -50,16 +58,9 @@ public class CheckCastRemovalTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-keep class " + CLASS_NAME + " { *; }",
         "-dontshrink");
-    AndroidApp app =
-        compileWithR8(builder, pgConfigs, o -> o.enableClassInlining = false, Backend.DEX);
+    AndroidApp app = compileWithR8(builder, pgConfigs, o -> o.enableClassInlining = false, backend);
 
-    DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
-    assertNotNull(method);
-
-    checkInstructions(
-        method.getCode().asDexCode(),
-        ImmutableList.of(NewInstance.class, InvokeDirect.class, ReturnVoid.class));
-
+    checkCheckCasts(app, main, null);
     checkRuntime(builder, app, CLASS_NAME);
   }
 
@@ -91,15 +92,9 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "-keep class C { *; }",
         "-dontshrink");
     AndroidApp app =
-        compileWithR8(builder, pgConfigs, opts -> opts.enableClassInlining = false, Backend.DEX);
+        compileWithR8(builder, pgConfigs, opts -> opts.enableClassInlining = false, backend);
 
-    DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
-    assertNotNull(method);
-
-    checkInstructions(
-        method.getCode().asDexCode(),
-        ImmutableList.of(NewInstance.class, InvokeDirect.class, ReturnVoid.class));
-
+    checkCheckCasts(app, main, null);
     checkRuntime(builder, app, CLASS_NAME);
   }
 
@@ -131,18 +126,9 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "-keep class C { *; }",
         "-dontoptimize",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, Backend.DEX);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
-    DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
-    assertNotNull(method);
-
-    DexCode code = method.getCode().asDexCode();
-    checkInstructions(
-        code,
-        ImmutableList.of(NewInstance.class, InvokeDirect.class, CheckCast.class, ReturnVoid.class));
-    CheckCast cast = (CheckCast) code.instructions[2];
-    assertEquals("C", cast.getType().toString());
-
+    checkCheckCasts(app, main, "C");
     checkRuntimeException(builder, app, CLASS_NAME, "ClassCastException");
   }
 
@@ -170,24 +156,9 @@ public class CheckCastRemovalTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-keep class " + CLASS_NAME + " { *; }",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, Backend.DEX);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
-    DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
-    assertNotNull(method);
-
-    DexCode code = method.getCode().asDexCode();
-    checkInstructions(
-        code,
-        ImmutableList.of(
-            Const4.class,
-            NewArray.class,
-            ConstString.class,
-            Const4.class,
-            AputObject.class,
-            AgetObject.class,
-            InvokeVirtual.class,
-            ReturnVoid.class));
-
+    checkCheckCasts(app, main, null);
     checkRuntime(builder, app, CLASS_NAME);
   }
 
@@ -207,25 +178,42 @@ public class CheckCastRemovalTest extends JasminTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-keep class " + CLASS_NAME + " { *; }",
         "-dontshrink");
-    AndroidApp app = compileWithR8(builder, pgConfigs, null, Backend.DEX);
+    AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
-    DexEncodedMethod method = getMethod(app, CLASS_NAME, main);
-    assertNotNull(method);
-
-    checkInstructions(method.getCode().asDexCode(), ImmutableList.of(
-        Const4.class,
-        CheckCast.class,
-        IgetObject.class,
-        ReturnVoid.class));
-
+    checkCheckCasts(app, main, "Example");
     checkRuntimeException(builder, app, CLASS_NAME, "NullPointerException");
+  }
+
+  private void checkCheckCasts(AndroidApp app, MethodSignature main, String maybeType)
+      throws ExecutionException, IOException {
+    MethodSubject method = getMethodSubject(app, CLASS_NAME, main);
+    assertTrue(method.isPresent());
+
+    // Make sure there is only a single CheckCast with specified type, or no CheckCasts (if
+    // maybeType == null).
+    Iterator<InstructionSubject> iterator = method.iterateInstructions();
+    boolean found = maybeType == null;
+    while (iterator.hasNext()) {
+      InstructionSubject instruction = iterator.next();
+      if (!instruction.isCheckCast()) {
+        continue;
+      }
+      assertTrue(!found && instruction.isCheckCast(maybeType));
+      found = true;
+    }
   }
 
   private void checkRuntime(JasminBuilder builder, AndroidApp app, String className)
       throws Exception {
     String normalOutput = runOnJava(builder, className);
-    String dexOptimizedOutput = runOnArt(app, className);
-    assertEquals(normalOutput, dexOptimizedOutput);
+    String optimizedOutput;
+    if (backend == Backend.DEX) {
+      optimizedOutput = runOnArt(app, className);
+    } else {
+      assert backend == Backend.CF;
+      optimizedOutput = runOnJava(app, className);
+    }
+    assertEquals(normalOutput, optimizedOutput);
   }
 
   private void checkRuntimeException(
@@ -235,8 +223,16 @@ public class CheckCastRemovalTest extends JasminTestBase {
     assertEquals(1, javaOutput.exitCode);
     assertTrue(javaOutput.stderr.contains(exceptionName));
 
-    ProcessResult artOutput = runOnArtRaw(app, className);
-    assertEquals(1, artOutput.exitCode);
-    assertTrue(artOutput.stderr.contains(exceptionName));
+    ProcessResult output;
+
+    if (backend == Backend.DEX) {
+      output = runOnArtRaw(app, className);
+    } else {
+      assert backend == Backend.CF;
+      output = runOnJavaRaw(app, className, Collections.emptyList());
+    }
+
+    assertEquals(1, output.exitCode);
+    assertTrue(output.stderr.contains(exceptionName));
   }
 }

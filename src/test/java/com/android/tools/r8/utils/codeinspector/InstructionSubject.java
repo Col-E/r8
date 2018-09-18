@@ -51,6 +51,8 @@ public interface InstructionSubject {
 
   boolean isCheckCast();
 
+  boolean isCheckCast(String type);
+
   boolean isIf(); // Also include CF/if_cmp* instructions.
 
   boolean isPackedSwitch();

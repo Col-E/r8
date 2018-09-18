@@ -16,6 +16,8 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +25,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class JasminTestBase extends TestBase {
@@ -260,5 +263,11 @@ public class JasminTestBase extends TestBase {
       MethodSignature signature) {
     return getMethod(application,
         clazz, signature.type, signature.name, Arrays.asList(signature.parameters));
+  }
+
+  protected MethodSubject getMethodSubject(
+      AndroidApp application, String clazz, MethodSignature signature)
+      throws ExecutionException, IOException {
+    return new CodeInspector(application).clazz(clazz).method(signature);
   }
 }
