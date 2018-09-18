@@ -5,25 +5,29 @@ package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.ir.optimize.string.StringOptimizer.isStringLength;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ForceInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.code.Const16;
+import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.ir.code.SingleConstant;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -46,40 +50,42 @@ class StringLengthTestMain {
     return "Shared";
   }
 
+  @NeverInline
+  static int npe() {
+    String n = null;
+    // Cannot be computed at compile time.
+    return n.length();
+  }
+
   public static void main(String[] args) {
     String s1 = "GONE";
-    // Can be computed at compile time.
+    // Can be computed at compile time: constCount++
     System.out.println(s1.length());
 
     String s2 = simpleInlinable();
     // Depends on inlining, and thus R8 can whereas D8 can't.
+    // For R8: constCount++, for D8: stringLengthCount++
     System.out.println(s2.length());
     String s3 = simpleInlinable();
     System.out.println(s3);
 
     String s4 = "Another_shared";
-    // Can be computed at compile time.
+    // Can be computed at compile time: constCount++
     System.out.println(s4.length());
     System.out.println(s4);
 
-    String s5 = null;
+    String s5 = "\uD800\uDC00";  // U+10000
+    // Can be computed at compile time: constCount++
+    System.out.println(s5.length());
+    // Even reusable: should not increase any counts.
+    System.out.println(s5.codePointCount(0, s5.length()));
+    System.out.println(s5);
+
     try {
-      // Cannot be computed at compile time.
-      System.out.println(s5.length());
+      npe();
     } catch (NullPointerException npe) {
       // expected
     }
-
-    String s6 = null;
-    // Cannot be computed at compile time.
-    System.out.println(s6.length());
-
-    String s7 = "\uD800\uDC00";  // U+10000
-    // Can be computed at compile time.
-    System.out.println(s7.length());
-    // Can be computed at compile time.
-    System.out.println(s7.codePointCount(0, s7.length()));
-    System.out.println(s7);
   }
 }
 
@@ -101,6 +107,7 @@ public class StringLengthTest extends TestBase {
   public void setUp() throws Exception {
     classes = ImmutableList.of(
         ToolHelper.getClassAsBytes(ForceInline.class),
+        ToolHelper.getClassAsBytes(NeverInline.class),
         ToolHelper.getClassAsBytes(StringLengthTestMain.class)
     );
   }
@@ -132,26 +139,57 @@ public class StringLengthTest extends TestBase {
     return count;
   }
 
-  private void test(AndroidApp processedApp, int expectedCount) throws Exception {
+  private int countConstNumber(Code code) {
+    int count = 0;
+    if (code.isDexCode()) {
+      DexCode dexCode = code.asDexCode();
+      for (Instruction instr : dexCode.instructions) {
+        if (instr instanceof Const4 || instr instanceof Const16) {
+          int constValue = ((SingleConstant) instr).decodedValue();
+          if (constValue != 0) {
+            count++;
+          }
+        }
+      }
+      return count;
+    }
+    assert code.isCfCode();
+    CfCode cfCode = code.asCfCode();
+    for (CfInstruction instr : cfCode.getInstructions()) {
+      if (instr instanceof CfConstNumber) {
+        CfConstNumber constNumber = (CfConstNumber) instr;
+        if (constNumber.getIntValue() != 0) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
+  private void test(
+      AndroidApp processedApp,
+      int expectedStringLengthCount,
+      int expectedConstNumberCount)
+      throws Exception {
     String main = StringLengthTestMain.class.getCanonicalName();
     ProcessResult javaOutput = runOnJavaRaw(main, classes, ImmutableList.of());
-    assertEquals(1, javaOutput.exitCode);
-    assertThat(javaOutput.stderr, containsString("NullPointerException"));
+    assertEquals(0, javaOutput.exitCode);
 
     ProcessResult output =
         backend == Backend.DEX
             ? runOnArtRaw(processedApp, main)
             : runOnJavaRaw(processedApp, main, ImmutableList.of());
-    assertEquals(1, output.exitCode);
-    assertThat(output.stderr, containsString("NullPointerException"));
-    assertEquals(javaOutput.stdout.trim(), output.stdout.trim());
+    assertEquals(0, output.exitCode);
 
     CodeInspector codeInspector = new CodeInspector(processedApp);
     ClassSubject mainClass = codeInspector.clazz(main);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    int count = countStringLength(mainMethod.getMethod().getCode());
-    assertEquals(expectedCount, count);
+    Code code = mainMethod.getMethod().getCode();
+    int count = countStringLength(code);
+    assertEquals(expectedStringLengthCount, count);
+    count = countConstNumber(code);
+    assertEquals(expectedConstNumberCount, count);
   }
 
   @Test
@@ -163,7 +201,7 @@ public class StringLengthTest extends TestBase {
     AndroidApp app = buildAndroidApp(classes);
     AndroidApp processedApp = compileWithD8(app);
     // No inlining, thus the 2nd length() can't be computed.
-    test(processedApp, 3);
+    test(processedApp, 1, 3);
   }
 
   @Test
@@ -182,11 +220,10 @@ public class StringLengthTest extends TestBase {
     R8Command.Builder builder =
         ToolHelper.prepareR8CommandBuilder(app, programConsumer).addLibraryFiles(library);
     ToolHelper.allowTestProguardOptions(builder);
-    String pgConf = keepMainProguardConfigurationWithForceInlining(StringLengthTestMain.class);
+    String pgConf = keepMainProguardConfigurationWithInliningAnnotation(StringLengthTestMain.class);
     builder.addProguardConfiguration(ImmutableList.of(pgConf), Origin.unknown());
 
     AndroidApp processedApp = ToolHelper.runR8(builder.build());
-    // length() over null cannot be computed.
-    test(processedApp, 2);
+    test(processedApp, 0, 4);
   }
 }
