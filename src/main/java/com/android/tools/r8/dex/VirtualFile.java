@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
-import com.android.tools.r8.errors.MainDexOverflow;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -190,11 +190,8 @@ public class VirtualFile {
       return;
     }
     throw reporter.fatalError(
-        new MainDexOverflow(
-            hasMainDexList,
-            transaction.getNumberOfMethods(),
-            transaction.getNumberOfFields(),
-            MAX_ENTRIES));
+        new DexFileOverflowDiagnostic(
+            hasMainDexList, transaction.getNumberOfMethods(), transaction.getNumberOfFields()));
   }
 
   private boolean isFilledEnough(FillStrategy fillStrategy) {

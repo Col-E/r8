@@ -331,16 +331,12 @@ public class AndroidApp {
       return this;
     }
 
-    /**
-     * Add classpath file resources.
-     */
+    /** Add classpath file resources. */
     public Builder addClasspathFiles(Path... files) {
       return addClasspathFiles(Arrays.asList(files));
     }
 
-    /**
-     * Add classpath file resources.
-     */
+    /** Add classpath file resources. */
     public Builder addClasspathFiles(Collection<Path> files) {
       for (Path file : files) {
         addClasspathFile(file);
@@ -348,9 +344,7 @@ public class AndroidApp {
       return this;
     }
 
-    /**
-     * Add classpath file resources.
-     */
+    /** Add classpath file resources. */
     public Builder addClasspathFile(Path file) {
       addClasspathOrLibraryProvider(file, classpathResourceProviders);
       return this;
