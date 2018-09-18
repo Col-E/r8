@@ -112,7 +112,7 @@ public class Phi extends Value {
     }
 
     for (Value operand : operands) {
-      operand.constrainType(type);
+      builder.constrainType(operand, type);
       appendOperand(operand);
     }
     removeTrivialPhi();
