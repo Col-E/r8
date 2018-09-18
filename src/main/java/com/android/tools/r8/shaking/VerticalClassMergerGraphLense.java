@@ -14,14 +14,17 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.shaking.VerticalClassMerger.SynthesizedBridgeCode;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 // This graph lense is instantiated during vertical class merging. The graph lense is context
 // sensitive in the enclosing class of a given invoke *and* the type of the invoke (e.g., invoke-
@@ -154,7 +157,10 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
     private final Map<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
     public GraphLense build(
-        GraphLense previousLense, Map<DexType, DexType> mergedClasses, AppInfo appInfo) {
+        GraphLense previousLense,
+        Map<DexType, DexType> mergedClasses,
+        List<SynthesizedBridgeCode> synthesizedBridges,
+        AppInfo appInfo) {
       if (fieldMap.isEmpty()
           && methodMap.isEmpty()
           && contextualVirtualToDirectMethodMaps.isEmpty()) {
@@ -162,6 +168,15 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       }
       Map<DexProto, DexProto> cache = new HashMap<>();
       BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
+      // Update all synthesized bridges.
+      Function<DexMethod, DexMethod> synthesizedBridgeTransformer =
+          method ->
+              getMethodSignatureAfterClassMerging(
+                  method, mergedClasses, appInfo.dexItemFactory, cache);
+      for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
+        synthesizedBridge.updateMethodSignatures(synthesizedBridgeTransformer);
+      }
+      // Build new graph lense.
       return new VerticalClassMergerGraphLense(
           appInfo,
           fieldMap,

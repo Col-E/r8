@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
+import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
+
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
@@ -35,8 +38,8 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection.MethodPool;
+import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
@@ -67,6 +70,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.objectweb.asm.Opcodes;
@@ -183,6 +188,9 @@ public class VerticalClassMerger {
 
   // The resulting graph lense that should be used after class merging.
   private final VerticalClassMergerGraphLense.Builder renamedMembersLense;
+
+  // All the bridge methods that have been synthesized during vertical class merging.
+  private final List<SynthesizedBridgeCode> synthesizedBridges = new ArrayList<>();
 
   public VerticalClassMerger(
       DexApplication application,
@@ -643,6 +651,7 @@ public class VerticalClassMerger {
       if (merged) {
         // Commit the changes to the graph lense.
         renamedMembersLense.merge(merger.getRenamings());
+        synthesizedBridges.addAll(merger.getSynthesizedBridges());
       }
       if (Log.ENABLED) {
         if (merged) {
@@ -664,7 +673,7 @@ public class VerticalClassMerger {
     if (Log.ENABLED) {
       Log.debug(getClass(), "Merged %d classes.", numberOfMerges);
     }
-    return renamedMembersLense.build(graphLense, mergedClasses, appInfo);
+    return renamedMembersLense.build(graphLense, mergedClasses, synthesizedBridges, appInfo);
   }
 
   private boolean methodResolutionMayChange(DexClass source, DexClass target) {
@@ -747,6 +756,8 @@ public class VerticalClassMerger {
     private final DexClass target;
     private final VerticalClassMergerGraphLense.Builder deferredRenamings =
         new VerticalClassMergerGraphLense.Builder();
+    private final List<SynthesizedBridgeCode> synthesizedBridges = new ArrayList<>();
+
     private boolean abortMerge = false;
 
     private ClassMerger(DexClass source, DexClass target) {
@@ -950,6 +961,10 @@ public class VerticalClassMerger {
       return deferredRenamings;
     }
 
+    public List<SynthesizedBridgeCode> getSynthesizedBridges() {
+      return synthesizedBridges;
+    }
+
     private void redirectSuperCallsInTarget(DexMethod oldTarget, DexMethod newTarget) {
       if (source.accessFlags.isInterface()) {
         // If we merge a default interface method from interface I to its subtype C, then we need
@@ -960,7 +975,7 @@ public class VerticalClassMerger {
         // if I has a supertype J. This is due to the fact that invoke-super instructions that
         // resolve to a method on an interface never hit an implementation below that interface.
         deferredRenamings.mapVirtualMethodToDirectInType(
-            oldTarget, new GraphLenseLookupResult(newTarget, Type.STATIC), target.type);
+            oldTarget, new GraphLenseLookupResult(newTarget, STATIC), target.type);
       } else {
         // If we merge class B into class C, and class C contains an invocation super.m(), then it
         // is insufficient to rewrite "invoke-super B.m()" to "invoke-direct C.m$B()" (the method
@@ -979,7 +994,7 @@ public class VerticalClassMerger {
                   || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
           if (resolutionSucceeds) {
             deferredRenamings.mapVirtualMethodToDirectInType(
-                signatureInHolder, new GraphLenseLookupResult(newTarget, Type.DIRECT), target.type);
+                signatureInHolder, new GraphLenseLookupResult(newTarget, DIRECT), target.type);
           } else {
             break;
           }
@@ -1001,9 +1016,7 @@ public class VerticalClassMerger {
                       || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
               if (resolutionSucceededBeforeMerge) {
                 deferredRenamings.mapVirtualMethodToDirectInType(
-                    signatureInType,
-                    new GraphLenseLookupResult(newTarget, Type.DIRECT),
-                    target.type);
+                    signatureInType, new GraphLenseLookupResult(newTarget, DIRECT), target.type);
               }
             }
           }
@@ -1042,34 +1055,18 @@ public class VerticalClassMerger {
       accessFlags.setBridge();
       accessFlags.setSynthetic();
       accessFlags.unsetAbstract();
-      SynthesizedCode code;
-      if (invocationTarget.isPrivateMethod()) {
-        assert !invocationTarget.isStaticMethod();
-        code =
-            new SynthesizedCode(
-                callerPosition ->
-                    new ForwardMethodSourceCode(
-                        holder,
-                        newMethod,
-                        holder,
-                        invocationTarget.method,
-                        Type.DIRECT,
-                        callerPosition),
-                registry -> registry.registerInvokeDirect(invocationTarget.method));
-      } else {
-        assert invocationTarget.isStaticMethod();
-        code =
-            new SynthesizedCode(
-                callerPosition ->
-                    new ForwardMethodSourceCode(
-                        holder,
-                        newMethod,
-                        null,
-                        invocationTarget.method,
-                        Type.STATIC,
-                        callerPosition),
-                registry -> registry.registerInvokeStatic(invocationTarget.method));
-      }
+
+      assert invocationTarget.isPrivateMethod() == !invocationTarget.isStaticMethod();
+      SynthesizedBridgeCode code =
+          new SynthesizedBridgeCode(
+              newMethod,
+              invocationTarget.method,
+              invocationTarget.isPrivateMethod() ? DIRECT : STATIC);
+
+      // Add the bridge to the list of synthesized bridges such that the method signatures will
+      // be updated by the end of vertical class merging.
+      synthesizedBridges.add(code);
+
       DexEncodedMethod bridge =
           new DexEncodedMethod(
               newMethod,
@@ -1711,6 +1708,65 @@ public class VerticalClassMerger {
     @Override
     public boolean registerTypeReference(DexType type) {
       return checkTypeReference(type);
+    }
+  }
+
+  protected static class SynthesizedBridgeCode extends AbstractSynthesizedCode {
+
+    private DexMethod method;
+    private DexMethod invocationTarget;
+    private Type type;
+
+    public SynthesizedBridgeCode(DexMethod method, DexMethod invocationTarget, Type type) {
+      this.method = method;
+      this.invocationTarget = invocationTarget;
+      this.type = type;
+    }
+
+    // By the time the synthesized code object is created, vertical class merging still has not
+    // finished. Therefore it is possible that the method signatures `method` and `invocationTarget`
+    // will change as a result of additional class merging operations. To deal with this, the
+    // vertical class merger explicitly invokes this method to update `method` and `invocation-
+    // Target` when vertical class merging has finished.
+    //
+    // Note that, without this step, these method signatures might refer to intermediate signatures
+    // that are only present in the middle of vertical class merging, which means that the graph
+    // lens will not work properly (since the graph lens generated by vertical class merging only
+    // expects to be applied to method signatures from *before* vertical class merging or *after*
+    // vertical class merging).
+    public void updateMethodSignatures(Function<DexMethod, DexMethod> transformer) {
+      method = transformer.apply(method);
+      invocationTarget = transformer.apply(invocationTarget);
+    }
+
+    @Override
+    public SourceCodeProvider getSourceCodeProvider() {
+      return callerPosition ->
+          new ForwardMethodSourceCode(
+              method.holder,
+              method,
+              type == DIRECT ? method.holder : null,
+              invocationTarget,
+              type,
+              callerPosition);
+    }
+
+    @Override
+    public Consumer<UseRegistry> getRegistryCallback() {
+      return registry -> {
+        switch (type) {
+          case DIRECT:
+            registry.registerInvokeDirect(invocationTarget);
+            break;
+
+          case STATIC:
+            registry.registerInvokeStatic(invocationTarget);
+            break;
+
+          default:
+            throw new Unreachable("Unexpected invocation type: " + type);
+        }
+      };
     }
   }
 
