@@ -8,6 +8,15 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 
+/**
+ * A diagnostic message.
+ *
+ * <p>This string diagnostic is used to report various error messages from the compiler. There is
+ * no guarantee that the message will remain the same or that the issue will continue to be reported
+ * by way of a {@link StringDiagnostic}. If there is a need to reliably identify a particular kind
+ * of error which is currently reported via a {@link StringDiagnostic}, then please file a feature
+ * request on D8/R8.
+ */
 @Keep
 public class StringDiagnostic implements Diagnostic {
 

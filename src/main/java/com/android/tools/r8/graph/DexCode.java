@@ -196,7 +196,7 @@ public class DexCode extends Code {
     DexSourceCode source =
         new DexSourceCode(
             this, encodedMethod, graphLense.getOriginalMethodSignature(encodedMethod.method), null);
-    IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options);
+    IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options, origin);
     return builder.build();
   }
 
@@ -217,7 +217,7 @@ public class DexCode extends Code {
             graphLense.getOriginalMethodSignature(encodedMethod.method),
             callerPosition);
     IRBuilder builder =
-        new IRBuilder(encodedMethod, appInfo, source, options, valueNumberGenerator);
+        new IRBuilder(encodedMethod, appInfo, source, options, origin, valueNumberGenerator);
     return builder.build();
   }
 
