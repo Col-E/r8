@@ -17,7 +17,7 @@ public class PrimitiveTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   TypeLatticeElement asNullable() {
-    return Top.getInstance();
+    return TopTypeLatticeElement.getInstance();
   }
 
   public static PrimitiveTypeLatticeElement getInstance() {

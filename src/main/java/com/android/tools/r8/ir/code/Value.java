@@ -8,8 +8,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.analysis.type.Bottom;
-import com.android.tools.r8.ir.analysis.type.Top;
+import com.android.tools.r8.ir.analysis.type.BottomTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TopTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
@@ -135,7 +135,7 @@ public class Value {
   private boolean knownToBeBoolean = false;
   private LongInterval valueRange;
   private DebugData debugData;
-  private TypeLatticeElement typeLattice = Bottom.getInstance();
+  private TypeLatticeElement typeLattice = BottomTypeLatticeElement.getInstance();
 
   public Value(int number, ValueType type, DebugLocalInfo local) {
     this.number = number;
@@ -770,6 +770,6 @@ public class Value {
 
   public TypeLatticeElement getTypeLattice() {
     // Optimizations should use this to regard an uninitialized type lattice as the Top.
-    return typeLattice.isBottom() ? Top.getInstance() : typeLattice;
+    return typeLattice.isBottom() ? TopTypeLatticeElement.getInstance() : typeLattice;
   }
 }

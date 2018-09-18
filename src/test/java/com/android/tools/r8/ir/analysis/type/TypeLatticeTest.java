@@ -58,12 +58,12 @@ public class TypeLatticeTest extends TestBase {
     appInfo = new AppInfoWithSubtyping(application);
   }
 
-  private Top top() {
-    return Top.getInstance();
+  private TopTypeLatticeElement top() {
+    return TopTypeLatticeElement.getInstance();
   }
 
-  private Bottom bottom() {
-    return Bottom.getInstance();
+  private BottomTypeLatticeElement bottom() {
+    return BottomTypeLatticeElement.getInstance();
   }
 
   private TypeLatticeElement element(DexType type) {

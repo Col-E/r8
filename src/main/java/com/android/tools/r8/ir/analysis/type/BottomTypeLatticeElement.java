@@ -6,10 +6,10 @@ package com.android.tools.r8.ir.analysis.type;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 
-public class Top extends TypeLatticeElement {
-  private static final Top INSTANCE = new Top();
+public class BottomTypeLatticeElement extends TypeLatticeElement {
+  private static final BottomTypeLatticeElement INSTANCE = new BottomTypeLatticeElement();
 
-  private Top() {
+  private BottomTypeLatticeElement() {
     super(true);
   }
 
@@ -18,12 +18,12 @@ public class Top extends TypeLatticeElement {
     return this;
   }
 
-  public static Top getInstance() {
+  public static BottomTypeLatticeElement getInstance() {
     return INSTANCE;
   }
 
   @Override
-  public boolean isTop() {
+  public boolean isBottom() {
     return true;
   }
 
@@ -39,11 +39,11 @@ public class Top extends TypeLatticeElement {
 
   @Override
   public String toString() {
-    return "TOP (everything)";
+    return "BOTTOM (empty)";
   }
 
   @Override
   public int hashCode() {
-    return Integer.MAX_VALUE;
+    return Integer.MIN_VALUE;
   }
 }

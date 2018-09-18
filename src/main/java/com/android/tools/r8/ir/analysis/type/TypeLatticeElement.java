@@ -74,7 +74,7 @@ abstract public class TypeLatticeElement {
       return l1;
     }
     if (l1.isTop() || l2.isTop()) {
-      return Top.getInstance();
+      return TopTypeLatticeElement.getInstance();
     }
     if (l1.mustBeNull()) {
       return l2.asNullable();
@@ -83,11 +83,11 @@ abstract public class TypeLatticeElement {
       return l1.asNullable();
     }
     if (l1.isPrimitive()) {
-      return l2.isPrimitive() ? l1 : Top.getInstance();
+      return l2.isPrimitive() ? l1 : TopTypeLatticeElement.getInstance();
     }
     if (l2.isPrimitive()) {
       // By the above case, !(l1.isPrimitive())
-      return Top.getInstance();
+      return TopTypeLatticeElement.getInstance();
     }
     // From now on, l1 and l2 are reference types, i.e., either ArrayType or ClassType.
     boolean isNullable = l1.isNullable() || l2.isNullable();
@@ -230,7 +230,7 @@ abstract public class TypeLatticeElement {
 
   public static TypeLatticeElement join(AppInfo appInfo, Stream<TypeLatticeElement> types) {
     BinaryOperator<TypeLatticeElement> joiner = joiner(appInfo);
-    return types.reduce(Bottom.getInstance(), joiner, joiner);
+    return types.reduce(BottomTypeLatticeElement.getInstance(), joiner, joiner);
   }
 
   public static TypeLatticeElement join(
@@ -340,7 +340,7 @@ abstract public class TypeLatticeElement {
   }
 
   public TypeLatticeElement arrayGet(AppInfo appInfo) {
-    return Bottom.getInstance();
+    return BottomTypeLatticeElement.getInstance();
   }
 
   public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
