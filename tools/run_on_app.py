@@ -16,9 +16,10 @@ import golem
 import toolhelper
 import utils
 import youtube_data
+import chrome_data
 
 TYPES = ['dex', 'deploy', 'proguarded']
-APPS = ['gmscore', 'youtube', 'gmail']
+APPS = ['gmscore', 'youtube', 'gmail', 'chrome']
 COMPILERS = ['d8', 'r8']
 
 def ParseOptions(argv):
@@ -119,6 +120,9 @@ def main(argv):
   elif options.app == 'youtube':
     options.version = options.version or '12.22'
     data = youtube_data
+  elif options.app == 'chrome':
+    options.version = options.version or 'default'
+    data = chrome_data
   elif options.app == 'gmail':
     options.version = options.version or '170604.16'
     data = gmail_data
@@ -148,9 +152,10 @@ def main(argv):
   values = version[options.type]
   inputs = None
   # For R8 'deploy' the JAR is located using the Proguard configuration
-  # -injars option.
+  # -injars option. For chrome we don't have the injars in the proguard files.
   if 'inputs' in values and (options.compiler != 'r8'
-      or options.type != 'deploy'):
+                             or options.type != 'deploy'
+                             or options.app == 'chrome'):
     inputs = values['inputs']
 
   args.extend(['--output', outdir])
