@@ -1470,10 +1470,15 @@ public class Enqueuer {
     }
   }
 
-  private void markFieldAsKeptWithCompatRule(DexEncodedField field) {
+  private void markFieldAsKeptWithCompatRule(DexEncodedField field, boolean keepClass) {
     DexClass holderClass = appInfo.definitionFor(field.field.getHolder());
     ProguardKeepRule rule =
-        ProguardConfigurationUtils.buildFieldKeepRule(holderClass, field);
+        ProguardConfigurationUtils.buildFieldKeepRule(holderClass, field, keepClass);
+    if (keepClass) {
+      proguardCompatibilityWorkList.add(
+          Action.markInstantiated(
+              holderClass, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
+    }
     proguardCompatibilityWorkList.add(
         Action.markFieldKept(field, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
   }
@@ -1490,11 +1495,10 @@ public class Enqueuer {
     DexType originHolder = method.method.holder;
     Origin origin = appInfo.originFor(originHolder);
     IRCode code = method.buildIR(appInfo, graphLense, options, origin);
-    code.instructionIterator().forEachRemaining(instr ->
-        handleReflectiveBehavior(instr, originHolder));
+    code.instructionIterator().forEachRemaining(this::handleReflectiveBehavior);
   }
 
-  private void handleReflectiveBehavior(Instruction instruction, DexType originHolder) {
+  private void handleReflectiveBehavior(Instruction instruction) {
     if (!instruction.isInvokeMethod()) {
       return;
     }
@@ -1515,7 +1519,15 @@ public class Enqueuer {
     } else if (itemBasedString.basedOn.isDexField()) {
       DexEncodedField encodedField = appInfo.definitionFor(itemBasedString.basedOn.asDexField());
       if (encodedField != null) {
-        markFieldAsKeptWithCompatRule(encodedField);
+        // Normally, we generate a -keepclassmembers rule for the field, such that the field is only
+        // kept if it is a static field, or if the holder or one of its subtypes are instantiated.
+        // However, if the invoked method is a field updater, then we always need to keep instance
+        // fields since the creation of a field updater throws a NoSuchFieldException if the field
+        // is not present.
+        boolean keepClass =
+            !encodedField.accessFlags.isStatic()
+                && appInfo.dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod);
+        markFieldAsKeptWithCompatRule(encodedField, keepClass);
       }
     } else {
       assert itemBasedString.basedOn.isDexMethod();

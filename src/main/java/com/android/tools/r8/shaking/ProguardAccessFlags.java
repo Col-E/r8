@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AccessFlags;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -86,6 +87,16 @@ public class ProguardAccessFlags {
 
   public boolean isProtected() {
     return isSet(Constants.ACC_PROTECTED);
+  }
+
+  public void setVisibility(ClassAccessFlags classAccessFlags) {
+    if (classAccessFlags.isPublic()) {
+      setPublic();
+    } else if (classAccessFlags.isProtected()) {
+      setProtected();
+    } else if (classAccessFlags.isPrivate()) {
+      setPrivate();
+    }
   }
 
   public void setStatic() {

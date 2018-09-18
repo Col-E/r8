@@ -23,7 +23,7 @@ public class ProguardConfigurationUtils {
     builder.setType(ProguardKeepRuleType.KEEP);
     builder.getModifiersBuilder().setAllowsObfuscation(true);
     builder.getModifiersBuilder().setAllowsOptimization(true);
-    builder.getClassAccessFlags().setPublic();
+    builder.getClassAccessFlags().setVisibility(clazz.accessFlags);
     builder.setClassType(ProguardClassType.CLASS);
     ProguardClassNameList.Builder classNameListBuilder = ProguardClassNameList.builder();
     classNameListBuilder.addClassName(false, ProguardTypeMatcher.create(clazz.type));
@@ -38,13 +38,18 @@ public class ProguardConfigurationUtils {
     return builder.build();
   }
 
-  public static ProguardKeepRule buildFieldKeepRule(DexClass clazz, DexEncodedField field) {
+  public static ProguardKeepRule buildFieldKeepRule(
+      DexClass clazz, DexEncodedField field, boolean keepClass) {
     assert clazz.type == field.field.getHolder();
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
-    builder.setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS);
+    if (keepClass) {
+      builder.setType(ProguardKeepRuleType.KEEP);
+    } else {
+      builder.setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS);
+    }
     builder.getModifiersBuilder().setAllowsObfuscation(true);
     builder.getModifiersBuilder().setAllowsOptimization(true);
-    builder.getClassAccessFlags().setPublic();
+    builder.getClassAccessFlags().setVisibility(clazz.accessFlags);
     if (clazz.isInterface()) {
       builder.setClassType(ProguardClassType.INTERFACE);
     } else {
@@ -68,7 +73,7 @@ public class ProguardConfigurationUtils {
     builder.setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS);
     builder.getModifiersBuilder().setAllowsObfuscation(true);
     builder.getModifiersBuilder().setAllowsOptimization(true);
-    builder.getClassAccessFlags().setPublic();
+    builder.getClassAccessFlags().setVisibility(clazz.accessFlags);
     if (clazz.isInterface()) {
       builder.setClassType(ProguardClassType.INTERFACE);
     } else {

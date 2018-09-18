@@ -500,7 +500,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       for (ProguardConfigurationRule r : rules) {
         assertTrue(r instanceof ProguardKeepRule);
         ProguardKeepRule rule = (ProguardKeepRule) r;
-        assertEquals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS, rule.getType());
+        assertEquals(ProguardKeepRuleType.KEEP, rule.getType());
         assertTrue(rule.getModifiers().allowsObfuscation);
         assertTrue(rule.getModifiers().allowsOptimization);
         List<ProguardMemberRule> memberRules = rule.getMemberRules();
