@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.graph.DexString;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -19,6 +20,7 @@ public class Marker {
   public static final String VERSION = "version";
   public static final String MIN_API = "min-api";
   public static final String SHA1 = "sha-1";
+  public static final String COMPILATION_MODE = "compilation-mode";
 
   public enum Tool {D8, R8}
 
@@ -31,8 +33,7 @@ public class Marker {
   private final Tool tool;
 
   public Marker(Tool tool) {
-    this.tool = tool;
-    jsonObject = new JsonObject();
+    this(tool, new JsonObject());
   }
 
   private Marker(Tool tool, JsonObject jsonObject) {
@@ -79,6 +80,16 @@ public class Marker {
   public Marker setSha1(String sha1) {
     assert !jsonObject.has(SHA1);
     jsonObject.addProperty(SHA1, sha1);
+    return this;
+  }
+
+  public String getCompilationMode() {
+    return jsonObject.get(COMPILATION_MODE).getAsString();
+  }
+
+  public Marker setCompilationMode(CompilationMode mode) {
+    assert !jsonObject.has(COMPILATION_MODE);
+    jsonObject.addProperty(COMPILATION_MODE, mode.toString().toLowerCase());
     return this;
   }
 
