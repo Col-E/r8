@@ -86,6 +86,11 @@ public class NewInstance extends Instruction {
   }
 
   @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
+
+  @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.storeOutValue(this, it);
   }

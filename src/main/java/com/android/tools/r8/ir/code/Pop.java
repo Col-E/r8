@@ -71,6 +71,11 @@ public class Pop extends Instruction {
   }
 
   @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
+
+  @Override
   public boolean canBeDeadCode(IRCode code, InternalOptions options) {
     // Pop cannot be dead code as it modifies the stack height.
     return false;

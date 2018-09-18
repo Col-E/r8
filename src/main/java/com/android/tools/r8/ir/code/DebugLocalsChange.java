@@ -127,6 +127,11 @@ public class DebugLocalsChange extends Instruction {
   }
 
   @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
+
+  @Override
   public void buildCf(CfBuilder builder) {
     throw new Unreachable();
   }

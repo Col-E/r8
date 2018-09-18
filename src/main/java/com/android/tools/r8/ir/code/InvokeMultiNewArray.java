@@ -79,7 +79,7 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
-  public boolean hasInvariantVerificationType() {
+  public boolean hasInvariantOutType() {
     return true;
   }
 

@@ -96,7 +96,7 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @Override
-  public boolean hasInvariantVerificationType() {
+  public boolean hasInvariantOutType() {
     return true;
   }
 

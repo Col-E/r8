@@ -33,4 +33,9 @@ public abstract class ConstInstruction extends Instruction {
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forConstInstruction();
   }
+
+  @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
 }

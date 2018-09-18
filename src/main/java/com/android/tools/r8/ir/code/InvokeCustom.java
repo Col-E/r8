@@ -123,7 +123,7 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
-  public boolean hasInvariantVerificationType() {
+  public boolean hasInvariantOutType() {
     return true;
   }
 

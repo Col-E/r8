@@ -73,6 +73,11 @@ public class DebugLocalRead extends Instruction {
   }
 
   @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
+
+  @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     // Non-materializing so no stack values are needed.
   }

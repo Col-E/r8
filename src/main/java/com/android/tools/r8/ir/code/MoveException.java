@@ -89,6 +89,11 @@ public class MoveException extends Instruction {
     // Nothing to do. The exception is implicitly pushed on the stack.
   }
 
+  @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
+
   private Set<DexType> collectExceptionTypes(DexItemFactory dexItemFactory) {
     Set<DexType> exceptionTypes = new HashSet<>(getBlock().getPredecessors().size());
     for (BasicBlock block : getBlock().getPredecessors()) {

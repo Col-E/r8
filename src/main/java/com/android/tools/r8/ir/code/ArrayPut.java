@@ -165,6 +165,11 @@ public class ArrayPut extends Instruction {
   }
 
   @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
+
+  @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfArrayStore(type));
   }

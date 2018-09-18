@@ -139,11 +139,6 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
-  public boolean hasInvariantVerificationType() {
-    return true;
-  }
-
-  @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
     return field.type;
   }

@@ -1077,13 +1077,7 @@ public abstract class Instruction {
     throw new Unreachable("Instruction without object outValue cannot compute verification type");
   }
 
-  public boolean hasInvariantVerificationType() {
-    if (inValues().isEmpty()) {
-      return true;
-    }
-    throw new Unimplemented(
-        "Implement has-invariant verification type for: " + getInstructionName());
-  }
+  public abstract boolean hasInvariantOutType();
 
   public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
     if (outValue.hasValueRange()) {
@@ -1092,9 +1086,11 @@ public abstract class Instruction {
     return Bottom.getInstance();
   }
 
+  // TODO(b/72693244): maybe rename to computeOutType once TypeVerificationHelper is gone?
   public TypeLatticeElement evaluate(AppInfo appInfo) {
     assert outValue == null;
-    throw new Unreachable("Instructions without outValue have no type.");
+    throw new Unimplemented(
+        "Implement type lattice evaluation for: " + getInstructionName());
   }
 
   /**

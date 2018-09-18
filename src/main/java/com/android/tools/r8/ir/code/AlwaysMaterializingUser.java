@@ -67,4 +67,9 @@ public class AlwaysMaterializingUser extends Instruction {
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     throw new Unreachable();
   }
+
+  @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
 }

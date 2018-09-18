@@ -138,7 +138,7 @@ public class ArrayGet extends Instruction {
   }
 
   @Override
-  public boolean hasInvariantVerificationType() {
+  public boolean hasInvariantOutType() {
     return false;
   }
 

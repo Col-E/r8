@@ -89,7 +89,7 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public boolean hasInvariantVerificationType() {
+  public boolean hasInvariantOutType() {
     return true;
   }
 

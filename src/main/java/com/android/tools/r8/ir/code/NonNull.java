@@ -107,6 +107,11 @@ public class NonNull extends Instruction {
   }
 
   @Override
+  public boolean hasInvariantOutType() {
+    return false;
+  }
+
+  @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     throw new Unreachable(ERROR_MESSAGE);
   }

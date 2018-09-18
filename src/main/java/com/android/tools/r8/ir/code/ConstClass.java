@@ -109,11 +109,6 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public boolean hasInvariantVerificationType() {
-    return true;
-  }
-
-  @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
     return helper.getFactory().classType;
   }

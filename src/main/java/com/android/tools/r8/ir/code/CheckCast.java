@@ -129,8 +129,9 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public boolean hasInvariantVerificationType() {
-    return true;
+  public boolean hasInvariantOutType() {
+    // Nullability of in-value can be refined.
+    return false;
   }
 
   @Override
