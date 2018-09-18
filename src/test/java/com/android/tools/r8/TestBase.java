@@ -503,16 +503,20 @@ public class TestBase {
 
   /**
    * Generate a Proguard configuration for keeping the "static void main(String[])" method of the
-   * specified class and add rules to inline methods with the force inlining annotation.
+   * specified class and add rules to inline methods with the inlining annotation.
    */
-  public static String keepMainProguardConfigurationWithForceInlining(Class clazz) {
-    return "-forceinline @com.android.tools.r8.ForceInline class ** { *; }"
+  public static String keepMainProguardConfigurationWithInliningAnnotation(Class clazz) {
+    return "-forceinline class * { @com.android.tools.r8.ForceInline *; }"
+        + System.lineSeparator()
+        + "-neverinline class * { @com.android.tools.r8.NeverInline *; }"
         + System.lineSeparator()
         + keepMainProguardConfiguration(clazz);
   }
 
-  public static String keepMainProguardConfigurationWithForceInlining(String clazz) {
-    return "-forceinline @com.android.tools.r8.ForceInline class ** { *; }"
+  public static String keepMainProguardConfigurationWithInliningAnnotation(String clazz) {
+    return "-forceinline class * { @com.android.tools.r8.ForceInline *; }"
+        + System.lineSeparator()
+        + "-neverinline class * { @com.android.tools.r8.NeverInline *; }"
         + System.lineSeparator()
         + keepMainProguardConfiguration(clazz);
   }
