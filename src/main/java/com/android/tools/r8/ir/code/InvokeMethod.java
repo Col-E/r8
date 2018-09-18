@@ -58,26 +58,13 @@ public abstract class InvokeMethod extends Invoke {
     return this;
   }
 
-  // TODO(jsjeon): merge lookupSingleTarget and computeSingleTarget.
-  public abstract DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
-      DexType invocationContext);
+  // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
+  // receiver type and calling context---the holder of the method where the current invocation is.
+  public abstract DexEncodedMethod lookupSingleTarget(
+      AppInfoWithLiveness appInfo, DexType invocationContext);
 
-  public abstract Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
-      DexType invocationContext);
-
-  // This method is used for inlining and/or other optimizations, such as value propagation.
-  // It returns the target method iff this invoke has only one target.
-  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
-    // TODO(jsjeon): revisit all usage of this method and pass proper invocation context.
-    return computeSingleTarget(appInfo, null);
-  }
-
-  public DexEncodedMethod computeSingleTarget(
-      AppInfoWithLiveness appInfo, DexType invocationContext) {
-    // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
-    // receiver type and type environment or invocation context---where the current invoke is.
-    return lookupSingleTarget(appInfo, appInfo.dexItemFactory.objectType);
-  }
+  public abstract Collection<DexEncodedMethod> lookupTargets(
+      AppInfoWithSubtyping appInfo, DexType invocationContext);
 
   public abstract InlineAction computeInlining(InliningOracle decider, DexType invocationContext);
 

@@ -158,7 +158,7 @@ public final class ClassInliner {
         }
 
         // Assess users eligibility and compute inlining of direct calls and extra methods needed.
-        if (!processor.areInstanceUsersEligible(defaultOracle)) {
+        if (!processor.areInstanceUsersEligible(method.method.getHolder(), defaultOracle)) {
           // This root may succeed if users change in future.
           continue;
         }
