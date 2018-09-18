@@ -150,6 +150,7 @@ public final class D8 {
     }
     Marker marker = new Marker(Tool.D8)
         .setVersion(Version.LABEL)
+        .setCompilationMode(options.debug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
         .setMinApi(options.minApiLevel);
     if (Version.isDev()) {
       marker.setSha1(VersionProperties.INSTANCE.getSha());
