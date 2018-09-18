@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -16,6 +17,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceBytes;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -56,6 +58,24 @@ public final class R8Command extends BaseCompilerCommand {
   @Keep
   public static class Builder extends BaseCompilerCommand.Builder<R8Command, Builder> {
 
+    private static class DefaultR8DiagnosticsHandler extends DefaultDiagnosticsHandler {
+
+      @Override
+      public void error(Diagnostic error) {
+        if (error instanceof DexFileOverflowDiagnostic) {
+          DexFileOverflowDiagnostic overflowDiagnostic = (DexFileOverflowDiagnostic) error;
+          if (!overflowDiagnostic.hasMainDexSpecification()) {
+            super.error(
+                new StringDiagnostic(
+                    overflowDiagnostic.getDiagnosticMessage()
+                        + ". Try supplying a main-dex list or main-dex rules"));
+            return;
+          }
+        }
+        super.error(error);
+      }
+    }
+
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private Consumer<ProguardConfiguration.Builder> proguardConfigurationConsumer = null;
     private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
@@ -74,7 +94,9 @@ public final class R8Command extends BaseCompilerCommand {
     private StringConsumer mainDexListConsumer = null;
 
     // TODO(zerny): Consider refactoring CompatProguardCommandBuilder to avoid subclassing.
-    Builder() {}
+    Builder() {
+      this(new DefaultR8DiagnosticsHandler());
+    }
 
     Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);

@@ -3,11 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +38,23 @@ public final class D8Command extends BaseCompilerCommand {
     }
   }
 
+  private static class DefaultD8DiagnosticsHandler extends DefaultDiagnosticsHandler {
+
+    @Override
+    public void error(Diagnostic error) {
+      if (error instanceof DexFileOverflowDiagnostic) {
+        DexFileOverflowDiagnostic overflowDiagnostic = (DexFileOverflowDiagnostic) error;
+        if (!overflowDiagnostic.hasMainDexSpecification()) {
+          super.error(
+              new StringDiagnostic(
+                  overflowDiagnostic.getDiagnosticMessage() + ". Try supplying a main-dex list"));
+          return;
+        }
+      }
+      super.error(error);
+    }
+  }
+
   /**
    * Builder for constructing a D8Command.
    *
@@ -45,7 +65,9 @@ public final class D8Command extends BaseCompilerCommand {
 
     private boolean intermediate = false;
 
-    private Builder() {}
+    private Builder() {
+      this(new DefaultD8DiagnosticsHandler());
+    }
 
     private Builder(DiagnosticsHandler diagnosticsHandler) {
       super(diagnosticsHandler);

@@ -24,6 +24,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
@@ -103,14 +104,12 @@ public class MainDexListTests extends TestBase {
   private static List<String> MANY_CLASSES;
 
   interface Runner {
-    void run() throws Throwable;
+    void run(DiagnosticsHandler handler) throws Throwable;
   }
 
   @ClassRule
   public static TemporaryFolder generatedApplicationsFolder =
       ToolHelper.getTemporaryFolderForTest();
-
-  private List<Diagnostic> errors = new ArrayList<>();
 
   // Generate the test applications in a @BeforeClass method, as they are used by several tests.
   @BeforeClass
@@ -186,23 +185,27 @@ public class MainDexListTests extends TestBase {
 
   @Test
   public void cannotFitBothIntoMainDex() {
-    verifyMainDexContains(TWO_LARGE_CLASSES, getTwoLargeClassesAppPath(), false, test -> {
-      try {
-        test.run();
-        fail("Expect to fail, for there are too many classes for the main-dex list.");
-      } catch (Throwable e) {
-        assert e instanceof CompilationFailedException;
-        assertEquals(1, errors.size());
-        String message = errors.get(0).getDiagnosticMessage();
-        // Make sure {@link MonoDexDistributor} was _not_ used.
-        assertFalse(message.contains("single dex file"));
-        // Make sure what exceeds the limit is the number of methods.
-        assertTrue(
-            message.contains(
-                "# methods: " + String.valueOf(TWO_LARGE_CLASSES.size() * MAX_METHOD_COUNT)));
-        errors.clear();
-      }
-    });
+    verifyMainDexContains(
+        TWO_LARGE_CLASSES,
+        getTwoLargeClassesAppPath(),
+        false,
+        test -> {
+          TestDiagnosticsHandler handler = new TestDiagnosticsHandler();
+          try {
+            test.run(handler);
+            fail("Expect to fail, for there are too many classes for the main-dex list.");
+          } catch (Throwable e) {
+            assert e instanceof CompilationFailedException;
+            assertEquals(1, handler.errors.size());
+            DexFileOverflowDiagnostic overflow = (DexFileOverflowDiagnostic) handler.errors.get(0);
+            // Make sure {@link MonoDexDistributor} was _not_ used, i.e., a spec was given.
+            assertTrue(overflow.hasMainDexSpecification());
+            // Make sure what exceeds the limit is the number of methods.
+            assertTrue(overflow.getNumberOfMethods() > overflow.getMaximumNumberOfMethods());
+            assertEquals(
+                TWO_LARGE_CLASSES.size() * MAX_METHOD_COUNT, overflow.getNumberOfMethods());
+          }
+        });
   }
 
   @Test
@@ -234,25 +237,27 @@ public class MainDexListTests extends TestBase {
 
   @Test
   public void cannotFitAllIntoMainDex() {
-    verifyMainDexContains(MANY_CLASSES, getManyClassesMultiDexAppPath(), false, test -> {
-      try {
-        test.run();
-        fail("Expect to fail, for there are too many classes for the main-dex list.");
-      } catch (Throwable e) {
-        assert e instanceof CompilationFailedException;
-        assertEquals(1, errors.size());
-        String message = errors.get(0).getDiagnosticMessage();
-        // Make sure {@link MonoDexDistributor} was _not_ used.
-        assertFalse(message.contains("single dex file"));
-        // Make sure what exceeds the limit is the number of methods.
-        assertTrue(
-            message.contains(
-                "# methods: "
-                    + String
-                    .valueOf(MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS)));
-        errors.clear();
-      }
-    });
+    verifyMainDexContains(
+        MANY_CLASSES,
+        getManyClassesMultiDexAppPath(),
+        false,
+        test -> {
+          TestDiagnosticsHandler handler = new TestDiagnosticsHandler();
+          try {
+            test.run(handler);
+            fail("Expect to fail, for there are too many classes for the main-dex list.");
+          } catch (Throwable e) {
+            assert e instanceof CompilationFailedException;
+            assertEquals(1, handler.errors.size());
+            DexFileOverflowDiagnostic overflow = (DexFileOverflowDiagnostic) handler.errors.get(0);
+            // Make sure {@link MonoDexDistributor} was _not_ used, i.e., a main-dex spec was given.
+            assertTrue(overflow.hasMainDexSpecification());
+            // Make sure what exceeds the limit is the number of methods.
+            assertEquals(
+                MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS,
+                overflow.getNumberOfMethods());
+          }
+        });
   }
 
   @Test
@@ -468,24 +473,24 @@ public class MainDexListTests extends TestBase {
     // Generates an application with many classes, every even in one package and every odd in
     // another. Add enough methods so the application cannot fit into one dex file.
     // Notice that this one fails due to the min API.
+    TestDiagnosticsHandler handler = new TestDiagnosticsHandler();
     try {
       generateApplication(
           MANY_CLASSES,
           AndroidApiLevel.K.getLevel(),
           false,
           MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS,
-          new TestDiagnosticsHandler());
+          handler);
       fail("Expect to fail, for there are many classes while multidex is not enabled.");
     } catch (AbortException e) {
-      assertEquals(1, errors.size());
-      String message = errors.get(0).getDiagnosticMessage();
-      // Make sure {@link MonoDexDistributor} was used.
-      assertTrue(message.contains("single dex file"));
+      assertEquals(1, handler.errors.size());
+      DexFileOverflowDiagnostic overflow = (DexFileOverflowDiagnostic) handler.errors.get(0);
+      // Make sure {@link MonoDexDistributor} was used, i.e., no main-dex specification was given.
+      assertFalse(overflow.hasMainDexSpecification());
       // Make sure what exceeds the limit is the number of methods.
-      assertTrue(
-          message.contains(
-              "# methods: "
-                  + String.valueOf(MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS)));
+      assertEquals(
+          MANY_CLASSES_COUNT * MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS,
+          overflow.getNumberOfMethods());
     }
   }
 
@@ -529,8 +534,12 @@ public class MainDexListTests extends TestBase {
   }
 
   private void doVerifyMainDexContains(
-      List<String> mainDex, Path app, boolean singleDexApp, boolean minimalMainDex,
-      MultiDexTestMode testMode)
+      List<String> mainDex,
+      Path app,
+      boolean singleDexApp,
+      boolean minimalMainDex,
+      MultiDexTestMode testMode,
+      DiagnosticsHandler handler)
       throws IOException, ExecutionException, CompilationFailedException {
     AndroidApp originalApp = AndroidApp.builder().addProgramFiles(app).build();
     CodeInspector originalInspector = new CodeInspector(originalApp);
@@ -540,7 +549,7 @@ public class MainDexListTests extends TestBase {
     }
     Path outDir = temp.newFolder().toPath();
     R8Command.Builder builder =
-        R8Command.builder(new TestDiagnosticsHandler())
+        R8Command.builder(handler)
             .addProgramFiles(app)
             .setMode(
                 minimalMainDex && mainDex.size() > 0
@@ -613,13 +622,17 @@ public class MainDexListTests extends TestBase {
   private void verifyMainDexContains(List<String> mainDex, Path app, boolean singleDexApp)
       throws Throwable {
     try {
-      verifyMainDexContains(mainDex, app, singleDexApp, test -> {
-        try {
-          test.run();
-        } catch (Throwable e) {
-          throw new RuntimeException(e);
-        }
-      });
+      verifyMainDexContains(
+          mainDex,
+          app,
+          singleDexApp,
+          test -> {
+            try {
+              test.run(new TestDiagnosticsHandler());
+            } catch (Throwable e) {
+              throw new RuntimeException(e);
+            }
+          });
     } catch (RuntimeException e) {
       throw e.getCause();
     }
@@ -628,10 +641,13 @@ public class MainDexListTests extends TestBase {
   private void verifyMainDexContains(
       List<String> mainDex, Path app, boolean singleDexApp, Consumer<Runner> runner) {
     for (MultiDexTestMode multiDexTestMode : MultiDexTestMode.values()) {
-      runner.accept(() ->
-          doVerifyMainDexContains(mainDex, app, singleDexApp, false, multiDexTestMode));
-      runner.accept(() ->
-          doVerifyMainDexContains(mainDex, app, singleDexApp, true, multiDexTestMode));
+      runner.accept(
+          (handler) ->
+              doVerifyMainDexContains(
+                  mainDex, app, singleDexApp, false, multiDexTestMode, handler));
+      runner.accept(
+          (handler) ->
+              doVerifyMainDexContains(mainDex, app, singleDexApp, true, multiDexTestMode, handler));
     }
   }
 
@@ -857,6 +873,8 @@ public class MainDexListTests extends TestBase {
   }
 
   private class TestDiagnosticsHandler implements DiagnosticsHandler {
+
+    public List<Diagnostic> errors = new ArrayList<>();
 
     @Override
     public void error(Diagnostic error) {
