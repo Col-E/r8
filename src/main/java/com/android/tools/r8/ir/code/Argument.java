@@ -102,4 +102,9 @@ public class Argument extends Instruction {
   public TypeLatticeElement evaluate(AppInfo appInfo) {
     return outValue.getTypeLatticeRaw();
   }
+
+  @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
 }

@@ -44,4 +44,10 @@ public abstract class FieldInstruction extends Instruction {
   public FieldInstruction asFieldInstruction() {
     return this;
   }
+
+  @Override
+  public boolean hasInvariantOutType() {
+    // TODO(jsjeon): what if the target field is known to be non-null?
+    return true;
+  }
 }

@@ -109,8 +109,8 @@ public class InvokeNewArray extends Invoke {
   }
 
   @Override
-  public boolean hasInvariantVerificationType() {
-    throw cfUnsupported();
+  public boolean hasInvariantOutType() {
+    return true;
   }
 
   @Override

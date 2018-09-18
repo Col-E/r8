@@ -100,7 +100,7 @@ public class TypeVerificationHelper {
         assert !instruction.isArgument();
         if (instruction.outValue() != null && instruction.outType().isObject()) {
           Value outValue = instruction.outValue();
-          if (instruction.hasInvariantVerificationType()) {
+          if (instruction.hasInvariantOutType()) {
             DexType type = instruction.computeVerificationType(this);
             assert type != null;
             types.put(outValue, type);
@@ -136,7 +136,7 @@ public class TypeVerificationHelper {
     for (Instruction instruction : value.uniqueUsers()) {
       if (instruction.outValue() != null
           && instruction.outType().isObject()
-          && !instruction.hasInvariantVerificationType()) {
+          && !instruction.hasInvariantOutType()) {
         worklist.add(instruction.outValue());
       }
     }

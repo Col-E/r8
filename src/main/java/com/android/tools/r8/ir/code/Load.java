@@ -8,7 +8,9 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -18,6 +20,10 @@ public class Load extends Instruction {
 
   public Load(StackValue dest, Value src) {
     super(dest, src);
+  }
+
+  public Value src() {
+    return inValues.get(0);
   }
 
   @Override
@@ -63,17 +69,27 @@ public class Load extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    Value value = inValues.get(0);
+    Value value = src();
     builder.add(new CfLoad(value.outType(), builder.getLocalRegister(value)));
   }
 
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return helper.getType(inValues.get(0));
+    return helper.getType(src());
   }
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     // Nothing to do. This is only hit because loads and stores are insert for phis.
+  }
+
+  @Override
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
+    return src().getTypeLatticeRaw();
+  }
+
+  @Override
+  public boolean hasInvariantOutType() {
+    return false;
   }
 }

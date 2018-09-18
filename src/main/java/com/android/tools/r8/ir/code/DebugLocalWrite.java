@@ -16,7 +16,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
  * their outgoing value). This instruction is needed to mark a transition of an existing value (with
  * a possible local attached) to a new value that has a local (possibly the same one). Even if the
  * debug info of the ingoing value is equal to that of the outgoing value, the write may still be
- * needed since an explicit end may have ended the visiblity range of the local which now becomes
+ * needed since an explicit end may have ended the visibility range of the local which now becomes
  * visible again.
  *
  * <p>For valid debug info, this instruction should have at least one debug user, denoting the end
@@ -47,11 +47,6 @@ public class DebugLocalWrite extends Move {
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isDebugLocalWrite();
-  }
-
-  @Override
-  public boolean hasInvariantVerificationType() {
-    return false;
   }
 
   @Override

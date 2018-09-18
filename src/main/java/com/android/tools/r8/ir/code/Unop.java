@@ -62,4 +62,9 @@ abstract public class Unop extends Instruction {
   public TypeLatticeElement evaluate(AppInfo appInfo) {
     return PrimitiveTypeLatticeElement.getInstance();
   }
+
+  @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
 }

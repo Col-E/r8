@@ -73,6 +73,11 @@ public class DebugPosition extends Instruction {
   }
 
   @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
+
+  @Override
   public void buildCf(CfBuilder builder) {
     assert getPosition().isSome() && !getPosition().synthetic;
     // All redundant debug positions are removed. Remaining ones must force a pc advance.

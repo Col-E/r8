@@ -111,6 +111,11 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
+
+  @Override
   public boolean throwsNpeIfValueIsNull(Value value) {
     return array() == value;
   }

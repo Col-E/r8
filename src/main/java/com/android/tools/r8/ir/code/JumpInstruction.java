@@ -52,4 +52,8 @@ public abstract class JumpInstruction extends Instruction {
     return inliningConstraints.forJumpInstruction();
   }
 
+  @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
 }

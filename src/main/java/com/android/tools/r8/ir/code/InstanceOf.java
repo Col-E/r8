@@ -91,6 +91,11 @@ public class InstanceOf extends Instruction {
   }
 
   @Override
+  public boolean hasInvariantOutType() {
+    return true;
+  }
+
+  @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.loadInValues(this, it);
     helper.storeOutValue(this, it);
