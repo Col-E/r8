@@ -45,11 +45,6 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
-    return appInfo.lookupStaticTarget(getInvokedMethod());
-  }
-
-  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int argumentRegisters = requiredArgumentRegisters();

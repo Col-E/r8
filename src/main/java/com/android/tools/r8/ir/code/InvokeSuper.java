@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeSuperRange;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -37,20 +36,6 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   @Override
   protected String getTypeString() {
     return "Super";
-  }
-
-  @Override
-  public DexEncodedMethod computeSingleTarget(
-      AppInfoWithLiveness appInfo, DexType invocationContext) {
-    if (invocationContext == null) {
-      return null;
-    }
-    try {
-      return appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);
-    } catch (CompilationError ce) {
-      // In case of illegal invoke-super, ignore inlining/optimizing it by returning null here.
-      return null;
-    }
   }
 
   @Override
@@ -100,7 +85,14 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   @Override
   public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
       DexType invocationContext) {
-    return appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);
+    if (invocationContext == null) {
+      return null;
+    }
+    if (!invocationContext.isSubtypeOf(getInvokedMethod().holder, appInfo)) {
+      return null;
+    } else {
+      return appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);
+    }
   }
 
   @Override

@@ -157,7 +157,7 @@ public class MemberValuePropagation {
         // If no Proguard rule could replace the instruction check for knowledge about the
         // return value.
         if (!invokeReplaced && invoke.outValue() != null) {
-          DexEncodedMethod target = invoke.computeSingleTarget(appInfo);
+          DexEncodedMethod target = invoke.lookupSingleTarget(appInfo, callingContext);
           if (target != null) {
             if (target.getOptimizationInfo().neverReturnsNull() && invoke.outValue().canBeNull()) {
               invoke.outValue().markNeverNull();

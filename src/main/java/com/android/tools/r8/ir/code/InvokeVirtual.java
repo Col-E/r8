@@ -36,13 +36,6 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod computeSingleTarget(
-      AppInfoWithLiveness appInfo, DexType invocationContext) {
-    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appInfo, this);
-    return appInfo.lookupSingleVirtualTarget(getInvokedMethod(), refinedReceiverType);
-  }
-
-  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int argumentRegisters = requiredArgumentRegisters();
@@ -84,8 +77,9 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   @Override
   public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
       DexType invocationContext) {
+    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appInfo, this);
     DexMethod method = getInvokedMethod();
-    return appInfo.lookupSingleVirtualTarget(method);
+    return appInfo.lookupSingleVirtualTarget(method, refinedReceiverType);
   }
 
   @Override

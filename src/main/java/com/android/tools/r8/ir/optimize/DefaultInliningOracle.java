@@ -67,8 +67,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   private DexEncodedMethod validateCandidate(InvokeMethod invoke, DexType invocationContext) {
-    DexEncodedMethod candidate =
-        invoke.computeSingleTarget(inliner.appInfo, invocationContext);
+    DexEncodedMethod candidate = invoke.lookupSingleTarget(inliner.appInfo, invocationContext);
     if ((candidate == null)
         || (candidate.getCode() == null)
         || inliner.appInfo.definitionFor(candidate.method.getHolder()).isLibraryClass()) {

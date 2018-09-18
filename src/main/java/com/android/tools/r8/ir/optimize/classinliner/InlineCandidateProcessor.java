@@ -216,7 +216,8 @@ final class InlineCandidateProcessor {
 
   // Checks if the inlining candidate instance users are eligible,
   // see comment on processMethodCode(...).
-  boolean areInstanceUsersEligible(Supplier<InliningOracle> defaultOracle) {
+  boolean areInstanceUsersEligible(
+      DexType invocationContext, Supplier<InliningOracle> defaultOracle) {
     // No Phi users.
     if (eligibleInstance.numberOfPhiUsers() > 0) {
       return false; // Not eligible.
@@ -256,7 +257,7 @@ final class InlineCandidateProcessor {
 
       // Eligible usage as an invocation argument.
       if (user.isInvokeMethod()) {
-        if (isExtraMethodCallEligible(defaultOracle, user.asInvokeMethod())) {
+        if (isExtraMethodCallEligible(defaultOracle, user.asInvokeMethod(), invocationContext)) {
           continue;
         }
       }
@@ -329,7 +330,7 @@ final class InlineCandidateProcessor {
     estimatedCombinedSizeForInlining = 0;
 
     // Repeat user analysis
-    if (!areInstanceUsersEligible(() -> {
+    if (!areInstanceUsersEligible(null, () -> {
       throw new Unreachable("Inlining oracle is expected to be needed");
     })) {
       throw new Unreachable("Analysis must succeed after inlining of extra methods");
@@ -589,7 +590,9 @@ final class InlineCandidateProcessor {
   //   -- method itself can be inlined
   //
   private boolean isExtraMethodCallEligible(
-      Supplier<InliningOracle> defaultOracle, InvokeMethod invokeMethod) {
+      Supplier<InliningOracle> defaultOracle,
+      InvokeMethod invokeMethod,
+      DexType invocationContext) {
 
     List<Value> arguments = Lists.newArrayList(invokeMethod.inValues());
 
@@ -610,7 +613,7 @@ final class InlineCandidateProcessor {
     }
 
     // Need single target.
-    DexEncodedMethod singleTarget = invokeMethod.computeSingleTarget(appInfo);
+    DexEncodedMethod singleTarget = invokeMethod.lookupSingleTarget(appInfo, invocationContext);
     if (singleTarget == null || isProcessedConcurrently.test(singleTarget)) {
       return false;  // Not eligible.
     }

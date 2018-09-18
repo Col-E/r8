@@ -51,12 +51,6 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod computeSingleTarget(AppInfoWithLiveness appInfo) {
-    // Target method can not be known at compile time.
-    return null;
-  }
-
-  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int argumentRegisters = requiredArgumentRegisters();

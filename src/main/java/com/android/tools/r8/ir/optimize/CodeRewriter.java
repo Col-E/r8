@@ -1239,7 +1239,8 @@ public class CodeRewriter {
               invoke.setOutValue(null);
             }
           } else if (appInfoWithLiveness != null) {
-            DexEncodedMethod target = invoke.computeSingleTarget(appInfoWithLiveness);
+            DexEncodedMethod target =
+                invoke.lookupSingleTarget(appInfoWithLiveness, code.method.method.getHolder());
             if (target != null) {
               DexMethod invokedMethod = target.method;
               // Check if the invoked method is known to return one of its arguments.
@@ -2602,8 +2603,8 @@ public class CodeRewriter {
           continue;
         }
 
-        DexEncodedMethod singleTarget =
-            insn.asInvokeMethod().computeSingleTarget(appInfoWithLiveness);
+        DexEncodedMethod singleTarget = insn.asInvokeMethod().lookupSingleTarget(
+            appInfoWithLiveness, code.method.method.getHolder());
         if (singleTarget == null || !singleTarget.getOptimizationInfo().neverReturnsNormally()) {
           continue;
         }
