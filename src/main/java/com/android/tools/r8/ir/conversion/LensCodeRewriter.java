@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeMultiNewArray;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -65,7 +66,7 @@ public class LensCodeRewriter {
   }
 
   /**
-   * Replace invoke targets and field accesses with actual definitions.
+   * Replace type appearances, invoke targets and field accesses with actual definitions.
    */
   public void rewrite(IRCode code, DexEncodedMethod method) {
     ListIterator<BasicBlock> blocks = code.blocks.listIterator();
@@ -188,6 +189,14 @@ public class LensCodeRewriter {
                 instanceOf.value(), newType);
             iterator.replaceCurrentInstruction(newInstanceOf);
           }
+        } else if (current.isInvokeMultiNewArray()) {
+          InvokeMultiNewArray multiNewArray = current.asInvokeMultiNewArray();
+          DexType newType = graphLense.lookupType(multiNewArray.getArrayType());
+          if (newType != multiNewArray.getArrayType()) {
+            InvokeMultiNewArray newMultiNewArray = new InvokeMultiNewArray(
+                newType, makeOutValue(multiNewArray, code), multiNewArray.inValues());
+            iterator.replaceCurrentInstruction(newMultiNewArray);
+          }
         } else if (current.isInvokeNewArray()) {
           InvokeNewArray newArray = current.asInvokeNewArray();
           DexType newType = graphLense.lookupType(newArray.getArrayType());
@@ -205,14 +214,13 @@ public class LensCodeRewriter {
             iterator.replaceCurrentInstruction(newNewArray);
           }
         } else if (current.isNewInstance()) {
-            NewInstance newInstance= current.asNewInstance();
+          NewInstance newInstance= current.asNewInstance();
           DexType newClazz = graphLense.lookupType(newInstance.clazz);
-            if (newClazz != newInstance.clazz) {
-              NewInstance newNewInstance =
-                  new NewInstance(newClazz, makeOutValue(newInstance, code));
-              iterator.replaceCurrentInstruction(newNewInstance);
-            }
+          if (newClazz != newInstance.clazz) {
+            NewInstance newNewInstance = new NewInstance(newClazz, makeOutValue(newInstance, code));
+            iterator.replaceCurrentInstruction(newNewInstance);
           }
+        }
       }
     }
     assert code.isConsistentSSA();
