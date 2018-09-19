@@ -136,7 +136,8 @@ public abstract class Binop extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return PrimitiveTypeLatticeElement.getInstance();
+    return PrimitiveTypeLatticeElement.meet(
+        leftValue().getTypeLatticeRaw(), rightValue().getTypeLatticeRaw());
   }
 
   @Override

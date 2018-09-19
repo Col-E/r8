@@ -58,7 +58,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class TypeAnalysisTest extends SmaliTestBase {
   private static final InternalOptions TEST_OPTIONS = new InternalOptions();
   private static final TypeLatticeElement NULL = NullLatticeElement.getInstance();
-  private static final TypeLatticeElement PRIMITIVE = PrimitiveTypeLatticeElement.getInstance();
+  private static final TypeLatticeElement SINGLE = SingleTypeLatticeElement.getInstance();
+  private static final TypeLatticeElement INT = IntTypeLatticeElement.getInstance();
 
   private final String dirName;
   private final String smaliFileName;
@@ -139,7 +140,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
     TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract);
     analysis.widening(subtract, irCode);
     forEachOutValue(irCode, (v, l) -> {
-      assertEither(l, PRIMITIVE, NULL);
+      // v9 <- 9 (INT_OR_FLOAT), which is never used later, hence imprecise.
+      assertEither(l, SINGLE, INT, NULL);
     });
   }
 
@@ -155,7 +157,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     TypeAnalysis analysis = new TypeAnalysis(appInfo, fib);
     analysis.widening(fib, irCode);
     forEachOutValue(irCode, (v, l) -> {
-      assertEither(l, PRIMITIVE, NULL);
+      assertEither(l, INT, NULL);
     });
   }
 
@@ -277,7 +279,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     DexType test = appInfo.dexItemFactory.createType("LTest;");
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-        ArrayLength.class, PRIMITIVE,
+        ArrayLength.class, INT,
         ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
         CheckCast.class, new ClassTypeLatticeElement(test, true),
         NewInstance.class, new ClassTypeLatticeElement(test, false));
@@ -299,7 +301,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     DexType test = appInfo.dexItemFactory.createType("LTest;");
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
       ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
-      InstanceOf.class, PRIMITIVE,
+      InstanceOf.class, INT,
       StaticGet.class, new ClassTypeLatticeElement(test, true));
     IRCode irCode =
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());

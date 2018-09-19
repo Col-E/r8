@@ -83,7 +83,10 @@ abstract public class TypeLatticeElement {
       return l1.asNullable();
     }
     if (l1.isPrimitive()) {
-      return l2.isPrimitive() ? l1 : TopTypeLatticeElement.getInstance();
+      return l2.isPrimitive()
+          ? PrimitiveTypeLatticeElement.join(
+              l1.asPrimitiveTypeLatticeElement(), l2.asPrimitiveTypeLatticeElement())
+          : TopTypeLatticeElement.getInstance();
     }
     if (l2.isPrimitive()) {
       // By the above case, !(l1.isPrimitive())
@@ -306,6 +309,43 @@ abstract public class TypeLatticeElement {
     return false;
   }
 
+  public PrimitiveTypeLatticeElement asPrimitiveTypeLatticeElement() {
+    return null;
+  }
+
+  public boolean isSingle() {
+    return false;
+  }
+
+  public boolean isWide() {
+    return false;
+  }
+
+  public boolean isInt() {
+    return false;
+  }
+
+  public boolean isFloat() {
+    return false;
+  }
+
+  public boolean isLong() {
+    return false;
+  }
+
+  public boolean isDouble() {
+    return false;
+  }
+
+  public boolean isPreciseType() {
+    return isArrayTypeLatticeElement()
+        || isClassTypeLatticeElement()
+        || isInt()
+        || isFloat()
+        || isLong()
+        || isDouble();
+  }
+
   static ClassTypeLatticeElement objectType(AppInfo appInfo, boolean isNullable) {
     return new ClassTypeLatticeElement(appInfo.dexItemFactory.objectType, isNullable);
   }
@@ -321,7 +361,7 @@ abstract public class TypeLatticeElement {
       return NullLatticeElement.getInstance();
     }
     if (type.isPrimitiveType()) {
-      return PrimitiveTypeLatticeElement.getInstance();
+      return PrimitiveTypeLatticeElement.fromDexType(type);
     }
     if (type.isClassType()) {
       if (!type.isUnknown() && type.isInterface()) {

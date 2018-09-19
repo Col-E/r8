@@ -87,8 +87,9 @@ public class TypeAnalysis {
         argumentsSeen++;
         updateTypeOfValue(outValue, derived);
         // Note that we don't need to enqueue the out value of arguments here because it's constant.
-        // TODO(b/72693244): Generalize this, i.e., apply the same approach to other instructions
-        //   whose type lattice would be just constant, e.g., const-string, uop, bop, etc.
+      } else if (instruction.hasInvariantOutType()) {
+        TypeLatticeElement derived = instruction.evaluate(appInfo);
+        updateTypeOfValue(outValue, derived);
       } else {
         enqueue(outValue);
       }
