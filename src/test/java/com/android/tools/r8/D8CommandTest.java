@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipFile;
@@ -106,7 +107,9 @@ public class D8CommandTest {
         input.toString());
     assertEquals(0, ToolHelper.forkD8(working, "@flags.txt").exitCode);
     assertTrue(Files.exists(output));
-    Marker marker = ExtractMarker.extractMarkerFromDexFile(output);
+    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    assertEquals(1, markers.size());
+    Marker marker = markers.iterator().next();
     assertEquals(24, marker.getMinApi().intValue());
     assertEquals(Tool.D8, marker.getTool());
   }

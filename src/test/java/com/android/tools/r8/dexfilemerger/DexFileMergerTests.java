@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,9 +58,10 @@ public class DexFileMergerTests {
   private void testMarker(boolean addMarkerToInput)
       throws CompilationFailedException, IOException, ResourceException, ExecutionException {
     Path mergerInputZip = createMergerInputWithTwoClasses(OutputMode.DexIndexed, addMarkerToInput);
+    int expectedNumberOfMarkers = addMarkerToInput ? 1 : 0;
 
-    Marker inputMarker = ExtractMarker.extractMarkerFromDexFile(mergerInputZip);
-    assertEquals(addMarkerToInput, inputMarker != null);
+    Collection<Marker> inputMarkers = ExtractMarker.extractMarkerFromDexFile(mergerInputZip);
+    assertEquals(expectedNumberOfMarkers, inputMarkers.size());
 
     // Test that the DexFileMerger preserves markers.
     Path mergerOutputZip = temp.getRoot().toPath().resolve("merger-out.zip");
@@ -67,13 +69,13 @@ public class DexFileMergerTests {
         new String[] {
           "--input", mergerInputZip.toString(), "--output", mergerOutputZip.toString()
         });
-    Marker outputMarker = ExtractMarker.extractMarkerFromDexFile(mergerOutputZip);
-    assertEquals(addMarkerToInput, outputMarker != null);
+    Collection<Marker> outputMarkers = ExtractMarker.extractMarkerFromDexFile(mergerOutputZip);
+    assertEquals(expectedNumberOfMarkers, outputMarkers.size());
 
     // Test that D8 when used for merging preserves markers.
     D8.main(new String[] { mergerInputZip.toString(), "--output", mergerOutputZip.toString() });
-    Marker d8OutputMarker = ExtractMarker.extractMarkerFromDexFile((mergerOutputZip));
-    assertEquals(addMarkerToInput, d8OutputMarker != null);
+    Collection<Marker> d8OutputMarkers = ExtractMarker.extractMarkerFromDexFile((mergerOutputZip));
+    assertEquals(expectedNumberOfMarkers, d8OutputMarkers.size());
   }
 
   @Test

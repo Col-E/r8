@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
@@ -96,8 +97,8 @@ public class DexSplitterTests {
     Path feature = output.resolve("feature1").resolve("classes.dex");
 
     for (Path path : new Path[] {inputZip, base, feature}) {
-      Marker marker = ExtractMarker.extractMarkerFromDexFile(path);
-      assertEquals(addMarkerToInput, marker != null);
+      Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(path);
+      assertEquals(addMarkerToInput ? 1 : 0, markers.size());
     }
   }
 
@@ -122,8 +123,7 @@ public class DexSplitterTests {
    */
   @Test
   public void splitFilesNoObfuscation()
-      throws CompilationFailedException, IOException, FeatureMappingException, ResourceException,
-          ExecutionException {
+      throws CompilationFailedException, IOException, FeatureMappingException {
     noObfuscation(false);
     noObfuscation(true);
   }

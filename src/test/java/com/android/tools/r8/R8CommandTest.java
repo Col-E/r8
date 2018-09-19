@@ -114,7 +114,9 @@ public class R8CommandTest {
         input.toString());
     assertEquals(0, ToolHelper.forkR8(working, "@flags.txt").exitCode);
     assertTrue(Files.exists(output));
-    Marker marker = ExtractMarker.extractMarkerFromDexFile(output);
+    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    assertEquals(1, markers.size());
+    Marker marker = markers.iterator().next();
     assertEquals(24, marker.getMinApi().intValue());
     assertEquals(Tool.R8, marker.getTool());
   }

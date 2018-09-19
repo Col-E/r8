@@ -597,15 +597,16 @@ public class DexItemFactory {
   }
 
   // Debugging support to extract marking string.
-  public synchronized Marker extractMarker() {
+  public synchronized Collection<Marker> extractMarker() {
     // This is slow but it is not needed for any production code yet.
+    List<Marker> markers = new ArrayList<>();
     for (DexString dexString : strings.keySet()) {
       Marker result = Marker.parse(dexString);
       if (result != null) {
-        return result;
+        markers.add(result);
       }
     }
-    return null;
+    return markers;
   }
 
   // Debugging support to extract marking string.

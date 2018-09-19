@@ -6,8 +6,8 @@ package com.android.tools.r8;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
-import com.android.tools.r8.dex.VDexReader;
 import com.android.tools.r8.dex.VDexParser;
+import com.android.tools.r8.dex.VDexReader;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.origin.Origin;
@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 
 public class ExtractMarker {
@@ -40,15 +42,14 @@ public class ExtractMarker {
     }
   }
 
-  public static Marker extractMarkerFromDexFile(Path file)
+  public static Collection<Marker> extractMarkerFromDexFile(Path file)
       throws IOException, ExecutionException, ResourceException {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
     addDexResources(appBuilder, file);
     return extractMarker(appBuilder.build());
   }
 
-  public static int extractDexSize(Path file)
-      throws IOException, ExecutionException, ResourceException {
+  public static int extractDexSize(Path file) throws IOException, ResourceException {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
     addDexResources(appBuilder, file);
     int size = 0;
@@ -62,7 +63,7 @@ public class ExtractMarker {
     return size;
   }
 
-  public static Marker extractMarkerFromDexProgramData(byte[] data)
+  public static Collection<Marker> extractMarkerFromDexProgramData(byte[] data)
       throws IOException, ExecutionException {
     AndroidApp app = AndroidApp.builder().addDexProgramData(data, Origin.unknown()).build();
     return extractMarker(app);
@@ -86,7 +87,8 @@ public class ExtractMarker {
     }
   }
 
-  private static Marker extractMarker(AndroidApp app) throws IOException, ExecutionException {
+  private static Collection<Marker> extractMarker(AndroidApp app)
+      throws IOException, ExecutionException {
     InternalOptions options = new InternalOptions();
     options.skipReadingDexCode = true;
     options.minApiLevel = AndroidApiLevel.P.getLevel();
@@ -104,14 +106,24 @@ public class ExtractMarker {
       return;
     }
 
+    Path cwd = Paths.get(System.getProperty("user.dir"));
     // Dex code is not needed for getting the marker. VDex files typically contains quickened byte
     // codes which cannot be read, and we want to get the marker from vdex files as well.
     int d8Count = 0;
     int r8Count = 0;
     int otherCount = 0;
     for (Path programFile : command.getProgramFiles()) {
+      Collection<Marker> markers;
       try {
-        Marker marker = extractMarkerFromDexFile(programFile);
+        markers = extractMarkerFromDexFile(programFile);
+      } catch (CompilationError e) {
+        System.out.println(
+            "Failed to read dex/vdex file `" + programFile + "`: '" + e.getMessage() + "'");
+        continue;
+      }
+      System.out.print("In file: " + cwd.relativize(programFile));
+      System.out.println(", " + extractDexSize(programFile) + " bytes:");
+      for (Marker marker : markers) {
         if (marker == null) {
           otherCount++;
           if (!command.getIncludeOther()) {
@@ -140,12 +152,8 @@ public class ExtractMarker {
             System.out.print(": ");
           }
           System.out.print(marker == null ? "D8/R8 marker not found" : marker);
-          System.out.print(", " + extractDexSize(programFile) + " bytes");
         }
         System.out.println();
-      } catch (CompilationError e) {
-        System.out.println(
-            "Failed to read dex/vdex file `" + programFile +"`: '" + e.getMessage() + "'");
       }
     }
     if (command.getSummary()) {

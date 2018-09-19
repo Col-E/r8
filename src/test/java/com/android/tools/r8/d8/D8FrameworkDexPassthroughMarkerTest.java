@@ -71,7 +71,9 @@ public class D8FrameworkDexPassthroughMarkerTest {
         new ApplicationReader(
                 app, options, new Timing("D8FrameworkDexPassthroughMarkerTest"))
             .read();
-    Marker readMarker = dexApp.dexItemFactory.extractMarker();
+    Collection<Marker> markers = dexApp.dexItemFactory.extractMarker();
+    assertEquals(1, markers.size());
+    Marker readMarker = markers.iterator().next();
     assertEquals(marker, readMarker);
   }
 }

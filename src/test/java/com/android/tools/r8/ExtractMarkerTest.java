@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Set;
 import org.junit.Test;
 
@@ -29,7 +30,10 @@ public class ExtractMarkerTest {
                       DiagnosticsHandler handler) {
                     Marker marker;
                     try {
-                      marker = ExtractMarker.extractMarkerFromDexProgramData(data.copyByteData());
+                      Collection<Marker> markers =
+                          ExtractMarker.extractMarkerFromDexProgramData(data.copyByteData());
+                      assertEquals(1, markers.size());
+                      marker = markers.iterator().next();
                     } catch (Exception e) {
                       throw new RuntimeException(e);
                     }
