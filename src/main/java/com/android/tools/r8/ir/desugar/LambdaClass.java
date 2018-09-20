@@ -559,8 +559,13 @@ final class LambdaClass {
               new SynthesizedCode(
                   callerPosition ->
                       new AccessorMethodSourceCode(LambdaClass.this, callerPosition)));
-      accessorClass.setDirectMethods(appendMethod(
-          accessorClass.directMethods(), accessorEncodedMethod));
+
+      // We may arrive here concurrently so we need must update the methods of the class atomically.
+      synchronized (accessorClass) {
+        accessorClass.setDirectMethods(
+            appendMethod(accessorClass.directMethods(), accessorEncodedMethod));
+      }
+
       rewriter.converter.optimizeSynthesizedMethod(accessorEncodedMethod);
       return true;
     }
