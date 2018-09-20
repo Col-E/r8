@@ -169,10 +169,13 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     // We only have a class data item if there are methods or fields.
     if (hasMethodsOrFields()) {
       collector.add(this);
-      synchronizedCollectAll(collector, directMethods);
-      synchronizedCollectAll(collector, virtualMethods);
-      synchronizedCollectAll(collector, staticFields);
-      synchronizedCollectAll(collector, instanceFields);
+
+      // The ordering of methods and fields may not be deterministic due to concurrency
+      // (see b/116027780).
+      synchronizedCollectAll(collector, sortedCopyIfPotentiallyNotSorted(directMethods));
+      synchronizedCollectAll(collector, sortedCopyIfPotentiallyNotSorted(virtualMethods));
+      synchronizedCollectAll(collector, sortedCopyIfPotentiallyNotSorted(staticFields));
+      synchronizedCollectAll(collector, sortedCopyIfPotentiallyNotSorted(instanceFields));
     }
     if (annotations != null) {
       annotations.collectMixedSectionItems(collector);
@@ -181,6 +184,16 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       interfaces.collectMixedSectionItems(collector);
     }
     annotations.collectMixedSectionItems(collector);
+  }
+
+  private static <T extends KeyedDexItem<S>, S extends PresortedComparable<S>>
+      T[] sortedCopyIfPotentiallyNotSorted(T[] items) {
+    if (items.length > 1) {
+      T[] sorted = items.clone();
+      Arrays.sort(sorted, Comparator.comparing(KeyedDexItem::getKey));
+      return sorted;
+    }
+    return items;
   }
 
   private static <T extends DexItem> void synchronizedCollectAll(MixedSectionCollection collection,
