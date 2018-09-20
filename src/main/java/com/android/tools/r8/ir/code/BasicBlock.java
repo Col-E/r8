@@ -841,7 +841,7 @@ public class BasicBlock {
     if (!hasCatchHandlers()) {
       return false;
     }
-    return catchHandlers.getAllTargets().contains(successors.indexOf(block));
+    return catchHandlers.getUniqueTargets().contains(successors.indexOf(block));
   }
 
   public int guardsForCatchSuccessor(BasicBlock block) {

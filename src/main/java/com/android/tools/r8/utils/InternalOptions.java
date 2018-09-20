@@ -673,4 +673,16 @@ public class InternalOptions {
   public boolean canHaveForwardingInitInliningBug() {
     return minApiLevel < AndroidApiLevel.M.getLevel();
   }
+
+  // Some Lollipop x86_64 VMs have a bug causing a segfault if an exception handler directly targets
+  // a conditional-loop header. This cannot happen for debug builds as the existence of a
+  // move-exception instruction will ensure a non-direct target.
+  //
+  // To workaround this in release builds, we insert a materializing nop instruction in the
+  // exception handler forcing it not directly target any loop header.
+  //
+  // See b/111337896.
+  public boolean canHaveExceptionTargetingLoopHeaderBug() {
+    return isGeneratingDex() && !debug && minApiLevel < AndroidApiLevel.M.getLevel();
+  }
 }

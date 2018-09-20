@@ -50,10 +50,10 @@ import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
-import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
+import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.kotlin.KotlinInfo;
@@ -995,6 +995,9 @@ public class IRConverter {
     workaroundForwardingInitializerBug(code);
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);
     registerAllocator.allocateRegisters(options.debug);
+    if (options.canHaveExceptionTargetingLoopHeaderBug()) {
+      codeRewriter.workaroundExceptionTargetingLoopHeaderBug(code);
+    }
     printMethod(code, "After register allocation (non-SSA)");
     for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
       CodeRewriter.collapsTrivialGotos(method, code);

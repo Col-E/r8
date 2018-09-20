@@ -35,7 +35,7 @@ public class DebugInfoTestBase {
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
-  static AndroidApp compileWithD8(Class... classes) throws IOException, CompilationFailedException {
+  static AndroidApp compileWithD8(Class... classes) throws CompilationFailedException {
     D8Command.Builder builder = D8Command.builder();
     for (Class clazz : classes) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
