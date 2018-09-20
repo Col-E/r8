@@ -79,7 +79,6 @@ public class KeepClassMembersTest extends ProguardCompatibilityTestBase {
         "-keepclassmembers class **.PureStatic* {",
         "  public static int b;",
         "  public static int getA();",
-        "  public int getI();",
         "}",
         "-keep class **.MainUsing* {",
         "  public static void main(java.lang.String[]);",

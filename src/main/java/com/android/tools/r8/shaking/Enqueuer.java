@@ -246,16 +246,22 @@ public class Enqueuer {
     pinnedItems.addAll(items.keySet());
   }
 
-  private void enqueueRootItem(Map.Entry<DexDefinition, ProguardKeepRule> root) {
-    DexDefinition item = root.getKey();
-    KeepReason reason = KeepReason.dueToKeepRule(root.getValue());
+  private void enqueueRootItem(Entry<DexDefinition, ProguardKeepRule> root) {
+    enqueueRootItem(root.getKey(), root.getValue());
+  }
+
+  private void enqueueRootItem(DexDefinition item, ProguardKeepRule rule) {
+    KeepReason reason = KeepReason.dueToKeepRule(rule);
     if (item.isDexClass()) {
       DexClass clazz = item.asDexClass();
       workList.add(Action.markInstantiated(clazz, reason));
       if (forceProguardCompatibility && clazz.hasDefaultInitializer()) {
-        ProguardKeepRule rule = ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
-        proguardCompatibilityWorkList.add(Action.markMethodLive(
-            clazz.getDefaultInitializer(), KeepReason.dueToProguardCompatibilityKeepRule(rule)));
+        ProguardKeepRule compatRule =
+            ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
+        proguardCompatibilityWorkList.add(
+            Action.markMethodLive(
+                clazz.getDefaultInitializer(),
+                KeepReason.dueToProguardCompatibilityKeepRule(compatRule)));
       }
     } else if (item.isDexEncodedField()) {
       workList.add(Action.markFieldKept(item.asDexEncodedField(), reason));
@@ -609,6 +615,16 @@ public class Enqueuer {
   // Actual actions performed.
   //
 
+  static private boolean isStaticMember(DexDefinition definition) {
+    if (definition.isDexEncodedMethod()) {
+      return (definition.asDexEncodedMethod()).accessFlags.isStatic();
+    }
+    if (definition.isDexEncodedField()) {
+      return (definition.asDexEncodedField()).accessFlags.isStatic();
+    }
+    return false;
+  }
+
   private void markTypeAsLive(DexType type) {
     assert type.isClassType();
     if (liveTypes.add(type)) {
@@ -652,13 +668,18 @@ public class Enqueuer {
         annotations.forEach(this::handleAnnotationOfLiveType);
       }
 
-      if (forceProguardCompatibility) {
-        // Add all dependent members to the workqueue.
-        enqueueRootItems(rootSet.getDependentItems(holder));
-      } else {
-        // Add all dependent static members to the workqueue.
-        enqueueRootItems(rootSet.getDependentStaticMembers(holder));
+      // Check if any dependent members are not static, and in that case enqueue the class as well.
+      // Having a dependent rule like -keepclassmembers with non static items indicates that class
+      // instances will be present even if tracing do not find any instantiation. See b/115867670.
+      Map<DexDefinition, ProguardKeepRule> dependentItems = rootSet.getDependentItems(holder);
+      for (Entry<DexDefinition, ProguardKeepRule> entry : dependentItems.entrySet()) {
+        if (!isStaticMember(entry.getKey())) {
+          enqueueRootItem(holder, entry.getValue());
+          break;
+        }
       }
+      // Add all dependent members to the workqueue.
+      enqueueRootItems(dependentItems);
     }
   }
 
@@ -789,7 +810,6 @@ public class Enqueuer {
     if (!instantiatedTypes.add(clazz.type, reason)) {
       return;
     }
-
     collectProguardCompatibilityRule(reason);
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Class `%s` is instantiated, processing...", clazz);
@@ -1406,7 +1426,7 @@ public class Enqueuer {
   private Map<DexField, Set<DexEncodedMethod>> collectFields(
       Map<DexType, Set<TargetWithContext<DexField>>> map) {
     Map<DexField, Set<DexEncodedMethod>> result = new IdentityHashMap<>();
-    for (Map.Entry<DexType, Set<TargetWithContext<DexField>>> entry : map.entrySet()) {
+    for (Entry<DexType, Set<TargetWithContext<DexField>>> entry : map.entrySet()) {
       for (TargetWithContext<DexField> fieldWithContext : entry.getValue()) {
         DexField field = fieldWithContext.getTarget();
         DexEncodedMethod context = fieldWithContext.getContext();

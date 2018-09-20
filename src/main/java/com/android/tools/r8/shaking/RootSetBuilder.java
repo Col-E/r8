@@ -38,7 +38,6 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -798,23 +797,6 @@ public class RootSetBuilder {
     Map<DexDefinition, ProguardKeepRule> getDependentItems(DexDefinition item) {
       return Collections
           .unmodifiableMap(dependentNoShrinking.getOrDefault(item, Collections.emptyMap()));
-    }
-
-    private boolean isStaticMember(Entry<DexDefinition, ProguardKeepRule> entry) {
-      if (entry.getKey().isDexEncodedMethod()) {
-        return (entry.getKey().asDexEncodedMethod()).accessFlags.isStatic();
-      }
-      if (entry.getKey().isDexEncodedField()) {
-        return (entry.getKey().asDexEncodedField()).accessFlags.isStatic();
-      }
-      return false;
-    }
-
-    Map<DexDefinition, ProguardKeepRule> getDependentStaticMembers(DexDefinition item) {
-      assert item.isDexClass();
-      return getDependentItems(item).entrySet().stream()
-          .filter(this::isStaticMember)
-          .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
     }
 
     @Override
