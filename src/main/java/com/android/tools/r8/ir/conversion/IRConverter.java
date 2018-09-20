@@ -777,7 +777,9 @@ public class IRConverter {
       inliner.performInlining(
           method, code, isProcessedConcurrently, callSiteInformation);
     }
-    stringOptimizer.computeConstStringLength(code, appInfo.dexItemFactory);
+    if (!options.debug) {
+      stringOptimizer.computeConstStringLength(code, appInfo.dexItemFactory);
+    }
     if (devirtualizer != null) {
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
     }
