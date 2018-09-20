@@ -55,7 +55,7 @@ public class DebugLocalsChange extends Instruction {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    builder.addNop(this);
+    builder.addNothing(this);
   }
 
   @Override

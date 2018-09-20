@@ -424,7 +424,7 @@ public class DexBuilder {
     if (jump.getTarget() != nextBlock) {
       add(jump, new GotoInfo(jump));
     } else {
-      addNop(jump);
+      addNothing(jump);
     }
   }
 
@@ -437,7 +437,7 @@ public class DexBuilder {
     add(move, new MoveInfo(move));
   }
 
-  public void addNop(com.android.tools.r8.ir.code.Instruction instruction) {
+  public void addNothing(com.android.tools.r8.ir.code.Instruction instruction) {
     assert instruction.getPosition().isNone();
     add(instruction, new FallThroughInfo(instruction));
   }
@@ -457,10 +457,14 @@ public class DexBuilder {
         && !(instruction.outValue().needsRegister());
   }
 
+  public void addNop(com.android.tools.r8.ir.code.Instruction ir) {
+    add(ir, new FixedSizeInfo(ir, new Nop()));
+  }
+
   public void addDebugPosition(DebugPosition position) {
     // Remaining debug positions always require we emit an actual nop instruction.
     // See removeRedundantDebugPositions.
-    add(position, new FixedSizeInfo(position, new Nop()));
+    addNop(position);
   }
 
   public void add(com.android.tools.r8.ir.code.Instruction ir, Instruction dex) {
@@ -493,7 +497,7 @@ public class DexBuilder {
     if (nextBlock != null
         && ret.identicalAfterRegisterAllocation(nextBlock.entry(), registerAllocator)) {
       ret.forceSetPosition(Position.none());
-      addNop(ret);
+      addNothing(ret);
     } else {
       add(ret, dex);
     }

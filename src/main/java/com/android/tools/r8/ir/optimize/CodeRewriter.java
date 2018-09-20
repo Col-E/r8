@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsageBuilder;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Binop;
@@ -3250,6 +3251,30 @@ public class CodeRewriter {
               Instruction temp = it.next();
               assert temp == instruction;
             }
+          }
+        }
+      }
+    }
+  }
+
+  // If an exceptional edge could target a conditional-loop header ensure that we have a
+  // materializing instruction on that path to work around a bug in some L x86_64 non-emulator VMs.
+  // See b/111337896.
+  public void workaroundExceptionTargetingLoopHeaderBug(IRCode code) {
+    for (BasicBlock block : code.blocks) {
+      if (block.hasCatchHandlers()) {
+        for (BasicBlock handler : block.getCatchHandlers().getUniqueTargets()) {
+          // We conservatively assume that a block with at least two normal predecessors is a loop
+          // header. If we ever end up computing exact loop headers, use that here instead.
+          // The loop is conditional if it has at least two normal successors.
+          BasicBlock target = handler.endOfGotoChain();
+          if (target.getPredecessors().size() > 2
+              && target.getNormalPredecessors().size() > 1
+              && target.getNormalSuccessors().size() > 1) {
+            Instruction fixit = new AlwaysMaterializingNop();
+            fixit.setBlock(handler);
+            fixit.setPosition(handler.getPosition());
+            handler.getInstructions().addFirst(fixit);
           }
         }
       }
