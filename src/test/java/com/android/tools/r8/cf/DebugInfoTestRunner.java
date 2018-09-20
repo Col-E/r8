@@ -54,7 +54,7 @@ public class DebugInfoTestRunner extends TestBase {
     Builder builder =
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(consumer);
     input.accept(builder);
     ToolHelper.runR8(builder.build(), o -> o.invalidDebugInfoFatal = true);

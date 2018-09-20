@@ -153,21 +153,22 @@ public class MethodHandleTestRunner extends TestBase {
   private void build(ProgramConsumer programConsumer) throws Exception {
     // MethodHandle.invoke() only supported from Android O
     // ConstMethodHandle only supported from Android P
-    AndroidApiLevel apiLevel = AndroidApiLevel.P;
-    Builder command =
-        R8Command.builder()
-            .setMode(compilationMode)
-            .addLibraryFiles(ToolHelper.getAndroidJar(apiLevel))
-            .setProgramConsumer(programConsumer);
-    if (!(programConsumer instanceof ClassFileConsumer)) {
-      command.setMinApiLevel(apiLevel.getLevel());
+    Builder builder =
+        R8Command.builder().setMode(compilationMode).setProgramConsumer(programConsumer);
+    if (programConsumer instanceof ClassFileConsumer) {
+      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+    } else {
+      AndroidApiLevel apiLevel = AndroidApiLevel.P;
+      builder
+          .setMinApiLevel(apiLevel.getLevel())
+          .addLibraryFiles(ToolHelper.getAndroidJar(apiLevel));
     }
     for (Class<?> c : inputClasses) {
       byte[] classAsBytes = getClassAsBytes(c);
-      command.addClassProgramData(classAsBytes, Origin.unknown());
+      builder.addClassProgramData(classAsBytes, Origin.unknown());
     }
     if (minifyMode == MinifyMode.MINIFY) {
-      command.addProguardConfiguration(
+      builder.addProguardConfiguration(
           Arrays.asList(
               "-keep public class com.android.tools.r8.cf.MethodHandleTest {",
               "  public static void main(...);",
@@ -178,7 +179,7 @@ public class MethodHandleTestRunner extends TestBase {
     }
     try {
       ToolHelper.runR8(
-          command.build(), options -> options.enableCfFrontend = frontend == Frontend.CF);
+          builder.build(), options -> options.enableCfFrontend = frontend == Frontend.CF);
     } catch (CompilationError e) {
       if (frontend == Frontend.CF && compilationMode == CompilationMode.DEBUG) {
         // TODO(b/79725635): Investigate why these tests fail on the buildbot.

@@ -32,7 +32,7 @@ public class SynchronizedNoopTestRunner {
     R8.run(
         R8Command.builder()
             .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(a.wrapClassFileConsumer(null))
             .build());
     CodeInspector inspector = new CodeInspector(a.build());

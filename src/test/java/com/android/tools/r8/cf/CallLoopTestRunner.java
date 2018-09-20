@@ -25,7 +25,7 @@ public class CallLoopTestRunner {
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
             .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new DirectoryConsumer(out))
             .build());
     assert ToolHelper.runJava(out, CLASS.getCanonicalName()).exitCode == 0;

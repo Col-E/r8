@@ -67,7 +67,7 @@ public class UnneededLoadStoreDebugInfoTest extends TestBase {
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
             .addProgramFiles(inputJar)
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new ArchiveConsumer(outputJar))
             .build());
     ProcessResult runOutput = ToolHelper.runJava(outputJar, CLASS_NAME);

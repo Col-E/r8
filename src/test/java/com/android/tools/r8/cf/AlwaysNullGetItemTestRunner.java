@@ -48,7 +48,7 @@ public class AlwaysNullGetItemTestRunner {
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
             .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outCf))
             .build());
     ProcessResult runCf = ToolHelper.runJava(outCf, CLASS.getCanonicalName());

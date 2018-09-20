@@ -54,7 +54,7 @@ public class UninitializedInFrameTestRunner {
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
             .addClassProgramData(clazz, Origin.unknown())
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new ArchiveConsumer(output))
             .build());
     ProcessResult runOutput = ToolHelper.runJava(output, CLASS.getCanonicalName());

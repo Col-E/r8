@@ -40,7 +40,7 @@ public class BaseDefaultMethodTestRunner {
     Builder builder =
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new ArchiveConsumer(out))
             .addProguardConfiguration(config, Origin.unknown());
     for (Class<?> c : CLASSES) {
