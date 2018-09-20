@@ -22,8 +22,6 @@ import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
-import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
-import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -32,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 public class InternalOptions {
 
@@ -294,12 +293,6 @@ public class InternalOptions {
 
   public Path proguardCompatibilityRulesOutput = null;
 
-  public static boolean assertionsEnabled() {
-    boolean assertionsEnabled = false;
-    assert assertionsEnabled = true; // Intentional side-effect.
-    return assertionsEnabled;
-  }
-
   public void warningMissingEnclosingMember(DexType clazz, Origin origin, int version) {
     TypeVersionPair pair = new TypeVersionPair(version, clazz);
     synchronized (missingEnclosingMembers) {
@@ -449,10 +442,8 @@ public class InternalOptions {
 
   public static class TestingOptions {
 
-    public IROrdering irOrdering =
-        InternalOptions.assertionsEnabled() && !InternalOptions.DETERMINISTIC_DEBUGGING
-            ? NondeterministicIROrdering.getInstance()
-            : IdentityIROrdering.getInstance();
+    public Function<Set<DexEncodedMethod>, Set<DexEncodedMethod>> irOrdering =
+        Function.identity();
 
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean invertConditionals = false;

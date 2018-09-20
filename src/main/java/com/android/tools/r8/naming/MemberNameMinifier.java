@@ -18,7 +18,6 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
 
   protected final AppInfoWithLiveness appInfo;
   protected final RootSet rootSet;
-  protected final InternalOptions options;
   protected final ImmutableList<String> dictionary;
 
   protected final Map<MemberType, DexString> renaming = new IdentityHashMap<>();
@@ -30,7 +29,6 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   MemberNameMinifier(AppInfoWithLiveness appInfo, RootSet rootSet, InternalOptions options) {
     this.appInfo = appInfo;
     this.rootSet = rootSet;
-    this.options = options;
     this.dictionary = options.proguardConfiguration.getObfuscationDictionary();
     this.useUniqueMemberNames = options.proguardConfiguration.isUseUniqueClassMemberNames();
     this.overloadAggressively =
