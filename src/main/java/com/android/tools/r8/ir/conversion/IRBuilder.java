@@ -1320,7 +1320,10 @@ public class IRBuilder {
   public void addMoveException(int dest) {
     assert !currentBlock.getPredecessors().isEmpty();
     assert currentBlock.getPredecessors().stream().allMatch(b -> b.entry().isMoveException());
-    assert verifyValueIsMoveException(readRegister(dest, ValueType.OBJECT));
+    // Always do the readRegister to guarantee consistent behaviour when running with/without
+    // assertions, see: b/115943916
+    Value value = readRegister(dest, ValueType.OBJECT);
+    assert verifyValueIsMoveException(value);
   }
 
   private static boolean verifyValueIsMoveException(Value value) {
