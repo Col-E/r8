@@ -24,7 +24,7 @@ public class Regress111337896TestRunner extends DebugInfoTestBase {
     Class clazz = Regress111337896Test.class;
 
     // Check the regression test is valid code.
-    String expected = "aok\n";
+    String expected = "aok";
     assertEquals(expected, runOnJava(clazz));
 
     for (AndroidApiLevel minApi : Arrays.asList(AndroidApiLevel.L, AndroidApiLevel.M)) {

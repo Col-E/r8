@@ -35,6 +35,6 @@ public class Regress111337896Test {
 
   public static void main(String[] args) {
     regress111337896();
-    System.out.println("aok");
+    System.out.print("aok");
   }
 }
