@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
-import com.android.tools.r8.utils.IROrdering;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
@@ -40,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -117,7 +117,7 @@ public class CallGraph extends CallSiteInformation {
       if (isSelfRecursive()) {
         builder.append(", recursive");
       }
-      builder.append(", invoke count ").append(invokeCount);
+      builder.append(", invoke count " + invokeCount);
       builder.append(").\n");
       if (callees.size() > 0) {
         builder.append("Callees:\n");
@@ -140,7 +140,7 @@ public class CallGraph extends CallSiteInformation {
   }
 
   private final Map<DexEncodedMethod, Node> nodes = new LinkedHashMap<>();
-  private final IROrdering shuffle;
+  private final Function<Set<DexEncodedMethod>, Set<DexEncodedMethod>> shuffle;
 
   private final Set<DexEncodedMethod> singleCallSite = Sets.newIdentityHashSet();
   private final Set<DexEncodedMethod> doubleCallSite = Sets.newIdentityHashSet();
@@ -220,7 +220,7 @@ public class CallGraph extends CallSiteInformation {
    *
    * <p>
    */
-  private Collection<DexEncodedMethod> extractLeaves() {
+  private Set<DexEncodedMethod> extractLeaves() {
     if (isEmpty()) {
       return Collections.emptySet();
     }
@@ -230,9 +230,8 @@ public class CallGraph extends CallSiteInformation {
       leaf.callers.forEach(caller -> caller.callees.remove(leaf));
       nodes.remove(leaf.method);
     });
-    Set<DexEncodedMethod> methods =
-        leaves.stream().map(x -> x.method).collect(Collectors.toCollection(LinkedHashSet::new));
-    return shuffle.order(methods);
+    return shuffle.apply(leaves.stream().map(leaf -> leaf.method)
+        .collect(Collectors.toCollection(LinkedHashSet::new)));
   }
 
   public static class CycleEliminator {
@@ -458,7 +457,7 @@ public class CallGraph extends CallSiteInformation {
       ExecutorService executorService)
       throws ExecutionException {
     while (!isEmpty()) {
-      Collection<DexEncodedMethod> methods = extractLeaves();
+      Set<DexEncodedMethod> methods = extractLeaves();
       assert methods.size() > 0;
       List<Future<?>> futures = new ArrayList<>();
       for (DexEncodedMethod method : methods) {
