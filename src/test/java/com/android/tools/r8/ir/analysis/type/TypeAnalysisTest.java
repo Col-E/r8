@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -60,6 +61,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   private static final TypeLatticeElement NULL = NullLatticeElement.getInstance();
   private static final TypeLatticeElement SINGLE = SingleTypeLatticeElement.getInstance();
   private static final TypeLatticeElement INT = IntTypeLatticeElement.getInstance();
+  private static final TypeLatticeElement LONG = LongTypeLatticeElement.getInstance();
 
   private final String dirName;
   private final String smaliFileName;
@@ -287,7 +289,18 @@ public class TypeAnalysisTest extends SmaliTestBase {
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
     analysis.widening(method, irCode);
-    forEachOutValue(irCode, (v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
+    forEachOutValue(irCode, (v, l) -> {
+      verifyTypeEnvironment(expectedLattices, v, l);
+      // There are double-to-int, long-to-int, and int-to-long conversions in this example.
+      if (v.definition != null && v.definition.isNumberConversion()) {
+        NumberConversion instr = v.definition.asNumberConversion();
+        if (instr.to.isWide()) {
+          assertEquals(LONG, l);
+        } else {
+          assertEquals(INT, l);
+        }
+      }
+    });
   }
 
   // One more complicated example.

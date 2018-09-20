@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.type;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.NumericType;
 
 /**
  * A {@link TypeLatticeElement} that abstracts primitive types.
@@ -54,6 +55,24 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
         throw new InternalCompilerError("No value type for void type.");
       default:
         throw new Unreachable("Invalid descriptor char '" + descriptor + "'");
+    }
+  }
+
+  public static PrimitiveTypeLatticeElement fromNumericType(NumericType numericType) {
+    switch(numericType) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        return IntTypeLatticeElement.getInstance();
+      case FLOAT:
+        return FloatTypeLatticeElement.getInstance();
+      case LONG:
+        return LongTypeLatticeElement.getInstance();
+      case DOUBLE:
+        return DoubleTypeLatticeElement.getInstance();
+      default:
+        throw new Unreachable("Invalid numeric type '" + numericType + "'");
     }
   }
 
