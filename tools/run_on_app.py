@@ -5,6 +5,7 @@
 
 from __future__ import print_function
 from glob import glob
+import copy
 import optparse
 import os
 import sys
@@ -25,27 +26,31 @@ COMPILERS = ['d8', 'r8']
 def ParseOptions(argv):
   result = optparse.OptionParser()
   result.add_option('--compiler',
-                    help='',
+                    help='The compiler to use',
                     choices=COMPILERS)
   result.add_option('--app',
-                    help='',
+                    help='What app to run on',
                     choices=APPS)
+  result.add_option('--run-all',
+                    help='Compile all possible combinations',
+                    default=False,
+                    action='store_true')
   result.add_option('--type',
                     help='Default for R8: deploy, for D8: proguarded',
                     choices=TYPES)
   result.add_option('--out',
-                    help='',
+                    help='Where to place the output',
                     default=os.getcwd())
   result.add_option('--no-build',
-                    help='',
+                    help='Run without building first',
                     default=False,
                     action='store_true')
   result.add_option('--golem',
-                    help='',
+                    help='Running on golem, do not build or download',
                     default=False,
                     action='store_true')
   result.add_option('--no-libraries',
-                    help='',
+                    help='Do not pass in libraries, even if they exist in conf',
                     default=False,
                     action='store_true')
   result.add_option('--no-debug',
@@ -53,7 +58,7 @@ def ParseOptions(argv):
                     default=False,
                     action='store_true')
   result.add_option('--version',
-                    help='')
+                    help='The version of the app to run')
   result.add_option('-k',
                     help='Override the default ProGuard keep rules')
   result.add_option('--compiler-flags',
@@ -106,10 +111,45 @@ def GenerateAdditionalProguardConfiguration(temp, outdir):
     f.write('-printusage ' + os.path.join(outdir, 'proguard.usage') + "\n")
     return os.path.abspath(f.name)
 
+def get_permutations():
+  data_providers = {
+      'gmscore': gmscore_data,
+      'youtube': youtube_data,
+      'chrome': chrome_data,
+      'gmail': gmail_data
+  }
+  # Check to ensure that we add all variants here.
+  assert len(APPS) == len(data_providers)
+  for app, data in data_providers.iteritems():
+    for version in data.VERSIONS:
+      for type in data.VERSIONS[version]:
+        yield app, version, type
+
+def run_all(options, args):
+  # Args will be destroyed
+  assert len(args) == 0
+  for name, version, type in get_permutations():
+    print('Execution %s %s %s' % (name, version, type))
+    compiler = 'r8' if type == 'deploy' else 'd8'
+    fixed_options = copy.copy(options)
+    fixed_options.app = name
+    fixed_options.version = version
+    fixed_options.compiler = compiler
+    fixed_options.type = type
+    exit_code = run_with_options(fixed_options, [])
+    if exit_code != 0:
+      print('Failed %s %s %s with %s' % (name, version, type, compiler))
+      exit(exit_code)
+
 def main(argv):
   utils.check_java_version()
-  app_provided_pg_conf = False;
   (options, args) = ParseOptions(argv)
+  if options.run_all:
+    return run_all(options, args)
+  return run_with_options(options, args)
+
+def run_with_options(options, args):
+  app_provided_pg_conf = False;
   if options.golem:
     golem.link_third_party()
   outdir = options.out
@@ -233,6 +273,7 @@ def main(argv):
   if options.print_dexsegments:
     dex_files = glob(os.path.join(outdir, '*.dex'))
     utils.print_dexsegments(options.print_dexsegments, dex_files)
+  return 0
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
