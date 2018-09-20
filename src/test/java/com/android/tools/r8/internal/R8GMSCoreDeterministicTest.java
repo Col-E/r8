@@ -10,17 +10,11 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.beust.jcommander.internal.Lists;
-import java.io.IOException;
+import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 import org.junit.Test;
 
 public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
@@ -30,13 +24,7 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
     String proguardMap;
   }
 
-  private static Set<DexEncodedMethod> shuffle(Set<DexEncodedMethod> methods) {
-    List<DexEncodedMethod> toShuffle = Lists.newArrayList(methods);
-    Collections.shuffle(toShuffle);
-    return new LinkedHashSet<>(toShuffle);
-  }
-
-  private CompilationResult doRun() throws IOException, CompilationFailedException {
+  private CompilationResult doRun() throws CompilationFailedException {
     R8Command command =
         R8Command.builder()
             .addProgramFiles(Paths.get(GMSCORE_V7_DIR, GMSCORE_APK))
@@ -49,7 +37,7 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
             command,
             options -> {
               // For this test just do random shuffle.
-              options.testing.irOrdering = R8GMSCoreDeterministicTest::shuffle;
+              options.testing.irOrdering = NondeterministicIROrdering.getInstance();
               // Only use one thread to process to process in the order decided by the callback.
               options.numberOfThreads = 1;
               // Ignore the missing classes.
