@@ -53,6 +53,13 @@ public class BasicBlock {
       assert instruction.getBlock() == this;
       assert !instruction.isArgument() || argumentsAllowed;
       assert !instruction.isDebugLocalRead() || !instruction.getDebugValues().isEmpty();
+      if (instruction.isMoveException()) {
+        assert instruction == entry();
+        for (BasicBlock pred : getPredecessors()) {
+          assert pred.hasCatchSuccessor(this)
+              || (pred.isTrivialGoto() && pred.endOfGotoChain() == this);
+        }
+      }
       if (!instruction.isArgument()) {
         argumentsAllowed = false;
       }
@@ -230,6 +237,7 @@ public class BasicBlock {
     successors.set(index2, tmp);
   }
 
+  // TODO(b/116174212): Remove the predecessor pointer from the old successor block.
   public void replaceSuccessor(BasicBlock block, BasicBlock newBlock) {
     assert successors.contains(block) : "attempt to replace non-existent successor";
 
