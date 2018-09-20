@@ -572,6 +572,10 @@ public class IRCode {
   private boolean validThrowingInstructions() {
     for (BasicBlock block : blocks) {
       if (block.hasCatchHandlers()) {
+        for (BasicBlock handler : block.getCatchHandlers().getUniqueTargets()) {
+          // Ensure that catch handlers are always split edges for a well-formed SSA graph.
+          assert handler.getPredecessors().size() == 1;
+        }
         boolean seenThrowing = false;
         for (Instruction instruction : block.getInstructions()) {
           if (instruction.instructionTypeCanThrow()) {
