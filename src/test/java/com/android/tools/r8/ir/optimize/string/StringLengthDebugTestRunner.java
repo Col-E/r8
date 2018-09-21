@@ -6,15 +6,21 @@ package com.android.tools.r8.ir.optimize.string;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.debug.D8DebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
 import com.android.tools.r8.debug.DebugTestConfig;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(VmTestRunner.class)
 public class StringLengthDebugTestRunner extends DebugTestBase {
 
   @Test
+  @IgnoreIfVmOlderThan(Version.V5_1_1)
   public void test() throws Throwable {
     Class<?> main = StringLengthDebugTest.class;
     DebugTestConfig config = new D8DebugTestConfig()
