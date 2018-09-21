@@ -647,8 +647,10 @@ public class ProguardConfigurationParser {
 
     void verifyAndLinkBackReferences(Iterable<ProguardWildcard> wildcards) {
       List<Pattern> patterns = new ArrayList<>();
+      boolean backReferenceStarted = false;
       for (ProguardWildcard wildcard : wildcards) {
         if (wildcard.isBackReference()) {
+          backReferenceStarted = true;
           BackReference backReference = wildcard.asBackReference();
           if (patterns.size() < backReference.referenceIndex) {
             throw reporter.fatalError(new StringDiagnostic(
@@ -659,7 +661,9 @@ public class ProguardConfigurationParser {
           backReference.setReference(patterns.get(backReference.referenceIndex - 1));
         } else {
           assert wildcard.isPattern();
-          patterns.add(wildcard.asPattern());
+          if (!backReferenceStarted) {
+            patterns.add(wildcard.asPattern());
+          }
         }
       }
     }
