@@ -18,14 +18,14 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public final class IdentifierNameStringUtils {
@@ -295,6 +295,66 @@ public final class IdentifierNameStringUtils {
     return itemBasedString;
   }
 
+  // Perform a conservative evaluation of the constant content of an array from its construction
+  // until its use at a given instruction.
+  private static ConstInstruction[] evaluateConstArrayContentFromConstructionToUse(
+      NewArrayEmpty newArray, int size, Instruction user) {
+    ConstInstruction[] values = new ConstInstruction[size];
+    int remaining = size;
+    Set<Instruction> users = newArray.outValue().uniqueUsers();
+    // Follow the path from the array construction to the requested use collecting the constants
+    // put into the array. Conservatively bail out if the content of the array cannot be statically
+    // computed.
+    BasicBlock block = newArray.getBlock();
+    InstructionListIterator iterator = block.listIterator();
+    iterator.nextUntil(i -> i == newArray);
+    do {
+      while (iterator.hasNext()) {
+        Instruction instruction = iterator.next();
+        // Ignore instructions which do not use the array.
+        if (!users.contains(instruction)) {
+          continue;
+        }
+        if (instruction == user) {
+          // Return the array content if all elements are known when hitting the user for which
+          // the content was requested.
+          return remaining == 0 ? values : null;
+        }
+        // Any other kinds of use besides array-put mean that the array escapes and could be
+        // altered.
+        if (!instruction.isArrayPut()) {
+          return null;
+        }
+        ArrayPut arrayPut = instruction.asArrayPut();
+        if (!(arrayPut.value().isConstant() && arrayPut.index().isConstNumber())) {
+          return null;
+        }
+        int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
+        if (index < 0 || index >= values.length) {
+          return null;
+        }
+        // Allow several writes to the same array element.
+        if (values[index] == null) {
+          remaining--;
+        }
+        ConstInstruction value = arrayPut.value().getConstInstruction();
+        values[index] = value;
+      }
+      if (!block.exit().isGoto()) {
+        return null;
+      }
+      block = block.exit().asGoto().getTarget();
+      // Don't allow any other control flow into the sequence of blocks filling the array from
+      // construction to requested use. This will also includes loopback and guarantee that
+      // this will terminate without marking visited blocks.
+      if (block.getPredecessors().size() != 1) {
+        return null;
+      }
+      iterator = block.listIterator();
+    } while (iterator != null);
+    return null;
+  }
+
   /**
    * Visits all {@link ArrayPut}'s with the given {@param classListValue} as array and {@link Class}
    * as value. Then collects all corresponding {@link DexType}s so as to determine reflective cases.
@@ -305,64 +365,56 @@ public final class IdentifierNameStringUtils {
    */
   private static DexTypeList retrieveDexTypeListFromClassList(
       InvokeMethod invoke, Value classListValue) {
-    // Make sure this Value refers to an array.
-    if (!classListValue.definition.isInvokeNewArray()
-        && !classListValue.definition.isNewArrayEmpty()) {
+
+    // The code
+    //   A.class.getMethod("m", String.class, String.class)
+    // results in the following Java byte code from javac:
+    //
+    // LDC LA;.class
+    // LDC "m"
+    // ICONST_2
+    // ANEWARRAY java/lang/Class
+    // DUP
+    // ICONST_0
+    // LDC Ljava/lang/String;.class
+    // AASTORE
+    // DUP
+    // ICONST_1
+    // LDC Ljava/lang/String;.class
+    // AASTORE
+    // INVOKEVIRTUAL java/lang/Class.getMethod \
+    //     (Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+
+    // Make sure this Value refers to a new array.
+    if (!classListValue.definition.isNewArrayEmpty()) {
       return null;
     }
-    // The only pattern we consider is: new Class[] { A.class, B.class, ... }, which looks like
-    //   new-array va ...
-    //   const-class vc ...
-    //   const/4 vi ...
-    //   aput-object vc va vi
-    //   ... repeat putting const class into one location at a time ...
-    //   invoke-static ... va // Use that array at {@param invoke}.
-    BasicBlock block = classListValue.definition.getBlock();
-    InstructionIterator iterator = block.iterator();
-    iterator.nextUntil(instr -> instr == classListValue.definition);
-    Set<Instruction> users = classListValue.definition.outValue().uniqueUsers();
-    int maxIndex = -1;
-    Map<Integer, DexType> typeMap = new Int2ObjectArrayMap<>();
-    while (iterator.hasNext()) {
-      Instruction instr = iterator.next();
-      // Iterate the instructions up to the current {@param invoke}.
-      if (instr == invoke) {
-        break;
-      }
-      if (!users.contains(instr)) {
-        continue;
-      }
-      // Any other kinds of users mean that elements could be escaped and altered.
-      if (!instr.isArrayPut()) {
-        return null;
-      }
-      ArrayPut arrayPut = instr.asArrayPut();
-      assert arrayPut.array() == classListValue;
-      // Ignore statically unknown index.
-      if (!(arrayPut.value().isConstClass() && arrayPut.index().isConstNumber())) {
-        return null;
-      }
-      int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
-      // Filter out out-of-bound index or non-deterministic index.
-      if (index < 0 || typeMap.containsKey(index)) {
-        return null;
-      }
-      maxIndex = maxIndex < index ? index : maxIndex;
-      DexType type = arrayPut.value().getConstInstruction().asConstClass().getValue();
-      typeMap.put(index, type);
-    }
-    if (maxIndex < 0) {
+
+    int size =
+        classListValue
+            .definition
+            .asNewArrayEmpty()
+            .size()
+            .getConstInstruction()
+            .asConstNumber()
+            .getIntValue();
+    if (size == 0) {
       return DexTypeList.empty();
     }
-    // Make sure we were able to collect *all* {@link ConstClass}'s.
-    for (int i = 0; i <= maxIndex; i++) {
-      if (!typeMap.containsKey(i)) {
+
+    ConstInstruction[] arrayContent =
+        evaluateConstArrayContentFromConstructionToUse(
+            classListValue.definition.asNewArrayEmpty(), size, invoke);
+
+    if (arrayContent == null) {
+      return null;
+    }
+    DexType[] types = new DexType[size];
+    for (int i = 0; i < size; i++) {
+      if (!arrayContent[i].isConstClass()) {
         return null;
       }
-    }
-    DexType[] types = new DexType [maxIndex + 1];
-    for (int i = 0; i <= maxIndex; i++) {
-      types[i] = typeMap.get(i);
+      types[i] = arrayContent[i].asConstClass().getValue();
     }
     return new DexTypeList(types);
   }
