@@ -111,6 +111,13 @@ def GenerateAdditionalProguardConfiguration(temp, outdir):
     f.write('-printusage ' + os.path.join(outdir, 'proguard.usage') + "\n")
     return os.path.abspath(f.name)
 
+# Please add bug number for disabled permutations and please explicitly
+# do Bug: #BUG in the commit message of disabling to ensure re-enabling
+DISABLED_PERMUTATIONS = [
+    ('youtube', '12.10', 'dex'), # b/116089492
+    ('youtube', '12.22', 'deploy') # b/116093710
+]
+
 def get_permutations():
   data_providers = {
       'gmscore': gmscore_data,
@@ -123,7 +130,8 @@ def get_permutations():
   for app, data in data_providers.iteritems():
     for version in data.VERSIONS:
       for type in data.VERSIONS[version]:
-        yield app, version, type
+        if (app, version, type) not in DISABLED_PERMUTATIONS:
+          yield app, version, type
 
 def run_all(options, args):
   # Args will be destroyed
