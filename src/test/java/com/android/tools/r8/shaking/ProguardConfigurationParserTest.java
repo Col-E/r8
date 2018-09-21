@@ -1701,6 +1701,26 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void parse_if_nthWildcard_not_referable_after_backreference() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **.*User {",
+        "  @<1>.*<2> <methods>;", // As back reference starts, * in the middle is not referable.
+        "}",
+        "-keep @interface <1>.<3><2>"
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostics(handler.errors, proguardConfig, 5, 1,
+          "Wildcard", "<3>", "invalid");
+    }
+    verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (3,");
+  }
+
+  @Test
   public void parse_if_if() throws Exception {
     Path proguardConfig = writeTextToTempFile(
         "-if   class **$$ModuleAdapter",
