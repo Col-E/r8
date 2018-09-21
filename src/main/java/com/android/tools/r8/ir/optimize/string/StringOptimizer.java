@@ -51,15 +51,14 @@ public class StringOptimizer {
       List<Value> ins = invoke.arguments();
       assert ins.size() == 1;
       Value in = ins.get(0);
-      if (in.definition == null || !in.definition.isConstString()) {
+      if (in.definition == null
+          || !in.definition.isConstString()
+          || !in.definition.outValue().isConstant()) {
         continue;
       }
       ConstString constString = in.definition.asConstString();
       int length = constString.getValue().toString().length();
       ConstNumber constNumber = code.createIntConstant(length);
-      if (invoke.outValue().hasLocalInfo()) {
-        constNumber.outValue().setLocalInfo(invoke.outValue().getLocalInfo());
-      }
       it.replaceCurrentInstruction(constNumber);
     }
   }

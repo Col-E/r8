@@ -9,6 +9,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
@@ -63,8 +65,7 @@ class StringLengthTestMain {
     System.out.println(s1.length());
 
     String s2 = simpleInlinable();
-    // Depends on inlining, and thus R8 can whereas D8 can't.
-    // For R8: constCount++, for D8: stringLengthCount++
+    // Depends on inlining: constCount++
     System.out.println(s2.length());
     String s3 = simpleInlinable();
     System.out.println(s3);
@@ -80,6 +81,10 @@ class StringLengthTestMain {
     // Even reusable: should not increase any counts.
     System.out.println(s5.codePointCount(0, s5.length()));
     System.out.println(s5);
+
+    // Make sure this is not optimized in DEBUG mode.
+    int l = "ABC".length();
+    System.out.println(l);
 
     try {
       npe();
@@ -199,9 +204,15 @@ public class StringLengthTest extends TestBase {
     }
 
     AndroidApp app = buildAndroidApp(classes);
-    AndroidApp processedApp = compileWithD8(app);
-    // No inlining, thus the 2nd length() can't be computed.
-    test(processedApp, 1, 3);
+    D8Command.Builder builder = ToolHelper.prepareD8CommandBuilder(app);
+    builder.setMode(CompilationMode.RELEASE);
+    AndroidApp processedApp = ToolHelper.runD8(builder);
+    test(processedApp, 1, 4);
+
+    builder = ToolHelper.prepareD8CommandBuilder(app);
+    builder.setMode(CompilationMode.DEBUG);
+    processedApp = ToolHelper.runD8(builder);
+    test(processedApp, 6, 0);
   }
 
   @Test
@@ -224,6 +235,6 @@ public class StringLengthTest extends TestBase {
     builder.addProguardConfiguration(ImmutableList.of(pgConf), Origin.unknown());
 
     AndroidApp processedApp = ToolHelper.runR8(builder.build());
-    test(processedApp, 0, 4);
+    test(processedApp, 0, 5);
   }
 }
