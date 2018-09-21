@@ -98,7 +98,7 @@ public class InternalOptions {
   public boolean passthroughDexCode = false;
 
   // Optimization-related flags. These should conform to -dontoptimize.
-  public boolean enableVerticalClassMerging = false;
+  public boolean enableVerticalClassMerging = true;
   public boolean enableDevirtualization = true;
   public boolean enableNonNullTracking = true;
   public boolean enableInlining =

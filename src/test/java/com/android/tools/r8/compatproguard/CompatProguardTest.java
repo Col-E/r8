@@ -95,4 +95,13 @@ public class CompatProguardTest {
     CompatProguardOptions options = parseArgs("--no-data-resources");
     assertFalse(options.includeDataResources);
   }
+
+  @Test
+  public void testDisableVerticalClassMerging() throws Exception {
+    CompatProguardOptions enabledOptions = parseArgs();
+    assertFalse(enabledOptions.disableVerticalClassMerging);
+
+    CompatProguardOptions disabledOptions = parseArgs("--no-vertical-class-merging");
+    assertTrue(disabledOptions.disableVerticalClassMerging);
+  }
 }

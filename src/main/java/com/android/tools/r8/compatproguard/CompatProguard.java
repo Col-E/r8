@@ -40,8 +40,8 @@ public class CompatProguard {
     public final List<String> proguardConfig;
     public boolean printHelpAndExit;
 
-    // Flags to enable experimental features.
-    public boolean enableVerticalClassMerging;
+    // Flags to disable experimental features.
+    public boolean disableVerticalClassMerging;
 
     CompatProguardOptions(
         List<String> proguardConfig,
@@ -52,7 +52,7 @@ public class CompatProguard {
         boolean includeDataResources,
         String mainDexList,
         boolean printHelpAndExit,
-        boolean verticalClassMerging) {
+        boolean disableVerticalClassMerging) {
       this.output = output;
       this.minApi = minApi;
       this.forceProguardCompatibility = forceProguardCompatibility;
@@ -61,7 +61,7 @@ public class CompatProguard {
       this.mainDexList = mainDexList;
       this.proguardConfig = proguardConfig;
       this.printHelpAndExit = printHelpAndExit;
-      this.enableVerticalClassMerging = verticalClassMerging;
+      this.disableVerticalClassMerging = disableVerticalClassMerging;
     }
 
     public static CompatProguardOptions parse(String[] args) {
@@ -72,8 +72,8 @@ public class CompatProguard {
       boolean multiDex = false;
       String mainDexList = null;
       boolean printHelpAndExit = false;
-      // Flags to enable experimental features.
-      boolean verticalClassMerging = false;
+      // Flags to disable experimental features.
+      boolean disableVerticalClassMerging = false;
       // These flags are currently ignored.
       boolean minimalMainDex = false;
       boolean coreLibrary = false;
@@ -101,8 +101,8 @@ public class CompatProguard {
               mainDexList = args[++i];
             } else if (arg.startsWith("--main-dex-list=")) {
               mainDexList = arg.substring("--main-dex-list=".length());
-            } else if (arg.equals("--vertical-class-merging")) {
-              verticalClassMerging = true;
+            } else if (arg.equals("--no-vertical-class-merging")) {
+              disableVerticalClassMerging = true;
             } else if (arg.equals("--minimal-main-dex")) {
               minimalMainDex = true;
             } else if (arg.equals("--core-library")) {
@@ -138,7 +138,7 @@ public class CompatProguard {
           includeDataResources,
           mainDexList,
           printHelpAndExit,
-          verticalClassMerging);
+          disableVerticalClassMerging);
     }
 
     public static void print() {
@@ -177,7 +177,7 @@ public class CompatProguard {
     }
     CompatProguardCommandBuilder builder =
         new CompatProguardCommandBuilder(
-            options.forceProguardCompatibility, options.enableVerticalClassMerging);
+            options.forceProguardCompatibility, options.disableVerticalClassMerging);
     builder
         .setOutput(Paths.get(options.output), OutputMode.DexIndexed, options.includeDataResources)
         .addProguardConfiguration(options.proguardConfig, CommandLineOrigin.INSTANCE)
