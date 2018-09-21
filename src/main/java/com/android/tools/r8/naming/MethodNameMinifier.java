@@ -168,8 +168,9 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
       Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel = new HashMap<>();
       NamingState<DexProto, ?> state =
           computeStateIfAbsent(type, k -> getState(holder.superType).createChild());
-      holder.forEachMethod(method ->
-          assignNameToMethod(method, state, renamingAtThisLevel, doPrivates));
+      for (DexEncodedMethod method : holder.allMethodsSorted()) {
+        assignNameToMethod(method, state, renamingAtThisLevel, doPrivates);
+      }
       if (!doPrivates && !useUniqueMemberNames) {
         renamingAtThisLevel.forEach(
             (key, candidate) -> {
@@ -236,8 +237,10 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
       DexClass clazz = appInfo.definitionFor(iface);
       if (clazz != null) {
         Set<NamingState<DexProto, ?>> collectedStates = getReachableStates(iface, frontierMap);
-        clazz.forEachMethod(method -> addStatesToGlobalMapForMethod(
-            method, collectedStates, globalStateMap, sourceMethodsMap, originStates, iface));
+        for (DexEncodedMethod method : shuffleMethods(clazz.methods())) {
+          addStatesToGlobalMapForMethod(
+              method, collectedStates, globalStateMap, sourceMethodsMap, originStates, iface);
+        }
       }
     });
     // Collect the live call sites for multi-interface lambda expression renaming. For code with
@@ -469,7 +472,9 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
                 : parent.createChild());
     if (holder != null) {
       boolean keepAll = holder.isLibraryClass() || holder.accessFlags.isAnnotation();
-      holder.forEachMethod(method -> reserveNamesForMethod(method, keepAll, state));
+      for (DexEncodedMethod method : shuffleMethods(holder.methods())) {
+        reserveNamesForMethod(method, keepAll, state);
+      }
     }
     return state;
   }
@@ -527,5 +532,11 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     DexProto getProto() {
       return proto;
     }
+  }
+
+  // Shuffles the given methods if assertions are enabled and deterministic debugging is disabled.
+  // Used to ensure that the generated output is deterministic.
+  private Iterable<DexEncodedMethod> shuffleMethods(Iterable<DexEncodedMethod> methods) {
+    return options.testing.irOrdering.order(methods);
   }
 }
