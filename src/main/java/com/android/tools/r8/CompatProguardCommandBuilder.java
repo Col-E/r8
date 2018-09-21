@@ -27,11 +27,11 @@ public class CompatProguardCommandBuilder extends R8Command.Builder {
   }
 
   public CompatProguardCommandBuilder(
-      boolean forceProguardCompatibility, boolean enableVerticalClassMerging) {
+      boolean forceProguardCompatibility, boolean disableVerticalClassMerging) {
     if (forceProguardCompatibility) {
       internalForceProguardCompatibility();
     }
-    setEnableVerticalClassMerging(enableVerticalClassMerging);
+    setDisableVerticalClassMerging(disableVerticalClassMerging);
     setIgnoreDexInArchive(true);
   }
 

@@ -95,7 +95,16 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
   }
 
   @Test
-  public void testInstanceMethodRelaxation() throws Exception {
+  public void testInstanceMethodRelaxationWithVerticalClassMerging() throws Exception {
+    testInstanceMethodRelaxation(true);
+  }
+
+  @Test
+  public void testInstanceMethodRelaxationWithoutVerticalClassMerging() throws Exception {
+    testInstanceMethodRelaxation(false);
+  }
+
+  private void testInstanceMethodRelaxation(boolean enableVerticalClassMerging) throws Exception {
     Class mainClass = TestMain.class;
     R8Command.Builder builder = loadProgramFiles(backend, mainClass.getPackage());
 
@@ -122,27 +131,34 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
         ),
         Origin.unknown());
 
-    AndroidApp app = ToolHelper.runR8(builder.build());
+    AndroidApp app =
+        ToolHelper.runR8(
+            builder.build(),
+            options -> options.enableVerticalClassMerging = enableVerticalClassMerging);
     compareReferenceJVMAndProcessed(app, mainClass);
 
+    // When vertical class merging is enabled, Itf1 is merged into Sub1 and Itf2 is merged into
+    // Sub2, and as a result of these merges, neither Sub1 nor Sub2 end up in the output because of
+    // inlining.
     CodeInspector codeInspector = new CodeInspector(app);
-    assertPublic(codeInspector, Base.class,
-        new MethodSignature("foo", STRING, ImmutableList.of()));
+    assertPublic(codeInspector, Base.class, new MethodSignature("foo", STRING, ImmutableList.of()));
 
     // Base#foo?() can't be publicized due to Itf<1>#foo<1>().
-    assertNotPublic(codeInspector, Base.class,
-        new MethodSignature("foo1", STRING, ImmutableList.of()));
-    assertNotPublic(codeInspector, Base.class,
-        new MethodSignature("foo2", STRING, ImmutableList.of()));
+    assertNotPublic(
+        codeInspector, Base.class, new MethodSignature("foo1", STRING, ImmutableList.of()));
+    assertNotPublic(
+        codeInspector, Base.class, new MethodSignature("foo2", STRING, ImmutableList.of()));
 
-    // Sub?#bar1(int) can be publicized as they don't bother each other.
-    assertPublic(codeInspector, Sub1.class,
-        new MethodSignature("bar1", STRING, ImmutableList.of("int")));
-    assertPublic(codeInspector, Sub2.class,
-        new MethodSignature("bar1", STRING, ImmutableList.of("int")));
+    if (!enableVerticalClassMerging) {
+      // Sub?#bar1(int) can be publicized as they don't bother each other.
+      assertPublic(
+          codeInspector, Sub1.class, new MethodSignature("bar1", STRING, ImmutableList.of("int")));
+      assertPublic(
+          codeInspector, Sub2.class, new MethodSignature("bar1", STRING, ImmutableList.of("int")));
 
-    // Sub2#bar2(int) is unique throughout the hierarchy, hence publicized.
-    assertPublic(codeInspector, Sub2.class,
-        new MethodSignature("bar2", STRING, ImmutableList.of("int")));
+      // Sub2#bar2(int) is unique throughout the hierarchy, hence publicized.
+      assertPublic(
+          codeInspector, Sub2.class, new MethodSignature("bar2", STRING, ImmutableList.of("int")));
+    }
   }
 }

@@ -79,7 +79,16 @@ class B112452064TestMain {
 public class ParameterTypeTest extends TestBase {
 
   @Test
-  public void test_fromJavac() throws Exception {
+  public void test_fromJavacWithVerticalClassMerging() throws Exception {
+    test_fromJavac(true);
+  }
+
+  @Test
+  public void test_fromJavacWithoutVerticalClassMerging() throws Exception {
+    test_fromJavac(false);
+  }
+
+  private void test_fromJavac(boolean enableVerticalClassMerging) throws Exception {
     String mainName = B112452064TestMain.class.getCanonicalName();
     ProcessResult javaResult = ToolHelper.runJava(ToolHelper.getClassPathForTests(), mainName);
     assertEquals(0, javaResult.exitCode);
@@ -102,6 +111,7 @@ public class ParameterTypeTest extends TestBase {
     builder.addProguardConfiguration(config, Origin.unknown());
     AndroidApp processedApp = ToolHelper.runR8(builder.build(), options -> {
       options.enableInlining = false;
+      options.enableVerticalClassMerging = enableVerticalClassMerging;
     });
 
     Path outDex = temp.getRoot().toPath().resolve("dex.zip");
@@ -117,7 +127,11 @@ public class ParameterTypeTest extends TestBase {
     MethodSubject foo = superInterface1.method("void", "foo", ImmutableList.of());
     assertThat(foo, isRenamed());
     ClassSubject superInterface2 = inspector.clazz(B112452064SuperInterface2.class);
-    assertThat(superInterface2, isRenamed());
+    if (enableVerticalClassMerging) {
+      assertThat(superInterface2, not(isPresent()));
+    } else {
+      assertThat(superInterface2, isRenamed());
+    }
     MethodSubject bar = superInterface1.method("void", "bar", ImmutableList.of());
     assertThat(bar, not(isPresent()));
     ClassSubject subInterface = inspector.clazz(B112452064SubInterface.class);
