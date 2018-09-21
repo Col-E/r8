@@ -411,7 +411,13 @@ public class TestBase {
   /** Compile an application with R8 using the supplied proguard configuration. */
   protected AndroidApp compileWithR8(AndroidApp app, String proguardConfig)
       throws IOException, CompilationFailedException {
-    return compileWithR8(app, proguardConfig, null);
+    return compileWithR8(app, proguardConfig, null, Backend.DEX);
+  }
+
+  /** Compile an application with R8 using the supplied proguard configuration. */
+  protected AndroidApp compileWithR8(AndroidApp app, String proguardConfig, Backend backend)
+      throws IOException, CompilationFailedException {
+    return compileWithR8(app, proguardConfig, null, backend);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
@@ -673,6 +679,11 @@ public class TestBase {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZip(out, OutputMode.ClassFile);
     return ToolHelper.runJavaNoVerify(out, mainClass, args.toArray(new String[0]));
+  }
+
+  /** Run application on Art or Java with the specified main class. */
+  protected String runOnVM(AndroidApp app, Class mainClass, Backend backend) throws IOException {
+    return runOnVM(app, mainClass.getName(), backend);
   }
 
   /** Run application on Art or Java with the specified main class. */
