@@ -7,42 +7,41 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 
-public class ArrayTypeLatticeElement extends TypeLatticeElement {
-  private final DexType arrayType;
+public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
-  ArrayTypeLatticeElement(DexType arrayType, boolean isNullable) {
-    super(isNullable);
-    this.arrayType = arrayType;
+  ArrayTypeLatticeElement(DexType type, boolean isNullable) {
+    super(type, isNullable);
+    assert type.isArrayType();
   }
 
   public DexType getArrayType() {
-    return arrayType;
+    return type;
   }
 
   public int getNesting() {
-    return arrayType.getNumberOfLeadingSquareBrackets();
+    return type.getNumberOfLeadingSquareBrackets();
   }
 
   public DexType getArrayElementType(DexItemFactory factory) {
-    return arrayType.toArrayElementType(factory);
+    return type.toArrayElementType(factory);
   }
 
   public DexType getArrayBaseType(DexItemFactory factory) {
-    return arrayType.toBaseType(factory);
+    return type.toBaseType(factory);
   }
 
   @Override
   TypeLatticeElement asNullable() {
-    return isNullable() ? this : new ArrayTypeLatticeElement(arrayType, true);
+    return isNullable() ? this : new ArrayTypeLatticeElement(type, true);
   }
 
   @Override
   public TypeLatticeElement asNonNullable() {
-    return isNullable() ? new ArrayTypeLatticeElement(arrayType, false) : this;
+    return isNullable() ? new ArrayTypeLatticeElement(type, false) : this;
   }
 
   @Override
-  public boolean isArrayTypeLatticeElement() {
+  public boolean isArrayType() {
     return true;
   }
 
@@ -58,20 +57,7 @@ public class ArrayTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public String toString() {
-    return isNullableString() + arrayType.toString();
+    return isNullableString() + type.toString();
   }
 
-  @Override
-  public boolean equals(Object o) {
-    if (!super.equals(o)) {
-      return false;
-    }
-    ArrayTypeLatticeElement other = (ArrayTypeLatticeElement) o;
-    return arrayType.equals(other.arrayType);
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode() * arrayType.hashCode() * 41;
-  }
 }

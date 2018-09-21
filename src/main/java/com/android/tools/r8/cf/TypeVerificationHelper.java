@@ -57,9 +57,9 @@ public class TypeVerificationHelper {
       join = TypeLatticeElement.join(appInfo, join, getLatticeElement(iterator.next()));
     }
     // All types are reference types so the join is either a class or an array.
-    if (join.isClassTypeLatticeElement()) {
+    if (join.isClassType()) {
       return join.asClassTypeLatticeElement().getClassType();
-    } else if (join.isArrayTypeLatticeElement()) {
+    } else if (join.isArrayType()) {
       return join.asArrayTypeLatticeElement().getArrayType();
     }
     throw new CompilationError("Unexpected join " + join + " of types: " +

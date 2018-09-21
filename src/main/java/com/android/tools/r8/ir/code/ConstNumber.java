@@ -26,7 +26,7 @@ import com.android.tools.r8.ir.analysis.type.DoubleTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.FloatTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.IntTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.LongTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.NullLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ReferenceTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.SingleTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.WideTypeLatticeElement;
@@ -276,13 +276,10 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    if (isZero() && outType().isObject()) {
-      return NullLatticeElement.getInstance();
-    }
     // TODO(b/72693244): IR builder should know the type and assign a proper type lattice.
     switch (outType()) {
       case OBJECT:
-        return NullLatticeElement.getInstance();
+        return ReferenceTypeLatticeElement.getNullTypeLatticeElement();
       case INT:
         return IntTypeLatticeElement.getInstance();
       case FLOAT:

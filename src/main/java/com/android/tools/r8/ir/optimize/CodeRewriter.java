@@ -1644,7 +1644,7 @@ public class CodeRewriter {
             TypeLatticeElement.fromDexType(appInfo, castType, inTypeLattice.isNullable());
         // Special case: null cast, e.g., getMethod(..., (Class[]) null);
         // This cast should be kept no matter what.
-        if (inTypeLattice.mustBeNull()) {
+        if (inTypeLattice.isNull()) {
           assert outTypeLattice.equals(castTypeLattice);
           continue;
         }

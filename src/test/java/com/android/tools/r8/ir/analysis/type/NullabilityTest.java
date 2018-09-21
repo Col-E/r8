@@ -68,7 +68,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     if (l.isPrimitive()) {
       return;
     }
-    assertTrue(l.isClassTypeLatticeElement());
+    assertTrue(l.isClassType());
     ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
     // Receiver
     if (lattice.getClassType().equals(receiverType)) {
@@ -156,13 +156,13 @@ public class NullabilityTest extends NonNullTrackerTestBase {
           ArrayGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
           NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
       forEachOutValue(irCode, (v, l) -> {
-        if (l.isArrayTypeLatticeElement()) {
+        if (l.isArrayType()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
           assertEquals(
               appInfo.dexItemFactory.stringType,
               lattice.getArrayElementType(appInfo.dexItemFactory));
           assertEquals(v.definition.isArgument(), l.isNullable());
-        } else if (l.isClassTypeLatticeElement()) {
+        } else if (l.isClassType()) {
           verifyClassTypeLattice(expectedLattices, mainClass, v, l);
         }
       });
@@ -182,13 +182,13 @@ public class NullabilityTest extends NonNullTrackerTestBase {
           ArrayGet.class, fromDexType(appInfo, appInfo.dexItemFactory.stringType, true),
           NewInstance.class, fromDexType(appInfo, assertionErrorType, false));
       forEachOutValue(irCode, (v, l) -> {
-        if (l.isArrayTypeLatticeElement()) {
+        if (l.isArrayType()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
           assertEquals(
               appInfo.dexItemFactory.stringType,
               lattice.getArrayElementType(appInfo.dexItemFactory));
           assertEquals(v.definition.isArgument(), l.isNullable());
-        } else if (l.isClassTypeLatticeElement()) {
+        } else if (l.isClassType()) {
           verifyClassTypeLattice(expectedLattices, mainClass, v, l);
         }
       });

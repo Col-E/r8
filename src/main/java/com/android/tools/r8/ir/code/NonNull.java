@@ -91,19 +91,7 @@ public class NonNull extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    TypeLatticeElement l = src().getTypeLatticeRaw();
-    // Flipping the nullability bit for reference type is the main use case.
-    if (l.isClassTypeLatticeElement() || l.isArrayTypeLatticeElement()) {
-      return l.asNonNullable();
-    }
-    // non_null_rcv <- non-null NULL ?!
-    // The chances are that the in is phi, and the only available operand is null. If another
-    // operand is, say, class A, phi's type is nullable A, and the out value of this instruction
-    // would be non-null A. Until that phi is saturated, we will ignore the current null.
-    if (l.mustBeNull()) {
-      return l.asNonNullable();
-    }
-    return l;
+    return src().getTypeLatticeRaw().asNonNullable();
   }
 
   @Override

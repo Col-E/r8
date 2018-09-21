@@ -405,7 +405,7 @@ public class TypeLatticeTest extends TestBase {
         array(2, factory.objectType),
         array(1, factory.objectType)));
     assertTrue(strictlyLessThan(
-        NullLatticeElement.getInstance(),
+        ReferenceTypeLatticeElement.getNullTypeLatticeElement(),
         array(1, factory.classType)));
   }
 
