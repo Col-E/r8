@@ -11,6 +11,7 @@ package com.android.tools.r8.shaking.ifrule;
   // Intentionally left empty.
 }
 
+@UsedAnnotation
 class UsedAnnotationDependent {
   // Intentionally left empty.
 }

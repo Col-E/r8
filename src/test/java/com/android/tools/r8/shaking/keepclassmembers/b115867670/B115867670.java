@@ -11,14 +11,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.graph.invokesuper.Consumer;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import java.util.Collection;
+import java.util.List;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @interface JsonClass {}
 
@@ -57,14 +61,24 @@ class Main {
   }
 }
 
-public class B115867670 extends TestBase {
-  String pkg = getClass().getPackage().getName();
+@RunWith(Parameterized.class)
+public class B115867670 extends ProguardCompatibilityTestBase {
+  private final String pkg = getClass().getPackage().getName();
+  private final Shrinker shrinker;
+  private final static List<Class> CLASSES = ImmutableList.of(
+      JsonClass.class, Foo.class, Foo.Interaction.class, Foo.Request.class, Main.class);
+
+  @Parameters(name = "shrinker: {0}")
+  public static Collection<Object> data() {
+    return ImmutableList.of(Shrinker.PROGUARD6, Shrinker.R8, Shrinker.R8_CF);
+  }
+
+  public B115867670(Shrinker shrinker) {
+    this.shrinker = shrinker;
+  }
 
   public void runTest(String additionalKeepRules, Consumer<CodeInspector> inspection)
       throws Exception {
-    AndroidApp input =
-        readClasses(
-            JsonClass.class, Foo.class, Foo.Interaction.class, Foo.Request.class, Main.class);
     ImmutableList.Builder<String> builder = ImmutableList.builder();
     builder
         .add("-keep @interface **.JsonClass")
@@ -73,7 +87,7 @@ public class B115867670 extends TestBase {
         .add("}")
         .add(additionalKeepRules);
     String config = String.join(System.lineSeparator(), builder.build());
-    CodeInspector inspector = new CodeInspector(compileWithR8(input, config));
+    CodeInspector inspector = inspectAfterShrinking(shrinker, CLASSES, config);
     inspection.accept(inspector);
   }
 
@@ -113,7 +127,7 @@ public class B115867670 extends TestBase {
   }
 
   @Test
-  public void testDenendentWithKeepClassMembers() throws Exception {
+  public void testDependentWithKeepClassMembers() throws Exception {
     runTest(
         "-keepclassmembers @" + pkg + ".JsonClass class ** { <fields>; }",
         this::checkKeepClassMembers);
@@ -128,7 +142,7 @@ public class B115867670 extends TestBase {
 
   @Test
   @Ignore("b/116092333")
-  public void testDenendentWithIfKeepClassMembers() throws Exception {
+  public void testDependentWithIfKeepClassMembers() throws Exception {
     runTest(
         "-if @" + pkg + ".JsonClass class * -keepclassmembers class <1> { <fields>; }",
         this::checkKeepClassMembers);
@@ -152,7 +166,7 @@ public class B115867670 extends TestBase {
   }
 
   @Test
-  public void testDenendentWithIfKeepAllowObfuscation() throws Exception {
+  public void testDependentWithIfKeepAllowObfuscation() throws Exception {
     runTest(
         "-if @" + pkg + ".JsonClass class * -keep,allowobfuscation class <1> { <fields>; }",
         this::checkKeepClassMembersRenamed);

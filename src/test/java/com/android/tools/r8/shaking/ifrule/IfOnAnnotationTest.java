@@ -8,6 +8,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,7 +33,7 @@ public class IfOnAnnotationTest extends ProguardCompatibilityTestBase {
   }
 
   @Test
-  public void ifOnAnnotation_withoutNthWildcard() throws Exception {
+  public void ifOnAnnotation_onTargetMethod_withoutNthWildcard() throws Exception {
     List<String> config = ImmutableList.of(
         "-keepattributes *Annotation*",
         "-keep class **.Main* {",
@@ -58,7 +59,7 @@ public class IfOnAnnotationTest extends ProguardCompatibilityTestBase {
   }
 
   @Test
-  public void ifOnAnnotation_withNthWildcard() throws Exception {
+  public void ifOnAnnotation_onTargetMethod_withNthWildcard() throws Exception {
     List<String> config = ImmutableList.of(
         "-keepattributes *Annotation*",
         "-keep class **.Main* {",
@@ -74,6 +75,31 @@ public class IfOnAnnotationTest extends ProguardCompatibilityTestBase {
         "  @<1>.Unused<2> <methods>;",
         "}",
         "-keep class <1>.Unused<2>*"
+    );
+
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
+    verifyClassesAbsent(codeInspector,
+        UnusedAnnotation.class, UnusedAnnotationDependent.class);
+    verifyClassesPresent(codeInspector,
+        UsedAnnotation.class, UsedAnnotationDependent.class);
+  }
+
+  @Ignore("b/116092333")
+  @Test
+  public void ifOnAnnotation_onDependentClass_withNthWildcard() throws Exception {
+    List<String> config = ImmutableList.of(
+        "-keepattributes *Annotation*",
+        "-keep class **.Main* {",
+        "  public static void main(java.lang.String[]);",
+        "}",
+        // @UsedAnnotation <methods> -> @UsedAnnotation
+        "-if class **.AnnotationUser {",
+        "  @**.*Annotation <methods>;",
+        "}",
+        "-keep @interface <2>.<3>Annotation",
+        // @*Annotation -> @*Annotation class *AnnotationDependent
+        "-if @interface **.*Annotation",
+        "-keep @<1>.<2>Annotation class <1>.*"
     );
 
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
