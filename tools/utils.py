@@ -87,17 +87,22 @@ def makedirs_if_needed(path):
     if not os.path.isdir(path):
         raise
 
-def upload_dir_to_cloud_storage(directory, destination, is_html=False):
+def upload_dir_to_cloud_storage(directory, destination, is_html=False, public_read=True):
   # Upload and make the content encoding right for viewing directly
   cmd = ['gsutil.py', 'cp']
   if is_html:
     cmd += ['-z', 'html']
-  cmd += ['-a', 'public-read', '-R', directory, destination]
+  if public_read:
+    cmd += ['-a', 'public-read']
+  cmd += ['-R', directory, destination]
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 
-def upload_file_to_cloud_storage(source, destination):
-  cmd = ['gsutil.py', 'cp', '-a', 'public-read', source, destination]
+def upload_file_to_cloud_storage(source, destination, public_read=True):
+  cmd = ['gsutil.py', 'cp']
+  if public_read:
+    cmd += ['-a', 'public-read']
+  cmd += [source, destination]
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 
