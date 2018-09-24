@@ -192,6 +192,8 @@ public class JarSourceCode implements SourceCode {
 
   private boolean hasExitingInstruction = false;
 
+  private boolean debug;
+
   public JarSourceCode(
       DexType clazz,
       MethodNode node,
@@ -270,6 +272,7 @@ public class JarSourceCode implements SourceCode {
 
   @Override
   public void buildPrelude(IRBuilder builder) {
+    debug = builder.isDebugMode();
     currentPosition = getPreamblePosition();
 
     state.beginTransactionSynthetic();
@@ -2911,20 +2914,24 @@ public class JarSourceCode implements SourceCode {
   // If the method only has one position it is safe to just use that position.
   private Position getExceptionalExitPosition() {
     if (syntheticPosition == null) {
-      int min = Integer.MAX_VALUE;
-      int max = Integer.MIN_VALUE;
-      for (Iterator it = node.instructions.iterator(); it.hasNext(); ) {
-        Object insn = it.next();
-        if (insn instanceof LineNumberNode) {
-          LineNumberNode lineNode = (LineNumberNode) insn;
-          min = Math.min(min, lineNode.line);
-          max = Math.max(max, lineNode.line);
+      if (debug) {
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for (Iterator it = node.instructions.iterator(); it.hasNext(); ) {
+          Object insn = it.next();
+          if (insn instanceof LineNumberNode) {
+            LineNumberNode lineNode = (LineNumberNode) insn;
+            min = Math.min(min, lineNode.line);
+            max = Math.max(max, lineNode.line);
+          }
         }
+        syntheticPosition =
+            (min == Integer.MAX_VALUE)
+                ? Position.noneWithMethod(originalMethod, callerPosition)
+                : Position.synthetic(min < max ? min - 1 : min, originalMethod, callerPosition);
+      } else {
+        syntheticPosition = Position.noneWithMethod(originalMethod, callerPosition);
       }
-      syntheticPosition =
-          (min == Integer.MAX_VALUE)
-              ? Position.noneWithMethod(originalMethod, callerPosition)
-              : Position.synthetic(min < max ? min - 1 : min, originalMethod, callerPosition);
     }
     return syntheticPosition;
   }

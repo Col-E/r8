@@ -381,6 +381,10 @@ public class IRBuilder {
     return options.isGeneratingClassFiles();
   }
 
+  public boolean isDebugMode() {
+    return options.debug;
+  }
+
   public Int2ReferenceSortedMap<BlockInfo> getCFG() {
     return targets;
   }

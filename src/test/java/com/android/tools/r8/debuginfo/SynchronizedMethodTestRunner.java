@@ -5,9 +5,17 @@ package com.android.tools.r8.debuginfo;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.D8;
+import com.android.tools.r8.D8Command;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.StringUtils;
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
@@ -77,5 +85,23 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
       }
       info.checkLineHasExactLocals(line, "cond", "int", "x", "int");
     }
+  }
+
+  @Test
+  public void testMonitorExitLineInRelease()
+      throws CompilationFailedException, IOException, ExecutionException {
+    AndroidAppConsumers sink = new AndroidAppConsumers();
+    D8.run(D8Command.builder()
+        .addProgramFiles(ToolHelper.getClassFileForTestClass(clazz))
+        .setMode(CompilationMode.RELEASE)
+        .setProgramConsumer(sink.wrapDexIndexedConsumer(null))
+        .build());
+    AndroidApp app = sink.build();
+    DebugInfoInspector inspector = inspectMethod(app, clazz, "int", "syncStatic", "int");
+    // The first line of syncStatic is 9 and thus the synthetic exit for the exceptional case will
+    // have line number 8. In a release build we want to ensure that the synthetic exit does not
+    // have an associated line.
+    inspector.checkStartLine(9);
+    inspector.checkNoLine(8);
   }
 }
