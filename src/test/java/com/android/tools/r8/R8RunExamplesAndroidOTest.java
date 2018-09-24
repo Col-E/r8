@@ -55,29 +55,22 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
 
   private static Map<DexVm.Version, List<String>> alsoFailsOn =
       ImmutableMap.<DexVm.Version, List<String>>builder()
-          .put(Version.V4_0_4,
-              ImmutableList.of(
-                  "invokecustom-with-shrinking"
-              ))
-          .put(Version.V4_4_4,
-              ImmutableList.of(
-                  "invokecustom-with-shrinking"
-              ))
-          .put(Version.V5_1_1,
-              ImmutableList.of(
-                  "invokecustom-with-shrinking"
-              ))
-          .put(Version.V6_0_1,
-              ImmutableList.of(
-                  "invokecustom-with-shrinking"
-              ))
-          .put(Version.V7_0_0,
-              ImmutableList.of(
-                  "invokecustom-with-shrinking"
-              ))
-          .put(Version.DEFAULT,
-              ImmutableList.of(
-              ))
+          .put(
+              Version.V4_0_4,
+              ImmutableList.of("invokecustom-with-shrinking", "invokecustom2-with-shrinking"))
+          .put(
+              Version.V4_4_4,
+              ImmutableList.of("invokecustom-with-shrinking", "invokecustom2-with-shrinking"))
+          .put(
+              Version.V5_1_1,
+              ImmutableList.of("invokecustom-with-shrinking", "invokecustom2-with-shrinking"))
+          .put(
+              Version.V6_0_1,
+              ImmutableList.of("invokecustom-with-shrinking", "invokecustom2-with-shrinking"))
+          .put(
+              Version.V7_0_0,
+              ImmutableList.of("invokecustom-with-shrinking", "invokecustom2-with-shrinking"))
+          .put(Version.DEFAULT, ImmutableList.of())
           .build();
 
   @Test
