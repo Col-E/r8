@@ -1136,10 +1136,10 @@ public class Enqueuer {
               while (!worklist.isEmpty()) {
                 DexType current = worklist.pollFirst();
                 DexClass currentHolder = appInfo.definitionFor(current);
-                // If this class shadows the virtual, abort the search. Note, according to JVM spec,
-                // shadowing is independent of whether a method is public or private.
+                // If this class overrides the virtual, abort the search. Note that, according to
+                // the JVM spec, private methods cannot override a virtual method.
                 if (currentHolder == null
-                    || currentHolder.lookupMethod(encodedMethod.method) != null) {
+                    || currentHolder.lookupVirtualMethod(encodedMethod.method) != null) {
                   continue;
                 }
                 if (instantiatedTypes.contains(current)) {
@@ -2191,8 +2191,8 @@ public class Enqueuer {
       }
       for (DexType subtype : type.allExtendsSubtypes()) {
         DexClass clazz = definitionFor(subtype);
-        DexEncodedMethod target = clazz.lookupMethod(method);
-        if (target != null) {
+        DexEncodedMethod target = clazz.lookupVirtualMethod(method);
+        if (target != null && !target.isPrivateMethod()) {
           // We found a method on this class. If this class is not abstract it is a runtime
           // reachable override and hence a conflict.
           if (!clazz.accessFlags.isAbstract()) {

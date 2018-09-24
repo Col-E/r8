@@ -678,6 +678,17 @@ public class VerticalClassMerger {
   }
 
   private boolean methodResolutionMayChange(DexClass source, DexClass target) {
+    for (DexEncodedMethod virtualSourceMethod : source.virtualMethods()) {
+      DexEncodedMethod directTargetMethod = target.lookupDirectMethod(virtualSourceMethod.method);
+      if (directTargetMethod != null) {
+        // A private method shadows a virtual method. This situation is rare, since it is not
+        // allowed by javac. Therefore, we just give up in this case. (In principle, it would be
+        // possible to rename the private method in the subclass, and then move the virtual method
+        // to the subclass without changing its name.)
+        return true;
+      }
+    }
+
     // When merging an interface into a class, all instructions on the form "invoke-interface
     // [source].m" are changed into "invoke-virtual [target].m". We need to abort the merge if this
     // transformation could hide IncompatibleClassChangeErrors.
@@ -936,9 +947,10 @@ public class VerticalClassMerger {
         assert !target.isInterface();
         target.superType = source.superType;
       }
-      target.interfaces = interfaces.isEmpty()
-          ? DexTypeList.empty()
-          : new DexTypeList(interfaces.toArray(new DexType[interfaces.size()]));
+      target.interfaces =
+          interfaces.isEmpty()
+              ? DexTypeList.empty()
+              : new DexTypeList(interfaces.toArray(new DexType[0]));
       // Step 2: replace fields and methods.
       target.setDirectMethods(mergedDirectMethods);
       target.setVirtualMethods(mergedVirtualMethods);
@@ -1095,6 +1107,7 @@ public class VerticalClassMerger {
       }
       DexEncodedMethod actual = resolutionResult.asSingleTarget();
       if (actual != method) {
+        assert actual.isVirtualMethod() == method.isVirtualMethod();
         return actual;
       }
       // We will keep the method, so the class better be abstract if there is no implementation.
@@ -1325,7 +1338,7 @@ public class VerticalClassMerger {
       if (filtered.size() == methods.length) {
         return methods;
       }
-      return filtered.values().toArray(new DexEncodedMethod[filtered.size()]);
+      return filtered.values().toArray(DexEncodedMethod.EMPTY_ARRAY);
     }
 
     private DexEncodedMethod[] substituteTypesIn(DexEncodedMethod[] methods) {
