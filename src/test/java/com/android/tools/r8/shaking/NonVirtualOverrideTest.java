@@ -31,12 +31,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class PrivateOverrideTest extends TestBase {
+public class NonVirtualOverrideTest extends TestBase {
 
-  private static Class<?> main = PrivateOverrideTestClass.class;
-  private static Class<?> A = PrivateOverrideTestClass.A.class;
-  private static Class<?> B = PrivateOverrideTestClass.B.class;
-  private static Class<?> C = PrivateOverrideTestClass.C.class;
+  private static Class<?> main = NonVirtualOverrideTestClass.class;
+  private static Class<?> A = NonVirtualOverrideTestClass.A.class;
+  private static Class<?> B = NonVirtualOverrideTestClass.B.class;
+  private static Class<?> C = NonVirtualOverrideTestClass.C.class;
 
   private final Backend backend;
   private final boolean enableClassInlining;
@@ -46,9 +46,7 @@ public class PrivateOverrideTest extends TestBase {
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> builder = ImmutableList.builder();
     for (Backend backend : Backend.values()) {
-      // TODO(b/116441307): Class inliner does not preserve IllegalAccessError/IncompatibleClass-
-      // ChangeError.
-      for (boolean enableClassInlining : ImmutableList.of(false)) {
+      for (boolean enableClassInlining : ImmutableList.of(true, false)) {
         for (boolean enableVerticalClassMerging : ImmutableList.of(true, false)) {
           builder.add(new Object[] {backend, enableClassInlining, enableVerticalClassMerging});
         }
@@ -57,7 +55,7 @@ public class PrivateOverrideTest extends TestBase {
     return builder.build();
   }
 
-  public PrivateOverrideTest(
+  public NonVirtualOverrideTest(
       Backend backend, boolean enableClassInlining, boolean enableVerticalClassMerging) {
     this.backend = backend;
     this.enableClassInlining = enableClassInlining;
@@ -143,7 +141,7 @@ public class PrivateOverrideTest extends TestBase {
   }
 }
 
-class PrivateOverrideTestClass {
+class NonVirtualOverrideTestClass {
 
   public static void main(String[] args) {
     A a = new B();

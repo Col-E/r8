@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
@@ -248,7 +249,8 @@ final class InlineCandidateProcessor {
 
       // Eligible virtual method call on the instance as a receiver.
       if (user.isInvokeVirtual() || user.isInvokeInterface()) {
-        InliningInfo inliningInfo = isEligibleDirectMethodCall(user.asInvokeMethodWithReceiver());
+        InliningInfo inliningInfo =
+            isEligibleDirectVirtualMethodCall(user.asInvokeMethodWithReceiver());
         if (inliningInfo != null) {
           methodCallsOnInstance.put(user.asInvokeMethodWithReceiver(), inliningInfo);
           continue;
@@ -504,24 +506,39 @@ final class InlineCandidateProcessor {
         ? new InliningInfo(definition, eligibleClass) : null;
   }
 
-  private InliningInfo isEligibleDirectMethodCall(InvokeMethodWithReceiver invoke) {
+  private InliningInfo isEligibleDirectVirtualMethodCall(InvokeMethodWithReceiver invoke) {
     if (invoke.inValues().lastIndexOf(eligibleInstance) > 0) {
       return null; // Instance passed as an argument.
     }
-    return isEligibleMethodCall(!invoke.getBlock().hasCatchHandlers(), invoke.getInvokedMethod(),
-        eligibility -> !eligibility.returnsReceiver ||
-            invoke.outValue() == null || invoke.outValue().numberOfAllUsers() == 0);
+    return isEligibleVirtualMethodCall(
+        !invoke.getBlock().hasCatchHandlers(),
+        invoke.getInvokedMethod(),
+        eligibility ->
+            !eligibility.returnsReceiver
+                || invoke.outValue() == null
+                || invoke.outValue().numberOfAllUsers() == 0);
   }
 
-  private InliningInfo isEligibleIndirectMethodCall(DexMethod callee) {
-    return isEligibleMethodCall(false, callee, eligibility -> !eligibility.returnsReceiver);
+  private InliningInfo isEligibleIndirectVirtualMethodCall(DexMethod callee) {
+    return isEligibleVirtualMethodCall(false, callee, eligibility -> !eligibility.returnsReceiver);
   }
 
-  private InliningInfo isEligibleMethodCall(boolean allowMethodsWithoutNormalReturns,
-      DexMethod callee, Predicate<ClassInlinerEligibility> eligibilityAcceptanceCheck) {
+  private InliningInfo isEligibleVirtualMethodCall(
+      boolean allowMethodsWithoutNormalReturns,
+      DexMethod callee,
+      Predicate<ClassInlinerEligibility> eligibilityAcceptanceCheck) {
+    // We should not inline a method if the invocation has type interface or virtual and the
+    // signature of the invocation resolves to a private or static method.
+    ResolutionResult resolutionResult = appInfo.resolveMethod(callee.holder, callee);
+    if (resolutionResult.hasSingleTarget()
+        && !resolutionResult.asSingleTarget().isVirtualMethod()) {
+      return null;
+    }
 
     DexEncodedMethod singleTarget = findSingleTarget(callee, false);
-    if (singleTarget == null || isProcessedConcurrently.test(singleTarget)) {
+    if (singleTarget == null
+        || !singleTarget.isVirtualMethod()
+        || isProcessedConcurrently.test(singleTarget)) {
       return null;
     }
     if (method == singleTarget) {
@@ -662,7 +679,7 @@ final class InlineCandidateProcessor {
         }
 
         // Is the method called indirectly still eligible?
-        InliningInfo potentialInliningInfo = isEligibleIndirectMethodCall(call.getSecond());
+        InliningInfo potentialInliningInfo = isEligibleIndirectVirtualMethodCall(call.getSecond());
         if (potentialInliningInfo == null) {
           return false;
         }
