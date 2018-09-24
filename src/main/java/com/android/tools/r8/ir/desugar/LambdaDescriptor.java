@@ -239,9 +239,7 @@ public final class LambdaDescriptor {
 
     DexItemFactory factory = appInfo.dexItemFactory;
     DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
-    boolean isMetafactoryMethod = bootstrapMethod == factory.metafactoryMethod;
-    boolean isAltMetafactoryMethod = bootstrapMethod == factory.metafactoryAltMethod;
-    if (!isMetafactoryMethod && !isAltMetafactoryMethod) {
+    if (!factory.isLambdaMetafactoryMethod(bootstrapMethod)) {
       // It is not a lambda, thus no need to manage this call site.
       return LambdaDescriptor.MATCH_FAILED;
     }
@@ -283,7 +281,7 @@ public final class LambdaDescriptor {
         funcMethodName, funcErasedSignature.value, funcEnforcedSignature.value,
         lambdaImplMethodHandle, mainFuncInterface, captures);
 
-    if (isMetafactoryMethod) {
+    if (bootstrapMethod == factory.metafactoryMethod) {
       if (callSite.bootstrapArgs.size() != 3) {
         throw new Unreachable(
             "Unexpected number of metafactory method arguments in " + callSite.toString());

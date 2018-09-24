@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -38,8 +39,7 @@ public class MainDexListBuilder {
   private final Set<DexType> baseClasses;
   private final AppInfoWithSubtyping appInfo;
   private final Set<DexType> mainDexTypes = new HashSet<>();
-  private final DirectReferencesCollector codeDirectReferenceCollector =
-      new DirectReferencesCollector();
+  private final DirectReferencesCollector codeDirectReferenceCollector;
   private final AnnotationDirectReferenceCollector annotationDirectReferenceCollector =
       new AnnotationDirectReferenceCollector();
   private final Map<DexType, Boolean> annotationTypeContainEnum;
@@ -52,6 +52,7 @@ public class MainDexListBuilder {
   public MainDexListBuilder(Set<DexType> baseClasses, DexApplication application) {
     this.dexApplication = application;
     this.appInfo = new AppInfoWithSubtyping(dexApplication);
+    this.codeDirectReferenceCollector = new DirectReferencesCollector(appInfo.dexItemFactory);
     this.baseClasses =
         baseClasses.stream().filter(this::isProgramClass).collect(Collectors.toSet());
     DexClass enumType = appInfo.definitionFor(appInfo.dexItemFactory.enumType);
@@ -198,8 +199,8 @@ public class MainDexListBuilder {
 
   private class DirectReferencesCollector extends UseRegistry {
 
-
-    private DirectReferencesCollector() {
+    private DirectReferencesCollector(DexItemFactory factory) {
+      super(factory);
     }
 
     @Override

@@ -308,7 +308,8 @@ public class Enqueuer {
 
     private final DexEncodedMethod currentMethod;
 
-    private UseRegistry(DexEncodedMethod currentMethod) {
+    private UseRegistry(DexItemFactory factory, DexEncodedMethod currentMethod) {
+      super(factory);
       this.currentMethod = currentMethod;
     }
 
@@ -482,6 +483,23 @@ public class Enqueuer {
         return true;
       }
       return false;
+    }
+
+    @Override
+    public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
+      super.registerMethodHandle(methodHandle, use);
+      // If a method handle is not an argument to a lambda metafactory it could flow to a
+      // MethodHandle.invokeExact invocation. For that to work, the receiver type cannot have
+      // changed and therefore we cannot perform member rebinding. For these handles, we maintain
+      // the receiver for the method handle. Therefore, we have to make sure that the receiver
+      // stays in the output (and is not class merged). To ensure that we treat the receiver
+      // as instantiated.
+      if (methodHandle.isMethodHandle() && use != MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY) {
+        DexClass holder = appInfo.definitionFor(methodHandle.asMethod().holder);
+        if (holder != null) {
+          markClassAsInstantiatedWithMethodHandleRule(holder);
+        }
+      }
     }
 
     @Override
@@ -1393,7 +1411,7 @@ public class Enqueuer {
       markParameterAndReturnTypesAsLive(method);
       processAnnotations(method.annotations.annotations);
       method.parameterAnnotationsList.forEachAnnotation(this::processAnnotation);
-      method.registerCodeReferences(new UseRegistry(method));
+      method.registerCodeReferences(new UseRegistry(options.itemFactory, method));
       // Add all dependent members to the workqueue.
       enqueueRootItems(rootSet.getDependentItems(method));
     }
@@ -1476,6 +1494,13 @@ public class Enqueuer {
         Sets.union(
             collectReachedFields(instanceFields, this::tryLookupInstanceField),
             collectReachedFields(staticFields, this::tryLookupStaticField)));
+  }
+
+  private void markClassAsInstantiatedWithMethodHandleRule(DexClass clazz) {
+    ProguardKeepRule rule =
+        ProguardConfigurationUtils.buildMethodHandleKeepRule(clazz);
+    proguardCompatibilityWorkList.add(
+        Action.markInstantiated(clazz, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
   }
 
   private void markClassAsInstantiatedWithCompatRule(DexClass clazz) {

@@ -6,7 +6,8 @@ package com.android.tools.r8.graph;
 public class DelegatingUseRegistry extends UseRegistry {
     private final UseRegistry delegate;
 
-    public DelegatingUseRegistry(UseRegistry delegate) {
+    public DelegatingUseRegistry(DexItemFactory factory, UseRegistry delegate) {
+      super(factory);
       this.delegate = delegate;
     }
 

@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
@@ -57,7 +58,8 @@ public class ConstMethodHandle extends Format21c {
 
   @Override
   public void registerUse(UseRegistry registry) {
-    registry.registerMethodHandle(getMethodHandle());
+    registry.registerMethodHandle(
+        getMethodHandle(), MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
   }
 
   @Override

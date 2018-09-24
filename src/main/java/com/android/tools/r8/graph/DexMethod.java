@@ -42,12 +42,24 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
   @Override
   public void collectIndexedItems(IndexedItemCollection indexedItems,
       DexMethod method, int instructionOffset) {
+    if (collectIndexedItemsExceptName(indexedItems, method, instructionOffset)) {
+      collectIndexedItemsName(indexedItems, method, instructionOffset);
+    }
+  }
+
+  public boolean collectIndexedItemsExceptName(
+      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
     if (indexedItems.addMethod(this)) {
       holder.collectIndexedItems(indexedItems, method, instructionOffset);
       proto.collectIndexedItems(indexedItems, method, instructionOffset);
-      indexedItems.getRenamedName(this).collectIndexedItems(
-          indexedItems, method, instructionOffset);
+      return true;
     }
+    return false;
+  }
+
+  public void collectIndexedItemsName(
+      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
+    indexedItems.getRenamedName(this).collectIndexedItems(indexedItems, method, instructionOffset);
   }
 
   @Override

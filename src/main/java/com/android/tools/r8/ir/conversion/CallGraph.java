@@ -485,6 +485,7 @@ public class CallGraph extends CallSiteInformation {
 
     InvokeExtractor(AppInfoWithLiveness appInfo, GraphLense graphLense, Node caller,
         CallGraph graph) {
+      super(appInfo.dexItemFactory);
       this.appInfo = appInfo;
       this.graphLense = graphLense;
       this.caller = caller;

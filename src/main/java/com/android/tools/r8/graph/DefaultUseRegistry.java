@@ -6,6 +6,10 @@ package com.android.tools.r8.graph;
 
 public class DefaultUseRegistry extends UseRegistry {
 
+  public DefaultUseRegistry(DexItemFactory factory) {
+    super(factory);
+  }
+
   @Override
   public boolean registerInvokeVirtual(DexMethod method) {
     return true;

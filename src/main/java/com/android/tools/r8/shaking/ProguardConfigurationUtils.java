@@ -18,6 +18,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ProguardConfigurationUtils {
+
+  public static ProguardKeepRule buildMethodHandleKeepRule(DexClass clazz) {
+    ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
+    builder.setType(ProguardKeepRuleType.KEEP);
+    builder.getModifiersBuilder().setAllowsObfuscation(true);
+    builder.getModifiersBuilder().setAllowsOptimization(true);
+    builder.setClassType(
+        clazz.isInterface() ? ProguardClassType.INTERFACE : ProguardClassType.CLASS);
+    builder.setClassNames(
+        ProguardClassNameList.singletonList(ProguardTypeMatcher.create(clazz.type)));
+    return builder.build();
+  }
+
   public static ProguardKeepRule buildDefaultInitializerKeepRule(DexClass clazz) {
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
     builder.setType(ProguardKeepRuleType.KEEP);
@@ -25,9 +38,8 @@ public class ProguardConfigurationUtils {
     builder.getModifiersBuilder().setAllowsOptimization(true);
     builder.getClassAccessFlags().setVisibility(clazz.accessFlags);
     builder.setClassType(ProguardClassType.CLASS);
-    ProguardClassNameList.Builder classNameListBuilder = ProguardClassNameList.builder();
-    classNameListBuilder.addClassName(false, ProguardTypeMatcher.create(clazz.type));
-    builder.setClassNames(classNameListBuilder.build());
+    builder.setClassNames(
+        ProguardClassNameList.singletonList(ProguardTypeMatcher.create(clazz.type)));
     if (clazz.hasDefaultInitializer()) {
       ProguardMemberRule.Builder memberRuleBuilder = ProguardMemberRule.builder();
       memberRuleBuilder.setRuleType(ProguardMemberType.INIT);

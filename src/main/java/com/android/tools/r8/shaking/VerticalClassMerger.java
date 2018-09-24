@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -442,7 +443,7 @@ public class VerticalClassMerger {
     // Check that all accesses from [source] to classes or members from the current package of
     // [source] will continue to work. This is guaranteed if the methods of [source] do not access
     // any private or protected classes or members from the current package of [source].
-    IllegalAccessDetector registry = new IllegalAccessDetector(source);
+    IllegalAccessDetector registry = new IllegalAccessDetector(options.itemFactory, source);
     for (DexEncodedMethod method : source.methods()) {
       method.registerCodeReferences(registry);
       if (registry.foundIllegalAccess()) {
@@ -1603,7 +1604,8 @@ public class VerticalClassMerger {
     private boolean foundIllegalAccess = false;
     private DexClass source;
 
-    public IllegalAccessDetector(DexClass source) {
+    public IllegalAccessDetector(DexItemFactory factory, DexClass source) {
+      super(factory);
       this.source = source;
     }
 

@@ -309,6 +309,10 @@ public class DexItemFactory {
     return skipNameValidationForTesting;
   }
 
+  public boolean isLambdaMetafactoryMethod(DexMethod dexMethod) {
+    return dexMethod == metafactoryMethod || dexMethod == metafactoryAltMethod;
+  }
+
   public synchronized void clearSubtypeInformation() {
     types.values().forEach(DexType::clearSubtypeInformation);
   }

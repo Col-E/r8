@@ -4,6 +4,7 @@
 package com.android.tools.r8.optimize;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
@@ -12,7 +13,8 @@ public class InvokeSingleTargetExtractor extends UseRegistry {
   private InvokeKind kind = InvokeKind.NONE;
   private DexMethod target;
 
-  public InvokeSingleTargetExtractor() {
+  public InvokeSingleTargetExtractor(DexItemFactory factory) {
+    super(factory);
   }
 
   private boolean setTarget(DexMethod target, InvokeKind kind) {
