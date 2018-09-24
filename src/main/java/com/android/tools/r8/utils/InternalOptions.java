@@ -615,6 +615,34 @@ public class InternalOptions {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }
 
+  // Some Lollipop VMs crash if there is a const instruction between a cmp and an if instruction.
+  //
+  // Crashing code:
+  //
+  //    :goto_0
+  //    cmpg-float v0, p0, p0
+  //    const/4 v1, 0
+  //    if-gez v0, :cond_0
+  //    add-float/2addr p0, v1
+  //    goto :goto_0
+  //    :cond_0
+  //    return p0
+  //
+  // Working code:
+  //    :goto_0
+  //    const/4 v1, 0
+  //    cmpg-float v0, p0, p0
+  //    if-gez v0, :cond_0
+  //    add-float/2addr p0, v1
+  //    goto :goto_0
+  //    :cond_0
+  //    return p0
+  //
+  // See b/115552239.
+  public boolean canHaveCmpIfFloatBug() {
+    return minApiLevel < AndroidApiLevel.M.getLevel();
+  }
+
   // Some Lollipop VMs incorrectly optimize code with mul2addr instructions. In particular,
   // the following hash code method produces wrong results after optimizations:
   //
