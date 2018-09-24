@@ -93,7 +93,15 @@ public class PrivateOverrideTest extends TestBase {
     thrown.expectMessage("com.android.tools.r8.shaking.PrivateOverrideTestClass$A.m()");
 
     // Run the program on Art after is has been compiled with R8.
-    AndroidApp compiled = compileWithR8(input, keepMainProguardConfiguration(main), backend);
+    AndroidApp compiled =
+        compileWithR8(
+            input,
+            keepMainProguardConfiguration(main),
+            options -> {
+              options.enableMinification = false;
+              options.enableVerticalClassMerging = false;
+            },
+            backend);
     assertEquals(referenceResult.stdout, runOnVM(compiled, main, backend));
 
     // TODO(b/116093710): Assert that B.m() is removed by tree pruner.
