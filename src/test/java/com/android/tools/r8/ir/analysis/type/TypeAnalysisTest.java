@@ -58,7 +58,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TypeAnalysisTest extends SmaliTestBase {
   private static final InternalOptions TEST_OPTIONS = new InternalOptions();
-  private static final TypeLatticeElement NULL = NullLatticeElement.getInstance();
+  private static final TypeLatticeElement NULL =
+      ReferenceTypeLatticeElement.getNullTypeLatticeElement();
   private static final TypeLatticeElement SINGLE = SingleTypeLatticeElement.getInstance();
   private static final TypeLatticeElement INT = IntTypeLatticeElement.getInstance();
   private static final TypeLatticeElement LONG = LongTypeLatticeElement.getInstance();
@@ -187,7 +188,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     final Value finalArray = array;
     forEachOutValue(irCode, (v, l) -> {
       if (v == finalArray) {
-        assertTrue(l.isArrayTypeLatticeElement());
+        assertTrue(l.isArrayType());
         ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
         assertTrue(lattice.getArrayType().isPrimitiveArrayType());
         assertEquals(1, lattice.getNesting());
@@ -220,7 +221,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     final Value finalArray = array;
     forEachOutValue(irCode, (v, l) -> {
       if (v == finalArray) {
-        assertTrue(l.isArrayTypeLatticeElement());
+        assertTrue(l.isArrayType());
         ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
         assertTrue(lattice.getArrayType().isPrimitiveArrayType());
         assertEquals(1, lattice.getNesting());
@@ -241,7 +242,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2);
     analysis.widening(loop2, irCode);
     forEachOutValue(irCode, (v, l) -> {
-      if (l.isClassTypeLatticeElement()) {
+      if (l.isClassType()) {
         ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
         assertEquals("Ljava/io/PrintStream;", lattice.getClassType().toDescriptorString());
         // TODO(b/70795205): Can be refined by using control-flow info.
@@ -262,7 +263,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     TypeAnalysis analysis = new TypeAnalysis(appInfo, test2);
     analysis.widening(test2, irCode);
     forEachOutValue(irCode, (v, l) -> {
-      if (l.isClassTypeLatticeElement()) {
+      if (l.isClassType()) {
         ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
         assertEquals("Ljava/lang/Throwable;", lattice.getClassType().toDescriptorString());
         assertFalse(l.isNullable());

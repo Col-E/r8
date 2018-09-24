@@ -33,7 +33,7 @@ abstract public class TypeLatticeElement {
     return isNullable;
   }
 
-  public boolean mustBeNull() {
+  public boolean isNull() {
     return false;
   }
 
@@ -50,7 +50,7 @@ abstract public class TypeLatticeElement {
    * @return {@link TypeLatticeElement} a similar lattice element with nullable flag flipped.
    */
   public TypeLatticeElement asNonNullable() {
-    throw new Unreachable("Flipping nullable is not allowed in general.");
+    return BottomTypeLatticeElement.getInstance();
   }
 
   String isNullableString() {
@@ -76,10 +76,10 @@ abstract public class TypeLatticeElement {
     if (l1.isTop() || l2.isTop()) {
       return TopTypeLatticeElement.getInstance();
     }
-    if (l1.mustBeNull()) {
+    if (l1.isNull()) {
       return l2.asNullable();
     }
-    if (l2.mustBeNull()) {
+    if (l2.isNull()) {
       return l1.asNullable();
     }
     if (l1.isPrimitive()) {
@@ -98,8 +98,8 @@ abstract public class TypeLatticeElement {
       return objectType(appInfo, isNullable);
     }
     // From now on, l1.getClass() == l2.getClass()
-    if (l1.isArrayTypeLatticeElement()) {
-      assert l2.isArrayTypeLatticeElement();
+    if (l1.isArrayType()) {
+      assert l2.isArrayType();
       ArrayTypeLatticeElement a1 = l1.asArrayTypeLatticeElement();
       ArrayTypeLatticeElement a2 = l2.asArrayTypeLatticeElement();
       // Identical types are the same elements
@@ -136,8 +136,8 @@ abstract public class TypeLatticeElement {
       DexType arrayTypeLub = appInfo.dexItemFactory.createArrayType(a1Nesting, lub);
       return new ArrayTypeLatticeElement(arrayTypeLub, isNullable);
     }
-    if (l1.isClassTypeLatticeElement()) {
-      assert l2.isClassTypeLatticeElement();
+    if (l1.isClassType()) {
+      assert l2.isClassType();
       ClassTypeLatticeElement c1 = l1.asClassTypeLatticeElement();
       ClassTypeLatticeElement c2 = l2.asClassTypeLatticeElement();
       DexType lubType =
@@ -289,7 +289,11 @@ abstract public class TypeLatticeElement {
     return false;
   }
 
-  public boolean isArrayTypeLatticeElement() {
+  public boolean isReference() {
+    return false;
+  }
+
+  public boolean isArrayType() {
     return false;
   }
 
@@ -297,7 +301,7 @@ abstract public class TypeLatticeElement {
     return null;
   }
 
-  public boolean isClassTypeLatticeElement() {
+  public boolean isClassType() {
     return false;
   }
 
@@ -338,8 +342,8 @@ abstract public class TypeLatticeElement {
   }
 
   public boolean isPreciseType() {
-    return isArrayTypeLatticeElement()
-        || isClassTypeLatticeElement()
+    return isArrayType()
+        || isClassType()
         || isInt()
         || isFloat()
         || isLong()
@@ -358,7 +362,7 @@ abstract public class TypeLatticeElement {
 
   public static TypeLatticeElement fromDexType(AppInfo appInfo, DexType type, boolean isNullable) {
     if (type == DexItemFactory.nullValueType) {
-      return NullLatticeElement.getInstance();
+      return ReferenceTypeLatticeElement.getNullTypeLatticeElement();
     }
     if (type.isPrimitiveType()) {
       return PrimitiveTypeLatticeElement.fromDexType(type);
@@ -386,7 +390,7 @@ abstract public class TypeLatticeElement {
   public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
     TypeLatticeElement castTypeLattice = fromDexType(appInfo, castType, isNullable());
     // Special case: casting null.
-    if (mustBeNull()) {
+    if (isNull()) {
       return castTypeLattice;
     }
     if (lessThanOrEqual(appInfo, this, castTypeLattice)) {
