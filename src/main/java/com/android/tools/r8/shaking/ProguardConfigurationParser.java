@@ -71,7 +71,9 @@ public class ProguardConfigurationParser {
       "invokebasemethod",
       // TODO(b/62524562): we may support this later.
       "mergeinterfacesaggressively",
-      "android");
+      "android",
+      "shrinkunusedprotofields",
+      "allowruntypeandignoreoptimizationpasses");
 
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList.of(
       "isclassnamestring",
