@@ -38,7 +38,7 @@ public class DirectoryBuilder implements OutputBuilder {
   public void addDirectory(String name, DiagnosticsHandler handler) {
     Path target = root.resolve(name.replace(NAME_SEPARATOR, File.separatorChar));
     try {
-      Files.createDirectories(target.getParent());
+      Files.createDirectories(target);
     } catch (IOException e) {
       handler.error(new ExceptionDiagnostic(e, new PathOrigin(target)));
     }

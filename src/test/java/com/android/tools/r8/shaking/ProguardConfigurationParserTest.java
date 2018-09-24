@@ -1917,11 +1917,6 @@ public class ProguardConfigurationParserTest extends TestBase {
     }
   }
 
-  @Test
-  public void parse_partiallyImplemented_notSupported() {
-    testNotSupported("-keepdirectories");
-  }
-
   private void checkRulesSourceSnippet(List<String> sourceRules) {
     checkRulesSourceSnippet(sourceRules, sourceRules, false);
   }

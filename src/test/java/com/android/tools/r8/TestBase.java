@@ -206,7 +206,7 @@ public class TestBase {
   }
 
   /** Create a temporary JAR file containing the specified test classes and data resources. */
-  protected Path jarTestClasses(Iterable<Class> classes, List<DataEntryResource> dataResources)
+  protected Path jarTestClasses(Iterable<Class> classes, List<DataResource> dataResources)
       throws IOException {
     Path jar = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
     try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar.toFile()))) {
@@ -232,12 +232,20 @@ public class TestBase {
   }
 
   /** Create a temporary JAR file containing the specified data resources. */
-  protected void addDataResourcesToJar(JarOutputStream out, List<DataEntryResource> dataResources)
-      throws IOException {
+  protected void addDataResourcesToJar(
+      JarOutputStream out, List<? extends DataResource> dataResources) throws IOException {
     try {
-      for (DataEntryResource dataResource : dataResources) {
-        out.putNextEntry(new ZipEntry(dataResource.getName()));
-        ByteStreams.copy(dataResource.getByteStream(), out);
+      for (DataResource dataResource : dataResources) {
+        String name = dataResource.getName();
+        boolean isDirectory = dataResource instanceof DataDirectoryResource;
+        if (isDirectory && !name.endsWith("/")) {
+          // Directory entries must end with a slash. Otherwise they will be empty files.
+          name += "/";
+        }
+        out.putNextEntry(new ZipEntry(name));
+        if (!isDirectory) {
+          ByteStreams.copy(((DataEntryResource) dataResource).getByteStream(), out);
+        }
         out.closeEntry();
       }
     } catch (ResourceException e) {
@@ -250,7 +258,7 @@ public class TestBase {
    * specified data resources. The given JAR is left unchanged.
    */
   protected Path addDataResourcesToExistingJar(
-      Path existingJar, List<DataEntryResource> dataResources) throws IOException {
+      Path existingJar, List<? extends DataResource> dataResources) throws IOException {
     Path newJar = File.createTempFile("app", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
     try (JarOutputStream out = new JarOutputStream(new FileOutputStream(newJar.toFile()))) {
       ArchiveProgramResourceProvider.fromArchive(existingJar)

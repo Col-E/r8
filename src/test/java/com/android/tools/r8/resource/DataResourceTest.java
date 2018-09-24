@@ -12,8 +12,10 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,6 +62,7 @@ public class DataResourceTest {
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(inputJar)
+            .addProguardConfiguration(ImmutableList.of("-keepdirectories"), Origin.unknown())
             .setProgramConsumer(
                 backend == Backend.DEX
                     ? new DexIndexedConsumer.ArchiveConsumer(r8Out, true)

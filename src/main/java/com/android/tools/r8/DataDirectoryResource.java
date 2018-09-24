@@ -15,6 +15,10 @@ import java.util.zip.ZipFile;
 @Keep
 public interface DataDirectoryResource extends DataResource {
 
+  static DataDirectoryResource fromName(String name, Origin origin) {
+    return new NamedDataDirectoryResource(name, origin);
+  }
+
   static DataDirectoryResource fromFile(Path dir, Path file) {
     return new LocalDataDirectoryResource(dir.resolve(file).toFile(),
         file.toString().replace(File.separatorChar, SEPARATOR));
@@ -22,6 +26,28 @@ public interface DataDirectoryResource extends DataResource {
 
   static DataDirectoryResource fromZip(ZipFile zip, ZipEntry entry) {
     return new ZipDataDirectoryResource(zip, entry);
+  }
+
+  class NamedDataDirectoryResource implements DataDirectoryResource {
+    private final String name;
+    private final Origin origin;
+
+    private NamedDataDirectoryResource(String name, Origin origin) {
+      assert name != null;
+      assert origin != null;
+      this.name = name;
+      this.origin = origin;
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return origin;
+    }
+
+    @Override
+    public String getName() {
+      return name;
+    }
   }
 
   class ZipDataDirectoryResource implements DataDirectoryResource {

@@ -14,6 +14,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -495,10 +496,11 @@ public class R8CommandTest {
             .setOutput(outputZip, OutputMode.ClassFile)
             .build());
     assertTrue(Files.exists(outputZip));
-    assertEquals(2, new ZipFile(outputZip.toFile(), StandardCharsets.UTF_8).size());
+    assertEquals(1, new ZipFile(outputZip.toFile(), StandardCharsets.UTF_8).size());
   }
 
-  public void runCustomResourceProcessing(boolean includeDataResources, int expectedZipEntries)
+  public void runCustomResourceProcessing(
+      boolean includeDataResources, boolean keepDirectories, int expectedZipEntries)
       throws Exception {
     Path dataResourceZip = writeZipWithDataResource("dataResource.zip");
     Path outputZip = temp.newFolder().toPath().resolve("output.zip");
@@ -506,6 +508,8 @@ public class R8CommandTest {
         R8Command.builder()
             .addProgramFiles(dataResourceZip)
             .setOutput(outputZip, OutputMode.ClassFile, includeDataResources)
+            .addProguardConfiguration(
+                ImmutableList.of(keepDirectories ? "-keepdirectories" : ""), Origin.unknown())
             .build());
     assertTrue(Files.exists(outputZip));
     assertEquals(
@@ -555,7 +559,7 @@ public class R8CommandTest {
             "--output",
             outputZip.toAbsolutePath().toString()));
     assertTrue(Files.exists(outputZip));
-    assertEquals(2, new ZipFile(outputZip.toFile(), StandardCharsets.UTF_8).size());
+    assertEquals(1, new ZipFile(outputZip.toFile(), StandardCharsets.UTF_8).size());
   }
 
   @Test
@@ -575,8 +579,9 @@ public class R8CommandTest {
 
   @Test
   public void customResourceProcessing() throws Exception {
-    runCustomResourceProcessing(true, 2);
-    runCustomResourceProcessing(false, 0);
+    runCustomResourceProcessing(true, true, 2);
+    runCustomResourceProcessing(true, false, 1);
+    runCustomResourceProcessing(false, false, 0);
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {

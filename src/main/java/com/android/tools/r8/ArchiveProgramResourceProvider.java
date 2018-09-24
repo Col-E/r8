@@ -128,7 +128,7 @@ public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
       if (!dexResources.isEmpty() && !classResources.isEmpty()) {
         throw new CompilationError(
             "Cannot create android app from an archive containing both DEX and Java-bytecode "
-                + "content",
+                + "content.",
             origin);
       }
       return !dexResources.isEmpty() ? dexResources : classResources;

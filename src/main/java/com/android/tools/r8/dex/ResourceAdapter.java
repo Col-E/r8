@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.Unreachable;
@@ -50,7 +51,7 @@ public class ResourceAdapter {
         adaptResourceFileNamesFilter.isEnabled()
                 && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
                 && adaptResourceFileNamesFilter.matches(file.getName())
-            ? adaptFilename(file)
+            ? adaptFileName(file)
             : file.getName();
     assert name != null;
     // Adapt contents, if needed.
@@ -77,8 +78,25 @@ public class ResourceAdapter {
     return file;
   }
 
-  private String adaptFilename(DataEntryResource file) {
-    FilenameAdapter adapter = new FilenameAdapter(file.getName());
+  public DataDirectoryResource adaptIfNeeded(DataDirectoryResource directory) {
+    // First check if this directory should even be in the output.
+    ProguardPathFilter keepDirectoriesFilter = options.proguardConfiguration.getKeepDirectories();
+    if (!keepDirectoriesFilter.matches(directory.getName())) {
+      return null;
+    }
+    return DataDirectoryResource.fromName(adaptDirectoryName(directory), directory.getOrigin());
+  }
+
+  private String adaptFileName(DataEntryResource file) {
+    FileNameAdapter adapter = new FileNameAdapter(file.getName());
+    if (adapter.run()) {
+      return adapter.getResult();
+    }
+    return file.getName();
+  }
+
+  private String adaptDirectoryName(DataDirectoryResource file) {
+    DirectoryNameAdapter adapter = new DirectoryNameAdapter(file.getName());
     if (adapter.run()) {
       return adapter.getResult();
     }
@@ -187,6 +205,7 @@ public class ResourceAdapter {
           position++;
           continue;
         }
+
         if (currentChar == getClassNameSeparator()
             && !eof(position + 1)
             && Character.isJavaIdentifierPart(contents.charAt(position + 1))) {
@@ -195,13 +214,17 @@ public class ResourceAdapter {
               && isRenamingCandidate(start, position)) {
             prefixEndPositionsExclusive.push(position);
           }
-          // Consume the dot and the Java identifier part that follows the dot.
+          // Consume the separator and the Java identifier part that follows the separator.
           position += 2;
           continue;
         }
 
         // Not a valid extension of the type name.
         break;
+      }
+
+      if (allowRenamingOfPrefixes() && eof() && isRenamingCandidate(start, position)) {
+        prefixEndPositionsExclusive.push(position);
       }
 
       boolean renamingSucceeded =
@@ -338,9 +361,8 @@ public class ResourceAdapter {
     }
   }
 
-  private class FilenameAdapter extends StringAdapter {
-
-    public FilenameAdapter(String filename) {
+  private abstract class FileNameAdapterBase extends StringAdapter {
+    public FileNameAdapterBase(String filename) {
       super(filename);
     }
 
@@ -361,16 +383,32 @@ public class ResourceAdapter {
 
     @Override
     protected boolean handlePrefix(int from, int toExclusive) {
-      assert !eof(toExclusive);
-      if (contents.charAt(toExclusive) == '/') {
+      if (eof(toExclusive) || contents.charAt(toExclusive) == '/') {
         return renameJavaPackageInRange(from, toExclusive);
       }
       return renameJavaTypeInRange(from, toExclusive);
+    }
+  }
+
+  private class FileNameAdapter extends FileNameAdapterBase {
+    public FileNameAdapter(String filename) {
+      super(filename);
     }
 
     @Override
     public boolean isRenamingCandidate(int from, int toExclusive) {
       return from == 0 && !eof(toExclusive);
+    }
+  }
+
+  private class DirectoryNameAdapter extends FileNameAdapterBase {
+    public DirectoryNameAdapter(String filename) {
+      super(filename);
+    }
+
+    @Override
+    public boolean isRenamingCandidate(int from, int toExclusive) {
+      return from == 0;
     }
   }
 }
