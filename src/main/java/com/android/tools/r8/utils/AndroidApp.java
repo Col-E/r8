@@ -10,7 +10,9 @@ import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
+import com.android.tools.r8.DataResource;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -269,7 +271,7 @@ public class AndroidApp {
 
     private final List<ProgramResourceProvider> programResourceProviders = new ArrayList<>();
     private final List<ProgramResource> programResources = new ArrayList<>();
-    private final List<DataEntryResource> dataResources = new ArrayList<>();
+    private final List<DataResource> dataResources = new ArrayList<>();
     private final Map<ProgramResource, String> programResourcesMainDescriptor = new HashMap<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
     private final List<ClassFileResourceProvider> libraryResourceProviders = new ArrayList<>();
@@ -462,7 +464,7 @@ public class AndroidApp {
     }
 
     /** Add resource data. */
-    public Builder addDataResource(DataEntryResource dataResource) {
+    public Builder addDataResource(DataResource dataResource) {
       addDataResources(dataResource);
       return this;
     }
@@ -535,7 +537,7 @@ public class AndroidApp {
       if (!programResources.isEmpty() || !dataResources.isEmpty()) {
         // If there are individual program resources move them to a dedicated provider.
         final List<ProgramResource> finalProgramResources = ImmutableList.copyOf(programResources);
-        final List<DataEntryResource> finalDataResources = ImmutableList.copyOf(dataResources);
+        final List<DataResource> finalDataResources = ImmutableList.copyOf(dataResources);
         programResourceProviders.add(
             new ProgramResourceProvider() {
               @Override
@@ -549,8 +551,13 @@ public class AndroidApp {
                   return new DataResourceProvider() {
                     @Override
                     public void accept(Visitor visitor) {
-                      for (DataEntryResource dataResource : finalDataResources) {
-                        visitor.visit(dataResource);
+                      for (DataResource dataResource : finalDataResources) {
+                        if (dataResource instanceof DataEntryResource) {
+                          visitor.visit((DataEntryResource) dataResource);
+                        } else {
+                          assert dataResource instanceof DataDirectoryResource;
+                          visitor.visit((DataDirectoryResource) dataResource);
+                        }
                       }
                     }
                   };
@@ -597,11 +604,11 @@ public class AndroidApp {
       programResources.addAll(resources);
     }
 
-    private void addDataResources(DataEntryResource... resources) {
+    private void addDataResources(DataResource... resources) {
       addDataResources(Arrays.asList(resources));
     }
 
-    private void addDataResources(Collection<DataEntryResource> resources) {
+    private void addDataResources(Collection<DataResource> resources) {
       this.dataResources.addAll(resources);
     }
 

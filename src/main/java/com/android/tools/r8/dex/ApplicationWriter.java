@@ -347,8 +347,11 @@ public class ApplicationWriter {
               new Visitor() {
                 @Override
                 public void visit(DataDirectoryResource directory) {
-                  dataResourceConsumer.accept(directory, options.reporter);
-                  options.reporter.failIfPendingErrors();
+                  DataDirectoryResource adapted = resourceAdapter.adaptIfNeeded(directory);
+                  if (adapted != null) {
+                    dataResourceConsumer.accept(adapted, options.reporter);
+                    options.reporter.failIfPendingErrors();
+                  }
                 }
 
                 @Override

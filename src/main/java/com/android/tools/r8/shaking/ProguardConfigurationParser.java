@@ -238,10 +238,7 @@ public class ProguardConfigurationParser {
         ProguardCheckDiscardRule rule = parseCheckDiscardRule(optionStart);
         configurationBuilder.addRule(rule);
       } else if (acceptString("keepdirectories")) {
-        // TODO(74279367): Report an error until it's fully supported.
-        if (failOnPartiallyImplementedOptions) {
-          failPartiallyImplementedOption("-keepdirectories", optionStart);
-        }
+        configurationBuilder.enableKeepDirectories();
         parsePathFilter(configurationBuilder::addKeepDirectories);
       } else if (acceptString("keep")) {
         ProguardKeepRule rule = parseKeepRule(optionStart);

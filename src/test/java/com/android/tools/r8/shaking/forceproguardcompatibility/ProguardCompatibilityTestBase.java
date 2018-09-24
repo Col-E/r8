@@ -10,7 +10,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompatProguardCommandBuilder;
-import com.android.tools.r8.DataEntryResource;
+import com.android.tools.r8.DataResource;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -194,7 +194,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
       List<Class> programClasses,
       String proguardConfig,
       Path proguardMap,
-      List<DataEntryResource> dataResources)
+      List<DataResource> dataResources)
       throws Exception {
     return runProguard6Raw(
         destination,
@@ -243,7 +243,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
       List<Class> programClasses,
       String proguardConfig,
       Path proguardMap,
-      List<DataEntryResource> dataResources)
+      List<DataResource> dataResources)
       throws Exception {
     Path proguardedJar =
         File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
