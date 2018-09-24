@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.naming.NamingLens;
+import java.util.Objects;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 
@@ -183,14 +184,37 @@ public class DexMethodHandle extends IndexedDexItem implements
     }
   }
 
-  public MethodHandleType type;
-  public Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod;
+  public final MethodHandleType type;
+
+  // Field or method that the method handle is targeting.
+  public final Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod;
+
+  // If the method handle is of method type and is not an argument to a lambda metafactory
+  // the method handle could flow to an invokeExact instruction which does equality checking
+  // on method descriptors including the receiver. Therefore, for such method handles we
+  // cannot perform rewriting of the receiver as that will make the invokeExact invocation
+  // fail due to type mismatch. Therefore, fieldOrMethod will contain the method handle
+  // as we want it in the output with the original receiver. That means that member rebinding
+  // has not been applied to fieldOrMethod. Since renaming happens on member rebound dex methods
+  // we need to record the member rebound target as well for naming. That is what rewrittenTarget
+  // is for.
+  public final DexMethod rewrittenTarget;
 
   public DexMethodHandle(
       MethodHandleType type,
       Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod) {
     this.type = type;
     this.fieldOrMethod = fieldOrMethod;
+    this.rewrittenTarget = null;
+  }
+
+  public DexMethodHandle(
+      MethodHandleType type,
+      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod,
+      DexMethod rewrittenTarget) {
+    this.type = type;
+    this.fieldOrMethod = fieldOrMethod;
+    this.rewrittenTarget = rewrittenTarget;
   }
 
   public static DexMethodHandle fromAsmHandle(
@@ -205,14 +229,18 @@ public class DexMethodHandle extends IndexedDexItem implements
 
   @Override
   public int computeHashCode() {
-    return type.hashCode() + fieldOrMethod.computeHashCode() * 7;
+    return type.hashCode()
+        + fieldOrMethod.computeHashCode() * 7
+        + Objects.hashCode(rewrittenTarget) * 13;
   }
 
   @Override
   public boolean computeEquals(Object other) {
     if (other instanceof DexMethodHandle) {
       DexMethodHandle o = (DexMethodHandle) other;
-      return type.equals(o.type) && fieldOrMethod.equals(o.fieldOrMethod);
+      return type.equals(o.type)
+          && fieldOrMethod.equals(o.fieldOrMethod)
+          && Objects.equals(rewrittenTarget, o.rewrittenTarget);
     }
     return false;
   }
@@ -231,7 +259,17 @@ public class DexMethodHandle extends IndexedDexItem implements
   public void collectIndexedItems(IndexedItemCollection indexedItems,
       DexMethod method, int instructionOffset) {
     if (indexedItems.addMethodHandle(this)) {
-      fieldOrMethod.collectIndexedItems(indexedItems, method, instructionOffset);
+      if (fieldOrMethod.isDexMethod() && rewrittenTarget != null) {
+        // If there is a rewritten target we need to use that to get the right name of the
+        // targeted method (only member rebound methods take part in naming). The rest of the
+        // indexed items are collected from fieldOrMethod.
+        if (fieldOrMethod.asDexMethod().collectIndexedItemsExceptName(
+            indexedItems, method, instructionOffset)) {
+          rewrittenTarget.collectIndexedItemsName(indexedItems, method, instructionOffset);
+        }
+      } else {
+        fieldOrMethod.collectIndexedItems(indexedItems, method, instructionOffset);
+      }
     }
   }
 
@@ -323,7 +361,10 @@ public class DexMethodHandle extends IndexedDexItem implements
     if (isMethodHandle()) {
       DexMethod method = asMethod();
       owner = lens.lookupInternalName(method.holder);
-      name = lens.lookupName(method).toString();
+      name =
+          rewrittenTarget != null
+              ? lens.lookupName(rewrittenTarget).toString()
+              : lens.lookupName(method).toString();
       desc = method.proto.toDescriptorString(lens);
       if (method.holder.toDescriptorString().equals("Ljava/lang/invoke/LambdaMetafactory;")) {
         itf = false;

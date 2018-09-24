@@ -90,6 +90,16 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .run();
   }
 
+  @Test
+  public void invokeCustom2WithShrinking() throws Throwable {
+    test("invokecustom2-with-shrinking", "invokecustom2", "InvokeCustom")
+        .withMinApiLevel(AndroidApiLevel.O)
+        .withBuilderTransformation(builder ->
+            builder.addProguardConfigurationFiles(
+                Paths.get(ToolHelper.EXAMPLES_ANDROID_O_DIR, "invokecustom2/keep-rules.txt")))
+        .run();
+  }
+
   @Override
   @Test
   public void lambdaDesugaring() throws Throwable {

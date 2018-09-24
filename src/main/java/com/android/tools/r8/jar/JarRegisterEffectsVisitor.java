@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -60,8 +61,9 @@ public class JarRegisterEffectsVisitor extends MethodVisitor {
         registry.registerConstClass(application.getType((Type) cst));
       }
     } else if (cst instanceof Handle) {
+      DexMethodHandle handle = DexMethodHandle.fromAsmHandle((Handle) cst, application, clazz);
       registry.registerMethodHandle(
-          DexMethodHandle.fromAsmHandle((Handle) cst, application, clazz));
+          handle, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
     }
   }
 

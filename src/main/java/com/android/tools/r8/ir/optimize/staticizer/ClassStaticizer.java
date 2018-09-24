@@ -299,7 +299,7 @@ public final class ClassStaticizer {
 
       if (instruction.isInvokeCustom()) {
         // Just invalidate any candidates referenced from non-static context.
-        CallSiteReferencesInvalidator invalidator = new CallSiteReferencesInvalidator();
+        CallSiteReferencesInvalidator invalidator = new CallSiteReferencesInvalidator(factory);
         invalidator.registerCallSite(instruction.asInvokeCustom().getCallSite());
         continue;
       }
@@ -553,6 +553,11 @@ public final class ClassStaticizer {
   }
 
   private class CallSiteReferencesInvalidator extends UseRegistry {
+
+    private CallSiteReferencesInvalidator(DexItemFactory factory) {
+      super(factory);
+    }
+
     private boolean registerMethod(DexMethod method) {
       registerTypeReference(method.holder);
       registerProto(method.proto);

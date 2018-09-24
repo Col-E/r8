@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -66,6 +67,10 @@ public class PrintUses {
   private int errors;
 
   class UseCollector extends UseRegistry {
+
+    UseCollector(DexItemFactory factory) {
+      super(factory);
+    }
 
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
@@ -243,7 +248,7 @@ public class PrintUses {
   }
 
   private void analyze() {
-    UseCollector useCollector = new UseCollector();
+    UseCollector useCollector = new UseCollector(appInfo.dexItemFactory);
     for (DexProgramClass dexProgramClass : application.classes()) {
       useCollector.registerSuperType(dexProgramClass, dexProgramClass.superType);
       for (DexType implementsType : dexProgramClass.interfaces.values) {

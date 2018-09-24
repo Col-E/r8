@@ -57,6 +57,7 @@ public class TestGenerator {
               generateMethodTest11(cw);
               generateMethodTest12(cw);
               generateMethodTest13(cw);
+              generateMethodTest14(cw);
               generateMethodMain(cw);
               super.visitEnd();
             }
@@ -97,6 +98,8 @@ public class TestGenerator {
         Opcodes.INVOKESTATIC, Type.getInternalName(InvokeCustom.class), "test12", "()V", false);
     mv.visitMethodInsn(
         Opcodes.INVOKESTATIC, Type.getInternalName(InvokeCustom.class), "test13", "()V", false);
+    mv.visitMethodInsn(
+        Opcodes.INVOKESTATIC, Type.getInternalName(InvokeCustom.class), "test14", "()V", false);
     mv.visitInsn(Opcodes.RETURN);
     mv.visitMaxs(-1, -1);
   }
@@ -421,6 +424,45 @@ public class TestGenerator {
         "java/io/PrintStream",
         "println",
         "(Ljava/lang/String;)V", false);
+    mv.visitInsn(Opcodes.RETURN);
+    mv.visitMaxs(-1, -1);
+  }
+
+  /**
+   * Generate test with an invokedynamic, a static bootstrap method with an extra arg that is a
+   * MethodHandle of kind invoke instance taking an argument and returning a result. This should
+   * work through renaming.
+   */
+  private void generateMethodTest14(ClassVisitor cv) {
+        MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "test14", "()V",
+        null, null);
+    MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
+        MethodType.class, MethodHandle.class);
+    Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
+        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
+    mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(InvokeCustom.class));
+    mv.visitInsn(Opcodes.DUP);
+    mv.visitMethodInsn(
+        Opcodes.INVOKESPECIAL, Type.getInternalName(InvokeCustom.class), "<init>", "()V", false);
+    mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(ClassWithLongName.class));
+    mv.visitInsn(Opcodes.DUP);
+    mv.visitMethodInsn(
+        Opcodes.INVOKESPECIAL,
+        Type.getInternalName(ClassWithLongName.class),
+        "<init>",
+        "()V",
+        false);
+    mv.visitInvokeDynamicInsn(
+        "targetMethodTest11",
+        "(Linvokecustom/InvokeCustom;Linvokecustom/ClassWithLongName;)"
+            + "Linvokecustom/AnotherClassWithALongName;",
+        bootstrap,
+        new Handle(
+            Opcodes.H_INVOKEVIRTUAL,
+            Type.getInternalName(InvokeCustom.class),
+            "targetMethodTest11",
+            "(Linvokecustom/ClassWithLongName;)Linvokecustom/AnotherClassWithALongName;",
+            false));
     mv.visitInsn(Opcodes.RETURN);
     mv.visitMaxs(-1, -1);
   }

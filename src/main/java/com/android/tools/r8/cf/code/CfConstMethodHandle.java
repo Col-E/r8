@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -37,7 +38,7 @@ public class CfConstMethodHandle extends CfInstruction {
 
   @Override
   public void registerUse(UseRegistry registry, DexType clazz) {
-    registry.registerMethodHandle(handle);
+    registry.registerMethodHandle(handle, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
   }
 
   @Override

@@ -9,6 +9,41 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
+class ArgumentType {
+}
+
+class ReturnType {
+}
+
+interface I {
+  default ReturnType targetMethodTest4(ArgumentType arg) {
+    System.out.println("I.targetMethodTest4");
+    return new ReturnType();
+  }
+}
+
+class Middle implements I {
+}
+
+class Sub extends Middle {
+}
+
+interface I2 {
+  default ReturnType targetMethodTest5(ArgumentType arg) {
+    System.out.println("I2.targetMethodTest5");
+    return new ReturnType();
+  }
+}
+
+// TODO(116283747): Add the same test where the interface method is not overriden but inherited
+// from the interface. Currently, that works on the reference implementation but fails on Art.
+class Impl implements I2 {
+  @Override
+  public ReturnType targetMethodTest5(ArgumentType arg) {
+    System.out.println("Impl.targetMethodTest5");
+    return new ReturnType();
+  }
+}
 
 public class InvokeCustom {
 
@@ -34,5 +69,13 @@ public class InvokeCustom {
     final MethodHandles.Lookup lookup = MethodHandles.lookup();
     final MethodHandle targetMH = lookup.findStatic(lookup.lookupClass(), name, type);
     return new ConstantCallSite(targetMH.asType(type));
+  }
+
+  public static void doInvokeSubWithArg(MethodHandle handle) throws Throwable {
+    handle.invoke(new Sub(), new ArgumentType());
+  }
+
+  public static void doInvokeExactImplWithArg(MethodHandle handle) throws Throwable {
+    ReturnType result = (ReturnType) handle.invokeExact(new Impl(), new ArgumentType());
   }
 }

@@ -9,6 +9,20 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
+class ClassWithLongName {
+  @Override
+  public String toString() {
+    return getClass().getName();
+  }
+}
+
+class AnotherClassWithALongName {
+  @Override
+  public String toString() {
+    return getClass().getName();
+  }
+}
+
 interface J {
 
   default void targetMethodTest8() {
@@ -37,6 +51,11 @@ interface I extends J {
 
   default void targetMethodTest10() {
     System.out.println("targetMethodTest10 from I");
+  }
+
+  default AnotherClassWithALongName targetMethodTest11(ClassWithLongName a) {
+    System.out.println("targetMethodTest11 from I");
+    return new AnotherClassWithALongName();
   }
 }
 

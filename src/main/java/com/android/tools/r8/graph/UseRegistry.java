@@ -14,6 +14,17 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 
 public abstract class UseRegistry {
 
+  private DexItemFactory factory;
+
+  public enum MethodHandleUse {
+    ARGUMENT_TO_LAMBDA_METAFACTORY,
+    NOT_ARGUMENT_TO_LAMBDA_METAFACTORY
+  }
+
+  public UseRegistry(DexItemFactory factory) {
+    this.factory = factory;
+  }
+
   public abstract boolean registerInvokeVirtual(DexMethod method);
 
   public abstract boolean registerInvokeDirect(DexMethod method);
@@ -44,7 +55,8 @@ public abstract class UseRegistry {
     return registerTypeReference(type);
   }
 
-  public void registerMethodHandle(DexMethodHandle methodHandle) {
+  public void registerMethodHandle(
+      DexMethodHandle methodHandle, MethodHandleUse use) {
     switch (methodHandle.type) {
       case INSTANCE_GET:
         registerInstanceFieldRead(methodHandle.asField());
@@ -84,7 +96,11 @@ public abstract class UseRegistry {
   }
 
   public void registerCallSite(DexCallSite callSite) {
-    registerMethodHandle(callSite.bootstrapMethod);
+    boolean isLambdaMetaFactory =
+        factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+
+    registerMethodHandle(
+        callSite.bootstrapMethod, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
 
     // Lambda metafactory will use this type as the main SAM
     // interface for the dynamically created lambda class.
@@ -96,7 +112,11 @@ public abstract class UseRegistry {
       if (arg instanceof DexValueType) {
         registerTypeReference(((DexValueType) arg).value);
       } else if (arg instanceof DexValueMethodHandle) {
-        registerMethodHandle(((DexValueMethodHandle) arg).value);
+        DexMethodHandle handle = ((DexValueMethodHandle) arg).value;
+        MethodHandleUse use = isLambdaMetaFactory
+            ? MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY
+            : MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
+        registerMethodHandle(handle, use);
       } else if (arg instanceof DexValueMethodType) {
         registerProto(((DexValueMethodType) arg).value);
       } else {
