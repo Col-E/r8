@@ -23,7 +23,6 @@ import com.android.tools.r8.resolution.singletarget.one.SubSubClassThree;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo;
 import com.android.tools.r8.resolution.singletarget.three.ThirdAbstractTopClass;
 import com.android.tools.r8.resolution.singletarget.three.ThirdSubClassOne;
-import com.android.tools.r8.resolution.singletarget.three.ThirdSubClassTwo;
 import com.android.tools.r8.resolution.singletarget.three.ThirdSubClassTwoDump;
 import com.android.tools.r8.resolution.singletarget.two.OtherAbstractSubClassOne;
 import com.android.tools.r8.resolution.singletarget.two.OtherAbstractSubClassTwo;
@@ -191,10 +190,9 @@ public class SingleTargetLookupTest extends AsmTestBase {
             IrrelevantInterfaceWithDefault.class),
         manyTargets("abstractMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class,
             ThirdSubClassOne.class),
-        manyTargets("instanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class,
-            ThirdSubClassTwo.class),
-        manyTargets("otherInstanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class,
-            ThirdSubClassTwo.class),
+        singleTarget("instanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
+        singleTarget(
+            "otherInstanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class)
     });
   }
 

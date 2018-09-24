@@ -138,7 +138,12 @@ public class AppInfoWithSubtyping extends AppInfo {
       DexClass clazz = definitionFor(type);
       if (!clazz.isInterface()) {
         ResolutionResult methods = resolveMethodOnClass(type, method);
-        methods.forEachTarget(result::add);
+        methods.forEachTarget(
+            target -> {
+              if (target.isVirtualMethod()) {
+                result.add(target);
+              }
+            });
       }
     }
     return result;
