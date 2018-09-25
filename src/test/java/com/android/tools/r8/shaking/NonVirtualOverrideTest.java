@@ -14,6 +14,7 @@ import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -87,22 +88,47 @@ public class NonVirtualOverrideTest extends TestBase {
             .build();
 
     // Run the program using java.
-    Path referenceJar = temp.getRoot().toPath().resolve("input.jar");
-    ArchiveConsumer inputConsumer = new ArchiveConsumer(referenceJar);
-    for (Class<?> clazz : ImmutableList.of(main, A, C)) {
+    String referenceResult;
+    if (backend == Backend.DEX
+        && ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V7_0_0)
+        && ToolHelper.getDexVm().getVersion().isAtLeast(Version.V5_1_1)) {
+      referenceResult =
+          String.join(
+              System.lineSeparator(),
+              "In A.m1()",
+              "In A.m2()",
+              "In A.m3()",
+              "In A.m4()",
+              "In C.m1()",
+              "In A.m2()",
+              "In C.m3()",
+              "In A.m4()",
+              "In A.m1()", // With Java: Caught IllegalAccessError when calling B.m1()
+              "In A.m3()", // With Java: Caught IncompatibleClassChangeError when calling B.m3()
+              "In C.m1()", // With Java: Caught IllegalAccessError when calling B.m1()
+              "In C.m3()", // With Java: Caught IncompatibleClassChangeError when calling B.m3()
+              "In C.m1()",
+              "In C.m3()",
+              "");
+    } else {
+      Path referenceJar = temp.getRoot().toPath().resolve("input.jar");
+      ArchiveConsumer inputConsumer = new ArchiveConsumer(referenceJar);
+      for (Class<?> clazz : ImmutableList.of(main, A, C)) {
+        inputConsumer.accept(
+            ByteDataView.of(ToolHelper.getClassAsBytes(clazz)),
+            DescriptorUtils.javaTypeToDescriptor(clazz.getName()),
+            null);
+      }
       inputConsumer.accept(
-          ByteDataView.of(ToolHelper.getClassAsBytes(clazz)),
-          DescriptorUtils.javaTypeToDescriptor(clazz.getName()),
+          ByteDataView.of(jasminBuilder.buildClasses().get(0)),
+          DescriptorUtils.javaTypeToDescriptor(B.getName()),
           null);
-    }
-    inputConsumer.accept(
-        ByteDataView.of(jasminBuilder.buildClasses().get(0)),
-        DescriptorUtils.javaTypeToDescriptor(B.getName()),
-        null);
-    inputConsumer.finished(null);
+      inputConsumer.finished(null);
 
-    ProcessResult referenceResult = ToolHelper.runJava(referenceJar, main.getName());
-    assertEquals(referenceResult.exitCode, 0);
+      ProcessResult javaResult = ToolHelper.runJava(referenceJar, main.getName());
+      assertEquals(javaResult.exitCode, 0);
+      referenceResult = javaResult.stdout;
+    }
 
     // Run the program on Art after is has been compiled with R8.
     AndroidApp compiled =
@@ -115,7 +141,7 @@ public class NonVirtualOverrideTest extends TestBase {
               options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
             },
             backend);
-    assertEquals(referenceResult.stdout, runOnVM(compiled, main, backend));
+    assertEquals(referenceResult, runOnVM(compiled, main, backend));
 
     // Check that B is present and that it doesn't contain the unused private method m2.
     if (!enableClassInlining && !enableVerticalClassMerging) {
