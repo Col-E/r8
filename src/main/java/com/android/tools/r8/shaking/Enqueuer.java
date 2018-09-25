@@ -272,6 +272,24 @@ public class Enqueuer {
     }
   }
 
+  private void enqueueHolderIfDependentNonStaticMember(
+      DexClass holder, Map<DexDefinition, ProguardKeepRule> dependentItems) {
+    // Check if any dependent members are not static, and in that case enqueue the class as well.
+    // Having a dependent rule like -keepclassmembers with non static items indicates that class
+    // instances will be present even if tracing do not find any instantiation. See b/115867670.
+    for (Entry<DexDefinition, ProguardKeepRule> entry : dependentItems.entrySet()) {
+      DexDefinition dependentItem = entry.getKey();
+      if (dependentItem.isDexClass()) {
+        continue;
+      }
+      if (!dependentItem.isStaticMember()) {
+        enqueueRootItem(holder, entry.getValue());
+        // Enough to enqueue the known holder once.
+        break;
+      }
+    }
+  }
+
   //
   // Things to do with registering events. This is essentially the interface for byte-code
   // traversals.
@@ -633,16 +651,6 @@ public class Enqueuer {
   // Actual actions performed.
   //
 
-  static private boolean isStaticMember(DexDefinition definition) {
-    if (definition.isDexEncodedMethod()) {
-      return (definition.asDexEncodedMethod()).accessFlags.isStatic();
-    }
-    if (definition.isDexEncodedField()) {
-      return (definition.asDexEncodedField()).accessFlags.isStatic();
-    }
-    return false;
-  }
-
   private void markTypeAsLive(DexType type) {
     assert type.isClassType();
     if (liveTypes.add(type)) {
@@ -686,16 +694,8 @@ public class Enqueuer {
         annotations.forEach(this::handleAnnotationOfLiveType);
       }
 
-      // Check if any dependent members are not static, and in that case enqueue the class as well.
-      // Having a dependent rule like -keepclassmembers with non static items indicates that class
-      // instances will be present even if tracing do not find any instantiation. See b/115867670.
       Map<DexDefinition, ProguardKeepRule> dependentItems = rootSet.getDependentItems(holder);
-      for (Entry<DexDefinition, ProguardKeepRule> entry : dependentItems.entrySet()) {
-        if (!isStaticMember(entry.getKey())) {
-          enqueueRootItem(holder, entry.getValue());
-          break;
-        }
-      }
+      enqueueHolderIfDependentNonStaticMember(holder, dependentItems);
       // Add all dependent members to the workqueue.
       enqueueRootItems(dependentItems);
     }
@@ -1298,6 +1298,16 @@ public class Enqueuer {
           enqueueRootItems(consequentRootSet.noShrinking);
           rootSet.noOptimization.addAll(consequentRootSet.noOptimization);
           rootSet.noObfuscation.addAll(consequentRootSet.noObfuscation);
+          rootSet.addDependentItems(consequentRootSet.dependentNoShrinking);
+          // Check if any newly dependent members are not static, and in that case find the holder
+          // and enqueue it as well. This is -if version of workaround for b/115867670.
+          consequentRootSet.dependentNoShrinking.forEach((precondition, dependentItems) -> {
+            if (precondition.isDexClass()) {
+              enqueueHolderIfDependentNonStaticMember(precondition.asDexClass(), dependentItems);
+            }
+            // Add all dependent members to the workqueue.
+            enqueueRootItems(dependentItems);
+          });
           if (!workList.isEmpty()) {
             continue;
           }
