@@ -121,7 +121,7 @@ public class ExtractMarker {
             "Failed to read dex/vdex file `" + programFile + "`: '" + e.getMessage() + "'");
         continue;
       }
-      System.out.print("In file: " + cwd.relativize(programFile));
+      System.out.print("In file: " + cwd.toAbsolutePath().relativize(programFile.toAbsolutePath()));
       System.out.println(", " + extractDexSize(programFile) + " bytes:");
       for (Marker marker : markers) {
         if (marker == null) {
