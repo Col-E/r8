@@ -342,6 +342,7 @@ def x20Dependencies = [
         "youtube/youtube.android_12.10",
         "youtube/youtube.android_12.17",
         "youtube/youtube.android_12.22",
+        "youtube/youtube.android_13.37",
         "proguardsettings",
         "proguard/proguard_internal_159423826",
         "framework",

@@ -19,6 +19,9 @@ V12_17_PREFIX = os.path.join(V12_17_BASE, 'YouTubeRelease')
 V12_22_BASE = os.path.join(BASE, 'youtube.android_12.22')
 V12_22_PREFIX = os.path.join(V12_22_BASE, 'YouTubeRelease')
 
+V13_37_BASE = os.path.join(BASE, 'youtube.android_13.37')
+V13_37_PREFIX = os.path.join(V13_37_BASE, 'YouTubeRelease')
+
 # NOTE: we always use android.jar for SDK v25, later we might want to revise it
 #       to use proper android.jar version for each of youtube version separately.
 ANDROID_JAR = os.path.join(THIRD_PARTY, 'android_jar', 'lib-v25', 'android.jar')
@@ -82,6 +85,32 @@ VERSIONS = {
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % V12_22_PREFIX],
       'pgmap': '%s_proguard.map' % V12_22_PREFIX,
+      'min-api' : ANDROID_L_API,
+    }
+  },
+  '13.37': {
+    'dex' : {
+      'inputs': [os.path.join(V13_37_BASE, 'YouTubeRelease_unsigned.apk')],
+      'pgmap': '%s_proguard.map' % V13_37_PREFIX,
+      'libraries' : [ANDROID_JAR],
+      'min-api' : ANDROID_L_API,
+    },
+    'deploy' : {
+      'inputs': ['%s_deploy.jar' % V13_37_PREFIX],
+      'pgconf': [
+          '%s_proguard.config' % V13_37_PREFIX,
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % THIRD_PARTY],
+      # Build for native multi dex, as Currently R8 cannot meet the main-dex
+      # constraints.
+      #'maindexrules' : [
+      #    os.path.join(V13_37_BASE, 'mainDexClasses.rules'),
+      #    os.path.join(V13_37_BASE, 'main-dex-classes-release-optimized.cfg'),
+      #    os.path.join(V13_37_BASE, 'main_dex_YouTubeRelease_proguard.cfg')],
+      'min-api' : ANDROID_L_API,
+    },
+    'proguarded' : {
+      'inputs': ['%s_proguard.jar' % V13_37_PREFIX],
+      'pgmap': '%s_proguard.map' % V13_37_PREFIX,
       'min-api' : ANDROID_L_API,
     }
   },
