@@ -112,7 +112,7 @@ public class AppInfo {
   public DexEncodedMethod lookupStaticTarget(DexMethod method) {
     ResolutionResult resolutionResult = resolveMethod(method.holder, method);
     DexEncodedMethod target = resolutionResult.asSingleTarget();
-    return target == null || target.isStaticMethod() ? target : null;
+    return target == null || target.isStatic() ? target : null;
   }
 
   /**
@@ -145,7 +145,7 @@ public class AppInfo {
     }
     resolutionResult = resolveMethod(contextClass.superType, method);
     DexEncodedMethod target = resolutionResult.asSingleTarget();
-    return target == null || !target.isStaticMethod() ? target : null;
+    return target == null || !target.isStatic() ? target : null;
   }
 
   /**

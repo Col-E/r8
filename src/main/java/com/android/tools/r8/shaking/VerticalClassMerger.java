@@ -811,7 +811,7 @@ public class VerticalClassMerger {
           deferredRenamings.map(directMethod.method, resultingDirectMethod.method);
           deferredRenamings.recordMove(directMethod.method, resultingDirectMethod.method);
 
-          if (!directMethod.isStaticMethod()) {
+          if (!directMethod.isStatic()) {
             blockRedirectionOfSuperCalls(resultingDirectMethod.method);
           }
         }
@@ -1069,7 +1069,7 @@ public class VerticalClassMerger {
       accessFlags.setSynthetic();
       accessFlags.unsetAbstract();
 
-      assert invocationTarget.isPrivateMethod() == !invocationTarget.isStaticMethod();
+      assert invocationTarget.isPrivateMethod() == !invocationTarget.isStatic();
       SynthesizedBridgeCode code =
           new SynthesizedBridgeCode(
               newMethod,

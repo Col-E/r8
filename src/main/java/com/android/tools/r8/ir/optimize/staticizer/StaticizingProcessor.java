@@ -130,7 +130,7 @@ final class StaticizingProcessor {
 
       // CHECK: no abstract or native instance methods.
       if (Streams.stream(candidateClass.methods()).anyMatch(
-          method -> !method.isStaticMethod() && (method.shouldNotHaveCode()))) {
+          method -> !method.isStatic() && (method.shouldNotHaveCode()))) {
         it.remove();
         continue;
       }
@@ -151,7 +151,7 @@ final class StaticizingProcessor {
 
       // Collect instance methods to be staticized.
       for (DexEncodedMethod method : candidateClass.methods()) {
-        if (!method.isStaticMethod()) {
+        if (!method.isStatic()) {
           removedInstanceMethods.add(method);
           if (!factory().isConstructor(method.method)) {
             methodsToBeStaticized.add(method);
@@ -334,7 +334,7 @@ final class StaticizingProcessor {
       // Move instance methods into static ones.
       List<DexEncodedMethod> newDirectMethods = new ArrayList<>();
       for (DexEncodedMethod method : candidateClass.methods()) {
-        if (method.isStaticMethod()) {
+        if (method.isStatic()) {
           newDirectMethods.add(method);
         } else if (!factory().isConstructor(method.method)) {
           DexEncodedMethod staticizedMethod = method.toStaticMethodWithoutThis();
@@ -374,7 +374,7 @@ final class StaticizingProcessor {
   }
 
   private boolean classMembersConflict(DexClass a, DexClass b) {
-    assert Streams.stream(a.methods()).allMatch(DexEncodedMethod::isStaticMethod);
+    assert Streams.stream(a.methods()).allMatch(DexEncodedMethod::isStatic);
     assert a.instanceFields().length == 0;
     return Stream.of(a.staticFields()).anyMatch(fld -> b.lookupField(fld.field) != null) ||
         Streams.stream(a.methods()).anyMatch(method -> b.lookupMethod(method.method) != null);

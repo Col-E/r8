@@ -767,7 +767,7 @@ public class CodeRewriter {
 
   public void identifyInvokeSemanticsForInlining(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    if (method.isStaticMethod()) {
+    if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
       feedback.markTriggerClassInitBeforeAnySideEffect(method,
           triggersClassInitializationBeforeSideEffect(code, method.method.getHolder()));

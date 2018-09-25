@@ -130,7 +130,7 @@ public final class LambdaDescriptor {
 
   private boolean isInstanceMethod(DexEncodedMethod encodedMethod) {
     assert encodedMethod != null;
-    return !encodedMethod.accessFlags.isConstructor() && !encodedMethod.isStaticMethod();
+    return !encodedMethod.accessFlags.isConstructor() && !encodedMethod.isStatic();
   }
 
   private boolean isPrivateInstanceMethod(DexEncodedMethod encodedMethod) {

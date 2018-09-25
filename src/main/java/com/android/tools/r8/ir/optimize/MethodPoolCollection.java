@@ -97,7 +97,7 @@ public class MethodPoolCollection {
       clazz.forEachMethod(
           encodedMethod -> {
             // We will add private instance methods when we promote them.
-            if (!encodedMethod.isPrivateMethod() || encodedMethod.isStaticMethod()) {
+            if (!encodedMethod.isPrivateMethod() || encodedMethod.isStatic()) {
               methodPool.seen(equivalence.wrap(encodedMethod.method));
             }
           });
