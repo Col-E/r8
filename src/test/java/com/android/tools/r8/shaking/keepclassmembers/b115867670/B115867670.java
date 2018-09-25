@@ -18,7 +18,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -127,6 +126,20 @@ public class B115867670 extends ProguardCompatibilityTestBase {
   }
 
   @Test
+  public void testDependentWithKeepClass() throws Exception {
+    runTest(
+        "-keep @" + pkg + ".JsonClass class ** { <fields>; }",
+        this::checkKeepClassMembers);
+  }
+
+  @Test
+  public void testDependentWithKeepClassAllowObfuscation() throws Exception {
+    runTest(
+        "-keep,allowobfuscation @" + pkg + ".JsonClass class ** { <fields>; }",
+        this::checkKeepClassMembersRenamed);
+  }
+
+  @Test
   public void testDependentWithKeepClassMembers() throws Exception {
     runTest(
         "-keepclassmembers @" + pkg + ".JsonClass class ** { <fields>; }",
@@ -141,7 +154,6 @@ public class B115867670 extends ProguardCompatibilityTestBase {
   }
 
   @Test
-  @Ignore("b/116092333")
   public void testDependentWithIfKeepClassMembers() throws Exception {
     runTest(
         "-if @" + pkg + ".JsonClass class * -keepclassmembers class <1> { <fields>; }",
@@ -149,7 +161,6 @@ public class B115867670 extends ProguardCompatibilityTestBase {
   }
 
   @Test
-  @Ignore("b/116092333")
   public void testDependentWithIfKeepClassMembersAllowObfuscation() throws Exception {
     runTest(
         "-if @"

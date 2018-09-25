@@ -350,6 +350,16 @@ public abstract class DexClass extends DexDefinition {
     return null;
   }
 
+  @Override
+  public boolean isStatic() {
+    return accessFlags.isStatic();
+  }
+
+  @Override
+  public boolean isStaticMember() {
+    return false;
+  }
+
   public DexEncodedMethod getClassInitializer() {
     return Arrays.stream(directMethods()).filter(DexEncodedMethod::isClassInitializer).findAny()
         .orElse(null);

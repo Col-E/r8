@@ -52,6 +52,33 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
   }
 
   @Test
+  public void ifOnPublic_noPublicClassForIfRule() throws Exception {
+    List<String> config = ImmutableList.of(
+        "-repackageclasses 'top'",
+        "-keep class **.Main* {",
+        "  public static void callIfNonPublic();",
+        "}",
+        "-if public class **.ClassForIf {",
+        "  <methods>;",
+        "}",
+        "-keep,allowobfuscation class **.ClassForSubsequent {",
+        "  public <methods>;",
+        "}"
+    );
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
+    ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
+    assertThat(classSubject, isPresent());
+    MethodSubject methodSubject = classSubject.method(publicMethod);
+    assertThat(methodSubject, not(isPresent()));
+    methodSubject = classSubject.method(nonPublicMethod);
+    assertThat(methodSubject, isPresent());
+    assertFalse(methodSubject.getMethod().accessFlags.isPublic());
+
+    classSubject = codeInspector.clazz(ClassForSubsequent.class);
+    assertThat(classSubject, not(isPresent()));
+  }
+
+  @Test
   public void ifOnNonPublic_keepOnPublic() throws Exception {
     List<String> config = ImmutableList.of(
         "-printmapping",
@@ -191,12 +218,12 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     methodSubject = classSubject.method(publicMethod);
     assertThat(methodSubject, not(isPresent()));
     methodSubject = classSubject.method(nonPublicMethod);
+    assertThat(methodSubject, isPresent());
     if (isR8(shrinker)) {
-      // TODO(b/72109068): if kept in the 1st tree shaking, should be kept after publicizing.
-      assertThat(methodSubject, not(isPresent()));
+      // TODO(b/72109068): if kept in the 1st tree shaking, should not be publicized.
+      assertTrue(methodSubject.getMethod().accessFlags.isPublic());
       return;
     }
-    assertThat(methodSubject, isPresent());
     assertFalse(methodSubject.getMethod().accessFlags.isPublic());
   }
 

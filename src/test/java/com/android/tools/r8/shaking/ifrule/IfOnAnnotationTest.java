@@ -8,7 +8,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -84,7 +83,6 @@ public class IfOnAnnotationTest extends ProguardCompatibilityTestBase {
         UsedAnnotation.class, UsedAnnotationDependent.class);
   }
 
-  @Ignore("b/116092333")
   @Test
   public void ifOnAnnotation_onDependentClass_withNthWildcard() throws Exception {
     List<String> config = ImmutableList.of(

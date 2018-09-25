@@ -216,9 +216,22 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   /**
    * Returns true if this method can be invoked via invoke-static.
    */
+  // TODO(jsjeon): deprecate this, and use isStatic() instead.
   public boolean isStaticMethod() {
     checkIfObsolete();
     return accessFlags.isStatic();
+  }
+
+  @Override
+  public boolean isStatic() {
+    checkIfObsolete();
+    return accessFlags.isStatic();
+  }
+
+  @Override
+  public boolean isStaticMember() {
+    checkIfObsolete();
+    return isStatic();
   }
 
   /**

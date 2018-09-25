@@ -74,4 +74,8 @@ public abstract class DexDefinition extends DexItem {
   public static Stream<DexEncodedMethod> filterDexEncodedMethod(Stream<DexDefinition> stream) {
     return filter(stream, DexDefinition::isDexEncodedMethod, DexDefinition::asDexEncodedMethod);
   }
+
+  public abstract boolean isStatic();
+
+  public abstract boolean isStaticMember();
 }

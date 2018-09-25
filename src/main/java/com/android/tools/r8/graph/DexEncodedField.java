@@ -78,6 +78,16 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     return this;
   }
 
+  @Override
+  public boolean isStatic() {
+    return accessFlags.isStatic();
+  }
+
+  @Override
+  public boolean isStaticMember() {
+    return isStatic();
+  }
+
   public boolean hasAnnotation() {
     return !annotations.isEmpty();
   }

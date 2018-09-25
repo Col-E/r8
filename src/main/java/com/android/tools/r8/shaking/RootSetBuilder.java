@@ -27,6 +27,7 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -34,10 +35,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -148,16 +151,13 @@ public class RootSetBuilder {
       DexClass clazz,
       ProguardConfigurationRule rule,
       ProguardIfRule ifRule) {
-    if (rule.getClassType().matches(clazz) == rule.getClassTypeNegated()) {
+    if (!satisfyClassType(rule, clazz)) {
       return;
     }
-    if (!rule.getClassAccessFlags().containsAll(clazz.accessFlags)) {
+    if (!satisfyAccessFlag(rule, clazz)) {
       return;
     }
-    if (!rule.getNegatedClassAccessFlags().containsNone(clazz.accessFlags)) {
-      return;
-    }
-    if (!containsAnnotation(rule.getClassAnnotation(), clazz.annotations)) {
+    if (!satisfyAnnotation(rule, clazz)) {
       return;
     }
     // In principle it should make a difference whether the user specified in a class
@@ -202,13 +202,14 @@ public class RootSetBuilder {
 
     if (rule.getClassNames().matches(clazz.type)) {
       Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
       if (rule instanceof ProguardKeepRule) {
         switch (((ProguardKeepRule) rule).getType()) {
           case KEEP_CLASS_MEMBERS: {
-            // If we're handling -if consequent part, that means precondition already met.
-            DexClass precondition = ifRule != null ? null : clazz;
-            markMatchingVisibleMethods(clazz, memberKeepRules, rule, precondition);
-            markMatchingFields(clazz, memberKeepRules, rule, precondition);
+            // Members mentioned at -keepclassmembers always depend on their holder.
+            preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
+            markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier);
+            markMatchingFields(clazz, memberKeepRules, rule, preconditionSupplier);
             break;
           }
           case KEEP_CLASSES_WITH_MEMBERS: {
@@ -219,20 +220,33 @@ public class RootSetBuilder {
           }
           case KEEP: {
             markClass(clazz, rule);
-            markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-            markMatchingFields(clazz, memberKeepRules, rule, null);
+            preconditionSupplier = new HashMap<>();
+            if (ifRule != null) {
+              // Static members in -keep are pinned no matter what.
+              preconditionSupplier.put(DexDefinition::isStaticMember, null);
+              // Instance members may need to be kept even though the holder is not instantiated.
+              preconditionSupplier.put(definition -> !definition.isStaticMember(), clazz);
+            } else {
+              // Members mentioned at -keep should always be pinned as long as that -keep rule is
+              // not triggered conditionally.
+              preconditionSupplier.put((definition -> true), null);
+            }
+            markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier);
+            markMatchingFields(clazz, memberKeepRules, rule, preconditionSupplier);
             break;
           }
           case CONDITIONAL:
-            assert rule instanceof ProguardIfRule;
             throw new Unreachable("-if rule will be evaluated separately, not here.");
         }
+      } else if (rule instanceof ProguardIfRule) {
+        throw new Unreachable("-if rule will be evaluated separately, not here.");
       } else if (rule instanceof ProguardCheckDiscardRule) {
         if (memberKeepRules.isEmpty()) {
           markClass(clazz, rule);
         } else {
-          markMatchingFields(clazz, memberKeepRules, rule, clazz);
-          markMatchingMethods(clazz, memberKeepRules, rule, clazz);
+          preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
+          markMatchingFields(clazz, memberKeepRules, rule, preconditionSupplier);
+          markMatchingMethods(clazz, memberKeepRules, rule, preconditionSupplier);
         }
       } else if (rule instanceof ProguardWhyAreYouKeepingRule
           || rule instanceof ProguardKeepPackageNamesRule) {
@@ -344,6 +358,19 @@ public class RootSetBuilder {
           // -keep rule may vary (due to back references). So, we need to try all pairs of -if rule
           // and live types.
           for (DexType currentLiveType : liveTypes) {
+            DexClass currentLiveClass = appInfo.definitionFor(currentLiveType);
+            if (currentLiveClass == null) {
+              continue;
+            }
+            if (!satisfyClassType(rule, currentLiveClass)) {
+              continue;
+            }
+            if (!satisfyAccessFlag(rule, currentLiveClass)) {
+              continue;
+            }
+            if (!satisfyAnnotation(rule, currentLiveClass)) {
+              continue;
+            }
             if (ifRule.hasInheritanceClassName()) {
               if (!satisfyInheritanceRule(currentLiveType, definitionForWithLiveTypes, ifRule)) {
                 // Try another live type since the current one doesn't satisfy the inheritance rule.
@@ -406,20 +433,44 @@ public class RootSetBuilder {
     } finally {
       application.timing.end();
     }
-    return new ConsequentRootSet(noShrinking, noOptimization, noObfuscation);
+    return new ConsequentRootSet(noShrinking, noOptimization, noObfuscation, dependentNoShrinking);
+  }
+
+  private static DexDefinition testAndGetPrecondition(
+      DexDefinition definition, Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
+    if (preconditionSupplier == null) {
+      return null;
+    }
+    DexDefinition precondition = null;
+    boolean conditionEverMatched = false;
+    for (Entry<Predicate<DexDefinition>, DexDefinition> entry : preconditionSupplier.entrySet()) {
+      if (entry.getKey().test(definition)) {
+        precondition = entry.getValue();
+        conditionEverMatched = true;
+        break;
+      }
+    }
+    // If precondition-supplier is given, there should be at least one predicate that holds.
+    // Actually, there should be only one predicate as we break the loop when it is found.
+    assert conditionEverMatched;
+    return precondition;
   }
 
   private void markMatchingVisibleMethods(
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      DexClass onlyIfClassKept) {
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
     Set<Wrapper<DexMethod>> methodsMarked = new HashSet<>();
-    Arrays.stream(clazz.directMethods()).forEach(method ->
-        markMethod(method, memberKeepRules, methodsMarked, rule, onlyIfClassKept));
+    Arrays.stream(clazz.directMethods()).forEach(method -> {
+      DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+      markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
+    });
     while (clazz != null) {
-      Arrays.stream(clazz.virtualMethods()).forEach(method ->
-          markMethod(method, memberKeepRules, methodsMarked, rule, onlyIfClassKept));
+      Arrays.stream(clazz.virtualMethods()).forEach(method -> {
+        DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+        markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
+      });
       clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
     }
   }
@@ -428,19 +479,22 @@ public class RootSetBuilder {
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      DexClass onlyIfClassKept) {
-    Arrays.stream(clazz.directMethods()).forEach(method ->
-        markMethod(method, memberKeepRules, null, rule, onlyIfClassKept));
-    Arrays.stream(clazz.virtualMethods()).forEach(method ->
-        markMethod(method, memberKeepRules, null, rule, onlyIfClassKept));
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
+    clazz.forEachMethod(method -> {
+      DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+      markMethod(method, memberKeepRules, null, rule, precondition);
+    });
   }
 
   private void markMatchingFields(
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      DexClass onlyIfClassKept) {
-    clazz.forEachField(field -> markField(field, memberKeepRules, rule, onlyIfClassKept));
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
+    clazz.forEachField(field -> {
+      DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
+      markField(field, memberKeepRules, rule, precondition);
+    });
   }
 
   // TODO(67934426): Test this code.
@@ -494,6 +548,19 @@ public class RootSetBuilder {
       }
     }
     out.close();
+  }
+
+  private static boolean satisfyClassType(ProguardConfigurationRule rule, DexClass clazz) {
+    return rule.getClassType().matches(clazz) != rule.getClassTypeNegated();
+  }
+
+  private static boolean satisfyAccessFlag(ProguardConfigurationRule rule, DexClass clazz) {
+    return rule.getClassAccessFlags().containsAll(clazz.accessFlags)
+        && rule.getNegatedClassAccessFlags().containsNone(clazz.accessFlags);
+  }
+
+  private static boolean satisfyAnnotation(ProguardConfigurationRule rule, DexClass clazz) {
+    return containsAnnotation(rule.getClassAnnotation(), clazz.annotations);
   }
 
   private boolean satisfyInheritanceRule(
@@ -794,6 +861,15 @@ public class RootSetBuilder {
       this.ifRules = Collections.unmodifiableSet(ifRules);
     }
 
+    // Add dependent items that depend on -if rules.
+    void addDependentItems(
+        Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentItems) {
+      dependentItems.forEach((def, dependence) -> {
+        dependentNoShrinking.computeIfAbsent(def, x -> new IdentityHashMap<>())
+            .putAll(dependence);
+      });
+    }
+
     Map<DexDefinition, ProguardKeepRule> getDependentItems(DexDefinition item) {
       return Collections
           .unmodifiableMap(dependentNoShrinking.getOrDefault(item, Collections.emptyMap()));
@@ -831,14 +907,17 @@ public class RootSetBuilder {
     final Map<DexDefinition, ProguardKeepRule> noShrinking;
     final Set<DexDefinition> noOptimization;
     final Set<DexDefinition> noObfuscation;
+    final Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking;
 
     private ConsequentRootSet(
         Map<DexDefinition, ProguardKeepRule> noShrinking,
         Set<DexDefinition> noOptimization,
-        Set<DexDefinition> noObfuscation) {
+        Set<DexDefinition> noObfuscation,
+        Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking) {
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
       this.noOptimization = Collections.unmodifiableSet(noOptimization);
       this.noObfuscation = Collections.unmodifiableSet(noObfuscation);
+      this.dependentNoShrinking = Collections.unmodifiableMap(dependentNoShrinking);
     }
   }
 }

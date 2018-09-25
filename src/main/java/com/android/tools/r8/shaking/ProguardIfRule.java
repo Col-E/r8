@@ -72,7 +72,7 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
         Origin.unknown(),
         Position.UNKNOWN,
         null,
-        getClassAnnotation(),
+        getClassAnnotation() == null ? null : getClassAnnotation().materialize(),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
         getClassTypeNegated(),
