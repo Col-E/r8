@@ -90,6 +90,7 @@ def ensure_git_clean():
 
 def git_pull():
   ensure_git_clean()
+  subprocess.check_call(['git', 'checkout', 'master'])
   subprocess.check_call(['git', 'pull'])
   return utils.get_HEAD_sha1()
 
