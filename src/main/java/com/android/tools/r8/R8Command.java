@@ -362,9 +362,8 @@ public final class R8Command extends BaseCompilerCommand {
         mainDexKeepRules = parser.getConfig().getRules();
       }
 
-      ProguardConfigurationParser parser = new ProguardConfigurationParser(
-          factory, reporter,
-          !allowPartiallyImplementedProguardOptions, allowTestProguardOptions);
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(factory, reporter, allowTestProguardOptions);
       if (!proguardConfigs.isEmpty()) {
         parser.parse(proguardConfigs);
       }

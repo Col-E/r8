@@ -49,7 +49,6 @@ public class ProguardConfigurationParser {
   private final DexItemFactory dexItemFactory;
 
   private final Reporter reporter;
-  private final boolean failOnPartiallyImplementedOptions;
   private final boolean allowTestOptions;
 
   private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList.of(
@@ -102,17 +101,15 @@ public class ProguardConfigurationParser {
 
   public ProguardConfigurationParser(
       DexItemFactory dexItemFactory, Reporter reporter) {
-    this(dexItemFactory, reporter, true, false);
+    this(dexItemFactory, reporter, false);
   }
 
   public ProguardConfigurationParser(
-      DexItemFactory dexItemFactory, Reporter reporter, boolean failOnPartiallyImplementedOptions,
-      boolean allowTestOptions) {
+      DexItemFactory dexItemFactory, Reporter reporter, boolean allowTestOptions) {
     this.dexItemFactory = dexItemFactory;
     configurationBuilder = ProguardConfiguration.builder(dexItemFactory, reporter);
 
     this.reporter = reporter;
-    this.failOnPartiallyImplementedOptions = failOnPartiallyImplementedOptions;
     this.allowTestOptions = allowTestOptions;
   }
 
