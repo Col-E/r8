@@ -106,6 +106,27 @@ def upload_file_to_cloud_storage(source, destination, public_read=True):
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 
+def delete_file_from_cloud_storage(destination):
+  cmd = ['gsutil.py', 'rm', destination]
+  PrintCmd(cmd)
+  subprocess.check_call(cmd)
+
+def cat_file_on_cloud_storage(destination, ignore_errors=False):
+  cmd = ['gsutil.py', 'cat', destination]
+  PrintCmd(cmd)
+  try:
+    return subprocess.check_output(cmd)
+  except subprocess.CalledProcessError as e:
+    if ignore_errors:
+      return ''
+    else:
+      raise e
+
+def file_exists_on_cloud_storage(destination):
+  cmd = ['gsutil.py', 'ls', destination]
+  PrintCmd(cmd)
+  return subprocess.call(cmd) == 0
+
 def download_file_from_cloud_storage(source, destination):
   cmd = ['gsutil.py', 'cp', source, destination]
   PrintCmd(cmd)

@@ -49,6 +49,10 @@ def ParseOptions(argv):
                     help='Running on golem, do not build or download',
                     default=False,
                     action='store_true')
+  result.add_option('--ignore-java-version',
+                    help='Do not check java version',
+                    default=False,
+                    action='store_true')
   result.add_option('--no-libraries',
                     help='Do not pass in libraries, even if they exist in conf',
                     default=False,
@@ -149,8 +153,10 @@ def run_all(options, args):
       exit(exit_code)
 
 def main(argv):
-  utils.check_java_version()
   (options, args) = ParseOptions(argv)
+  if not options.ignore_java_version:
+    utils.check_java_version()
+
   if options.run_all:
     return run_all(options, args)
   return run_with_options(options, args)
