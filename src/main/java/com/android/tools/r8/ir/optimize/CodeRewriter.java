@@ -1334,7 +1334,7 @@ public class CodeRewriter {
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
         if (invoke.getInvokedMethod() == dexItemFactory.classMethods.desiredAssertionStatus) {
-          iterator.replaceCurrentInstruction(code.createFalse());
+          iterator.replaceCurrentInstruction(code.createIntConstant(0));
         }
       } else if (current.isStaticPut()) {
         StaticPut staticPut = current.asStaticPut();
@@ -1344,7 +1344,7 @@ public class CodeRewriter {
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
         if (staticGet.getField().name == dexItemFactory.assertionsDisabled) {
-          iterator.replaceCurrentInstruction(code.createTrue());
+          iterator.replaceCurrentInstruction(code.createIntConstant(1));
         }
       }
     }

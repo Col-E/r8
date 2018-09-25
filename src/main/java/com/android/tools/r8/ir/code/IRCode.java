@@ -688,27 +688,17 @@ public class IRCode {
   }
 
   public ConstNumber createIntConstant(int value) {
-    return new ConstNumber(createValue(ValueType.INT), value);
-  }
-
-  public ConstNumber createTrue() {
-    return new ConstNumber(createValue(ValueType.INT), 1);
-  }
-
-  public ConstNumber createFalse() {
-    return new ConstNumber(createValue(ValueType.INT), 0);
+    Value out = createValue(ValueType.INT);
+    return new ConstNumber(out, value);
   }
 
   public final int getHighestBlockNumber() {
     return blocks.stream().max(Comparator.comparingInt(BasicBlock::getNumber)).get().getNumber();
   }
 
-  public Instruction createConstNull(Instruction from) {
-    return new ConstNumber(createValue(from.outType()), 0);
-  }
-
   public ConstNumber createConstNull() {
-    return new ConstNumber(createValue(ValueType.OBJECT), 0);
+    Value out = createValue(ValueType.OBJECT);
+    return new ConstNumber(out, 0);
   }
 
   public boolean doAllThrowingInstructionsHavePositions() {
