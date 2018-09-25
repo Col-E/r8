@@ -115,7 +115,6 @@ def GenerateAdditionalProguardConfiguration(temp, outdir):
 # do Bug: #BUG in the commit message of disabling to ensure re-enabling
 DISABLED_PERMUTATIONS = [
     ('youtube', '12.10', 'dex'), # b/116089492
-    ('youtube', '12.22', 'deploy') # b/116093710
 ]
 
 def get_permutations():
