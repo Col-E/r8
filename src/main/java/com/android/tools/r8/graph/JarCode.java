@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.JarClassFileReader.ReparseContext;
 import com.android.tools.r8.ir.code.IRCode;
@@ -241,7 +242,12 @@ public class JarCode extends Code {
 
   private void parseCode(ReparseContext context, boolean useJsrInliner) {
     SecondVisitor classVisitor = new SecondVisitor(createCodeLocator(context), useJsrInliner);
-    new ClassReader(context.classCache).accept(classVisitor, ClassReader.SKIP_FRAMES);
+    try {
+      new ClassReader(context.classCache).accept(classVisitor, ClassReader.SKIP_FRAMES);
+    } catch (Exception exception) {
+      throw new CompilationError(
+          "Unable to parse method `" + method.toSourceString() + "`", exception);
+    }
   }
 
   protected BiFunction<String, String, JarCode> createCodeLocator(ReparseContext context) {
