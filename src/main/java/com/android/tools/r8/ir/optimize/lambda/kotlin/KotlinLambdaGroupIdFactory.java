@@ -155,7 +155,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
             method.accessFlags, CLASS_INITIALIZER_FLAGS);
         checkDirectMethodAnnotations(method);
 
-      } else if (method.isStaticMethod()) {
+      } else if (method.isStatic()) {
         throw new LambdaStructureError(
             "unexpected static method: " + method.method.toSourceString());
 

@@ -180,7 +180,7 @@ public final class ClassStaticizer {
       return true;
     }
     for (DexEncodedMethod method : clazz.methods()) {
-      if (!method.isStaticMethod() && appInfo.isPinned(method.method)) {
+      if (!method.isStatic() && appInfo.isPinned(method.method)) {
         return true;
       }
     }
