@@ -389,10 +389,6 @@ abstract public class TypeLatticeElement {
 
   public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
     TypeLatticeElement castTypeLattice = fromDexType(appInfo, castType, isNullable());
-    // Special case: casting null.
-    if (isNull()) {
-      return castTypeLattice;
-    }
     if (lessThanOrEqual(appInfo, this, castTypeLattice)) {
       return this;
     }

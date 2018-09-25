@@ -80,6 +80,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1608,7 +1609,7 @@ public class CodeRewriter {
     }
   }
 
-  public DexClass definitionFor(DexType type) {
+  DexClass definitionFor(DexType type) {
     return converter.definitionFor(type);
   }
 
@@ -1624,6 +1625,22 @@ public class CodeRewriter {
       Value inValue = checkCast.object();
       Value outValue = checkCast.outValue();
       DexType castType = checkCast.getType();
+
+      // If the cast type is not accessible in the current context, we should not remove the cast
+      // in order to preserve IllegalAccessError. Note that JVM and ART behave differently: see
+      // {@link com.android.tools.r8.ir.optimize.checkcast.IllegalAccessErrorTest}.
+      DexType baseCastType = castType;
+      if (baseCastType.isArrayType()) {
+        baseCastType = baseCastType.toBaseType(appInfo.dexItemFactory);
+      }
+      DexClass castClass = definitionFor(baseCastType);
+      if (castClass != null) {
+        ConstraintWithTarget classVisibility = ConstraintWithTarget.deriveConstraint(
+            code.method.method.getHolder(), baseCastType, castClass.accessFlags, appInfo);
+        if (classVisibility == ConstraintWithTarget.NEVER) {
+          continue;
+        }
+      }
 
       // We might see chains of casts on subtypes. It suffices to cast to the lowest subtype,
       // as that will fail if a cast on a supertype would have failed.
@@ -1642,12 +1659,6 @@ public class CodeRewriter {
         TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
         TypeLatticeElement castTypeLattice =
             TypeLatticeElement.fromDexType(appInfo, castType, inTypeLattice.isNullable());
-        // Special case: null cast, e.g., getMethod(..., (Class[]) null);
-        // This cast should be kept no matter what.
-        if (inTypeLattice.isNull()) {
-          assert outTypeLattice.equals(castTypeLattice);
-          continue;
-        }
         // 1) Trivial cast.
         //   A a = ...
         //   A a' = (A) a;

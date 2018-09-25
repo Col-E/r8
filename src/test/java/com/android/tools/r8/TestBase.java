@@ -706,6 +706,18 @@ public class TestBase {
     }
   }
 
+  protected ProcessResult runOnVMRaw(AndroidApp app, String mainClass, Backend backend)
+      throws IOException {
+    switch (backend) {
+      case CF:
+        return runOnJavaRaw(app, mainClass, ImmutableList.of());
+      case DEX:
+        return runOnArtRaw(app, mainClass);
+      default:
+        throw new Unreachable("Unexpected backend: " + backend);
+    }
+  }
+
   private String extractClassName(byte[] ccc) {
     class ClassNameExtractor extends ClassVisitor {
       private String className;

@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AccessFlags;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -270,7 +271,7 @@ public class Inliner {
         DexType contextHolder,
         DexType targetHolder,
         AccessFlags flags,
-        AppInfoWithSubtyping appInfo) {
+        AppInfo appInfo) {
       if (flags.isPublic()) {
         return ALWAYS;
       } else if (flags.isPrivate()) {
@@ -292,7 +293,7 @@ public class Inliner {
     }
 
     public static ConstraintWithTarget classIsVisible(
-        DexType context, DexType clazz, AppInfoWithSubtyping appInfo) {
+        DexType context, DexType clazz, AppInfo appInfo) {
       if (clazz.isArrayType()) {
         return classIsVisible(context, clazz.toArrayElementType(appInfo.dexItemFactory), appInfo);
       }
@@ -307,7 +308,7 @@ public class Inliner {
     }
 
     public static ConstraintWithTarget meet(
-        ConstraintWithTarget one, ConstraintWithTarget other, AppInfoWithSubtyping appInfo) {
+        ConstraintWithTarget one, ConstraintWithTarget other, AppInfo appInfo) {
       if (one.equals(other)) {
         return one;
       }
