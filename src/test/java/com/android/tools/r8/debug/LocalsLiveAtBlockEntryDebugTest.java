@@ -6,6 +6,9 @@ package com.android.tools.r8.debug;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -14,10 +17,10 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
 
 /**
  * Test to check that locals that are introduced in a block that is not hit, still start in the
@@ -25,6 +28,7 @@ import org.junit.rules.TemporaryFolder;
  *
  * <p>See b/75251251 or b/78617758
  */
+@RunWith(VmTestRunner.class)
 public class LocalsLiveAtBlockEntryDebugTest extends DebugTestBase {
 
   final String className = "LocalsLiveAtEntry";
@@ -45,7 +49,7 @@ public class LocalsLiveAtBlockEntryDebugTest extends DebugTestBase {
   }
 
   @Test
-  @Ignore("b/78617758")
+  @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void testD8() throws Throwable {
     JasminBuilder builder = getBuilderForTest(className, methodName);
     List<Path> outputs = builder.writeClassFiles(temp.newFolder().toPath());
