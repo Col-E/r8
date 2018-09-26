@@ -111,6 +111,11 @@ def delete_file_from_cloud_storage(destination):
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 
+def ls_files_on_cloud_storage(destination):
+  cmd = ['gsutil.py', 'ls', destination]
+  PrintCmd(cmd)
+  return subprocess.check_output(cmd)
+
 def cat_file_on_cloud_storage(destination, ignore_errors=False):
   cmd = ['gsutil.py', 'cat', destination]
   PrintCmd(cmd)

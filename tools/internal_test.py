@@ -72,6 +72,9 @@ def ParseOptions():
   result.add_option('--continuous',
       help='Continuously run internal tests and post results to GCS.',
       default=False, action='store_true')
+  result.add_option('--print_logs',
+      help='Fetch logs from gcs and print them, takes the commit to print for.',
+      default=None)
   result.add_option('--bot',
       help='Run in bot mode, i.e., scheduling runs.',
       default=False, action='store_true')
@@ -174,6 +177,16 @@ def print_magic_file_state():
       content = get_magic_file_content(magic, ignore_errors=True)
       log('%s content: %s' % (magic, content))
 
+def fetch_and_print_logs(hash):
+  gs_base = 'gs://%s' % get_sha_destination(hash)
+  listing = utils.ls_files_on_cloud_storage(gs_base).strip().split('\n')
+  for entry in listing:
+    if not entry.endswith('/status'): # Ignore the overall status file
+      for to_print in [EXITCODE, TIMED_OUT, STDERR, STDOUT]:
+        gs_location = '%s%s' % (entry, to_print)
+        value = utils.cat_file_on_cloud_storage(gs_location)
+        print('\n\n%s had value:\n%s' % (to_print, value))
+
 def run_bot():
   print_magic_file_state()
   # Ensure that there is nothing currently scheduled (broken/stopped run)
@@ -205,6 +218,7 @@ def run_bot():
   delete_magic_file(TESTING_COMPLETE)
   log('Test status is: %s' % test_status)
   if test_status != '0':
+    fetch_and_print_logs(git_hash)
     return 1
 
 def run_continuously():
@@ -296,6 +310,8 @@ def Main():
     run_continuously()
   elif options.bot:
     return run_bot()
+  elif options.print_logs:
+    return fetch_and_print_logs(options.print_logs)
   else:
     return run_once(options.archive)
 
