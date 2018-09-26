@@ -64,6 +64,9 @@ RUN_TIMEOUT = 3600
 # Add some extra time for the bot, since the tester might not start immediately.
 BOT_RUN_TIMEOUT = 4000 * len(TEST_COMMANDS)
 
+def log(str):
+  print("%s: %s" % (time.strftime("%c"), str)
+
 def ParseOptions():
   result = optparse.OptionParser()
   result.add_option('--continuous',
@@ -84,14 +87,14 @@ def get_own_file_content():
 def restart_if_new_version(original_content):
   new_content = get_own_file_content()
   if new_content != original_content:
-    print('Restarting tools/internal_test.py, content changed')
+    log('Restarting tools/internal_test.py, content changed')
     os.execv(sys.argv[0], sys.argv)
 
 def ensure_git_clean():
   # Ensure clean git repo.
   diff = subprocess.check_output(['git', 'diff'])
   if len(diff) > 0:
-    print('Local modifications to the git repo, exiting')
+    log('Local modifications to the git repo, exiting')
     sys.exit(1)
 
 def git_pull():
@@ -138,12 +141,12 @@ def archive_log(stdout, stderr, exitcode, timed_out, cmd):
   destination = os.path.join(get_sha_destination(sha), cmd_dir)
   gs_destination = 'gs://%s' % destination
   url = 'https://storage.cloud.google.com/%s' % destination
-  print('Archiving logs to: %s' % gs_destination)
+  log('Archiving logs to: %s' % gs_destination)
   archive_value(EXITCODE, gs_destination, exitcode)
   archive_value(TIMED_OUT, gs_destination, timed_out)
   archive_file(STDOUT, gs_destination, stdout)
   archive_file(STDERR, gs_destination, stderr)
-  print('Logs available at: %s' % url)
+  log('Logs available at: %s' % url)
 
 def get_magic_file_base_path():
   return 'gs://%s/magic' % get_test_result_dir()
@@ -165,18 +168,18 @@ def get_magic_file_content(name, ignore_errors=False):
                                          ignore_errors=ignore_errors)
 
 def print_magic_file_state():
-  print('Magic file status:')
+  log('Magic file status:')
   for magic in ALL_MAGIC:
     if get_magic_file_exists(magic):
       content = get_magic_file_content(magic, ignore_errors=True)
-      print('%s content: %s' % (magic, content))
+      log('%s content: %s' % (magic, content))
 
 def run_bot():
   print_magic_file_state()
   # Ensure that there is nothing currently scheduled (broken/stopped run)
   for magic in ALL_MAGIC:
     if get_magic_file_exists(magic):
-      print('ERROR: Synchronizing file %s exists, cleaning up' % magic)
+      log('ERROR: Synchronizing file %s exists, cleaning up' % magic)
       delete_magic_file(magic)
   print_magic_file_state()
   assert not get_magic_file_exists(READY_FOR_TESTING)
@@ -185,7 +188,7 @@ def run_bot():
   begin = time.time()
   while True:
     if time.time() - begin > BOT_RUN_TIMEOUT:
-      print('Timeout exceeded: http://go/internal-r8-doc')
+      log('Timeout exceeded: http://go/internal-r8-doc')
       raise Exception('Bot timeout')
     if get_magic_file_exists(TESTING_COMPLETE):
       if get_magic_file_content(TESTING_COMPLETE) == git_hash:
@@ -193,14 +196,14 @@ def run_bot():
       else:
         raise Exception('Non matching git hashes %s and %s' % (
             get_magic_file_content(TESTING_COMPLETE), git_hash))
-    print('Still waiting for test result')
+    log('Still waiting for test result')
     print_magic_file_state()
     time.sleep(PULL_DELAY)
   total_time = time.time()-begin
-  print('Done running test for %s in %ss' % (git_hash, total_time))
+  log('Done running test for %s in %ss' % (git_hash, total_time))
   test_status = get_status(git_hash)
   delete_magic_file(TESTING_COMPLETE)
-  print('Test status is: %s' % test_status)
+  log('Test status is: %s' % test_status)
   if test_status != '0':
     return 1
 
@@ -215,13 +218,13 @@ def run_continuously():
       checked_out = git_checkout(git_hash)
       # Sanity check, if this does not succeed stop.
       if checked_out != git_hash:
-        print('Inconsistent state: %s %s' % (git_hash, checked_out))
+        log('Inconsistent state: %s %s' % (git_hash, checked_out))
         sys.exit(1)
       put_magic_file(TESTING, git_hash)
       delete_magic_file(READY_FOR_TESTING)
-      print('Running with hash: %s' % git_hash)
+      log('Running with hash: %s' % git_hash)
       exitcode = run_once(archive=True)
-      print('Running finished with exit code %s' % exitcode)
+      log('Running finished with exit code %s' % exitcode)
       put_magic_file(TESTING_COMPLETE, git_hash)
       delete_magic_file(TESTING)
     time.sleep(PULL_DELAY)
@@ -274,7 +277,7 @@ def execute(cmd, archive):
 def run_once(archive):
   failed = False
   git_hash = utils.get_HEAD_sha1()
-  print('Running once with hash %s' % git_hash)
+  log('Running once with hash %s' % git_hash)
   # Run test.py internal testing.
   cmd = ['tools/test.py', '--only_internal']
   if execute(cmd, archive):
