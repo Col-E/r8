@@ -65,7 +65,7 @@ RUN_TIMEOUT = 3600
 BOT_RUN_TIMEOUT = 4000 * len(TEST_COMMANDS)
 
 def log(str):
-  print("%s: %s" % (time.strftime("%c"), str)
+  print("%s: %s" % (time.strftime("%c"), str))
 
 def ParseOptions():
   result = optparse.OptionParser()
