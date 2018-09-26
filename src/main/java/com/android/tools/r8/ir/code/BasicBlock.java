@@ -47,9 +47,9 @@ public class BasicBlock {
 
   private Int2ReferenceMap<DebugLocalInfo> localsAtEntry;
 
-  public boolean consistentBlockInstructions(boolean argumentsAllowed) {
+  public boolean consistentBlockInstructions(boolean argumentsAllowed, boolean debug) {
     for (Instruction instruction : getInstructions()) {
-      assert instruction.getPosition() != null;
+      assert instruction.verifyValidPositionInfo(debug);
       assert instruction.getBlock() == this;
       assert !instruction.isArgument() || argumentsAllowed;
       assert !instruction.isDebugLocalRead() || !instruction.getDebugValues().isEmpty();
@@ -290,6 +290,7 @@ public class BasicBlock {
           }
           Instruction exit = new Goto();
           exit.setBlock(this);
+          exit.setPosition(instruction.getPosition());
           getInstructions().addLast(exit);
         } else if (indexOfOldBlock >= successors.size() - 2) {
           // Old is either true or fallthrough and we need to swap the new block into the right
@@ -1099,14 +1100,14 @@ public class BasicBlock {
   /**
    * Create a new basic block with a single goto instruction.
    *
-   * <p>The constructed basic block has no predecessors and has one
-   * successors which is the target block.
+   * <p>The constructed basic block has no predecessors and has one successor which is the target
+   * block.
    *
    * @param blockNumber the block number of the goto block
    * @param target the target of the goto block
    */
-  public static BasicBlock createGotoBlock(int blockNumber, BasicBlock target) {
-    BasicBlock block = createGotoBlock(blockNumber);
+  public static BasicBlock createGotoBlock(int blockNumber, Position position, BasicBlock target) {
+    BasicBlock block = createGotoBlock(blockNumber, position);
     block.getSuccessors().add(target);
     return block;
   }
@@ -1118,11 +1119,12 @@ public class BasicBlock {
    *
    * @param blockNumber the block number of the goto block
    */
-  public static BasicBlock createGotoBlock(int blockNumber) {
+  public static BasicBlock createGotoBlock(int blockNumber, Position position) {
     BasicBlock block = new BasicBlock();
     block.add(new Goto());
     block.close(null);
     block.setNumber(blockNumber);
+    block.entry().setPosition(position);
     return block;
   }
 
@@ -1228,8 +1230,7 @@ public class BasicBlock {
   }
 
   public Position getPosition() {
-    BasicBlock block = endOfGotoChain();
-    return block != null ? block.entry().getPosition() : Position.none();
+    return entry().getPosition();
   }
 
   public boolean hasOneNormalExit() {
@@ -1459,7 +1460,9 @@ public class BasicBlock {
         newBlock.add(newMove);
         newMove.setPosition(position);
       }
-      newBlock.add(new Goto());
+      Goto next = new Goto();
+      next.setPosition(position);
+      newBlock.add(next);
       newBlock.close(null);
       newBlock.getSuccessors().add(this);
       newBlock.getPredecessors().add(predecessor);

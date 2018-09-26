@@ -63,8 +63,9 @@ public class LoadStoreHelper {
             }
           }
           InstructionListIterator it = pred.listIterator(pred.getInstructions().size());
-          it.previous();
-          movePhis(moves, it);
+          Instruction exit = it.previous();
+          assert pred.exit() == exit;
+          movePhis(moves, it, exit.getPosition());
         }
         allocator.addToLiveAtEntrySet(block, block.getPhis());
       }
@@ -137,13 +138,13 @@ public class LoadStoreHelper {
     }
   }
 
-  private void movePhis(List<PhiMove> moves, InstructionListIterator it) {
+  private void movePhis(List<PhiMove> moves, InstructionListIterator it, Position position) {
     // TODO(zerny): Accounting for non-interfering phis would lower the max stack size.
     int topOfStack = 0;
     List<StackValue> temps = new ArrayList<>(moves.size());
     for (PhiMove move : moves) {
       StackValue tmp = createStackValue(move.phi, topOfStack++);
-      add(load(tmp, move.operand), move.phi.getBlock(), Position.none(), it);
+      add(load(tmp, move.operand), move.phi.getBlock(), position, it);
       temps.add(tmp);
       move.operand.removePhiUser(move.phi);
     }
@@ -151,7 +152,7 @@ public class LoadStoreHelper {
       PhiMove move = moves.get(i);
       StackValue tmp = temps.get(i);
       FixedLocalValue out = new FixedLocalValue(move.phi);
-      add(new Store(out, tmp), move.phi.getBlock(), Position.none(), it);
+      add(new Store(out, tmp), move.phi.getBlock(), position, it);
       move.phi.replaceUsers(out);
     }
   }

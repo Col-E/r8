@@ -35,6 +35,11 @@ public class DebugLocalsChange extends Instruction {
     throw new Unreachable();
   }
 
+  @Override
+  public boolean verifyValidPositionInfo(boolean debug) {
+    return true;
+  }
+
   public Int2ReferenceMap<DebugLocalInfo> getEnding() {
     return ending;
   }

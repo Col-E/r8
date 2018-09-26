@@ -331,7 +331,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       Int2ReferenceMap<DebugLocalInfo> currentLocals =
           new Int2ReferenceOpenHashMap<>(openRanges.size());
       for (LocalRange openRange : openRanges) {
-        currentLocals.put(openRange.register, openRange.local);
+        if (liveLocalValues.contains(openRange.value)) {
+          currentLocals.put(openRange.register, openRange.local);
+        }
       }
 
       // Set locals at entry. This will adjust initial local registers in case of spilling.
@@ -350,7 +352,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             while (it.hasNext()) {
               LocalRange openRange = it.next();
               if (openRange.value == endAnnotation) {
-                it.remove();
+                // Don't remove the local from open-ranges as it is still technically open.
                 assert currentLocals.get(openRange.register) == openRange.local;
                 currentLocals.remove(openRange.register);
                 ending.put(openRange.register, openRange.local);
@@ -382,8 +384,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
               it.remove();
               // It may be that currentLocals does not contain this local because an explicit end
               // already closed the local.
-              currentLocals.remove(openRange.register);
-              ending.put(openRange.register, openRange.local);
+              if (currentLocals.remove(openRange.register) != null) {
+                ending.put(openRange.register, openRange.local);
+              }
             }
           }
         }

@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedList;
 import org.junit.Test;
@@ -36,23 +37,24 @@ public class TrivialGotoEliminationTest {
     //   throw v0
     // block2:
     //   return
+    Position position = Position.testingPosition();
     BasicBlock block2 = new BasicBlock();
     block2.setNumber(2);
-    BasicBlock block0 = BasicBlock.createGotoBlock(0, block2);
+    BasicBlock block0 = BasicBlock.createGotoBlock(0, position, block2);
     block0.setFilledForTesting();
     block2.getPredecessors().add(block0);
     Instruction ret = new Return();
-    ret.setPosition(Position.none());
+    ret.setPosition(position);
     block2.add(ret);
     block2.setFilledForTesting();
     BasicBlock block1 = new BasicBlock();
     block1.setNumber(1);
     Value value = new Value(0, ValueType.INT, null);
     Instruction number = new ConstNumber(value, 0);
-    number.setPosition(Position.none());
+    number.setPosition(position);
     block1.add(number);
     Instruction throwing = new Throw(value);
-    throwing.setPosition(Position.none());
+    throwing.setPosition(position);
     block1.add(throwing);
     block1.setFilledForTesting();
     LinkedList<BasicBlock> blocks = new LinkedList<>();
@@ -62,7 +64,8 @@ public class TrivialGotoEliminationTest {
     // Check that the goto in block0 remains. There was a bug in the trivial goto elimination
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
-    IRCode code = new IRCode(null, null, blocks, new ValueNumberGenerator(), false, false);
+    IRCode code =
+        new IRCode(new InternalOptions(), null, blocks, new ValueNumberGenerator(), false, false);
     CodeRewriter.collapsTrivialGotos(null, code);
     assertTrue(code.blocks.get(0).isTrivialGoto());
     assertTrue(blocks.contains(block0));
@@ -85,22 +88,23 @@ public class TrivialGotoEliminationTest {
     //
     // block3:
     //   goto block3
+    Position position = Position.testingPosition();
     BasicBlock block2 = new BasicBlock();
     block2.setNumber(2);
     Instruction ret = new Return();
-    ret.setPosition(Position.none());
+    ret.setPosition(position);
     block2.add(ret);
     block2.setFilledForTesting();
 
     BasicBlock block3 = new BasicBlock();
     block3.setNumber(3);
     Instruction instruction = new Goto();
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block3.add(instruction);
     block3.setFilledForTesting();
     block3.getSuccessors().add(block3);
 
-    BasicBlock block1 = BasicBlock.createGotoBlock(1);
+    BasicBlock block1 = BasicBlock.createGotoBlock(1, position);
     block1.getSuccessors().add(block3);
     block1.setFilledForTesting();
 
@@ -108,10 +112,10 @@ public class TrivialGotoEliminationTest {
     block0.setNumber(0);
     Value value = new Value(0, ValueType.OBJECT, null);
     instruction = new Argument(value);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block0.add(instruction);
     instruction = new If(Type.EQ, value);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block0.add(instruction);
     block0.getSuccessors().add(block2);
     block0.getSuccessors().add(block1);
@@ -130,7 +134,8 @@ public class TrivialGotoEliminationTest {
     // Check that the goto in block0 remains. There was a bug in the trivial goto elimination
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
-    IRCode code = new IRCode(null, null, blocks, new ValueNumberGenerator(), false, false);
+    IRCode code =
+        new IRCode(new InternalOptions(), null, blocks, new ValueNumberGenerator(), false, false);
     CodeRewriter.collapsTrivialGotos(null, code);
     assertTrue(block0.getInstructions().get(1).isIf());
     assertEquals(block1, block0.getInstructions().get(1).asIf().fallthroughBlock());

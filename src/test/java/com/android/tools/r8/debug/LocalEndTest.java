@@ -17,11 +17,22 @@ public class LocalEndTest {
     System.out.println(y);
   }
 
-  private void bar() {
-    // nothing to do
+  public void bar() {
+    if (raise) {
+      System.out.print("throwing ");
+      throw new RuntimeException();
+    }
+    System.out.print("not-throwing ");
+  }
+
+  public final boolean raise;
+
+  public LocalEndTest(boolean raise) {
+    this.raise = raise;
   }
 
   public static void main(String[] args) {
-    new LocalEndTest().foo();
+    new LocalEndTest(false).foo();
+    new LocalEndTest(true).foo();
   }
 }

@@ -10,6 +10,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
+import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -54,16 +55,33 @@ public class LocalEndTestRunner extends DebugTestBase {
 
   @Test
   public void test() throws Throwable {
+    Value xInitial = Value.createInt(42);
+    Value xNormal = Value.createInt(7);
+    Value xExceptional = xInitial;
     runDebugTest(
         config,
         NAME,
-        breakpoint(NAME, "foo", 13),
+        breakpoint(NAME, "foo", 12),
+        // Run to breakpoint for the non-throwing case.
         run(),
+        checkLine(FILE, 12),
+        checkLocal("x", xInitial),
+        stepOver(),
         checkLine(FILE, 13),
-        checkLocal("x"),
+        checkLocal("x", xInitial),
         stepOver(),
         checkLine(FILE, 14),
-        checkLocal("x"),
+        checkLocal("x", xNormal),
+        stepOver(),
+        checkLine(FILE, 16),
+        checkNoLocal("x"),
+        // Run to breakpoint for the throwing case.
+        run(),
+        checkLine(FILE, 12),
+        checkLocal("x", xInitial),
+        stepOver(),
+        checkLine(FILE, 14),
+        checkLocal("x", xExceptional),
         stepOver(),
         checkLine(FILE, 16),
         checkNoLocal("x"),

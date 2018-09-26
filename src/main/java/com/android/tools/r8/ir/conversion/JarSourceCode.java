@@ -487,8 +487,10 @@ public class JarSourceCode implements SourceCode {
         || successorOffset == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
       return;
     }
-    // The transfer has not yet taken place, so the current position is that of the predecessor.
-    currentPosition = getCanonicalDebugPositionAtOffset(predecessorOffset);
+    // The transfer has not yet taken place, so the current position is that of the predecessor,
+    // except for exceptional edges where the transfer has already taken place.
+    currentPosition =
+        getCanonicalDebugPositionAtOffset(isExceptional ? successorOffset : predecessorOffset);
 
     LocalChangeAtOffset localChange = state.getLocalChange(predecessorOffset, successorOffset);
     if (!isExceptional) {
@@ -2874,7 +2876,7 @@ public class JarSourceCode implements SourceCode {
     int index = instructionIndex(offset);
     if (index < 0 || instructionCount() <= index) {
       assert false;
-      return Position.none();
+      return getPreamblePosition();
     }
     AbstractInsnNode insn = node.instructions.get(index);
     if (insn instanceof LabelNode) {
@@ -2927,10 +2929,14 @@ public class JarSourceCode implements SourceCode {
         }
         syntheticPosition =
             (min == Integer.MAX_VALUE)
-                ? Position.noneWithMethod(originalMethod, callerPosition)
+                ? getPreamblePosition()
                 : Position.synthetic(min < max ? min - 1 : min, originalMethod, callerPosition);
       } else {
-        syntheticPosition = Position.noneWithMethod(originalMethod, callerPosition);
+        // If in release mode we explicitly associate a synthetic none position with monitor exit.
+        // This is safe as the runtime must never throw at this position because the monitor cannot
+        // be null and the thread calling exit can only be the same thread that entered the monitor
+        // at method entry.
+        syntheticPosition = Position.syntheticNone();
       }
     }
     return syntheticPosition;

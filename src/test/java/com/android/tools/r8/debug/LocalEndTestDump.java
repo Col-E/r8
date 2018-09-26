@@ -4,6 +4,7 @@
 package com.android.tools.r8.debug;
 
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -13,6 +14,7 @@ public class LocalEndTestDump implements Opcodes {
   public static byte[] dump() {
 
     ClassWriter cw = new ClassWriter(0);
+    FieldVisitor fv;
     MethodVisitor mv;
 
     cw.visit(
@@ -26,19 +28,8 @@ public class LocalEndTestDump implements Opcodes {
     cw.visitSource("LocalEndTest.java", null);
 
     {
-      mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
-      mv.visitCode();
-      Label l0 = new Label();
-      mv.visitLabel(l0);
-      mv.visitLineNumber(6, l0);
-      mv.visitVarInsn(ALOAD, 0);
-      mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-      mv.visitInsn(RETURN);
-      Label l1 = new Label();
-      mv.visitLabel(l1);
-      mv.visitLocalVariable("this", "Lcom/android/tools/r8/debug/LocalEndTest;", null, l0, l1, 0);
-      mv.visitMaxs(1, 1);
-      mv.visitEnd();
+      fv = cw.visitField(ACC_PUBLIC + ACC_FINAL, "raise", "Z", null, null);
+      fv.visitEnd();
     }
     {
       mv = cw.visitMethod(ACC_PUBLIC, "foo", "()V", null, null);
@@ -57,7 +48,7 @@ public class LocalEndTestDump implements Opcodes {
       mv.visitVarInsn(ILOAD, 1); // push x on the stack for later use in the join block.
       mv.visitVarInsn(ALOAD, 0);
       mv.visitMethodInsn(
-          INVOKESPECIAL, "com/android/tools/r8/debug/LocalEndTest", "bar", "()V", false);
+          INVOKEVIRTUAL, "com/android/tools/r8/debug/LocalEndTest", "bar", "()V", false);
       Label l4 = new Label();
       mv.visitLabel(l4);
       mv.visitLineNumber(13, l4);
@@ -76,10 +67,8 @@ public class LocalEndTestDump implements Opcodes {
           new Object[] {"java/lang/Throwable"});
       mv.visitVarInsn(ASTORE, 2);
       mv.visitVarInsn(ILOAD, 1); // push x on the stack again (should be same as above).
-      // mv.visitInsn(ICONST_0);
       mv.visitLabel(l5);
       mv.visitLineNumber(16, l5);
-      // mv.visitFrame(Opcodes.F_CHOP, 1, null, 0, null);
       mv.visitFrame(
           Opcodes.F_FULL,
           1,
@@ -107,38 +96,61 @@ public class LocalEndTestDump implements Opcodes {
       mv.visitEnd();
     }
     {
-      mv = cw.visitMethod(ACC_PRIVATE, "bar", "()V", null, null);
+      mv = cw.visitMethod(ACC_PUBLIC, "bar", "()V", null, null);
       mv.visitCode();
+      mv.visitVarInsn(ALOAD, 0);
+      mv.visitFieldInsn(GETFIELD, "com/android/tools/r8/debug/LocalEndTest", "raise", "Z");
       Label l0 = new Label();
+      mv.visitJumpInsn(IFEQ, l0);
+      mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+      mv.visitLdcInsn("throwing ");
+      mv.visitMethodInsn(
+          INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V", false);
+      mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
+      mv.visitInsn(DUP);
+      mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException", "<init>", "()V", false);
+      mv.visitInsn(ATHROW);
       mv.visitLabel(l0);
-      mv.visitLineNumber(22, l0);
+      mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+      mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+      mv.visitLdcInsn("not-throwing ");
+      mv.visitMethodInsn(
+          INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V", false);
       mv.visitInsn(RETURN);
-      Label l1 = new Label();
-      mv.visitLabel(l1);
-      mv.visitLocalVariable("this", "Lcom/android/tools/r8/debug/LocalEndTest;", null, l0, l1, 0);
-      mv.visitMaxs(0, 1);
+      mv.visitMaxs(2, 1);
+      mv.visitEnd();
+    }
+    {
+      mv = cw.visitMethod(ACC_PUBLIC, "<init>", "(Z)V", null, null);
+      mv.visitCode();
+      mv.visitVarInsn(ALOAD, 0);
+      mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+      mv.visitVarInsn(ALOAD, 0);
+      mv.visitVarInsn(ILOAD, 1);
+      mv.visitFieldInsn(PUTFIELD, "com/android/tools/r8/debug/LocalEndTest", "raise", "Z");
+      mv.visitInsn(RETURN);
+      mv.visitMaxs(2, 2);
       mv.visitEnd();
     }
     {
       mv = cw.visitMethod(ACC_PUBLIC + ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
       mv.visitCode();
-      Label l0 = new Label();
-      mv.visitLabel(l0);
-      mv.visitLineNumber(25, l0);
       mv.visitTypeInsn(NEW, "com/android/tools/r8/debug/LocalEndTest");
       mv.visitInsn(DUP);
+      mv.visitInsn(ICONST_0);
       mv.visitMethodInsn(
-          INVOKESPECIAL, "com/android/tools/r8/debug/LocalEndTest", "<init>", "()V", false);
+          INVOKESPECIAL, "com/android/tools/r8/debug/LocalEndTest", "<init>", "(Z)V", false);
       mv.visitMethodInsn(
           INVOKEVIRTUAL, "com/android/tools/r8/debug/LocalEndTest", "foo", "()V", false);
-      Label l1 = new Label();
-      mv.visitLabel(l1);
-      mv.visitLineNumber(26, l1);
+      mv.visitTypeInsn(NEW, "com/android/tools/r8/debug/LocalEndTest");
+      mv.visitInsn(DUP);
+      mv.visitInsn(ICONST_1);
+      mv.visitMethodInsn(
+          INVOKESPECIAL, "com/android/tools/r8/debug/LocalEndTest", "<init>", "(Z)V", false);
+      mv.visitMethodInsn(
+          INVOKEVIRTUAL, "com/android/tools/r8/debug/LocalEndTest", "foo", "()V", false);
       mv.visitInsn(RETURN);
-      Label l2 = new Label();
-      mv.visitLabel(l2);
-      mv.visitLocalVariable("args", "[Ljava/lang/String;", null, l0, l2, 0);
-      mv.visitMaxs(2, 1);
+      mv.visitMaxs(3, 1);
       mv.visitEnd();
     }
     cw.visitEnd();

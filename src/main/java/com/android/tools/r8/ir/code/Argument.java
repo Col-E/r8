@@ -24,12 +24,6 @@ public class Argument extends Instruction {
   public Argument(Value outValue) {
     super(outValue);
     outValue.markAsArgument();
-    super.setPosition(Position.none());
-  }
-
-  @Override
-  public void setPosition(Position position) {
-    // Arguments never have positional information as they never materialize to actual instructions.
   }
 
   @Override

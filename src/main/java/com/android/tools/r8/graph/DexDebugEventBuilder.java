@@ -82,16 +82,8 @@ public class DexDebugEventBuilder {
     Position position = instruction.getPosition();
     boolean pcAdvancing = pc != postPc;
 
-    // In release mode we can only check that all throwing instructions have positions.
-    // See IRCode's isConsistentGraph and computeAllThrowingInstructionsHavePositions.
-
     // In debug mode check that all non-nop instructions have positions.
-    assert startLine == NO_LINE_INFO || !hasDebugPositions || !pcAdvancing || position.isSome()
-        : "PC-advancing instruction " + instruction + " expected to have an associated position.";
-
-    // In any mode check that nop instructions have no position info.
-    assert pcAdvancing || position.isNone()
-        : "Nop instruction " + instruction + " must never have an associated position.";
+    assert instruction.verifyValidPositionInfo(options.debug);
 
     if (instruction.isArgument()) {
       startArgument(instruction.asArgument());

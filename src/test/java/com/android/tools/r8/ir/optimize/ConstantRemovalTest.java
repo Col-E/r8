@@ -67,56 +67,57 @@ public class ConstantRemovalTest {
     // is needed and the value 10 is *not* still in register 0 at that point.
     BasicBlock block = new BasicBlock();
     block.setNumber(0);
+    Position position = Position.testingPosition();
 
     Value v3 = new Value(3, ValueType.LONG, null);
     v3.setNeedsRegister(true);
     new MockLiveIntervals(v3);
     Instruction instruction = new ConstNumber(v3, 0);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block.add(instruction);
 
     Value v0 = new Value(0, ValueType.LONG, null);
     v0.setNeedsRegister(true);
     new MockLiveIntervals(v0);
     instruction = new ConstNumber(v0, 10);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block.add(instruction);
 
     instruction = new Div(NumericType.LONG, v3, v3, v0);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block.add(instruction);
 
     Value v2 = new Value(2, ValueType.INT, null);
     v2.setNeedsRegister(true);
     new MockLiveIntervals(v2);
     instruction = new ConstNumber(v2, 10);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block.add(instruction);
 
     Value v1 = new Value(1, ValueType.INT, null);
     v1.setNeedsRegister(true);
     new MockLiveIntervals(v1);
     instruction = new Move(v1 ,v2);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block.add(instruction);
 
     instruction = new Div(NumericType.INT, v1, v1, v1);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block.add(instruction);
 
     Value v0_2 = new Value(0, ValueType.LONG, null);
     v0_2.setNeedsRegister(true);
     new MockLiveIntervals(v0_2);
     instruction = new ConstNumber(v0_2, 10);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block.add(instruction);
 
     instruction = new Div(NumericType.LONG, v3, v3, v0_2);
-    instruction.setPosition(Position.none());
+    instruction.setPosition(position);
     block.add(instruction);
 
     Instruction ret = new Return();
-    ret.setPosition(Position.none());
+    ret.setPosition(position);
     block.add(ret);
     block.setFilledForTesting();
 

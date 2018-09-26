@@ -95,6 +95,7 @@ public class IRCode {
       ValueNumberGenerator valueNumberGenerator,
       boolean hasDebugPositions,
       boolean hasConstString) {
+    assert options != null;
     this.options = options;
     this.method = method;
     this.blocks = blocks;
@@ -212,7 +213,8 @@ public class IRCode {
           // correct predecessor and successor structure. It is inserted
           // at the end of the list of blocks disregarding branching
           // structure.
-          BasicBlock newBlock = BasicBlock.createGotoBlock(nextBlockNumber++, block);
+          BasicBlock newBlock =
+              BasicBlock.createGotoBlock(nextBlockNumber++, pred.exit().getPosition(), block);
           newBlocks.add(newBlock);
           pred.replaceSuccessor(block, newBlock);
           newBlock.getPredecessors().add(pred);
@@ -268,7 +270,9 @@ public class IRCode {
           fallthrough = fallthrough.exit().fallthroughBlock();
         }
         if (fallthrough != null) {
-          BasicBlock newFallthrough = BasicBlock.createGotoBlock(nextBlockNumber++, fallthrough);
+          BasicBlock newFallthrough =
+              BasicBlock.createGotoBlock(
+                  nextBlockNumber++, block.exit().getPosition(), fallthrough);
           current.exit().setFallthroughBlock(newFallthrough);
           newFallthrough.getPredecessors().add(current);
           fallthrough.replacePredecessor(current, newFallthrough);
@@ -563,7 +567,7 @@ public class IRCode {
   private boolean consistentBlockInstructions() {
     boolean argumentsAllowed = true;
     for (BasicBlock block : blocks) {
-      block.consistentBlockInstructions(argumentsAllowed);
+      block.consistentBlockInstructions(argumentsAllowed, options.debug);
       argumentsAllowed = false;
     }
     return true;

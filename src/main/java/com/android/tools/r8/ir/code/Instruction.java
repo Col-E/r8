@@ -1116,4 +1116,11 @@ public abstract class Instruction {
   public boolean triggersInitializationOfClass(DexType klass) {
     return false;
   }
+
+  public boolean verifyValidPositionInfo(boolean debug) {
+    assert position != null;
+    assert !debug || getPosition().isSome();
+    assert !instructionTypeCanThrow() || getPosition().isSome() || getPosition().isSyntheticNone();
+    return true;
+  }
 }

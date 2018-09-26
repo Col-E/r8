@@ -103,5 +103,7 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
     // have an associated line.
     inspector.checkStartLine(9);
     inspector.checkNoLine(8);
+    // Also ensure we did not emit a preamble position at line zero.
+    inspector.checkNoLine(0);
   }
 }
