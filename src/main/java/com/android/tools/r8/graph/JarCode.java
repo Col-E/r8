@@ -163,7 +163,7 @@ public class JarCode extends Code {
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition) {
-    if (!options.debug) {
+    if (!options.debug || options.testing.removeLocalsTable) {
       node.localVariables.clear();
     }
     JarSourceCode source =

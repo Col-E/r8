@@ -2184,6 +2184,9 @@ public class CodeRewriter {
                   storesToRemoveForArray.put(array, --toRemoveCount);
                   Instruction construction = instructionToInsertForArray.get(array);
                   if (construction != null) {
+                    // Update the position of the array construction to be the position of the
+                    // last removed put at which point we are now adding the construction.
+                    construction.forceSetPosition(instruction.getPosition());
                     it.add(construction);
                   }
                 }

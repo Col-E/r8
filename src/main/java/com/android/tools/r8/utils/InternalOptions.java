@@ -462,6 +462,7 @@ public class InternalOptions {
     public boolean nondeterministicCycleElimination = false;
     public Set<Inliner.Reason> validInliningReasons = null;
     public boolean suppressExperimentalCfBackendWarning = false;
+    public boolean removeLocalsTable = false;
   }
 
   public boolean canUseInvokePolymorphicOnVarHandle() {
