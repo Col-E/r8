@@ -38,10 +38,6 @@ import utils
 
 # How often the bot/tester should check state
 PULL_DELAY = 30
-# Command timeout, in seconds.
-RUN_TIMEOUT = 3600
-# Add some extra time for the bot, since the tester might not start immediately.
-BOT_RUN_TIMEOUT = 4000
 BUCKET = 'r8-test-results'
 TEST_RESULT_DIR = 'internal'
 
@@ -57,6 +53,16 @@ STDERR = 'stderr'
 STDOUT = 'stdout'
 EXITCODE = 'exitcode'
 TIMED_OUT = 'timed_out'
+
+TEST_COMMANDS = [
+    ['tools/test.py', '--only_internal'],
+    ['tools/run_on_app.py', '--ignore-java-version','--run-all', '--out=out']
+]
+
+# Command timeout, in seconds.
+RUN_TIMEOUT = 3600
+# Add some extra time for the bot, since the tester might not start immediately.
+BOT_RUN_TIMEOUT = 4000 * len(TEST_COMMANDS)
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -178,7 +184,7 @@ def run_bot():
   begin = time.time()
   while True:
     if time.time() - begin > BOT_RUN_TIMEOUT:
-      print('Timeout exceeded')
+      print('Timeout exceeded: http://go/internal-r8-doc')
       raise Exception('Bot timeout')
     if get_magic_file_exists(TESTING_COMPLETE):
       if get_magic_file_content(TESTING_COMPLETE) == git_hash:
