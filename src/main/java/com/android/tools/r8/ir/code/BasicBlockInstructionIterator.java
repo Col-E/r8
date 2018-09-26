@@ -193,6 +193,9 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     // Don't allow splitting after the last instruction.
     assert hasNext();
 
+    // Get the position at which the block is being split.
+    Position position = current != null ? current.getPosition() : block.getPosition();
+
     // Prepare the new block, placing the exception handlers on the block with the throwing
     // instruction.
     boolean keepCatchHandlers = hasPrevious() && peekPrevious().instructionTypeCanThrow();
@@ -201,6 +204,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     // Add a goto instruction.
     Goto newGoto = new Goto(block);
     listIterator.add(newGoto);
+    newGoto.setPosition(position);
 
     // Move all remaining instructions to the new block.
     while (listIterator.hasNext()) {

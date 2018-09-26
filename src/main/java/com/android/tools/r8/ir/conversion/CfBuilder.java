@@ -139,9 +139,7 @@ public class CfBuilder {
     registerAllocator.allocateRegisters();
     loadStoreHelper.insertPhiMoves(registerAllocator);
     CodeRewriter.collapsTrivialGotos(method, code);
-    int instructionTableCount =
-        DexBuilder.instructionNumberToIndex(code.numberRemainingInstructions());
-    DexBuilder.removeRedundantDebugPositions(code, instructionTableCount);
+    DexBuilder.removeRedundantDebugPositions(code);
     CfCode code = buildCfCode();
     return code;
   }

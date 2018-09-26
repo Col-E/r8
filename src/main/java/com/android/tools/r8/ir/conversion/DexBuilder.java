@@ -50,7 +50,6 @@ import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstructionIterator;
-import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
@@ -65,7 +64,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -158,7 +156,7 @@ public class DexBuilder {
 
       // Remove redundant debug position instructions. They would otherwise materialize as
       // unnecessary nops.
-      removeRedundantDebugPositions(ir, instructionToInfo.length);
+      removeRedundantDebugPositions(ir);
 
       // Populate the builder info objects.
       numberOfInstructions = 0;
@@ -251,114 +249,95 @@ public class DexBuilder {
     return code;
   }
 
-  private static boolean verifyNopHasNoPosition(
-      com.android.tools.r8.ir.code.Instruction instruction, ListIterator<BasicBlock> blocks) {
-    BasicBlock nextBlock = null;
-    if (blocks.hasNext()) {
-      nextBlock = blocks.next();
-      blocks.previous();
-    }
-    return verifyNopHasNoPosition(instruction, nextBlock);
-  }
-
-  private static boolean verifyNopHasNoPosition(
-      com.android.tools.r8.ir.code.Instruction instruction, BasicBlock nextBlock) {
-    if (isNopInstruction(instruction, nextBlock)) {
-      assert instruction.getPosition().isNone();
-    }
-    return true;
-  }
-
   // Eliminates unneeded debug positions.
   //
-  // After this pass all instructions that don't materialize to an actual DEX/CF instruction will
-  // have Position.none(). If any other instruction has a non-none position then all other
-  // instructions that do materialize to a DEX/CF instruction (eg, non-fallthrough gotos) will have
-  // a non-none position.
-  //
-  // Remaining debug positions indicate two successive lines without intermediate instructions.
-  // For these we must emit a nop instruction to ensure they don't share the same pc.
-  public static void removeRedundantDebugPositions(IRCode code, int instructionTableSize) {
+  // After this pass all remaining debug positions mark places where we must ensure a materializing
+  // instruction, eg, for two successive lines without intermediate instructions.
+  public static void removeRedundantDebugPositions(IRCode code) {
     if (!code.hasDebugPositions) {
       return;
     }
-    Int2ReferenceMap[] localsMap = new Int2ReferenceMap[instructionTableSize];
-    // Scan forwards removing debug positions equal to the previous instruction position.
-    {
-      Int2ReferenceMap<DebugLocalInfo> locals = Int2ReferenceMaps.emptyMap();
-      Position previous = Position.none();
-      ListIterator<BasicBlock> blockIterator = code.listIterator();
-      BasicBlock previousBlock = null;
-      while (blockIterator.hasNext()) {
-        BasicBlock block = blockIterator.next();
-        if (previousBlock != null
-            && previousBlock.exit().isGoto()
-            && !isNopInstruction(previousBlock.exit(), block)) {
-          assert previousBlock.exit().getPosition().isNone()
-              || previousBlock.exit().getPosition().equals(previous);
-          previousBlock.exit().forceSetPosition(previous);
+    // Current position known to have a materializing instruction associated with it.
+    Position currentMaterializedPosition = Position.none();
+
+    // Current debug-position marker that is not yet known to have another instruction materializing
+    // to the same position.
+    DebugPosition unresolvedPosition = null;
+
+    // Locals live at the debug-position marker. These must also be the same at a possible
+    // materializing instruction with the same position for it to be sound to remove the marker.
+    Int2ReferenceMap<DebugLocalInfo> localsAtUnresolvedPosition = null;
+
+    // Compute the set of all positions that can be removed.
+    // (Delaying removal to avoid ConcurrentModificationException).
+    List<DebugPosition> toRemove = new ArrayList<>();
+
+    for (int blockIndex = 0; blockIndex < code.blocks.size(); blockIndex++) {
+      BasicBlock currentBlock = code.blocks.get(blockIndex);
+      BasicBlock nextBlock =
+          blockIndex + 1 < code.blocks.size() ? code.blocks.get(blockIndex + 1) : null;
+
+      // Current materialized position can remain on block entry only if it is also the exit of
+      // the blocks predecessors. If not, we cannot ensure the jumps will hit this line unless
+      // another instruction materialized the position.
+      for (BasicBlock pred : currentBlock.getPredecessors()) {
+        if (pred.exit().getPosition() != currentMaterializedPosition) {
+          currentMaterializedPosition = Position.none();
+          break;
         }
-        InstructionListIterator instructionIterator = block.listIterator();
-        if (block.getLocalsAtEntry() != null && !locals.equals(block.getLocalsAtEntry())) {
-          locals = new Int2ReferenceOpenHashMap<>(block.getLocalsAtEntry());
-        }
-        while (instructionIterator.hasNext()) {
-          com.android.tools.r8.ir.code.Instruction instruction = instructionIterator.next();
-          if (instruction.isDebugPosition() && previous.equals(instruction.getPosition())) {
-            instructionIterator.remove();
-          } else if (isNonMaterializingConstNumber(instruction)) {
-            instruction.forceSetPosition(Position.none());
-          } else if (instruction.getPosition().isSome()) {
-            assert verifyNopHasNoPosition(instruction, blockIterator);
-            previous = instruction.getPosition();
+      }
+
+      // Current locals.
+      Int2ReferenceMap<DebugLocalInfo> locals =
+          currentBlock.getLocalsAtEntry() != null
+              ? new Int2ReferenceOpenHashMap<>(currentBlock.getLocalsAtEntry())
+              : new Int2ReferenceOpenHashMap<>();
+
+      InstructionIterator iterator = currentBlock.iterator();
+      while (iterator.hasNext()) {
+        com.android.tools.r8.ir.code.Instruction instruction = iterator.next();
+        if (instruction.isDebugPosition()) {
+          if (unresolvedPosition == null
+              && currentMaterializedPosition == instruction.getPosition()) {
+            // Here we don't need to check locals state as the line is already active.
+            toRemove.add(instruction.asDebugPosition());
+          } else if (unresolvedPosition != null
+              && unresolvedPosition.getPosition() == instruction.getPosition()
+              && locals.equals(localsAtUnresolvedPosition)) {
+            toRemove.add(instruction.asDebugPosition());
+          } else {
+            unresolvedPosition = instruction.asDebugPosition();
+            localsAtUnresolvedPosition = new Int2ReferenceOpenHashMap<>(locals);
           }
+        } else if (instruction.getPosition().isSome()) {
+          if (!isNopInstruction(instruction, nextBlock)) {
+            if (unresolvedPosition != null) {
+              if (unresolvedPosition.getPosition() == instruction.getPosition()
+                  && locals.equals(localsAtUnresolvedPosition)) {
+                toRemove.add(unresolvedPosition);
+              }
+              unresolvedPosition = null;
+              localsAtUnresolvedPosition = null;
+            }
+            currentMaterializedPosition = instruction.getPosition();
+          }
+        } else {
+          // Only local-change instructions don't have positions in debug mode but fail gracefully.
+          assert instruction.isDebugLocalsChange();
           if (instruction.isDebugLocalsChange()) {
-            locals = new Int2ReferenceOpenHashMap<>(locals);
             instruction.asDebugLocalsChange().apply(locals);
           }
-          localsMap[instructionNumberToIndex(instruction.getNumber())] = locals;
         }
-        previousBlock = block;
-      }
-      if (previousBlock != null && previousBlock.exit().isGoto()) {
-        // If the last block ends in a goto it cannot be a fallthrough/nop.
-        assert previousBlock.exit().getPosition().isNone();
-        previousBlock.exit().forceSetPosition(previous);
       }
     }
-    // Scan backwards removing debug positions equal to the following instruction position.
-    {
-      ListIterator<BasicBlock> blocks = code.blocks.listIterator(code.blocks.size());
-      BasicBlock block = null;
-      BasicBlock nextBlock;
-      com.android.tools.r8.ir.code.Instruction next = null;
-      Int2ReferenceMap nextLocals = null;
-      while (blocks.hasPrevious()) {
-        nextBlock = block;
-        block = blocks.previous();
-        InstructionListIterator instructions = block.listIterator(block.getInstructions().size());
-        while (instructions.hasPrevious()) {
-          com.android.tools.r8.ir.code.Instruction instruction = instructions.previous();
-          int index = instructionNumberToIndex(instruction.getNumber());
-          if (instruction.isDebugPosition() && localsMap[index].equals(nextLocals)) {
-            Position nextPosition = next.getPosition();
-            Position thisPosition = instruction.getPosition();
-            if (nextPosition.isNone()) {
-              next.forceSetPosition(thisPosition);
-              instructions.remove();
-            } else if (nextPosition.equals(thisPosition)) {
-              instructions.remove();
-            } else {
-              next = instruction;
-            }
-          } else {
-            assert verifyNopHasNoPosition(instruction, nextBlock);
-            if (!isNopInstruction(instruction, nextBlock)) {
-              next = instruction;
-              nextLocals = localsMap[index];
-              assert nextLocals != null;
-            }
-          }
+    // Remove all unneeded positions.
+    if (!toRemove.isEmpty()) {
+      InstructionIterator it = code.instructionIterator();
+      int i = 0;
+      while (it.hasNext() && i < toRemove.size()) {
+        if (it.next() == toRemove.get(i)) {
+          it.removeOrReplaceByDebugLocalRead();
+          ++i;
         }
       }
     }
@@ -385,7 +364,8 @@ public class DexBuilder {
       if (ifsNeedingRewrite.contains(block)) {
         If theIf = block.exit().asIf();
         BasicBlock trueTarget = theIf.getTrueTarget();
-        BasicBlock newBlock = BasicBlock.createGotoBlock(ir.blocks.size(), trueTarget);
+        BasicBlock newBlock =
+            BasicBlock.createGotoBlock(ir.blocks.size(), theIf.getPosition(), trueTarget);
         theIf.setTrueTarget(newBlock);
         theIf.invert();
         it.add(newBlock);
@@ -438,7 +418,6 @@ public class DexBuilder {
   }
 
   public void addNothing(com.android.tools.r8.ir.code.Instruction instruction) {
-    assert instruction.getPosition().isNone();
     add(instruction, new FallThroughInfo(instruction));
   }
 
@@ -496,7 +475,6 @@ public class DexBuilder {
   public void addReturn(Return ret, Instruction dex) {
     if (nextBlock != null
         && ret.identicalAfterRegisterAllocation(nextBlock.entry(), registerAllocator)) {
-      ret.forceSetPosition(Position.none());
       addNothing(ret);
     } else {
       add(ret, dex);

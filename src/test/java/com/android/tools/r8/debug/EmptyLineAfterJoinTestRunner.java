@@ -10,7 +10,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -59,8 +58,6 @@ public class EmptyLineAfterJoinTestRunner extends DebugTestBase {
 
   @Test
   public void test() throws Throwable {
-    Assume.assumeFalse(
-        "b/110873173 Fails because of missing line 16", (config instanceof D8DebugTestConfig));
     runDebugTest(
         config,
         NAME,

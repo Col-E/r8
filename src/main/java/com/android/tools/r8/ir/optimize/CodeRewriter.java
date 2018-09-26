@@ -1982,8 +1982,7 @@ public class CodeRewriter {
             || (hasCatchHandlers && i.instructionTypeCanThrow())
             || (options.canHaveCmpIfFloatBug() && i.isCmp()));
     Instruction next = insertAt.previous();
-    instruction.forceSetPosition(
-        next.isGoto() ? next.asGoto().getTarget().getPosition() : next.getPosition());
+    instruction.forceSetPosition(next.getPosition());
     insertAt.add(instruction);
   }
 
@@ -3002,7 +3001,7 @@ public class CodeRewriter {
       iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, indent)));
 
       // Add a block for end-of-line printing.
-      BasicBlock eol = BasicBlock.createGotoBlock(code.blocks.size());
+      BasicBlock eol = BasicBlock.createGotoBlock(code.blocks.size(), position);
       code.blocks.add(eol);
 
       BasicBlock successor = block.unlinkSingleSuccessor();
@@ -3020,9 +3019,9 @@ public class CodeRewriter {
         BasicBlock ifBlock = BasicBlock.createIfBlock(code.blocks.size(), theIf);
         code.blocks.add(ifBlock);
         // Fallthrough block must be added right after the if.
-        BasicBlock isNullBlock = BasicBlock.createGotoBlock(code.blocks.size());
+        BasicBlock isNullBlock = BasicBlock.createGotoBlock(code.blocks.size(), position);
         code.blocks.add(isNullBlock);
-        BasicBlock isNotNullBlock = BasicBlock.createGotoBlock(code.blocks.size());
+        BasicBlock isNotNullBlock = BasicBlock.createGotoBlock(code.blocks.size(), position);
         code.blocks.add(isNotNullBlock);
 
         // Link the added blocks together.

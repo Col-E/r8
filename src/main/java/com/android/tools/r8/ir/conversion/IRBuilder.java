@@ -153,10 +153,16 @@ public class IRBuilder {
   private static class SplitBlockWorklistItem extends WorklistItem {
     private final int sourceOffset;
     private final int targetOffset;
+    private final Position position;
 
     public SplitBlockWorklistItem(
-        int firstInstructionIndex, BasicBlock block, int sourceOffset, int targetOffset) {
+        int firstInstructionIndex,
+        BasicBlock block,
+        Position position,
+        int sourceOffset,
+        int targetOffset) {
       super(block, firstInstructionIndex);
+      this.position = position;
       this.sourceOffset = sourceOffset;
       this.targetOffset = targetOffset;
     }
@@ -473,6 +479,7 @@ public class IRBuilder {
 
     // Insert definitions for all uninitialized local values.
     if (uninitializedDebugLocalValues != null) {
+      Position position = entryBlock.getPosition();
       InstructionListIterator it = entryBlock.listIterator();
       it.nextUntil(i -> !i.isArgument());
       it.previous();
@@ -481,7 +488,7 @@ public class IRBuilder {
           if (value.isUsed()) {
             Instruction def = new DebugLocalUninitialized(value);
             def.setBlock(entryBlock);
-            def.setPosition(Position.none());
+            def.setPosition(position);
             it.add(def);
           }
         }
@@ -515,11 +522,11 @@ public class IRBuilder {
       resolver.resolve(ir, this);
     }
 
+    assert ir.isConsistentSSA();
+
     // Clear the code so we don't build multiple times.
     source.clear();
     source = null;
-
-    assert ir.isConsistentSSA();
     return ir;
   }
 
@@ -631,7 +638,7 @@ public class IRBuilder {
             this, splitEdgeItem.sourceOffset, splitEdgeItem.targetOffset, false);
         if (item.firstInstructionIndex == -1) {
           // If the block is a pure split-edge block emit goto (picks up local ends) and close.
-          addInstruction(new Goto(), Position.none());
+          addInstruction(new Goto(), splitEdgeItem.position);
           closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
           continue;
         } else if (!debugLocalEnds.isEmpty()) {
@@ -768,10 +775,15 @@ public class IRBuilder {
 
   public void addDebugPosition(Position position) {
     if (options.debug) {
+      assert previousLocalValue == null;
       assert source.getCurrentPosition().equals(position);
       if (!debugLocalEnds.isEmpty()) {
         // If there are pending local ends, end them before changing the line.
-        addInstruction(new DebugLocalRead(), Position.none());
+        if (currentBlock.getInstructions().isEmpty()) {
+          addInstruction(new DebugLocalRead());
+        } else {
+          attachLocalValues(currentBlock.getInstructions().getLast());
+        }
       }
       addInstruction(new DebugPosition());
     }
@@ -2126,6 +2138,7 @@ public class IRBuilder {
     assert currentBlock != null;
     assert currentBlock.isEmpty() || !currentBlock.getInstructions().getLast().isJumpInstruction();
     BlockInfo info = getBlockInfo(currentBlock);
+    Position position = source.getCurrentPosition();
     if (info.hasMoreThanASingleNormalExit()) {
       // Exceptional edges are always split on construction, so no need to split edges to them.
       // Introduce split-edge blocks for all normal edges and push them on the work list.
@@ -2145,13 +2158,14 @@ public class IRBuilder {
               new SplitBlockWorklistItem(
                   oldItem.firstInstructionIndex,
                   oldItem.block,
+                  position,
                   currentInstructionOffset,
                   successorOffset));
         } else {
           BasicBlock splitBlock = createSplitEdgeBlock(currentBlock, successorInfo.block);
           ssaWorklist.add(
               new SplitBlockWorklistItem(
-                  -1, splitBlock, currentInstructionOffset, successorOffset));
+                  -1, splitBlock, position, currentInstructionOffset, successorOffset));
         }
       }
     } else if (info.normalSuccessors.size() == 1) {
@@ -2230,7 +2244,9 @@ public class IRBuilder {
             int otherPredecessorIndex = values.get(v);
             BasicBlock joinBlock = joinBlocks.get(otherPredecessorIndex);
             if (joinBlock == null) {
-              joinBlock = BasicBlock.createGotoBlock(blocks.size() + blocksToAdd.size(), block);
+              joinBlock =
+                  BasicBlock.createGotoBlock(
+                      blocks.size() + blocksToAdd.size(), block.getPosition(), block);
               joinBlocks.put(otherPredecessorIndex, joinBlock);
               blocksToAdd.add(joinBlock);
               BasicBlock otherPredecessor = block.getPredecessors().get(otherPredecessorIndex);

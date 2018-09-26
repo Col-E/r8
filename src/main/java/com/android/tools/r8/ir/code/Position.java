@@ -5,11 +5,21 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Objects;
 
 public class Position {
 
+  // A no-position marker. Not having a position means the position is implicitly defined by the
+  // context, e.g., the marker does not materialize anything concrete.
   private static final Position NO_POSITION = new Position(-1, null, null, null, false);
+
+  // A synthetic marker position that should never materialize.
+  // This is used specifically to mark exceptional exit blocks from synchronized methods in release.
+  private static final Position NO_POSITION_SYNTHETIC = new Position(-1, null, null, null, true);
+
+  // Fake position to use for representing an actual position in testing code.
+  private static final Position TESTING_POSITION = new Position(0, null, null, null, true);
 
   public final int line;
   public final DexString file;
@@ -26,6 +36,7 @@ public class Position {
   public Position(int line, DexString file, DexMethod method, Position callerPosition) {
     this(line, file, method, callerPosition, false);
     assert line >= 0;
+    assert method != null;
   }
 
   private Position(
@@ -36,16 +47,25 @@ public class Position {
     this.method = method;
     this.callerPosition = callerPosition;
     assert callerPosition == null || callerPosition.method != null;
-    assert line == -1 || method != null; // It's NO_POSITION or must have valid method.
   }
 
   public static Position synthetic(int line, DexMethod method, Position callerPosition) {
     assert line >= 0;
+    assert method != null;
     return new Position(line, null, method, callerPosition, true);
   }
 
   public static Position none() {
     return NO_POSITION;
+  }
+
+  public static Position syntheticNone() {
+    return NO_POSITION_SYNTHETIC;
+  }
+
+  @VisibleForTesting
+  public static Position testingPosition() {
+    return TESTING_POSITION;
   }
 
   // This factory method is used by the Inliner to create Positions when the caller has no valid
@@ -58,6 +78,10 @@ public class Position {
 
   public boolean isNone() {
     return line == -1;
+  }
+
+  public boolean isSyntheticNone() {
+    return this == NO_POSITION_SYNTHETIC;
   }
 
   public boolean isSome() {

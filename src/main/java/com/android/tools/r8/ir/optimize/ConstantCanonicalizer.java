@@ -8,7 +8,6 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import it.unimi.dsi.fastutil.Hash.Strategy;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
@@ -79,7 +78,6 @@ public class ConstantCanonicalizer {
             ConstNumber canonicalizedConstant = entry.getKey().asConstNumber();
             ConstNumber newConst = ConstNumber.copyOf(code, canonicalizedConstant);
             insertCanonicalizedConstant(code, newConst);
-            newConst.setPosition(Position.none());
             for (Value outValue : entry.getValue()) {
               outValue.replaceUsers(newConst.outValue());
             }
@@ -96,6 +94,7 @@ public class ConstantCanonicalizer {
     // instructions. It is important that the const instruction is put before any instruction
     // that can throw exceptions (since the value could be used on the exceptional edge).
     InstructionListIterator it = entryBlock.listIterator();
+    canonicalizedConstant.setPosition(entryBlock.getPosition());
     while (it.hasNext()) {
       if (!it.next().isArgument()) {
         it.previous();

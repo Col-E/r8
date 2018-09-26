@@ -16,8 +16,6 @@ public class AlwaysMaterializingUser extends Instruction {
 
   public AlwaysMaterializingUser(Value src) {
     super(null, src);
-    // The user instruction never materializes so ensure it has position none.
-    setPosition(Position.none());
   }
 
   @Override

@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Consumer;
@@ -442,10 +443,7 @@ public abstract class DebugTestBase {
   }
 
   protected final JUnit3Wrapper.Command checkLine(String sourceFile, int line) {
-    return inspect(t -> {
-      Assert.assertEquals(sourceFile, t.getSourceFile());
-      Assert.assertEquals(line, t.getLineNumber());
-    });
+    return inspect(t -> t.checkLine(sourceFile, line));
   }
 
   protected final JUnit3Wrapper.Command checkInlineFrames(List<SignatureAndLine> expectedFrames) {
@@ -1043,6 +1041,8 @@ public abstract class DebugTestBase {
       void checkNoLocal(String localName);
       void checkLocal(String localName);
       void checkLocal(String localName, Value expectedValue);
+
+      void checkLine(String sourceFile, int line);
     }
 
     public static class DebuggeeState implements FrameInspector {
@@ -1226,6 +1226,15 @@ public abstract class DebugTestBase {
           checkIncorrectLocal(localName, expectedValue, localValue);
         }
 
+        @Override
+        public void checkLine(String sourceFile, int line) {
+          if (!Objects.equals(sourceFile, getSourceFile()) || line != getLineNumber()) {
+            String locationString = convertCurrentLocationToString();
+            Assert.fail(
+                "Incorrect line at " + locationString + ", expected " + sourceFile + ":" + line);
+          }
+        }
+
         /**
          * Return class name, as found in the binary. If it has not been obfuscated (minified) it's
          * identical to the original class name. Otherwise, it's the obfuscated one.
@@ -1352,6 +1361,11 @@ public abstract class DebugTestBase {
       @Override
       public void checkLocal(String localName, Value expectedValue) {
         getTopFrame().checkLocal(localName, expectedValue);
+      }
+
+      @Override
+      public void checkLine(String sourceFile, int line) {
+        getTopFrame().checkLine(sourceFile, line);
       }
 
       @Override

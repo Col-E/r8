@@ -1076,6 +1076,7 @@ public class IRConverter {
     // Forced user of the forced definition to ensure it has a user and thus live range.
     Instruction fixitUser = new AlwaysMaterializingUser(fixitValue);
     fixitUser.setBlock(addBefore.getBlock());
+    fixitUser.setPosition(addBefore.getPosition());
     it.add(fixitUser);
   }
 

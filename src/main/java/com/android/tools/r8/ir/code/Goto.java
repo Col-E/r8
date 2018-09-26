@@ -15,18 +15,11 @@ public class Goto extends JumpInstruction {
 
   public Goto() {
     super(null);
-    super.setPosition(Position.none());
   }
 
   public Goto(BasicBlock block) {
     this();
     setBlock(block);
-  }
-
-  @Override
-  public void setPosition(Position position) {
-    // In general goto's do not signify program points only transitions, so we avoid
-    // associating them with positional information.
   }
 
   public BasicBlock getTarget() {
