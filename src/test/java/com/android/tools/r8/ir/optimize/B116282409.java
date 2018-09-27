@@ -11,6 +11,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -128,8 +130,16 @@ public class B116282409 extends JasminTestBase {
       assertThat(vmResult.stderr, containsString("Call to wrong initialization method"));
     } else {
       assert backend == Backend.DEX;
-      assertEquals(0, vmResult.exitCode);
-      assertEquals(String.join(System.lineSeparator(), "In A.<init>()", "42", ""), vmResult.stdout);
+      if (ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
+        assertNotEquals(0, vmResult.exitCode);
+        assertThat(
+            vmResult.stderr,
+            containsString("VFY: invoke-direct <init> on super only allowed for 'this' in <init>"));
+      } else {
+        assertEquals(0, vmResult.exitCode);
+        assertEquals(
+            String.join(System.lineSeparator(), "In A.<init>()", "42", ""), vmResult.stdout);
+      }
     }
   }
 
