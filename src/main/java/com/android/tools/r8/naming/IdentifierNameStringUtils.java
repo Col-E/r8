@@ -18,13 +18,15 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.ConstInstruction;
+import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
+import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -187,7 +189,11 @@ public final class IdentifierNameStringUtils {
       itemBasedString = inferFieldInHolder(appInfo, holder, dexString.toString(), null);
     } else {
       assert numOfParams == 3;
-      DexTypeList arguments = retrieveDexTypeListFromClassList(invoke, ins.get(2));
+      DexTypeList arguments =
+          retrieveDexTypeListFromClassList(invoke, ins.get(2), appInfo.dexItemFactory);
+      if (arguments == null) {
+        return null;
+      }
       itemBasedString = inferMethodInHolder(appInfo, holder, dexString.toString(), arguments);
     }
     return itemBasedString;
@@ -246,7 +252,7 @@ public final class IdentifierNameStringUtils {
     DexItemBasedString itemBasedString =
         inferFieldInHolder(appInfo, holder, memberIdentifier, null);
     if (itemBasedString == null) {
-      itemBasedString = inferMethodInHolder(appInfo, holder, memberIdentifier, null);
+      itemBasedString = inferMethodNameInHolder(appInfo, holder, memberIdentifier);
     }
     return itemBasedString;
   }
@@ -273,20 +279,18 @@ public final class IdentifierNameStringUtils {
     return itemBasedString;
   }
 
-  private static DexItemBasedString inferMethodInHolder(
-      AppInfo appInfo, DexClass holder, String name, DexTypeList arguments) {
+  private static DexItemBasedString inferMethodNameInHolder(
+      AppInfo appInfo, DexClass holder, String name) {
     DexItemBasedString itemBasedString = null;
     for (DexEncodedMethod encodedMethod : holder.directMethods()) {
-      if (encodedMethod.method.name.toString().equals(name)
-          && (arguments == null || encodedMethod.method.proto.parameters.equals(arguments))) {
+      if (encodedMethod.method.name.toString().equals(name)) {
         itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedMethod.method);
         break;
       }
     }
     if (itemBasedString == null) {
       for (DexEncodedMethod encodedMethod : holder.virtualMethods()) {
-        if (encodedMethod.method.name.toString().equals(name)
-            && (arguments == null || encodedMethod.method.proto.parameters.equals(arguments))) {
+        if (encodedMethod.method.name.toString().equals(name)) {
           itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedMethod.method);
           break;
         }
@@ -295,13 +299,59 @@ public final class IdentifierNameStringUtils {
     return itemBasedString;
   }
 
-  // Perform a conservative evaluation of the constant content of an array from its construction
+  private static DexItemBasedString inferMethodInHolder(
+      AppInfo appInfo, DexClass holder, String name, DexTypeList arguments) {
+    assert arguments != null;
+    DexItemBasedString itemBasedString = null;
+    for (DexEncodedMethod encodedMethod : holder.directMethods()) {
+      if (encodedMethod.method.name.toString().equals(name)
+          && encodedMethod.method.proto.parameters.equals(arguments)) {
+        itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedMethod.method);
+        break;
+      }
+    }
+    if (itemBasedString == null) {
+      for (DexEncodedMethod encodedMethod : holder.virtualMethods()) {
+        if (encodedMethod.method.name.toString().equals(name)
+            && encodedMethod.method.proto.parameters.equals(arguments)) {
+          itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedMethod.method);
+          break;
+        }
+      }
+    }
+    return itemBasedString;
+  }
+
+  private static DexType getTypeFromConstClassOrBoxedPrimitive(
+      Value value, DexItemFactory factory) {
+    if (value.isPhi()) {
+      return null;
+    }
+    if (value.isConstant() && value.getConstInstruction().isConstClass()) {
+      return value.getConstInstruction().asConstClass().getValue();
+    }
+    if (value.definition.isStaticGet()) {
+      return factory.primitiveTypesBoxedTypeFields.boxedFieldTypeToPrimitiveType(
+          value.definition.asStaticGet().getField());
+    }
+    return null;
+  }
+
+  // Perform a conservative evaluation of an array content of dex type values from its construction
   // until its use at a given instruction.
-  private static ConstInstruction[] evaluateConstArrayContentFromConstructionToUse(
-      NewArrayEmpty newArray, int size, Instruction user) {
-    ConstInstruction[] values = new ConstInstruction[size];
+  private static DexType[] evaluateTypeArrayContentFromConstructionToUse(
+      NewArrayEmpty newArray,
+      List<CheckCast> aliases,
+      int size,
+      Instruction user,
+      DexItemFactory factory) {
+    DexType[] values = new DexType[size];
     int remaining = size;
-    Set<Instruction> users = newArray.outValue().uniqueUsers();
+    Set<Instruction> users = Sets.newIdentityHashSet();
+    users.addAll(newArray.outValue().uniqueUsers());
+    for (CheckCast alias : aliases) {
+      users.addAll(alias.outValue().uniqueUsers());
+    }
     // Follow the path from the array construction to the requested use collecting the constants
     // put into the array. Conservatively bail out if the content of the array cannot be statically
     // computed.
@@ -320,25 +370,33 @@ public final class IdentifierNameStringUtils {
           // the content was requested.
           return remaining == 0 ? values : null;
         }
-        // Any other kinds of use besides array-put mean that the array escapes and could be
-        // altered.
+        // Any other kinds of use besides array-put mean that the array escapes and its content
+        // could be altered.
         if (!instruction.isArrayPut()) {
-          return null;
+          if (instruction.isCheckCast() && aliases.contains(instruction.asCheckCast())) {
+            continue;
+          }
+          values = new DexType[size];
+          remaining = size;
+          continue;
         }
         ArrayPut arrayPut = instruction.asArrayPut();
-        if (!(arrayPut.value().isConstant() && arrayPut.index().isConstNumber())) {
+        if (!arrayPut.index().isConstNumber()) {
           return null;
         }
         int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
         if (index < 0 || index >= values.length) {
           return null;
         }
+        DexType type = getTypeFromConstClassOrBoxedPrimitive(arrayPut.value(), factory);
+        if (type == null) {
+          return null;
+        }
         // Allow several writes to the same array element.
         if (values[index] == null) {
           remaining--;
         }
-        ConstInstruction value = arrayPut.value().getConstInstruction();
-        values[index] = value;
+        values[index] = type;
       }
       if (!block.exit().isGoto()) {
         return null;
@@ -364,7 +422,7 @@ public final class IdentifierNameStringUtils {
    * @return a list of {@link DexType} that corresponds to const class in {@param classListValue}
    */
   private static DexTypeList retrieveDexTypeListFromClassList(
-      InvokeMethod invoke, Value classListValue) {
+      InvokeMethod invoke, Value classListValue, DexItemFactory factory) {
 
     // The code
     //   A.class.getMethod("m", String.class, String.class)
@@ -385,8 +443,31 @@ public final class IdentifierNameStringUtils {
     // INVOKEVIRTUAL java/lang/Class.getMethod \
     //     (Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
 
+    // Besides the code pattern above this supports a series of check-cast instructions. e.g.:
+    //
+    // A.class.getMethod("name", (Class<?>[]) new Class<?>[]{String.class})
+
+    List<CheckCast> aliases = new ArrayList<>();
+    if (!classListValue.isPhi()
+        && classListValue.definition.isCheckCast()
+        && classListValue.definition.asCheckCast().getType() == factory.classArrayType) {
+      while (!classListValue.isPhi() && classListValue.definition.isCheckCast()) {
+        aliases.add(classListValue.definition.asCheckCast());
+        classListValue = classListValue.definition.asCheckCast().object();
+      }
+    }
+    if (classListValue.isPhi()) {
+      return null;
+    }
+
+    // A null argument list is an empty argument list
+    if (classListValue.isZero()) {
+      return DexTypeList.empty();
+    }
+
     // Make sure this Value refers to a new array.
-    if (!classListValue.definition.isNewArrayEmpty()) {
+    if (!classListValue.definition.isNewArrayEmpty()
+        || !classListValue.definition.asNewArrayEmpty().size().isConstant()) {
       return null;
     }
 
@@ -402,20 +483,13 @@ public final class IdentifierNameStringUtils {
       return DexTypeList.empty();
     }
 
-    ConstInstruction[] arrayContent =
-        evaluateConstArrayContentFromConstructionToUse(
-            classListValue.definition.asNewArrayEmpty(), size, invoke);
+    DexType[] arrayContent =
+        evaluateTypeArrayContentFromConstructionToUse(
+            classListValue.definition.asNewArrayEmpty(), aliases, size, invoke, factory);
 
     if (arrayContent == null) {
       return null;
     }
-    DexType[] types = new DexType[size];
-    for (int i = 0; i < size; i++) {
-      if (!arrayContent[i].isConstClass()) {
-        return null;
-      }
-      types[i] = arrayContent[i].asConstClass().getValue();
-    }
-    return new DexTypeList(types);
+    return new DexTypeList(arrayContent);
   }
 }
