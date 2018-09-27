@@ -74,10 +74,6 @@ public abstract class Instruction {
     return outValue.isNeverNull();
   }
 
-  public final void forceSetPosition(Position position) {
-    this.position = position;
-  }
-
   public String getPositionAsString() {
     return position == null ? "???" : position.toString();
   }

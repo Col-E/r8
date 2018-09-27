@@ -81,11 +81,6 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
-    public void detach() {
-      remove();
-    }
-
-    @Override
     public void set(Instruction instruction) {
       it.set(instruction);
     }

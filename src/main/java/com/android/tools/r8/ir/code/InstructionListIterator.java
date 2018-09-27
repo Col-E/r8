@@ -72,16 +72,6 @@ public interface InstructionListIterator extends ListIterator<Instruction>,
   void removeOrReplaceByDebugLocalRead();
 
   /**
-   * Remove the current instruction (aka the {@link Instruction} returned by the previous call to
-   * {@link #next}) without updating its def/use chains.
-   * <p>
-   * This is useful for instance when moving an instruction to another block that still dominates
-   * all its uses. In order to do that you would detach the instruction from the original
-   * block and add it to the new block.
-   */
-  void detach();
-
-  /**
    * Replace the current instruction (aka the {@link Instruction} returned by the previous call to
    * {@link #next} with the passed in <code>newInstruction</code>.
    *
