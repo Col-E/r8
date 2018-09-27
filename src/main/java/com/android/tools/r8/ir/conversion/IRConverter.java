@@ -233,7 +233,7 @@ public class IRConverter {
       InternalOptions options,
       Timing timing,
       CfgPrinter printer) {
-    this(appView.getAppInfo(), options, timing, printer, appView);
+    this(appView.appInfo(), options, timing, printer, appView);
   }
 
   private boolean enableInterfaceMethodDesugaring() {

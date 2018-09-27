@@ -256,7 +256,7 @@ public class R8 {
       String proguardSeedsData = null;
       timing.begin("Strip unused code");
       try {
-        Set<DexType> missingClasses = appView.getAppInfo().getMissingClasses();
+        Set<DexType> missingClasses = appView.appInfo().getMissingClasses();
         missingClasses = filterMissingClasses(
             missingClasses, options.proguardConfiguration.getDontWarnPatterns());
         if (!missingClasses.isEmpty()) {
@@ -273,14 +273,14 @@ public class R8 {
 
         // Compute kotlin info before setting the roots and before
         // kotlin metadata annotation is removed.
-        computeKotlinInfoForProgramClasses(application, appView.getAppInfo());
+        computeKotlinInfoForProgramClasses(application, appView.appInfo());
 
         final ProguardConfiguration.Builder compatibility =
             ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
 
         rootSet =
             new RootSetBuilder(
-                    appView.getAppInfo(),
+                    appView.appInfo(),
                     application,
                     options.proguardConfiguration.getRules(),
                     options)
@@ -288,8 +288,8 @@ public class R8 {
 
         Enqueuer enqueuer =
             new Enqueuer(
-                appView.getAppInfo(),
-                appView.getGraphLense(),
+                appView.appInfo(),
+                appView.graphLense(),
                 options,
                 options.forceProguardCompatibility,
                 compatibility);
@@ -297,23 +297,23 @@ public class R8 {
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
-          RootSetBuilder.writeSeeds(appView.getAppInfo().withLiveness(), out, type -> true);
+          RootSetBuilder.writeSeeds(appView.appInfo().withLiveness(), out, type -> true);
           out.flush();
           proguardSeedsData = bytes.toString();
         }
         if (options.enableTreeShaking) {
           TreePruner pruner =
-              new TreePruner(application, appView.getAppInfo().withLiveness(), options);
+              new TreePruner(application, appView.appInfo().withLiveness(), options);
           application = pruner.run();
           // Recompute the subtyping information.
           appView.setAppInfo(
               appView
-                  .getAppInfo()
+                  .appInfo()
                   .withLiveness()
                   .prunedCopyFrom(application, pruner.getRemovedClasses()));
-          new AbstractMethodRemover(appView.getAppInfo()).run();
+          new AbstractMethodRemover(appView.appInfo()).run();
         }
-        new AnnotationRemover(appView.getAppInfo().withLiveness(), compatibility, options).run();
+        new AnnotationRemover(appView.appInfo().withLiveness(), compatibility, options).run();
 
         // TODO(69445518): This is still work in progress, and this file writing is currently used
         // for testing.
@@ -341,10 +341,10 @@ public class R8 {
         // We can now remove visibility bridges. Note that we do not need to update the
         // invoke-targets here, as the existing invokes will simply dispatch to the now
         // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
-        application = new VisibilityBridgeRemover(appView.getAppInfo(), application).run();
+        application = new VisibilityBridgeRemover(appView.appInfo(), application).run();
       }
 
-      if (appView.getAppInfo().hasLiveness()) {
+      if (appView.appInfo().hasLiveness()) {
         AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
         if (options.proguardConfiguration.hasApplyMappingFile()) {
@@ -353,12 +353,12 @@ public class R8 {
           timing.begin("apply-mapping");
           appView.setGraphLense(
               new ProguardMapApplier(appView.withLiveness(), seedMapper).run(timing));
-          application = application.asDirect().rewrittenWithLense(appView.getGraphLense());
+          application = application.asDirect().rewrittenWithLense(appView.graphLense());
           appView.setAppInfo(
               appView
-                  .getAppInfo()
+                  .appInfo()
                   .withLiveness()
-                  .rewrittenWithLense(application.asDirect(), appView.getGraphLense()));
+                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
           timing.end();
         }
         appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
@@ -370,12 +370,12 @@ public class R8 {
           appView.setGraphLense(verticalClassMerger.run());
           appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
           timing.end();
-          application = application.asDirect().rewrittenWithLense(appView.getGraphLense());
+          application = application.asDirect().rewrittenWithLense(appView.graphLense());
           appViewWithLiveness.setAppInfo(
               appViewWithLiveness
-                  .getAppInfo()
+                  .appInfo()
                   .prunedCopyFrom(application, verticalClassMerger.getRemovedClasses())
-                  .rewrittenWithLense(application.asDirect(), appView.getGraphLense()));
+                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
         }
         // Collect switch maps and ordinals maps.
         appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness, options).run());
@@ -411,16 +411,15 @@ public class R8 {
 
       // Overwrite SourceFile if specified. This step should be done after IR conversion.
       timing.begin("Rename SourceFile");
-      new SourceFileRewriter(appView.getAppInfo(), options).run();
+      new SourceFileRewriter(appView.appInfo(), options).run();
       timing.end();
 
       if (!options.mainDexKeepRules.isEmpty()) {
         appView.setAppInfo(new AppInfoWithSubtyping(application));
-        Enqueuer enqueuer =
-            new Enqueuer(appView.getAppInfo(), appView.getGraphLense(), options, true);
+        Enqueuer enqueuer = new Enqueuer(appView.appInfo(), appView.graphLense(), options, true);
         // Lets find classes which may have code executed before secondary dex files installation.
         RootSet mainDexRootSet =
-            new RootSetBuilder(appView.getAppInfo(), application, options.mainDexKeepRules, options)
+            new RootSetBuilder(appView.appInfo(), application, options.mainDexKeepRules, options)
                 .run(executorService);
         AppInfoWithLiveness mainDexAppInfo =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
@@ -442,20 +441,19 @@ public class R8 {
         try {
           Enqueuer enqueuer =
               new Enqueuer(
-                  appView.getAppInfo(),
-                  appView.getGraphLense(),
+                  appView.appInfo(),
+                  appView.graphLense(),
                   options,
                   options.forceProguardCompatibility);
           appView.setAppInfo(enqueuer.traceApplication(rootSet, executorService, timing));
 
           AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
           if (options.enableTreeShaking) {
-            TreePruner pruner =
-                new TreePruner(application, appViewWithLiveness.getAppInfo(), options);
+            TreePruner pruner = new TreePruner(application, appViewWithLiveness.appInfo(), options);
             application = pruner.run();
             appViewWithLiveness.setAppInfo(
                 appViewWithLiveness
-                    .getAppInfo()
+                    .appInfo()
                     .prunedCopyFrom(application, pruner.getRemovedClasses()));
             // Print reasons on the application after pruning, so that we reflect the actual result.
             ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(rootSet.reasonAsked);
@@ -476,8 +474,7 @@ public class R8 {
       // will happen. Just avoid the overhead.
       NamingLens namingLens =
           options.enableMinification
-              ? new Minifier(
-                      appView.getAppInfo().withLiveness(), rootSet, desugaredCallSites, options)
+              ? new Minifier(appView.appInfo().withLiveness(), rootSet, desugaredCallSites, options)
                   .run(timing)
               : NamingLens.getIdentityLens();
       timing.end();
@@ -489,7 +486,7 @@ public class R8 {
         ClassNameMapper classNameMapper =
             LineNumberOptimizer.run(
                 application,
-                appView.getGraphLense(),
+                appView.graphLense(),
                 namingLens,
                 options.lineNumberOptimization == LineNumberOptimization.IDENTITY_MAPPING);
         timing.end();
@@ -512,7 +509,7 @@ public class R8 {
           executorService,
           application,
           application.deadCode,
-          appView.getGraphLense(),
+          appView.graphLense(),
           namingLens,
           proguardSeedsData,
           options,

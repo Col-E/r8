@@ -71,8 +71,8 @@ public class SwitchMapCollector {
   private final Map<DexField, Int2ReferenceMap<DexField>> switchMaps = new IdentityHashMap<>();
 
   public SwitchMapCollector(AppView<AppInfoWithLiveness> appView, InternalOptions options) {
-    this.appInfo = appView.getAppInfo();
-    this.graphLense = appView.getGraphLense();
+    this.appInfo = appView.appInfo();
+    this.graphLense = appView.graphLense();
     this.options = options;
     switchMapPrefix = appInfo.dexItemFactory.createString("$SwitchMap$");
     intArrayType = appInfo.dexItemFactory.createType("[I");

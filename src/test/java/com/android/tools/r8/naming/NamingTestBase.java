@@ -75,7 +75,7 @@ abstract class NamingTestBase {
 
     ExecutorService executor = ThreadUtils.getExecutorService(1);
 
-    AppInfoWithSubtyping appInfo = appView.getAppInfo();
+    AppInfoWithSubtyping appInfo = appView.appInfo();
     RootSet rootSet = new RootSetBuilder(appInfo, program, configuration.getRules(), options)
         .run(executor);
 
