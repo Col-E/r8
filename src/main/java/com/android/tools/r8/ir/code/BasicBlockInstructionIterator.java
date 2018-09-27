@@ -154,15 +154,6 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   }
 
   @Override
-  public void detach() {
-    if (current == null) {
-      throw new IllegalStateException();
-    }
-    listIterator.remove();
-    current = null;
-  }
-
-  @Override
   public void replaceCurrentInstruction(Instruction newInstruction) {
     if (current == null) {
       throw new IllegalStateException();

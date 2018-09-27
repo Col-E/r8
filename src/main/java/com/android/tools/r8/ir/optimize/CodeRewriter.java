@@ -1865,12 +1865,21 @@ public class CodeRewriter {
       if (i == 0) {
         // For the first block process all ConstNumber instructions
         // as well as ConstString instructions having just one use.
-        shortenLiveRangesInsideBlock(block, dominatorTreeMemoization, addConstantInBlock,
-            insn -> (insn.isConstNumber() && insn.outValue().numberOfAllUsers() != 0)
-                || (insn.isConstString() && insn.outValue().numberOfAllUsers() == 1));
+        shortenLiveRangesInsideBlock(
+            code,
+            block,
+            dominatorTreeMemoization,
+            addConstantInBlock,
+            insn ->
+                (insn.isConstNumber() && insn.outValue().numberOfAllUsers() != 0)
+                    || (insn.isConstString() && insn.outValue().numberOfAllUsers() == 1));
       } else {
         // For all following blocks only process ConstString with just one use.
-        shortenLiveRangesInsideBlock(block, dominatorTreeMemoization, addConstantInBlock,
+        shortenLiveRangesInsideBlock(
+            code,
+            block,
+            dominatorTreeMemoization,
+            addConstantInBlock,
             insn -> insn.isConstString() && insn.outValue().numberOfAllUsers() == 1);
       }
     }
@@ -1920,14 +1929,20 @@ public class CodeRewriter {
     assert code.isConsistentSSA();
   }
 
-  private void shortenLiveRangesInsideBlock(BasicBlock block,
+  private void shortenLiveRangesInsideBlock(
+      IRCode code,
+      BasicBlock block,
       Supplier<DominatorTree> dominatorTreeMemoization,
       Map<BasicBlock, List<Instruction>> addConstantInBlock,
-      Predicate<Instruction> selector) {
+      Predicate<ConstInstruction> selector) {
 
     InstructionListIterator it = block.listIterator();
     while (it.hasNext()) {
-      Instruction instruction = it.next();
+      Instruction next = it.next();
+      if (!next.isConstInstruction()) {
+        continue;
+      }
+      ConstInstruction instruction = next.asConstInstruction();
       if (!selector.test(instruction) || instruction.outValue().hasLocalInfo()) {
         continue;
       }
@@ -1973,12 +1988,14 @@ public class CodeRewriter {
         }
       }
 
-      // Move the const instruction as close to its uses as possible.
-      it.detach();
-
       List<Instruction> csts =
           addConstantInBlock.computeIfAbsent(dominator, k -> new ArrayList<>());
-      csts.add(instruction);
+
+      ConstInstruction copy = instruction.isConstNumber()
+          ? ConstNumber.copyOf(code, instruction.asConstNumber())
+          : ConstString.copyOf(code, instruction.asConstString());
+      instruction.outValue().replaceUsers(copy.outValue());
+      csts.add(copy);
     }
   }
 
@@ -1993,7 +2010,7 @@ public class CodeRewriter {
             || (hasCatchHandlers && i.instructionTypeCanThrow())
             || (options.canHaveCmpIfFloatBug() && i.isCmp()));
     Instruction next = insertAt.previous();
-    instruction.forceSetPosition(next.getPosition());
+    instruction.setPosition(next.getPosition());
     insertAt.add(instruction);
   }
 
@@ -2136,14 +2153,16 @@ public class CodeRewriter {
           for (ConstInstruction value : values) {
             stringValues.add(value.outValue());
           }
-          InvokeNewArray invoke = new InvokeNewArray(
-              dexItemFactory.stringArrayType, newArray.outValue(), stringValues);
-          invoke.setPosition(newArray.getPosition());
-          it.detach();
+          Value invokeValue = code.createValue(newArray.outType(), newArray.getLocalInfo());
+          InvokeNewArray invoke =
+              new InvokeNewArray(dexItemFactory.stringArrayType, invokeValue, stringValues);
           for (Value value : newArray.inValues()) {
             value.removeUser(newArray);
           }
-          instructionToInsertForArray.put(newArray.outValue(), invoke);
+          newArray.outValue().replaceUsers(invokeValue);
+          it.removeOrReplaceByDebugLocalRead();
+          instructionToInsertForArray.put(invokeValue, invoke);
+          storesToRemoveForArray.put(invokeValue, size);
         } else {
           // If there is only one element it is typically smaller to generate the array put
           // instruction instead of fill array data.
@@ -2156,12 +2175,12 @@ public class CodeRewriter {
             continue;
           }
           int arraySize = newArray.size().getConstInstruction().asConstNumber().getIntValue();
-          NewArrayFilledData fillArray = new NewArrayFilledData(
-              newArray.outValue(), elementSize, arraySize, contents);
+          NewArrayFilledData fillArray =
+              new NewArrayFilledData(newArray.outValue(), elementSize, arraySize, contents);
           fillArray.setPosition(newArray.getPosition());
           it.add(fillArray);
+          storesToRemoveForArray.put(newArray.outValue(), size);
         }
-        storesToRemoveForArray.put(newArray.outValue(), size);
       }
       // Second pass: remove all the array put instructions for the array for which we have
       // inserted a fill array data instruction instead.
@@ -2184,9 +2203,9 @@ public class CodeRewriter {
                   storesToRemoveForArray.put(array, --toRemoveCount);
                   Instruction construction = instructionToInsertForArray.get(array);
                   if (construction != null) {
-                    // Update the position of the array construction to be the position of the
+                    // Set the position of the new array construction to be the position of the
                     // last removed put at which point we are now adding the construction.
-                    construction.forceSetPosition(instruction.getPosition());
+                    construction.setPosition(instruction.getPosition());
                     it.add(construction);
                   }
                 }
@@ -2653,8 +2672,6 @@ public class CodeRewriter {
         Instruction insnGoto = throwNullInsnIterator.next();
         assert insnGoto.isGoto();
         throwNullInsnIterator.replaceCurrentInstruction(notReachableThrow);
-        // Use position from original invoke to guarantee it has a real position.
-        notReachableThrow.forceSetPosition(insn.getPosition());
       }
     }
     code.removeUnreachableBlocks();
