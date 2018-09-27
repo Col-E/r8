@@ -218,9 +218,9 @@ public class VerticalClassMerger {
       InternalOptions options,
       Timing timing) {
     this.application = application;
-    this.appInfo = appView.getAppInfo();
+    this.appInfo = appView.appInfo();
     this.executorService = executorService;
-    this.graphLense = appView.getGraphLense();
+    this.graphLense = appView.graphLense();
     this.methodPoolCollection = new MethodPoolCollection(application);
     this.options = options;
     this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder();

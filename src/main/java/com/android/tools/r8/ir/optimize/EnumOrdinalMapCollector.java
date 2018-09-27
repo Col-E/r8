@@ -38,8 +38,8 @@ public class EnumOrdinalMapCollector {
   private final Map<DexType, Reference2IntMap<DexField>> ordinalsMaps = new IdentityHashMap<>();
 
   public EnumOrdinalMapCollector(AppView<AppInfoWithLiveness> appView, InternalOptions options) {
-    this.appInfo = appView.getAppInfo();
-    this.graphLense = appView.getGraphLense();
+    this.appInfo = appView.appInfo();
+    this.graphLense = appView.graphLense();
     this.options = options;
   }
 

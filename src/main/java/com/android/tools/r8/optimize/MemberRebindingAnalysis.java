@@ -30,9 +30,9 @@ public class MemberRebindingAnalysis {
   private final MemberRebindingLense.Builder builder;
 
   public MemberRebindingAnalysis(AppView<AppInfoWithLiveness> appView) {
-    assert appView.getGraphLense().isContextFreeForMethods();
-    this.appInfo = appView.getAppInfo();
-    this.lense = appView.getGraphLense();
+    assert appView.graphLense().isContextFreeForMethods();
+    this.appInfo = appView.appInfo();
+    this.lense = appView.graphLense();
     this.builder = MemberRebindingLense.builder(appInfo);
   }
 

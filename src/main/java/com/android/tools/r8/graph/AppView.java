@@ -24,11 +24,6 @@ public class AppView<T extends AppInfo> {
     return appInfo;
   }
 
-  // TODO(christofferqa): Remove and carry out renamings in a separate CL.
-  public T getAppInfo() {
-    return appInfo;
-  }
-
   public void setAppInfo(T appInfo) {
     this.appInfo = appInfo;
   }
@@ -37,17 +32,7 @@ public class AppView<T extends AppInfo> {
     return dexItemFactory;
   }
 
-  // TODO(christofferqa): Remove and carry out renamings in a separate CL.
-  public DexItemFactory getDexItemFactory() {
-    return dexItemFactory;
-  }
-
   public GraphLense graphLense() {
-    return graphLense;
-  }
-
-  // TODO(christofferqa): Remove and carry out renamings in a separate CL.
-  public GraphLense getGraphLense() {
     return graphLense;
   }
 
@@ -81,11 +66,6 @@ public class AppView<T extends AppInfo> {
     }
 
     @Override
-    public AppInfoWithLiveness getAppInfo() {
-      return AppView.this.getAppInfo().withLiveness();
-    }
-
-    @Override
     public void setAppInfo(AppInfoWithLiveness appInfoWithLiveness) {
       @SuppressWarnings("unchecked")
       T appInfo = (T) appInfoWithLiveness;
@@ -98,18 +78,8 @@ public class AppView<T extends AppInfo> {
     }
 
     @Override
-    public DexItemFactory getDexItemFactory() {
-      return AppView.this.dexItemFactory;
-    }
-
-    @Override
     public GraphLense graphLense() {
       return AppView.this.graphLense();
-    }
-
-    @Override
-    public GraphLense getGraphLense() {
-      return AppView.this.getGraphLense();
     }
 
     @Override

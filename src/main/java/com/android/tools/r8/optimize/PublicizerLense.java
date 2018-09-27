@@ -27,8 +27,8 @@ final class PublicizerLense extends NestedGraphLense {
         ImmutableMap.of(),
         null,
         null,
-        appView.getGraphLense(),
-        appView.getAppInfo().dexItemFactory);
+        appView.graphLense(),
+        appView.dexItemFactory());
     this.appView = appView;
     this.publicizedMethods = publicizedMethods;
   }
@@ -48,9 +48,9 @@ final class PublicizerLense extends NestedGraphLense {
 
   private boolean publicizedMethodIsPresentOnHolder(DexMethod method, DexEncodedMethod context) {
     GraphLenseLookupResult lookup =
-        appView.getGraphLense().lookupMethod(method, context, Type.VIRTUAL);
+        appView.graphLense().lookupMethod(method, context, Type.VIRTUAL);
     DexMethod signatureInCurrentWorld = lookup.getMethod();
-    DexClass clazz = appView.getAppInfo().definitionFor(signatureInCurrentWorld.holder);
+    DexClass clazz = appView.appInfo().definitionFor(signatureInCurrentWorld.holder);
     assert clazz != null;
     DexEncodedMethod actualEncodedTarget = clazz.lookupVirtualMethod(signatureInCurrentWorld);
     assert actualEncodedTarget != null;

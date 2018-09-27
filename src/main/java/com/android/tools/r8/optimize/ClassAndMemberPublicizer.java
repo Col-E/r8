@@ -62,8 +62,8 @@ public final class ClassAndMemberPublicizer {
 
     // Phase 2: Visit classes and promote class/member to public if possible.
     timing.begin("Phase 2: promoteToPublic");
-    DexType.forAllInterfaces(appView.getDexItemFactory(), this::publicizeType);
-    publicizeType(appView.getDexItemFactory().objectType);
+    DexType.forAllInterfaces(appView.dexItemFactory(), this::publicizeType);
+    publicizeType(appView.dexItemFactory().objectType);
     timing.end();
 
     return lenseBuilder.build(appView);
@@ -94,7 +94,7 @@ public final class ClassAndMemberPublicizer {
       return false;
     }
 
-    if (appView.getDexItemFactory().isClassConstructor(encodedMethod.method)) {
+    if (appView.dexItemFactory().isClassConstructor(encodedMethod.method)) {
       return false;
     }
 
@@ -105,7 +105,7 @@ public final class ClassAndMemberPublicizer {
     }
     assert accessFlags.isPrivate();
 
-    if (appView.getDexItemFactory().isConstructor(encodedMethod.method)) {
+    if (appView.dexItemFactory().isConstructor(encodedMethod.method)) {
       accessFlags.unsetPrivate();
       accessFlags.setPublic();
       return false;
