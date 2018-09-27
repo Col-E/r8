@@ -192,6 +192,7 @@ public class DexItemFactory {
   public final DexType stringArrayType = createType(stringArrayDescriptor);
   public final DexType objectType = createType(objectDescriptor);
   public final DexType objectArrayType = createType(objectArrayDescriptor);
+  public final DexType classArrayType = createType(classArrayDescriptor);
   public final DexType enumType = createType(enumDescriptor);
   public final DexType annotationType = createType(annotationDescriptor);
   public final DexType throwableType = createType(throwableDescriptor);
@@ -214,6 +215,8 @@ public class DexItemFactory {
   public final LongMethods longMethods = new LongMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final ClassMethods classMethods = new ClassMethods();
+  public final PrimitiveTypesBoxedTypeFields primitiveTypesBoxedTypeFields =
+      new PrimitiveTypesBoxedTypeFields();
   public final AtomicFieldUpdaterMethods atomicFieldUpdaterMethods =
       new AtomicFieldUpdaterMethods();
   public final Kotlin kotlin;
@@ -403,8 +406,54 @@ public class DexItemFactory {
   }
 
   /**
+   * All boxed types (Boolean, Byte, ...) have a field named TYPE which contains the Class object
+   * for the primitive type.
+   *
+   * E.g. for Boolean https://docs.oracle.com/javase/8/docs/api/java/lang/Boolean.html#TYPE.
+   */
+  public class PrimitiveTypesBoxedTypeFields {
+    public DexField booleanTYPE;
+    public DexField byteTYPE;
+    public DexField charTYPE;
+    public DexField shortTYPE;
+    public DexField intTYPE;
+    public DexField longTYPE;
+    public DexField floatTYPE;
+    public DexField doubleTYPE;
+
+    private final Map<DexField, DexType> boxedFieldTypeToPrimitiveType;
+
+    private PrimitiveTypesBoxedTypeFields() {
+      booleanTYPE = createField(boxedBooleanType, classType, "TYPE");
+      byteTYPE = createField(boxedByteType, classType, "TYPE");
+      charTYPE = createField(boxedCharType, classType, "TYPE");
+      shortTYPE = createField(boxedShortType, classType, "TYPE");
+      intTYPE = createField(boxedIntType, classType, "TYPE");
+      longTYPE = createField(boxedLongType, classType, "TYPE");
+      floatTYPE = createField(boxedFloatType, classType, "TYPE");
+      doubleTYPE = createField(boxedDoubleType, classType, "TYPE");
+
+      boxedFieldTypeToPrimitiveType =
+          ImmutableMap.<DexField, DexType>builder()
+              .put(booleanTYPE, booleanType)
+              .put(byteTYPE, byteType)
+              .put(charTYPE, charType)
+              .put(shortTYPE, shortType)
+              .put(intTYPE, intType)
+              .put(longTYPE, longType)
+              .put(floatTYPE, floatType)
+              .put(doubleTYPE, doubleType)
+              .build();
+    }
+
+    public DexType boxedFieldTypeToPrimitiveType(DexField field) {
+      return boxedFieldTypeToPrimitiveType.get(field);
+    }
+  }
+
+  /**
    * A class that encompasses methods that create different types of atomic field updaters:
-   *   Atomic(Integer|Long|Reference)FieldUpdater#newUpdater.
+   * Atomic(Integer|Long|Reference)FieldUpdater#newUpdater.
    */
   public class AtomicFieldUpdaterMethods {
     public DexMethod intUpdater;
