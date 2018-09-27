@@ -362,9 +362,9 @@ final class StaticizingProcessor {
     }
 
     if (!methodMapping.isEmpty() || fieldMapping.isEmpty()) {
-      classStaticizer.converter.setGraphLense(
+      classStaticizer.converter.appView.setGraphLense(
           new ClassStaticizerGraphLense(
-              classStaticizer.converter.getGraphLense(),
+              classStaticizer.converter.graphLense(),
               classStaticizer.factory,
               fieldMapping,
               methodMapping,

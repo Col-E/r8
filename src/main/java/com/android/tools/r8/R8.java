@@ -364,16 +364,17 @@ public class R8 {
         appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
         if (options.enableVerticalClassMerging) {
           timing.begin("ClassMerger");
-          VerticalClassMerger classMerger =
+          VerticalClassMerger verticalClassMerger =
               new VerticalClassMerger(
                   application, appViewWithLiveness, executorService, options, timing);
-          appView.setGraphLense(classMerger.run());
+          appView.setGraphLense(verticalClassMerger.run());
+          appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
           timing.end();
           application = application.asDirect().rewrittenWithLense(appView.getGraphLense());
           appViewWithLiveness.setAppInfo(
               appViewWithLiveness
                   .getAppInfo()
-                  .prunedCopyFrom(application, classMerger.getRemovedClasses())
+                  .prunedCopyFrom(application, verticalClassMerger.getRemovedClasses())
                   .rewrittenWithLense(application.asDirect(), appView.getGraphLense()));
         }
         // Collect switch maps and ordinals maps.
@@ -389,11 +390,8 @@ public class R8 {
       Set<DexCallSite> desugaredCallSites;
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
-        IRConverter converter =
-            new IRConverter(
-                appView.getAppInfo(), options, timing, printer, appView.getGraphLense());
+        IRConverter converter = new IRConverter(appView, options, timing, printer);
         application = converter.optimize(application, executorService);
-        appView.setGraphLense(converter.getGraphLense());
         desugaredCallSites = converter.getDesugaredCallSites();
       } finally {
         timing.end();

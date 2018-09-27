@@ -6,13 +6,13 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -47,8 +47,8 @@ public class Inliner {
   // Threshold found empirically by testing on GMS Core.
   private static final int CONTROL_FLOW_RESOLUTION_BLOCKS_THRESHOLD = 15;
 
+  protected final AppView<? extends AppInfoWithLiveness> appView;
   private final IRConverter converter;
-  protected final AppInfoWithLiveness appInfo;
   final InternalOptions options;
 
   // State for inlining methods which are known to be called twice.
@@ -59,11 +59,14 @@ public class Inliner {
 
   private final Set<DexMethod> blackList = Sets.newIdentityHashSet();
 
-  public Inliner(IRConverter converter, InternalOptions options) {
+  public Inliner(
+      AppView<? extends AppInfoWithLiveness> appView,
+      IRConverter converter,
+      InternalOptions options) {
+    this.appView = appView;
     this.converter = converter;
-    this.appInfo = converter.appInfo.withLiveness();
     this.options = options;
-    fillInBlackList(appInfo);
+    fillInBlackList(appView.appInfo());
   }
 
   private void fillInBlackList(AppInfoWithLiveness appInfo) {
@@ -73,7 +76,7 @@ public class Inliner {
 
   public boolean isBlackListed(DexEncodedMethod method) {
     return blackList.contains(method.method)
-        || appInfo.neverInline.contains(method.method)
+        || appView.appInfo().neverInline.contains(method.method)
         || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method.method, converter);
   }
 
@@ -89,7 +92,7 @@ public class Inliner {
 
   public ConstraintWithTarget computeInliningConstraint(IRCode code, DexEncodedMethod method) {
     ConstraintWithTarget result = ConstraintWithTarget.ALWAYS;
-    InliningConstraints inliningConstraints = new InliningConstraints(appInfo);
+    InliningConstraints inliningConstraints = new InliningConstraints(appView.appInfo());
     InstructionIterator it = code.instructionIterator();
     while (it.hasNext()) {
       Instruction instruction = it.next();
@@ -100,7 +103,7 @@ public class Inliner {
         break;
       }
       // TODO(b/111080693): we may need to collect all meaningful constraints.
-      result = ConstraintWithTarget.meet(result, state, appInfo);
+      result = ConstraintWithTarget.meet(result, state, appView.appInfo());
     }
     return result;
   }
@@ -110,7 +113,7 @@ public class Inliner {
       return false;
     }
     // The class needs also to be visible for us to have access.
-    DexClass targetClass = appInfo.definitionFor(target.method.holder);
+    DexClass targetClass = appView.appInfo().definitionFor(target.method.holder);
     return isVisibleWithFlags(target.method.holder, method.method.holder, targetClass.accessFlags);
   }
 
@@ -122,7 +125,7 @@ public class Inliner {
       return target == context;
     }
     if (flags.isProtected()) {
-      return context.isSubtypeOf(target, appInfo) || target.isSamePackage(context);
+      return context.isSubtypeOf(target, appView.appInfo()) || target.isSamePackage(context);
     }
     // package-private
     return target.isSamePackage(context);
@@ -167,7 +170,7 @@ public class Inliner {
           .collect(Collectors.toList());
       for (DexEncodedMethod method : methods) {
         DexEncodedMethod mappedMethod =
-            converter.getGraphLense().mapDexEncodedMethod(appInfo, method);
+            converter.graphLense().mapDexEncodedMethod(appView.appInfo(), method);
         converter.processMethod(
             mappedMethod,
             feedback,
@@ -412,16 +415,16 @@ public class Inliner {
 
     public IRCode buildInliningIR(
         ValueNumberGenerator generator,
-        AppInfoWithSubtyping appInfo,
-        GraphLense graphLense,
+        AppView<? extends AppInfoWithSubtyping> appView,
         InternalOptions options,
         Position callerPosition) {
       // Build the IR for a yet not processed method, and perform minimal IR processing.
-      Origin origin = appInfo.originFor(target.method.holder);
+      Origin origin = appView.appInfo().originFor(target.method.holder);
       IRCode code =
-          target.buildInliningIR(appInfo, graphLense, options, generator, callerPosition, origin);
+          target.buildInliningIR(
+              appView.appInfo(), appView.graphLense(), options, generator, callerPosition, origin);
       if (!target.isProcessed()) {
-        new LensCodeRewriter(graphLense, appInfo).rewrite(code, target);
+        new LensCodeRewriter(appView, options).rewrite(code, target);
       }
       return code;
     }
@@ -477,7 +480,7 @@ public class Inliner {
       if (instruction.inValues().contains(unInitializedObject)) {
         if (instruction.isInvokeDirect() && !seenSuperInvoke) {
           DexMethod target = instruction.asInvokeDirect().getInvokedMethod();
-          seenSuperInvoke = appInfo.dexItemFactory.isConstructor(target);
+          seenSuperInvoke = appView.dexItemFactory().isConstructor(target);
           boolean callOnConstructorThatCallsConstructorSameClass =
               calleeMethodHolder == target.holder;
           boolean callOnSupertypeOfThisInConstructor =
@@ -504,7 +507,7 @@ public class Inliner {
           return false;
         }
         DexField field = instruction.asInstancePut().getField();
-        DexEncodedField target = appInfo.lookupInstanceTarget(field.getHolder(), field);
+        DexEncodedField target = appView.appInfo().lookupInstanceTarget(field.getHolder(), field);
         if (target != null && target.accessFlags.isFinal()) {
           return false;
         }
@@ -594,11 +597,10 @@ public class Inliner {
             }
             assert invokePosition.callerPosition == null
                 || invokePosition.getOutermostCaller().method
-                    == converter.getGraphLense().getOriginalMethodSignature(method.method);
+                    == converter.graphLense().getOriginalMethodSignature(method.method);
 
             IRCode inlinee =
-                result.buildInliningIR(code.valueNumberGenerator,
-                    appInfo, converter.getGraphLense(), options, invokePosition);
+                result.buildInliningIR(code.valueNumberGenerator, appView, options, invokePosition);
             if (inlinee != null) {
               if (block.hasCatchHandlers() && !(oracle instanceof ForcedInliningOracle)) {
                 // Inlining could lead to an explosion of move-exception and resolution moves. As an
@@ -652,7 +654,7 @@ public class Inliner {
               strategy.markInlined(inlinee);
               if (!strategy.exceededAllowance() || result.ignoreInstructionBudget()) {
                 iterator.inlineInvoke(
-                    appInfo, code, inlinee, blockIterator, blocksToRemove, downcast);
+                    appView.appInfo(), code, inlinee, blockIterator, blocksToRemove, downcast);
                 strategy.updateTypeInformationIfNeeded(inlinee, blockIterator, block);
 
                 // If we inlined the invoke from a bridge method, it is no longer a bridge method.

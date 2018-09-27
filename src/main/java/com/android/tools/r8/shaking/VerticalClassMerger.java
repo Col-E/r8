@@ -88,6 +88,24 @@ import org.objectweb.asm.tree.MethodNode;
  */
 public class VerticalClassMerger {
 
+  public static class VerticallyMergedClasses {
+
+    private final Map<DexType, DexType> mergedClasses;
+
+    private VerticallyMergedClasses(Map<DexType, DexType> mergedClasses) {
+      this.mergedClasses = mergedClasses;
+    }
+
+    public DexType getTargetFor(DexType type) {
+      assert mergedClasses.containsKey(type);
+      return mergedClasses.get(type);
+    }
+
+    public boolean hasBeenMergedIntoSubtype(DexType type) {
+      return mergedClasses.containsKey(type);
+    }
+  }
+
   private enum AbortReason {
     ALREADY_MERGED,
     ALWAYS_INLINE,
@@ -211,6 +229,10 @@ public class VerticalClassMerger {
     Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
     initializePinnedTypes(classes); // Must be initialized prior to mergeCandidates.
     initializeMergeCandidates(classes);
+  }
+
+  public VerticallyMergedClasses getMergedClasses() {
+    return new VerticallyMergedClasses(mergedClasses);
   }
 
   private void initializeMergeCandidates(Iterable<DexProgramClass> classes) {

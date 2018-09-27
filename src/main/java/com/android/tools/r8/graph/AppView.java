@@ -5,12 +5,14 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 
 public class AppView<T extends AppInfo> {
 
   private T appInfo;
   private final DexItemFactory dexItemFactory;
   private GraphLense graphLense;
+  private VerticallyMergedClasses verticallyMergedClasses;
 
   public AppView(T appInfo, GraphLense graphLense) {
     this.appInfo = appInfo;
@@ -18,6 +20,11 @@ public class AppView<T extends AppInfo> {
     this.graphLense = graphLense;
   }
 
+  public T appInfo() {
+    return appInfo;
+  }
+
+  // TODO(christofferqa): Remove and carry out renamings in a separate CL.
   public T getAppInfo() {
     return appInfo;
   }
@@ -26,16 +33,36 @@ public class AppView<T extends AppInfo> {
     this.appInfo = appInfo;
   }
 
+  public DexItemFactory dexItemFactory() {
+    return dexItemFactory;
+  }
+
+  // TODO(christofferqa): Remove and carry out renamings in a separate CL.
   public DexItemFactory getDexItemFactory() {
     return dexItemFactory;
   }
 
+  public GraphLense graphLense() {
+    return graphLense;
+  }
+
+  // TODO(christofferqa): Remove and carry out renamings in a separate CL.
   public GraphLense getGraphLense() {
     return graphLense;
   }
 
   public void setGraphLense(GraphLense graphLense) {
     this.graphLense = graphLense;
+  }
+
+  // Get the result of vertical class merging. Returns null if vertical class merging has not been
+  // run.
+  public VerticallyMergedClasses verticallyMergedClasses() {
+    return verticallyMergedClasses;
+  }
+
+  public void setVerticallyMergedClasses(VerticallyMergedClasses verticallyMergedClasses) {
+    this.verticallyMergedClasses = verticallyMergedClasses;
   }
 
   public AppView<AppInfoWithLiveness> withLiveness() {
@@ -46,6 +73,11 @@ public class AppView<T extends AppInfo> {
 
     private AppViewWithLiveness() {
       super(null, null);
+    }
+
+    @Override
+    public AppInfoWithLiveness appInfo() {
+      return AppView.this.appInfo().withLiveness();
     }
 
     @Override
@@ -61,8 +93,18 @@ public class AppView<T extends AppInfo> {
     }
 
     @Override
+    public DexItemFactory dexItemFactory() {
+      return AppView.this.dexItemFactory();
+    }
+
+    @Override
     public DexItemFactory getDexItemFactory() {
       return AppView.this.dexItemFactory;
+    }
+
+    @Override
+    public GraphLense graphLense() {
+      return AppView.this.graphLense();
     }
 
     @Override

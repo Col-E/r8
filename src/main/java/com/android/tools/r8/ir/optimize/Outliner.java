@@ -865,7 +865,7 @@ public class Outliner {
       if (outlineMethods.size() >= options.outline.threshold) {
         for (DexEncodedMethod outlineMethod : outlineMethods) {
           methodsSelectedForOutlining.add(
-              converter.getGraphLense().mapDexEncodedMethod(appInfo, outlineMethod));
+              converter.graphLense().mapDexEncodedMethod(appInfo, outlineMethod));
         }
       }
     }

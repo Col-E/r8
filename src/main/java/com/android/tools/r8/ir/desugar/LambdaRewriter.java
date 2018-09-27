@@ -174,8 +174,8 @@ public class LambdaRewriter {
       lambdaClass.target.ensureAccessibility();
     }
     if (converter.enableWholeProgramOptimizations && !methodMapping.isEmpty()) {
-      converter.setGraphLense(
-        new LambdaRewriterGraphLense(methodMapping, converter.getGraphLense(), factory));
+      converter.appView.setGraphLense(
+          new LambdaRewriterGraphLense(methodMapping, converter.appView.graphLense(), factory));
     }
   }
 
