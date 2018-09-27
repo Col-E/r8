@@ -416,6 +416,13 @@ allprojects {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
+// Javac often runs out of stack space when compiling the tests.
+// Increase the stack size for the javac process.
+tasks.withType(JavaCompile) {
+    options.fork = true
+    options.forkOptions.jvmArgs = ["-Xss4m"]
+}
+
 tasks.withType(JavaCompile) {
     options.compilerArgs << '-Xlint:unchecked'
 }
