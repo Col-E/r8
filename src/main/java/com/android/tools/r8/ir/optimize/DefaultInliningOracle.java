@@ -67,10 +67,11 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   private DexEncodedMethod validateCandidate(InvokeMethod invoke, DexType invocationContext) {
-    DexEncodedMethod candidate = invoke.lookupSingleTarget(inliner.appInfo, invocationContext);
+    DexEncodedMethod candidate =
+        invoke.lookupSingleTarget(inliner.appView.appInfo(), invocationContext);
     if ((candidate == null)
         || (candidate.getCode() == null)
-        || inliner.appInfo.definitionFor(candidate.method.getHolder()).isLibraryClass()) {
+        || inliner.appView.appInfo().definitionFor(candidate.method.getHolder()).isLibraryClass()) {
       if (info != null) {
         info.exclude(invoke, "No inlinee");
       }
@@ -90,12 +91,12 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
   private Reason computeInliningReason(DexEncodedMethod target) {
     if (target.getOptimizationInfo().forceInline()
-        || (inliner.appInfo.hasLiveness()
-            && inliner.appInfo.withLiveness().forceInline.contains(target.method))) {
+        || (inliner.appView.appInfo().hasLiveness()
+            && inliner.appView.withLiveness().appInfo().forceInline.contains(target.method))) {
       return Reason.FORCE;
     }
-    if (inliner.appInfo.hasLiveness()
-        && inliner.appInfo.withLiveness().alwaysInline.contains(target.method)) {
+    if (inliner.appView.appInfo().hasLiveness()
+        && inliner.appView.withLiveness().appInfo().alwaysInline.contains(target.method)) {
       return Reason.ALWAYS;
     }
     if (callSiteInformation.hasSingleCallSite(target)) {
@@ -117,7 +118,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
     if (method.method.getHolder() == targetHolder) {
       return true;
     }
-    DexClass clazz = inliner.appInfo.definitionFor(targetHolder);
+    DexClass clazz = inliner.appView.appInfo().definitionFor(targetHolder);
     assert clazz != null;
     if (target.getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
       return true;
@@ -135,7 +136,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
    * methods.
    */
   private boolean classInitializationHasNoSideffects(DexType classToCheck) {
-    DexClass clazz = inliner.appInfo.definitionFor(classToCheck);
+    DexClass clazz = inliner.appView.appInfo().definitionFor(classToCheck);
     if ((clazz == null)
         || clazz.hasNonTrivialClassInitializer()
         || clazz.defaultValuesForStaticFieldsMayTriggerAllocation()) {
@@ -191,7 +192,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       return false;
     }
 
-    DexClass holder = inliner.appInfo.definitionFor(candidate.method.getHolder());
+    DexClass holder = inliner.appView.appInfo().definitionFor(candidate.method.getHolder());
     if (holder.isInterface()) {
       // Art978_virtual_interfaceTest correctly expects an IncompatibleClassChangeError exception at
       // runtime.
@@ -271,12 +272,12 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       if (info != null) {
         info.exclude(invoke, "receiver for candidate can be null");
       }
-      assert !inliner.appInfo.forceInline.contains(candidate.method);
+      assert !inliner.appView.appInfo().forceInline.contains(candidate.method);
       return null;
     }
 
     Reason reason = computeInliningReason(candidate);
-    if (!candidate.isInliningCandidate(method, reason, inliner.appInfo)) {
+    if (!candidate.isInliningCandidate(method, reason, inliner.appView.appInfo())) {
       // Abort inlining attempt if the single target is not an inlining candidate.
       if (info != null) {
         info.exclude(invoke, "target is not identified for inlining");
@@ -303,7 +304,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
     Reason reason = computeInliningReason(candidate);
     // Determine if this should be inlined no matter how big it is.
-    if (!candidate.isInliningCandidate(method, reason, inliner.appInfo)) {
+    if (!candidate.isInliningCandidate(method, reason, inliner.appView.appInfo())) {
       // Abort inlining attempt if the single target is not an inlining candidate.
       if (info != null) {
         info.exclude(invoke, "target is not identified for inlining");
@@ -388,7 +389,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       }
       assert IteratorUtils.peekNext(blockIterator) == state;
       // TODO(b/72693244): could be done when Value is created.
-      new TypeAnalysis(inliner.appInfo, code.method).narrowing(nonNullValues);
+      new TypeAnalysis(inliner.appView.appInfo(), code.method).narrowing(nonNullValues);
     }
     // TODO(b/72693244): need a test where refined env in inlinee affects the caller.
   }

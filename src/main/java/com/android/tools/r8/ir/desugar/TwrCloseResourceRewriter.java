@@ -92,7 +92,7 @@ public final class TwrCloseResourceRewriter {
   }
 
   public static boolean isSynthesizedCloseResourceMethod(DexMethod method, IRConverter converter) {
-    DexMethod original = converter.getGraphLense().getOriginalMethodSignature(method);
+    DexMethod original = converter.graphLense().getOriginalMethodSignature(method);
     assert original != null;
     // We consider all methods of *any* class with expected name and signature
     // to be synthesized by java 9 compiler for try-with-resources, reasoning:

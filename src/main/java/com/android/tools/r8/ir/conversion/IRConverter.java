@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.Inc
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -91,8 +92,10 @@ public class IRConverter {
 
   private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
 
-  private final Timing timing;
   public final AppInfo appInfo;
+  public final AppView<? extends AppInfoWithSubtyping> appView;
+
+  private final Timing timing;
   private final Outliner outliner;
   private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
@@ -103,7 +106,6 @@ public class IRConverter {
   private final ClassStaticizer classStaticizer;
   private final InternalOptions options;
   private final CfgPrinter printer;
-  private GraphLense graphLense;
   private final CodeRewriter codeRewriter;
   private final MemberValuePropagation memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
@@ -124,19 +126,20 @@ public class IRConverter {
   // the current class being optimized.
   private ConcurrentHashMap<DexType, DexProgramClass> cachedClasses = new ConcurrentHashMap<>();
 
+  // The argument `appView` is only available when full program optimizations are allowed
+  // (i.e., when running R8).
   private IRConverter(
       AppInfo appInfo,
       InternalOptions options,
       Timing timing,
       CfgPrinter printer,
-      GraphLense graphLense,
-      boolean enableWholeProgramOptimizations) {
+      AppView<? extends AppInfoWithSubtyping> appView) {
     assert appInfo != null;
     assert options != null;
     assert options.programConsumer != null;
     this.timing = timing != null ? timing : new Timing("internal");
     this.appInfo = appInfo;
-    this.graphLense = graphLense != null ? graphLense : GraphLense.getIdentityLense();
+    this.appView = appView;
     this.options = options;
     this.printer = printer;
     this.codeRewriter = new CodeRewriter(this, libraryMethodsReturningReceiver(), options);
@@ -155,16 +158,16 @@ public class IRConverter {
             ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
             : null;
     this.stringOptimizer = new StringOptimizer();
-    this.enableWholeProgramOptimizations = enableWholeProgramOptimizations;
+    this.enableWholeProgramOptimizations = appView != null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
       this.nonNullTracker = new NonNullTracker();
-      this.inliner = new Inliner(this, options);
+      this.inliner = new Inliner(appView.withLiveness(), this, options);
       this.outliner = new Outliner(appInfo.withLiveness(), options, this);
       this.memberValuePropagation =
           options.enableValuePropagation ?
               new MemberValuePropagation(appInfo.withLiveness()) : null;
-      this.lensCodeRewriter = new LensCodeRewriter(graphLense, appInfo.withSubtyping());
+      this.lensCodeRewriter = new LensCodeRewriter(appView, options);
       if (appInfo.hasLiveness()) {
         if (!appInfo.withLiveness().identifierNameStrings.isEmpty() && options.enableMinification) {
           this.identifierNameStringMarker =
@@ -196,13 +199,8 @@ public class IRConverter {
         ? new ClassStaticizer(appInfo.withLiveness(), this) : null;
   }
 
-  public void setGraphLense(GraphLense graphLense) {
-    assert graphLense != null;
-    this.graphLense = graphLense;
-  }
-
-  public GraphLense getGraphLense() {
-    return graphLense;
+  public GraphLense graphLense() {
+    return appView != null ? appView.graphLense() : GraphLense.getIdentityLense();
   }
 
   public Set<DexCallSite> getDesugaredCallSites() {
@@ -216,33 +214,26 @@ public class IRConverter {
   /**
    * Create an IR converter for processing methods with full program optimization disabled.
    */
-  public IRConverter(
-      AppInfo appInfo,
-      InternalOptions options) {
-    this(appInfo, options, null, null, null, false);
+  public IRConverter(AppInfo appInfo, InternalOptions options) {
+    this(appInfo, options, null, null, null);
   }
 
   /**
    * Create an IR converter for processing methods with full program optimization disabled.
    */
-  public IRConverter(
-      AppInfo appInfo,
-      InternalOptions options,
-      Timing timing,
-      CfgPrinter printer) {
-    this(appInfo, options, timing, printer, null, false);
+  public IRConverter(AppInfo appInfo, InternalOptions options, Timing timing, CfgPrinter printer) {
+    this(appInfo, options, timing, printer, null);
   }
 
   /**
    * Create an IR converter for processing methods with full program optimization enabled.
    */
   public IRConverter(
-      AppInfoWithSubtyping appInfo,
+      AppView<AppInfoWithSubtyping> appView,
       InternalOptions options,
       Timing timing,
-      CfgPrinter printer,
-      GraphLense graphLense) {
-    this(appInfo, options, timing, printer, graphLense, true);
+      CfgPrinter printer) {
+    this(appView.getAppInfo(), options, timing, printer, appView);
   }
 
   private boolean enableInterfaceMethodDesugaring() {
@@ -472,8 +463,7 @@ public class IRConverter {
     OptimizationFeedback directFeedback = new OptimizationFeedbackDirect();
     {
       timing.begin("Build call graph");
-      CallGraph callGraph =
-          CallGraph.build(application, appInfo.withLiveness(), graphLense, options, timing);
+      CallGraph callGraph = CallGraph.build(application, appView.withLiveness(), options, timing);
       timing.end();
       timing.begin("IR conversion phase 1");
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler =
@@ -545,6 +535,7 @@ public class IRConverter {
   private void forEachSelectedOutliningMethod(
       ExecutorService executorService, BiConsumer<IRCode, DexEncodedMethod> consumer)
       throws ExecutionException {
+    assert appView != null;
     assert !options.skipIR;
     Set<DexEncodedMethod> methods = outliner.getMethodsSelectedForOutlining();
     List<Future<?>> futures = new ArrayList<>();
@@ -554,7 +545,8 @@ public class IRConverter {
               () -> {
                 IRCode code =
                     method.buildIR(
-                        appInfo, graphLense, options, appInfo.originFor(method.method.holder));
+                        appInfo, appView.graphLense(), options,
+                        appInfo.originFor(method.method.holder));
                 assert code != null;
                 assert !method.getCode().isOutlineCode();
                 // Instead of repeating all the optimizations of rewriteCode(), only run the
@@ -562,7 +554,7 @@ public class IRConverter {
                 // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
                 // unused out-values.
                 codeRewriter.rewriteMoveResult(code);
-                DeadCodeRemover.removeDeadCode(code, codeRewriter, graphLense, options);
+                DeadCodeRemover.removeDeadCode(code, codeRewriter, appView.graphLense(), options);
                 consumer.accept(code, method);
                 return null;
               }));
@@ -712,7 +704,7 @@ public class IRConverter {
       return;
     }
     IRCode code =
-        method.buildIR(appInfo, graphLense, options, appInfo.originFor(method.method.holder));
+        method.buildIR(appInfo, graphLense(), options, appInfo.originFor(method.method.holder));
     if (code == null) {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
@@ -742,7 +734,7 @@ public class IRConverter {
       if (lensCodeRewriter != null) {
         lensCodeRewriter.rewrite(code, method);
       } else {
-        assert graphLense.isIdentityLense();
+        assert graphLense().isIdentityLense();
       }
     }
 
@@ -774,8 +766,7 @@ public class IRConverter {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       assert !options.debug;
       new TypeAnalysis(appInfo, method).widening(method, code);
-      inliner.performInlining(
-          method, code, isProcessedConcurrently, callSiteInformation);
+      inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
     }
     if (!options.debug) {
       stringOptimizer.computeConstStringLength(code, appInfo.dexItemFactory);
@@ -813,7 +804,7 @@ public class IRConverter {
     // Dead code removal. Performed after simplifications to remove code that becomes dead
     // as a result of those simplifications. The following optimizations could reveal more
     // dead code which is removed right before register allocation in performRegisterAllocation.
-    DeadCodeRemover.removeDeadCode(code, codeRewriter, graphLense, options);
+    DeadCodeRemover.removeDeadCode(code, codeRewriter, graphLense(), options);
     assert code.isConsistentSSA();
 
     if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
@@ -829,7 +820,7 @@ public class IRConverter {
 
     if (classInliner != null) {
       // Class inliner should work before lambda merger, so if it inlines the
-      // lambda, it is not get collected by merger.
+      // lambda, it does not get collected by merger.
       assert options.enableInlining && inliner != null;
       classInliner.processMethodCode(
           appInfo.withLiveness(), codeRewriter, method, code, isProcessedConcurrently,
@@ -948,7 +939,7 @@ public class IRConverter {
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(method, code, options.itemFactory);
-    CfCode result = builder.build(codeRewriter, graphLense, options, appInfo);
+    CfCode result = builder.build(codeRewriter, graphLense(), options, appInfo);
     method.setCode(result);
     markProcessed(method, code, feedback);
   }
@@ -992,7 +983,7 @@ public class IRConverter {
   private RegisterAllocator performRegisterAllocation(IRCode code, DexEncodedMethod method) {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
-    DeadCodeRemover.removeDeadCode(code, codeRewriter, graphLense, options);
+    DeadCodeRemover.removeDeadCode(code, codeRewriter, graphLense(), options);
     materializeInstructionBeforeLongOperationsWorkaround(code);
     workaroundForwardingInitializerBug(code);
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);

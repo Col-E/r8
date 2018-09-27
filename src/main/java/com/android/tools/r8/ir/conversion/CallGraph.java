@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -147,8 +148,7 @@ public class CallGraph extends CallSiteInformation {
 
   public static CallGraph build(
       DexApplication application,
-      AppInfoWithLiveness appInfo,
-      GraphLense graphLense,
+      AppView<AppInfoWithLiveness> appView,
       InternalOptions options,
       Timing timing) {
     CallGraph graph = new CallGraph(options);
@@ -157,7 +157,7 @@ public class CallGraph extends CallSiteInformation {
     for (DexClass clazz : classes) {
       for (DexEncodedMethod method : clazz.allMethodsSorted()) {
         Node node = graph.ensureMethodNode(method);
-        InvokeExtractor extractor = new InvokeExtractor(appInfo, graphLense, node, graph);
+        InvokeExtractor extractor = new InvokeExtractor(appView, node, graph);
         method.registerCodeReferences(extractor);
       }
     }
@@ -169,7 +169,7 @@ public class CallGraph extends CallSiteInformation {
     timing.end();
     assert cycleEliminator.breakCycles() == 0; // This time the cycles should be gone.
 
-    graph.fillCallSiteSets(appInfo);
+    graph.fillCallSiteSets(appView.appInfo());
     return graph;
   }
 
@@ -232,8 +232,7 @@ public class CallGraph extends CallSiteInformation {
     });
     Set<DexEncodedMethod> methods =
         leaves.stream().map(x -> x.method).collect(Collectors.toCollection(LinkedHashSet::new));
-    // TODO(b/116282409): Resolve why shuffling makes art.none.r8.Art800_smaliTest flaky.
-    return methods;
+    return shuffle.order(methods);
   }
 
   public static class CycleEliminator {
@@ -478,16 +477,15 @@ public class CallGraph extends CallSiteInformation {
 
   private static class InvokeExtractor extends UseRegistry {
 
-    AppInfoWithLiveness appInfo;
-    GraphLense graphLense;
-    Node caller;
-    CallGraph graph;
+    private final AppInfoWithLiveness appInfo;
+    private final GraphLense graphLense;
+    private final Node caller;
+    private final CallGraph graph;
 
-    InvokeExtractor(AppInfoWithLiveness appInfo, GraphLense graphLense, Node caller,
-        CallGraph graph) {
-      super(appInfo.dexItemFactory);
-      this.appInfo = appInfo;
-      this.graphLense = graphLense;
+    InvokeExtractor(AppView<AppInfoWithLiveness> appView, Node caller, CallGraph graph) {
+      super(appView.dexItemFactory());
+      this.appInfo = appView.appInfo();
+      this.graphLense = appView.graphLense();
       this.caller = caller;
       this.graph = graph;
     }

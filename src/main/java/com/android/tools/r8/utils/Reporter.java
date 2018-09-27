@@ -55,6 +55,14 @@ public class Reporter implements DiagnosticsHandler {
   /**
    * @throws AbortException always.
    */
+  public RuntimeException fatalError(String message) {
+    fatalError(new StringDiagnostic(message));
+    throw new Unreachable();
+  }
+
+  /**
+   * @throws AbortException always.
+   */
   public RuntimeException fatalError(Diagnostic error) {
     error(error);
     failIfPendingErrors();

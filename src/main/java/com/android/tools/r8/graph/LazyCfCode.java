@@ -86,7 +86,6 @@ public class LazyCfCode extends Code {
 
   public LazyCfCode(
       DexMethod method, Origin origin, ReparseContext context, JarApplicationReader application) {
-
     this.method = method;
     this.origin = origin;
     this.context = context;

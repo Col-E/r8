@@ -457,9 +457,11 @@ final class InlineCandidateProcessor {
       return null;
     }
 
-    assert init.holder == eligibleClass
-        : "Inlined constructor? [invoke: " + initInvoke +
-        ", expected class: " + eligibleClass + "]";
+    if (init.holder != eligibleClass) {
+      // Calling a constructor on a class that is different from the type of the instance.
+      // Gracefully abort class inlining (see the test B116282409).
+      return null;
+    }
 
     DexEncodedMethod definition = findSingleTarget(init, true);
     if (definition == null || isProcessedConcurrently.test(definition)) {

@@ -423,9 +423,12 @@ public final class InterfaceMethodRewriter {
     }
     if (converter.enableWholeProgramOptimizations &&
         (!processor.methodsWithMovedCode.isEmpty() || !processor.movedMethods.isEmpty())) {
-      converter.setGraphLense(
-          new InterfaceMethodDesugaringLense(processor.movedMethods,
-              processor.methodsWithMovedCode, converter.getGraphLense(), factory));
+      converter.appView.setGraphLense(
+          new InterfaceMethodDesugaringLense(
+              processor.movedMethods,
+              processor.methodsWithMovedCode,
+              converter.appView.graphLense(),
+              factory));
     }
     return processor.syntheticClasses;
   }

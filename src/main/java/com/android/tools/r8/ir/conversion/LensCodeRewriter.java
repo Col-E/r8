@@ -7,6 +7,7 @@ import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.ARGUMENT_TO
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -34,6 +35,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeCustom;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
 import com.android.tools.r8.ir.code.InvokeNewArray;
@@ -42,6 +44,8 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -50,14 +54,19 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LensCodeRewriter {
 
-  private final GraphLense graphLense;
   private final AppInfoWithSubtyping appInfo;
+  private final GraphLense graphLense;
+  private final VerticallyMergedClasses verticallyMergedClasses;
+  private final InternalOptions options;
 
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
 
-  public LensCodeRewriter(GraphLense graphLense, AppInfoWithSubtyping appInfo) {
-    this.graphLense = graphLense;
-    this.appInfo = appInfo;
+  public LensCodeRewriter(
+      AppView<? extends AppInfoWithSubtyping> appView, InternalOptions options) {
+    this.appInfo = appView.appInfo();
+    this.graphLense = appView.graphLense();
+    this.verticallyMergedClasses = appView.verticallyMergedClasses();
+    this.options = options;
   }
 
   private Value makeOutValue(Instruction insn, IRCode code) {
@@ -120,6 +129,9 @@ public class LensCodeRewriter {
           DexType invokedHolder = invokedMethod.getHolder();
           if (!invokedHolder.isClassType()) {
             continue;
+          }
+          if (invoke.isInvokeDirect()) {
+            checkInvokeDirect(method.method, invoke.asInvokeDirect());
           }
           GraphLenseLookupResult lenseLookup =
               graphLense.lookupMethod(invokedMethod, method, invoke.getType());
@@ -244,6 +256,49 @@ public class LensCodeRewriter {
       }
     }
     assert code.isConsistentSSA();
+  }
+
+  // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of
+  // value v0 is "new-instance v0, B", where B is a subtype of A (see the Art800 and B116282409
+  // tests), then fail with a compilation error if A has previously been merged into B.
+  //
+  // The motivation for this is that the vertical class merger cannot easily recognize the above
+  // code pattern, since it runs prior to IR construction. Therefore, we currently allow merging
+  // A and B although this will lead to invalid code, because this code pattern does generally
+  // not occur in practice (it leads to a verification error on the JVM, but not on Art).
+  private void checkInvokeDirect(DexMethod method, InvokeDirect invoke) {
+    if (verticallyMergedClasses == null) {
+      // No need to check the invocation.
+      return;
+    }
+    DexMethod invokedMethod = invoke.getInvokedMethod();
+    if (invokedMethod.name != appInfo.dexItemFactory.constructorMethodName) {
+      // Not a constructor call.
+      return;
+    }
+    if (invoke.arguments().isEmpty()) {
+      // The new instance should always be passed to the constructor call, but continue gracefully.
+      return;
+    }
+    Value receiver = invoke.arguments().get(0);
+    if (!receiver.isPhi() && receiver.definition.isNewInstance()) {
+      NewInstance newInstance = receiver.definition.asNewInstance();
+      if (newInstance.clazz != invokedMethod.holder
+          && verticallyMergedClasses.hasBeenMergedIntoSubtype(invokedMethod.holder)) {
+        // Generated code will not work. Fail with a compilation error.
+        throw options.reporter.fatalError(
+            String.format(
+                "Unable to rewrite `invoke-direct %s.<init>(new %s, ...)` in method `%s` after "
+                    + "type `%s` was merged into `%s`. Please add the following rule to your "
+                    + "Proguard configuration file: `-keep,allowobfuscation class %s`.",
+                invokedMethod.holder.toSourceString(),
+                newInstance.clazz,
+                method.toSourceString(),
+                invokedMethod.holder,
+                verticallyMergedClasses.getTargetFor(invokedMethod.holder),
+                invokedMethod.holder.toSourceString()));
+      }
+    }
   }
 
   private List<DexValue> rewriteBootstrapArgs(
