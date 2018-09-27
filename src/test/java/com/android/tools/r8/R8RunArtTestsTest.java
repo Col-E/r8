@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.JctfTestSpecifications.Outcome;
-import com.android.tools.r8.TestCondition.Runtime;
 import com.android.tools.r8.TestCondition.RuntimeSet;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -82,8 +81,7 @@ public abstract class R8RunArtTestsTest {
     D8,
     R8,
     R8_AFTER_D8, // refers to the R8 (default: debug) step but implies a previous D8 step as well
-    D8_AFTER_R8CF,
-    R8CF
+    D8_AFTER_R8CF
   }
 
   public static final String ART_TESTS_DIR = "tests/2017-10-04/art";
@@ -1092,8 +1090,8 @@ public abstract class R8RunArtTestsTest {
     private final DexTool dexTool;
     // Native library to use for running this test - if any.
     private final String nativeLibrary;
-    // Skip running this test with Art or Java - most likely due to timeout.
-    private final boolean skipRun;
+    // Skip running this test with Art - most likely due to timeout.
+    private final boolean skipArt;
     // Skip running this test altogether. For example, there might be no input in this configuration
     // (e.g. no class files).
     private final boolean skipTest;
@@ -1101,9 +1099,9 @@ public abstract class R8RunArtTestsTest {
     private final boolean failsWithX8;
     // Expected to fail compilation with a CompilationError.
     private final boolean expectedToFailWithX8;
-    // Fails running the output in Art or on Java with an assertion error. On Art it's typically due
-    // to verification errors.
-    private final boolean failsOnRun;
+    // Fails running the output in Art with an assertion error. Typically due to verification
+    // errors.
+    private final boolean failsWithArt;
     // Runs in art but fails the run because it produces different results.
     private final boolean failsWithArtOutput;
     // Original fails in art but the R8/D8 version can run in art.
@@ -1121,10 +1119,10 @@ public abstract class R8RunArtTestsTest {
         String name,
         DexTool dexTool,
         File directory,
-        boolean skipRun,
+        boolean skipArt,
         boolean skipTest,
         boolean failsWithX8,
-        boolean failsOnRun,
+        boolean failsWithArt,
         boolean failsWithArtOutput,
         boolean failsWithArtOriginalOnly,
         String nativeLibrary,
@@ -1132,15 +1130,16 @@ public abstract class R8RunArtTestsTest {
         boolean outputMayDiffer,
         boolean disableInlining,
         boolean disableClassInlining,
-        boolean hasMissingClasses) {
+        boolean hasMissingClasses,
+        DexVm dexVm) {
       this.name = name;
       this.dexTool = dexTool;
       this.nativeLibrary = nativeLibrary;
       this.directory = directory;
-      this.skipRun = skipRun;
-      this.skipTest = skipTest;
+      this.skipArt = skipArt;
+      this.skipTest = skipTest || (ToolHelper.isWindows() && dexVm.getKind() == Kind.HOST);
       this.failsWithX8 = failsWithX8;
-      this.failsOnRun = failsOnRun;
+      this.failsWithArt = failsWithArt;
       this.failsWithArtOutput = failsWithArtOutput;
       this.failsWithArtOriginalOnly = failsWithArtOriginalOnly;
       this.expectedToFailWithX8 = expectedToFailWithX8;
@@ -1154,43 +1153,18 @@ public abstract class R8RunArtTestsTest {
         String name,
         DexTool dexTool,
         File directory,
-        boolean skipRun,
-        boolean failsOnRun,
+        boolean skipArt,
+        boolean failsWithArt,
         boolean disableInlining,
         DexVm dexVm) {
       this(
           name,
           dexTool,
           directory,
-          skipRun,
-          ToolHelper.isWindows() && dexVm.getKind() == Kind.HOST,
-          false,
-          failsOnRun,
+          skipArt,
           false,
           false,
-          null,
-          false,
-          false,
-          disableInlining,
-          true, // Disable class inlining for JCTF tests.
-          false);
-    }
-
-    TestSpecification(
-        String name,
-        DexTool dexTool,
-        File directory,
-        boolean skipRun,
-        boolean failsOnRun,
-        boolean disableInlining) {
-      this(
-          name,
-          dexTool,
-          directory,
-          skipRun,
-          false,
-          false,
-          failsOnRun,
+          failsWithArt,
           false,
           false,
           null,
@@ -1198,7 +1172,8 @@ public abstract class R8RunArtTestsTest {
           false,
           disableInlining,
           true, // Disable class inlining for JCTF tests.
-          false);
+          false,
+          dexVm);
     }
 
     public File resolveFile(String name) {
@@ -1352,7 +1327,7 @@ public abstract class R8RunArtTestsTest {
                 dexTool,
                 testDir,
                 skipArt.contains(name),
-                skip || ToolHelper.isWindows() && dexVm.getKind() == Kind.HOST,
+                skip,
                 failsWithCompiler.contains(name),
                 failsWithArt.contains(name),
                 failsRunWithArtOutput.contains(name),
@@ -1362,7 +1337,8 @@ public abstract class R8RunArtTestsTest {
                 outputMayDiffer.contains(name),
                 requireInliningToBeDisabled.contains(name),
                 requireClassInliningToBeDisabled.contains(name),
-                hasMissingClasses.contains(name)));
+                hasMissingClasses.contains(name),
+                dexVm));
       }
     }
     return data;
@@ -1372,7 +1348,6 @@ public abstract class R8RunArtTestsTest {
     CompilationMode compilationMode = null;
     switch (compilerUnderTest) {
       case R8:
-      case R8CF:
         compilationMode = CompilationMode.RELEASE;
         break;
       case D8:
@@ -1559,27 +1534,19 @@ public abstract class R8RunArtTestsTest {
         break;
       }
       case R8:
-      case R8CF:
         {
-          boolean cfBackend = compilerUnderTest == CompilerUnderTest.R8CF;
           R8Command.Builder builder =
               R8Command.builder()
                   .setMode(mode)
-                  .setOutput(
-                      Paths.get(resultPath),
-                      cfBackend ? OutputMode.ClassFile : OutputMode.DexIndexed);
+                  .setOutput(Paths.get(resultPath), OutputMode.DexIndexed);
           // Add program files directly to the underlying app to avoid errors on DEX inputs.
           ToolHelper.getAppBuilder(builder).addProgramFiles(ListUtils.map(fileNames, Paths::get));
-          if (cfBackend) {
-            builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
-          } else {
           AndroidApiLevel minSdkVersion = needMinSdkVersion.get(name);
           if (minSdkVersion != null) {
             builder.setMinApiLevel(minSdkVersion.getLevel());
             ToolHelper.addFilteredAndroidJar(builder, minSdkVersion);
           } else {
             ToolHelper.addFilteredAndroidJar(builder, AndroidApiLevel.getDefault());
-            }
           }
           if (keepRulesFile != null) {
             builder.addProguardConfigurationFiles(Paths.get(keepRulesFile));
@@ -1665,36 +1632,18 @@ public abstract class R8RunArtTestsTest {
             name,
             dexTool,
             resultDir,
-            outcome == JctfTestSpecifications.Outcome.TIMEOUTS_WHEN_RUN
-                || outcome == JctfTestSpecifications.Outcome.FLAKY_WHEN_RUN,
-            outcome == JctfTestSpecifications.Outcome.FAILS_WHEN_RUN,
+            outcome == JctfTestSpecifications.Outcome.TIMEOUTS_WITH_ART
+                || outcome == JctfTestSpecifications.Outcome.FLAKY_WITH_ART,
+            outcome == JctfTestSpecifications.Outcome.FAILS_WITH_ART,
             noInlining,
             dexVm);
-  }
-
-  private static BiFunction<Outcome, Boolean, TestSpecification> jctfOutcomeToSpecificationJava(
-      String name, File resultDir) {
-    return (outcome, noInlining) ->
-        new TestSpecification(
-            name,
-            DexTool.NONE,
-            resultDir,
-            outcome == JctfTestSpecifications.Outcome.TIMEOUTS_WHEN_RUN
-                || outcome == JctfTestSpecifications.Outcome.FLAKY_WHEN_RUN,
-            outcome == JctfTestSpecifications.Outcome.FAILS_WHEN_RUN,
-            noInlining);
   }
 
   protected void runJctfTest(CompilerUnderTest compilerUnderTest, String classFilePath,
       String fullClassName)
       throws IOException, ProguardRuleParserException, ExecutionException,
       CompilationFailedException {
-    Runtime runtime;
-    if (compilerUnderTest == CompilerUnderTest.R8CF) {
-      runtime = Runtime.JAVA;
-    } else {
-      runtime = Runtime.fromDexVmVersion(ToolHelper.getDexVm().getVersion());
-    }
+    DexVm dexVm = ToolHelper.getDexVm();
 
     CompilerUnderTest firstCompilerUnderTest =
         compilerUnderTest == CompilerUnderTest.R8_AFTER_D8
@@ -1708,11 +1657,9 @@ public abstract class R8RunArtTestsTest {
         JctfTestSpecifications.getExpectedOutcome(
             name,
             firstCompilerUnderTest,
-            runtime,
+            dexVm,
             compilationMode,
-            compilerUnderTest == CompilerUnderTest.R8CF
-                ? jctfOutcomeToSpecificationJava(name, resultDir)
-                : jctfOutcomeToSpecification(name, DexTool.NONE, resultDir, ToolHelper.getDexVm()));
+            jctfOutcomeToSpecification(name, DexTool.NONE, resultDir, dexVm));
 
     if (specification.skipTest) {
       return;
@@ -1777,19 +1724,14 @@ public abstract class R8RunArtTestsTest {
       fileNames.add(f.getCanonicalPath());
     }
 
-    if (compilerUnderTest == CompilerUnderTest.R8CF) {
-      runJctfTestDoRunOnJava(fileNames, specification, fullClassName, compilationMode, resultDir);
-    } else {
-
-      runJctfTestDoRunOnArt(
-          fileNames,
-          specification,
-          firstCompilerUnderTest,
-          fullClassName,
-          compilationMode,
-          ToolHelper.getDexVm(),
-          resultDir);
-    }
+    runJctfTestDoRunOnArt(
+        fileNames,
+        specification,
+        firstCompilerUnderTest,
+        fullClassName,
+        compilationMode,
+        dexVm,
+        resultDir);
 
     // second pass if D8_R8Debug
     if (compilerUnderTest == CompilerUnderTest.R8_AFTER_D8) {
@@ -1804,9 +1746,9 @@ public abstract class R8RunArtTestsTest {
           JctfTestSpecifications.getExpectedOutcome(
               name,
               CompilerUnderTest.R8_AFTER_D8,
-              runtime,
+              dexVm,
               compilationMode,
-              jctfOutcomeToSpecification(name, DexTool.DX, r8ResultDir, ToolHelper.getDexVm()));
+              jctfOutcomeToSpecification(name, DexTool.DX, r8ResultDir, dexVm));
       if (specification.skipTest) {
         return;
       }
@@ -1816,7 +1758,7 @@ public abstract class R8RunArtTestsTest {
           CompilerUnderTest.R8,
           fullClassName,
           compilationMode,
-          ToolHelper.getDexVm(),
+          dexVm,
           r8ResultDir);
     }
   }
@@ -1829,7 +1771,8 @@ public abstract class R8RunArtTestsTest {
       CompilationMode mode,
       DexVm dexVm,
       File resultDir)
-      throws IOException, CompilationFailedException {
+      throws IOException, ProguardRuleParserException, ExecutionException,
+      CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultDir.getAbsolutePath(), mode,
         specification.disableInlining, specification.disableClassInlining,
         specification.hasMissingClasses);
@@ -1854,7 +1797,7 @@ public abstract class R8RunArtTestsTest {
     }
 
     boolean compileOnly = System.getProperty("jctf_compile_only", "0").equals("1");
-    if (compileOnly || specification.skipRun) {
+    if (compileOnly || specification.skipArt) {
       if (ToolHelper.isDex2OatSupported()) {
         // verify dex code instead of running it
         Path oatFile = temp.getRoot().toPath().resolve("all.oat");
@@ -1873,7 +1816,7 @@ public abstract class R8RunArtTestsTest {
     builder.setMainClass(JUNIT_TEST_RUNNER);
     builder.appendProgramArgument(fullClassName);
 
-    if (specification.failsOnRun) {
+    if (specification.failsWithArt) {
       expectException(AssertionError.class);
     }
 
@@ -1884,53 +1827,9 @@ public abstract class R8RunArtTestsTest {
           specification.resolveFile("classes.dex"), e);
       throw e;
     }
-    if (specification.failsOnRun) {
-      System.err.println("Should have failed run with art.");
-    }
-  }
-
-  private void runJctfTestDoRunOnJava(
-      Collection<String> fileNames,
-      TestSpecification specification,
-      String fullClassName,
-      CompilationMode mode,
-      File resultDir)
-      throws IOException, CompilationFailedException {
-    if (JctfTestSpecifications.compilationFailsWithAsmMethodTooLarge.contains(specification.name)) {
-      expectException(org.objectweb.asm.MethodTooLargeException.class);
-    }
-    executeCompilerUnderTest(
-        CompilerUnderTest.R8CF,
-        fileNames,
-        resultDir.getAbsolutePath(),
-        mode,
-        specification.disableInlining,
-        specification.disableClassInlining,
-        specification.hasMissingClasses);
-
-    boolean compileOnly = System.getProperty("jctf_compile_only", "0").equals("1");
-
-    if (compileOnly || specification.skipRun) {
+    if (specification.failsWithArt) {
+      System.err.println("Should have failed run with art");
       return;
-    }
-
-    if (specification.failsOnRun) {
-      expectException(AssertionError.class);
-    }
-
-    ProcessResult result = ToolHelper.runJava(resultDir.toPath(), JUNIT_TEST_RUNNER, fullClassName);
-
-    if (result.exitCode != 0) {
-      throw new AssertionError(
-          "Test failed on java.\nSTDOUT >>>\n"
-              + result.stdout
-              + "\n<<< STDOUT\nSTDERR >>>\n"
-              + result.stderr
-              + "\n<<< STDERR\n");
-    }
-
-    if (specification.failsOnRun) {
-      System.err.println("Should have failed run with java.");
     }
   }
 
@@ -2073,8 +1972,7 @@ public abstract class R8RunArtTestsTest {
           specification.hasMissingClasses);
     }
 
-    if (!specification.skipRun
-        && (ToolHelper.artSupported() || ToolHelper.dealsWithGoldenFiles())) {
+    if (!specification.skipArt && (ToolHelper.artSupported() || ToolHelper.dealsWithGoldenFiles())) {
       File originalFile;
       File processedFile;
 
@@ -2094,7 +1992,7 @@ public abstract class R8RunArtTestsTest {
       File expectedFile = specification.resolveFile("expected.txt");
       String expected =
           com.google.common.io.Files.asCharSource(expectedFile, Charsets.UTF_8).read();
-      if (specification.failsOnRun) {
+      if (specification.failsWithArt) {
         expectException(AssertionError.class);
       }
 
@@ -2107,7 +2005,7 @@ public abstract class R8RunArtTestsTest {
             specification.resolveFile("classes.dex"), e);
         throw e;
       }
-      if (specification.failsOnRun) {
+      if (specification.failsWithArt) {
         System.err.println("Should have failed run with art");
         return;
       }
