@@ -120,6 +120,11 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
       return b == factory.objectType || b.isArrayType();
     }
 
+    if (b.isArrayType()) {
+      // If A is typed object it can be convertible to an array type.
+      return a == factory.objectType;
+    }
+
     if (a.isPrimitiveType()) {
       if (b.isPrimitiveType()) {
         return isSameOrAdaptableTo(a.descriptor.content[0], b.descriptor.content[0]);
@@ -357,7 +362,8 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
       return register;
     }
 
-    if (fromType.isClassType() && toType.isClassType()) {
+    if ((fromType.isClassType() && toType.isClassType())
+        || (fromType == factory().objectType && toType.isArrayType())) {
       if (returnType) {
         // For return type adjustment in case `fromType` and `toType` are both reference types,
         // `fromType` does NOT have to be deriving from `toType` and we need to add a cast.

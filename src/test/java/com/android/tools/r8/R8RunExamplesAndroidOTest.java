@@ -37,7 +37,6 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
       "-allowaccessmodification"
   );
 
-
   private static final ArrayList<String> PROGUARD_OPTIONS_N_PLUS = Lists.newArrayList(
       "-keepclasseswithmembers public class * {",
       "    public static void main(java.lang.String[]);",
@@ -101,7 +100,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 179, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 180, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
@@ -109,7 +108,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 23, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 24, "lambdadesugaring"))
         .run();
   }
 
@@ -121,7 +120,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 179, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 180, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
@@ -129,7 +128,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 23, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 24, "lambdadesugaring"))
         .run();
   }
 

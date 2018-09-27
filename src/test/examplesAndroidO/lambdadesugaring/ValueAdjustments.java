@@ -462,6 +462,42 @@ public class ValueAdjustments {
     builder.append(a.greet()).append('\n');
   }
 
+  // Make the test independent of libraries by not using java.util.function.Function.
+  interface MyFunction<T, R> {
+    R apply(T var1);
+  }
+
+  static class Observable<T> {
+  }
+
+  static class Handler<T> {
+    T elements;
+
+    Handler(T e) {
+      elements = e;
+    }
+
+    public T handleErrors(T result) {
+      System.out.println(result.getClass().getName());
+      return null;
+    }
+
+    public final Observable<T> map(MyFunction<? super T, ? extends T> mapper) {
+      System.out.println("Handler.map");
+      mapper.apply(elements);
+      return null;
+    }
+  }
+
+
+  static class B116542124 {
+    private Handler<String[]> approvalManagersHandler = new Handler<>(new String[] { "asdf" });
+
+    public void test() {
+      approvalManagersHandler.map(approvalManagersHandler::handleErrors);
+    }
+  }
+
   public static void main(String[] args) {
     StringBuffer builder = new StringBuffer();
 
@@ -482,7 +518,7 @@ public class ValueAdjustments {
 
     checkMisc(builder);
     bB70348575(builder);
-
+    new B116542124().test();
     System.out.println(builder.toString());
   }
 }
