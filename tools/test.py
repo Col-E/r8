@@ -100,6 +100,8 @@ def archive_failures():
 
 def Main():
   (options, args) = ParseOptions()
+  if 'BUILDBOT_BUILDERNAME' in os.environ:
+    gradle.RunGradle(['clean'])
 
   gradle_args = ['--stacktrace']
   # Set all necessary Gradle properties and options first.
