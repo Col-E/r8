@@ -217,6 +217,9 @@ def run_with_options(options, args):
   if 'min-api' in values:
     args.extend(['--min-api', values['min-api']])
 
+  if 'main-dex-list' in values:
+    args.extend(['--main-dex-list', values['main-dex-list']])
+
   if options.compiler == 'r8':
     if 'pgconf' in values and not options.k:
       for pgconf in values['pgconf']:
@@ -236,10 +239,14 @@ def run_with_options(options, args):
       and not os.path.exists(outdir):
     os.makedirs(outdir)
 
+  # Additional flags for the compiler from the configuration file.
+  if 'flags' in values:
+    args.extend(values['flags'].split(' '))
   if options.compiler == 'r8':
     if 'r8-flags' in values:
       args.extend(values['r8-flags'].split(' '))
 
+  # Additional flags for the compiler from the command line.
   if options.compiler_flags:
     args.extend(options.compiler_flags.split(' '))
   if options.r8_flags:
