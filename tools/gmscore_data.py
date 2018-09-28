@@ -72,10 +72,10 @@ VERSIONS = {
   },
   'v9': {
     'dex' : {
+      'flags': '--no-desugaring',
       'inputs': [os.path.join(V9_BASE, 'armv7_GmsCore_prod_alldpi_release.apk')],
+      'main-dex-list': os.path.join(V9_BASE, 'main_dex_list.txt'),
       'pgmap': '%s_proguard.map' % V9_PREFIX,
-      'libraries' : [ANDROID_JAR],
-      'min-api' : ANDROID_L_API,
     },
     'deploy' : {
       'pgconf': ['%s_proguard.config' % V9_PREFIX],
@@ -83,18 +83,18 @@ VERSIONS = {
       'min-api' : ANDROID_L_API,
     },
     'proguarded' : {
+      'flags': '--no-desugaring',
       'inputs': ['%s_proguard.jar' % V9_PREFIX],
       'main-dex-list': os.path.join(V9_BASE, 'main_dex_list.txt'),
       'pgmap': '%s_proguard.map' % V9_PREFIX,
-      'min-api' : ANDROID_L_API,
      }
   },
   'v10': {
     'dex' : {
+      'flags': '--no-desugaring',
       'inputs': [os.path.join(V10_BASE, 'armv7_GmsCore_prod_alldpi_release.apk')],
+      'main-dex-list': os.path.join(V10_BASE, 'main_dex_list.txt') ,
       'pgmap': '%s_proguard.map' % V10_PREFIX,
-      'libraries' : [ANDROID_JAR],
-      'min-api' : ANDROID_L_API,
     },
     'deploy' : {
       'inputs': ['%s_deploy.jar' % V10_PREFIX],
@@ -102,10 +102,10 @@ VERSIONS = {
       'min-api' : ANDROID_L_API,
     },
     'proguarded' : {
+      'flags': '--no-desugaring',
       'inputs': ['%s_proguard.jar' % V10_PREFIX],
       'main-dex-list': os.path.join(V10_BASE, 'main_dex_list.txt') ,
       'pgmap': '%s_proguard.map' % V10_PREFIX,
-      'min-api' : ANDROID_L_API,
     }
   },
   'latest': {
@@ -117,10 +117,10 @@ VERSIONS = {
       'min-api' : ANDROID_L_API,
     },
     'proguarded' : {
+      'flags': '--no-desugaring',
       'inputs': ['%s_proguard.jar' % LATEST_PREFIX],
       'main-dex-list': os.path.join(LATEST_BASE, 'main_dex_list.txt') ,
       'pgmap': '%s_proguard.map' % LATEST_PREFIX,
-      'min-api' : ANDROID_L_API,
     }
   },
 }
