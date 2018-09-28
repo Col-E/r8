@@ -577,6 +577,17 @@ public class InternalOptions {
     return minApiLevel < AndroidApiLevel.M.getLevel();
   }
 
+  // Art crashes if we do dead reference elimination of the receiver in release mode and Art
+  // is asked for the |this| object over a JDWP connection at a point where the receiver
+  // register has been clobbered.
+  //
+  // See b/116683601 and b/116837585.
+  public boolean canHaveThisJitCodeDebuggingBug() {
+    // TODO(b/116841249): Make this an actual min-sdk guard once we know that Art no longer crashes
+    // on these accesses.
+    return true;
+  }
+
   // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
   // the first part of the result long before reading the second part of the input longs.
   public boolean canHaveOverlappingLongRegisterBug() {

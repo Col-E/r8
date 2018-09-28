@@ -2465,7 +2465,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // This assumption is used during verification. Allowing the receiver register to be
     // overwritten can therefore lead to verification errors. If we could be targeting one of these
     // VMs we block the receiver register throughout the method.
-    if (options.canHaveThisTypeVerifierBug() && !code.method.accessFlags.isStatic()) {
+    if ((options.canHaveThisTypeVerifierBug() || options.canHaveThisJitCodeDebuggingBug())
+        && !code.method.accessFlags.isStatic()) {
       for (Instruction instruction : code.blocks.get(0).getInstructions()) {
         if (instruction.isArgument() && instruction.outValue().isThis()) {
           Value thisValue = instruction.outValue();
