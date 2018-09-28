@@ -934,7 +934,7 @@ public class JarState {
       return "<byte|bool>";
     }
     if (type == ARRAY_TYPE) {
-      return type.getElementType().getInternalName();
+      return "<any array>";
     }
     if (type == REFERENCE_TYPE || type == OBJECT_TYPE || type == NULL_TYPE) {
       return type.getInternalName();
