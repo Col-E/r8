@@ -118,8 +118,6 @@ def GenerateAdditionalProguardConfiguration(temp, outdir):
 # Please add bug number for disabled permutations and please explicitly
 # do Bug: #BUG in the commit message of disabling to ensure re-enabling
 DISABLED_PERMUTATIONS = [
-    ('youtube', '12.10', 'dex'), # b/116089492
-    ('youtube', '12.10', 'proguarded'), # b/116089492
     ('gmscore', 'latest', 'deploy') # b/116575775
 ]
 
