@@ -232,7 +232,8 @@ public class CallGraph extends CallSiteInformation {
     });
     Set<DexEncodedMethod> methods =
         leaves.stream().map(x -> x.method).collect(Collectors.toCollection(LinkedHashSet::new));
-    return shuffle.order(methods);
+    // TODO(b/116282409): Resolve why shuffling makes art.none.r8.Art800_smaliTest flaky.
+    return methods;
   }
 
   public static class CycleEliminator {
