@@ -249,6 +249,13 @@ public class DexBuilder {
     return code;
   }
 
+  private static boolean isTrivialFallthroughTarget(
+      BasicBlock previousBlock, BasicBlock currentBlock) {
+    return previousBlock.exit().isGoto()
+        && currentBlock.getPredecessors().size() == 1
+        && currentBlock.getPredecessors().get(0) == previousBlock;
+  }
+
   // Eliminates unneeded debug positions.
   //
   // After this pass all remaining debug positions mark places where we must ensure a materializing
@@ -274,16 +281,35 @@ public class DexBuilder {
 
     for (int blockIndex = 0; blockIndex < code.blocks.size(); blockIndex++) {
       BasicBlock currentBlock = code.blocks.get(blockIndex);
-      BasicBlock nextBlock =
-          blockIndex + 1 < code.blocks.size() ? code.blocks.get(blockIndex + 1) : null;
 
-      // Current materialized position can remain on block entry only if it is also the exit of
-      // the blocks predecessors. If not, we cannot ensure the jumps will hit this line unless
-      // another instruction materialized the position.
-      for (BasicBlock pred : currentBlock.getPredecessors()) {
-        if (pred.exit().getPosition() != currentMaterializedPosition) {
-          currentMaterializedPosition = Position.none();
-          break;
+      // Current materialized position must be updated to the position we can guarantee is emitted
+      // in all predecessors. The position of a fallthrough predecessor is defined by
+      // currentMaterializedPosition and unresolvedPosition (and not by the position of its exit!)
+      // If this is the entry block or a trivial fall-through with no other predecessors the
+      // materialized and unresolved positions remain unchanged.
+      if (blockIndex != 0) {
+        BasicBlock previousBlock = code.blocks.get(blockIndex - 1);
+        if (!isTrivialFallthroughTarget(previousBlock, currentBlock)) {
+          Position positionAtAllPredecessors = null;
+          for (BasicBlock pred : currentBlock.getPredecessors()) {
+            Position predExit;
+            if (pred == previousBlock) {
+              predExit =
+                  unresolvedPosition != null
+                      ? unresolvedPosition.getPosition()
+                      : currentMaterializedPosition;
+            } else {
+              predExit = pred.exit().getPosition();
+            }
+            if (positionAtAllPredecessors == null) {
+              positionAtAllPredecessors = predExit;
+            } else if (!positionAtAllPredecessors.equals(predExit)) {
+              positionAtAllPredecessors = Position.none();
+              break;
+            }
+          }
+          unresolvedPosition = null;
+          currentMaterializedPosition = positionAtAllPredecessors;
         }
       }
 
@@ -292,6 +318,10 @@ public class DexBuilder {
           currentBlock.getLocalsAtEntry() != null
               ? new Int2ReferenceOpenHashMap<>(currentBlock.getLocalsAtEntry())
               : new Int2ReferenceOpenHashMap<>();
+
+      // Next block to decide which gotos are fall-throughs.
+      BasicBlock nextBlock =
+          blockIndex + 1 < code.blocks.size() ? code.blocks.get(blockIndex + 1) : null;
 
       InstructionIterator iterator = currentBlock.iterator();
       while (iterator.hasNext()) {

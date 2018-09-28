@@ -58,14 +58,10 @@ public class DexDebugEventBuilder {
   // Initial known line for the method.
   private int startLine = NO_LINE_INFO;
 
-  // True if running in debug-mode with input code that contains line information, otherwise false.
-  private final boolean hasDebugPositions;
-
   public DexDebugEventBuilder(IRCode code, InternalOptions options) {
     this.method = code.method;
     this.factory = options.itemFactory;
     this.options = options;
-    hasDebugPositions = code.hasDebugPositions;
   }
 
   /** Add events at pc for instruction. */
@@ -89,17 +85,15 @@ public class DexDebugEventBuilder {
       startArgument(instruction.asArgument());
     } else if (instruction.isDebugLocalsChange()) {
       updateLocals(instruction.asDebugLocalsChange());
-    }
-
-    if (!position.isNone() && !position.equals(emittedPosition)) {
-      if (options.debug || instruction.instructionInstanceCanThrow()) {
-        emitDebugPosition(pc, position);
+    } else if (pcAdvancing) {
+      if (!position.isNone() && !position.equals(emittedPosition)) {
+        if (options.debug || instruction.instructionInstanceCanThrow()) {
+          emitDebugPosition(pc, position);
+        }
       }
-    }
-
-    if (emittedPc != pc && pcAdvancing) {
-      // For pc-advancing instructions emit any pending changes.
-      emitLocalChanges(pc);
+      if (emittedPc != pc) {
+        emitLocalChanges(pc);
+      }
     }
 
     if (isBlockExit) {
