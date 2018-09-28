@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static org.junit.Assert.assertTrue;
+
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
@@ -174,17 +177,15 @@ public class NullArrayAndNullObjectValueTest extends JasminTestBase {
     jasminBuilder.writeJar(riJar, new DefaultDiagnosticsHandler());
     ProcessResult riResult = ToolHelper.runJava(riJar, "TestClass");
     Assert.assertEquals(riResult.toString(), 1, riResult.exitCode);
-    Assert.assertTrue(riResult.stderr.contains("VerifyError"));
+    assertTrue(riResult.stderr.contains("VerifyError"));
 
     Path d8Jar = temp.getRoot().toPath().resolve("d8-out.jar");
     try {
       D8.run(
           D8Command.builder().addProgramFiles(riJar).setOutput(d8Jar, OutputMode.DexIndexed)
               .build());
-    } catch (RuntimeException e) {
+    } catch (CompilationFailedException e) {
       // Discard expected failure.
-      // If we ever start post-verifying inputs on internal errors this will need to be updated.
-      Assert.assertTrue(e.getCause() instanceof AssertionError);
       return;
     }
     Assert.fail("Expected D8 to fail compilation");
