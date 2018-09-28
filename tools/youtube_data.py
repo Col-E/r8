@@ -39,12 +39,15 @@ VERSIONS = {
       'pgconf': ['%s_proguard.config' % V12_10_PREFIX,
                  '%s/proguardsettings/YouTubeRelease_proguard.config' % THIRD_PARTY],
       'min-api' : ANDROID_L_API,
-    },
-    'proguarded' : {
-      'inputs': ['%s_proguard.jar' % V12_10_PREFIX],
-      'pgmap': '%s_proguard.map' % V12_10_PREFIX,
-      'min-api' : ANDROID_L_API,
     }
+    # The 'proguarded' version cannot be handled by D8/R8 because there are
+    # parameter annotations for parameters that do not exist, which is not
+    # handled gracefully by ASM (see b/116089492).
+    #'proguarded' : {
+    #  'inputs': ['%s_proguard.jar' % V12_10_PREFIX],
+    #  'pgmap': '%s_proguard.map' % V12_10_PREFIX,
+    #  'min-api' : ANDROID_L_API,
+    #}
   },
   '12.17': {
     'dex' : {

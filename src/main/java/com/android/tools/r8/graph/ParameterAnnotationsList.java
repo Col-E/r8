@@ -151,9 +151,17 @@ public class ParameterAnnotationsList extends DexItem {
 
   /** Return a ParameterAnnotationsList extended to the given number of parameters. */
   public ParameterAnnotationsList withParameterCount(int parameterCount) {
-    assert parameterCount >= size();
     if (this == EMPTY_PARAMETER_ANNOTATIONS_LIST || parameterCount == size()) {
       return this;
+    }
+    if (parameterCount < size()) {
+      // Generally, it should never be the case that parameterCount < size(). However, it may be
+      // that the input has already been optimized (e.g., by Proguard), and that some optimization
+      // has removed formal parameters without removing the corresponding parameters annotations.
+      // In this case, we remove the excess annotations.
+      DexAnnotationSet[] trimmedValues = new DexAnnotationSet[parameterCount];
+      System.arraycopy(values, 0, trimmedValues, 0, parameterCount);
+      return new ParameterAnnotationsList(trimmedValues, 0);
     }
     return new ParameterAnnotationsList(values, parameterCount - values.length);
   }
