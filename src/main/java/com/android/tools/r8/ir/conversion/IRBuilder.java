@@ -2225,7 +2225,7 @@ public class IRBuilder {
         throw new CompilationError(
             "Undefined value encountered during compilation. "
                 + "This is typically caused by invalid dex input that uses a register "
-                + "that is not define on all control-flow paths leading to the use.");
+                + "that is not defined on all control-flow paths leading to the use.");
       }
       if (block.entry() instanceof MoveException) {
         // TODO: Should we support joining in the presence of move-exception instructions?

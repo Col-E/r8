@@ -538,10 +538,10 @@ public class R8 {
 
   static RuntimeException unwrapExecutionException(ExecutionException executionException) {
     Throwable cause = executionException.getCause();
-    if (cause instanceof CompilationError) {
+    if (cause instanceof Error) {
       // add original exception as suppressed exception to provide the original stack trace
       cause.addSuppressed(executionException);
-      throw (CompilationError) cause;
+      throw (Error) cause;
     } else if (cause instanceof RuntimeException) {
       cause.addSuppressed(executionException);
       throw (RuntimeException) cause;
