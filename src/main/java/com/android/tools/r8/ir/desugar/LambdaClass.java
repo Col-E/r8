@@ -65,7 +65,7 @@ final class LambdaClass {
   final DexField instanceField;
   final Target target;
   final AtomicBoolean addToMainDexList = new AtomicBoolean(false);
-  private final Collection<DexProgramClass> synthesizedFrom = new ArrayList<DexProgramClass>(1);
+  private final Collection<DexProgramClass> synthesizedFrom = new ArrayList<>(1);
   private final Supplier<DexProgramClass> lazyDexClass =
       Suppliers.memoize(this::synthesizeLambdaClass); // NOTE: thread-safe.
 
@@ -128,26 +128,32 @@ final class LambdaClass {
   }
 
   private DexProgramClass synthesizeLambdaClass() {
-    return new DexProgramClass(
-        type,
-        null,
-        new SynthesizedOrigin("lambda desugaring", getClass()),
-        // Make the synthesized class public, as it might end up being accessed from a different
-        // classloader (package private access is not allowed across classloaders, b/72538146).
-        ClassAccessFlags.fromDexAccessFlags(
-            Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
-        rewriter.factory.objectType,
-        buildInterfaces(),
-        rewriter.factory.createString("lambda"),
-        null,
-        Collections.emptyList(),
-        DexAnnotationSet.empty(),
-        synthesizeStaticFields(),
-        synthesizeInstanceFields(),
-        synthesizeDirectMethods(),
-        synthesizeVirtualMethods(),
-        rewriter.factory.getSkipNameValidationForTesting(),
-        synthesizedFrom);
+    DexProgramClass clazz =
+        new DexProgramClass(
+            type,
+            null,
+            new SynthesizedOrigin("lambda desugaring", getClass()),
+            // Make the synthesized class public, as it might end up being accessed from a different
+            // classloader (package private access is not allowed across classloaders, b/72538146).
+            ClassAccessFlags.fromDexAccessFlags(
+                Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
+            rewriter.factory.objectType,
+            buildInterfaces(),
+            rewriter.factory.createString("lambda"),
+            null,
+            Collections.emptyList(),
+            DexAnnotationSet.empty(),
+            synthesizeStaticFields(),
+            synthesizeInstanceFields(),
+            synthesizeDirectMethods(),
+            synthesizeVirtualMethods(),
+            rewriter.factory.getSkipNameValidationForTesting());
+    // The method addSynthesizedFrom() may be called concurrently. To avoid a Concurrent-
+    // ModificationException we must use synchronization.
+    synchronized (synthesizedFrom) {
+      synthesizedFrom.forEach(clazz::addSynthesizedFrom);
+    }
+    return clazz;
   }
 
   final DexField getCaptureField(int index) {
@@ -159,9 +165,15 @@ final class LambdaClass {
     return descriptor.isStateless();
   }
 
-  synchronized void addSynthesizedFrom(DexProgramClass synthesizedFrom) {
-    assert synthesizedFrom != null;
-    this.synthesizedFrom.add(synthesizedFrom);
+  void addSynthesizedFrom(DexProgramClass clazz) {
+    assert clazz != null;
+    synchronized (synthesizedFrom) {
+      if (synthesizedFrom.add(clazz)) {
+        // The lambda class may already have been synthesized, and we therefore need to update the
+        // synthesized lambda class as well.
+        getLambdaClass().addSynthesizedFrom(clazz);
+      }
+    }
   }
 
   // Synthesize virtual methods.

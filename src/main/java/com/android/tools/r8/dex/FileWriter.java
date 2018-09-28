@@ -615,7 +615,7 @@ public class FileWriter {
   }
 
   private void addStaticFieldValues(DexProgramClass clazz) {
-    clazz.computeStaticValues(application.dexItemFactory);
+    clazz.computeStaticValues();
     // We have collected the individual components of this array due to the data stored in
     // DexEncodedField#staticValues. However, we have to collect the DexEncodedArray itself
     // here.

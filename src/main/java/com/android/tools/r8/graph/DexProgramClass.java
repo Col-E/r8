@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass implements Supplier<DexProgramClass> {
@@ -99,7 +98,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         skipNameValidationForTesting);
     assert classAnnotations != null;
     this.originKind = originKind;
-    this.synthesizedFrom = accumulateSynthesizedFrom(new HashSet<>(), synthesizedDirectlyFrom);
+    this.synthesizedFrom = new HashSet<>();
+    synthesizedDirectlyFrom.forEach(this::addSynthesizedFrom);
   }
 
   public boolean originatesFromDexResource() {
@@ -266,20 +266,15 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     }
   }
 
-  private static Collection<DexProgramClass> accumulateSynthesizedFrom(
-      Set<DexProgramClass> accumulated,
-      Collection<DexProgramClass> toAccumulate) {
-    for (DexProgramClass dexProgramClass : toAccumulate) {
-      if (dexProgramClass.synthesizedFrom.isEmpty()) {
-        accumulated.add(dexProgramClass);
-      } else {
-        accumulateSynthesizedFrom(accumulated, dexProgramClass.synthesizedFrom);
-      }
+  public void addSynthesizedFrom(DexProgramClass clazz) {
+    if (clazz.synthesizedFrom.isEmpty()) {
+      synthesizedFrom.add(clazz);
+    } else {
+      clazz.synthesizedFrom.forEach(this::addSynthesizedFrom);
     }
-    return accumulated;
   }
 
-  public void computeStaticValues(DexItemFactory factory) {
+  public void computeStaticValues() {
     // It does not actually hurt to compute this multiple times. So racing on staticValues is OK.
     if (staticValues == SENTINEL_NOT_YET_COMPUTED) {
       synchronized (staticFields) {
