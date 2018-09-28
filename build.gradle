@@ -329,6 +329,7 @@ cloudDependencies.each { entry ->
 def x20Dependencies = [
     "third_party": [
         "gmail/gmail_android_170604.16",
+        "gmail/gmail_android_180826.15",
         "chrome",
         "gmscore/v4",
         "gmscore/v5",
