@@ -110,7 +110,7 @@ public class TypeAnalysis {
   private void updateTypeOfValue(Value value, TypeLatticeElement type) {
     assert mode != Mode.UNSET;
 
-    TypeLatticeElement current = value.getTypeLatticeRaw();
+    TypeLatticeElement current = value.getTypeLattice();
     if (current.equals(type)) {
       return;
     }
@@ -143,7 +143,7 @@ public class TypeAnalysis {
   private TypeLatticeElement computePhiType(Phi phi) {
     // Type of phi(v1, v2, ..., vn) is the least upper bound of all those n operands.
     return TypeLatticeElement.join(
-        appInfo, phi.getOperands().stream().map(Value::getTypeLatticeRaw));
+        appInfo, phi.getOperands().stream().map(Value::getTypeLattice));
   }
 
   public static DexType getRefinedReceiverType(

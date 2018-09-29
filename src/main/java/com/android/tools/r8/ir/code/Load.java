@@ -85,7 +85,7 @@ public class Load extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return src().getTypeLatticeRaw();
+    return src().getTypeLattice();
   }
 
   @Override

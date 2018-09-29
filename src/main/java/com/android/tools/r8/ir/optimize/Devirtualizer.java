@@ -114,7 +114,8 @@ public class Devirtualizer {
           // Avoid adding trivial cast and up-cast.
           // We should not use strictlyLessThan(castType, receiverType), which detects downcast,
           // due to side-casts, e.g., A (unused) < I, B < I, and cast from A to B.
-          if (receiverTypeLattice.isTop()
+          // TODO(b/72693244): Soon, there won't be a value with Bottom at this point.
+          if (receiverTypeLattice.isBottom()
               || !TypeLatticeElement.lessThanOrEqual(
                   appInfo, receiverTypeLattice, castTypeLattice)) {
             Value newReceiver = null;

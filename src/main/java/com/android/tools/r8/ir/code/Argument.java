@@ -94,7 +94,7 @@ public class Argument extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return outValue.getTypeLatticeRaw();
+    return outValue.getTypeLattice();
   }
 
   @Override

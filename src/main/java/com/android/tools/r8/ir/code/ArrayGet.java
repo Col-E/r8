@@ -167,7 +167,7 @@ public class ArrayGet extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return array().getTypeLatticeRaw().arrayGet(appInfo);
+    return array().getTypeLattice().arrayGet(appInfo);
   }
 
   @Override

@@ -91,7 +91,7 @@ public class NonNull extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return src().getTypeLatticeRaw().asNonNullable();
+    return src().getTypeLattice().asNonNullable();
   }
 
   @Override

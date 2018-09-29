@@ -1655,7 +1655,8 @@ public class CodeRewriter {
       }
 
       TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
-      if (!inTypeLattice.isTop()) {
+      // TODO(b/72693244): Soon, there won't be a value with Bottom at this point.
+      if (!inTypeLattice.isBottom()) {
         TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
         TypeLatticeElement castTypeLattice =
             TypeLatticeElement.fromDexType(appInfo, castType, inTypeLattice.isNullable());

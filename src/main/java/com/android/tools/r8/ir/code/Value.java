@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.BottomTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TopTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
@@ -762,14 +761,7 @@ public class Value {
     typeLattice = newType;
   }
 
-  // TODO(b/72693244): At the end, both type analysis and optimizations use the same accessor.
-  public TypeLatticeElement getTypeLatticeRaw() {
-    // Type analysis and update should use this to reflect the type lattice as-is.
-    return typeLattice;
-  }
-
   public TypeLatticeElement getTypeLattice() {
-    // Optimizations should use this to regard an uninitialized type lattice as the Top.
-    return typeLattice.isBottom() ? TopTypeLatticeElement.getInstance() : typeLattice;
+    return typeLattice;
   }
 }
