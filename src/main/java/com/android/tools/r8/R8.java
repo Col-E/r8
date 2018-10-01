@@ -424,14 +424,23 @@ public class R8 {
         AppInfoWithLiveness mainDexAppInfo =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
 
-        // LiveTypes is the result.
+        // LiveTypes is the tracing result.
         Set<DexType> mainDexBaseClasses = new HashSet<>(mainDexAppInfo.liveTypes);
-
         // Calculate the automatic main dex list according to legacy multidex constraints.
-        // Add those classes to an eventual manual list of classes.
-        application = application.builder()
-            .addToMainDexList(new MainDexListBuilder(mainDexBaseClasses, application).run())
-            .build();
+        Set<DexType> mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
+        if (!mainDexRootSet.checkDiscarded.isEmpty()) {
+          new DiscardedChecker(mainDexRootSet, mainDexClasses, appView.appInfo(), options).run();
+        }
+        if (!mainDexRootSet.reasonAsked.isEmpty()) {
+          // If the main dex rules have -whyareyoukeeping rules build an application
+          // pruned with the main dex tracing result to reflect only on main dex content.
+          TreePruner mainDexPruner = new TreePruner(application, mainDexAppInfo, options);
+          DexApplication mainDexApplication = mainDexPruner.run();
+          ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(mainDexRootSet.reasonAsked);
+          reasonPrinter.run(mainDexApplication);
+        }
+        // Add automatic main dex classes to an eventual manual list of classes.
+        application = application.builder().addToMainDexList(mainDexClasses).build();
       }
 
       appView.setAppInfo(new AppInfoWithSubtyping(application));
