@@ -242,13 +242,13 @@ public class LambdaRewriter {
     return lambdaClass;
   }
 
-  private <K, V> V getKnown(Map<K, V> map, K key) {
+  private static <K, V> V getKnown(Map<K, V> map, K key) {
     synchronized (map) {
       return map.get(key);
     }
   }
 
-  private <K, V> V putIfAbsent(Map<K, V> map, K key, V value) {
+  private static <K, V> V putIfAbsent(Map<K, V> map, K key, V value) {
     synchronized (map) {
       V known = map.get(key);
       if (known != null) {
