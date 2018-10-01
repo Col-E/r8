@@ -276,8 +276,9 @@ class ClassNameMinifier {
     if (keepInnerClassStructure) {
       DexType outerClass = getOutClassForType(type);
       if (outerClass != null) {
-        if (!renaming.containsKey(outerClass)) {
-          // The outer class was not previously kept. We have to do this now.
+        if (!renaming.containsKey(outerClass) && !noObfuscationTypes.contains(outerClass)) {
+          // The outer class was not previously kept and will not be kept.
+          // We have to force keep the outer class now.
           registerClassAsUsed(outerClass);
         }
       }
