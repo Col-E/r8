@@ -167,6 +167,7 @@ def run_with_options(options, args):
   app_provided_pg_conf = False;
   if options.golem:
     golem.link_third_party()
+    options.out = os.getcwd()
   outdir = options.out
   data = None
   if options.app == 'gmscore':
