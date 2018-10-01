@@ -168,7 +168,7 @@ public class CodeRewriter {
     return true;
   }
 
-  private static boolean isFallthroughBlock(BasicBlock block) {
+  public static boolean isFallthroughBlock(BasicBlock block) {
     for (BasicBlock pred : block.getPredecessors()) {
       if (pred.exit().fallthroughBlock() == block) {
         return true;
@@ -204,16 +204,21 @@ public class CodeRewriter {
 
     if (!needed) {
       blocksToRemove.add(block);
-      for (BasicBlock pred : block.getPredecessors()) {
-        pred.replaceSuccessor(block, target);
-      }
-      for (BasicBlock succ : block.getSuccessors()) {
-        succ.getPredecessors().remove(block);
-      }
-      for (BasicBlock pred : block.getPredecessors()) {
-        if (!target.getPredecessors().contains(pred)) {
-          target.getPredecessors().add(pred);
-        }
+      unlinkTrivialGotoBlock(block, target);
+    }
+  }
+
+  public static void unlinkTrivialGotoBlock(BasicBlock block, BasicBlock target) {
+    assert block.isTrivialGoto();
+    for (BasicBlock pred : block.getPredecessors()) {
+      pred.replaceSuccessor(block, target);
+    }
+    for (BasicBlock succ : block.getSuccessors()) {
+      succ.getPredecessors().remove(block);
+    }
+    for (BasicBlock pred : block.getPredecessors()) {
+      if (!target.getPredecessors().contains(pred)) {
+        target.getPredecessors().add(pred);
       }
     }
   }
@@ -695,7 +700,6 @@ public class CodeRewriter {
     BasicBlock block = iterator.next();
     BasicBlock nextBlock;
 
-    // The marks will be used for cycle detection.
     do {
       nextBlock = iterator.hasNext() ? iterator.next() : null;
       if (block.isTrivialGoto()) {
