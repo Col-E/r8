@@ -50,6 +50,7 @@ import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
@@ -57,6 +58,7 @@ import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.BiMap;
@@ -66,6 +68,7 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -278,6 +281,7 @@ public class DexBuilder {
     // Compute the set of all positions that can be removed.
     // (Delaying removal to avoid ConcurrentModificationException).
     List<DebugPosition> toRemove = new ArrayList<>();
+    Set<BasicBlock> trivialBlocks = new HashSet<>();
 
     for (int blockIndex = 0; blockIndex < code.blocks.size(); blockIndex++) {
       BasicBlock currentBlock = code.blocks.get(blockIndex);
@@ -331,6 +335,12 @@ public class DexBuilder {
               && currentMaterializedPosition == instruction.getPosition()) {
             // Here we don't need to check locals state as the line is already active.
             toRemove.add(instruction.asDebugPosition());
+            if (currentBlock.getInstructions().size() == 2) {
+              JumpInstruction exit = currentBlock.exit();
+              if (exit.isGoto() && exit.getPosition() == currentMaterializedPosition) {
+                trivialBlocks.add(currentBlock);
+              }
+            }
           } else if (unresolvedPosition != null
               && unresolvedPosition.getPosition() == instruction.getPosition()
               && locals.equals(localsAtUnresolvedPosition)) {
@@ -366,10 +376,32 @@ public class DexBuilder {
       int i = 0;
       while (it.hasNext() && i < toRemove.size()) {
         if (it.next() == toRemove.get(i)) {
-          it.removeOrReplaceByDebugLocalRead();
+          it.remove();
           ++i;
         }
       }
+    }
+    // Remove all trivial goto blocks that have a position known to be emitted in their predecessor.
+    if (!trivialBlocks.isEmpty()) {
+      List<BasicBlock> blocksToRemove = new ArrayList<>();
+      ListIterator<BasicBlock> iterator = code.listIterator();
+      // Skip the entry block.
+      assert code.blocks.size() > 1;
+      iterator.next();
+      BasicBlock nextBlock = iterator.next();
+      do {
+        BasicBlock block = nextBlock;
+        nextBlock = iterator.hasNext() ? iterator.next() : null;
+        if (block.isTrivialGoto()
+            && trivialBlocks.contains(block)
+            && block.exit().asGoto().getTarget() != block
+            && !CodeRewriter.isFallthroughBlock(block)) {
+          BasicBlock target = block.exit().asGoto().getTarget();
+          blocksToRemove.add(block);
+          CodeRewriter.unlinkTrivialGotoBlock(block, target);
+        }
+      } while (iterator.hasNext());
+      code.removeBlocks(blocksToRemove);
     }
   }
 

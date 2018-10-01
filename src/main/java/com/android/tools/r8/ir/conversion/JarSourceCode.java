@@ -503,7 +503,7 @@ public class JarSourceCode implements SourceCode {
     }
 
     // If there are no explicit exits from the method (ie, this method is a loop without an explict
-    // return or an unhandled throw) then we cannot guarentee that a local live in a successor will
+    // return or an unhandled throw) then we cannot guarantee that a local live in a successor will
     // ensure it is marked as such (via an explict 'end' marker) and thus be live in predecessors.
     // In this case we insert an 'end' point on all explicit goto instructions ensuring that any
     // back-edge will explicitly keep locals live at that point.
