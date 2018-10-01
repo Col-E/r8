@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -717,6 +718,9 @@ public class BasicBlock {
     if (hasCatchHandlers()) {
       assert exit().isGoto() || exit().isThrow();
       CatchHandlers<Integer> catchHandlers = getCatchHandlersWithSuccessorIndexes();
+      // Check that guards are unique.
+      assert catchHandlers.getGuards().size()
+          == ImmutableSet.copyOf(catchHandlers.getGuards()).size();
       // If there is a catch-all guard it must be the last.
       List<DexType> guards = catchHandlers.getGuards();
       int lastGuardIndex = guards.size() - 1;
@@ -1530,6 +1534,9 @@ public class BasicBlock {
       int prevCatchTarget = prevCatchTargets.get(i);
       DexType prevCatchGuard = prevCatchGuards.get(i);
       // TODO(sgjesse): Check sub-types of guards. Will require AppInfoWithSubtyping.
+      if (newCatchGuards.contains(prevCatchGuard)) {
+        continue;
+      }
       BasicBlock catchSuccessor = fromBlock.successors.get(prevCatchTarget);
       // We assume that all the catch handlers targets has only one
       // predecessor and, thus, no phis.
