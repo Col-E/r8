@@ -126,10 +126,8 @@ public class FileWriter {
     new ProgramClassDependencyCollector(application, mapping.getClasses())
         .run(mapping.getClasses());
 
-    // Sort the class members.
-    // Needed before adding static-value arrays and writing annotation directories and classes.
-    mixedSectionOffsets.getClassesWithData().forEach(DexProgramClass::sortMembers);
-
+    // Ensure everything is sorted.
+    assert mixedSectionOffsets.getClassesWithData().stream().allMatch(DexProgramClass::isSorted);
     // Add the static values for all fields now that we have committed to their sorting.
     mixedSectionOffsets.getClassesWithData().forEach(this::addStaticFieldValues);
 
