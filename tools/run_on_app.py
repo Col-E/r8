@@ -118,7 +118,6 @@ def GenerateAdditionalProguardConfiguration(temp, outdir):
 # Please add bug number for disabled permutations and please explicitly
 # do Bug: #BUG in the commit message of disabling to ensure re-enabling
 DISABLED_PERMUTATIONS = [
-    ('gmail', '180826.15', 'deploy'), # b/116840216
     ('gmail', '180826.15', 'proguarded'), # b/116840276
 ]
 
