@@ -40,7 +40,7 @@ def ParseOptions(argv):
                     choices=TYPES)
   result.add_option('--out',
                     help='Where to place the output',
-                    default=os.getcwd())
+                    default=utils.BUILD)
   result.add_option('--no-build',
                     help='Run without building first',
                     default=False,
