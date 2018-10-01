@@ -59,7 +59,7 @@ abstract public class Unop extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return source().getTypeLatticeRaw();
+    return source().getTypeLattice();
   }
 
   @Override

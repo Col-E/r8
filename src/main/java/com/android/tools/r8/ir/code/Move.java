@@ -106,7 +106,7 @@ public class Move extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return src().getTypeLatticeRaw();
+    return src().getTypeLattice();
   }
 
   @Override

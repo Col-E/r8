@@ -119,7 +119,7 @@ public class CheckCast extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return object().getTypeLatticeRaw().checkCast(appInfo, type);
+    return object().getTypeLattice().checkCast(appInfo, type);
   }
 
   @Override
