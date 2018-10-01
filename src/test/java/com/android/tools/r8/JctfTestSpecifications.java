@@ -8,7 +8,9 @@ import static com.android.tools.r8.TestCondition.R8_COMPILER;
 import static com.android.tools.r8.TestCondition.and;
 import static com.android.tools.r8.TestCondition.any;
 import static com.android.tools.r8.TestCondition.anyDexVm;
+import static com.android.tools.r8.TestCondition.artRuntimesFrom;
 import static com.android.tools.r8.TestCondition.artRuntimesFromAndJava;
+import static com.android.tools.r8.TestCondition.artRuntimesUpTo;
 import static com.android.tools.r8.TestCondition.artRuntimesUpToAndJava;
 import static com.android.tools.r8.TestCondition.match;
 import static com.android.tools.r8.TestCondition.runtimes;
@@ -71,9 +73,7 @@ public class JctfTestSpecifications {
           .put(
               "lang.Thread.getAllStackTraces.Thread_getAllStackTraces_A01",
               match(runtimes(Runtime.ART_V7_0_0)))
-          .put(
-              "lang.Thread.destroy.Thread_destroy_A01",
-              match(TestCondition.artRuntimesFrom(Runtime.ART_V4_4_4)))
+          .put("lang.Thread.destroy.Thread_destroy_A01", match(artRuntimesFrom(Runtime.ART_V4_4_4)))
           .put("lang.Thread.isAlive.Thread_isAlive_A01", anyDexVm())
           .put("lang.Thread.stopLjava_lang_Throwable.Thread_stop_A04", any())
           .put("lang.Thread.stopLjava_lang_Throwable.Thread_stop_A03", any())
@@ -627,9 +627,7 @@ public class JctfTestSpecifications {
           .put("lang.ProcessBuilder.start.ProcessBuilder_start_A05", anyDexVm())
           .put("lang.ProcessBuilder.start.ProcessBuilder_start_A06", anyDexVm())
           .put("lang.ClassFormatError.serialization.ClassFormatError_serialization_A01", anyDexVm())
-          .put(
-              "lang.Math.cbrtD.Math_cbrt_A01",
-              match(TestCondition.artRuntimesFrom(Runtime.ART_V6_0_1)))
+          .put("lang.Math.cbrtD.Math_cbrt_A01", match(artRuntimesFrom(Runtime.ART_V6_0_1)))
           .put("lang.Math.powDD.Math_pow_A08", anyDexVm())
           .put(
               "lang.IncompatibleClassChangeError.serialization.IncompatibleClassChangeError_serialization_A01",
@@ -722,7 +720,7 @@ public class JctfTestSpecifications {
           .put("lang.Class.getDeclaringClass.Class_getDeclaringClass_A01", anyDexVm())
           .put(
               "lang.Class.getDeclaredFields.Class_getDeclaredFields_A01",
-              match(TestCondition.artRuntimesFrom(Runtime.ART_V5_1_1)))
+              match(artRuntimesFrom(Runtime.ART_V5_1_1)))
           .put("lang.Class.getClassLoader.Class_getClassLoader_A02", anyDexVm())
           .put("lang.Class.getClassLoader.Class_getClassLoader_A03", anyDexVm())
           .put("lang.Class.getDeclaredFields.Class_getDeclaredFields_A02", any())
@@ -831,7 +829,7 @@ public class JctfTestSpecifications {
               anyDexVm())
           .put(
               "lang.String.getBytesLjava_lang_String.String_getBytes_A14",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V7_0_0)))
+              match(artRuntimesUpTo(Runtime.ART_V7_0_0)))
           .put("lang.String.splitLjava_lang_String.String_split_A01", any())
           .put("lang.String.getBytesII_BI.String_getBytes_A03", any())
           .put("lang.String.getBytesII_BI.String_getBytes_A02", anyDexVm())
@@ -841,7 +839,7 @@ public class JctfTestSpecifications {
           .put("lang.String.valueOfD.String_valueOf_A01", any())
           .put(
               "lang.String.getBytesLjava_nio_charset_Charset.String_getBytes_A14",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V7_0_0)))
+              match(artRuntimesUpTo(Runtime.ART_V7_0_0)))
           .put("lang.Package.isSealed.Package_isSealed_A01", anyDexVm())
           .put(
               "lang.Package.getSpecificationRuntime.ART_Package_getSpecificationVersion_A01",
@@ -849,10 +847,7 @@ public class JctfTestSpecifications {
           .put("lang.Package.getAnnotationLjava_lang_Class.Package_getAnnotation_A01", any())
           .put(
               "lang.Package.isAnnotationPresentLjava_lang_Class.Package_isAnnotationPresent_A02",
-              match(
-                  and(
-                      runtimes(Runtime.ART_V4_0_4),
-                      TestCondition.artRuntimesFrom(Runtime.ART_V7_0_0))))
+              match(and(runtimes(Runtime.ART_V4_0_4), artRuntimesFrom(Runtime.ART_V7_0_0))))
           .put("lang.Package.getName.Package_getName_A01", anyDexVm())
           .put(
               "lang.Package.getImplementationRuntime.ART_Package_getImplementationVersion_A01",
@@ -861,10 +856,7 @@ public class JctfTestSpecifications {
           .put("lang.Package.getSpecificationVendor.Package_getSpecificationVendor_A01", anyDexVm())
           .put(
               "lang.Package.getAnnotationLjava_lang_Class.Package_getAnnotation_A02",
-              match(
-                  and(
-                      TestCondition.artRuntimesFrom(Runtime.ART_V7_0_0),
-                      runtimes(Runtime.ART_V4_0_4))))
+              match(and(artRuntimesFrom(Runtime.ART_V7_0_0), runtimes(Runtime.ART_V4_0_4))))
           .put(
               "lang.Package.isCompatibleWithLjava_lang_String.Package_isCompatibleWith_A01",
               anyDexVm())
@@ -1136,10 +1128,10 @@ public class JctfTestSpecifications {
           .put("lang.reflect.Proxy.Class.Proxy_class_A01", any())
           .put(
               "lang.reflect.Proxy.Class.Proxy_class_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.reflect.Proxy.Class.Proxy_class_A03",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.reflect.Proxy.getProxyClassLjava_lang_ClassLoader_Ljava_lang_Class.Proxy_getProxyClass_A01",
               anyDexVm())
@@ -1196,14 +1188,14 @@ public class JctfTestSpecifications {
               any())
           .put(
               "lang.reflect.InvocationHandler.invokeLjava_lang_ObjectLjava_lang_reflect_Method_Ljava_lang_Object.InvocationHandler_invoke_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.reflect.InvocationHandler.invokeLjava_lang_ObjectLjava_lang_reflect_Method_Ljava_lang_Object.InvocationHandler_invoke_A02",
               anyDexVm())
           .put("lang.reflect.Method.getDefaultValue.Method_getDefaultValue_A02", any())
           .put(
               "lang.reflect.Method.hashCode.Method_hashCode_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Method.toString.Method_toString_A01", any())
           .put(
               "lang.reflect.Method.getGenericParameterTypes.Method_getGenericParameterTypes_A02",
@@ -1217,11 +1209,11 @@ public class JctfTestSpecifications {
           .put("lang.reflect.Field.setByteLjava_lang_ObjectB.Field_setByte_A01", anyDexVm())
           .put(
               "lang.reflect.Field.setByteLjava_lang_ObjectB.Field_setByte_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Field.setBooleanLjava_lang_ObjectZ.Field_setBoolean_A01", anyDexVm())
           .put(
               "lang.reflect.Field.setBooleanLjava_lang_ObjectZ.Field_setBoolean_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Field.setCharLjava_lang_ObjectC.Field_setChar_A05", anyDexVm())
           .put("lang.reflect.Field.isSynthetic.Field_isSynthetic_A01", any())
           .put("lang.reflect.Field.setBooleanLjava_lang_ObjectZ.Field_setBoolean_A05", anyDexVm())
@@ -1229,16 +1221,16 @@ public class JctfTestSpecifications {
           .put("lang.reflect.Field.setCharLjava_lang_ObjectC.Field_setChar_A01", anyDexVm())
           .put(
               "lang.reflect.Field.setCharLjava_lang_ObjectC.Field_setChar_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Field.getDoubleLjava_lang_Object.Field_getDouble_A05", anyDexVm())
           .put("lang.reflect.Field.setFloatLjava_lang_ObjectF.Field_setFloat_A01", anyDexVm())
           .put(
               "lang.reflect.Field.setFloatLjava_lang_ObjectF.Field_setFloat_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Field.getAnnotationLjava_lang_Class.Field_getAnnotation_A01", any())
           .put(
               "lang.reflect.Field.setIntLjava_lang_ObjectI.Field_setInt_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Field.getIntLjava_lang_Object.Field_getInt_A05", anyDexVm())
           .put("lang.reflect.Field.setFloatLjava_lang_ObjectF.Field_setFloat_A05", anyDexVm())
           .put("lang.reflect.Field.getShortLjava_lang_Object.Field_getShort_A05", anyDexVm())
@@ -1252,24 +1244,24 @@ public class JctfTestSpecifications {
           .put("lang.reflect.Field.setIntLjava_lang_ObjectI.Field_setInt_A01", anyDexVm())
           .put(
               "lang.reflect.Field.setDoubleLjava_lang_ObjectD.Field_setDouble_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Field.setDoubleLjava_lang_ObjectD.Field_setDouble_A05", anyDexVm())
           .put("lang.reflect.Field.setShortLjava_lang_ObjectS.Field_setShort_A01", anyDexVm())
           .put(
               "lang.reflect.Field.setLongLjava_lang_ObjectJ.Field_setLong_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Field.setLongLjava_lang_ObjectJ.Field_setLong_A05", anyDexVm())
           .put("lang.reflect.Field.setLongLjava_lang_ObjectJ.Field_setLong_A01", anyDexVm())
           .put("lang.reflect.Field.setDoubleLjava_lang_ObjectD.Field_setDouble_A01", anyDexVm())
           .put(
               "lang.reflect.Field.setShortLjava_lang_ObjectS.Field_setShort_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Field.setShortLjava_lang_ObjectS.Field_setShort_A05", anyDexVm())
           .put("lang.reflect.Field.getLjava_lang_Object.Field_get_A05", anyDexVm())
           .put("lang.reflect.Field.getLongLjava_lang_Object.Field_getLong_A05", anyDexVm())
           .put(
               "lang.reflect.Field.setLjava_lang_ObjectLjava_lang_Object.Field_set_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.reflect.Field.setLjava_lang_ObjectLjava_lang_Object.Field_set_A05", anyDexVm())
           .put("lang.reflect.Field.setLjava_lang_ObjectLjava_lang_Object.Field_set_A01", anyDexVm())
           .put(
@@ -1413,7 +1405,7 @@ public class JctfTestSpecifications {
               any())
           .put(
               "util.concurrent.ConcurrentHashMap.serialization.ConcurrentHashMap_serialization_A01",
-              match(TestCondition.artRuntimesFrom(Runtime.ART_V5_1_1)))
+              match(artRuntimesFrom(Runtime.ART_V5_1_1)))
           .put("util.concurrent.ConcurrentHashMap.keySet.ConcurrentHashMap_keySet_A01", anyDexVm())
           .put(
               "util.concurrent.Executors.privilegedThreadFactory.Executors_privilegedThreadFactory_A01",
@@ -1439,106 +1431,100 @@ public class JctfTestSpecifications {
           .put("lang.Thread.start.Thread_start_A01", match(runtimes(Runtime.ART_V7_0_0)))
           .put(
               "lang.String.getBytesLjava_lang_String.String_getBytes_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V7_0_0)))
+              match(artRuntimesUpTo(Runtime.ART_V7_0_0)))
           .put(
               "util.concurrent.CopyOnWriteArrayList.lastIndexOfLjava_lang_ObjectI.CopyOnWriteArrayList_lastIndexOf_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V7_0_0)))
+              match(artRuntimesUpTo(Runtime.ART_V7_0_0)))
           .put(
               "util.concurrent.CopyOnWriteArrayList.lastIndexOfLjava_lang_ObjectI.CopyOnWriteArrayList_lastIndexOf_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V7_0_0)))
+              match(artRuntimesUpTo(Runtime.ART_V7_0_0)))
           .put(
               "lang.StringBuffer.getCharsII_CI.StringBuffer_getChars_A03",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.StringBuffer.appendF.StringBuffer_append_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.StringBuffer.insertI_CII.StringBuffer_insert_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.StrictMath.scalbDI.StrictMath_scalb_A03",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.StrictMath.scalbDI.StrictMath_scalb_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.StrictMath.scalbFI.StrictMath_scalb_A03",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.StrictMath.scalbFI.StrictMath_scalb_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.Thread.ConstructorLjava_lang_ThreadGroupLjava_lang_RunnableLjava_lang_StringJ.Thread_Constructor_A07",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.Thread.ConstructorLjava_lang_ThreadGroupLjava_lang_RunnableLjava_lang_String.Thread_Constructor_A07",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.Thread.toString.Thread_toString_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
-          .put(
-              "lang.Thread.start.Thread_start_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
+          .put("lang.Thread.start.Thread_start_A02", match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.Thread.setPriorityI.Thread_setPriority_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.ClassLoader.ConstructorLjava_lang_ClassLoader.ClassLoader_Constructor_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.Enum.compareToLjava_lang_Enum.Enum_compareTo_A03",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
-          .put(
-              "lang.Enum.hashCode.Enum_hashCode_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
+          .put("lang.Enum.hashCode.Enum_hashCode_A01", match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.StackTraceElement.hashCode.StackTraceElement_hashCode_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.ProcessBuilder.environment.ProcessBuilder_environment_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.ProcessBuilder.environment.ProcessBuilder_environment_A03",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
-              "lang.Float.toStringF.Float_toString_A04",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              "lang.Float.toStringF.Float_toString_A04", match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
-              "lang.Float.toStringF.Float_toString_A03",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              "lang.Float.toStringF.Float_toString_A03", match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.ThreadGroup.getMaxPriority.ThreadGroup_getMaxPriority_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.ThreadGroup.uncaughtExceptionLjava_lang_ThreadLjava_lang_Throwable.ThreadGroup_uncaughtException_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.ThreadGroup.list.ThreadGroup_list_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.ThreadGroup.setMaxPriorityI.ThreadGroup_setMaxPriority_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.ThreadGroup.setMaxPriorityI.ThreadGroup_setMaxPriority_A04",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.ThreadGroup.toString.ThreadGroup_toString_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.Class.getFieldLjava_lang_String.Class_getField_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.String.replaceCC.String_replace_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.Package.isCompatibleWithLjava_lang_String.Package_isCompatibleWith_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.StringBuilder.appendF.StringBuilder_append_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.StringBuilder.insertIF.StringBuilder_insert_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.reflect.AccessibleObject.setAccessibleZ.AccessibleObject_setAccessible_A04",
               match(runtimes(Runtime.ART_V4_4_4, Runtime.JAVA)))
@@ -1547,13 +1533,11 @@ public class JctfTestSpecifications {
               match(artRuntimesUpToAndJava(Runtime.ART_V6_0_1)))
           .put(
               "lang.Character.UnicodeBlock.forName_java_lang_String.UnicodeBlock_forName_A03",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.System.loadLjava_lang_String.System_load_A02",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V6_0_1)))
-          .put(
-              "lang.Math.hypotDD.Math_hypot_A04",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V5_1_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
+          .put("lang.Math.hypotDD.Math_hypot_A04", match(artRuntimesUpTo(Runtime.ART_V5_1_1)))
           .put(
               "math.BigInteger.probablePrimeIjava_util_Random.BigInteger_probablePrime_A01",
               match(runtimes(Runtime.ART_V4_0_4)))
@@ -1635,9 +1619,6 @@ public class JctfTestSpecifications {
               "lang.Runtime.addShutdownHookLjava_lang_Thread.Runtime_addShutdownHook_A02",
               match(runtimes(Runtime.JAVA)))
           .put(
-              "lang.ref.PhantomReference.clear.PhantomReference_clear_A01",
-              match(runtimes(Runtime.JAVA)))
-          .put(
               "lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01",
               match(runtimes(Runtime.JAVA)))
           .put("lang.ThreadGroup.destroy.ThreadGroup_destroy_A04", match(runtimes(Runtime.JAVA)))
@@ -1673,30 +1654,37 @@ public class JctfTestSpecifications {
               any())
           .put(
               "lang.ref.PhantomReference.clear.PhantomReference_clear_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpToAndJava(Runtime.ART_V4_4_4)))
           .put(
               "lang.ref.SoftReference.clear.SoftReference_clear_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.ref.WeakReference.clear.WeakReference_clear_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01", anyDexVm())
           .put(
               "lang.ref.WeakReference.enqueue.WeakReference_enqueue_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.ref.SoftReference.isEnqueued.SoftReference_isEnqueued_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.ref.SoftReference.enqueue.SoftReference_enqueue_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
-              match(TestCondition.artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.Runtime.gc.Runtime_gc_A01", match(runtimes(Runtime.JAVA)))
+          .put(
+              "util.concurrent.AbstractExecutorService.invokeAllLjava_util_CollectionJLjava_util_concurrent_TimeUnit.AbstractExecutorService_invokeAll_A06",
+              match(runtimes(Runtime.ART_V4_0_4)))
+
+          // This test always fails for unknown reason, will figure out soon.
+          // TODO(b/117088665)
+          .put("lang.Package.getImplementationVersion.Package_getImplementationVersion_A01", any())
           .build(); // end of flakyWhenRun
 
   public static final Multimap<String, TestCondition> timeoutsWhenRun =
