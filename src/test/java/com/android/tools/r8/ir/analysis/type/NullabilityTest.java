@@ -50,7 +50,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();
     IRCode irCode =
         foo.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    NonNullTracker nonNullTracker = new NonNullTracker();
+    NonNullTracker nonNullTracker = new NonNullTracker(appInfo);
     nonNullTracker.addNonNull(irCode);
     TypeAnalysis analysis = new TypeAnalysis(appInfo, foo);
     analysis.widening(foo, irCode);

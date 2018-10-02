@@ -161,7 +161,7 @@ public class IRConverter {
     this.enableWholeProgramOptimizations = appView != null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
-      this.nonNullTracker = new NonNullTracker();
+      this.nonNullTracker = new NonNullTracker(appInfo);
       this.inliner = new Inliner(appView.withLiveness(), this, options);
       this.outliner = new Outliner(appInfo.withLiveness(), options, this);
       this.memberValuePropagation =

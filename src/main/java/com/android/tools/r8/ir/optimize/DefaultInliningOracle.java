@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -19,6 +20,7 @@ import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import java.util.BitSet;
@@ -29,6 +31,7 @@ import java.util.function.Predicate;
 
 final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final Inliner inliner;
   private final DexEncodedMethod method;
   private final IRCode code;
@@ -40,6 +43,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   private int instructionAllowance;
 
   DefaultInliningOracle(
+      AppView<? extends AppInfoWithLiveness> appView,
       Inliner inliner,
       DexEncodedMethod method,
       IRCode code,
@@ -48,6 +52,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       InternalOptions options,
       int inliningInstructionLimit,
       int inliningInstructionAllowance) {
+    this.appView = appView;
     this.inliner = inliner;
     this.method = method;
     this.code = code;
@@ -379,8 +384,9 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       assert IteratorUtils.peekNext(blockIterator) == block;
 
       // Kick off the tracker to add non-null IRs only to the inlinee blocks.
-      Set<Value> nonNullValues = new NonNullTracker()
-          .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
+      Set<Value> nonNullValues =
+          new NonNullTracker(appView.appInfo())
+              .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
       assert !blockIterator.hasNext();
 
       // Restore the old state of the iterator.

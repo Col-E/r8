@@ -4,6 +4,8 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
@@ -30,7 +32,10 @@ import java.util.function.Predicate;
 
 public class NonNullTracker {
 
-  public NonNullTracker() {
+  private final AppInfo appInfo;
+
+  public NonNullTracker(AppInfo appInfo) {
+    this.appInfo = appInfo;
   }
 
   @VisibleForTesting
@@ -260,6 +265,8 @@ public class NonNullTracker {
   }
 
   public void cleanupNonNull(IRCode code) {
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
+
     InstructionIterator it = code.instructionIterator();
     boolean needToCheckTrivialPhis = false;
     while (it.hasNext()) {
@@ -275,6 +282,16 @@ public class NonNullTracker {
         NonNull nonNull = instruction.asNonNull();
         Value src = nonNull.src();
         Value dest = nonNull.dest();
+
+        // Add all values whose definition may depend on `dest` to `affectedValues`.
+        for (Instruction user : dest.uniqueUsers()) {
+          if (user.outValue() != null) {
+            affectedValues.add(user.outValue());
+          }
+        }
+        affectedValues.addAll(dest.uniquePhiUsers());
+
+        // Replace `dest` by `src`.
         needToCheckTrivialPhis = needToCheckTrivialPhis || dest.uniquePhiUsers().size() != 0;
         dest.replaceUsers(src);
         it.remove();
@@ -290,6 +307,17 @@ public class NonNullTracker {
     if (needToCheckTrivialPhis) {
       code.removeAllTrivialPhis();
     }
+
+    // We need to update the types of all values whose definitions depend on a non-null value.
+    // This is needed to preserve soundness of the types after the NonNull instructions have been
+    // removed.
+    //
+    // As an example, consider a check-cast instruction on the form "z = (T) y". If y used to be
+    // defined by a NonNull instruction, then the type analysis could have used this information
+    // to mark z as non-null. However, cleanupNonNull() have now replaced y by a nullable value x.
+    // Since z is defined as "z = (T) x", and x is nullable, it is no longer sound to have that z
+    // is not nullable. This is fixed by rerunning the type analysis for the affected values.
+    new TypeAnalysis(appInfo, code.method).widening(affectedValues);
   }
 
 }
