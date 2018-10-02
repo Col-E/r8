@@ -172,10 +172,11 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
       // The ordering of methods and fields may not be deterministic due to concurrency
       // (see b/116027780).
-      synchronizedCollectAll(collector, sortedCopyIfPotentiallyNotSorted(directMethods));
-      synchronizedCollectAll(collector, sortedCopyIfPotentiallyNotSorted(virtualMethods));
-      synchronizedCollectAll(collector, sortedCopyIfPotentiallyNotSorted(staticFields));
-      synchronizedCollectAll(collector, sortedCopyIfPotentiallyNotSorted(instanceFields));
+      sortMembers();
+      synchronizedCollectAll(collector, directMethods);
+      synchronizedCollectAll(collector, virtualMethods);
+      synchronizedCollectAll(collector, staticFields);
+      synchronizedCollectAll(collector, instanceFields);
     }
     if (annotations != null) {
       annotations.collectMixedSectionItems(collector);
@@ -184,16 +185,6 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       interfaces.collectMixedSectionItems(collector);
     }
     annotations.collectMixedSectionItems(collector);
-  }
-
-  private static <T extends KeyedDexItem<S>, S extends PresortedComparable<S>>
-      T[] sortedCopyIfPotentiallyNotSorted(T[] items) {
-    if (items.length > 1) {
-      T[] sorted = items.clone();
-      Arrays.sort(sorted, Comparator.comparing(KeyedDexItem::getKey));
-      return sorted;
-    }
-    return items;
   }
 
   private static <T extends DexItem> void synchronizedCollectAll(MixedSectionCollection collection,
@@ -301,6 +292,20 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     }
   }
 
+  public boolean isSorted() {
+    return isSorted(virtualMethods)
+        && isSorted(directMethods)
+        && isSorted(staticFields)
+        && isSorted(instanceFields);
+  }
+
+  private <T extends KeyedDexItem> boolean isSorted(T[] items) {
+    synchronized (items) {
+      T[] sorted = items.clone();
+      Arrays.sort(sorted, Comparator.comparing(KeyedDexItem::getKey));
+      return Arrays.equals(items, sorted);
+    }
+  }
   public DexEncodedArray getStaticValues() {
     // The sentinel value is left over for classes that actually have no fields.
     if (staticValues == SENTINEL_NOT_YET_COMPUTED) {
