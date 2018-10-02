@@ -842,7 +842,7 @@ public class JctfTestSpecifications {
               match(artRuntimesUpTo(Runtime.ART_V7_0_0)))
           .put("lang.Package.isSealed.Package_isSealed_A01", anyDexVm())
           .put(
-              "lang.Package.getSpecificationRuntime.ART_Package_getSpecificationVersion_A01",
+              "lang.Package.getSpecificationVersion.Package_getSpecificationVersion_A01",
               anyDexVm())
           .put("lang.Package.getAnnotationLjava_lang_Class.Package_getAnnotation_A01", any())
           .put(
@@ -850,7 +850,7 @@ public class JctfTestSpecifications {
               match(and(runtimes(Runtime.ART_V4_0_4), artRuntimesFrom(Runtime.ART_V7_0_0))))
           .put("lang.Package.getName.Package_getName_A01", anyDexVm())
           .put(
-              "lang.Package.getImplementationRuntime.ART_Package_getImplementationVersion_A01",
+              "lang.Package.getImplementationVersion.Package_getImplementationVersion_A01",
               anyDexVm())
           .put("lang.Package.getDeclaredAnnotations.Package_getDeclaredAnnotations_A01", any())
           .put("lang.Package.getSpecificationVendor.Package_getSpecificationVendor_A01", anyDexVm())
@@ -1682,9 +1682,6 @@ public class JctfTestSpecifications {
               "util.concurrent.AbstractExecutorService.invokeAllLjava_util_CollectionJLjava_util_concurrent_TimeUnit.AbstractExecutorService_invokeAll_A06",
               match(runtimes(Runtime.ART_V4_0_4)))
 
-          // This test always fails for unknown reason, will figure out soon.
-          // TODO(b/117088665)
-          .put("lang.Package.getImplementationVersion.Package_getImplementationVersion_A01", any())
           .build(); // end of flakyWhenRun
 
   public static final Multimap<String, TestCondition> timeoutsWhenRun =
