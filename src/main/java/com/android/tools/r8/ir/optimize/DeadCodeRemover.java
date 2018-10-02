@@ -22,10 +22,21 @@ import java.util.Queue;
 import java.util.Set;
 
 public class DeadCodeRemover {
+  private final IRCode code;
+  private final CodeRewriter codeRewriter;
+  private final GraphLense graphLense;
+  private final InternalOptions options;
 
-  public static void removeDeadCode(
+  public DeadCodeRemover(
       IRCode code, CodeRewriter codeRewriter, GraphLense graphLense, InternalOptions options) {
-    removeUnneededCatchHandlers(code, graphLense, options);
+    this.code = code;
+    this.codeRewriter = codeRewriter;
+    this.graphLense = graphLense;
+    this.options = options;
+  }
+
+  public void run() {
+    removeUnneededCatchHandlers();
     Queue<BasicBlock> worklist = new LinkedList<>();
     worklist.addAll(code.blocks);
     for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
@@ -104,15 +115,14 @@ public class DeadCodeRemover {
     }
   }
 
-  private static void removeUnneededCatchHandlers(
-      IRCode code, GraphLense graphLense, InternalOptions options) {
+  private void removeUnneededCatchHandlers() {
     for (BasicBlock block : code.blocks) {
       if (block.hasCatchHandlers()) {
         if (block.canThrow()) {
           if (options.enableVerticalClassMerging) {
             // Handle the case where an exception class has been merged into its sub class.
             block.renameGuardsInCatchHandlers(graphLense);
-            unlinkDeadCatchHandlers(block, graphLense);
+            unlinkDeadCatchHandlers(block);
           }
         } else {
           CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
@@ -127,7 +137,7 @@ public class DeadCodeRemover {
 
   // Due to class merging, it is possible that two exception classes have been merged into one. This
   // function removes catch handlers where the guards ended up being the same as a previous one.
-  private static void unlinkDeadCatchHandlers(BasicBlock block, GraphLense graphLense) {
+  private void unlinkDeadCatchHandlers(BasicBlock block) {
     assert block.hasCatchHandlers();
     CatchHandlers<BasicBlock> catchHandlers = block.getCatchHandlers();
     List<DexType> guards = catchHandlers.getGuards();
