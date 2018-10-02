@@ -299,7 +299,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         && isSorted(instanceFields);
   }
 
-  private <T extends KeyedDexItem> boolean isSorted(T[] items) {
+  private static <T extends KeyedDexItem<S>, S extends PresortedComparable<S>> boolean isSorted(
+      T[] items) {
     synchronized (items) {
       T[] sorted = items.clone();
       Arrays.sort(sorted, Comparator.comparing(KeyedDexItem::getKey));
