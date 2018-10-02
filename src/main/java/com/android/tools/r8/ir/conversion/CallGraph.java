@@ -499,10 +499,7 @@ public class CallGraph extends CallSiteInformation {
     }
 
     private void addClassInitializerTarget(DexType type) {
-      if (type.isArrayType()) {
-        type = type.toBaseType(appInfo.dexItemFactory);
-      }
-      DexClass clazz = appInfo.definitionFor(type);
+      DexClass clazz = appInfo.definitionFor(type.toBaseType(appInfo.dexItemFactory));
       if (clazz != null) {
         addClassInitializerTarget(clazz);
       }
