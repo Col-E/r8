@@ -5,6 +5,10 @@ package com.android.tools.r8.debug;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.R8;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
@@ -34,6 +38,18 @@ public class BreakPointEventsTestRunner extends DebugTestBase {
 
   public static DebugTestConfig d8Config() throws Exception {
     return new D8DebugTestConfig().compileAndAdd(temp, getClassFilePath());
+  }
+
+  public static DebugTestConfig r8CfConfig() throws Exception {
+    Path outCf = temp.getRoot().toPath().resolve("cf.jar");
+    R8.run(
+        R8Command.builder()
+            .setMode(CompilationMode.DEBUG)
+            .addProgramFiles(getClassFilePath())
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+            .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outCf))
+            .build());
+    return new CfDebugTestConfig(ToolHelper.getClassPathForTests()).addPaths(outCf);
   }
 
   public static DebugTestConfig dxConfig() throws Exception {
@@ -76,13 +92,20 @@ public class BreakPointEventsTestRunner extends DebugTestBase {
 
   @Parameters(name = "{0}")
   public static Collection<String> configs() {
-    return Arrays.asList("CF", "D8");
+    return Arrays.asList("CF", "D8", "R8/CF");
   }
 
-  private DebugTestConfig config;
+  private final DebugTestConfig config;
 
   public BreakPointEventsTestRunner(String name) throws Exception {
-    config = name.equals("CF") ? cfConfig() : name.equals("D8") ? d8Config() : null;
+    if (name.equals("CF")) {
+      config = cfConfig();
+    } else if (name.equals("D8")) {
+      config = d8Config();
+    } else {
+      assert name.equals("R8/CF");
+      config = r8CfConfig();
+    }
   }
 
   @Test
