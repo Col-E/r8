@@ -82,10 +82,7 @@ public class AnnotationRemover {
   }
 
   private boolean isAnnotationTypeLive(DexAnnotation annotation) {
-    DexType annotationType = annotation.annotation.type;
-    if (annotationType.isArrayType()) {
-      annotationType = annotationType.toBaseType(appInfo.dexItemFactory);
-    }
+    DexType annotationType = annotation.annotation.type.toBaseType(appInfo.dexItemFactory);
     DexClass definition = appInfo.definitionFor(annotationType);
     // TODO(73102187): How to handle annotations without definition.
     if (options.enableTreeShaking && definition == null) {

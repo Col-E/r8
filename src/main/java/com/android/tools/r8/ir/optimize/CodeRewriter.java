@@ -1633,10 +1633,7 @@ public class CodeRewriter {
       // If the cast type is not accessible in the current context, we should not remove the cast
       // in order to preserve IllegalAccessError. Note that JVM and ART behave differently: see
       // {@link com.android.tools.r8.ir.optimize.checkcast.IllegalAccessErrorTest}.
-      DexType baseCastType = castType;
-      if (baseCastType.isArrayType()) {
-        baseCastType = baseCastType.toBaseType(appInfo.dexItemFactory);
-      }
+      DexType baseCastType = castType.toBaseType(appInfo.dexItemFactory);
       DexClass castClass = definitionFor(baseCastType);
       if (castClass != null) {
         ConstraintWithTarget classVisibility = ConstraintWithTarget.deriveConstraint(

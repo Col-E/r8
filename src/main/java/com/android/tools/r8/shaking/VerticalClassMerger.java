@@ -557,9 +557,7 @@ public class VerticalClassMerger {
     }
 
     private boolean typeMayReferenceMergedSourceOrTarget(DexType type) {
-      if (type.isArrayType()) {
-        type = type.toBaseType(appInfo.dexItemFactory);
-      }
+      type = type.toBaseType(appInfo.dexItemFactory);
       if (type.isClassType()) {
         if (mergeeCandidates.contains(type)) {
           return true;

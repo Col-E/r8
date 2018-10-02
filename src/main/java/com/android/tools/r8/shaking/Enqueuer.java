@@ -297,10 +297,7 @@ public class Enqueuer {
 
   private <S extends DexItem, T extends Descriptor<S, T>> boolean registerItemWithTarget(
       Map<DexType, Set<T>> seen, T item) {
-    DexType holder = item.getHolder();
-    if (holder.isArrayType()) {
-      holder = holder.toBaseType(appInfo.dexItemFactory);
-    }
+    DexType holder = item.getHolder().toBaseType(appInfo.dexItemFactory);
     if (!holder.isClassType()) {
       return false;
     }
@@ -310,10 +307,7 @@ public class Enqueuer {
 
   private <S extends DexItem, T extends Descriptor<S, T>> boolean registerItemWithTargetAndContext(
       Map<DexType, Set<TargetWithContext<T>>> seen, T item, DexEncodedMethod context) {
-    DexType holder = item.getHolder();
-    if (holder.isArrayType()) {
-      holder = holder.toBaseType(appInfo.dexItemFactory);
-    }
+    DexType holder = item.getHolder().toBaseType(appInfo.dexItemFactory);
     if (!holder.isClassType()) {
       return false;
     }
@@ -495,12 +489,8 @@ public class Enqueuer {
 
     @Override
     public boolean registerTypeReference(DexType type) {
-      DexType baseType = type.toBaseType(appInfo.dexItemFactory);
-      if (baseType.isClassType()) {
-        markTypeAsLive(baseType);
-        return true;
-      }
-      return false;
+      markTypeAsLive(type);
+      return true;
     }
 
     @Override
@@ -652,7 +642,11 @@ public class Enqueuer {
   //
 
   private void markTypeAsLive(DexType type) {
-    assert type.isClassType();
+    type = type.toBaseType(appInfo.dexItemFactory);
+    if (!type.isClassType()) {
+      // Ignore primitive types.
+      return;
+    }
     if (liveTypes.add(type)) {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Type `%s` has become live.", type);
@@ -951,13 +945,8 @@ public class Enqueuer {
     // Mark the type live here, so that the class exists at runtime. Note that this also marks all
     // supertypes as live, so even if the field is actually on a supertype, its class will be live.
     markTypeAsLive(field.clazz);
-    DexType fieldType = field.type;
-    if (fieldType.isArrayType()) {
-      fieldType = fieldType.toBaseType(appInfo.dexItemFactory);
-    }
-    if (fieldType.isClassType()) {
-      markTypeAsLive(fieldType);
-    }
+    markTypeAsLive(field.type);
+
     // Find the actual field.
     DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
     if (encodedField == null) {
@@ -987,13 +976,7 @@ public class Enqueuer {
   private void markInstanceFieldAsLive(DexEncodedField field, KeepReason reason) {
     assert field != null;
     markTypeAsLive(field.field.clazz);
-    DexType fieldType = field.field.type;
-    if (fieldType.isArrayType()) {
-      fieldType = fieldType.toBaseType(appInfo.dexItemFactory);
-    }
-    if (fieldType.isClassType()) {
-      markTypeAsLive(fieldType);
-    }
+    markTypeAsLive(field.field.type);
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Adding instance field `%s` to live set.", field.field);
     }
@@ -1091,10 +1074,7 @@ public class Enqueuer {
       // like an invoke on a direct subtype of java.lang.Object that has no further subtypes.
       // As it has no subtypes, it cannot affect liveness of the program we are processing.
       // Ergo, we can ignore it. We need to make sure that the element type is available, though.
-      DexType baseType = method.holder.toBaseType(appInfo.dexItemFactory);
-      if (baseType.isClassType()) {
-        markTypeAsLive(baseType);
-      }
+      markTypeAsLive(method.holder);
       return;
     }
     DexClass holder = appInfo.definitionFor(method.holder);
@@ -1429,20 +1409,9 @@ public class Enqueuer {
 
   private void markParameterAndReturnTypesAsLive(DexEncodedMethod method) {
     for (DexType parameterType : method.method.proto.parameters.values) {
-      if (parameterType.isArrayType()) {
-        parameterType = parameterType.toBaseType(appInfo.dexItemFactory);
-      }
-      if (parameterType.isClassType()) {
-        markTypeAsLive(parameterType);
-      }
+      markTypeAsLive(parameterType);
     }
-    DexType returnType = method.method.proto.returnType;
-    if (returnType.isArrayType()) {
-      returnType = returnType.toBaseType(appInfo.dexItemFactory);
-    }
-    if (returnType.isClassType()) {
-      markTypeAsLive(returnType);
-    }
+    markTypeAsLive(method.method.proto.returnType);
   }
 
   private void collectProguardCompatibilityRule(KeepReason reason) {
