@@ -41,7 +41,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
         foo.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     checkCountOfNonNull(irCode, 0);
 
-    NonNullTracker nonNullTracker = new NonNullTracker();
+    NonNullTracker nonNullTracker = new NonNullTracker(appInfo);
 
     nonNullTracker.addNonNull(irCode);
     assertTrue(irCode.isConsistentSSA());

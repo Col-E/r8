@@ -51,6 +51,13 @@ public class TypeAnalysis {
     analyze();
   }
 
+  public void widening(Iterable<Value> values) {
+    mode = Mode.WIDENING;
+    assert worklist.isEmpty();
+    values.forEach(this::enqueue);
+    analyze();
+  }
+
   public void narrowing(Iterable<Value> values) {
     mode = Mode.NARROWING;
     assert worklist.isEmpty();

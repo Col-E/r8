@@ -559,6 +559,7 @@ public class Inliner {
       int inliningInstructionAllowance) {
 
     return new DefaultInliningOracle(
+        appView,
         this,
         method,
         code,
