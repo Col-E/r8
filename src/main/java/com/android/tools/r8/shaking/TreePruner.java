@@ -107,8 +107,8 @@ public class TreePruner {
   }
 
   private boolean isAttributeReferencingPrunedType(InnerClassAttribute attr) {
-    return !appInfo.liveTypes.contains(attr.getInner())
-        || !appInfo.liveTypes.contains(attr.getOuter());
+    return (attr.getInner() != null && !appInfo.liveTypes.contains(attr.getInner()))
+        || (attr.getOuter() != null && !appInfo.liveTypes.contains(attr.getOuter()));
   }
 
   private <S extends PresortedComparable<S>, T extends KeyedDexItem<S>> int firstUnreachableIndex(
