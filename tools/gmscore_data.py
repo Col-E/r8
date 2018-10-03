@@ -6,8 +6,7 @@ import glob
 import os
 import utils
 
-THIRD_PARTY = os.path.join(utils.REPO_ROOT, 'third_party')
-BASE = os.path.join(THIRD_PARTY, 'gmscore')
+BASE = os.path.join(utils.THIRD_PARTY, 'gmscore')
 
 V4_BASE = os.path.join(BASE, 'v4')
 V5_BASE = os.path.join(BASE, 'v5')
@@ -27,7 +26,7 @@ ANDROID_L_API = '21'
 
 # NOTE: we always use android.jar for SDK v25, later we might want to revise it
 #       to use proper android.jar version for each of gmscore version separately.
-ANDROID_JAR = os.path.join(THIRD_PARTY, 'android_jar', 'lib-v25', 'android.jar')
+ANDROID_JAR = utils.get_android_jar(25)
 
 VERSIONS = {
   'v4': {
@@ -113,7 +112,7 @@ VERSIONS = {
       'inputs': ['%s_deploy.jar' % LATEST_PREFIX],
       'pgconf': [
           '%s_proguard.config' % LATEST_PREFIX,
-          '%s/proguardsettings/GmsCore_proguard.config' % THIRD_PARTY],
+          '%s/proguardsettings/GmsCore_proguard.config' % utils.THIRD_PARTY],
       'min-api' : ANDROID_L_API,
     },
     'proguarded' : {

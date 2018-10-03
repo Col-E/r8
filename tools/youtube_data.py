@@ -6,9 +6,8 @@ import glob
 import os
 import utils
 
-THIRD_PARTY = os.path.join(utils.REPO_ROOT, 'third_party')
 ANDROID_L_API = '21'
-BASE = os.path.join(THIRD_PARTY, 'youtube')
+BASE = os.path.join(utils.THIRD_PARTY, 'youtube')
 
 V12_10_BASE = os.path.join(BASE, 'youtube.android_12.10')
 V12_10_PREFIX = os.path.join(V12_10_BASE, 'YouTubeRelease')
@@ -24,7 +23,7 @@ V13_37_PREFIX = os.path.join(V13_37_BASE, 'YouTubeRelease')
 
 # NOTE: we always use android.jar for SDK v25, later we might want to revise it
 #       to use proper android.jar version for each of youtube version separately.
-ANDROID_JAR = os.path.join(THIRD_PARTY, 'android_jar', 'lib-v25', 'android.jar')
+ANDROID_JAR = utils.get_android_jar(25)
 
 VERSIONS = {
   '12.10': {
@@ -37,7 +36,7 @@ VERSIONS = {
     'deploy' : {
       'inputs': ['%s_deploy.jar' % V12_10_PREFIX],
       'pgconf': ['%s_proguard.config' % V12_10_PREFIX,
-                 '%s/proguardsettings/YouTubeRelease_proguard.config' % THIRD_PARTY],
+                 '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
       'min-api' : ANDROID_L_API,
     }
     # The 'proguarded' version cannot be handled by D8/R8 because there are
@@ -59,7 +58,7 @@ VERSIONS = {
     'deploy' : {
       'inputs': ['%s_deploy.jar' % V12_17_PREFIX],
       'pgconf': ['%s_proguard.config' % V12_17_PREFIX,
-                 '%s/proguardsettings/YouTubeRelease_proguard.config' % THIRD_PARTY],
+                 '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
       'min-api' : ANDROID_L_API,
     },
     'proguarded' : {
@@ -79,7 +78,7 @@ VERSIONS = {
       'inputs': ['%s_deploy.jar' % V12_22_PREFIX],
       'pgconf': [
           '%s_proguard.config' % V12_22_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % THIRD_PARTY],
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
       'maindexrules' : [
           os.path.join(V12_22_BASE, 'mainDexClasses.rules'),
           os.path.join(V12_22_BASE, 'main-dex-classes-release.cfg'),
@@ -102,7 +101,7 @@ VERSIONS = {
       'inputs': ['%s_deploy.jar' % V13_37_PREFIX],
       'pgconf': [
           '%s_proguard.config' % V13_37_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % THIRD_PARTY],
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
       # Build for native multi dex, as Currently R8 cannot meet the main-dex
       # constraints.
       #'maindexrules' : [
