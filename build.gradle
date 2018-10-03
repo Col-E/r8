@@ -339,6 +339,7 @@ def x20Dependencies = [
         "gmscore/gmscore_v9",
         "gmscore/gmscore_v10",
         "gmscore/latest",
+        "nest/nest_20180926_7c6cfb",
         "photos/2017-06-06",
         "youtube/youtube.android_12.10",
         "youtube/youtube.android_12.17",

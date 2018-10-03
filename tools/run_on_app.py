@@ -14,13 +14,14 @@ import time
 import gmail_data
 import gmscore_data
 import golem
+import nest_data
 import toolhelper
 import utils
 import youtube_data
 import chrome_data
 
 TYPES = ['dex', 'deploy', 'proguarded']
-APPS = ['gmscore', 'youtube', 'gmail', 'chrome']
+APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome']
 COMPILERS = ['d8', 'r8']
 
 def ParseOptions(argv):
@@ -124,6 +125,7 @@ DISABLED_PERMUTATIONS = [
 def get_permutations():
   data_providers = {
       'gmscore': gmscore_data,
+      'nest': nest_data,
       'youtube': youtube_data,
       'chrome': chrome_data,
       'gmail': gmail_data
@@ -171,6 +173,9 @@ def run_with_options(options, args):
   if options.app == 'gmscore':
     options.version = options.version or 'v9'
     data = gmscore_data
+  elif options.app == 'nest':
+    options.version = options.version or '20180926'
+    data = nest_data
   elif options.app == 'youtube':
     options.version = options.version or '12.22'
     data = youtube_data
@@ -206,10 +211,12 @@ def run_with_options(options, args):
   values = version[options.type]
   inputs = None
   # For R8 'deploy' the JAR is located using the Proguard configuration
-  # -injars option. For chrome we don't have the injars in the proguard files.
+  # -injars option. For chrome and nest we don't have the injars in the
+  # proguard files.
   if 'inputs' in values and (options.compiler != 'r8'
                              or options.type != 'deploy'
-                             or options.app == 'chrome'):
+                             or options.app == 'chrome'
+                             or options.app == 'nest'):
     inputs = values['inputs']
 
   args.extend(['--output', outdir])

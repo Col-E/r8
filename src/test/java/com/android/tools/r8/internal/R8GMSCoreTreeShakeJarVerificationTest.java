@@ -21,15 +21,16 @@ public class R8GMSCoreTreeShakeJarVerificationTest extends GMSCoreCompilationTes
       int maxSize,
       Consumer<InternalOptions> optionsConsumer)
       throws Exception {
-    AndroidApp app = runAndCheckVerification(
-        CompilerUnderTest.R8,
-        mode,
-        hasReference ? base + REFERENCE_APK : null,
-        base + PG_CONF,
-        optionsConsumer,
-        // Don't pass any inputs. The input will be read from the -injars in the Proguard
-        // configuration file.
-        ImmutableList.of());
+    AndroidApp app =
+        runAndCheckVerification(
+            CompilerUnderTest.R8,
+            mode,
+            hasReference ? base + REFERENCE_APK : null,
+            ImmutableList.of(base + PG_CONF),
+            optionsConsumer,
+            // Don't pass any inputs. The input will be read from the -injars in the Proguard
+            // configuration file.
+            ImmutableList.of());
     int bytes = applicationSize(app);
     assertTrue("Expected max size of " + maxSize + ", got " + bytes, bytes < maxSize);
     return app;

@@ -27,7 +27,7 @@ public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase 
             CompilerUnderTest.R8,
             CompilationMode.RELEASE,
             BASE + APK,
-            BASE + PG_CONF,
+            ImmutableList.of(BASE + PG_CONF),
             options -> options.proguardMapConsumer = new FileConsumer(proguardMapPath),
             // Don't pass any inputs. The input will be read from the -injars in the Proguard
             // configuration file.

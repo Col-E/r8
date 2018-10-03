@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public abstract class DexClass extends DexDefinition {
 
@@ -430,6 +431,10 @@ public abstract class DexClass extends DexDefinition {
 
   public void clearInnerClasses() {
     innerClasses.clear();
+  }
+
+  public void removeInnerClasses(Predicate<InnerClassAttribute> predicate) {
+    innerClasses.removeIf(predicate::test);
   }
 
   /** Returns kotlin class info if the class is synthesized by kotlin compiler. */

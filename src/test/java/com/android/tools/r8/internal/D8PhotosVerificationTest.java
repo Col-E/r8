@@ -6,7 +6,6 @@ package com.android.tools.r8.internal;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -16,8 +15,7 @@ public class D8PhotosVerificationTest extends CompilationTestBase {
       "third_party/photos/2017-06-06/PhotosEnglishOnlyLegacy_proguard.jar";
 
   public void runD8AndCheckVerification(CompilationMode mode, String version)
-      throws ProguardRuleParserException, ExecutionException, IOException,
-      CompilationFailedException {
+      throws ExecutionException, IOException, CompilationFailedException {
     runAndCheckVerification(CompilerUnderTest.D8, mode, version, null, version);
   }
 
