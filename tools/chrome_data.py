@@ -5,8 +5,7 @@
 import os
 import utils
 
-THIRD_PARTY = os.path.join(utils.REPO_ROOT, 'third_party')
-BASE = os.path.join(THIRD_PARTY, 'chrome')
+BASE = os.path.join(utils.THIRD_PARTY, 'chrome')
 
 INPUT_JARS = [
     'out/Release/gen/chrome/android/monochrome_public_apk/monochrome_public_apk.jar',

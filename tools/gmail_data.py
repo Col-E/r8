@@ -6,9 +6,8 @@ import glob
 import os
 import utils
 
-THIRD_PARTY = os.path.join(utils.REPO_ROOT, 'third_party')
 ANDROID_L_API = '21'
-BASE = os.path.join(THIRD_PARTY, 'gmail')
+BASE = os.path.join(utils.THIRD_PARTY, 'gmail')
 
 V170604_16_BASE = os.path.join(BASE, 'gmail_android_170604.16')
 V170604_16_PREFIX = os.path.join(V170604_16_BASE, 'Gmail_release_unstripped')
@@ -17,7 +16,7 @@ V180826_15_BASE = os.path.join(BASE, 'gmail_android_180826.15')
 V180826_15_PREFIX = os.path.join(V180826_15_BASE, 'Gmail_release_unstripped')
 
 # NOTE: We always use android.jar for SDK v25 for now.
-ANDROID_JAR = os.path.join(THIRD_PARTY, 'android_jar', 'lib-v25', 'android.jar')
+ANDROID_JAR = utils.get_android_jar(25)
 
 VERSIONS = {
   '170604.16': {
@@ -48,7 +47,7 @@ VERSIONS = {
       'inputs': ['%s_deploy.jar' % V180826_15_PREFIX],
       'pgconf': [
           '%s_proguard.config' % V180826_15_PREFIX,
-          '%s/proguardsettings/Gmail_proguard.config' % THIRD_PARTY],
+          '%s/proguardsettings/Gmail_proguard.config' % utils.THIRD_PARTY],
       'min-api' : ANDROID_L_API,
     },
     'proguarded' : {
