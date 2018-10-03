@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
@@ -98,10 +99,16 @@ public class TreePruner {
         clazz.setVirtualMethods(reachableMethods(clazz.virtualMethods(), clazz));
         clazz.setInstanceFields(reachableFields(clazz.instanceFields()));
         clazz.setStaticFields(reachableFields(clazz.staticFields()));
+        clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
         usagePrinter.visited();
       }
     }
     return newClasses;
+  }
+
+  private boolean isAttributeReferencingPrunedType(InnerClassAttribute attr) {
+    return !appInfo.liveTypes.contains(attr.getInner())
+        || !appInfo.liveTypes.contains(attr.getOuter());
   }
 
   private <S extends PresortedComparable<S>, T extends KeyedDexItem<S>> int firstUnreachableIndex(

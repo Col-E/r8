@@ -21,7 +21,6 @@ import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -48,6 +47,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -61,12 +61,11 @@ public abstract class CompilationTestBase {
       CompilerUnderTest compiler,
       CompilationMode mode,
       String referenceApk,
-      String pgConf,
+      List<String> pgConfs,
       String input)
-      throws ExecutionException, IOException, ProguardRuleParserException,
-          CompilationFailedException {
+      throws ExecutionException, IOException, CompilationFailedException {
     return runAndCheckVerification(
-        compiler, mode, referenceApk, pgConf, null, Collections.singletonList(input));
+        compiler, mode, referenceApk, pgConfs, null, Collections.singletonList(input));
   }
 
   public AndroidApp runAndCheckVerification(D8Command.Builder builder, String referenceApk)
@@ -82,18 +81,18 @@ public abstract class CompilationTestBase {
       CompilerUnderTest compiler,
       CompilationMode mode,
       String referenceApk,
-      String pgConf,
+      List<String> pgConfs,
       Consumer<InternalOptions> optionsConsumer,
       List<String> inputs)
-      throws ExecutionException, IOException, ProguardRuleParserException,
-      CompilationFailedException {
+      throws ExecutionException, IOException, CompilationFailedException {
     assertTrue(referenceApk == null || new File(referenceApk).exists());
     AndroidAppConsumers outputApp;
     if (compiler == CompilerUnderTest.R8) {
       R8Command.Builder builder = R8Command.builder();
       builder.addProgramFiles(ListUtils.map(inputs, Paths::get));
-      if (pgConf != null) {
-        builder.addProguardConfigurationFiles(Paths.get(pgConf));
+      if (pgConfs != null) {
+        builder.addProguardConfigurationFiles(
+            pgConfs.stream().map(Paths::get).collect(Collectors.toList()));
       }
       builder.setMode(mode);
       builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
