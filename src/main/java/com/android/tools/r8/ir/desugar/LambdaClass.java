@@ -128,6 +128,8 @@ final class LambdaClass {
   }
 
   private DexProgramClass synthesizeLambdaClass() {
+    DexMethod mainMethod = rewriter.factory
+        .createMethod(type, descriptor.erasedProto, descriptor.name);
     DexProgramClass clazz =
         new DexProgramClass(
             type,
@@ -146,8 +148,11 @@ final class LambdaClass {
             synthesizeStaticFields(),
             synthesizeInstanceFields(),
             synthesizeDirectMethods(),
-            synthesizeVirtualMethods(),
+            synthesizeVirtualMethods(mainMethod),
             rewriter.factory.getSkipNameValidationForTesting());
+    // Optimize main method.
+    rewriter.converter.optimizeMethodOnSynthesizedClass(
+        clazz, clazz.lookupVirtualMethod(mainMethod));
     // The method addSynthesizedFrom() may be called concurrently. To avoid a Concurrent-
     // ModificationException we must use synchronization.
     synchronized (synthesizedFrom) {
@@ -177,13 +182,11 @@ final class LambdaClass {
   }
 
   // Synthesize virtual methods.
-  private DexEncodedMethod[] synthesizeVirtualMethods() {
+  private DexEncodedMethod[] synthesizeVirtualMethods(DexMethod mainMethod) {
     DexEncodedMethod[] methods = new DexEncodedMethod[1 + descriptor.bridges.size()];
     int index = 0;
 
     // Synthesize main method.
-    DexMethod mainMethod = rewriter.factory
-        .createMethod(type, descriptor.erasedProto, descriptor.name);
     methods[index++] =
         new DexEncodedMethod(
             mainMethod,
