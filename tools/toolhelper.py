@@ -3,6 +3,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import gradle
+import os
 import subprocess
 import utils
 
@@ -23,6 +24,9 @@ def run(tool, args, build=None, debug=True,
   if profile:
     cmd.append('-agentlib:hprof=cpu=samples,interval=1,depth=8')
   cmd.extend(['-jar', utils.R8_JAR, tool])
+  lib, args = extract_lib_from_args(args)
+  if lib:
+    cmd.extend(["--lib", lib])
   cmd.extend(args)
   utils.PrintCmd(cmd)
   return subprocess.call(cmd)
@@ -36,3 +40,15 @@ def extract_build_from_args(input_args):
     else:
       args.append(arg)
   return build, args
+
+def extract_lib_from_args(input_args):
+  lib = None
+  args = []
+  for arg in input_args:
+    if arg == '--lib-android':
+      lib = utils.get_android_jar(26)
+    elif arg == '--lib-java':
+      lib = utils.RT_JAR
+    else:
+      args.append(arg)
+  return lib, args
