@@ -706,6 +706,11 @@ public class TestBase {
     }
   }
 
+  protected ProcessResult runOnVMRaw(AndroidApp app, Class<?> mainClass, Backend backend)
+      throws IOException {
+    return runOnVMRaw(app, mainClass.getCanonicalName(), backend);
+  }
+
   protected ProcessResult runOnVMRaw(AndroidApp app, String mainClass, Backend backend)
       throws IOException {
     switch (backend) {
