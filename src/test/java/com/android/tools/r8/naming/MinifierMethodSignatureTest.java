@@ -299,7 +299,7 @@ public class MinifierMethodSignatureTest extends TestBase {
     testSingleMethod("generic", "X", diagnostics -> {
       assertEquals(1, diagnostics.warnings.size());
       DiagnosticsChecker.checkDiagnostic(diagnostics.warnings.get(0), this::isOriginUnknown,
-          "Invalid signature for method",
+          "Invalid signature 'X' for method",
           "java.lang.Throwable Methods.generic(java.lang.Throwable, Methods$Inner)",
           "Expected ( at position 1");
     }, inspector -> noSignatureAttribute(lookupGeneric(inspector)));

@@ -278,7 +278,7 @@ public class MinifierFieldSignatureTest extends TestBase {
       assertEquals(1, diagnostics.warnings.size());
       // TODO(sgjesse): The position 2 reported here is one off.
       DiagnosticsChecker.checkDiagnostic(diagnostics.warnings.get(0), this::isOriginUnknown,
-          "Invalid signature for field",
+          "Invalid signature 'X' for field",
           "java.lang.String Fields.anX",
           "Expected L, [ or T at position 2");
     }, inspector -> noSignatureAttribute(lookupAnX(inspector)));
