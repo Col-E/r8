@@ -73,6 +73,22 @@ public class DexFileMerger {
       }
       throw new AssertionError("Unknown: " + this);
     }
+
+    public static MultidexStrategy parse(String value) {
+      switch (value) {
+        case "off":
+          return OFF;
+        case "given_shard":
+          return GIVEN_SHARD;
+        case "minimal":
+          return MINIMAL;
+        case "best_effort":
+          return BEST_EFFORT;
+        default:
+          throw new RuntimeException(
+              "Multidex argument must be either 'off', 'given_shard', 'minimal' or 'best_effort'.");
+      }
+    }
   }
 
   private static class Options {
@@ -129,7 +145,7 @@ public class DexFileMerger {
       }
       string = OptionsParsing.tryParseSingle(context, "--multidex", null);
       if (string != null) {
-        options.multidexMode = MultidexStrategy.valueOf(string.toUpperCase());
+        options.multidexMode = MultidexStrategy.parse(string);
         continue;
       }
       string = OptionsParsing.tryParseSingle(context, "--main-dex-list", null);
