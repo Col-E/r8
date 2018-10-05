@@ -5,6 +5,7 @@ package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -104,6 +105,21 @@ public class JasminTestBase extends TestBase {
       Consumer<InternalOptions> optionsConsumer)
       throws Exception {
     return ToolHelper.runR8(builder.build(), optionsConsumer);
+  }
+
+  protected AndroidApp compileWithR8InDebugMode(
+      JasminBuilder builder,
+      List<String> proguardConfigs,
+      Consumer<InternalOptions> optionsConsumer,
+      Backend backend)
+      throws Exception {
+    R8Command command =
+        ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
+            .addLibraryFiles(runtimeJar(backend))
+            .addProguardConfiguration(proguardConfigs, Origin.unknown())
+            .setMode(CompilationMode.DEBUG)
+            .build();
+    return ToolHelper.runR8(command, optionsConsumer);
   }
 
   protected AndroidApp compileWithR8(

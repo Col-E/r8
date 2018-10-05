@@ -1651,7 +1651,7 @@ public class CodeRewriter {
           && outValue.isUsed()
           && outValue.numberOfPhiUsers() == 0
           && outValue.uniqueUsers().stream().allMatch(isCheckcastToSubtype)) {
-        removeOrReplaceByDebugLocalWrite(it, inValue, outValue);
+        removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
         continue;
       }
 
@@ -1671,7 +1671,7 @@ public class CodeRewriter {
         if (TypeLatticeElement.lessThanOrEqual(appInfo, inTypeLattice, castTypeLattice)) {
           assert outTypeLattice.equals(inTypeLattice);
           needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
-          removeOrReplaceByDebugLocalWrite(it, inValue, outValue);
+          removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
           continue;
         }
         // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:
@@ -1691,16 +1691,20 @@ public class CodeRewriter {
     if (needToRemoveTrivialPhis) {
       code.removeAllTrivialPhis();
     }
-    it = code.instructionIterator();
     assert code.isConsistentSSA();
   }
 
   private void removeOrReplaceByDebugLocalWrite(
-      InstructionIterator it, Value inValue, Value outValue) {
-    if (outValue.getLocalInfo() != inValue.getLocalInfo() && outValue.hasLocalInfo()) {
+      Instruction currentInstruction, InstructionIterator it, Value inValue, Value outValue) {
+    if (outValue.hasLocalInfo() && outValue.getLocalInfo() != inValue.getLocalInfo()) {
       DebugLocalWrite debugLocalWrite = new DebugLocalWrite(outValue, inValue);
       it.replaceCurrentInstruction(debugLocalWrite);
     } else {
+      if (outValue.hasLocalInfo()) {
+        assert outValue.getLocalInfo() == inValue.getLocalInfo();
+        // Should remove the end-marker before replacing the current instruction.
+        currentInstruction.removeDebugValue(outValue.getLocalInfo());
+      }
       outValue.replaceUsers(inValue);
       it.removeOrReplaceByDebugLocalRead();
     }
