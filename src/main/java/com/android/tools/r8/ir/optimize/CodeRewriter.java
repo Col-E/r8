@@ -1259,9 +1259,7 @@ public class CodeRewriter {
                   Value argument = invoke.arguments().get(argumentIndex);
                   assert invoke.outType().verifyCompatible(argument.outType());
                   invoke.outValue().replaceUsers(argument);
-                  if (!options.isGeneratingClassFiles()) {
-                    invoke.setOutValue(null);
-                  }
+                  invoke.setOutValue(null);
                 }
               }
             }

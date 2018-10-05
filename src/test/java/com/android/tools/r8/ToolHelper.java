@@ -93,7 +93,7 @@ public class ToolHelper {
   public static final String SMALI_BUILD_DIR = TESTS_BUILD_DIR + "smali/";
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
-  public final static String PATH_SEPARATOR = File.pathSeparator;
+  public static final String PATH_SEPARATOR = File.pathSeparator;
   public static final String DEFAULT_DEX_FILENAME = "classes.dex";
   public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
 
@@ -105,6 +105,8 @@ public class ToolHelper {
   private static final String PROGUARD5_2_1 = "third_party/proguard/proguard5.2.1/bin/proguard";
   private static final String PROGUARD6_0_1 = "third_party/proguard/proguard6.0.1/bin/proguard";
   private static final String PROGUARD = PROGUARD5_2_1;
+
+  public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
 
   public enum DexVm {
     ART_4_0_4_TARGET(Version.V4_0_4, Kind.TARGET),
@@ -997,7 +999,7 @@ public class ToolHelper {
 
   public static ProcessResult forkR8Jar(Path dir, String... args)
       throws IOException, InterruptedException {
-    String r8Jar = Paths.get(LIBS_DIR,  "r8.jar").toAbsolutePath().toString();
+    String r8Jar = R8_JAR.toAbsolutePath().toString();
     return forkJavaWithJar(dir, r8Jar, Arrays.asList(args));
   }
 

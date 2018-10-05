@@ -1243,6 +1243,8 @@ test {
     }
 
     dependsOn getJarsFromSupportLibs
+    // R8.jar is required for running bootstrap tests.
+    dependsOn R8
     testLogging.exceptionFormat = 'full'
     if (project.hasProperty('print_test_stdout')) {
         testLogging.showStandardStreams = true

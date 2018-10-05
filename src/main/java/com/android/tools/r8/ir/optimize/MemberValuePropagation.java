@@ -252,7 +252,7 @@ public class MemberValuePropagation {
         if (target != null) {
           // Remove writes to dead (i.e. never read) fields.
           if (!isFieldRead(target, true)) {
-            iterator.remove();
+            iterator.removeOrReplaceByDebugLocalRead();
           }
         }
       }
