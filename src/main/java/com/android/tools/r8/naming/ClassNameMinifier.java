@@ -42,6 +42,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -188,8 +189,11 @@ class ClassNameMinifier {
     }
   }
 
-  private void parseError(DexDefinition item, Origin origin, GenericSignatureFormatError e) {
-    StringBuilder message = new StringBuilder("Invalid signature for ");
+  private void parseError(
+      DexDefinition item, Origin origin, String signature, GenericSignatureFormatError e) {
+    StringBuilder message = new StringBuilder("Invalid signature '");
+    message.append(signature);
+    message.append("' for ");
     if (item.isDexClass()) {
       message.append("class ");
       message.append((item.asDexClass()).getType().toSourceString());
@@ -202,43 +206,54 @@ class ClassNameMinifier {
       message.append(item.toSourceString());
     }
     message.append(".\n");
+    message.append("Signature is ignored and will not be present in the output.\n");
+    message.append("Parser error: ");
     message.append(e.getMessage());
     reporter.warning(new StringDiagnostic(message.toString(), origin));
   }
 
   private void renameTypesInGenericSignatures() {
     for (DexClass clazz : appInfo.classes()) {
-      clazz.annotations = rewriteGenericSignatures(clazz.annotations,
-          genericSignatureParser::parseClassSignature,
-          e -> parseError(clazz, clazz.getOrigin(), e));
-      clazz.forEachField(field ->
-          field.annotations = rewriteGenericSignatures(
-              field.annotations, genericSignatureParser::parseFieldSignature,
-              e -> parseError(field, clazz.getOrigin(), e)));
-      clazz.forEachMethod(method ->
-        method.annotations = rewriteGenericSignatures(
-            method.annotations, genericSignatureParser::parseMethodSignature,
-            e -> parseError(method, clazz.getOrigin(), e)));
+      clazz.annotations =
+          rewriteGenericSignatures(
+              clazz.annotations,
+              genericSignatureParser::parseClassSignature,
+              (signature, e) -> parseError(clazz, clazz.getOrigin(), signature, e));
+      clazz.forEachField(
+          field ->
+              field.annotations =
+                  rewriteGenericSignatures(
+                      field.annotations,
+                      genericSignatureParser::parseFieldSignature,
+                      (signature, e) -> parseError(field, clazz.getOrigin(), signature, e)));
+      clazz.forEachMethod(
+          method ->
+              method.annotations =
+                  rewriteGenericSignatures(
+                      method.annotations,
+                      genericSignatureParser::parseMethodSignature,
+                      (signature, e) -> parseError(method, clazz.getOrigin(), signature, e)));
     }
   }
 
   private DexAnnotationSet rewriteGenericSignatures(
       DexAnnotationSet annotations,
       Consumer<String> parser,
-      Consumer<GenericSignatureFormatError> parseError) {
+      BiConsumer<String, GenericSignatureFormatError> parseError) {
     // There can be no more than one signature annotation in an annotation set.
     final int VALID = -1;
     int invalid = VALID;
     for (int i = 0; i < annotations.annotations.length && invalid == VALID; i++) {
       DexAnnotation annotation = annotations.annotations[i];
       if (DexAnnotation.isSignatureAnnotation(annotation, appInfo.dexItemFactory)) {
+        String signature = DexAnnotation.getSignature(annotation);
         try {
-          parser.accept(DexAnnotation.getSignature(annotation));
+          parser.accept(signature);
           annotations.annotations[i] = DexAnnotation.createSignatureAnnotation(
               genericSignatureRewriter.getRenamedSignature(),
               appInfo.dexItemFactory);
         } catch (GenericSignatureFormatError e) {
-          parseError.accept(e);
+          parseError.accept(signature, e);
           invalid = i;
         }
       }
