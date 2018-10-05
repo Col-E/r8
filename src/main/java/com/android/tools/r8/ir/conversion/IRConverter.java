@@ -643,6 +643,26 @@ public class IRConverter {
     }
   }
 
+  public void optimizeMethodOnSynthesizedClass(DexProgramClass clazz, DexEncodedMethod method) {
+    if (!method.isProcessed()) {
+      try {
+        enterCachedClass(clazz);
+        // Process the generated method, but don't apply any outlining.
+        optimizeSynthesizedMethod(method);
+      } finally {
+        leaveCachedClass(clazz);
+      }
+    }
+  }
+
+  public void optimizeSynthesizedMethod(DexEncodedMethod method) {
+    if (!method.isProcessed()) {
+      // Process the generated method, but don't apply any outlining.
+      processMethod(method, ignoreOptimizationFeedback, x -> false, CallSiteInformation.empty(),
+          Outliner::noProcessing);
+    }
+  }
+
   private void enterCachedClass(DexProgramClass clazz) {
     DexProgramClass previous = cachedClasses.put(clazz.type, clazz);
     assert previous == null;
@@ -651,12 +671,6 @@ public class IRConverter {
   private void leaveCachedClass(DexProgramClass clazz) {
     DexProgramClass existing = cachedClasses.remove(clazz.type);
     assert existing == clazz;
-  }
-
-  public void optimizeSynthesizedMethod(DexEncodedMethod method) {
-    // Process the generated method, but don't apply any outlining.
-    processMethod(method, ignoreOptimizationFeedback, x -> false, CallSiteInformation.empty(),
-        Outliner::noProcessing);
   }
 
   private String logCode(InternalOptions options, DexEncodedMethod method) {
