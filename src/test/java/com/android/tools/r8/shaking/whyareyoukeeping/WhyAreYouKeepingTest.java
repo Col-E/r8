@@ -33,7 +33,7 @@ public class WhyAreYouKeepingTest extends TestBase {
     String expected = String.join(System.lineSeparator(), ImmutableList.of(
         "com.android.tools.r8.shaking.whyareyoukeeping.A",
         "|- is live because referenced in keep rule:",
-        "|    -keep  class com.android.tools.r8.shaking.whyareyoukeeping.A {",
+        "|    -keep class com.android.tools.r8.shaking.whyareyoukeeping.A {",
         "|      *;",
         "|    };",
         ""));

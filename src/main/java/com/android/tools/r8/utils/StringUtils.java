@@ -59,9 +59,10 @@ public class StringUtils {
     return builder.toString();
   }
 
-  public static void appendNonEmpty(StringBuilder builder, String pre, Object item, String post) {
+  public static boolean appendNonEmpty(
+      StringBuilder builder, String pre, Object item, String post) {
     if (item == null) {
-      return;
+      return false;
     }
     String text = item.toString();
     if (!text.isEmpty()) {
@@ -72,7 +73,9 @@ public class StringUtils {
       if (post != null) {
         builder.append(post);
       }
+      return true;
     }
+    return false;
   }
 
   public static StringBuilder appendIndent(StringBuilder builder, String subject, int indent) {

@@ -320,11 +320,12 @@ public abstract class ProguardClassSpecification {
   }
 
   protected StringBuilder append(StringBuilder builder, boolean includeMemberRules) {
-    StringUtils.appendNonEmpty(builder, "@", classAnnotation, null);
-    StringUtils.appendNonEmpty(builder, "", classAccessFlags, null);
-    StringUtils.appendNonEmpty(builder, "!", negatedClassAccessFlags.toString().replace(" ", " !"),
-        null);
-    if (builder.length() > 0) {
+    boolean needsSpaceBeforeClassType =
+        StringUtils.appendNonEmpty(builder, "@", classAnnotation, null)
+            | StringUtils.appendNonEmpty(builder, "", classAccessFlags, null)
+            | StringUtils.appendNonEmpty(
+                builder, "!", negatedClassAccessFlags.toString().replace(" ", " !"), null);
+    if (needsSpaceBeforeClassType) {
       builder.append(' ');
     }
     if (classTypeNegated) {
@@ -339,12 +340,12 @@ public abstract class ProguardClassSpecification {
       builder.append(' ');
       builder.append(inheritanceClassName);
     }
-    if (includeMemberRules) {
-      builder.append(" {\n");
+    if (includeMemberRules && !memberRules.isEmpty()) {
+      builder.append(" {").append(System.lineSeparator());
       memberRules.forEach(memberRule -> {
         builder.append("  ");
         builder.append(memberRule);
-        builder.append(";\n");
+        builder.append(";").append(System.lineSeparator());
       });
       builder.append("}");
     }
