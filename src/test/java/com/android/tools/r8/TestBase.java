@@ -12,8 +12,11 @@ import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.SmaliWriter;
@@ -818,6 +821,13 @@ public class TestBase {
   protected Stream<Instruction> filterInstructionKind(
       DexCode dexCode, Class<? extends Instruction> kind) {
     return Arrays.stream(dexCode.instructions)
+        .filter(kind::isInstance)
+        .map(kind::cast);
+  }
+
+  protected Stream<CfInstruction> filterInstructionKind(
+      CfCode code, Class<? extends CfInstruction> kind) {
+    return code.getInstructions().stream()
         .filter(kind::isInstance)
         .map(kind::cast);
   }

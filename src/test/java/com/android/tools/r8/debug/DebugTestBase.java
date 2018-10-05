@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -79,7 +80,7 @@ import org.junit.rules.TestName;
  * The protocol messages are described here:
  * https://docs.oracle.com/javase/8/docs/platform/jpda/jdwp/jdwp-protocol.html
  */
-public abstract class DebugTestBase {
+public abstract class DebugTestBase extends TestBase {
 
   // Set to true to enable verbose logs
   private static final boolean DEBUG_TESTS = false;

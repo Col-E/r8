@@ -99,7 +99,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
   }
 
   @Test
-  public void downCasts() throws Exception {
+  public void downCasts_noLocal() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     // C < B < A
     ClassBuilder a = builder.addClass("A");
@@ -127,6 +127,91 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "-dontoptimize",
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
+
+    checkCheckCasts(app, main, "C");
+    checkRuntimeException(builder, app, CLASS_NAME, "ClassCastException");
+  }
+
+  @Test
+  public void downCasts_differentLocals() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+    // C < B < A
+    ClassBuilder a = builder.addClass("A");
+    a.addDefaultConstructor();
+    ClassBuilder b = builder.addClass("B", "A");
+    b.addDefaultConstructor();
+    ClassBuilder c = builder.addClass("C", "B");
+    c.addDefaultConstructor();
+    ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
+    MethodSignature main = classBuilder.addMainMethod(
+        ".limit stack 3",
+        ".limit locals 3",
+        ".var 0 is a LA; from Label1 to Label2",
+        ".var 1 is b LB; from Label1 to Label2",
+        ".var 2 is c LC; from Label1 to Label2",
+        "Label1:",
+        "new A",
+        "dup",
+        "invokespecial A/<init>()V",
+        "astore_0",
+        "aload_0",
+        "checkcast B", // Gone
+        "astore_1",
+        "aload_1",
+        "checkcast C", // Should be kept to preserve cast exception
+        "astore_2",
+        "Label2:",
+        "return");
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-keep class " + CLASS_NAME + " { *; }",
+        "-keep class A { *; }",
+        "-keep class B { *; }",
+        "-keep class C { *; }",
+        "-dontoptimize",
+        "-dontshrink");
+    AndroidApp app = compileWithR8InDebugMode(builder, pgConfigs, null, backend);
+
+    checkCheckCasts(app, main, "C");
+    checkRuntimeException(builder, app, CLASS_NAME, "ClassCastException");
+  }
+
+  @Test
+  public void downCasts_sameLocal() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+    // C < B < A
+    ClassBuilder a = builder.addClass("A");
+    a.addDefaultConstructor();
+    ClassBuilder b = builder.addClass("B", "A");
+    b.addDefaultConstructor();
+    ClassBuilder c = builder.addClass("C", "B");
+    c.addDefaultConstructor();
+    ClassBuilder classBuilder = builder.addClass(CLASS_NAME);
+    MethodSignature main = classBuilder.addMainMethod(
+        ".limit stack 3",
+        ".limit locals 1",
+        ".var 0 is a LA; from Label1 to Label2",
+        "Label1:",
+        "new A",
+        "dup",
+        "invokespecial A/<init>()V",
+        "astore_0",
+        "aload_0",
+        "checkcast B", // Gone
+        "astore_0",
+        "aload_0",
+        "checkcast C", // Should be kept to preserve cast exception
+        "Label2:",
+        "return");
+
+    List<String> pgConfigs = ImmutableList.of(
+        "-keep class " + CLASS_NAME + " { *; }",
+        "-keep class A { *; }",
+        "-keep class B { *; }",
+        "-keep class C { *; }",
+        "-dontoptimize",
+        "-dontshrink");
+    AndroidApp app = compileWithR8InDebugMode(builder, pgConfigs, null, backend);
 
     checkCheckCasts(app, main, "C");
     checkRuntimeException(builder, app, CLASS_NAME, "ClassCastException");
@@ -180,7 +265,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
         "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
-    checkCheckCasts(app, main, "Example");
+    checkCheckCasts(app, main, null);
     checkRuntimeException(builder, app, CLASS_NAME, "NullPointerException");
   }
 
@@ -201,6 +286,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
       assertTrue(!found && instruction.isCheckCast(maybeType));
       found = true;
     }
+    assertTrue(found);
   }
 
   private void checkRuntime(JasminBuilder builder, AndroidApp app, String className)
