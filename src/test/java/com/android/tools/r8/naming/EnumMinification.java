@@ -11,6 +11,7 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -55,7 +56,9 @@ public class EnumMinification extends TestBase {
         result.stderr,
         containsString(
             backend == Backend.DEX
-                ? "java.lang.NoSuchMethodException"
+                ? ToolHelper.getDexVm().isNewerThan(DexVm.ART_4_4_4_HOST)
+                    ? "java.lang.NoSuchMethodException"
+                    : "java.lang.NullPointerException"
                 : "java.lang.IllegalArgumentException"));
   }
 }
