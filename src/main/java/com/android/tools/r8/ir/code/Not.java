@@ -12,6 +12,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
@@ -35,8 +37,8 @@ public class Not extends Unop {
     LatticeElement sourceLattice = getLatticeElement.apply(source());
     if (sourceLattice.isConst()) {
       ConstNumber sourceConst = sourceLattice.asConst().getConstNumber();
-      ValueType valueType = ValueType.fromNumericType(type);
-      Value value = code.createValue(valueType, getLocalInfo());
+      TypeLatticeElement typeLattice  = PrimitiveTypeLatticeElement.fromNumericType(type);
+      Value value = code.createValue(typeLattice, getLocalInfo());
       ConstNumber newConst;
       if (type == NumericType.INT) {
         newConst = new ConstNumber(value, ~sourceConst.getIntValue());

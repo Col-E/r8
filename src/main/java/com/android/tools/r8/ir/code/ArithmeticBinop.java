@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
@@ -139,20 +140,20 @@ public abstract class ArithmeticBinop extends Binop {
       ConstNumber newConst;
       if (type == NumericType.INT) {
         int result = foldIntegers(leftConst.getIntValue(), rightConst.getIntValue());
-        Value value = code.createValue(ValueType.INT, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.INT, getLocalInfo());
         newConst = new ConstNumber(value, result);
       } else if (type == NumericType.LONG) {
         long result = foldLongs(leftConst.getLongValue(), rightConst.getLongValue());
-        Value value = code.createValue(ValueType.LONG, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.LONG, getLocalInfo());
         newConst = new ConstNumber(value, result);
       } else if (type == NumericType.FLOAT) {
         float result = foldFloat(leftConst.getFloatValue(), rightConst.getFloatValue());
-        Value value = code.createValue(ValueType.FLOAT, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.FLOAT, getLocalInfo());
         newConst = new ConstNumber(value, Float.floatToIntBits(result));
       } else {
         assert type == NumericType.DOUBLE;
         double result = foldDouble(leftConst.getDoubleValue(), rightConst.getDoubleValue());
-        Value value = code.createValue(ValueType.DOUBLE, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.DOUBLE, getLocalInfo());
         newConst = new ConstNumber(value, Double.doubleToLongBits(result));
       }
       return new ConstLatticeElement(newConst);

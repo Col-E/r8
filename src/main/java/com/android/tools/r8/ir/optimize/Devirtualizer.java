@@ -110,12 +110,12 @@ public class Devirtualizer {
           Value receiver = invoke.getReceiver();
           TypeLatticeElement receiverTypeLattice = receiver.getTypeLattice();
           TypeLatticeElement castTypeLattice =
-              TypeLatticeElement.fromDexType(appInfo, holderType, receiverTypeLattice.isNullable());
+              TypeLatticeElement.fromDexType(holderType, appInfo, receiverTypeLattice.isNullable());
           // Avoid adding trivial cast and up-cast.
           // We should not use strictlyLessThan(castType, receiverType), which detects downcast,
           // due to side-casts, e.g., A (unused) < I, B < I, and cast from A to B.
-          // TODO(b/72693244): Soon, there won't be a value with Bottom at this point.
-          if (receiverTypeLattice.isBottom()
+          // TODO(b/72693244): Soon, there won't be a value with imprecise type at this point.
+          if (!receiverTypeLattice.isPreciseType()
               || !TypeLatticeElement.lessThanOrEqual(
                   appInfo, receiverTypeLattice, castTypeLattice)) {
             Value newReceiver = null;
@@ -140,8 +140,8 @@ public class Devirtualizer {
             if (newReceiver == null) {
               newReceiver =
                   receiver.definition != null
-                      ? code.createValue(receiver.outType(), receiver.definition.getLocalInfo())
-                      : code.createValue(receiver.outType());
+                      ? code.createValue(receiverTypeLattice, receiver.definition.getLocalInfo())
+                      : code.createValue(receiverTypeLattice);
               // Cache the new receiver with a narrower type to avoid redundant checkcast.
               castedReceiverCache.putIfAbsent(receiver, new IdentityHashMap<>());
               castedReceiverCache.get(receiver).put(holderType, newReceiver);

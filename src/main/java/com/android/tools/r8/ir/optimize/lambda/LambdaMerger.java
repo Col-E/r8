@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.lambda;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
@@ -98,6 +99,7 @@ public final class LambdaMerger {
   // should not be happening very frequently and we ignore possible overhead.
   private final Set<DexEncodedMethod> methodsToReprocess = Sets.newIdentityHashSet();
 
+  private final AppInfo appInfo;
   private final DexItemFactory factory;
   private final Kotlin kotlin;
   private final DiagnosticsHandler reporter;
@@ -109,8 +111,9 @@ public final class LambdaMerger {
   // Lambda visitor throwing Unreachable on each lambdas it sees.
   private final LambdaTypeVisitor lambdaChecker;
 
-  public LambdaMerger(DexItemFactory factory, DiagnosticsHandler reporter) {
-    this.factory = factory;
+  public LambdaMerger(AppInfo appInfo, DiagnosticsHandler reporter) {
+    this.appInfo = appInfo;
+    this.factory = appInfo.dexItemFactory;
     this.kotlin = factory.kotlin;
     this.reporter = reporter;
 
@@ -346,7 +349,7 @@ public final class LambdaMerger {
 
   private final class AnalysisStrategy extends CodeProcessor {
     private AnalysisStrategy(DexEncodedMethod method, IRCode code) {
-      super(LambdaMerger.this.factory,
+      super(LambdaMerger.this.appInfo,
           LambdaMerger.this::strategyProvider, lambdaInvalidator, method, code);
     }
 
@@ -383,7 +386,7 @@ public final class LambdaMerger {
 
   private final class ApplyStrategy extends CodeProcessor {
     private ApplyStrategy(DexEncodedMethod method, IRCode code) {
-      super(LambdaMerger.this.factory,
+      super(LambdaMerger.this.appInfo,
           LambdaMerger.this::strategyProvider, lambdaChecker, method, code);
     }
 

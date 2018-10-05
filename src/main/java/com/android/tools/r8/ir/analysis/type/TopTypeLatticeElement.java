@@ -18,7 +18,7 @@ public class TopTypeLatticeElement extends TypeLatticeElement {
     return this;
   }
 
-  public static TopTypeLatticeElement getInstance() {
+  static TopTypeLatticeElement getInstance() {
     return INSTANCE;
   }
 

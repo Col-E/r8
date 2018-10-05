@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -13,7 +14,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
@@ -89,7 +89,7 @@ final class FieldValueHelper {
           new Phi(
               code.valueNumberGenerator.next(),
               block,
-              ValueType.fromDexType(field.type),
+              TypeLatticeElement.fromDexType(field.type),
               null,
               RegisterReadType.NORMAL);
       ins.put(block, phi);
@@ -137,7 +137,7 @@ final class FieldValueHelper {
     assert root == valueProducingInsn;
     if (defaultValue == null) {
       // If we met newInstance it means that default value is supposed to be used.
-      defaultValue = code.createValue(ValueType.fromDexType(field.type));
+      defaultValue = code.createValue(TypeLatticeElement.fromDexType(field.type));
       ConstNumber defaultValueInsn = new ConstNumber(defaultValue, 0);
       defaultValueInsn.setPosition(root.getPosition());
       LinkedList<Instruction> instructions = block.getInstructions();

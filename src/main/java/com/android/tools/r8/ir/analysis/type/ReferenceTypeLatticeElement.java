@@ -12,8 +12,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ReferenceTypeLatticeElement extends TypeLatticeElement {
-  private static final ReferenceTypeLatticeElement NULL =
+  private static final ReferenceTypeLatticeElement NULL_INSTANCE =
       new ReferenceTypeLatticeElement(DexItemFactory.nullValueType, true);
+  private static final ReferenceTypeLatticeElement REFERENCE_INSTANCE =
+      new ReferenceTypeLatticeElement(DexItemFactory.unknownType, true);
 
   final DexType type;
   final Set<DexType> interfaces;
@@ -28,8 +30,12 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
     this.interfaces = Collections.unmodifiableSet(interfaces);
   }
 
-  public static ReferenceTypeLatticeElement getNullTypeLatticeElement() {
-    return NULL;
+  static ReferenceTypeLatticeElement getNullTypeLatticeElement() {
+    return NULL_INSTANCE;
+  }
+
+  static ReferenceTypeLatticeElement getReferenceTypeLatticeElement() {
+    return REFERENCE_INSTANCE;
   }
 
   @Override
@@ -38,8 +44,13 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
+  public boolean isReferenceInstance() {
+    return type == DexItemFactory.unknownType;
+  }
+
+  @Override
   TypeLatticeElement asNullable() {
-    assert isNull();
+    assert isNull() || isReferenceInstance();
     return this;
   }
 
@@ -50,8 +61,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public TypeLatticeElement arrayGet(AppInfo appInfo) {
-    assert isNull();
-    return this;
+    return isNull() ? this : BOTTOM;
   }
 
   @Override

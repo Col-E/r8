@@ -13,7 +13,7 @@ public class WideTypeLatticeElement extends PrimitiveTypeLatticeElement {
     super();
   }
 
-  public static WideTypeLatticeElement getInstance() {
+  static WideTypeLatticeElement getInstance() {
     return WIDE_INSTANCE;
   }
 

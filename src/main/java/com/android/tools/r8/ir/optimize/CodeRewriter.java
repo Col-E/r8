@@ -76,7 +76,6 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
@@ -270,7 +269,7 @@ public class CodeRewriter {
   // For method with many self-recursive calls, insert a try-catch to disable inlining.
   // Marshmallow dex2oat aggressively inlines and eats up all the memory on devices.
   public static void disableDex2OatInliningForSelfRecursiveMethods(
-      IRCode code, InternalOptions options) {
+      IRCode code, InternalOptions options, AppInfo appInfo) {
     if (!options.canHaveDex2OatInliningIssue() || code.hasCatchHandlers()) {
       // Catch handlers disables inlining, so if the method already has catch handlers
       // there is nothing to do.
@@ -294,11 +293,14 @@ public class CodeRewriter {
       splitIterator.previous();
       BasicBlock newBlock = splitIterator.split(code, 1);
       // Generate rethrow block.
-      BasicBlock rethrowBlock =
-          BasicBlock.createRethrowBlock(code, lastSelfRecursiveCall.getPosition());
+      DexType guard = options.itemFactory.throwableType;
+      BasicBlock rethrowBlock = BasicBlock.createRethrowBlock(
+          code,
+          lastSelfRecursiveCall.getPosition(),
+          TypeLatticeElement.fromDexType(guard, appInfo, true));
       code.blocks.add(rethrowBlock);
       // Add catch handler to the block containing the last recursive call.
-      newBlock.addCatchHandler(rethrowBlock, options.itemFactory.throwableType);
+      newBlock.addCatchHandler(rethrowBlock, guard);
     }
   }
 
@@ -1656,11 +1658,11 @@ public class CodeRewriter {
       }
 
       TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
-      // TODO(b/72693244): Soon, there won't be a value with Bottom at this point.
-      if (!inTypeLattice.isBottom()) {
+      // TODO(b/72693244): Soon, there won't be a value with imprecise type at this point.
+      if (inTypeLattice.isPreciseType() || inTypeLattice.isNull()) {
         TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
         TypeLatticeElement castTypeLattice =
-            TypeLatticeElement.fromDexType(appInfo, castType, inTypeLattice.isNullable());
+            TypeLatticeElement.fromDexType(castType, appInfo, inTypeLattice.isNullable());
         // 1) Trivial cast.
         //   A a = ...
         //   A a' = (A) a;
@@ -2155,7 +2157,8 @@ public class CodeRewriter {
           for (ConstInstruction value : values) {
             stringValues.add(value.outValue());
           }
-          Value invokeValue = code.createValue(newArray.outType(), newArray.getLocalInfo());
+          Value invokeValue = code.createValue(
+              newArray.outValue().getTypeLattice(), newArray.getLocalInfo());
           InvokeNewArray invoke =
               new InvokeNewArray(dexItemFactory.stringArrayType, invokeValue, stringValues);
           for (Value value : newArray.inValues()) {
@@ -2664,7 +2667,7 @@ public class CodeRewriter {
         InstructionListIterator throwNullInsnIterator = throwNullBlock.listIterator();
 
         // Insert 'null' constant.
-        Value nullValue = code.createValue(ValueType.OBJECT, gotoInsn.getLocalInfo());
+        Value nullValue = code.createValue(TypeLatticeElement.NULL, gotoInsn.getLocalInfo());
         ConstNumber nullConstant = new ConstNumber(nullValue, 0);
         nullConstant.setPosition(insn.getPosition());
         throwNullInsnIterator.add(nullConstant);
@@ -2746,7 +2749,7 @@ public class CodeRewriter {
                          (theIf.getType() == Type.EQ &&
                            trueNumber.isIntegerOne() &&
                            falseNumber.isIntegerZero())) {
-                Value newOutValue = code.createValue(phi.outType(), phi.getLocalInfo());
+                Value newOutValue = code.createValue(phi.getTypeLattice(), phi.getLocalInfo());
                 ConstNumber cstToUse = trueNumber.isIntegerOne() ? trueNumber : falseNumber;
                 BasicBlock phiBlock = phi.getBlock();
                 Position phiPosition = phiBlock.getPosition();
@@ -2973,7 +2976,8 @@ public class CodeRewriter {
   }
 
   private Value addConstString(IRCode code, InstructionListIterator iterator, String s) {
-    Value value = code.createValue(ValueType.OBJECT);
+    TypeLatticeElement typeLattice = TypeLatticeElement.stringClassType(appInfo);
+    Value value = code.createValue(typeLattice);
     iterator.add(new ConstString(value, dexItemFactory.createString(s)));
     return value;
   }
@@ -3000,9 +3004,10 @@ public class CodeRewriter {
 
     // Now that the block is split there should not be any catch handlers in the block.
     assert !block.hasCatchHandlers();
-    Value out = code.createValue(ValueType.OBJECT);
     DexType javaLangSystemType = dexItemFactory.createType("Ljava/lang/System;");
     DexType javaIoPrintStreamType = dexItemFactory.createType("Ljava/io/PrintStream;");
+    Value out = code.createValue(
+        TypeLatticeElement.fromDexType(javaIoPrintStreamType, appInfo, false));
 
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     DexMethod print = dexItemFactory.createMethod(javaIoPrintStreamType, proto, "print");
@@ -3012,11 +3017,11 @@ public class CodeRewriter {
         new StaticGet(MemberType.OBJECT, out,
             dexItemFactory.createField(javaLangSystemType, javaIoPrintStreamType, "out")));
 
-    Value value = code.createValue(ValueType.OBJECT);
+    Value value = code.createValue(TypeLatticeElement.stringClassType(appInfo));
     iterator.add(new ConstString(value, dexItemFactory.createString("INVOKE ")));
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
 
-    value = code.createValue(ValueType.OBJECT);
+    value = code.createValue(TypeLatticeElement.stringClassType(appInfo));
     iterator.add(
         new ConstString(value, dexItemFactory.createString(method.method.qualifiedName())));
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
@@ -3042,7 +3047,7 @@ public class CodeRewriter {
       eol.link(successor);
 
       Value argument = arguments.get(i);
-      if (argument.outType() != ValueType.OBJECT) {
+      if (!argument.getTypeLattice().isReference()) {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, primitive)));
       } else {
         // Insert "if (argument != null) ...".
@@ -3070,7 +3075,7 @@ public class CodeRewriter {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, nul)));
         iterator = isNotNullBlock.listIterator();
         iterator.setInsertionPosition(position);
-        value = code.createValue(ValueType.OBJECT);
+        value = code.createValue(TypeLatticeElement.classClassType(appInfo));
         iterator.add(new InvokeVirtual(dexItemFactory.objectMethods.getClass, value,
             ImmutableList.of(arguments.get(i))));
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));

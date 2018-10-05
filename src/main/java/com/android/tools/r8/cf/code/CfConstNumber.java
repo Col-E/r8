@@ -124,6 +124,6 @@ public class CfConstNumber extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    builder.addConst(type, state.push(type).register, value);
+    builder.addConst(type.toTypeLattice(), state.push(type).register, value);
   }
 }

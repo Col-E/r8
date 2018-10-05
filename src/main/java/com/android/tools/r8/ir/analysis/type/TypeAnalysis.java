@@ -84,12 +84,12 @@ public class TypeAnalysis {
         TypeLatticeElement derived;
         if (argumentsSeen < 0) {
           // Receiver
-          derived = fromDexType(appInfo, encodedMethod.method.holder,
+          derived = fromDexType(encodedMethod.method.holder, appInfo,
               // Now we try inlining even when the receiver could be null.
               encodedMethod != context);
         } else {
           DexType argType = encodedMethod.method.proto.parameters.values[argumentsSeen];
-          derived = fromDexType(appInfo, argType, true);
+          derived = fromDexType(argType, appInfo, true);
         }
         argumentsSeen++;
         updateTypeOfValue(outValue, derived);

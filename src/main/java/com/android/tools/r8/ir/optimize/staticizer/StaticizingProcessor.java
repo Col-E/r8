@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
@@ -23,7 +24,6 @@ import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Outliner;
@@ -244,7 +244,7 @@ final class StaticizingProcessor {
       Value newValue = null;
       Value outValue = invoke.outValue();
       if (outValue != null) {
-        newValue = code.createValue(outValue.outType());
+        newValue = code.createValue(outValue.getTypeLattice());
         DebugLocalInfo localInfo = outValue.getLocalInfo();
         if (localInfo != null) {
           newValue.setLocalInfo(localInfo);
@@ -272,7 +272,9 @@ final class StaticizingProcessor {
           it.replaceCurrentInstruction(
               new StaticGet(
                   MemberType.fromDexType(field.type),
-                  code.createValue(ValueType.fromDexType(field.type), outValue.getLocalInfo()),
+                  code.createValue(
+                      TypeLatticeElement.fromDexType(field.type, classStaticizer.appInfo, true),
+                      outValue.getLocalInfo()),
                   field
               )
           );
@@ -300,7 +302,8 @@ final class StaticizingProcessor {
           Value outValue = invoke.outValue();
           Value newOutValue = method.proto.returnType.isVoidType() ? null
               : code.createValue(
-                  ValueType.fromDexType(method.proto.returnType),
+                  TypeLatticeElement.fromDexType(
+                      method.proto.returnType, classStaticizer.appInfo, true),
                   outValue == null ? null : outValue.getLocalInfo());
           it.replaceCurrentInstruction(
               new InvokeStatic(newMethod, newOutValue, invoke.inValues()));

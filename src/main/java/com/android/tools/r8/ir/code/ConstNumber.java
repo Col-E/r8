@@ -21,15 +21,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
-import com.android.tools.r8.ir.analysis.type.BottomTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.DoubleTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.FloatTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.IntTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.LongTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.ReferenceTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.SingleTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.WideTypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.NumberUtils;
@@ -49,8 +41,10 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public static ConstNumber copyOf(IRCode code, ConstNumber original) {
-    Value newValue =
-        new Value(code.valueNumberGenerator.next(), original.outType(), original.getLocalInfo());
+    Value newValue = new Value(
+        code.valueNumberGenerator.next(),
+        original.outValue().getTypeLattice(),
+        original.getLocalInfo());
     return new ConstNumber(newValue, original.getRawValue());
   }
 
@@ -278,22 +272,23 @@ public class ConstNumber extends ConstInstruction {
     // TODO(b/72693244): IR builder should know the type and assign a proper type lattice.
     switch (outType()) {
       case OBJECT:
-        return ReferenceTypeLatticeElement.getNullTypeLatticeElement();
+        assert isZero();
+        return TypeLatticeElement.NULL;
       case INT:
-        return IntTypeLatticeElement.getInstance();
+        return TypeLatticeElement.INT;
       case FLOAT:
-        return FloatTypeLatticeElement.getInstance();
+        return TypeLatticeElement.FLOAT;
       case LONG:
-        return LongTypeLatticeElement.getInstance();
+        return TypeLatticeElement.LONG;
       case DOUBLE:
-        return DoubleTypeLatticeElement.getInstance();
+        return TypeLatticeElement.DOUBLE;
       case INT_OR_FLOAT:
-        return SingleTypeLatticeElement.getInstance();
+        return TypeLatticeElement.SINGLE;
       case LONG_OR_DOUBLE:
-        return WideTypeLatticeElement.getInstance();
+        return TypeLatticeElement.DOUBLE;
       case INT_OR_FLOAT_OR_NULL:
       default:
-        return BottomTypeLatticeElement.getInstance();
+        return TypeLatticeElement.BOTTOM;
     }
   }
 }

@@ -228,12 +228,13 @@ public class If extends JumpInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
+    ValueType ifType = inValues.get(0).type;
     if (inValues.size() == 1) {
-      builder.add(new CfIf(type, inValues.get(0).type, builder.getLabel(getTrueTarget())));
+      builder.add(new CfIf(type, ifType, builder.getLabel(getTrueTarget())));
       return;
     }
     assert inValues.size() == 2;
     assert inValues.get(0).type == inValues.get(1).type;
-    builder.add(new CfIfCmp(type, inValues.get(0).type, builder.getLabel(getTrueTarget())));
+    builder.add(new CfIfCmp(type, ifType, builder.getLabel(getTrueTarget())));
   }
 }

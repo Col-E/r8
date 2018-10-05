@@ -18,7 +18,7 @@ public class FixedLocalValue extends Value {
   private final Phi phi;
 
   public FixedLocalValue(Phi phi) {
-    super(phi.getNumber(), phi.outType(), phi.getLocalInfo());
+    super(phi.getNumber(), phi.getTypeLattice(), phi.getLocalInfo());
     this.phi = phi;
   }
 

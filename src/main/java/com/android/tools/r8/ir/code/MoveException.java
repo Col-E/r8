@@ -94,14 +94,15 @@ public class MoveException extends Instruction {
     return true;
   }
 
-  private Set<DexType> collectExceptionTypes(DexItemFactory dexItemFactory) {
-    Set<DexType> exceptionTypes = new HashSet<>(getBlock().getPredecessors().size());
-    for (BasicBlock block : getBlock().getPredecessors()) {
+  public static Set<DexType> collectExceptionTypes(
+      BasicBlock currentBlock, DexItemFactory dexItemFactory) {
+    Set<DexType> exceptionTypes = new HashSet<>(currentBlock.getPredecessors().size());
+    for (BasicBlock block : currentBlock.getPredecessors()) {
       int size = block.getCatchHandlers().size();
       List<BasicBlock> targets = block.getCatchHandlers().getAllTargets();
       List<DexType> guards = block.getCatchHandlers().getGuards();
       for (int i = 0; i < size; i++) {
-        if (targets.get(i) == getBlock()) {
+        if (targets.get(i) == currentBlock) {
           DexType guard = guards.get(i);
           exceptionTypes.add(
               guard == dexItemFactory.catchAllType
@@ -115,14 +116,14 @@ public class MoveException extends Instruction {
 
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return helper.join(collectExceptionTypes(helper.getFactory()));
+    return helper.join(collectExceptionTypes(getBlock(), helper.getFactory()));
   }
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    Set<DexType> exceptionTypes = collectExceptionTypes(appInfo.dexItemFactory);
+    Set<DexType> exceptionTypes = collectExceptionTypes(getBlock(), appInfo.dexItemFactory);
     return TypeLatticeElement.join(
         appInfo,
-        exceptionTypes.stream().map(t -> TypeLatticeElement.fromDexType(appInfo, t, false)));
+        exceptionTypes.stream().map(t -> TypeLatticeElement.fromDexType(t, appInfo, false)));
   }
 }

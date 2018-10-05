@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -683,16 +684,20 @@ public class IRCode {
     return thisValue;
   }
 
-  public Value createValue(ValueType valueType, DebugLocalInfo local) {
-    return new Value(valueNumberGenerator.next(), valueType, local);
+  public Value createValue(TypeLatticeElement typeLattice, DebugLocalInfo local) {
+    return new Value(valueNumberGenerator.next(), typeLattice, local);
   }
 
-  public Value createValue(ValueType valueType) {
-    return createValue(valueType, null);
+  public Value createValue(TypeLatticeElement typeLattice) {
+    return createValue(typeLattice, null);
+  }
+
+  public Value createValue(DebugLocalInfo local) {
+    return createValue(TypeLatticeElement.BOTTOM, local);
   }
 
   public ConstNumber createIntConstant(int value) {
-    Value out = createValue(ValueType.INT);
+    Value out = createValue(TypeLatticeElement.INT);
     return new ConstNumber(out, value);
   }
 
@@ -701,7 +706,7 @@ public class IRCode {
   }
 
   public ConstNumber createConstNull() {
-    Value out = createValue(ValueType.OBJECT);
+    Value out = createValue(TypeLatticeElement.NULL);
     return new ConstNumber(out, 0);
   }
 

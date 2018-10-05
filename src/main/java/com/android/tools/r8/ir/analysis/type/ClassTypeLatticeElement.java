@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import java.util.Set;
 
@@ -45,11 +44,6 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   @Override
   public ClassTypeLatticeElement asClassTypeLatticeElement() {
     return this;
-  }
-
-  @Override
-  public TypeLatticeElement arrayGet(AppInfo appInfo) {
-    return objectType(appInfo, true);
   }
 
 }

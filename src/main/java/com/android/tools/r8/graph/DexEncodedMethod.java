@@ -301,10 +301,21 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public IRCode buildInliningIRForTesting(
-      InternalOptions options, ValueNumberGenerator valueNumberGenerator) {
+      InternalOptions options, ValueNumberGenerator valueNumberGenerator, AppInfo appInfo) {
     checkIfObsolete();
     return buildInliningIR(
-        null, GraphLense.getIdentityLense(), options, valueNumberGenerator, null, Origin.unknown());
+        appInfo,
+        GraphLense.getIdentityLense(),
+        options,
+        valueNumberGenerator,
+        null,
+        Origin.unknown());
+  }
+
+  public IRCode buildInliningIRForTesting(
+      InternalOptions options, ValueNumberGenerator valueNumberGenerator) {
+    checkIfObsolete();
+    return buildInliningIRForTesting(options, valueNumberGenerator, null);
   }
 
   public IRCode buildInliningIR(

@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -25,7 +26,6 @@ import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -276,7 +276,8 @@ public class LambdaRewriter {
     Value lambdaInstanceValue = invoke.outValue();
     if (lambdaInstanceValue == null) {
       // The out value might be empty in case it was optimized out.
-      lambdaInstanceValue = code.createValue(ValueType.OBJECT);
+      lambdaInstanceValue = code.createValue(
+          TypeLatticeElement.fromDexType(lambdaClass.type, appInfo, true));
     }
 
     // For stateless lambdas we replace InvokeCustom instruction with StaticGet

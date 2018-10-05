@@ -13,7 +13,7 @@ public class SingleTypeLatticeElement extends PrimitiveTypeLatticeElement {
     super();
   }
 
-  public static SingleTypeLatticeElement getInstance() {
+  static SingleTypeLatticeElement getInstance() {
     return SINGLE_INSTANCE;
   }
 

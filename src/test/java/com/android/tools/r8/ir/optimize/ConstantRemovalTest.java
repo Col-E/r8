@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.optimize;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Div;
@@ -16,7 +17,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.utils.InternalOptions;
@@ -69,14 +69,14 @@ public class ConstantRemovalTest {
     block.setNumber(0);
     Position position = Position.testingPosition();
 
-    Value v3 = new Value(3, ValueType.LONG, null);
+    Value v3 = new Value(3, TypeLatticeElement.LONG, null);
     v3.setNeedsRegister(true);
     new MockLiveIntervals(v3);
     Instruction instruction = new ConstNumber(v3, 0);
     instruction.setPosition(position);
     block.add(instruction);
 
-    Value v0 = new Value(0, ValueType.LONG, null);
+    Value v0 = new Value(0, TypeLatticeElement.LONG, null);
     v0.setNeedsRegister(true);
     new MockLiveIntervals(v0);
     instruction = new ConstNumber(v0, 10);
@@ -87,14 +87,14 @@ public class ConstantRemovalTest {
     instruction.setPosition(position);
     block.add(instruction);
 
-    Value v2 = new Value(2, ValueType.INT, null);
+    Value v2 = new Value(2, TypeLatticeElement.INT, null);
     v2.setNeedsRegister(true);
     new MockLiveIntervals(v2);
     instruction = new ConstNumber(v2, 10);
     instruction.setPosition(position);
     block.add(instruction);
 
-    Value v1 = new Value(1, ValueType.INT, null);
+    Value v1 = new Value(1, TypeLatticeElement.INT, null);
     v1.setNeedsRegister(true);
     new MockLiveIntervals(v1);
     instruction = new Move(v1 ,v2);
@@ -105,7 +105,7 @@ public class ConstantRemovalTest {
     instruction.setPosition(position);
     block.add(instruction);
 
-    Value v0_2 = new Value(0, ValueType.LONG, null);
+    Value v0_2 = new Value(0, TypeLatticeElement.LONG, null);
     v0_2.setNeedsRegister(true);
     new MockLiveIntervals(v0_2);
     instruction = new ConstNumber(v0_2, 10);

@@ -40,10 +40,10 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,7 +71,7 @@ public class DexSourceCode implements SourceCode {
   private Position currentPosition = null;
   private final CanonicalPositions canonicalPositions;
 
-  private final List<ValueType> argumentTypes;
+  private final List<TypeLatticeElement> argumentTypes;
 
   private List<DexDebugEntry> debugEntries = null;
   // In case of inlining the position of the invoke in the caller.
@@ -150,9 +150,9 @@ public class DexSourceCode implements SourceCode {
       builder.addThisArgument(register);
       ++register;
     }
-    for (ValueType type : argumentTypes) {
-      builder.addNonThisArgument(register, type);
-      register += type.requiredRegisters();
+    for (TypeLatticeElement typeLattice : argumentTypes) {
+      builder.addNonThisArgument(register, typeLattice);
+      register += typeLattice.requiredRegisters();
     }
   }
 
@@ -303,12 +303,12 @@ public class DexSourceCode implements SourceCode {
         arrayFilledDataPayloadResolver.getData(payloadOffset));
   }
 
-  private List<ValueType> computeArgumentTypes() {
-    List<ValueType> types = new ArrayList<>(proto.parameters.size());
+  private List<TypeLatticeElement> computeArgumentTypes() {
+    List<TypeLatticeElement> types = new ArrayList<>(proto.parameters.size());
     String shorty = proto.shorty.toString();
     for (int i = 1; i < proto.shorty.size; i++) {
-      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
-      types.add(valueType);
+      TypeLatticeElement typeLattice = TypeLatticeElement.fromTypeDescriptorChar(shorty.charAt(i));
+      types.add(typeLattice);
     }
     return types;
   }

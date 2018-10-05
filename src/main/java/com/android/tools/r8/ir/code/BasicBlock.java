@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -1174,10 +1175,11 @@ public class BasicBlock {
     return block;
   }
 
-  public static BasicBlock createRethrowBlock(IRCode code, Position position) {
+  public static BasicBlock createRethrowBlock(
+      IRCode code, Position position, TypeLatticeElement guardTypeLattice) {
     BasicBlock block = new BasicBlock();
-    MoveException moveException =
-        new MoveException(new Value(code.valueNumberGenerator.next(), ValueType.OBJECT, null));
+    MoveException moveException = new MoveException(
+        new Value(code.valueNumberGenerator.next(), guardTypeLattice, null));
     moveException.setPosition(position);
     Throw throwInstruction = new Throw(moveException.outValue);
     throwInstruction.setPosition(position);
@@ -1438,11 +1440,13 @@ public class BasicBlock {
       Consumer<BasicBlock> onNewBlock) {
     List<BasicBlock> predecessors = this.getPredecessors();
     boolean hasMoveException = entry().isMoveException();
+    TypeLatticeElement exceptionTypeLattice = null;
     MoveException move = null;
     Position position = entry().getPosition();
     if (hasMoveException) {
       // Remove the move-exception instruction.
       move = entry().asMoveException();
+      exceptionTypeLattice = move.outValue().getTypeLattice();
       assert move.getDebugValues().isEmpty();
       getInstructions().remove(0);
     }
@@ -1458,7 +1462,10 @@ public class BasicBlock {
       newBlock.setNumber(nextBlockNumber++);
       newPredecessors.add(newBlock);
       if (hasMoveException) {
-        Value value = new Value(valueNumberGenerator.next(), ValueType.OBJECT, move.getLocalInfo());
+        Value value = new Value(
+            valueNumberGenerator.next(),
+            exceptionTypeLattice,
+            move.getLocalInfo());
         values.add(value);
         MoveException newMove = new MoveException(value);
         newBlock.add(newMove);
@@ -1483,7 +1490,7 @@ public class BasicBlock {
           new Phi(
               valueNumberGenerator.next(),
               this,
-              ValueType.OBJECT,
+              exceptionTypeLattice,
               move.getLocalInfo(),
               RegisterReadType.NORMAL);
       phi.addOperands(values);

@@ -70,12 +70,14 @@ public class DexItemFactory {
   public static final DexType nullValueType = new DexType(new DexString("NULL"));
 
   public static final DexString unknownTypeName = new DexString("UNKNOWN");
+  public static final DexType unknownType = new DexType(unknownTypeName);
 
   private static final IdentityHashMap<DexItem, DexItem> internalSentinels =
       new IdentityHashMap<>(
           ImmutableMap.of(
               catchAllType, catchAllType,
               nullValueType, nullValueType,
+              unknownType, unknownType,
               unknownTypeName, unknownTypeName));
 
   public DexItemFactory() {

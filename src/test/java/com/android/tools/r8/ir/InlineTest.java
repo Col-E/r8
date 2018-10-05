@@ -6,6 +6,7 @@ package com.android.tools.r8.ir;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -73,17 +74,18 @@ public class InlineTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
@@ -156,14 +158,15 @@ public class InlineTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA), valueNumberGenerator, options);
@@ -236,23 +239,24 @@ public class InlineTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     // Build three copies of a and b for inlining three times.
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodA = getMethod(application, signatureA);
-      IRCode codeA = methodA.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+      IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodB = getMethod(application, signatureB);
-      IRCode codeB = methodB.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+      IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
       additionalCode.add(codeB);
     }
 
@@ -372,17 +376,18 @@ public class InlineTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
@@ -486,17 +491,18 @@ public class InlineTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
@@ -599,17 +605,18 @@ public class InlineTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
@@ -713,23 +720,24 @@ public class InlineTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     // Build three copies of a and b for inlining three times.
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodA = getMethod(application, signatureA);
-      IRCode codeA = methodA.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+      IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodB = getMethod(application, signatureB);
-      IRCode codeB = methodB.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+      IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
       additionalCode.add(codeB);
     }
 
@@ -872,23 +880,24 @@ public class InlineTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     // Build three copies of a and b for inlining three times.
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodA = getMethod(application, signatureA);
-      IRCode codeA = methodA.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+      IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       DexEncodedMethod methodB = getMethod(application, signatureB);
-      IRCode codeB = methodB.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+      IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
       additionalCode.add(codeB);
     }
 
@@ -1121,17 +1130,18 @@ public class InlineTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
 
     return new TestApplication(application, method, code,
         ImmutableList.of(codeA, codeB), valueNumberGenerator, options);

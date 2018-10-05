@@ -91,7 +91,7 @@ public class ConstMethodType extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(appInfo, appInfo.dexItemFactory.methodTypeType, false);
+    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.methodTypeType, appInfo, false);
   }
 
   @Override

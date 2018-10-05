@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.EdgeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -41,10 +42,10 @@ public class Phi extends Value {
   public Phi(
       int number,
       BasicBlock block,
-      ValueType type,
+      TypeLatticeElement typeLattice,
       DebugLocalInfo local,
       RegisterReadType readType) {
-    super(number, type, local);
+    super(number, typeLattice, local);
     this.block = block;
     this.readType = readType;
     block.addPhi(this);
@@ -95,7 +96,7 @@ public class Phi extends Value {
           assert readType == RegisterReadType.DEBUG;
           BasicBlock block = getBlock();
           InstructionListIterator it = block.listIterator();
-          Value value = new Value(builder.getValueNumberGenerator().next(), type, null);
+          Value value = new Value(builder.getValueNumberGenerator().next(), getTypeLattice(), null);
           Position position = block.getPosition();
           Instruction definition = new DebugLocalUninitialized(value);
           definition.setBlock(block);

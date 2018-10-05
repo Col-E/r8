@@ -52,7 +52,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   @Override
   public TypeLatticeElement arrayGet(AppInfo appInfo) {
-    return fromDexType(appInfo, getArrayElementType(appInfo.dexItemFactory), true);
+    return fromDexType(getArrayElementType(appInfo.dexItemFactory), appInfo, true);
   }
 
   @Override

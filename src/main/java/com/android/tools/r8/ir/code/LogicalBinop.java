@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
@@ -116,7 +117,7 @@ public abstract class LogicalBinop extends Binop {
       ConstNumber newConst;
       if (type == NumericType.INT) {
         int result = foldIntegers(leftConst.getIntValue(), rightConst.getIntValue());
-        Value value = code.createValue(ValueType.INT, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.INT, getLocalInfo());
         newConst = new ConstNumber(value, result);
       } else {
         assert type == NumericType.LONG;
@@ -128,7 +129,7 @@ public abstract class LogicalBinop extends Binop {
           right = rightConst.getLongValue();
         }
         long result = foldLongs(leftConst.getLongValue(), right);
-        Value value = code.createValue(ValueType.LONG, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.LONG, getLocalInfo());
         newConst = new ConstNumber(value, result);
       }
       return new ConstLatticeElement(newConst);

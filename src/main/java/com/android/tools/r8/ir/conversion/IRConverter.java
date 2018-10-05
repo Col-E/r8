@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
 import com.android.tools.r8.ir.code.AlwaysMaterializingUser;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -34,7 +35,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
@@ -143,7 +143,7 @@ public class IRConverter {
     this.options = options;
     this.printer = printer;
     this.codeRewriter = new CodeRewriter(this, libraryMethodsReturningReceiver(), options);
-    this.stringConcatRewriter = new StringConcatRewriter(options.itemFactory);
+    this.stringConcatRewriter = new StringConcatRewriter(appInfo);
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(this) : null;
     this.interfaceMethodRewriter =
         (options.enableDesugaring && enableInterfaceMethodDesugaring())
@@ -151,8 +151,8 @@ public class IRConverter {
     this.twrCloseResourceRewriter =
         (options.enableDesugaring && enableTwrCloseResourceDesugaring())
             ? new TwrCloseResourceRewriter(this) : null;
-    this.lambdaMerger = options.enableLambdaMerging
-        ? new LambdaMerger(appInfo.dexItemFactory, options.reporter) : null;
+    this.lambdaMerger =
+        options.enableLambdaMerging ? new LambdaMerger(appInfo, options.reporter) : null;
     this.covariantReturnTypeAnnotationTransformer =
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
@@ -948,7 +948,7 @@ public class IRConverter {
 
   private void finalizeToDex(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // Workaround massive dex2oat memory use for self-recursive methods.
-    CodeRewriter.disableDex2OatInliningForSelfRecursiveMethods(code, options);
+    CodeRewriter.disableDex2OatInliningForSelfRecursiveMethods(code, options, appInfo);
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
     method.setCode(code, registerAllocator, options);
@@ -1061,7 +1061,7 @@ public class IRConverter {
     Instruction check = it.previous();
     assert addBefore == check;
     // Forced definition of const-zero
-    Value fixitValue = code.createValue(ValueType.INT);
+    Value fixitValue = code.createValue(TypeLatticeElement.INT);
     Instruction fixitDefinition = new AlwaysMaterializingDefinition(fixitValue);
     fixitDefinition.setBlock(addBefore.getBlock());
     fixitDefinition.setPosition(addBefore.getPosition());

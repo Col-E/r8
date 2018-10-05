@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -1031,8 +1032,8 @@ public class Outliner {
     public void buildPrelude(IRBuilder builder) {
       // Fill in the Argument instructions in the argument block.
       for (int i = 0; i < outline.arguments.size(); i++) {
-        ValueType valueType = outline.arguments.get(i).outType();
-        builder.addNonThisArgument(i, valueType);
+        TypeLatticeElement typeLattice = outline.arguments.get(i).getTypeLattice();
+        builder.addNonThisArgument(i, typeLattice);
       }
     }
 
@@ -1076,8 +1077,8 @@ public class Outliner {
       Value outValue = null;
       if (template.outValue() != null) {
         Value value = template.outValue();
-        outValue = builder
-            .writeRegister(outline.argumentCount(), value.outType(), ThrowingInfo.CAN_THROW);
+        outValue = builder.writeRegister(
+            outline.argumentCount(), value.getTypeLattice(), ThrowingInfo.CAN_THROW);
       }
 
       Instruction newInstruction = null;

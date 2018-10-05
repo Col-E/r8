@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -479,7 +480,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
   private int addPrimitiveUnboxing(int register, DexType primitiveType, DexType boxType) {
     DexMethod method = getUnboxMethod(primitiveType.descriptor.content[0], boxType);
 
-    List<ValueType> argValueTypes = Collections.singletonList(ValueType.OBJECT);
+    List<ValueType> argValueTypes = ImmutableList.of(ValueType.OBJECT);
     List<Integer> argRegisters = Collections.singletonList(register);
     add(builder -> builder.addInvoke(Invoke.Type.VIRTUAL,
         method, method.proto, argValueTypes, argRegisters));
@@ -502,7 +503,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     DexMethod method = factory.createMethod(boxType, proto, factory.valueOfMethodName);
 
     ValueType valueType = ValueType.fromDexType(primitiveType);
-    List<ValueType> argValueTypes = Collections.singletonList(valueType);
+    List<ValueType> argValueTypes = ImmutableList.of(valueType);
     List<Integer> argRegisters = Collections.singletonList(register);
     add(builder -> builder.addInvoke(Invoke.Type.STATIC,
         method, method.proto, argValueTypes, argRegisters));
