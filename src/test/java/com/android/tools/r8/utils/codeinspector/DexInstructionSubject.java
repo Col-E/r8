@@ -67,6 +67,8 @@ import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.code.SputShort;
 import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.code.Throw;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 
 public class DexInstructionSubject implements InstructionSubject {
   protected final Instruction instruction;
@@ -78,6 +80,65 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isFieldAccess() {
     return isInstanceGet() || isInstancePut() || isStaticGet() || isStaticPut();
+  }
+
+  @Override
+  public boolean isInstanceGet() {
+    return instruction instanceof Iget
+        || instruction instanceof IgetBoolean
+        || instruction instanceof IgetByte
+        || instruction instanceof IgetShort
+        || instruction instanceof IgetChar
+        || instruction instanceof IgetWide
+        || instruction instanceof IgetObject;
+  }
+
+  @Override
+  public boolean isInstancePut() {
+    return instruction instanceof Iput
+        || instruction instanceof IputBoolean
+        || instruction instanceof IputByte
+        || instruction instanceof IputShort
+        || instruction instanceof IputChar
+        || instruction instanceof IputWide
+        || instruction instanceof IputObject;
+  }
+
+  @Override
+  public boolean isStaticGet() {
+    return instruction instanceof Sget
+        || instruction instanceof SgetBoolean
+        || instruction instanceof SgetByte
+        || instruction instanceof SgetShort
+        || instruction instanceof SgetChar
+        || instruction instanceof SgetWide
+        || instruction instanceof SgetObject;
+  }
+
+  @Override
+  public boolean isStaticPut() {
+    return instruction instanceof Sput
+        || instruction instanceof SputBoolean
+        || instruction instanceof SputByte
+        || instruction instanceof SputShort
+        || instruction instanceof SputChar
+        || instruction instanceof SputWide
+        || instruction instanceof SputObject;
+  }
+
+  @Override
+  public DexField getField() {
+    assert isFieldAccess();
+    return instruction.getField();
+  }
+
+  @Override
+  public boolean isInvoke() {
+    return isInvokeVirtual()
+        || isInvokeInterface()
+        || isInvokeDirect()
+        || isInvokeSuper()
+        || isInvokeStatic();
   }
 
   @Override
@@ -93,6 +154,20 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isInvokeStatic() {
     return instruction instanceof InvokeStatic || instruction instanceof InvokeStaticRange;
+  }
+
+  public boolean isInvokeSuper() {
+    return instruction instanceof InvokeSuper || instruction instanceof InvokeSuperRange;
+  }
+
+  public boolean isInvokeDirect() {
+    return instruction instanceof InvokeDirect || instruction instanceof InvokeDirectRange;
+  }
+
+  @Override
+  public DexMethod getMethod() {
+    assert isInvoke();
+    return instruction.getMethod();
   }
 
   @Override
@@ -147,15 +222,6 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
-  public boolean isInvoke() {
-    return isInvokeVirtual()
-        || isInvokeInterface()
-        || isInvokeDirect()
-        || isInvokeSuper()
-        || isInvokeStatic();
-  }
-
-  @Override
   public boolean isNewInstance() {
     return instruction instanceof NewInstance;
   }
@@ -170,60 +236,8 @@ public class DexInstructionSubject implements InstructionSubject {
     return isCheckCast() && ((CheckCast) instruction).getType().toString().equals(type);
   }
 
-  public boolean isInvokeSuper() {
-    return instruction instanceof InvokeSuper || instruction instanceof InvokeSuperRange;
-  }
-
-  public boolean isInvokeDirect() {
-    return instruction instanceof InvokeDirect || instruction instanceof InvokeDirectRange;
-  }
-
   public boolean isConst4() {
     return instruction instanceof Const4;
-  }
-
-  @Override
-  public boolean isInstanceGet() {
-    return instruction instanceof Iget
-        || instruction instanceof IgetBoolean
-        || instruction instanceof IgetByte
-        || instruction instanceof IgetShort
-        || instruction instanceof IgetChar
-        || instruction instanceof IgetWide
-        || instruction instanceof IgetObject;
-  }
-
-  @Override
-  public boolean isInstancePut() {
-    return instruction instanceof Iput
-        || instruction instanceof IputBoolean
-        || instruction instanceof IputByte
-        || instruction instanceof IputShort
-        || instruction instanceof IputChar
-        || instruction instanceof IputWide
-        || instruction instanceof IputObject;
-  }
-
-  @Override
-  public boolean isStaticGet() {
-    return instruction instanceof Sget
-        || instruction instanceof SgetBoolean
-        || instruction instanceof SgetByte
-        || instruction instanceof SgetShort
-        || instruction instanceof SgetChar
-        || instruction instanceof SgetWide
-        || instruction instanceof SgetObject;
-  }
-
-  @Override
-  public boolean isStaticPut() {
-    return instruction instanceof Sput
-        || instruction instanceof SputBoolean
-        || instruction instanceof SputByte
-        || instruction instanceof SputShort
-        || instruction instanceof SputChar
-        || instruction instanceof SputWide
-        || instruction instanceof SputObject;
   }
 
   @Override

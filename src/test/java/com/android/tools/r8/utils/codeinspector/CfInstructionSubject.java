@@ -24,6 +24,8 @@ import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.Opcodes;
 
@@ -37,6 +39,41 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public boolean isFieldAccess() {
     return instruction instanceof CfFieldInstruction;
+  }
+
+  @Override
+  public boolean isInstancePut() {
+    return instruction instanceof CfFieldInstruction
+        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.PUTFIELD;
+  }
+
+  @Override
+  public boolean isStaticPut() {
+    return instruction instanceof CfFieldInstruction
+        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.PUTSTATIC;
+  }
+
+  @Override
+  public boolean isInstanceGet() {
+    return instruction instanceof CfFieldInstruction
+        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.GETFIELD;
+  }
+
+  @Override
+  public boolean isStaticGet() {
+    return instruction instanceof CfFieldInstruction
+        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.GETSTATIC;
+  }
+
+  @Override
+  public DexField getField() {
+    assert isFieldAccess();
+    return ((CfFieldInstruction) instruction).getField();
+  }
+
+  @Override
+  public boolean isInvoke() {
+    return instruction instanceof CfInvoke || instruction instanceof CfInvokeDynamic;
   }
 
   @Override
@@ -55,6 +92,12 @@ public class CfInstructionSubject implements InstructionSubject {
   public boolean isInvokeStatic() {
     return instruction instanceof CfInvoke
         && ((CfInvoke) instruction).getOpcode() == Opcodes.INVOKESTATIC;
+  }
+
+  @Override
+  public DexMethod getMethod() {
+    assert isInvoke();
+    return ((CfInvoke) instruction).getMethod();
   }
 
   @Override
@@ -105,37 +148,8 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
-  public boolean isInvoke() {
-    return instruction instanceof CfInvoke || instruction instanceof CfInvokeDynamic;
-  }
-
-  @Override
   public boolean isNewInstance() {
     return instruction instanceof CfNew;
-  }
-
-  @Override
-  public boolean isInstancePut() {
-    return instruction instanceof CfFieldInstruction
-        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.PUTFIELD;
-  }
-
-  @Override
-  public boolean isStaticPut() {
-    return instruction instanceof CfFieldInstruction
-        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.PUTSTATIC;
-  }
-
-  @Override
-  public boolean isInstanceGet() {
-    return instruction instanceof CfFieldInstruction
-        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.GETFIELD;
-  }
-
-  @Override
-  public boolean isStaticGet() {
-    return instruction instanceof CfFieldInstruction
-        && ((CfFieldInstruction) instruction).getOpcode() == Opcodes.GETSTATIC;
   }
 
   @Override
