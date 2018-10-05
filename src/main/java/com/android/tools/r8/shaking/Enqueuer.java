@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
@@ -95,7 +96,7 @@ public class Enqueuer {
   private boolean tracingMainDex = false;
 
   private final AppInfoWithSubtyping appInfo;
-  private final GraphLense graphLense;
+  private final AppView<? extends AppInfoWithSubtyping> appView;
   private final InternalOptions options;
   private RootSet rootSet;
 
@@ -220,25 +221,34 @@ public class Enqueuer {
    */
   private final ProguardConfiguration.Builder compatibility;
 
-  public Enqueuer(
-      AppInfoWithSubtyping appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
-      boolean forceProguardCompatibility) {
-    this(appInfo, graphLense, options, forceProguardCompatibility, null);
+  public Enqueuer(AppView<? extends AppInfoWithSubtyping> appView, InternalOptions options) {
+    this(appView, options, options.forceProguardCompatibility, null);
   }
 
   public Enqueuer(
-      AppInfoWithSubtyping appInfo,
-      GraphLense graphLense,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      InternalOptions options,
+      ProguardConfiguration.Builder compatibility) {
+    this(appView, options, options.forceProguardCompatibility, compatibility);
+  }
+
+  public Enqueuer(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      InternalOptions options,
+      boolean forceProguardCompatibility) {
+    this(appView, options, forceProguardCompatibility, null);
+  }
+
+  public Enqueuer(
+      AppView<? extends AppInfoWithSubtyping> appView,
       InternalOptions options,
       boolean forceProguardCompatibility,
       ProguardConfiguration.Builder compatibility) {
-    this.appInfo = appInfo;
-    this.graphLense = graphLense;
+    this.appInfo = appView.appInfo();
+    this.appView = appView;
     this.compatibility = compatibility;
-    this.options = options;
     this.forceProguardCompatibility = forceProguardCompatibility;
+    this.options = options;
   }
 
   private void enqueueRootItems(Map<DexDefinition, ProguardKeepRule> items) {
@@ -1272,7 +1282,7 @@ public class Enqueuer {
         numOfLiveItemsAfterProcessing += (long) liveFields.items.size();
         if (numOfLiveItemsAfterProcessing > numOfLiveItems) {
           RootSetBuilder consequentSetBuilder =
-              new RootSetBuilder(appInfo, rootSet.ifRules, options);
+              new RootSetBuilder(appView, rootSet.ifRules, options);
           ConsequentRootSet consequentRootSet = consequentSetBuilder.runForIfRules(
               executorService, liveTypes, liveMethods.getItems(), liveFields.getItems());
           enqueueRootItems(consequentRootSet.noShrinking);
@@ -1518,7 +1528,7 @@ public class Enqueuer {
   private void handleReflectiveBehavior(DexEncodedMethod method) {
     DexType originHolder = method.method.holder;
     Origin origin = appInfo.originFor(originHolder);
-    IRCode code = method.buildIR(appInfo, graphLense, options, origin);
+    IRCode code = method.buildIR(appInfo, appView.graphLense(), options, origin);
     code.instructionIterator().forEachRemaining(this::handleReflectiveBehavior);
   }
 

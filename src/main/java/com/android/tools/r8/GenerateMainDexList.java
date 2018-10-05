@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -41,10 +42,11 @@ public class GenerateMainDexList {
     try {
       DexApplication application =
           new ApplicationReader(app, options, timing).read(executor).toDirect();
-      AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
+      AppView<? extends AppInfoWithSubtyping> appView =
+          new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
       RootSet mainDexRootSet =
-          new RootSetBuilder(appInfo, application, options.mainDexKeepRules, options).run(executor);
-      Enqueuer enqueuer = new Enqueuer(appInfo, GraphLense.getIdentityLense(), options, true);
+          new RootSetBuilder(appView, application, options.mainDexKeepRules, options).run(executor);
+      Enqueuer enqueuer = new Enqueuer(appView, options, true);
       AppInfoWithLiveness mainDexAppInfo = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
       // LiveTypes is the result.
       Set<DexType> mainDexClasses =

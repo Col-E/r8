@@ -275,24 +275,15 @@ public class R8 {
         // kotlin metadata annotation is removed.
         computeKotlinInfoForProgramClasses(application, appView.appInfo());
 
-        final ProguardConfiguration.Builder compatibility =
+        ProguardConfiguration.Builder compatibility =
             ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
 
         rootSet =
             new RootSetBuilder(
-                    appView.appInfo(),
-                    application,
-                    options.proguardConfiguration.getRules(),
-                    options)
+                    appView, application, options.proguardConfiguration.getRules(), options)
                 .run(executorService);
 
-        Enqueuer enqueuer =
-            new Enqueuer(
-                appView.appInfo(),
-                appView.graphLense(),
-                options,
-                options.forceProguardCompatibility,
-                compatibility);
+        Enqueuer enqueuer = new Enqueuer(appView, options, compatibility);
         appView.setAppInfo(enqueuer.traceApplication(rootSet, executorService, timing));
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -416,10 +407,10 @@ public class R8 {
 
       if (!options.mainDexKeepRules.isEmpty()) {
         appView.setAppInfo(new AppInfoWithSubtyping(application));
-        Enqueuer enqueuer = new Enqueuer(appView.appInfo(), appView.graphLense(), options, true);
+        Enqueuer enqueuer = new Enqueuer(appView, options, true);
         // Lets find classes which may have code executed before secondary dex files installation.
         RootSet mainDexRootSet =
-            new RootSetBuilder(appView.appInfo(), application, options.mainDexKeepRules, options)
+            new RootSetBuilder(appView, application, options.mainDexKeepRules, options)
                 .run(executorService);
         AppInfoWithLiveness mainDexAppInfo =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
@@ -448,12 +439,7 @@ public class R8 {
       if (options.enableTreeShaking || options.enableMinification) {
         timing.begin("Post optimization code stripping");
         try {
-          Enqueuer enqueuer =
-              new Enqueuer(
-                  appView.appInfo(),
-                  appView.graphLense(),
-                  options,
-                  options.forceProguardCompatibility);
+          Enqueuer enqueuer = new Enqueuer(appView, options);
           appView.setAppInfo(enqueuer.traceApplication(rootSet, executorService, timing));
 
           AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();

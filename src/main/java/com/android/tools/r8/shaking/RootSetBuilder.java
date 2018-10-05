@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -51,7 +52,7 @@ import java.util.stream.Collectors;
 
 public class RootSetBuilder {
 
-  private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
   private final DirectMappedDexApplication application;
   private final Collection<ProguardConfigurationRule> rules;
   private final Map<DexDefinition, ProguardKeepRule> noShrinking = new IdentityHashMap<>();
@@ -76,22 +77,20 @@ public class RootSetBuilder {
   private final Set<ProguardIfRule> ifRules = Sets.newIdentityHashSet();
 
   public RootSetBuilder(
-      AppInfo appInfo,
+      AppView<? extends AppInfo> appView,
       DexApplication application,
       List<ProguardConfigurationRule> rules,
       InternalOptions options) {
-    this.appInfo = appInfo;
+    this.appView = appView;
     this.application = application.asDirect();
     this.rules = rules == null ? null : Collections.unmodifiableCollection(rules);
     this.options = options;
   }
 
   RootSetBuilder(
-      AppInfo appInfo,
-      Set<ProguardIfRule> ifRules,
-      InternalOptions options) {
-    this.appInfo = appInfo;
-    this.application = appInfo.app.asDirect();
+      AppView<? extends AppInfo> appView, Set<ProguardIfRule> ifRules, InternalOptions options) {
+    this.appView = appView;
+    this.application = appView.appInfo().app.asDirect();
     this.rules = Collections.unmodifiableCollection(ifRules);
     this.options = options;
   }
@@ -341,13 +340,14 @@ public class RootSetBuilder {
       Set<DexEncodedMethod> liveMethods,
       Set<DexEncodedField> liveFields) throws ExecutionException {
     application.timing.begin("Find consequent items for -if rules...");
-    Function<DexType, DexClass> definitionForWithLiveTypes = type -> {
-      DexClass clazz = appInfo.definitionFor(type);
-      if (clazz != null && liveTypes.contains(clazz.type)) {
-        return clazz;
-      }
-      return null;
-    };
+    Function<DexType, DexClass> definitionForWithLiveTypes =
+        type -> {
+          DexClass clazz = appView.appInfo().definitionFor(type);
+          if (clazz != null && liveTypes.contains(clazz.type)) {
+            return clazz;
+          }
+          return null;
+        };
     try {
       List<Future<?>> futures = new ArrayList<>();
       if (rules != null) {
@@ -358,7 +358,7 @@ public class RootSetBuilder {
           // -keep rule may vary (due to back references). So, we need to try all pairs of -if rule
           // and live types.
           for (DexType currentLiveType : liveTypes) {
-            DexClass currentLiveClass = appInfo.definitionFor(currentLiveType);
+            DexClass currentLiveClass = appView.appInfo().definitionFor(currentLiveType);
             if (currentLiveClass == null) {
               continue;
             }
@@ -550,7 +550,7 @@ public class RootSetBuilder {
     out.close();
   }
 
-  private static boolean satisfyClassType(ProguardConfigurationRule rule, DexClass clazz) {
+  private boolean satisfyClassType(ProguardConfigurationRule rule, DexClass clazz) {
     return rule.getClassType().matches(clazz) != rule.getClassTypeNegated();
   }
 
@@ -723,7 +723,7 @@ public class RootSetBuilder {
     if (type.isPrimitiveType()) {
       return;
     }
-    DexClass definition = appInfo.definitionFor(type);
+    DexClass definition = appView.appInfo().definitionFor(type);
     if (definition == null || definition.isLibraryClass()) {
       return;
     }
