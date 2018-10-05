@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.lambda;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -139,6 +140,7 @@ public abstract class CodeProcessor {
     }
   };
 
+  public final AppInfo appInfo;
   public final DexItemFactory factory;
   public final Kotlin kotlin;
 
@@ -156,13 +158,15 @@ public abstract class CodeProcessor {
   public final ListIterator<BasicBlock> blocks;
   private InstructionListIterator instructions;
 
-  CodeProcessor(DexItemFactory factory,
+  CodeProcessor(
+      AppInfo appInfo,
       Function<DexType, Strategy> strategyProvider,
       LambdaTypeVisitor lambdaChecker,
       DexEncodedMethod method, IRCode code) {
 
+    this.appInfo = appInfo;
     this.strategyProvider = strategyProvider;
-    this.factory = factory;
+    this.factory = appInfo.dexItemFactory;
     this.kotlin = factory.kotlin;
     this.lambdaChecker = lambdaChecker;
     this.method = method;

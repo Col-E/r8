@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
@@ -177,7 +178,8 @@ public abstract class SyntheticSourceCode implements SourceCode {
   @Override
   public final void buildPrelude(IRBuilder builder) {
     if (receiver != null) {
-      receiverValue = builder.writeRegister(receiverRegister, ValueType.OBJECT, NO_THROW);
+      receiverValue = builder.writeRegister(
+          receiverRegister, TypeLatticeElement.fromDexType(receiver), NO_THROW);
       builder.add(new Argument(receiverValue));
       receiverValue.markAsThis();
     }
@@ -185,8 +187,8 @@ public abstract class SyntheticSourceCode implements SourceCode {
     // Fill in the Argument instructions in the argument block.
     DexType[] parameters = proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {
-      ValueType valueType = ValueType.fromDexType(parameters[i]);
-      Value paramValue = builder.writeRegister(paramRegisters[i], valueType, NO_THROW);
+      TypeLatticeElement typeLattice = TypeLatticeElement.fromDexType(parameters[i]);
+      Value paramValue = builder.writeRegister(paramRegisters[i], typeLattice, NO_THROW);
       paramValues[i] = paramValue;
       builder.add(new Argument(paramValue));
     }

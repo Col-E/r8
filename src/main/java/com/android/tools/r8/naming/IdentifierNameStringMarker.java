@@ -130,7 +130,7 @@ public class IdentifierNameStringMarker {
           assert iterator.peekPrevious() == fieldPut;
           iterator.previous();
           // Prepare $decoupled just before $fieldPut
-          Value newIn = code.createValue(in.outType(), in.getLocalInfo());
+          Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
           ConstString decoupled = new ConstString(newIn, itemBasedString);
           decoupled.setPosition(fieldPut.getPosition());
           // If the current block has catch handler, split into two blocks.
@@ -192,7 +192,7 @@ public class IdentifierNameStringMarker {
             assert iterator.peekPrevious() == invoke;
             iterator.previous();
             // Prepare $decoupled just before $invoke
-            Value newIn = code.createValue(in.outType(), in.getLocalInfo());
+            Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
             ConstString decoupled = new ConstString(newIn, itemBasedString);
             decoupled.setPosition(invoke.getPosition());
             changes[positionOfIdentifier] = newIn;
@@ -239,7 +239,7 @@ public class IdentifierNameStringMarker {
               assert iterator.peekPrevious() == invoke;
               iterator.previous();
               // Prepare $decoupled just before $invoke
-              Value newIn = code.createValue(in.outType(), in.getLocalInfo());
+              Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
               ConstString decoupled = new ConstString(newIn, itemBasedString);
               decoupled.setPosition(invoke.getPosition());
               changes[i] = newIn;

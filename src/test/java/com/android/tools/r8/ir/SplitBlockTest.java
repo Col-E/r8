@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -20,7 +21,6 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
@@ -364,8 +364,10 @@ public class SplitBlockTest extends IrInjectionTestBase {
       BasicBlock newReturnBlock = iterator.split(code);
       // Modify the code to make the inserted block add the constant 10 to the original return
       // value.
-      Value newConstValue = new Value(test.valueNumberGenerator.next(), ValueType.INT, null);
-      Value newReturnValue = new Value(test.valueNumberGenerator.next(), ValueType.INT, null);
+      Value newConstValue =
+          new Value(test.valueNumberGenerator.next(), TypeLatticeElement.INT, null);
+      Value newReturnValue =
+          new Value(test.valueNumberGenerator.next(), TypeLatticeElement.INT, null);
       Value oldReturnValue = newReturnBlock.listIterator().next().asReturn().returnValue();
       newReturnBlock.listIterator().next().asReturn().returnValue().replaceUsers(newReturnValue);
       Instruction constInstruction = new ConstNumber(newConstValue, 10);

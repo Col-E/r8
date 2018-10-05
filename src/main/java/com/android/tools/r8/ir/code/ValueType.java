@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
 public enum ValueType {
   OBJECT,
@@ -179,6 +180,56 @@ public enum ValueType {
         return ValueType.DOUBLE;
       default:
         throw new Unreachable("Invalid numeric type '" + type + "'");
+    }
+  }
+
+  public static ValueType fromTypeLattice(TypeLatticeElement typeLatticeElement) {
+    if (typeLatticeElement.isBottom()) {
+      return INT_OR_FLOAT_OR_NULL;
+    }
+    if (typeLatticeElement.isReference()) {
+      return OBJECT;
+    }
+    if (typeLatticeElement.isInt()) {
+      return INT;
+    }
+    if (typeLatticeElement.isFloat()) {
+      return FLOAT;
+    }
+    if (typeLatticeElement.isLong()) {
+      return LONG;
+    }
+    if (typeLatticeElement.isDouble()) {
+      return DOUBLE;
+    }
+    if (typeLatticeElement.isSingle()) {
+      return INT_OR_FLOAT;
+    }
+    if (typeLatticeElement.isWide()) {
+      return LONG_OR_DOUBLE;
+    }
+    throw new Unreachable("Invalid type lattice '" + typeLatticeElement + "'");
+  }
+
+  public TypeLatticeElement toTypeLattice() {
+    switch (this) {
+      case OBJECT:
+        return TypeLatticeElement.REFERENCE;
+      case INT:
+        return TypeLatticeElement.INT;
+      case FLOAT:
+        return TypeLatticeElement.FLOAT;
+      case INT_OR_FLOAT:
+        return TypeLatticeElement.SINGLE;
+      case LONG:
+        return TypeLatticeElement.LONG;
+      case DOUBLE:
+        return TypeLatticeElement.DOUBLE;
+      case LONG_OR_DOUBLE:
+        return TypeLatticeElement.WIDE;
+      case INT_OR_FLOAT_OR_NULL:
+      default:
+        return TypeLatticeElement.BOTTOM;
     }
   }
 }

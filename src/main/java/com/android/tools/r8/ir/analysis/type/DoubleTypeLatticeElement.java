@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.type;
 public class DoubleTypeLatticeElement extends WideTypeLatticeElement {
   private static final DoubleTypeLatticeElement INSTANCE = new DoubleTypeLatticeElement();
 
-  public static DoubleTypeLatticeElement getInstance() {
+  static DoubleTypeLatticeElement getInstance() {
     return INSTANCE;
   }
 

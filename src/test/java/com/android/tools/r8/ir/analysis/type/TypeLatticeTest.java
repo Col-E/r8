@@ -59,15 +59,23 @@ public class TypeLatticeTest extends TestBase {
   }
 
   private TopTypeLatticeElement top() {
-    return TopTypeLatticeElement.getInstance();
+    return TypeLatticeElement.TOP;
   }
 
   private BottomTypeLatticeElement bottom() {
-    return BottomTypeLatticeElement.getInstance();
+    return TypeLatticeElement.BOTTOM;
+  }
+
+  private SingleTypeLatticeElement single() {
+    return TypeLatticeElement.SINGLE;
+  }
+
+  private WideTypeLatticeElement wide() {
+    return TypeLatticeElement.WIDE;
   }
 
   private TypeLatticeElement element(DexType type) {
-    return TypeLatticeElement.fromDexType(appInfo, type, true);
+    return TypeLatticeElement.fromDexType(type, appInfo, true);
   }
 
   private ArrayTypeLatticeElement array(int nesting, DexType base) {
@@ -101,6 +109,22 @@ public class TypeLatticeTest extends TestBase {
   }
 
   @Test
+  public void joinDifferentKindsIsTop() {
+    assertEquals(
+        top(),
+        join(element(factory.intType), element(factory.stringType)));
+    assertEquals(
+        top(),
+        join(element(factory.stringType), element(factory.doubleType)));
+    assertEquals(
+        top(),
+        join(single(), element(factory.objectType)));
+    assertEquals(
+        top(),
+        join(element(factory.objectType), wide()));
+  }
+
+  @Test
   public void joinBottomIsUnit() {
     DexType charSequence = factory.createType("Ljava/lang/CharSequence;");
     assertEquals(
@@ -112,6 +136,19 @@ public class TypeLatticeTest extends TestBase {
     assertEquals(
         element(charSequence),
         join(element(factory.stringType), bottom(), element(charSequence)));
+  }
+
+  @Test
+  public void joinPrimitiveTypes() {
+    assertEquals(
+        single(),
+        join(element(factory.intType), element(factory.floatType)));
+    assertEquals(
+        wide(),
+        join(element(factory.longType), element(factory.doubleType)));
+    assertEquals(
+        top(),
+        join(element(factory.intType), element(factory.longType)));
   }
 
   @Test
@@ -297,6 +334,11 @@ public class TypeLatticeTest extends TestBase {
         join(
             array(1, factory.intType),
             array(1, factory.floatType)));
+    assertEquals(
+        element(factory.objectType),
+        join(
+            array(1, factory.longType),
+            array(1, factory.intType)));
   }
 
   @Test

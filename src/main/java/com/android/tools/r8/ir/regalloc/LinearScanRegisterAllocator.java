@@ -10,6 +10,7 @@ import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 import com.android.tools.r8.cf.FixedLocalValue;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.ArithmeticBinop;
@@ -27,7 +28,6 @@ import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.regalloc.RegisterPositions.Type;
 import com.android.tools.r8.logging.Log;
@@ -2673,8 +2673,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return true;
   }
 
-  private Value createValue(ValueType type) {
-    Value value = code.createValue(type, null);
+  private Value createValue(TypeLatticeElement typeLattice) {
+    Value value = code.createValue(typeLattice, null);
     value.setNeedsRegister(true);
     return value;
   }
@@ -2726,7 +2726,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             argument.isLinked() ||
             argument == previous ||
             argument.hasRegisterConstraint()) {
-          newArgument = createValue(argument.outType());
+          newArgument = createValue(argument.getTypeLattice());
           Move move = new Move(newArgument, argument);
           move.setBlock(invoke.getBlock());
           replaceArgument(invoke, i, newArgument);

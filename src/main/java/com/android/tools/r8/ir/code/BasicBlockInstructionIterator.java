@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
@@ -363,8 +364,11 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
 
     int i = 0;
     if (downcast != null) {
+      Value receiver = invoke.inValues().get(0);
+      TypeLatticeElement castTypeLattice = TypeLatticeElement.fromDexType(
+          downcast, appInfo, receiver.getTypeLattice().isNullable());
       CheckCast castInstruction =
-          new CheckCast(code.createValue(ValueType.OBJECT), invoke.inValues().get(0), downcast);
+          new CheckCast(code.createValue(castTypeLattice), receiver, downcast);
       castInstruction.setPosition(invoke.getPosition());
 
       // Splice in the check cast operation.
@@ -544,7 +548,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
             new Phi(
                 code.valueNumberGenerator.next(),
                 newExitBlock,
-                returnType,
+                returnType.toTypeLattice(),
                 null,
                 RegisterReadType.NORMAL);
         phi.addOperands(operands);

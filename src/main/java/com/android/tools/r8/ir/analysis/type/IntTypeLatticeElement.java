@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.type;
 public class IntTypeLatticeElement extends SingleTypeLatticeElement {
   private static final IntTypeLatticeElement INSTANCE = new IntTypeLatticeElement();
 
-  public static IntTypeLatticeElement getInstance() {
+  static IntTypeLatticeElement getInstance() {
     return INSTANCE;
   }
 

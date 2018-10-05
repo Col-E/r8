@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -22,7 +23,6 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import java.util.function.Predicate;
@@ -68,19 +68,19 @@ public class MemberValuePropagation {
       ProguardMemberRule rule, IRCode code, Instruction instruction) {
     // Check if this value can be assumed constant.
     Instruction replacement = null;
-    ValueType valueType = instruction.outValue().outType();
+    TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
     if (rule != null && rule.hasReturnValue() && rule.getReturnValue().isSingleValue()) {
-      Value value = code.createValue(valueType, instruction.getLocalInfo());
-      assert valueType != ValueType.OBJECT || rule.getReturnValue().isNull();
+      Value value = code.createValue(typeLattice, instruction.getLocalInfo());
+      assert !typeLattice.isReference() || rule.getReturnValue().isNull();
       replacement = new ConstNumber(value, rule.getReturnValue().getSingleValue());
     }
     if (replacement == null &&
         rule != null && rule.hasReturnValue() && rule.getReturnValue().isField()) {
       DexField field = rule.getReturnValue().getField();
-      assert ValueType.fromDexType(field.type) == valueType;
+      assert TypeLatticeElement.fromDexType(field.type) == typeLattice;
       DexEncodedField staticField = appInfo.lookupStaticTarget(field.clazz, field);
       if (staticField != null) {
-        Value value = code.createValue(valueType, instruction.getLocalInfo());
+        Value value = code.createValue(typeLattice, instruction.getLocalInfo());
         replacement = staticField.getStaticValue().asConstInstruction(false, value);
       } else {
         throw new CompilationError(field.clazz.toSourceString() + "." + field.name.toString() +
@@ -164,8 +164,8 @@ public class MemberValuePropagation {
             }
             if (target.getOptimizationInfo().returnsConstant()) {
               long constant = target.getOptimizationInfo().getReturnedConstant();
-              ValueType valueType = invoke.outType();
-              Value value = code.createValue(valueType, invoke.getLocalInfo());
+              Value value = code.createValue(
+                  invoke.outValue().getTypeLattice(), invoke.getLocalInfo());
               Instruction knownConstReturn = new ConstNumber(value, constant);
               invoke.outValue().replaceUsers(value);
               invoke.setOutValue(null);

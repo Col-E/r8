@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -119,9 +118,9 @@ public class NonNullTracker {
         // ...
         // A: non_null_rcv <- non-null(rcv)
         // ...y
-        // TODO(b/72693244): Attach lattice when Value is created.
-        Value nonNullValue =
-            code.createValue(ValueType.OBJECT, knownToBeNonNullValue.getLocalInfo());
+        Value nonNullValue = code.createValue(
+            knownToBeNonNullValue.getTypeLattice(),
+            knownToBeNonNullValue.getLocalInfo());
         nonNullValueCollector.add(nonNullValue);
         NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
         nonNull.setPosition(current.getPosition());
@@ -219,9 +218,9 @@ public class NonNullTracker {
               }
               // Avoid adding a non-null for the value without meaningful users.
               if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
-                // TODO(b/72693244): Attach lattice when Value is created.
                 Value nonNullValue = code.createValue(
-                    knownToBeNonNullValue.outType(), knownToBeNonNullValue.getLocalInfo());
+                    knownToBeNonNullValue.getTypeLattice(),
+                    knownToBeNonNullValue.getLocalInfo());
                 nonNullValueCollector.add(nonNullValue);
                 NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, theIf);
                 InstructionListIterator targetIterator = target.listIterator();

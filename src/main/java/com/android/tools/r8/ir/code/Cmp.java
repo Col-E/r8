@@ -11,9 +11,11 @@ import com.android.tools.r8.code.CmplDouble;
 import com.android.tools.r8.code.CmplFloat;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.LongInterval;
@@ -179,7 +181,7 @@ public class Cmp extends Binop {
           result = (int) Math.signum(left - right);
         }
       }
-      Value value = code.createValue(ValueType.INT, getLocalInfo());
+      Value value = code.createValue(TypeLatticeElement.INT, getLocalInfo());
       ConstNumber newConst = new ConstNumber(value, result);
       return new ConstLatticeElement(newConst);
     } else if (leftLattice.isValueRange() && rightLattice.isConst()) {
@@ -207,7 +209,7 @@ public class Cmp extends Binop {
       return Bottom.getInstance();
     }
     int result = Integer.signum(Long.compare(leftRange.getMin(), rightRange.getMin()));
-    Value value = code.createValue(ValueType.INT, getLocalInfo());
+    Value value = code.createValue(TypeLatticeElement.INT, getLocalInfo());
     ConstNumber newConst = new ConstNumber(value, result);
     return new ConstLatticeElement(newConst);
   }
@@ -226,4 +228,10 @@ public class Cmp extends Binop {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfCmp(bias, type));
   }
+
+  @Override
+  public TypeLatticeElement evaluate(AppInfo appInfo) {
+    return TypeLatticeElement.INT;
+  }
+
 }

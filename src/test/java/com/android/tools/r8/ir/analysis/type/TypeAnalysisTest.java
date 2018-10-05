@@ -58,11 +58,10 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TypeAnalysisTest extends SmaliTestBase {
   private static final InternalOptions TEST_OPTIONS = new InternalOptions();
-  private static final TypeLatticeElement NULL =
-      ReferenceTypeLatticeElement.getNullTypeLatticeElement();
-  private static final TypeLatticeElement SINGLE = SingleTypeLatticeElement.getInstance();
-  private static final TypeLatticeElement INT = IntTypeLatticeElement.getInstance();
-  private static final TypeLatticeElement LONG = LongTypeLatticeElement.getInstance();
+  private static final TypeLatticeElement NULL = TypeLatticeElement.NULL;
+  private static final TypeLatticeElement SINGLE = TypeLatticeElement.SINGLE;
+  private static final TypeLatticeElement INT = TypeLatticeElement.INT;
+  private static final TypeLatticeElement LONG = TypeLatticeElement.LONG;
 
   private final String dirName;
   private final String smaliFileName;

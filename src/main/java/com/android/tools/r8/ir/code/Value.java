@@ -8,7 +8,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.analysis.type.BottomTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
@@ -43,6 +42,7 @@ public class Value {
               new MethodPosition(method)));
     }
     type = meet;
+    typeLattice = meet.toTypeLattice();
   }
 
   public void markNonDebugLocalRead() {
@@ -113,7 +113,8 @@ public class Value {
 
   public static final int UNDEFINED_NUMBER = -1;
 
-  public static final Value UNDEFINED = new Value(UNDEFINED_NUMBER, ValueType.OBJECT, null);
+  public static final Value UNDEFINED =
+      new Value(UNDEFINED_NUMBER, TypeLatticeElement.BOTTOM, null);
 
   protected final int number;
   // TODO(b/72693244): deprecate once typeLattice is landed.
@@ -134,12 +135,13 @@ public class Value {
   private boolean knownToBeBoolean = false;
   private LongInterval valueRange;
   private DebugData debugData;
-  private TypeLatticeElement typeLattice = BottomTypeLatticeElement.getInstance();
+  private TypeLatticeElement typeLattice;
 
-  public Value(int number, ValueType type, DebugLocalInfo local) {
+  public Value(int number, TypeLatticeElement typeLattice, DebugLocalInfo local) {
     this.number = number;
-    this.type = type;
+    this.type = ValueType.fromTypeLattice(typeLattice);
     this.debugData = local == null ? null : new DebugData(local);
+    this.typeLattice = typeLattice;
   }
 
   public boolean isFixedRegisterValue() {

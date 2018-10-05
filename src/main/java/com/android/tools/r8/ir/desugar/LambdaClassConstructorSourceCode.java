@@ -8,7 +8,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
 
 // Source code representing synthesized lambda class constructor.
 // Used for stateless lambdas to instantiate singleton instance.
@@ -25,8 +25,11 @@ final class LambdaClassConstructorSourceCode extends SynthesizedLambdaSourceCode
     int instance = nextRegister(ValueType.OBJECT);
     add(builder -> builder.addNewInstance(instance, lambda.type));
     add(builder -> builder.addInvoke(
-        Invoke.Type.DIRECT, lambda.constructor, lambda.constructor.proto,
-        Collections.singletonList(ValueType.OBJECT), Collections.singletonList(instance)));
+        Invoke.Type.DIRECT,
+        lambda.constructor,
+        lambda.constructor.proto,
+        ImmutableList.of(ValueType.OBJECT),
+        ImmutableList.of(instance)));
 
     // Assign to a field.
     add(builder -> builder.addStaticPut(instance, lambda.instanceField));

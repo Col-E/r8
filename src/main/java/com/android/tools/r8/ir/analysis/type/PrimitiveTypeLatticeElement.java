@@ -19,7 +19,7 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   TypeLatticeElement asNullable() {
-    return TopTypeLatticeElement.getInstance();
+    return TypeLatticeElement.TOP;
   }
 
   @Override
@@ -44,13 +44,13 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
       case 'S':
       case 'C':
       case 'I':
-        return IntTypeLatticeElement.getInstance();
+        return TypeLatticeElement.INT;
       case 'F':
-        return FloatTypeLatticeElement.getInstance();
+        return TypeLatticeElement.FLOAT;
       case 'J':
-        return LongTypeLatticeElement.getInstance();
+        return TypeLatticeElement.LONG;
       case 'D':
-        return DoubleTypeLatticeElement.getInstance();
+        return TypeLatticeElement.DOUBLE;
       case 'V':
         throw new InternalCompilerError("No value type for void type.");
       default:
@@ -64,13 +64,13 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
       case CHAR:
       case SHORT:
       case INT:
-        return IntTypeLatticeElement.getInstance();
+        return TypeLatticeElement.INT;
       case FLOAT:
-        return FloatTypeLatticeElement.getInstance();
+        return TypeLatticeElement.FLOAT;
       case LONG:
-        return LongTypeLatticeElement.getInstance();
+        return TypeLatticeElement.LONG;
       case DOUBLE:
-        return DoubleTypeLatticeElement.getInstance();
+        return TypeLatticeElement.DOUBLE;
       default:
         throw new Unreachable("Invalid numeric type '" + numericType + "'");
     }
@@ -83,21 +83,21 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
     }
     if (t1.isSingle()) {
       if (t2.isSingle()) {
-        return SingleTypeLatticeElement.getInstance();
+        return TypeLatticeElement.SINGLE;
       }
       assert t2.isWide();
-      return TopTypeLatticeElement.getInstance();
+      return TypeLatticeElement.TOP;
     }
     assert t1.isWide();
     if (t2.isWide()) {
-      return WideTypeLatticeElement.getInstance();
+      return TypeLatticeElement.WIDE;
     }
     assert t2.isSingle();
-    return TopTypeLatticeElement.getInstance();
+    return TypeLatticeElement.TOP;
   }
 
   public static TypeLatticeElement meet(TypeLatticeElement t1, TypeLatticeElement t2) {
-    // TODO(b/72693244): !t1.isReference() && !t2.isReference();
+    assert !t1.isReference() && !t2.isReference();
     // TODO(b/72693244): propagate constraints backward, e.g.,
     //   vz <- add vx(1, INT) vy(0, INT_OR_FLOAT_OR_NULL)
     if (t1 == t2) {
@@ -125,7 +125,7 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
         return t2;
       }
     }
-    return BottomTypeLatticeElement.getInstance();
+    return TypeLatticeElement.BOTTOM;
   }
 
 }

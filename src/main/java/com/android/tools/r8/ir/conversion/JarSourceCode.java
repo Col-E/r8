@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.JarApplicationReader;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.If;
@@ -278,28 +279,29 @@ public class JarSourceCode implements SourceCode {
     state.beginTransactionSynthetic();
 
     // Record types for arguments.
-    Int2ReferenceMap<ValueType> argumentLocals = recordArgumentTypes();
-    Int2ReferenceMap<ValueType> initializedLocals = new Int2ReferenceOpenHashMap<>(argumentLocals);
+    Int2ReferenceMap<TypeLatticeElement> argumentLocals = recordArgumentTypes(builder);
+    Int2ReferenceMap<TypeLatticeElement> initializedLocals =
+        new Int2ReferenceOpenHashMap<>(argumentLocals);
     // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
     for (Object o : node.localVariables) {
       LocalVariableNode local = (LocalVariableNode) o;
       Type localType;
-      ValueType localValueType;
+      TypeLatticeElement localValueTypeLattice;
       switch (application.getAsmType(local.desc).getSort()) {
         case Type.OBJECT:
         case Type.ARRAY: {
           localType = JarState.NULL_TYPE;
-          localValueType = ValueType.OBJECT;
+          localValueTypeLattice = TypeLatticeElement.REFERENCE;
           break;
         }
         case Type.LONG: {
           localType = Type.LONG_TYPE;
-          localValueType = ValueType.LONG;
+          localValueTypeLattice = TypeLatticeElement.LONG;
           break;
         }
         case Type.DOUBLE: {
           localType = Type.DOUBLE_TYPE;
-          localValueType = ValueType.DOUBLE;
+          localValueTypeLattice = TypeLatticeElement.DOUBLE;
           break;
         }
         case Type.BOOLEAN:
@@ -308,12 +310,12 @@ public class JarSourceCode implements SourceCode {
         case Type.SHORT:
         case Type.INT: {
           localType = Type.INT_TYPE;
-          localValueType = ValueType.INT;
+          localValueTypeLattice = TypeLatticeElement.INT;
           break;
         }
         case Type.FLOAT: {
           localType = Type.FLOAT_TYPE;
-          localValueType = ValueType.FLOAT;
+          localValueTypeLattice = TypeLatticeElement.FLOAT;
           break;
         }
         case Type.VOID:
@@ -322,11 +324,11 @@ public class JarSourceCode implements SourceCode {
           throw new Unreachable("Invalid local variable type: " );
       }
       int localRegister = state.getLocalRegister(local.index, localType);
-      ValueType existingLocalType = initializedLocals.get(localRegister);
-      if (existingLocalType == null) {
+      TypeLatticeElement existingLocalTypeLattice = initializedLocals.get(localRegister);
+      if (existingLocalTypeLattice == null) {
         int writeRegister = state.writeLocal(local.index, localType);
         assert writeRegister == localRegister;
-        initializedLocals.put(localRegister, localValueType);
+        initializedLocals.put(localRegister, localValueTypeLattice);
       }
     }
 
@@ -375,31 +377,31 @@ public class JarSourceCode implements SourceCode {
       builder.addThisArgument(slot.register);
     }
     for (Type type : parameterTypes) {
-      ValueType valueType = valueType(type);
+      TypeLatticeElement typeLattice = typeLattice(type);
       Slot slot = state.readLocal(argumentRegister, type);
       if (type == Type.BOOLEAN_TYPE) {
         builder.addBooleanNonThisArgument(slot.register);
       } else {
-        builder.addNonThisArgument(slot.register, valueType);
+        builder.addNonThisArgument(slot.register, typeLattice);
       }
-      argumentRegister += valueType.requiredRegisters();
+      argumentRegister += typeLattice.requiredRegisters();
     }
   }
 
-  private Int2ReferenceMap<ValueType> recordArgumentTypes() {
-    Int2ReferenceMap<ValueType> initializedLocals =
+  private Int2ReferenceMap<TypeLatticeElement> recordArgumentTypes(IRBuilder builder) {
+    Int2ReferenceMap<TypeLatticeElement> initializedLocals =
         new Int2ReferenceOpenHashMap<>(node.localVariables.size());
     int argumentRegister = 0;
     if (!isStatic()) {
       Type thisType = application.getAsmType(clazz.descriptor.toString());
       int register = state.writeLocal(argumentRegister++, thisType);
-      initializedLocals.put(register, valueType(thisType));
+      initializedLocals.put(register, typeLattice(thisType));
     }
     for (Type type : parameterTypes) {
-      ValueType valueType = valueType(type);
+      TypeLatticeElement typeLattice = typeLattice(type);
       int register = state.writeLocal(argumentRegister, type);
-      argumentRegister += valueType.requiredRegisters();
-      initializedLocals.put(register, valueType);
+      argumentRegister += typeLattice.requiredRegisters();
+      initializedLocals.put(register, typeLattice);
     }
     return initializedLocals;
   }
@@ -935,6 +937,10 @@ public class JarSourceCode implements SourceCode {
       default:
         throw new Unreachable("Invalid type in valueType: " + type);
     }
+  }
+
+  private static TypeLatticeElement typeLattice(Type type) {
+    return valueType(type).toTypeLattice();
   }
 
   private static MemberType memberType(Type type) {
@@ -2691,7 +2697,10 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private static void addArgument(List<ValueType> types, List<Integer> registers, Type type,
+  private static void addArgument(
+      List<ValueType> types,
+      List<Integer> registers,
+      Type type,
       Slot slot) {
     assert slot.isCompatibleWith(type);
     types.add(valueType(type));

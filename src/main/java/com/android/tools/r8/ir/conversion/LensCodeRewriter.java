@@ -73,7 +73,7 @@ public class LensCodeRewriter {
     if (insn.outValue() == null) {
       return null;
     } else {
-      return code.createValue(insn.outType(), insn.getLocalInfo());
+      return code.createValue(insn.outValue().getTypeLattice(), insn.getLocalInfo());
     }
   }
 
@@ -119,7 +119,8 @@ public class LensCodeRewriter {
           if (newHandle != handle) {
             ConstMethodHandle newInstruction =
                 new ConstMethodHandle(
-                    code.createValue(current.outType(), current.getLocalInfo()),
+                    code.createValue(
+                        current.outValue().getTypeLattice(), current.getLocalInfo()),
                     newHandle);
             iterator.replaceCurrentInstruction(newInstruction);
           }
@@ -144,7 +145,8 @@ public class LensCodeRewriter {
             // Fix up the return type if needed.
             if (actualTarget.proto.returnType != invokedMethod.proto.returnType
                 && newInvoke.outValue() != null) {
-              Value newValue = code.createValue(newInvoke.outType(), invoke.getLocalInfo());
+              Value newValue = code.createValue(
+                  newInvoke.outValue().getTypeLattice(), invoke.getLocalInfo());
               newInvoke.outValue().replaceUsers(newValue);
               CheckCast cast =
                   new CheckCast(

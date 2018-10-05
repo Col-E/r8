@@ -6,12 +6,14 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
@@ -22,7 +24,6 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,6 +44,7 @@ public class StringConcatRewriter {
   private static final String TO_STRING = "toString";
   private static final String APPEND = "append";
 
+  private final AppInfo appInfo;
   private final DexItemFactory factory;
 
   private final DexMethod makeConcat;
@@ -54,9 +56,10 @@ public class StringConcatRewriter {
   private final Map<DexType, DexMethod> paramTypeToAppendMethod = new IdentityHashMap<>();
   private final DexMethod defaultAppendMethod;
 
-  public StringConcatRewriter(DexItemFactory factory) {
-    assert factory != null;
-    this.factory = factory;
+  public StringConcatRewriter(AppInfo appInfo) {
+    this.appInfo = appInfo;
+    assert appInfo.dexItemFactory != null;
+    this.factory = appInfo.dexItemFactory;
 
     DexType factoryType = factory.createType(CONCAT_FACTORY_TYPE_DESCR);
     DexType callSiteType = factory.createType(CALLSITE_TYPE_DESCR);
@@ -159,7 +162,7 @@ public class StringConcatRewriter {
     }
 
     // Collect chunks.
-    ConcatBuilder builder = new ConcatBuilder(code, blocks, instructions);
+    ConcatBuilder builder = new ConcatBuilder(appInfo, code, blocks, instructions);
     for (int i = 0; i < paramCount; i++) {
       builder.addChunk(arguments.get(i),
           paramTypeToAppendMethod.getOrDefault(parameters[i], defaultAppendMethod));
@@ -214,7 +217,7 @@ public class StringConcatRewriter {
     String recipe = ((DexValue.DexValueString) recipeValue).getValue().toString();
 
     // Collect chunks and patch the instruction.
-    ConcatBuilder builder = new ConcatBuilder(code, blocks, instructions);
+    ConcatBuilder builder = new ConcatBuilder(appInfo, code, blocks, instructions);
     StringBuilder acc = new StringBuilder();
     int argIndex = 0;
     int constArgIndex = 0;
@@ -276,6 +279,7 @@ public class StringConcatRewriter {
   }
 
   private final class ConcatBuilder {
+    private final AppInfo appInfo;
     private final IRCode code;
     private final ListIterator<BasicBlock> blocks;
     private final InstructionListIterator instructions;
@@ -284,7 +288,11 @@ public class StringConcatRewriter {
     private final List<Chunk> chunks = new ArrayList<>();
 
     private ConcatBuilder(
-        IRCode code, ListIterator<BasicBlock> blocks, InstructionListIterator instructions) {
+        AppInfo appInfo,
+        IRCode code,
+        ListIterator<BasicBlock> blocks,
+        InstructionListIterator instructions) {
+      this.appInfo = appInfo;
       this.code = code;
       this.blocks = blocks;
       this.instructions = instructions;
@@ -328,7 +336,9 @@ public class StringConcatRewriter {
       instructions.previous();
 
       // new-instance v0, StringBuilder
-      Value sbInstance = code.createValue(ValueType.OBJECT);
+      TypeLatticeElement stringBuilderTypeLattice =
+          TypeLatticeElement.fromDexType(factory.stringBuilderType, appInfo, false);
+      Value sbInstance = code.createValue(stringBuilderTypeLattice);
       appendInstruction(new NewInstance(factory.stringBuilderType, sbInstance));
 
       // invoke-direct {v0}, void StringBuilder.<init>()
@@ -349,7 +359,7 @@ public class StringConcatRewriter {
       Value concatValue = invokeCustom.outValue();
       if (concatValue == null) {
         // The out value might be empty in case it was optimized out.
-        concatValue = code.createValue(ValueType.OBJECT);
+        concatValue = code.createValue(TypeLatticeElement.stringClassType(appInfo));
       }
 
       // Replace the instruction.
@@ -427,7 +437,7 @@ public class StringConcatRewriter {
 
       @Override
       Value getOrCreateValue() {
-        Value value = code.createValue(ValueType.OBJECT);
+        Value value = code.createValue(TypeLatticeElement.stringClassType(appInfo));
         appendInstruction(new ConstString(value, factory.createString(str)));
         return value;
       }

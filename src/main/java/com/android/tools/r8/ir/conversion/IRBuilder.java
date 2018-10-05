@@ -20,6 +20,8 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.Argument;
@@ -118,6 +120,11 @@ import java.util.Set;
  * http://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf
  */
 public class IRBuilder {
+  private static final TypeLatticeElement INT = TypeLatticeElement.INT;
+  private static final TypeLatticeElement FLOAT = TypeLatticeElement.FLOAT;
+  private static final TypeLatticeElement LONG = TypeLatticeElement.LONG;
+  private static final TypeLatticeElement DOUBLE = TypeLatticeElement.DOUBLE;
+  private static final TypeLatticeElement NULL = TypeLatticeElement.NULL;
 
   public static final int INITIAL_BLOCK_OFFSET = -1;
 
@@ -672,7 +679,10 @@ public class IRBuilder {
     int moveExceptionDest = source.getMoveExceptionRegister(targetIndex);
     Position position = source.getCanonicalDebugPositionAtOffset(moveExceptionItem.targetOffset);
     if (moveExceptionDest >= 0) {
-      Value out = writeRegister(moveExceptionDest, ValueType.OBJECT, ThrowingInfo.NO_THROW, null);
+      Set<DexType> exceptionTypes = MoveException.collectExceptionTypes(currentBlock, getFactory());
+      TypeLatticeElement typeLattice = TypeLatticeElement.join(appInfo,
+          exceptionTypes.stream().map(t -> TypeLatticeElement.fromDexType(t, appInfo, false)));
+      Value out = writeRegister(moveExceptionDest, typeLattice, ThrowingInfo.NO_THROW, null);
       MoveException moveException = new MoveException(out);
       moveException.setPosition(position);
       currentBlock.add(moveException);
@@ -719,20 +729,23 @@ public class IRBuilder {
 
   public void addThisArgument(int register) {
     DebugLocalInfo local = getOutgoingLocal(register);
-    Value value = writeRegister(register, ValueType.OBJECT, ThrowingInfo.NO_THROW, local);
+    // TODO(b/72693244): Update nullability if this is for building inlinee's IR.
+    TypeLatticeElement receiver =
+        TypeLatticeElement.fromDexType(method.method.getHolder(), appInfo, false);
+    Value value = writeRegister(register, receiver, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
     value.markAsThis();
   }
 
-  public void addNonThisArgument(int register, ValueType valueType) {
+  public void addNonThisArgument(int register, TypeLatticeElement typeLattice) {
     DebugLocalInfo local = getOutgoingLocal(register);
-    Value value = writeRegister(register, valueType, ThrowingInfo.NO_THROW, local);
+    Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
   }
 
   public void addBooleanNonThisArgument(int register) {
     DebugLocalInfo local = getOutgoingLocal(register);
-    Value value = writeRegister(register, ValueType.INT, ThrowingInfo.NO_THROW, local);
+    Value value = writeRegister(register, INT, ThrowingInfo.NO_THROW, local);
     value.setKnownToBeBoolean(true);
     addInstruction(new Argument(value));
   }
@@ -756,7 +769,8 @@ public class IRBuilder {
       // Note that the write register must not lookup outgoing local information and the local is
       // never considered clobbered by a start (if the in value has local info it must have been
       // marked ended elsewhere).
-      Value out = writeRegister(register, incomingValue.outType(), ThrowingInfo.NO_THROW, local);
+      Value out = writeRegister(
+          register, incomingValue.getTypeLattice(), ThrowingInfo.NO_THROW, local);
       DebugLocalWrite write = new DebugLocalWrite(out, incomingValue);
       addInstruction(write);
     }
@@ -831,7 +845,8 @@ public class IRBuilder {
   public void addArrayGet(MemberType type, int dest, int array, int index) {
     Value in1 = readRegister(array, ValueType.OBJECT);
     Value in2 = readRegister(index, ValueType.INT);
-    Value out = writeRegister(dest, ValueType.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(
+        dest, TypeLatticeElement.fromMemberType(type), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     ArrayGet instruction = new ArrayGet(type, out, in1, in2);
     assert instruction.instructionTypeCanThrow();
@@ -840,7 +855,7 @@ public class IRBuilder {
 
   public void addArrayLength(int dest, int array) {
     Value in = readRegister(array, ValueType.OBJECT);
-    Value out = writeRegister(dest, ValueType.INT, ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, INT, ThrowingInfo.CAN_THROW);
     ArrayLength instruction = new ArrayLength(out, in);
     assert instruction.instructionTypeCanThrow();
     add(instruction);
@@ -856,7 +871,9 @@ public class IRBuilder {
 
   public void addCheckCast(int value, DexType type) {
     Value in = readRegister(value, ValueType.OBJECT);
-    Value out = writeRegister(value, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
+    TypeLatticeElement castTypeLattice =
+        TypeLatticeElement.fromDexType(type, appInfo, in.getTypeLattice().isNullable());
+    Value out = writeRegister(value, castTypeLattice, ThrowingInfo.CAN_THROW);
     CheckCast instruction = new CheckCast(out, in, type);
     assert instruction.instructionTypeCanThrow();
     add(instruction);
@@ -865,41 +882,42 @@ public class IRBuilder {
   public void addCmp(NumericType type, Bias bias, int dest, int left, int right) {
     Value in1 = readNumericRegister(left, type);
     Value in2 = readNumericRegister(right, type);
-    Value out = writeRegister(dest, ValueType.INT, ThrowingInfo.NO_THROW);
+    Value out = writeRegister(dest, INT, ThrowingInfo.NO_THROW);
     Cmp instruction = new Cmp(type, bias, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     add(instruction);
   }
 
-  public void addConst(ValueType type, int dest, long value) {
-    Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
+  public void addConst(TypeLatticeElement typeLattice, int dest, long value) {
+    Value out = writeRegister(dest, typeLattice, ThrowingInfo.NO_THROW);
     ConstNumber instruction = new ConstNumber(out, value);
     assert !instruction.instructionTypeCanThrow();
     add(instruction);
   }
 
   public void addLongConst(int dest, long value) {
-    add(new ConstNumber(writeRegister(dest, ValueType.LONG, ThrowingInfo.NO_THROW), value));
+    add(new ConstNumber(writeRegister(dest, LONG, ThrowingInfo.NO_THROW), value));
   }
 
   public void addDoubleConst(int dest, long value) {
-    add(new ConstNumber(writeRegister(dest, ValueType.DOUBLE, ThrowingInfo.NO_THROW), value));
+    add(new ConstNumber(writeRegister(dest, DOUBLE, ThrowingInfo.NO_THROW), value));
   }
 
   public void addIntConst(int dest, long value) {
-    add(new ConstNumber(writeRegister(dest, ValueType.INT, ThrowingInfo.NO_THROW), value));
+    add(new ConstNumber(writeRegister(dest, INT, ThrowingInfo.NO_THROW), value));
   }
 
   public void addFloatConst(int dest, long value) {
-    add(new ConstNumber(writeRegister(dest, ValueType.FLOAT, ThrowingInfo.NO_THROW), value));
+    add(new ConstNumber(writeRegister(dest, FLOAT, ThrowingInfo.NO_THROW), value));
   }
 
   public void addNullConst(int dest) {
-    add(new ConstNumber(writeRegister(dest, ValueType.OBJECT, ThrowingInfo.NO_THROW), 0L));
+    add(new ConstNumber(writeRegister(dest, NULL, ThrowingInfo.NO_THROW), 0L));
   }
 
   public void addConstClass(int dest, DexType type) {
-    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
+    TypeLatticeElement typeLattice = TypeLatticeElement.classClassType(appInfo);
+    Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstClass instruction = new ConstClass(out, type);
     assert instruction.instructionTypeCanThrow();
     add(instruction);
@@ -912,7 +930,9 @@ public class IRBuilder {
           "Const-method-handle",
           null /* sourceString */);
     }
-    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
+    TypeLatticeElement typeLattice =
+        TypeLatticeElement.fromDexType(appInfo.dexItemFactory.methodHandleType, appInfo, false);
+    Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstMethodHandle instruction = new ConstMethodHandle(out, methodHandle);
     add(instruction);
   }
@@ -924,13 +944,16 @@ public class IRBuilder {
           "Const-method-type",
           null /* sourceString */);
     }
-    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
+    TypeLatticeElement typeLattice =
+        TypeLatticeElement.fromDexType(appInfo.dexItemFactory.methodTypeType, appInfo, false);
+    Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstMethodType instruction = new ConstMethodType(out, methodType);
     add(instruction);
   }
 
   public void addConstString(int dest, DexString string) {
-    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
+    TypeLatticeElement typeLattice = TypeLatticeElement.stringClassType(appInfo);
+    Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstString instruction = new ConstString(out, string);
     add(instruction);
   }
@@ -971,7 +994,7 @@ public class IRBuilder {
       // If the move is writing to a different local we must construct a new value.
       DebugLocalInfo destLocal = getOutgoingLocal(dest);
       if (destLocal != null && destLocal != in.getLocalInfo()) {
-        Value out = writeRegister(dest, type, ThrowingInfo.NO_THROW);
+        Value out = writeRegister(dest, in.getTypeLattice(), ThrowingInfo.NO_THROW);
         addInstruction(new DebugLocalWrite(out, in));
         return;
       }
@@ -1067,7 +1090,8 @@ public class IRBuilder {
     }
   }
 
-  public void addIfZero(If.Type type, ValueType operandType, int value, int trueTargetOffset, int falseTargetOffset) {
+  public void addIfZero(
+      If.Type type, ValueType operandType, int value, int trueTargetOffset, int falseTargetOffset) {
     if (trueTargetOffset == falseTargetOffset) {
       addTrivialIf(trueTargetOffset, falseTargetOffset);
     } else {
@@ -1079,7 +1103,8 @@ public class IRBuilder {
   public void addInstanceGet(int dest, int object, DexField field) {
     MemberType type = MemberType.fromDexType(field.type);
     Value in = readRegister(object, ValueType.OBJECT);
-    Value out = writeRegister(dest, ValueType.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(
+        dest, TypeLatticeElement.fromDexType(field.type, appInfo, true), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     InstanceGet instruction = new InstanceGet(type, out, in, field);
     assert instruction.instructionTypeCanThrow();
@@ -1088,7 +1113,7 @@ public class IRBuilder {
 
   public void addInstanceOf(int dest, int value, DexType type) {
     Value in = readRegister(value, ValueType.OBJECT);
-    Value out = writeRegister(dest, ValueType.INT, ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, INT, ThrowingInfo.CAN_THROW);
     InstanceOf instruction = new InstanceOf(out, in, type);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -1359,7 +1384,8 @@ public class IRBuilder {
     assert invoke.outValue() == null;
     assert invoke.instructionTypeCanThrow();
     DexType outType = invoke.getReturnType();
-    Value outValue = writeRegister(dest, ValueType.fromDexType(outType), ThrowingInfo.CAN_THROW);
+    Value outValue =
+        writeRegister(dest, TypeLatticeElement.fromDexType(outType), ThrowingInfo.CAN_THROW);
     outValue.setKnownToBeBoolean(outType.isBooleanType());
     invoke.setOutValue(outValue);
   }
@@ -1389,7 +1415,8 @@ public class IRBuilder {
   public void addNewArrayEmpty(int dest, int size, DexType type) {
     assert type.isArrayType();
     Value in = readRegister(size, ValueType.INT);
-    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
+    TypeLatticeElement arrayTypeLattice = TypeLatticeElement.fromDexType(type, appInfo, false);
+    Value out = writeRegister(dest, arrayTypeLattice, ThrowingInfo.CAN_THROW);
     NewArrayEmpty instruction = new NewArrayEmpty(out, in, type);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -1400,7 +1427,8 @@ public class IRBuilder {
   }
 
   public void addNewInstance(int dest, DexType type) {
-    Value out = writeRegister(dest, ValueType.OBJECT, ThrowingInfo.CAN_THROW);
+    TypeLatticeElement instanceType = TypeLatticeElement.fromDexType(type, appInfo, false);
+    Value out = writeRegister(dest, instanceType, ThrowingInfo.CAN_THROW);
     NewInstance instruction = new NewInstance(type, out);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -1426,7 +1454,8 @@ public class IRBuilder {
 
   public void addStaticGet(int dest, DexField field) {
     MemberType type = MemberType.fromDexType(field.type);
-    Value out = writeRegister(dest, ValueType.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(
+        dest, TypeLatticeElement.fromDexType(field.type, appInfo, true), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     StaticGet instruction = new StaticGet(type, out, field);
     assert instruction.instructionTypeCanThrow();
@@ -1683,8 +1712,8 @@ public class IRBuilder {
 
   public Value readRegister(int register, ValueType type) {
     DebugLocalInfo local = getIncomingLocal(register);
-    Value value =
-        readRegister(register, type, currentBlock, EdgeType.NON_EDGE, RegisterReadType.NORMAL);
+    Value value = readRegister(
+        register, type, currentBlock, EdgeType.NON_EDGE, RegisterReadType.NORMAL);
     // Check that any information about a current-local is consistent with the read.
     if (local != null && value.getLocalInfo() != local && !value.isUninitializedLocal()) {
       throw new InvalidDebugInfoException(
@@ -1759,7 +1788,9 @@ public class IRBuilder {
         value = getUninitializedDebugLocalValue(register, type);
       } else {
         DebugLocalInfo local = getIncomingLocalAtBlock(register, block);
-        Phi phi = new Phi(valueNumberGenerator.next(), block, type, local, readType);
+        // TODO(b/72693244): Use BOTTOM, then run type analysis at the end of IR building.
+        Phi phi = new Phi(
+            valueNumberGenerator.next(), block, type.toTypeLattice(), local, readType);
         if (!block.isSealed()) {
           block.addIncompletePhi(register, phi, readingEdge);
           value = phi;
@@ -1811,7 +1842,7 @@ public class IRBuilder {
     // Create a new SSA value for the uninitialized local value.
     // Note that the uninitialized local value must not itself have local information, so that it
     // does not contribute to the visible/live-range of the local variable.
-    Value value = new Value(valueNumberGenerator.next(), type, null);
+    Value value = new Value(valueNumberGenerator.next(), type.toTypeLattice(), null);
     values.add(value);
     return value;
   }
@@ -1830,14 +1861,14 @@ public class IRBuilder {
   }
 
   public Value readLongLiteral(long constant) {
-    Value value = new Value(valueNumberGenerator.next(), ValueType.LONG, null);
+    Value value = new Value(valueNumberGenerator.next(), LONG, null);
     ConstNumber number = new ConstNumber(value, constant);
     add(number);
     return number.outValue();
   }
 
   public Value readIntLiteral(long constant) {
-    Value value = new Value(valueNumberGenerator.next(), ValueType.INT, null);
+    Value value = new Value(valueNumberGenerator.next(), INT, null);
     ConstNumber number = new ConstNumber(value, constant);
     add(number);
     return number.outValue();
@@ -1846,14 +1877,14 @@ public class IRBuilder {
   // This special write register is needed when changing the scoping of a local variable.
   // See addDebugLocalStart and addDebugLocalEnd.
   private Value writeRegister(
-      int register, ValueType type, ThrowingInfo throwing, DebugLocalInfo local) {
+      int register, TypeLatticeElement typeLattice, ThrowingInfo throwing, DebugLocalInfo local) {
     checkRegister(register);
-    Value value = new Value(valueNumberGenerator.next(), type, local);
+    Value value = new Value(valueNumberGenerator.next(), typeLattice, local);
     currentBlock.writeCurrentDefinition(register, value, throwing);
     return value;
   }
 
-  public Value writeRegister(int register, ValueType type, ThrowingInfo throwing) {
+  public Value writeRegister(int register, TypeLatticeElement typeLattice, ThrowingInfo throwing) {
     DebugLocalInfo incomingLocal = getIncomingLocal(register);
     DebugLocalInfo outgoingLocal = getOutgoingLocal(register);
     // If the local info does not change at the current instruction, we need to ensure
@@ -1868,11 +1899,11 @@ public class IRBuilder {
         (incomingLocal == null || incomingLocal != outgoingLocal)
             ? null
             : readRegisterForDebugLocal(register, incomingLocal);
-    return writeRegister(register, type, throwing, outgoingLocal);
+    return writeRegister(register, typeLattice, throwing, outgoingLocal);
   }
 
   public Value writeNumericRegister(int register, NumericType type, ThrowingInfo throwing) {
-    return writeRegister(register, ValueType.fromNumericType(type), throwing);
+    return writeRegister(register, PrimitiveTypeLatticeElement.fromNumericType(type), throwing);
   }
 
   private DebugLocalInfo getIncomingLocal(int register) {

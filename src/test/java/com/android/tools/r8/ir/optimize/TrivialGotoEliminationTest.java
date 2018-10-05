@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.optimize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -19,7 +21,6 @@ import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedList;
@@ -49,7 +50,7 @@ public class TrivialGotoEliminationTest {
     block2.setFilledForTesting();
     BasicBlock block1 = new BasicBlock();
     block1.setNumber(1);
-    Value value = new Value(0, ValueType.INT, null);
+    Value value = new Value(0, TypeLatticeElement.INT, null);
     Instruction number = new ConstNumber(value, 0);
     number.setPosition(position);
     block1.add(number);
@@ -110,7 +111,7 @@ public class TrivialGotoEliminationTest {
 
     BasicBlock block0 = new BasicBlock();
     block0.setNumber(0);
-    Value value = new Value(0, ValueType.OBJECT, null);
+    Value value = new Value(0, TypeLatticeElement.fromDexType(DexItemFactory.catchAllType), null);
     instruction = new Argument(value);
     instruction.setPosition(position);
     block0.add(instruction);

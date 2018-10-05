@@ -28,7 +28,9 @@ public class ConstString extends ConstInstruction {
 
   public static ConstString copyOf(IRCode code, ConstString original) {
     Value newValue =
-        new Value(code.valueNumberGenerator.next(), original.outType(), original.getLocalInfo());
+        new Value(code.valueNumberGenerator.next(),
+            original.outValue().getTypeLattice(),
+            original.getLocalInfo());
     return new ConstString(newValue, original.getValue());
   }
 
@@ -131,6 +133,6 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(appInfo, appInfo.dexItemFactory.stringType, false);
+    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.stringType, appInfo, false);
   }
 }

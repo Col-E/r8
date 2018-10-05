@@ -4,6 +4,7 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ValueType;
 
 public enum  MoveType {
@@ -29,14 +30,14 @@ public enum  MoveType {
     }
   }
 
-  public ValueType toValueType() {
+  public TypeLatticeElement toTypeLattice() {
     switch (this) {
       case SINGLE:
-        return ValueType.INT_OR_FLOAT;
+        return TypeLatticeElement.SINGLE;
       case WIDE:
-        return ValueType.LONG_OR_DOUBLE;
+        return TypeLatticeElement.WIDE;
       case OBJECT:
-        return ValueType.OBJECT;
+        return TypeLatticeElement.REFERENCE;
       default:
         throw new Unreachable("Unexpected move type: " + this);
     }
