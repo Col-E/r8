@@ -1354,8 +1354,12 @@ public class JctfTestSpecifications {
               "lang.Character.isWhitespaceI.Character_isWhitespace_A01",
               match(runtimes(Runtime.ART_V4_0_4)))
           .put("lang.Character.getDirectionalityI.Character_getDirectionality_A01", any())
-          .put("lang.Character.UnicodeBlock.ofC.UnicodeBlock_of_A01", any())
-          .put("lang.Character.UnicodeBlock.ofI.UnicodeBlock_of_A01", any())
+          .put(
+              "lang.Character.UnicodeBlock.ofC.UnicodeBlock_of_A01",
+              match(artRuntimesFromAndJava(Runtime.ART_V4_4_4)))
+          .put(
+              "lang.Character.UnicodeBlock.ofI.UnicodeBlock_of_A01",
+              match(artRuntimesFromAndJava(Runtime.ART_V4_4_4)))
           .put("lang.Character.isLowerCaseI.Character_isLowerCase_A01", anyDexVm())
           .put("lang.Process.waitFor.Process_waitFor_A01", anyDexVm())
           .put("lang.System.getProperties.System_getProperties_A01", anyDexVm())
@@ -1527,7 +1531,7 @@ public class JctfTestSpecifications {
               match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put(
               "lang.reflect.AccessibleObject.setAccessibleZ.AccessibleObject_setAccessible_A04",
-              match(runtimes(Runtime.ART_V4_4_4, Runtime.JAVA)))
+              match(artRuntimesUpToAndJava(Runtime.ART_V4_4_4)))
           .put(
               "lang.reflect.AccessibleObject.setAccessible_Ljava_lang_reflect_AccessibleObjectZ.AccessibleObject_setAccessible_A04",
               match(artRuntimesUpToAndJava(Runtime.ART_V6_0_1)))
