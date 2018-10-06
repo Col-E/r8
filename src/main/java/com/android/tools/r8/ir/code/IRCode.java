@@ -23,6 +23,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class IRCode {
@@ -408,6 +409,7 @@ public class IRCode {
     assert consistentDefUseChains();
     assert validThrowingInstructions();
     assert noCriticalEdges();
+    assert noBottomTypeLatticeLeft();
     return true;
   }
 
@@ -601,6 +603,29 @@ public class IRCode {
                 || instruction.isPop();
           }
         }
+      }
+    }
+    return true;
+  }
+
+  private boolean noBottomTypeLatticeLeft() {
+    return verifySSATypeLattice(lattice -> !lattice.isBottom());
+  }
+
+  private boolean noImpreciseTypeLatticeLeft() {
+    return verifySSATypeLattice(TypeLatticeElement::isPreciseType);
+  }
+
+  private boolean verifySSATypeLattice(Predicate<TypeLatticeElement> tester) {
+    for (BasicBlock block : blocks) {
+      for (Instruction instruction : block.getInstructions()) {
+        Value outValue = instruction.outValue();
+        if (outValue != null) {
+          assert tester.test(outValue.getTypeLattice());
+        }
+      }
+      for (Phi phi : block.getPhis()) {
+        assert tester.test(phi.getTypeLattice());
       }
     }
     return true;
