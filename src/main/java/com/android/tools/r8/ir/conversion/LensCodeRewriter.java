@@ -46,10 +46,12 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LensCodeRewriter {
@@ -69,18 +71,24 @@ public class LensCodeRewriter {
     this.options = options;
   }
 
-  private Value makeOutValue(Instruction insn, IRCode code) {
+  private Value makeOutValue(
+      Instruction insn,
+      IRCode code,
+      ImmutableSet.Builder<Value> collector) {
     if (insn.outValue() == null) {
       return null;
     } else {
-      return code.createValue(insn.outValue().getTypeLattice(), insn.getLocalInfo());
+      Value newValue = code.createValue(insn.outValue().getTypeLattice(), insn.getLocalInfo());
+      collector.add(newValue);
+      return newValue;
     }
   }
 
   /**
    * Replace type appearances, invoke targets and field accesses with actual definitions.
    */
-  public void rewrite(IRCode code, DexEncodedMethod method) {
+  public Set<Value> rewrite(IRCode code, DexEncodedMethod method) {
+    ImmutableSet.Builder<Value> valueCollector = ImmutableSet.builder();
     ListIterator<BasicBlock> blocks = code.blocks.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -118,10 +126,7 @@ public class LensCodeRewriter {
               handle, method, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
           if (newHandle != handle) {
             ConstMethodHandle newInstruction =
-                new ConstMethodHandle(
-                    code.createValue(
-                        current.outValue().getTypeLattice(), current.getLocalInfo()),
-                    newHandle);
+                new ConstMethodHandle(makeOutValue(current, code, valueCollector), newHandle);
             iterator.replaceCurrentInstruction(newInstruction);
           }
         } else if (current.isInvokeMethod()) {
@@ -145,8 +150,7 @@ public class LensCodeRewriter {
             // Fix up the return type if needed.
             if (actualTarget.proto.returnType != invokedMethod.proto.returnType
                 && newInvoke.outValue() != null) {
-              Value newValue = code.createValue(
-                  newInvoke.outValue().getTypeLattice(), invoke.getLocalInfo());
+              Value newValue = makeOutValue(newInvoke, code, valueCollector);
               newInvoke.outValue().replaceUsers(newValue);
               CheckCast cast =
                   new CheckCast(
@@ -204,60 +208,66 @@ public class LensCodeRewriter {
           CheckCast checkCast = current.asCheckCast();
           DexType newType = graphLense.lookupType(checkCast.getType());
           if (newType != checkCast.getType()) {
-            CheckCast newCheckCast =
-                new CheckCast(makeOutValue(checkCast, code), checkCast.object(), newType);
+            CheckCast newCheckCast = new CheckCast(
+                makeOutValue(checkCast, code, valueCollector), checkCast.object(), newType);
             iterator.replaceCurrentInstruction(newCheckCast);
           }
         } else if (current.isConstClass()) {
           ConstClass constClass = current.asConstClass();
           DexType newType = graphLense.lookupType(constClass.getValue());
           if (newType != constClass.getValue()) {
-            ConstClass newConstClass = new ConstClass(makeOutValue(constClass, code), newType);
+            ConstClass newConstClass = new ConstClass(
+                makeOutValue(constClass, code, valueCollector), newType);
             iterator.replaceCurrentInstruction(newConstClass);
           }
         } else if (current.isInstanceOf()) {
           InstanceOf instanceOf = current.asInstanceOf();
           DexType newType = graphLense.lookupType(instanceOf.type());
           if (newType != instanceOf.type()) {
-            InstanceOf newInstanceOf = new InstanceOf(makeOutValue(instanceOf, code),
-                instanceOf.value(), newType);
+            InstanceOf newInstanceOf = new InstanceOf(
+                makeOutValue(instanceOf, code, valueCollector), instanceOf.value(), newType);
             iterator.replaceCurrentInstruction(newInstanceOf);
           }
         } else if (current.isInvokeMultiNewArray()) {
           InvokeMultiNewArray multiNewArray = current.asInvokeMultiNewArray();
           DexType newType = graphLense.lookupType(multiNewArray.getArrayType());
           if (newType != multiNewArray.getArrayType()) {
-            InvokeMultiNewArray newMultiNewArray = new InvokeMultiNewArray(
-                newType, makeOutValue(multiNewArray, code), multiNewArray.inValues());
+            InvokeMultiNewArray newMultiNewArray =
+                new InvokeMultiNewArray(
+                    newType,
+                    makeOutValue(multiNewArray, code, valueCollector),
+                    multiNewArray.inValues());
             iterator.replaceCurrentInstruction(newMultiNewArray);
           }
         } else if (current.isInvokeNewArray()) {
           InvokeNewArray newArray = current.asInvokeNewArray();
           DexType newType = graphLense.lookupType(newArray.getArrayType());
           if (newType != newArray.getArrayType()) {
-            InvokeNewArray newNewArray = new InvokeNewArray(newType, makeOutValue(newArray, code),
-                newArray.inValues());
+            InvokeNewArray newNewArray = new InvokeNewArray(
+                newType, makeOutValue(newArray, code, valueCollector), newArray.inValues());
             iterator.replaceCurrentInstruction(newNewArray);
           }
         } else if (current.isNewArrayEmpty()) {
           NewArrayEmpty newArrayEmpty = current.asNewArrayEmpty();
           DexType newType = graphLense.lookupType(newArrayEmpty.type);
           if (newType != newArrayEmpty.type) {
-            NewArrayEmpty newNewArray = new NewArrayEmpty(makeOutValue(newArrayEmpty, code),
-                newArrayEmpty.size(), newType);
+            NewArrayEmpty newNewArray = new NewArrayEmpty(
+                makeOutValue(newArrayEmpty, code, valueCollector), newArrayEmpty.size(), newType);
             iterator.replaceCurrentInstruction(newNewArray);
           }
         } else if (current.isNewInstance()) {
           NewInstance newInstance= current.asNewInstance();
           DexType newClazz = graphLense.lookupType(newInstance.clazz);
           if (newClazz != newInstance.clazz) {
-            NewInstance newNewInstance = new NewInstance(newClazz, makeOutValue(newInstance, code));
+            NewInstance newNewInstance = new NewInstance(
+                newClazz, makeOutValue(newInstance, code, valueCollector));
             iterator.replaceCurrentInstruction(newNewInstance);
           }
         }
       }
     }
     assert code.isConsistentSSA();
+    return valueCollector.build();
   }
 
   // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of
