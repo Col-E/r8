@@ -31,7 +31,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  TypeLatticeElement asNullable() {
+  public TypeLatticeElement asNullable() {
     return isNullable() ? this : new ArrayTypeLatticeElement(type, true);
   }
 

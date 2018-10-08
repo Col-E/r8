@@ -49,7 +49,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  TypeLatticeElement asNullable() {
+  public TypeLatticeElement asNullable() {
     assert isNull() || isReferenceInstance();
     return this;
   }

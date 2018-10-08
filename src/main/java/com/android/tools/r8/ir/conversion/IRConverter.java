@@ -790,6 +790,9 @@ public class IRConverter {
     if (devirtualizer != null) {
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
     }
+
+    assert code.verifyTypes(appInfo);
+
     codeRewriter.removeCasts(code);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
@@ -833,6 +836,8 @@ public class IRConverter {
       lambdaRewriter.desugarLambdas(method, code);
       assert code.isConsistentSSA();
     }
+
+    assert code.verifyTypes(appInfo);
 
     if (classInliner != null) {
       // Class inliner should work before lambda merger, so if it inlines the

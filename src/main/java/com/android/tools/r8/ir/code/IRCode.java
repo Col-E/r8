@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -418,6 +419,11 @@ public class IRCode {
     assert consistentCatchHandlers();
     assert consistentBlockInstructions();
     assert !allThrowingInstructionsHavePositions || computeAllThrowingInstructionsHavePositions();
+    return true;
+  }
+
+  public boolean verifyTypes(AppInfo appInfo) {
+    assert blocks.stream().allMatch(block -> block.verifyTypes(appInfo));
     return true;
   }
 

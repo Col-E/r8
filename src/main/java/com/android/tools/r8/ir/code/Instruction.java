@@ -1089,6 +1089,11 @@ public abstract class Instruction {
         "Implement type lattice evaluation for: " + getInstructionName());
   }
 
+  public boolean verifyTypes(AppInfo appInfo) {
+    // TODO(b/72693244): for instructions with invariant out type, we can verify type directly here.
+    return true;
+  }
+
   /**
    * Indicates whether the instruction throws a NullPointerException if the object denoted by the
    * given value is null at runtime execution.
