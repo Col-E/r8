@@ -23,32 +23,32 @@ BUCKET = 'r8-test-results'
 
 def ParseOptions():
   result = optparse.OptionParser()
-  result.add_option('--no_internal',
+  result.add_option('--no-internal', '--no_internal',
       help='Do not run Google internal tests.',
       default=False, action='store_true')
-  result.add_option('--archive_failures',
+  result.add_option('--archive-failures', '--archive_failures',
       help='Upload test results to cloud storage on failure.',
       default=False, action='store_true')
-  result.add_option('--only_internal',
+  result.add_option('--only-internal', '--only_internal',
       help='Only run Google internal tests.',
       default=False, action='store_true')
-  result.add_option('--all_tests',
+  result.add_option('--all-tests', '--all_tests',
       help='Run tests in all configurations.',
       default=False, action='store_true')
   result.add_option('-v', '--verbose',
       help='Print test stdout to, well, stdout.',
       default=False, action='store_true')
-  result.add_option('--dex_vm',
+  result.add_option('--dex-vm', '--dex_vm',
       help='The android version of the vm to use. "all" will run the tests on '
            'all art vm versions (stopping after first failed execution)',
       default="default",
       choices=ALL_ART_VMS + ["all"])
-  result.add_option('--dex_vm_kind',
+  result.add_option('--dex-vm-kind', '--dex_vm_kind',
                     help='Whether to use host or target version of runtime',
                     default="host",
                     nargs=1,
                     choices=["host", "target"])
-  result.add_option('--one_line_per_test',
+  result.add_option('--one-line-per-test', '--one_line_per_test',
       help='Print a line before a tests starts and after it ends to stdout.',
       default=False, action='store_true')
   result.add_option('--tool',
@@ -58,32 +58,32 @@ def ParseOptions():
   result.add_option('--jctf',
       help='Run JCTF tests with: "r8" (default) or "d8".',
       default=False, action='store_true')
-  result.add_option('--only_jctf',
+  result.add_option('--only-jctf', '--only_jctf',
       help='Run only JCTF tests with: "r8" (default) or "d8".',
       default=False, action='store_true')
-  result.add_option('--jctf_compile_only',
+  result.add_option('--jctf-compile-only', '--jctf_compile_only',
       help="Don't run, only compile JCTF tests.",
       default=False, action='store_true')
-  result.add_option('--aosp_jar',
+  result.add_option('--aosp-jar', '--aosp_jar',
       help='Run aosp_jar test.',
       default=False, action='store_true')
-  result.add_option('--disable_assertions',
+  result.add_option('--disable-assertions', '--disable_assertions',
       help='Disable assertions when running tests.',
       default=False, action='store_true')
-  result.add_option('--with_code_coverage',
+  result.add_option('--with-code-coverage', '--with_code_coverage',
       help='Enable code coverage with Jacoco.',
       default=False, action='store_true')
-  result.add_option('--test_dir',
+  result.add_option('--test-dir', '--test_dir',
       help='Use a custom directory for the test artifacts instead of a'
           ' temporary (which is automatically removed after the test).'
           ' Note that the directory will not be cleared before the test.')
-  result.add_option('--java_home',
+  result.add_option('--java-home', '--java_home',
       help='Use a custom java version to run tests.')
-  result.add_option('--generate_golden_files_to',
+  result.add_option('--generate-golden-files-to', '--generate_golden_files_to',
       help='Store dex files produced by tests in the specified directory.'
            ' It is aimed to be read on platforms with no host runtime available'
            ' for comparison.')
-  result.add_option('--use_golden_files_in',
+  result.add_option('--use-golden-files-in', '--use_golden_files_in',
       help='Download golden files hierarchy for this commit in the specified'
            ' location and use them instead of executing on host runtime.')
 
