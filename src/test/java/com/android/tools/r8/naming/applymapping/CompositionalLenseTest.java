@@ -1,7 +1,7 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.memberrebinding;
+package com.android.tools.r8.naming.applymapping;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
@@ -44,7 +44,7 @@ class Sub extends Base {
   // Sub#foo ~> Base#foo by member rebinding analysis
 }
 
-class TestMain {
+class CompositionalLenseTestMain {
   public static void main(String[] args) {
     // Without regard to the order of member rebinding and apply mapping,
     // this call should be mapped to X.bar(), not Y.bar() nor Base.foo().
@@ -55,7 +55,7 @@ class TestMain {
 @RunWith(Parameterized.class)
 public class CompositionalLenseTest extends TestBase {
   private final static List<Class> CLASSES =
-      ImmutableList.of(Base.class, Sub.class, TestMain.class);
+      ImmutableList.of(Base.class, Sub.class, CompositionalLenseTestMain.class);
 
   private Backend backend;
 
@@ -72,9 +72,9 @@ public class CompositionalLenseTest extends TestBase {
   public void test() throws Exception {
     Path mapPath = temp.newFile("test-mapping.txt").toPath();
     List<String> pgMap = ImmutableList.of(
-        "com.android.tools.r8.memberrebinding.Base -> X:",
+        "com.android.tools.r8.naming.applymapping.Base -> X:",
         "  void foo() -> bar",
-        "com.android.tools.r8.memberrebinding.Sub -> Y:",
+        "com.android.tools.r8.naming.applymapping.Sub -> Y:",
         "  void foo() -> bar"
     );
     FileUtils.writeTextFile(mapPath, pgMap);
@@ -84,7 +84,7 @@ public class CompositionalLenseTest extends TestBase {
     builder
         .addProguardConfiguration(
             ImmutableList.of(
-                keepMainProguardConfiguration(TestMain.class),
+                keepMainProguardConfiguration(CompositionalLenseTestMain.class),
                 "-applymapping " + mapPath,
                 "-dontobfuscate"), // to use the renamed names in test-mapping.txt
             Origin.unknown())
@@ -97,7 +97,7 @@ public class CompositionalLenseTest extends TestBase {
               options.enableVerticalClassMerging = false;
             });
     CodeInspector codeInspector = new CodeInspector(processedApp);
-    ClassSubject classSubject = codeInspector.clazz(TestMain.class);
+    ClassSubject classSubject = codeInspector.clazz(CompositionalLenseTestMain.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(CodeInspector.MAIN);
     assertThat(methodSubject, isPresent());

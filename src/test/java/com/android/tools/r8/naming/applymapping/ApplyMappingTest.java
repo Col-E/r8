@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.naming;
+package com.android.tools.r8.naming.applymapping;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -18,6 +18,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
