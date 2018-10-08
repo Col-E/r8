@@ -100,22 +100,13 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     this.minify = minify;
   }
 
-  private String run(AndroidApp app, String main) throws IOException {
-    if (generatesDex(shrinker)) {
-      return runOnArt(app, main);
-    } else {
-      assert generatesCf(shrinker);
-      return runOnJava(app, main, Collections.emptyList());
-    }
-  }
-
   private static boolean vmVersionIgnored() {
     return !ToolHelper.getDexVm().getVersion().isAtLeast(Version.V7_0_0);
   }
 
   @Test
   public void test_keepAll() throws Exception {
-    Assume.assumeFalse(generatesDex(shrinker) && vmVersionIgnored());
+    Assume.assumeFalse(shrinker.generatesDex() && vmVersionIgnored());
     Class mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
     List<String> config = ImmutableList.of(
@@ -138,10 +129,10 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     AndroidApp app = runShrinker(shrinker, CLASSES, config);
     assertEquals(
         StringUtils.withNativeLineSeparator("123451234567\nABC\n"),
-        run(app, mainClass.getCanonicalName()));
+        runOnVM(app, mainClass.getCanonicalName(), shrinker.toBackend()));
 
     CodeInspector codeInspector =
-        isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
+        shrinker.isR8() ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
     ClassSubject testClass = codeInspector.clazz(TestClass.class);
     assertThat(testClass, isPresent());
 
@@ -149,7 +140,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     MethodSubject staticMethod = testClass.method("void", "unused", ImmutableList.of());
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
-    if (isR8(shrinker)) {
+    if (shrinker.isR8()) {
       assertEquals(allowAccessModification, staticMethod.getMethod().accessFlags.isPublic());
     } else {
       assertFalse(staticMethod.getMethod().accessFlags.isPublic());
@@ -159,14 +150,14 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     staticMethod = testClass.method("java.lang.String", "staticMethod", ImmutableList.of());
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
-    boolean publicizeCondition = isR8(shrinker) ? allowAccessModification
+    boolean publicizeCondition = shrinker.isR8() ? allowAccessModification
         : minify && repackagePrefix != null && allowAccessModification;
     assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
   }
 
   @Test
   public void test_keepNonPublic() throws Exception {
-    Assume.assumeFalse(generatesDex(shrinker) && vmVersionIgnored());
+    Assume.assumeFalse(shrinker.generatesDex() && vmVersionIgnored());
     Class mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
     List<String> config = ImmutableList.of(
@@ -189,10 +180,10 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     AndroidApp app = runShrinker(shrinker, CLASSES, config);
     assertEquals(
         StringUtils.withNativeLineSeparator("123451234567\nABC\n"),
-        run(app, mainClass.getCanonicalName()));
+        runOnVM(app, mainClass.getCanonicalName(), shrinker.toBackend()));
 
     CodeInspector codeInspector =
-        isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
+        shrinker.isR8() ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
     ClassSubject testClass = codeInspector.clazz(TestClass.class);
     assertThat(testClass, isPresent());
 
@@ -200,7 +191,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     MethodSubject staticMethod = testClass.method("void", "unused", ImmutableList.of());
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
-    if (isR8(shrinker)) {
+    if (shrinker.isR8()) {
       assertEquals(allowAccessModification, staticMethod.getMethod().accessFlags.isPublic());
     } else {
       assertFalse(staticMethod.getMethod().accessFlags.isPublic());
@@ -210,14 +201,14 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     staticMethod = testClass.method("java.lang.String", "staticMethod", ImmutableList.of());
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
-    boolean publicizeCondition = isR8(shrinker) ? allowAccessModification
+    boolean publicizeCondition = shrinker.isR8() ? allowAccessModification
         : minify && repackagePrefix != null && allowAccessModification;
     assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
   }
 
   @Test
   public void test_keepPublic() throws Exception {
-    Assume.assumeFalse(generatesDex(shrinker) && vmVersionIgnored());
+    Assume.assumeFalse(shrinker.generatesDex() && vmVersionIgnored());
     Class mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
     Iterable<String> config = ImmutableList.of(
@@ -236,7 +227,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
         "}",
         "-dontwarn java.lang.invoke.*"
     );
-    if (isR8(shrinker)) {
+    if (shrinker.isR8()) {
       config = Iterables.concat(config, ImmutableList.of(
           "-neverinline class " + TestClass.class.getCanonicalName() + " {",
           "  * staticMethod();",
@@ -247,10 +238,10 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     AndroidApp app = runShrinker(shrinker, CLASSES, config);
     assertEquals(
         StringUtils.withNativeLineSeparator("123451234567\nABC\n"),
-        run(app, mainClass.getCanonicalName()));
+        runOnVM(app, mainClass.getCanonicalName(), shrinker.toBackend()));
 
     CodeInspector codeInspector =
-        isR8(shrinker) ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
+        shrinker.isR8() ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
     ClassSubject testClass = codeInspector.clazz(TestClass.class);
     assertThat(testClass, isPresent());
 
@@ -262,7 +253,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     staticMethod = testClass.method("java.lang.String", "staticMethod", ImmutableList.of());
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
-    boolean publicizeCondition = isR8(shrinker) ? allowAccessModification
+    boolean publicizeCondition = shrinker.isR8() ? allowAccessModification
         : minify && repackagePrefix != null && allowAccessModification;
     assertEquals(publicizeCondition, staticMethod.getMethod().accessFlags.isPublic());
   }

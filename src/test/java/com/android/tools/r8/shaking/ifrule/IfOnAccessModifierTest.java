@@ -104,8 +104,8 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     assertTrue(methodSubject.getMethod().accessFlags.isPublic());
 
     classSubject = codeInspector.clazz(ClassForSubsequent.class);
-    if (isR8(shrinker)) {
-      // TODO(b/72109068): ClassForIf#nonPublicMethod becomes public, and -if rule is not applied
+    if (shrinker.isR8()) {
+      // TODO(b/117330692): ClassForIf#nonPublicMethod becomes public, and -if rule is not applied
       // at the 2nd tree shaking.
       assertThat(classSubject, not(isPresent()));
       return;
@@ -143,8 +143,8 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     assertTrue(methodSubject.getMethod().accessFlags.isPublic());
 
     classSubject = codeInspector.clazz(ClassForSubsequent.class);
-    if (isR8(shrinker)) {
-      // TODO(b/72109068): ClassForIf#nonPublicMethod becomes public, and -if rule is not applied
+    if (shrinker.isR8()) {
+      // TODO(b/117330692): ClassForIf#nonPublicMethod becomes public, and -if rule is not applied
       // at the 2nd tree shaking.
       assertThat(classSubject, not(isPresent()));
       return;
@@ -219,8 +219,8 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     assertThat(methodSubject, not(isPresent()));
     methodSubject = classSubject.method(nonPublicMethod);
     assertThat(methodSubject, isPresent());
-    if (isR8(shrinker)) {
-      // TODO(b/72109068): if kept in the 1st tree shaking, should not be publicized.
+    if (shrinker.isR8()) {
+      // TODO(b/117330692): if kept in the 1st tree shaking, should not be publicized.
       assertTrue(methodSubject.getMethod().accessFlags.isPublic());
       return;
     }
