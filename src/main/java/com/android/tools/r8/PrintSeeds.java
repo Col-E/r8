@@ -5,9 +5,11 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -76,21 +78,21 @@ public class PrintSeeds {
   private static void run(
       R8Command command, Set<String> descriptors, InternalOptions options, ExecutorService executor)
       throws IOException {
+    assert !options.forceProguardCompatibility;
     Timing timing = new Timing("PrintSeeds");
     try {
       DexApplication application =
           new ApplicationReader(command.getInputApp(), options, timing).read(executor).toDirect();
-      AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
+      AppView<? extends AppInfoWithSubtyping> appView =
+          new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
       RootSet rootSet =
           new RootSetBuilder(
-                  appInfo, application, options.proguardConfiguration.getRules(), options)
+                  appView, application, options.proguardConfiguration.getRules(), options)
               .run(executor);
-      Enqueuer enqueuer = new Enqueuer(appInfo, GraphLense.getIdentityLense(), options, false);
-      appInfo = enqueuer.traceApplication(rootSet, executor, timing);
+      Enqueuer enqueuer = new Enqueuer(appView, options);
+      AppInfoWithLiveness appInfo = enqueuer.traceApplication(rootSet, executor, timing);
       RootSetBuilder.writeSeeds(
-          appInfo.withLiveness(),
-          System.out,
-          type -> descriptors.contains(type.toDescriptorString()));
+          appInfo, System.out, type -> descriptors.contains(type.toDescriptorString()));
     } catch (ExecutionException e) {
       throw R8.unwrapExecutionException(e);
     }

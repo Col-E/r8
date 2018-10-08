@@ -75,20 +75,17 @@ abstract class NamingTestBase {
 
     ExecutorService executor = ThreadUtils.getExecutorService(1);
 
-    AppInfoWithSubtyping appInfo = appView.appInfo();
-    RootSet rootSet = new RootSetBuilder(appInfo, program, configuration.getRules(), options)
-        .run(executor);
+    RootSet rootSet =
+        new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
 
     if (options.proguardConfiguration.isAccessModificationAllowed()) {
       ClassAndMemberPublicizer.run(executor, timing, program, appView, rootSet);
       rootSet =
-          new RootSetBuilder(appInfo, program, configuration.getRules(), options).run(executor);
+          new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
     }
 
-    Enqueuer enqueuer =
-        new Enqueuer(
-            appInfo, GraphLense.getIdentityLense(), options, options.forceProguardCompatibility);
-    appInfo = enqueuer.traceApplication(rootSet, executor, timing);
+    Enqueuer enqueuer = new Enqueuer(appView, options, options.forceProguardCompatibility);
+    AppInfoWithSubtyping appInfo = enqueuer.traceApplication(rootSet, executor, timing);
     return new Minifier(appInfo.withLiveness(), rootSet, Collections.emptySet(), options)
         .run(timing);
   }

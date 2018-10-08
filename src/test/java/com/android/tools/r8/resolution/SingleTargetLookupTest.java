@@ -6,6 +6,7 @@ package com.android.tools.r8.resolution;
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -102,18 +103,18 @@ public class SingleTargetLookupTest extends AsmTestBase {
     InternalOptions options = new InternalOptions();
     AndroidApp app = readClassesAndAsmDump(CLASSES, ASM_CLASSES);
     DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
-    AppInfoWithSubtyping appInfoWithSubtyping = new AppInfoWithSubtyping(application);
+    AppView<? extends AppInfoWithSubtyping> appView =
+        new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
 
     ExecutorService executor = Executors.newSingleThreadExecutor();
-    RootSet rootSet = new RootSetBuilder(appInfoWithSubtyping, application,
-        buildKeepRuleForClass(Main.class, application.dexItemFactory), options).run(executor);
-    appInfo =
-        new Enqueuer(
-                appInfoWithSubtyping,
-                GraphLense.getIdentityLense(),
-                options,
-                options.forceProguardCompatibility)
-            .traceApplication(rootSet, executor, timing);
+    RootSet rootSet =
+        new RootSetBuilder(
+                appView,
+                application,
+                buildKeepRuleForClass(Main.class, application.dexItemFactory),
+                options)
+            .run(executor);
+    appInfo = new Enqueuer(appView, options).traceApplication(rootSet, executor, timing);
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
   }
