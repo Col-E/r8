@@ -18,7 +18,7 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  TypeLatticeElement asNullable() {
+  public TypeLatticeElement asNullable() {
     return TypeLatticeElement.TOP;
   }
 

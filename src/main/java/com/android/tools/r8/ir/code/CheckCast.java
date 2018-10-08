@@ -123,6 +123,47 @@ public class CheckCast extends Instruction {
   }
 
   @Override
+  public boolean verifyTypes(AppInfo appInfo) {
+    TypeLatticeElement inType = object().getTypeLattice();
+
+    // TODO(b/72693244): There should never be a value with imprecise type lattice.
+    if (!inType.isPreciseType()) {
+      return true;
+    }
+
+    TypeLatticeElement outType = outValue().getTypeLattice();
+    TypeLatticeElement castType =
+        TypeLatticeElement.fromDexType(getType(), appInfo, inType.isNullable());
+
+    if (TypeLatticeElement.lessThanOrEqual(appInfo, inType, castType)) {
+      // Cast can be removed. Check that it is sound to replace all users of the out-value by the
+      // in-value.
+      assert TypeLatticeElement.lessThanOrEqual(appInfo, inType, outType);
+
+      // TODO(b/72693244): Consider checking equivalence. This requires that the types are always
+      // as precise as possible, though, meaning that almost all changes to the IR must be followed
+      // by a fix-point analysis.
+      // assert outType.equals(inType);
+    } else {
+      // We don't have enough information to remove the cast. Check that the out-value does not
+      // have a more precise type than the cast-type.
+      assert castType.asNullable().equals(outType.asNullable());
+
+      // Check soundness of null information.
+      assert inType.nullElement().lessThanOrEqual(outType.nullElement());
+
+      // Since we cannot remove the cast the in-value must be different from null.
+      assert !inType.isNull();
+
+      // TODO(b/72693244): Consider checking equivalence. This requires that the types are always
+      // as precise as possible, though, meaning that almost all changes to the IR must be followed
+      // by a fix-point analysis.
+      // assert outType.equals(castType);
+    }
+    return true;
+  }
+
+  @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.loadInValues(this, it);
     helper.storeOutValue(this, it);

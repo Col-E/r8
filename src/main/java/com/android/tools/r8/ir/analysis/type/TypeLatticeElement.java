@@ -47,12 +47,22 @@ public abstract class TypeLatticeElement {
     return isNullable;
   }
 
+  public NullLatticeElement nullElement() {
+    if (isNull()) {
+      return NullLatticeElement.definitelyNull();
+    }
+    if (!isNullable()) {
+      return NullLatticeElement.definitelyNotNull();
+    }
+    return NullLatticeElement.maybeNull();
+  }
+
   /**
    * Defines how to join with null or switch to nullable lattice element.
    *
    * @return {@link TypeLatticeElement} a result of joining with null.
    */
-  abstract TypeLatticeElement asNullable();
+  public abstract TypeLatticeElement asNullable();
 
   /**
    * Defines how to switch to non-nullable lattice element.

@@ -27,7 +27,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  TypeLatticeElement asNullable() {
+  public TypeLatticeElement asNullable() {
     return isNullable() ? this : new ClassTypeLatticeElement(type, true, interfaces);
   }
 

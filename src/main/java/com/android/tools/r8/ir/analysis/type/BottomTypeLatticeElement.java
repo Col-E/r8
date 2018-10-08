@@ -14,7 +14,7 @@ public class BottomTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  TypeLatticeElement asNullable() {
+  public TypeLatticeElement asNullable() {
     return this;
   }
 
