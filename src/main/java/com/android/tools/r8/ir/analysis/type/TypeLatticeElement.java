@@ -37,6 +37,7 @@ public abstract class TypeLatticeElement {
   public static final ReferenceTypeLatticeElement REFERENCE =
       ReferenceTypeLatticeElement.getReferenceTypeLatticeElement();
 
+  // TODO(b/72693244): Switch to NullLatticeElement.
   private final boolean isNullable;
 
   TypeLatticeElement(boolean isNullable) {

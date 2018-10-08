@@ -1661,25 +1661,30 @@ public class CodeRewriter {
         TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
         TypeLatticeElement castTypeLattice =
             TypeLatticeElement.fromDexType(castType, appInfo, inTypeLattice.isNullable());
-        // 1) Trivial cast.
-        //   A a = ...
-        //   A a' = (A) a;
-        // 2) Up-cast: we already have finer type info.
-        //   A < B
-        //   A a = ...
-        //   B b = (B) a;
+
+        assert inTypeLattice.nullElement().lessThanOrEqual(outTypeLattice.nullElement());
+
         if (TypeLatticeElement.lessThanOrEqual(appInfo, inTypeLattice, castTypeLattice)) {
-          assert outTypeLattice.equals(inTypeLattice);
+          // 1) Trivial cast.
+          //   A a = ...
+          //   A a' = (A) a;
+          // 2) Up-cast: we already have finer type info.
+          //   A < B
+          //   A a = ...
+          //   B b = (B) a;
+          assert inTypeLattice.isNull()
+              || outTypeLattice.asNullable().equals(inTypeLattice.asNullable());
           needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
           removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
-          continue;
+        } else {
+          // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:
+          // A < B < C
+          // c = ...        // Even though we know c is of type A,
+          // a' = (B) c;    // (this could be removed, since chained below.)
+          // a'' = (A) a';  // this should remain for runtime verification.
+          assert !inTypeLattice.isNull();
+          assert outTypeLattice.asNullable().equals(castTypeLattice.asNullable());
         }
-        // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:
-        // A < B < C
-        // c = ...        // Even though we know c is of type A,
-        // a' = (B) c;    // (this could be removed, since chained below.)
-        // a'' = (A) a';  // this should remain for runtime verification.
-        assert outTypeLattice.equals(castTypeLattice);
       }
     }
     // ... v1
