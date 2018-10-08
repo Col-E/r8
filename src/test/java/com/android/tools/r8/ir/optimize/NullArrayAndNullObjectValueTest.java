@@ -9,13 +9,13 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Assert;
@@ -127,7 +127,7 @@ public class NullArrayAndNullObjectValueTest extends JasminTestBase {
         "return");
 
     Path riJar = temp.getRoot().toPath().resolve("ri-out.jar");
-    jasminBuilder.writeJar(riJar, new DefaultDiagnosticsHandler());
+    jasminBuilder.writeJar(riJar, new DiagnosticsHandler() {});
     ProcessResult riResult = ToolHelper.runJava(riJar, "TestClass");
     Assert.assertEquals(riResult.toString(), 0, riResult.exitCode);
 
@@ -174,7 +174,7 @@ public class NullArrayAndNullObjectValueTest extends JasminTestBase {
         "return");
 
     Path riJar = temp.getRoot().toPath().resolve("ri-out.jar");
-    jasminBuilder.writeJar(riJar, new DefaultDiagnosticsHandler());
+    jasminBuilder.writeJar(riJar, new DiagnosticsHandler() {});
     ProcessResult riResult = ToolHelper.runJava(riJar, "TestClass");
     Assert.assertEquals(riResult.toString(), 1, riResult.exitCode);
     assertTrue(riResult.stderr.contains("VerifyError"));

@@ -12,7 +12,6 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AbortException;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FeatureClassMapping;
@@ -87,7 +86,7 @@ public final class DexSplitter {
 
   @Keep
   public static final class Options {
-    private final DiagnosticsHandler diagnosticsHandler = new DefaultDiagnosticsHandler();
+    private final DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
     private List<String> inputArchives = new ArrayList<>();
     private List<FeatureJar> featureJars = new ArrayList<>();
     private List<String> baseJars = new ArrayList<>();

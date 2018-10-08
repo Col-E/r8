@@ -23,7 +23,6 @@ import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -808,7 +807,7 @@ public class ToolHelper {
   public static ProguardConfiguration loadProguardConfiguration(
       DexItemFactory factory, List<Path> configPaths)
       throws IOException, ProguardRuleParserException {
-    Reporter reporter = new Reporter(new DefaultDiagnosticsHandler());
+    Reporter reporter = new Reporter();
     if (configPaths.isEmpty()) {
       return ProguardConfiguration.defaultConfiguration(factory, reporter);
     }

@@ -20,6 +20,10 @@ public class Reporter implements DiagnosticsHandler {
   private Diagnostic lastError;
   private final Collection<Throwable> suppressedExceptions = new ArrayList<>();
 
+  public Reporter() {
+    this(new DiagnosticsHandler() {});
+  }
+
   public Reporter(DiagnosticsHandler clientHandler) {
     this.clientHandler = clientHandler;
   }

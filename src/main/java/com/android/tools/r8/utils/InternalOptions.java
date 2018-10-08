@@ -57,7 +57,7 @@ public class InternalOptions {
 
   // Constructor for testing and/or other utilities.
   public InternalOptions() {
-    reporter = new Reporter(new DefaultDiagnosticsHandler());
+    reporter = new Reporter();
     itemFactory = new DexItemFactory();
     proguardConfiguration = ProguardConfiguration.defaultConfiguration(itemFactory, reporter);
   }

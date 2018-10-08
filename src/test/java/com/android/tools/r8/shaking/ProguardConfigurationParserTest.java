@@ -28,7 +28,6 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.utils.AbortException;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.KeepingDiagnosticHandler;
@@ -208,8 +207,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void parseNonJavaIdentifiers() throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(dexItemFactory,
-            new Reporter(new DefaultDiagnosticsHandler()));
+        new ProguardConfigurationParser(dexItemFactory, new Reporter());
     String nonJavaIdentifiers =
         String.join("\n", ImmutableList.of(
             "-keep class -package-.-ClassNameWithDash-{",

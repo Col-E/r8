@@ -12,7 +12,6 @@ import com.android.tools.r8.shaking.ProguardConfigurationSource;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -199,7 +198,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
     this.factory = new DexItemFactory();
     this.mainDexKeepRules = ImmutableList.of();
     this.mainDexListConsumer = null;
-    this.reporter = new Reporter(new DefaultDiagnosticsHandler());
+    this.reporter = new Reporter();
   }
 
   @Override

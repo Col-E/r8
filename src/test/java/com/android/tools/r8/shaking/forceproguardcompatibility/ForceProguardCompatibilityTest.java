@@ -33,7 +33,6 @@ import com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods.Te
 import com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes.TestKeepAttributes;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -162,8 +161,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     // Check the Proguard compatibility rules generated.
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(),
-            new Reporter(new DefaultDiagnosticsHandler()));
+        new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
     parser.parse(proguardCompatibilityRules);
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     if (forceProguardCompatibility && hasDefaultConstructor) {
@@ -283,8 +281,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     // Check the Proguard compatibility rules generated.
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(),
-            new Reporter(new DefaultDiagnosticsHandler()));
+        new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
     parser.parse(proguardCompatibilityRules);
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     if (forceProguardCompatibility) {
@@ -383,8 +380,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     // Check the Proguard compatibility rules generated.
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(),
-            new Reporter(new DefaultDiagnosticsHandler()));
+        new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
     parser.parse(proguardCompatibilityRules);
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     if (forceProguardCompatibility) {
@@ -489,8 +485,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     // Check the Proguard compatibility rules generated.
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(),
-            new Reporter(new DefaultDiagnosticsHandler()));
+        new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
     parser.parse(proguardCompatibilityRules);
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     if (forceProguardCompatibility) {
@@ -605,8 +600,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     // Check the Proguard compatibility configuration generated.
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(),
-            new Reporter(new DefaultDiagnosticsHandler()));
+        new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
     parser.parse(proguardCompatibilityRules);
     System.out.println(proguardCompatibilityRules);
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
@@ -657,8 +651,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     inspection.accept(new CodeInspector(app));
     // Check the Proguard compatibility configuration generated.
     ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(),
-            new Reporter(new DefaultDiagnosticsHandler()));
+        new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
     parser.parse(proguardCompatibilityRules);
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
     compatInspection.accept(configuration);

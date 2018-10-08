@@ -59,7 +59,6 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
@@ -97,8 +96,9 @@ public class DexParser {
   }
 
   private static DexSection[] parseMapFrom(DexReader dexReader) {
-    DexParser dexParser = new DexParser(dexReader,
-        ClassKind.PROGRAM, new DexItemFactory(), new DefaultDiagnosticsHandler());
+    DexParser dexParser =
+        new DexParser(
+            dexReader, ClassKind.PROGRAM, new DexItemFactory(), new DiagnosticsHandler() {});
     return dexParser.dexSections;
   }
 

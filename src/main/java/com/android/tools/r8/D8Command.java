@@ -7,7 +7,6 @@ import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -38,20 +37,20 @@ public final class D8Command extends BaseCompilerCommand {
     }
   }
 
-  private static class DefaultD8DiagnosticsHandler extends DefaultDiagnosticsHandler {
+  private static class DefaultD8DiagnosticsHandler implements DiagnosticsHandler {
 
     @Override
     public void error(Diagnostic error) {
       if (error instanceof DexFileOverflowDiagnostic) {
         DexFileOverflowDiagnostic overflowDiagnostic = (DexFileOverflowDiagnostic) error;
         if (!overflowDiagnostic.hasMainDexSpecification()) {
-          super.error(
+          DiagnosticsHandler.super.error(
               new StringDiagnostic(
                   overflowDiagnostic.getDiagnosticMessage() + ". Try supplying a main-dex list"));
           return;
         }
       }
-      super.error(error);
+      DiagnosticsHandler.super.error(error);
     }
   }
 

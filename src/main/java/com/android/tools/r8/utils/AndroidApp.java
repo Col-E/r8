@@ -79,7 +79,7 @@ public class AndroidApp {
   }
 
   static Reporter defaultReporter() {
-    return new Reporter(new DefaultDiagnosticsHandler());
+    return new Reporter();
   }
 
   /**
