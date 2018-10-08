@@ -63,6 +63,14 @@ public class ProguardCompatibilityTestBase extends TestBase {
         || shrinker == Shrinker.R8_CF;
   }
 
+  protected static Backend toBackend(Shrinker shrinker) {
+    if (generatesDex(shrinker)) {
+      return Backend.DEX;
+    }
+    assert generatesCf(shrinker);
+    return Backend.CF;
+  }
+
   protected AndroidApp runShrinker(
       Shrinker mode, List<Class> programClasses, Iterable<String> proguardConfigs)
       throws Exception {
