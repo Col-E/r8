@@ -137,6 +137,7 @@ public final class ClassInliner {
     // of roots to avoid infinite inlining. Looping makes possible for some roots to
     // become eligible after other roots are inlined.
 
+    boolean anyInlinedMethods = false;
     boolean repeat;
     do {
       repeat = false;
@@ -169,18 +170,24 @@ public final class ClassInliner {
         }
 
         // Inline the class instance.
-        boolean anyInlinedMethods = processor.processInlining(code, inliner);
+        anyInlinedMethods |= processor.processInlining(code, inliner);
 
         // Restore normality.
         code.removeAllTrivialPhis();
         assert code.isConsistentSSA();
-        if (anyInlinedMethods) {
-          codeRewriter.simplifyIf(code);
-        }
         rootsIterator.remove();
         repeat = true;
       }
     } while (repeat);
+
+    if (anyInlinedMethods) {
+      // If a method was inlined we may be able to remove check-cast instructions because we may
+      // have more information about the types of the arguments at the call site. This is
+      // particularly important for bridge methods.
+      codeRewriter.removeCasts(code);
+      // If a method was inlined we may be able to prune additional branches.
+      codeRewriter.simplifyIf(code);
+    }
   }
 
   private boolean isClassEligible(AppInfo appInfo, DexClass clazz) {

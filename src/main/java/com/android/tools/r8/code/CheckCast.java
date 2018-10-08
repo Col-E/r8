@@ -38,6 +38,11 @@ public class CheckCast extends Format21c {
   }
 
   @Override
+  public boolean isCheckCast() {
+    return true;
+  }
+
+  @Override
   public void registerUse(UseRegistry registry) {
     registry.registerCheckCast(getType());
   }

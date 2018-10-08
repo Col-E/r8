@@ -1672,8 +1672,7 @@ public class CodeRewriter {
           //   A < B
           //   A a = ...
           //   B b = (B) a;
-          assert inTypeLattice.isNull()
-              || outTypeLattice.asNullable().equals(inTypeLattice.asNullable());
+          assert TypeLatticeElement.lessThanOrEqual(appInfo, inTypeLattice, outTypeLattice);
           needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
           removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
         } else {

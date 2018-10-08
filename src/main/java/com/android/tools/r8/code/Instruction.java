@@ -122,6 +122,14 @@ public abstract class Instruction {
     this.offset = offset;
   }
 
+  public boolean isCheckCast() {
+    return false;
+  }
+
+  public boolean isConstString() {
+    return false;
+  }
+
   public boolean isSimpleNop() {
     return !isPayload() && this instanceof Nop;
   }
