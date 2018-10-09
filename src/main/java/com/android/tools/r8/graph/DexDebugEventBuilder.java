@@ -206,7 +206,10 @@ public class DexDebugEventBuilder {
     if (localsChanged()) {
       assert emittedPc != pc;
       int pcDelta = emittedPc == NO_PC_INFO ? pc : pc - emittedPc;
-      events.add(factory.createAdvancePC(pcDelta));
+      assert pcDelta > 0 || emittedPc == NO_PC_INFO;
+      if (pcDelta > 0) {
+        events.add(factory.createAdvancePC(pcDelta));
+      }
       emittedPc = pc;
       emitLocalChangeEvents(emittedLocals, pendingLocals, lastKnownLocals, events, factory);
       pendingLocalChanges = false;
