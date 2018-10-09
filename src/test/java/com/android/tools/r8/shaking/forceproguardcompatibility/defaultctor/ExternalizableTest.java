@@ -274,7 +274,7 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
   @Test
   public void testExternalizable() throws Exception {
     // TODO(b/116735204): R8 should keep default ctor() of classes that implement Externalizable
-    if (isR8(shrinker)) {
+    if (shrinker.isR8()) {
       return;
     }
 
@@ -294,9 +294,9 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
     AndroidApp processedApp = runShrinker(shrinker, CLASSES_FOR_EXTERNALIZABLE, config);
 
     // TODO(b/117302947): Need to update ART binary.
-    if (generatesCf(shrinker)) {
+    if (shrinker.generatesCf()) {
       String output = runOnVM(
-          processedApp, ExternalizableTestMain.class.getCanonicalName(), toBackend(shrinker));
+          processedApp, ExternalizableTestMain.class.getCanonicalName(), shrinker.toBackend());
       assertEquals(javaOutput.trim(), output.trim());
     }
 
@@ -311,7 +311,7 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
   public void testSerializable() throws Exception {
     // TODO(b/116735204): R8 should keep default ctor() of first non-serializable superclass of
     // serializable class.
-    if (isR8(shrinker)) {
+    if (shrinker.isR8()) {
       return;
     }
 
@@ -330,9 +330,9 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
 
     AndroidApp processedApp = runShrinker(shrinker, CLASSES_FOR_SERIALIZABLE, config);
     // TODO(b/117302947): Need to update ART binary.
-    if (generatesCf(shrinker)) {
+    if (shrinker.generatesCf()) {
       String output = runOnVM(
-          processedApp, SerializableTestMain.class.getCanonicalName(), toBackend(shrinker));
+          processedApp, SerializableTestMain.class.getCanonicalName(), shrinker.toBackend());
       assertEquals(javaOutput.trim(), output.trim());
     }
 

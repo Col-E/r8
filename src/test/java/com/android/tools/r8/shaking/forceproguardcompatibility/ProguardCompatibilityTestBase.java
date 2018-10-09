@@ -40,35 +40,35 @@ public class ProguardCompatibilityTestBase extends TestBase {
     R8_COMPAT,
     R8_COMPAT_CF,
     R8,
-    R8_CF
-  }
+    R8_CF;
 
-  protected static boolean isR8(Shrinker shrinker) {
-    return shrinker == Shrinker.R8_COMPAT
-        || shrinker == Shrinker.R8_COMPAT_CF
-        || shrinker == Shrinker.R8
-        || shrinker == Shrinker.R8_CF;
-  }
-
-  protected static boolean generatesDex(Shrinker shrinker) {
-    return shrinker == Shrinker.PROGUARD6_THEN_D8
-        || shrinker == Shrinker.R8_COMPAT
-        || shrinker == Shrinker.R8;
-  }
-
-  protected static boolean generatesCf(Shrinker shrinker) {
-    return shrinker == Shrinker.PROGUARD5
-        || shrinker == Shrinker.PROGUARD6
-        || shrinker == Shrinker.R8_COMPAT_CF
-        || shrinker == Shrinker.R8_CF;
-  }
-
-  protected static Backend toBackend(Shrinker shrinker) {
-    if (generatesDex(shrinker)) {
-      return Backend.DEX;
+    public boolean isR8() {
+      return this == R8_COMPAT
+          || this == R8_COMPAT_CF
+          || this == R8
+          || this == R8_CF;
     }
-    assert generatesCf(shrinker);
-    return Backend.CF;
+
+    public boolean generatesDex() {
+      return this == PROGUARD6_THEN_D8
+          || this == R8_COMPAT
+          || this == R8;
+    }
+
+    public boolean generatesCf() {
+      return this == PROGUARD5
+          || this == PROGUARD6
+          || this == R8_COMPAT_CF
+          || this == R8_CF;
+    }
+
+    public Backend toBackend() {
+      if (generatesDex()) {
+        return Backend.DEX;
+      }
+      assert generatesCf();
+      return Backend.CF;
+    }
   }
 
   protected AndroidApp runShrinker(
