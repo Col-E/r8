@@ -112,6 +112,7 @@ public class WarnReflectiveAccessTest extends TestBase {
                         + " <methods>;"
                         + "}",
                     "-printmapping",
+                    "-keepattributes LineNumberTable",
                     reflectionRules),
                 Origin.unknown())
             .setOutput(out, outputMode(backend));

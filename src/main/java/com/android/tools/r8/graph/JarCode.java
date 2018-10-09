@@ -17,6 +17,7 @@ import com.android.tools.r8.jar.JarRegisterEffectsVisitor;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.PrintWriter;
@@ -163,7 +164,7 @@ public class JarCode extends Code {
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition) {
-    if (!options.debug || options.testing.removeLocalsTable) {
+    if (!options.debug || !options.proguardConfiguration.getKeepAttributes().localVariableTable) {
       node.localVariables.clear();
     }
     JarSourceCode source =
@@ -241,9 +242,16 @@ public class JarCode extends Code {
   }
 
   private void parseCode(ReparseContext context, boolean useJsrInliner) {
+    // If the keep attributes do not specify keeping LocalVariableTable, LocalVariableTypeTable or
+    // LineNumberTable, then we can skip parsing all the debug related attributes during code read.
+    int parsingOptions = ClassReader.SKIP_FRAMES;
+    ProguardKeepAttributes keep = application.options.proguardConfiguration.getKeepAttributes();
+    if (!keep.localVariableTable && !keep.localVariableTypeTable && !keep.lineNumberTable) {
+      parsingOptions |= ClassReader.SKIP_DEBUG;
+    }
     SecondVisitor classVisitor = new SecondVisitor(createCodeLocator(context), useJsrInliner);
     try {
-      new ClassReader(context.classCache).accept(classVisitor, ClassReader.SKIP_FRAMES);
+      new ClassReader(context.classCache).accept(classVisitor, parsingOptions);
     } catch (Exception exception) {
       throw new CompilationError(
           "Unable to parse method `" + method.toSourceString() + "`", exception);
