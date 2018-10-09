@@ -264,7 +264,9 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
   @Parameterized.Parameters(name = "Shrinker: {0}")
   public static Collection<Object> data() {
     return ImmutableList.of(
-        Shrinker.PROGUARD6_THEN_D8, Shrinker.PROGUARD6, Shrinker.R8, Shrinker.R8_CF);
+        Shrinker.PROGUARD6_THEN_D8, Shrinker.PROGUARD6,
+        Shrinker.R8_COMPAT, Shrinker.R8_COMPAT_CF,
+        Shrinker.R8, Shrinker.R8_CF);
   }
 
   public ExternalizableTest(Shrinker shrinker) {
@@ -273,11 +275,6 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void testExternalizable() throws Exception {
-    // TODO(b/116735204): R8 should keep default ctor() of classes that implement Externalizable
-    if (shrinker.isR8()) {
-      return;
-    }
-
     String javaOutput = runOnJava(ExternalizableTestMain.class);
 
     List<String> config = ImmutableList.of(
@@ -300,6 +297,12 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
       assertEquals(javaOutput.trim(), output.trim());
     }
 
+    // https://docs.oracle.com/javase/8/docs/platform/serialization/spec/serial-arch.html
+    //   1.11 The Externalizable Interface
+    //   ...
+    //   The class of an Externalizable object must do the following:
+    //   ...
+    //     * Have a public no-arg constructor
     CodeInspector codeInspector = new CodeInspector(processedApp, proguardMap);
     ClassSubject classSubject = codeInspector.clazz(ExternalizableDataClass.class);
     assertThat(classSubject, isPresent());
@@ -336,6 +339,12 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
       assertEquals(javaOutput.trim(), output.trim());
     }
 
+    // https://docs.oracle.com/javase/8/docs/platform/serialization/spec/serial-arch.html
+    //   1.10 The Serializable Interface
+    //   ...
+    //   A Serializable class must do the following:
+    //   ...
+    //     * Have access to the no-arg constructor of its first non-serializable superclass
     CodeInspector codeInspector = new CodeInspector(processedApp, proguardMap);
     ClassSubject classSubject = codeInspector.clazz(NonSerializableSuperClass.class);
     assertThat(classSubject, isPresent());

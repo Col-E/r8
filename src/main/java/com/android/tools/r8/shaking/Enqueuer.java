@@ -265,13 +265,18 @@ public class Enqueuer {
     if (item.isDexClass()) {
       DexClass clazz = item.asDexClass();
       workList.add(Action.markInstantiated(clazz, reason));
-      if (forceProguardCompatibility && clazz.hasDefaultInitializer()) {
-        ProguardKeepRule compatRule =
+      if (clazz.hasDefaultInitializer()) {
+        if (forceProguardCompatibility) {
+          ProguardKeepRule compatRule =
             ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
-        proguardCompatibilityWorkList.add(
-            Action.markMethodLive(
-                clazz.getDefaultInitializer(),
-                KeepReason.dueToProguardCompatibilityKeepRule(compatRule)));
+          proguardCompatibilityWorkList.add(
+              Action.markMethodLive(
+                  clazz.getDefaultInitializer(),
+                  KeepReason.dueToProguardCompatibilityKeepRule(compatRule)));
+        }
+        if (clazz.isExternalizable(appInfo)) {
+          workList.add(Action.markMethodLive(clazz.getDefaultInitializer(), reason));
+        }
       }
     } else if (item.isDexEncodedField()) {
       workList.add(Action.markFieldKept(item.asDexEncodedField(), reason));

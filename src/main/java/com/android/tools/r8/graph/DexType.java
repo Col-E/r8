@@ -37,6 +37,9 @@ public class DexType extends DexReference implements PresortedComparable<DexType
    */
   private Set<DexType> directSubtypes = NO_DIRECT_SUBTYPE;
 
+  // Caching what interfaces this type is implementing. This includes super-interface hierarchy.
+  private Set<DexType> implementedInterfaces;
+
   DexType(DexString descriptor) {
     assert !descriptor.toString().contains(".");
     this.descriptor = descriptor;
@@ -234,9 +237,12 @@ public class DexType extends DexReference implements PresortedComparable<DexType
    * @return a set of interfaces of {@link DexType}.
    */
   public Set<DexType> implementedInterfaces(AppInfo appInfo) {
-    Set<DexType> interfaces = Sets.newIdentityHashSet();
-    implementedInterfaces(appInfo, interfaces);
-    return interfaces;
+    if (implementedInterfaces == null) {
+      Set<DexType> interfaces = Sets.newIdentityHashSet();
+      implementedInterfaces(appInfo, interfaces);
+      implementedInterfaces = interfaces;
+    }
+    return implementedInterfaces;
   }
 
   private void implementedInterfaces(AppInfo appInfo, Set<DexType> interfaces) {

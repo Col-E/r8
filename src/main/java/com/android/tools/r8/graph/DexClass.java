@@ -412,6 +412,10 @@ public abstract class DexClass extends DexDefinition {
     return null;
   }
 
+  public boolean isExternalizable(AppInfo appInfo) {
+    return type.implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.externalizableType);
+  }
+
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {
     return Arrays.stream(staticFields())
         .anyMatch(field -> !field.getStaticValue().mayTriggerAllocation());

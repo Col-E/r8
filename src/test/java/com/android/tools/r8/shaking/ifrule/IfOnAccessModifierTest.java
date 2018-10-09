@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
@@ -45,10 +46,12 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
   }
 
   @Override
-  protected AndroidApp runR8(List<Class> programClasses, String proguardConfig, Backend backend)
+  protected AndroidApp runR8(
+      List<Class> programClasses, String proguardConfig, Path proguardMap, Backend backend)
       throws Exception {
     // Disable inlining, otherwise classes can be pruned away if all their methods are inlined.
-    return runR8(programClasses, proguardConfig, o -> o.enableInlining = false, backend);
+    return runR8(
+        programClasses, proguardConfig, proguardMap, o -> o.enableInlining = false, backend);
   }
 
   @Test

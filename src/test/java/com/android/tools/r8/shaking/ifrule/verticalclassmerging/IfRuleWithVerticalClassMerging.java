@@ -89,9 +89,10 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
   }
 
   @Override
-  protected AndroidApp runR8(List<Class> programClasses, String proguardConfig, Backend backend)
+  protected AndroidApp runR8(
+      List<Class> programClasses, String proguardConfig, Path proguardMap, Backend backend)
       throws Exception {
-    return super.runR8(programClasses, proguardConfig, this::configure, backend);
+    return super.runR8(programClasses, proguardConfig, proguardMap, this::configure, backend);
   }
 
   private void check(AndroidApp app) throws Exception {
