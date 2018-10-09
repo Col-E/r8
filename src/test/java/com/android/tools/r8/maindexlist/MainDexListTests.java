@@ -59,7 +59,6 @@ import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -660,7 +659,7 @@ public class MainDexListTests extends TestBase {
       List<String> classes, int minApi, boolean intermediate, int methodCount)
       throws IOException, ExecutionException {
     return generateApplication(
-        classes, minApi, intermediate, methodCount, new DefaultDiagnosticsHandler());
+        classes, minApi, intermediate, methodCount, new DiagnosticsHandler() {});
   }
 
   private static AndroidApp generateApplication(

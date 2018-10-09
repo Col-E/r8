@@ -19,7 +19,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.nio.file.Path;
@@ -184,7 +183,7 @@ public class MethodHandleTestRunner extends TestBase {
       if (frontend == Frontend.CF && compilationMode == CompilationMode.DEBUG) {
         // TODO(b/79725635): Investigate why these tests fail on the buildbot.
         // Use a Reporter to extract origin info to standard error.
-        new Reporter(new DefaultDiagnosticsHandler()).error(e);
+        new Reporter().error(e);
         // Print the stack trace since this is not always printed by JUnit.
         e.printStackTrace();
         Assume.assumeNoException(

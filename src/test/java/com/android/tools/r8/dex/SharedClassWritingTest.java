@@ -28,7 +28,6 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -136,8 +135,7 @@ public class SharedClassWritingTest {
     DexApplication application = builder.build();
 
     CollectInfoConsumer consumer = new CollectInfoConsumer();
-    InternalOptions options = new InternalOptions(dexItemFactory,
-        new Reporter(new DefaultDiagnosticsHandler()));
+    InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
     options.programConsumer = consumer;
     ApplicationWriter writer =
         new ApplicationWriter(

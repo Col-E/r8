@@ -85,7 +85,7 @@ public final class FeatureClassMapping {
   }
 
   public static FeatureClassMapping fromSpecification(Path file) throws FeatureMappingException {
-    return fromSpecification(file, new DefaultDiagnosticsHandler());
+    return fromSpecification(file, new DiagnosticsHandler() {});
   }
 
   public static FeatureClassMapping fromSpecification(Path file, DiagnosticsHandler reporter)

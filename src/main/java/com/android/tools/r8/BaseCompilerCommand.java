@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DefaultDiagnosticsHandler;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.nio.file.Path;
@@ -36,7 +35,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     programConsumer = null;
     mode = null;
     minApiLevel = 0;
-    reporter = new Reporter(new DefaultDiagnosticsHandler());
+    reporter = new Reporter();
     enableDesugaring = true;
     optimizeMultidexForLinearAlloc = false;
   }
