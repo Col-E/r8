@@ -13,19 +13,18 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
-import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.code.CheckCast;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,7 +81,8 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
     ClassSubject classSubject = inspector.clazz(MAIN);
     MethodSubject method = classSubject.method("void", "differentLocals", ImmutableList.of());
     assertThat(method, isPresent());
-    long count = countCheckCast(method.getMethod().getCode());
+    long count =
+        Streams.stream(method.iterateInstructions(InstructionSubject::isCheckCast)).count();
     assertEquals(1, count);
 
     DebugTestConfig config = backend == Backend.CF
@@ -134,7 +134,8 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
     ClassSubject classSubject = inspector.clazz(MAIN);
     MethodSubject method = classSubject.method("void", "sameLocal", ImmutableList.of());
     assertThat(method, isPresent());
-    long count = countCheckCast(method.getMethod().getCode());
+    long count =
+        Streams.stream(method.iterateInstructions(InstructionSubject::isCheckCast)).count();
     assertEquals(1, count);
 
     DebugTestConfig config = backend == Backend.CF
@@ -164,15 +165,6 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
         checkLocal("obj"),
         run()
     );
-  }
-
-  private long countCheckCast(Code code) {
-    if (backend == Backend.DEX) {
-      return filterInstructionKind(code.asDexCode(), CheckCast.class).count();
-    } else {
-      assert backend == Backend.CF;
-      return filterInstructionKind(code.asCfCode(), CfCheckCast.class).count();
-    }
   }
 
 }

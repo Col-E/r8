@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
+
 public interface InstructionSubject {
 
   enum JumboStringMode {
@@ -13,11 +16,25 @@ public interface InstructionSubject {
 
   boolean isFieldAccess();
 
+  boolean isInstancePut();
+
+  boolean isStaticPut();
+
+  boolean isInstanceGet();
+
+  boolean isStaticGet();
+
+  DexField getField();
+
+  boolean isInvoke();
+
   boolean isInvokeVirtual();
 
   boolean isInvokeInterface();
 
   boolean isInvokeStatic();
+
+  DexMethod getMethod();
 
   boolean isNop();
 
@@ -37,17 +54,7 @@ public interface InstructionSubject {
 
   boolean isThrow();
 
-  boolean isInvoke();
-
   boolean isNewInstance();
-
-  boolean isInstancePut();
-
-  boolean isStaticPut();
-
-  boolean isInstanceGet();
-
-  boolean isStaticGet();
 
   boolean isCheckCast();
 

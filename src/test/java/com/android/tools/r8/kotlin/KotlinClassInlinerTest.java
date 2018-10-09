@@ -10,7 +10,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.graph.DexClass;
@@ -19,9 +18,12 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -229,8 +231,8 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   private List<String> collectStaticCalls(ClassSubject clazz, String methodName, String... params) {
     assertNotNull(clazz);
     MethodSignature signature = new MethodSignature(methodName, "void", params);
-    DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
-    return filterInstructionKind(code, InvokeStatic.class)
+    MethodSubject method = clazz.method(signature);
+    return Streams.stream(method.iterateInstructions(InstructionSubject::isInvokeStatic))
         .map(insn -> insn.getMethod().toSourceString())
         .sorted()
         .collect(Collectors.toList());

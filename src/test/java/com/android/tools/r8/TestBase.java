@@ -829,13 +829,6 @@ public class TestBase {
         .map(kind::cast);
   }
 
-  protected Stream<CfInstruction> filterInstructionKind(
-      CfCode code, Class<? extends CfInstruction> kind) {
-    return code.getInstructions().stream()
-        .filter(kind::isInstance)
-        .map(kind::cast);
-  }
-
   public enum MinifyMode {
     NONE,
     JAVA,
