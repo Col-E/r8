@@ -456,7 +456,7 @@ public class TypeLatticeTest extends TestBase {
     DexType collection = factory.createType("Ljava/util/Collection;");
     DexType set = factory.createType("Ljava/util/Set;");
     DexType list = factory.createType("Ljava/util/List;");
-    DexType serializable = factory.createType("Ljava/io/Serializable;");
+    DexType serializable = factory.serializableType;
 
     Set<DexType> lub = computeLeastUpperBoundOfInterfaces(appInfo,
         ImmutableSet.of(set), ImmutableSet.of(list));

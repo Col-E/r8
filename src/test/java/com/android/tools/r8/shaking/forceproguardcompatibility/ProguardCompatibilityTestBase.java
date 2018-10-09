@@ -88,13 +88,13 @@ public class ProguardCompatibilityTestBase extends TestBase {
       case PROGUARD6_THEN_D8:
         return runProguard6AndD8(programClasses, proguardConfig, proguardMap);
       case R8_COMPAT:
-        return runR8Compat(programClasses, proguardConfig, Backend.DEX);
+        return runR8Compat(programClasses, proguardConfig, proguardMap, Backend.DEX);
       case R8_COMPAT_CF:
-        return runR8Compat(programClasses, proguardConfig, Backend.CF);
+        return runR8Compat(programClasses, proguardConfig, proguardMap, Backend.CF);
       case R8:
-        return runR8(programClasses, proguardConfig, Backend.DEX);
+        return runR8(programClasses, proguardConfig, proguardMap, Backend.DEX);
       case R8_CF:
-        return runR8(programClasses, proguardConfig, Backend.CF);
+        return runR8(programClasses, proguardConfig, proguardMap, Backend.CF);
     }
     throw new IllegalArgumentException("Unknown shrinker: " + mode);
   }
@@ -126,34 +126,45 @@ public class ProguardCompatibilityTestBase extends TestBase {
     throw new IllegalArgumentException("Unknown shrinker: " + mode);
   }
 
-  protected AndroidApp runR8(List<Class> programClasses, String proguardConfig, Backend backend)
+  protected AndroidApp runR8(
+      List<Class> programClasses,
+      String proguardConfig,
+      Path proguardMap,
+      Backend backend)
       throws Exception {
-    return runR8(programClasses, proguardConfig, null, backend);
+    return runR8(programClasses, proguardConfig, proguardMap, null, backend);
   }
 
   protected AndroidApp runR8(
       List<Class> programClasses,
       String proguardConfig,
+      Path proguardMap,
       Consumer<InternalOptions> configure,
       Backend backend)
       throws Exception {
     AndroidApp app = readClassesAndRuntimeJar(programClasses, backend);
     R8Command.Builder builder = ToolHelper.prepareR8CommandBuilder(app, emptyConsumer(backend));
     ToolHelper.allowTestProguardOptions(builder);
-    builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
+    builder.addProguardConfiguration(
+        ImmutableList.of(proguardConfig, toPrintMappingRule(proguardMap)), Origin.unknown());
     return ToolHelper.runR8(builder.build(), configure);
   }
 
   protected CodeInspector inspectR8Result(
       List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
-    return new CodeInspector(runR8(programClasses, proguardConfig, backend));
+    return new CodeInspector(runR8(programClasses, proguardConfig, null, backend));
   }
 
   protected AndroidApp runR8Compat(
-      List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
+      List<Class> programClasses,
+      String proguardConfig,
+      Path proguardMap,
+      Backend backend)
+      throws Exception {
     CompatProguardCommandBuilder builder = new CompatProguardCommandBuilder(true);
     ToolHelper.allowTestProguardOptions(builder);
-    builder.addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
+    builder.addProguardConfiguration(
+        ImmutableList.of(proguardConfig, toPrintMappingRule(proguardMap)), Origin.unknown());
     programClasses.forEach(
         clazz -> builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz)));
     if (backend == Backend.DEX) {
@@ -169,7 +180,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
 
   protected CodeInspector inspectR8CompatResult(
       List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
-    return new CodeInspector(runR8Compat(programClasses, proguardConfig, backend));
+    return new CodeInspector(runR8Compat(programClasses, proguardConfig, null, backend));
   }
 
   protected AndroidApp runProguard5(
@@ -305,5 +316,9 @@ public class ProguardCompatibilityTestBase extends TestBase {
       ClassSubject c = codeInspector.clazz(klass);
       assertThat(c, not(isPresent()));
     }
+  }
+
+  private String toPrintMappingRule(Path proguardMap) {
+    return proguardMap == null ? "" : "-printmapping " + proguardMap.toAbsolutePath();
   }
 }
