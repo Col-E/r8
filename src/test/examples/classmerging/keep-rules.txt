@@ -2,6 +2,9 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+# Keep line numbers to ensure method mappings in the map file.
+-keepattributes LineNumberTable
+
 # Keep the application entry point. Get rid of everything that is not
 # reachable from there.
 -keep public class classmerging.Test {
@@ -57,6 +60,3 @@
 }
 
 -printmapping
-
-# TODO(herhut): Consider supporting merging of inner-class attributes.
-# -keepattributes *

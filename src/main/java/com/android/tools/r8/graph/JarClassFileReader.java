@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import static org.objectweb.asm.ClassReader.SKIP_CODE;
+import static org.objectweb.asm.ClassReader.SKIP_DEBUG;
 import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
 import static org.objectweb.asm.Opcodes.ASM6;
@@ -27,6 +28,7 @@ import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -93,9 +95,18 @@ public class JarClassFileReader {
     input.reset();
 
     ClassReader reader = new ClassReader(input);
+
+    int parsingOptions = SKIP_FRAMES | SKIP_CODE;
+
+    // If the source-file and source-debug-extension attributes are not kept we can skip all debug
+    // related attributes when parsing the class structure.
+    ProguardKeepAttributes keep = application.options.proguardConfiguration.getKeepAttributes();
+    if (!keep.sourceFile && !keep.sourceDebugExtension) {
+      parsingOptions |= SKIP_DEBUG;
+    }
     reader.accept(
         new CreateDexClassVisitor(origin, classKind, reader.b, application, classConsumer),
-        SKIP_FRAMES | SKIP_CODE);
+        parsingOptions);
   }
 
   private static int cleanAccessFlags(int access) {

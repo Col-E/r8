@@ -16,6 +16,9 @@ public class ProguardKeepAttributes {
   public static final String ENCLOSING_METHOD = "EnclosingMethod";
   public static final String SIGNATURE = "Signature";
   public static final String EXCEPTIONS = "Exceptions";
+  public static final String LINE_NUMBER_TABLE = "LineNumberTable";
+  public static final String LOCAL_VARIABLE_TABLE = "LocalVariableTable";
+  public static final String LOCAL_VARIABLE_TYPE_TABLE = "LocalVariableTypeTable";
   public static final String SOURCE_DEBUG_EXTENSION = "SourceDebugExtension";
   public static final String RUNTIME_VISIBLE_ANNOTATIONS = "RuntimeVisibleAnnotations";
   public static final String RUNTIME_INVISIBLE_ANNOTATIONS = "RuntimeInvisibleAnnotations";
@@ -36,6 +39,9 @@ public class ProguardKeepAttributes {
   public boolean enclosingMethod = false;
   public boolean signature = false;
   public boolean exceptions = false;
+  public boolean lineNumberTable = false;
+  public boolean localVariableTable = false;
+  public boolean localVariableTypeTable = false;
   public boolean sourceDebugExtension = false;
   public boolean runtimeVisibleAnnotations = false;
   public boolean runtimeInvisibleAnnotations = false;
@@ -108,6 +114,9 @@ public class ProguardKeepAttributes {
     innerClasses = update(innerClasses, INNER_CLASSES, patterns);
     enclosingMethod = update(enclosingMethod, ENCLOSING_METHOD, patterns);
     signature = update(signature, SIGNATURE, patterns);
+    lineNumberTable = update(lineNumberTable, LINE_NUMBER_TABLE, patterns);
+    localVariableTable = update(localVariableTable, LOCAL_VARIABLE_TABLE, patterns);
+    localVariableTypeTable = update(localVariableTypeTable, LOCAL_VARIABLE_TYPE_TABLE, patterns);
     exceptions = update(exceptions, EXCEPTIONS, patterns);
     sourceDebugExtension = update(sourceDebugExtension, SOURCE_DEBUG_EXTENSION, patterns);
     runtimeVisibleAnnotations = update(runtimeVisibleAnnotations, RUNTIME_VISIBLE_ANNOTATIONS,
@@ -145,6 +154,18 @@ public class ProguardKeepAttributes {
     } else if (signature && !innerClasses) {
       throw new CompilationError("Attribute Signature requires InnerClasses attribute. Check "
           + "-keepattributes directive.");
+    }
+    if (forceProguardCompatibility && localVariableTable && !lineNumberTable) {
+      // If locals are kept, assume line numbers should be kept too.
+      lineNumberTable = true;
+      compatibility.addKeepAttributePatterns(
+          ImmutableList.of(ProguardKeepAttributes.LINE_NUMBER_TABLE));
+    }
+    if (localVariableTable && !lineNumberTable) {
+      throw new CompilationError(
+          "Attribute " + LOCAL_VARIABLE_TABLE
+              + " requires " + LINE_NUMBER_TABLE
+              + ". Check -keepattributes directive.");
     }
   }
 

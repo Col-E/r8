@@ -40,6 +40,7 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldAccessInstructionSubject;
@@ -429,10 +430,11 @@ public class ClassInlinerTest extends TestBase {
   }
 
   private String getProguardConfig(String main) {
-    return keepMainProguardConfiguration(main)
-        + "\n"
-        + "-dontobfuscate\n"
-        + "-allowaccessmodification";
+    return StringUtils.joinLines(
+        keepMainProguardConfiguration(main),
+        "-dontobfuscate",
+        "-allowaccessmodification",
+        "-keepattributes LineNumberTable");
   }
 
   private void configure(InternalOptions options) {
