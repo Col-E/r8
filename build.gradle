@@ -478,13 +478,16 @@ task consolidatedLicense {
     }
 }
 
-static configureRelocations(ShadowJar task) {
+static mergeServiceFiles(ShadowJar task) {
     // Everything under META-INF is not included by default.
     // Should include before 'relocate' so that the service file path and its content
     // are properly relocated as well.
     task.mergeServiceFiles {
         include 'META-INF/services/*'
     }
+}
+
+static configureRelocations(ShadowJar task) {
     task.relocate('com.google.common', 'com.android.tools.r8.com.google.common')
     task.relocate('com.google.gson', 'com.android.tools.r8.com.google.gson')
     task.relocate('com.google.thirdparty', 'com.android.tools.r8.com.google.thirdparty')
@@ -500,7 +503,10 @@ static configureRelocations(ShadowJar task) {
 
 task repackageDeps(type: ShadowJar) {
     configurations = [project.configurations.compile]
-    configureRelocations(it)
+    mergeServiceFiles(it)
+    if (!project.hasProperty('lib_no_relocate')) {
+        configureRelocations(it)
+    }
     exclude { it.getRelativePath().getPathString() == "module-info.class" }
     exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
     baseName 'deps'
@@ -508,7 +514,10 @@ task repackageDeps(type: ShadowJar) {
 
 task repackageSources(type: ShadowJar) {
     from sourceSets.main.output
-    configureRelocations(it)
+    mergeServiceFiles(it)
+    if (!project.hasProperty('lib_no_relocate')) {
+        configureRelocations(it)
+    }
     baseName 'sources'
 }
 
