@@ -78,4 +78,14 @@ public class AbsentMethodSubject extends MethodSubject {
   public String getFinalSignatureAttribute() {
     return null;
   }
+
+  @Override
+  public boolean hasLineNumberTable() {
+    return false;
+  }
+
+  @Override
+  public boolean hasLocalVariableTable() {
+    return false;
+  }
 }

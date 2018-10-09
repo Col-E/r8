@@ -32,4 +32,8 @@ public abstract class MethodSubject extends MemberSubject {
       Predicate<InstructionSubject> filter) {
     return null;
   }
+
+  public abstract boolean hasLineNumberTable();
+
+  public abstract boolean hasLocalVariableTable();
 }
