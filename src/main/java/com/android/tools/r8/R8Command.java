@@ -650,6 +650,9 @@ public final class R8Command extends BaseCompilerCommand {
 
     assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();
     if (internal.debug) {
+      internal.proguardConfiguration.getKeepAttributes().lineNumberTable = true;
+      internal.proguardConfiguration.getKeepAttributes().localVariableTable = true;
+      internal.proguardConfiguration.getKeepAttributes().localVariableTypeTable = true;
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       internal.enableInlining = false;
       internal.enableClassInlining = false;
