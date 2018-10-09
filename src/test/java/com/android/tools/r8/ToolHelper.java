@@ -949,7 +949,7 @@ public class ToolHelper {
   }
 
   public static ProcessResult runJava(Class clazz) throws Exception {
-    String main = clazz.getCanonicalName();
+    String main = clazz.getTypeName();
     Path path = getClassPathForTests();
     return runJava(path, main);
   }

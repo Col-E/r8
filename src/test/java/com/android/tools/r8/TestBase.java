@@ -16,7 +16,6 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.SmaliWriter;
@@ -711,7 +710,7 @@ public class TestBase {
 
   protected ProcessResult runOnVMRaw(AndroidApp app, Class<?> mainClass, Backend backend)
       throws IOException {
-    return runOnVMRaw(app, mainClass.getCanonicalName(), backend);
+    return runOnVMRaw(app, mainClass.getTypeName(), backend);
   }
 
   protected ProcessResult runOnVMRaw(AndroidApp app, String mainClass, Backend backend)
