@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -13,23 +13,36 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.debuginfo.DebugInfoInspector;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes.TestKeepAttributes;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class KeepAttributesTest extends TestBase {
 
-  public static final Class CLASS = TestKeepAttributes.class;
+  private static final Class CLASS = TestKeepAttributes.class;
+
+  @Parameters(name = "{0}")
+  public static Backend[] parameters() {
+    return new Backend[] { Backend.CF, Backend.DEX};
+  }
+
+  private final Backend backend;
+
+  public KeepAttributesTest(Backend backend) {
+    this.backend = backend;
+  }
 
   @Test
   public void keepAllAttributesInDebugMode()
@@ -37,10 +50,9 @@ public class KeepAttributesTest extends TestBase {
     List<String> keepRules = ImmutableList.of(
         "-keep class ** { *; }"
     );
-    CodeInspector inspector = compile(keepRules, CompilationMode.DEBUG);
-    DebugInfoInspector debugInfo = debugInfoForMain(inspector);
-    checkLineNumbers(true, debugInfo);
-    checkLocals(true, debugInfo);
+    MethodSubject mainMethod = compileRunAndGetMain(keepRules, CompilationMode.DEBUG);
+    assertTrue(mainMethod.hasLineNumberTable());
+    assertTrue(mainMethod.hasLocalVariableTable());
   }
 
   @Test
@@ -49,10 +61,9 @@ public class KeepAttributesTest extends TestBase {
     List<String> keepRules = ImmutableList.of(
         "-keep class ** { *; }"
     );
-    CodeInspector inspector = compile(keepRules, CompilationMode.RELEASE);
-    DebugInfoInspector debugInfo = debugInfoForMain(inspector);
-    checkLineNumbers(false, debugInfo);
-    checkLocals(false, debugInfo);
+    MethodSubject mainMethod = compileRunAndGetMain(keepRules, CompilationMode.RELEASE);
+    assertFalse(mainMethod.hasLineNumberTable());
+    assertFalse(mainMethod.hasLocalVariableTable());
   }
 
   @Test
@@ -62,10 +73,9 @@ public class KeepAttributesTest extends TestBase {
         "-keep class ** { *; }",
         "-keepattributes " + ProguardKeepAttributes.LINE_NUMBER_TABLE
     );
-    CodeInspector inspector = compile(keepRules, CompilationMode.RELEASE);
-    DebugInfoInspector debugInfo = debugInfoForMain(inspector);
-    checkLineNumbers(true, debugInfo);
-    checkLocals(false, debugInfo);
+    MethodSubject mainMethod = compileRunAndGetMain(keepRules, CompilationMode.RELEASE);
+    assertTrue(mainMethod.hasLineNumberTable());
+    assertFalse(mainMethod.hasLocalVariableTable());
   }
 
   @Test
@@ -78,11 +88,10 @@ public class KeepAttributesTest extends TestBase {
             + ", "
             + ProguardKeepAttributes.LOCAL_VARIABLE_TABLE
     );
-    CodeInspector inspector = compile(keepRules, CompilationMode.RELEASE);
-    DebugInfoInspector debugInfo = debugInfoForMain(inspector);
-    checkLineNumbers(true, debugInfo);
+    MethodSubject mainMethod = compileRunAndGetMain(keepRules, CompilationMode.RELEASE);
+    assertTrue(mainMethod.hasLineNumberTable());
     // Locals are never included in release builds.
-    checkLocals(false, debugInfo);
+    assertFalse(mainMethod.hasLocalVariableTable());
   }
 
   @Test
@@ -93,7 +102,7 @@ public class KeepAttributesTest extends TestBase {
     );
     // Compiling with a keep rule for locals but no line results in an error in R8.
     try {
-      compile(keepRules, CompilationMode.RELEASE);
+      compileRunAndGetMain(keepRules, CompilationMode.RELEASE);
     } catch (CompilationFailedException e) {
       assertTrue(e.getCause().getMessage().contains(ProguardKeepAttributes.LOCAL_VARIABLE_TABLE));
       assertTrue(e.getCause().getMessage().contains(ProguardKeepAttributes.LINE_NUMBER_TABLE));
@@ -102,7 +111,7 @@ public class KeepAttributesTest extends TestBase {
     fail("Expected error");
   }
 
-  private CodeInspector compile(List<String> keepRules, CompilationMode mode)
+  private MethodSubject compileRunAndGetMain(List<String> keepRules, CompilationMode mode)
       throws CompilationFailedException, IOException, ExecutionException {
     AndroidAppConsumers sink = new AndroidAppConsumers();
     R8.run(
@@ -111,30 +120,14 @@ public class KeepAttributesTest extends TestBase {
             .addProgramFiles(
                 ToolHelper.getClassFilesForTestDirectory(
                     ToolHelper.getClassFileForTestClass(CLASS).getParent()))
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+            .addLibraryFiles(runtimeJar(backend))
             .addProguardConfiguration(keepRules, Origin.unknown())
-            .setProgramConsumer(sink.wrapProgramConsumer(emptyConsumer(Backend.DEX)))
+            .setProgramConsumer(sink.wrapProgramConsumer(emptyConsumer(backend)))
             .build());
     AndroidApp app = sink.build();
     CodeInspector codeInspector = new CodeInspector(app);
-    runOnArt(app, CLASS.getTypeName());
-    return codeInspector;
+    runOnVM(app, CLASS.getTypeName(), backend);
+    return codeInspector.clazz(CLASS).mainMethod();
   }
 
-  private DebugInfoInspector debugInfoForMain(CodeInspector inspector) {
-    return new DebugInfoInspector(
-        inspector,
-        CLASS.getTypeName(),
-        new MethodSignature("main", "void", Collections.singleton("java.lang.String[]")));
-  }
-
-  private void checkLineNumbers(boolean expected, DebugInfoInspector debugInfo) {
-    assertEquals("Expected " + (expected ? "line entries" : "no line entries"),
-        expected, debugInfo.getEntries().stream().anyMatch(e -> e.lineEntry));
-  }
-
-  private void checkLocals(boolean expected, DebugInfoInspector debugInfo) {
-    assertEquals("Expected " + (expected ? "locals" : "no locals"),
-        expected, debugInfo.getEntries().stream().anyMatch(e -> !e.locals.isEmpty()));
-  }
 }
