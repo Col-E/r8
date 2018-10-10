@@ -19,20 +19,20 @@ public class ProguardMapError extends CompilationError {
 
   static ProguardMapError keptTypeWasRenamed(DexType type, String keptName, String rename) {
     return new ProguardMapError(
-        "Warning: " + type + createMessageForConflict(keptName, rename));
+        type + createMessageForConflict(keptName, rename));
   }
 
   static ProguardMapError keptMethodWasRenamed(DexMethod method, String keptName, String rename) {
     return new ProguardMapError(
-        "Warning: " + method.toSourceString() + createMessageForConflict(keptName, rename));
+        method.toSourceString() + createMessageForConflict(keptName, rename));
   }
 
   static ProguardMapError keptFieldWasRenamed(DexField field, String keptName, String rename) {
     return new ProguardMapError(
-        "Warning: " + field.toSourceString() + createMessageForConflict(keptName, rename));
+        field.toSourceString() + createMessageForConflict(keptName, rename));
   }
 
   private static String createMessageForConflict(String keptName, String rename) {
-    return " is not being kept as '" + keptName + "', but remapped to '" + rename + "'";
+    return " is not being kept as " + keptName + ", but remapped to " + rename;
   }
 }

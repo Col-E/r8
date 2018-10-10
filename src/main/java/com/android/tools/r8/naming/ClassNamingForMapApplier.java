@@ -151,8 +151,8 @@ public class ClassNamingForMapApplier implements ClassNaming {
   MemberNaming lookupByOriginalItem(DexField field) {
     for (Map.Entry<FieldSignature, MemberNaming> entry : fieldMembers.entrySet()) {
       FieldSignature signature = entry.getKey();
-      if (signature.name.equals(field.name.toString())
-          && signature.type.equals(field.type.getName())) {
+      if (signature.name.equals(field.name.toSourceString())
+          && signature.type.equals(field.type.toSourceString())) {
         return entry.getValue();
       }
     }
@@ -162,11 +162,11 @@ public class ClassNamingForMapApplier implements ClassNaming {
   protected MemberNaming lookupByOriginalItem(DexMethod method) {
     for (Map.Entry<MethodSignature, MemberNaming> entry : methodMembers.entrySet()) {
       MethodSignature signature = entry.getKey();
-      if (signature.name.equals(method.name.toString())
-          && signature.type.equals(method.proto.returnType.toString())
+      if (signature.name.equals(method.name.toSourceString())
+          && signature.type.equals(method.proto.returnType.toSourceString())
           && Arrays.equals(signature.parameters,
               Arrays.stream(method.proto.parameters.values)
-                  .map(DexType::toString).toArray(String[]::new))) {
+                  .map(DexType::toSourceString).toArray(String[]::new))) {
         return entry.getValue();
       }
     }
