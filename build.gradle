@@ -512,6 +512,15 @@ task repackageDeps(type: ShadowJar) {
     baseName 'deps'
 }
 
+task repackageDepsForLib(type: ShadowJar) {
+    configurations = [project.configurations.compile]
+    mergeServiceFiles(it)
+    configureRelocations(it)
+    exclude { it.getRelativePath().getPathString() == "module-info.class" }
+    exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
+    baseName 'r8lib_deps'
+}
+
 task repackageSources(type: ShadowJar) {
     from sourceSets.main.output
     mergeServiceFiles(it)
@@ -519,6 +528,18 @@ task repackageSources(type: ShadowJar) {
         configureRelocations(it)
     }
     baseName 'sources'
+}
+
+task R8libWithDeps(type: ShadowJar) {
+    from consolidatedLicense.outputs.files
+    baseName 'r8lib_with_deps'
+    classifier = null
+    version = null
+    manifest {
+        attributes 'Main-Class': 'com.android.tools.r8.SwissArmyKnife'
+    }
+    from repackageSources.outputs.files
+    from repackageDepsForLib.outputs.files
 }
 
 task R8(type: ShadowJar) {

@@ -106,6 +106,7 @@ public class ToolHelper {
   private static final String PROGUARD = PROGUARD5_2_1;
 
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
+  public static final Path R8_LIB_JAR = Paths.get(LIBS_DIR, "r8lib_with_deps.jar");
 
   public enum DexVm {
     ART_4_0_4_TARGET(Version.V4_0_4, Kind.TARGET),

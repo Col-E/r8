@@ -35,6 +35,10 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+/**
+ * This test relies on a freshly built from builds/libs/r8lib_with_deps.jar. If this test fails
+ * rebuild r8lib_with_deps by calling test.py or gradle r8libWithdeps.
+ */
 public class BootstrapCurrentEqualityTest extends TestBase {
 
   private static final String R8_NAME = "com.android.tools.r8.R8";
@@ -45,7 +49,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     "-keep class " + HELLO_NAME + " {", "  public static void main(...);", "}",
   };
 
-  private class R8Result {
+  private static class R8Result {
 
     final ProcessResult processResult;
     final Path outputJar;
@@ -70,18 +74,19 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @BeforeClass
   public static void beforeAll() throws Exception {
-    r8R8Debug = compileR8(CompilationMode.DEBUG);
-    r8R8Release = compileR8(CompilationMode.RELEASE);
+    r8R8Debug = compileR8("--debug");
+    r8R8Release = compileR8("--release");
   }
 
-  private static Path compileR8(CompilationMode mode) throws Exception {
+  private static Path compileR8(String mode) throws Exception {
     // Run R8 on r8.jar.
-    Path output = runR8(ToolHelper.R8_JAR, testFolder.newFolder().toPath(), mode);
+    R8Result output = runExternalR8(
+        ToolHelper.R8_LIB_JAR, ToolHelper.R8_LIB_JAR, testFolder.newFolder().toPath(), MAIN_KEEP, mode);
     // Check that all non-abstract classes in the R8'd R8 implement all abstract/interface methods
     // from their supertypes. This is a sanity check for the tree shaking and minification.
-    AndroidApp app = AndroidApp.builder().addProgramFile(output).build();
+    AndroidApp app = AndroidApp.builder().addProgramFile(output.outputJar).build();
     new ClassHierarchyVerifier(new CodeInspector(app)).run();
-    return output;
+    return output.outputJar;
   }
 
   @Test
@@ -95,10 +100,10 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   private void compareR8(Path program, ProcessResult runResult, String[] keep, String... args)
       throws Exception {
     R8Result runR8Debug =
-        runExternalR8(ToolHelper.R8_JAR, program, temp.newFolder().toPath(), keep, "--debug");
+        runExternalR8(ToolHelper.R8_LIB_JAR, program, temp.newFolder().toPath(), keep, "--debug");
     assertEquals(runResult.toString(), ToolHelper.runJava(runR8Debug.outputJar, args).toString());
     R8Result runR8Release =
-        runExternalR8(ToolHelper.R8_JAR, program, temp.newFolder().toPath(), keep, "--release");
+        runExternalR8(ToolHelper.R8_LIB_JAR, program, temp.newFolder().toPath(), keep, "--release");
     assertEquals(runResult.toString(), ToolHelper.runJava(runR8Release.outputJar, args).toString());
     RunR8AndCheck(r8R8Debug, program, runR8Debug, keep, "--debug");
     RunR8AndCheck(r8R8Debug, program, runR8Release, keep, "--release");
@@ -115,25 +120,17 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     assertProgramsEqual(result.outputJar, runR8R8.outputJar);
   }
 
-  private static Path runR8(Path inputJar, Path outputPath, CompilationMode mode) throws Exception {
-    Path outputJar = outputPath.resolve("output.jar");
-    ToolHelper.runR8(
-        R8Command.builder()
-            .setMode(mode)
-            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-            .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outputJar, true))
-            .addProgramFiles(inputJar)
-            .addProguardConfigurationFiles(MAIN_KEEP)
-            .build());
-    return outputJar;
-  }
-
-  private R8Result runExternalR8(
+  private static R8Result runExternalR8(
       Path r8Jar, Path inputJar, Path output, String[] keepRules, String mode) throws Exception {
     Path pgConfigFile = output.resolve("keep.rules");
+    FileUtils.writeTextFile(pgConfigFile, keepRules);
+    return runExternalR8(r8Jar, inputJar, output, pgConfigFile, mode);
+  }
+
+  private static R8Result runExternalR8(
+      Path r8Jar, Path inputJar, Path output, Path keepRules, String mode) throws Exception {
     Path outputJar = output.resolve("output.jar");
     Path pgMapFile = output.resolve("map.txt");
-    FileUtils.writeTextFile(pgConfigFile, keepRules);
     ProcessResult processResult =
         ToolHelper.runJava(
             r8Jar,
@@ -145,7 +142,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             "--output",
             outputJar.toString(),
             "--pg-conf",
-            pgConfigFile.toString(),
+            keepRules.toString(),
             mode,
             "--pg-map-output",
             pgMapFile.toString());
