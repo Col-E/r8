@@ -96,12 +96,6 @@ public class LineNumberOptimizationTest extends DebugTestBase {
   }
 
   @Test
-  public void testIdentityCompilation() throws Throwable {
-    // Compilation will fail if the identity translation does.
-    makeConfig(LineNumberOptimization.IDENTITY_MAPPING, true, false, runtimeKind);
-  }
-
-  @Test
   public void testNotOptimized() throws Throwable {
     testRelease(
         makeConfig(LineNumberOptimization.OFF, false, false, runtimeKind), ORIGINAL_LINE_NUMBERS);

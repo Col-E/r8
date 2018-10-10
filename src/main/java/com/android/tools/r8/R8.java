@@ -476,21 +476,19 @@ public class R8 {
 
       ProguardMapSupplier proguardMapSupplier;
 
-      if (options.lineNumberOptimization != LineNumberOptimization.OFF) {
-        timing.begin("Line number remapping");
-        ClassNameMapper classNameMapper =
-            LineNumberOptimizer.run(
-                application,
-                appView.graphLense(),
-                namingLens,
-                options.lineNumberOptimization == LineNumberOptimization.IDENTITY_MAPPING);
-        timing.end();
-        proguardMapSupplier =
-            ProguardMapSupplier.fromClassNameMapper(classNameMapper, options.minApiLevel);
-      } else {
-        proguardMapSupplier =
-            ProguardMapSupplier.fromNamingLens(namingLens, application, options.minApiLevel);
-      }
+      timing.begin("Line number remapping");
+      // When line number optimization is turned off the identity mapping for line numbers is
+      // used. We still run the line number optimizer to collect line numbers and inline frame
+      // information for the mapping file.
+      ClassNameMapper classNameMapper =
+          LineNumberOptimizer.run(
+              application,
+              appView.graphLense(),
+              namingLens,
+              options.lineNumberOptimization == LineNumberOptimization.OFF);
+      timing.end();
+      proguardMapSupplier =
+          ProguardMapSupplier.fromClassNameMapper(classNameMapper, options.minApiLevel);
 
       // If a method filter is present don't produce output since the application is likely partial.
       if (options.hasMethodsFilter()) {

@@ -10,6 +10,16 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent;
+import com.android.tools.r8.graph.DexDebugEvent.AdvanceLine;
+import com.android.tools.r8.graph.DexDebugEvent.AdvancePC;
+import com.android.tools.r8.graph.DexDebugEvent.Default;
+import com.android.tools.r8.graph.DexDebugEvent.EndLocal;
+import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
+import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
+import com.android.tools.r8.graph.DexDebugEvent.SetFile;
+import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
+import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
+import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexDebugEventVisitor;
 import com.android.tools.r8.graph.DexDebugInfo;
@@ -40,86 +50,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class LineNumberOptimizer {
-
-  // EventFilter is a visitor for DebugEvents, splits events into two sinks:
-  // - Forwards non-positional events unchanged into a BypassedEventReceiver
-  // - Forwards positional events, accumulated into DexDebugPositionStates, into
-  //   positionEventReceiver.
-  private static class EventFilter implements DexDebugEventVisitor {
-    private final BypassedEventReceiver bypassedEventReceiver;
-    private final PositionEventReceiver positionEventReceiver;
-
-    private interface BypassedEventReceiver {
-      void receiveBypassedEvent(DexDebugEvent event);
-    }
-
-    private interface PositionEventReceiver {
-      void receivePositionEvent(DexDebugPositionState positionState);
-    }
-
-    private final DexDebugPositionState positionState;
-
-    private EventFilter(
-        int startLine,
-        DexMethod method,
-        BypassedEventReceiver bypassedEventReceiver,
-        PositionEventReceiver positionEventReceiver) {
-      positionState = new DexDebugPositionState(startLine, method);
-      this.bypassedEventReceiver = bypassedEventReceiver;
-      this.positionEventReceiver = positionEventReceiver;
-    }
-
-    @Override
-    public void visit(DexDebugEvent.SetPrologueEnd event) {
-      bypassedEventReceiver.receiveBypassedEvent(event);
-    }
-
-    @Override
-    public void visit(DexDebugEvent.SetEpilogueBegin event) {
-      bypassedEventReceiver.receiveBypassedEvent(event);
-    }
-
-    @Override
-    public void visit(DexDebugEvent.StartLocal event) {
-      bypassedEventReceiver.receiveBypassedEvent(event);
-    }
-
-    @Override
-    public void visit(DexDebugEvent.EndLocal event) {
-      bypassedEventReceiver.receiveBypassedEvent(event);
-    }
-
-    @Override
-    public void visit(DexDebugEvent.RestartLocal event) {
-      bypassedEventReceiver.receiveBypassedEvent(event);
-    }
-
-    @Override
-    public void visit(DexDebugEvent.AdvancePC advancePC) {
-      positionState.visit(advancePC);
-    }
-
-    @Override
-    public void visit(DexDebugEvent.AdvanceLine advanceLine) {
-      positionState.visit(advanceLine);
-    }
-
-    @Override
-    public void visit(DexDebugEvent.SetInlineFrame setInlineFrame) {
-      positionState.visit(setInlineFrame);
-    }
-
-    @Override
-    public void visit(DexDebugEvent.Default defaultEvent) {
-      positionState.visit(defaultEvent);
-      positionEventReceiver.receivePositionEvent(positionState);
-    }
-
-    @Override
-    public void visit(DexDebugEvent.SetFile setFile) {
-      positionState.visit(setFile);
-    }
-  }
 
   // PositionRemapper is a stateful function which takes a position (represented by a
   // DexDebugPositionState) and returns a remapped Position.
@@ -163,6 +93,11 @@ public class LineNumberOptimizer {
       this.dexItemFactory = dexItemFactory;
       this.method = method;
       this.processedEvents = processedEvents;
+    }
+
+    private void emitAdvancePc(int pc) {
+      processedEvents.add(new AdvancePC(pc - previousPc));
+      previousPc = pc;
     }
 
     private void emitPositionEvents(int currentPc, Position currentPosition) {
@@ -255,7 +190,6 @@ public class LineNumberOptimizer {
 
         for (DexEncodedMethod method : methods) {
           List<MappedPosition> mappedPositions = new ArrayList<>();
-
           Code code = method.getCode();
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
@@ -469,36 +403,96 @@ public class LineNumberOptimizer {
     DexDebugInfo debugInfo = dexCode.getDebugInfo();
     List<DexDebugEvent> processedEvents = new ArrayList<>();
 
-    // Our pipeline will be:
-    // [debugInfo.events] -> eventFilter -> positionRemapper -> positionEventEmitter ->
-    // [processedEvents]
     PositionEventEmitter positionEventEmitter =
         new PositionEventEmitter(application.dexItemFactory, method.method, processedEvents);
 
-    EventFilter eventFilter =
-        new EventFilter(
-            debugInfo.startLine,
-            method.method,
-            processedEvents::add,
-            positionState -> {
-              int currentLine = positionState.getCurrentLine();
-              assert currentLine >= 0;
-              Position position =
-                  positionRemapper.createRemappedPosition(
-                      positionState.getCurrentLine(),
-                      positionState.getCurrentFile(),
-                      positionState.getCurrentMethod(),
-                      positionState.getCurrentCallerPosition());
-              mappedPositions.add(
-                  new MappedPosition(
-                      positionState.getCurrentMethod(),
-                      currentLine,
-                      positionState.getCurrentCallerPosition(),
-                      position.line));
-              positionEventEmitter.emitPositionEvents(positionState.getCurrentPc(), position);
-            });
+    // Debug event visitor to map line numbers.
+    // TODO(117268618): Cleanup the duplicate pc tracking.
+    DexDebugEventVisitor visitor =
+        new DexDebugEventVisitor() {
+          DexDebugPositionState state =
+              new DexDebugPositionState(debugInfo.startLine, method.method);
+          int currentPc = 0;
+
+          private void flushPc() {
+            if (currentPc != state.getCurrentPc()) {
+              positionEventEmitter.emitAdvancePc(state.getCurrentPc());
+              currentPc = state.getCurrentPc();
+            }
+          }
+
+          @Override
+          public void visit(AdvancePC advancePC) {
+            state.visit(advancePC);
+          }
+
+          @Override
+          public void visit(AdvanceLine advanceLine) {
+            state.visit(advanceLine);
+          }
+
+          @Override
+          public void visit(SetInlineFrame setInlineFrame) {
+            state.visit(setInlineFrame);
+          }
+
+          @Override
+          public void visit(Default defaultEvent) {
+            state.visit(defaultEvent);
+            int currentLine = state.getCurrentLine();
+            assert currentLine >= 0;
+            Position position =
+                positionRemapper.createRemappedPosition(
+                    state.getCurrentLine(),
+                    state.getCurrentFile(),
+                    state.getCurrentMethod(),
+                    state.getCurrentCallerPosition());
+            mappedPositions.add(
+                new MappedPosition(
+                    state.getCurrentMethod(),
+                    currentLine,
+                    state.getCurrentCallerPosition(),
+                    position.line));
+            positionEventEmitter.emitPositionEvents(state.getCurrentPc(), position);
+            currentPc = state.getCurrentPc();
+          }
+
+          @Override
+          public void visit(SetFile setFile) {
+            processedEvents.add(setFile);
+          }
+
+          @Override
+          public void visit(SetPrologueEnd setPrologueEnd) {
+            processedEvents.add(setPrologueEnd);
+          }
+
+          @Override
+          public void visit(SetEpilogueBegin setEpilogueBegin) {
+            processedEvents.add(setEpilogueBegin);
+          }
+
+          @Override
+          public void visit(StartLocal startLocal) {
+            flushPc();
+            processedEvents.add(startLocal);
+          }
+
+          @Override
+          public void visit(EndLocal endLocal) {
+            flushPc();
+            processedEvents.add(endLocal);
+          }
+
+          @Override
+          public void visit(RestartLocal restartLocal) {
+            flushPc();
+            processedEvents.add(restartLocal);
+          }
+        };
+
     for (DexDebugEvent event : debugInfo.events) {
-      event.accept(eventFilter);
+      event.accept(visitor);
     }
 
     DexDebugInfo optimizedDebugInfo =

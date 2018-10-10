@@ -401,7 +401,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
         builder.append(minifiedRange).append(':');
       }
       builder.append(signature);
-      if (originalRange != null) {
+      if (originalRange != null && !minifiedRange.equals(originalRange)) {
         builder.append(":").append(originalRange);
       }
       builder.append(" -> ").append(renamedName);

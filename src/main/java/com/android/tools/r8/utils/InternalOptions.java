@@ -41,8 +41,7 @@ public class InternalOptions {
 
   public enum LineNumberOptimization {
     OFF,
-    ON,
-    IDENTITY_MAPPING
+    ON
   }
 
   public final DexItemFactory itemFactory;

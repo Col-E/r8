@@ -47,7 +47,7 @@ abstract public class DexDebugEvent extends DexItem {
       writer.putUleb128(delta);
     }
 
-    AdvancePC(int delta) {
+    public AdvancePC(int delta) {
       this.delta = delta;
     }
 

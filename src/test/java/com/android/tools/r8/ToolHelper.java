@@ -105,6 +105,9 @@ public class ToolHelper {
   private static final String PROGUARD6_0_1 = "third_party/proguard/proguard6.0.1/bin/proguard";
   private static final String PROGUARD = PROGUARD5_2_1;
 
+  private static final String RETRACE6_0_1 = "third_party/proguard/proguard6.0.1/bin/retrace";
+  private static final String RETRACE = RETRACE6_0_1;
+
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
 
   public enum DexVm {
@@ -522,6 +525,13 @@ public class ToolHelper {
       return PROGUARD6_0_1 + ".bat";
     }
     return PROGUARD6_0_1 + ".sh";
+  }
+
+  private static String getRetraceScript() {
+    if (isWindows()) {
+      return RETRACE + ".bat";
+    }
+    return RETRACE + ".sh";
   }
 
   private static Path getDxExecutablePath() {
@@ -1496,6 +1506,23 @@ public class ToolHelper {
   public static String runProguard6(Path inJar, Path outJar, List<Path> configs, Path map)
       throws IOException {
     return runProguard(getProguard6Script(), inJar, outJar, configs, map);
+  }
+
+  public static ProcessResult runRetraceRaw(Path map, Path stackTrace) throws IOException {
+    List<String> command = new ArrayList<>();
+    command.add(getRetraceScript());
+    command.add(map.toString());
+    command.add(stackTrace.toString());
+    ProcessBuilder builder = new ProcessBuilder(command);
+    return ToolHelper.runProcess(builder);
+  }
+
+  public static String runRetrace(Path map, Path stackTrace) throws IOException {
+    ProcessResult result = runRetraceRaw(map, stackTrace);
+    if (result.exitCode != 0) {
+      fail("Retrace failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
+    }
+    return result.stdout;
   }
 
   public static class ProcessResult {
