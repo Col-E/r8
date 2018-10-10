@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -264,9 +265,9 @@ public abstract class TypeLatticeElement {
     return types.reduce(BottomTypeLatticeElement.getInstance(), joiner, joiner);
   }
 
-  public static TypeLatticeElement join(
-      Stream<DexType> types, boolean isNullable, AppInfo appInfo) {
-    return join(types.map(t -> fromDexType(t, isNullable, appInfo)), appInfo);
+  public static TypeLatticeElement joinTypes(
+      Iterable<DexType> types, boolean isNullable, AppInfo appInfo) {
+    return join(Streams.stream(types).map(t -> fromDexType(t, isNullable, appInfo)), appInfo);
   }
 
   /**

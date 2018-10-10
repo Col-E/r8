@@ -680,8 +680,7 @@ public class IRBuilder {
     Position position = source.getCanonicalDebugPositionAtOffset(moveExceptionItem.targetOffset);
     if (moveExceptionDest >= 0) {
       Set<DexType> exceptionTypes = MoveException.collectExceptionTypes(currentBlock, getFactory());
-      TypeLatticeElement typeLattice =
-          TypeLatticeElement.join(exceptionTypes.stream(), false, appInfo);
+      TypeLatticeElement typeLattice = TypeLatticeElement.joinTypes(exceptionTypes, false, appInfo);
       Value out = writeRegister(moveExceptionDest, typeLattice, ThrowingInfo.NO_THROW, null);
       MoveException moveException = new MoveException(out);
       moveException.setPosition(position);

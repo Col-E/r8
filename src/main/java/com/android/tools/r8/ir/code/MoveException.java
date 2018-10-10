@@ -122,6 +122,6 @@ public class MoveException extends Instruction {
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
     Set<DexType> exceptionTypes = collectExceptionTypes(getBlock(), appInfo.dexItemFactory);
-    return TypeLatticeElement.join(exceptionTypes.stream(), false, appInfo);
+    return TypeLatticeElement.joinTypes(exceptionTypes, false, appInfo);
   }
 }
