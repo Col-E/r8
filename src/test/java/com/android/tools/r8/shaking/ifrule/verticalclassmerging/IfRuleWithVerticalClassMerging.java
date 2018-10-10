@@ -88,13 +88,6 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
     options.enableVerticalClassMerging = enableClassMerging;
   }
 
-  @Override
-  protected AndroidApp runR8(
-      List<Class> programClasses, String proguardConfig, Path proguardMap, Backend backend)
-      throws Exception {
-    return super.runR8(programClasses, proguardConfig, proguardMap, this::configure, backend);
-  }
-
   private void check(AndroidApp app) throws Exception {
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazzA = inspector.clazz(A.class);
@@ -133,7 +126,7 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
         "-dontobfuscate"
     );
 
-    check(runShrinker(shrinker, CLASSES, config));
+    check(runShrinker(shrinker, CLASSES, config, this::configure));
   }
 
   @Test
@@ -149,7 +142,7 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
         "-dontobfuscate"
     );
 
-    check(runShrinker(shrinker, CLASSES, config));
+    check(runShrinker(shrinker, CLASSES, config, this::configure));
   }
 
   @Test
@@ -165,6 +158,6 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
         "-dontobfuscate"
     );
 
-    check(runShrinker(shrinker, CLASSES, config));
+    check(runShrinker(shrinker, CLASSES, config, this::configure));
   }
 }

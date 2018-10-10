@@ -291,6 +291,18 @@ public class Enqueuer {
     pinnedItems.add(item);
   }
 
+  private void enqueueFirstNonSerializableClassInitializer(DexClass clazz, KeepReason reason) {
+    assert clazz.isProgramClass() && clazz.isSerializable(appInfo);
+    // Clime up the class hierarchy. Break out if the definition is not found, or hit the library
+    // classes, which are kept by definition, or encounter the first non-serializable class.
+    while (clazz != null && clazz.isProgramClass() && clazz.isSerializable(appInfo)) {
+      clazz = appInfo.definitionFor(clazz.superType);
+    }
+    if (clazz != null && clazz.isProgramClass() && clazz.hasDefaultInitializer()) {
+      workList.add(Action.markMethodLive(clazz.getDefaultInitializer(), reason));
+    }
+  }
+
   private void enqueueHolderIfDependentNonStaticMember(
       DexClass holder, Map<DexDefinition, ProguardKeepRule> dependentItems) {
     // Check if any dependent members are not static, and in that case enqueue the class as well.
@@ -697,12 +709,17 @@ public class Enqueuer {
       }
       // We also need to add the corresponding <clinit> to the set of live methods, as otherwise
       // static field initialization (and other class-load-time sideeffects) will not happen.
+      KeepReason reason = KeepReason.reachableFromLiveType(type);
       if (!holder.isLibraryClass() && holder.hasNonTrivialClassInitializer()) {
         DexEncodedMethod clinit = holder.getClassInitializer();
         if (clinit != null) {
           assert clinit.method.holder == holder.type;
-          markDirectStaticOrConstructorMethodAsLive(clinit, KeepReason.reachableFromLiveType(type));
+          markDirectStaticOrConstructorMethodAsLive(clinit, reason);
         }
+      }
+
+      if (holder.isProgramClass() && holder.isSerializable(appInfo)) {
+        enqueueFirstNonSerializableClassInitializer(holder, reason);
       }
 
       // If this type has deferred annotations, we have to process those now, too.
