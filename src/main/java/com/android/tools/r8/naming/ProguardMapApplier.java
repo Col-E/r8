@@ -22,8 +22,8 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -128,42 +128,80 @@ public class ProguardMapApplier {
 
     private void applyMemberMapping(DexType from, ChainedClassNaming classNaming) {
       DexClass clazz = appInfo.definitionFor(from);
-      if (clazz == null) return;
+      if (clazz == null) {
+        return;
+      }
 
-      final Set<MemberNaming> appliedMemberNaming = Sets.newIdentityHashSet();
+      // We regard mappings as _complete_ if they cover literally everything, but that's too ideal.
+      // When visiting members with member mappings, obviously, there are two incomplete cases:
+      // no matched member or no matched mapping.
+      //
+      // 1. No matched member
+      // class A { // : X
+      //   void foo(); // : a
+      // }
+      //
+      // class B extends A { // : Y
+      //   @Override void foo(); // no mapping
+      // }
+      //
+      // For this case, we have chained class naming and move upward to search for super class's
+      // member mapping. One corner case we should be careful here is to resolve on the correct
+      // mapping, e.g.,
+      //
+      // class B extends A { // : Y
+      //   private void foo(); // no mapping, should be not renamed to a
+      // }
+
+      final Set<MemberNaming.Signature> appliedMemberSignature = new HashSet<>();
       clazz.forEachField(encodedField -> {
         MemberNaming memberNaming = classNaming.lookupByOriginalItem(encodedField.field);
         if (memberNaming != null) {
-          appliedMemberNaming.add(memberNaming);
+          appliedMemberSignature.add(memberNaming.getOriginalSignature());
           applyFieldMapping(encodedField.field, memberNaming);
         }
       });
 
       clazz.forEachMethod(encodedMethod -> {
-        MemberNaming memberNaming = classNaming.lookupByOriginalItem(encodedMethod.method);
+        MemberNaming memberNaming =
+            classNaming.lookupByOriginalItem(encodedMethod.method, encodedMethod.isPrivateMethod());
         if (memberNaming != null) {
-          appliedMemberNaming.add(memberNaming);
+          appliedMemberSignature.add(memberNaming.getOriginalSignature());
           applyMethodMapping(encodedMethod.method, memberNaming);
         }
       });
 
+      // 2. No matched mapping
+      // class A { // : X
+      //   void foo(); // : a
+      // }
+      //
+      // class B extends A { // : Y
+      //   // no overriding, but has mapping: void foo() -> a
+      // }
+      //
       // We need to handle a class that extends another class where some members are not overridden,
       // resulting in absence of definitions. References to those members need to be redirected via
       // the lense as well.
+      // The caveat is, since such members don't exist, we pretend to see their definitions.
+      // We should ensure that they indeed don't exist. Otherwise, legitimately different members,
+      // e.g., private methods with same names, could be mapped to a wrong renamed name.
       classNaming.forAllFieldNaming(memberNaming -> {
-        if (!appliedMemberNaming.contains(memberNaming)) {
-          DexField pretendedOriginalField =
-              ((FieldSignature) memberNaming.getOriginalSignature())
-                  .toDexField(appInfo.dexItemFactory, from);
-          applyFieldMapping(pretendedOriginalField, memberNaming);
+        FieldSignature signature = (FieldSignature) memberNaming.getOriginalSignature();
+        if (!appliedMemberSignature.contains(signature)) {
+          DexField pretendedOriginalField = signature.toDexField(appInfo.dexItemFactory, from);
+          if (appInfo.definitionFor(pretendedOriginalField) == null) {
+            applyFieldMapping(pretendedOriginalField, memberNaming);
+          }
         }
       });
       classNaming.forAllMethodNaming(memberNaming -> {
-        if (!appliedMemberNaming.contains(memberNaming)) {
-          DexMethod pretendedOriginalMethod =
-              ((MethodSignature) memberNaming.getOriginalSignature())
-                  .toDexMethod(appInfo.dexItemFactory, from);
-          applyMethodMapping(pretendedOriginalMethod, memberNaming);
+        MethodSignature signature = (MethodSignature) memberNaming.getOriginalSignature();
+        if (!appliedMemberSignature.contains(signature)) {
+          DexMethod pretendedOriginalMethod = signature.toDexMethod(appInfo.dexItemFactory, from);
+          if (appInfo.definitionFor(pretendedOriginalMethod) == null) {
+            applyMethodMapping(pretendedOriginalMethod, memberNaming);
+          }
         }
       });
     }
@@ -227,6 +265,15 @@ public class ProguardMapApplier {
       if (superClassNaming != null) {
         superClassNaming.forAllMethodNaming(consumer);
       }
+    }
+
+    protected MemberNaming lookupByOriginalItem(DexMethod method, boolean isPrivate) {
+      // If the current method is overridable, use chained mappings.
+      if (!isPrivate) {
+        return lookupByOriginalItem(method);
+      }
+      // Otherwise, just look up the current class's mappings only.
+      return super.lookupByOriginalItem(method);
     }
 
     @Override
