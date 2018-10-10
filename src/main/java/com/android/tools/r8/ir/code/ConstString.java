@@ -133,6 +133,6 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.stringType, appInfo, false);
+    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.stringType, false, appInfo);
   }
 }

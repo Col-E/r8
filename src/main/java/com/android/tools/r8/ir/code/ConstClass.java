@@ -105,7 +105,7 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.classType, appInfo, false);
+    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.classType, false, appInfo);
   }
 
   @Override

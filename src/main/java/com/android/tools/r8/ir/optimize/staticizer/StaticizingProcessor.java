@@ -273,7 +273,7 @@ final class StaticizingProcessor {
               new StaticGet(
                   MemberType.fromDexType(field.type),
                   code.createValue(
-                      TypeLatticeElement.fromDexType(field.type, classStaticizer.appInfo, true),
+                      TypeLatticeElement.fromDexType(field.type, true, classStaticizer.appInfo),
                       outValue.getLocalInfo()),
                   field
               )
@@ -303,7 +303,7 @@ final class StaticizingProcessor {
           Value newOutValue = method.proto.returnType.isVoidType() ? null
               : code.createValue(
                   TypeLatticeElement.fromDexType(
-                      method.proto.returnType, classStaticizer.appInfo, true),
+                      method.proto.returnType, true, classStaticizer.appInfo),
                   outValue == null ? null : outValue.getLocalInfo());
           it.replaceCurrentInstruction(
               new InvokeStatic(newMethod, newOutValue, invoke.inValues()));

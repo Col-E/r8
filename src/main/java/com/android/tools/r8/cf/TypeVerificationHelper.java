@@ -52,23 +52,23 @@ public class TypeVerificationHelper {
       return types.iterator().next();
     }
     Iterator<DexType> iterator = types.iterator();
-    TypeLatticeElement join = getLatticeElement(iterator.next());
+    TypeLatticeElement result = getLatticeElement(iterator.next());
     while (iterator.hasNext()) {
-      join = TypeLatticeElement.join(appInfo, join, getLatticeElement(iterator.next()));
+      result = result.join(getLatticeElement(iterator.next()), appInfo);
     }
     // All types are reference types so the join is either a class or an array.
-    if (join.isClassType()) {
-      return join.asClassTypeLatticeElement().getClassType();
-    } else if (join.isArrayType()) {
-      return join.asArrayTypeLatticeElement().getArrayType();
+    if (result.isClassType()) {
+      return result.asClassTypeLatticeElement().getClassType();
+    } else if (result.isArrayType()) {
+      return result.asArrayTypeLatticeElement().getArrayType();
     }
-    throw new CompilationError("Unexpected join " + join + " of types: " +
+    throw new CompilationError("Unexpected join " + result + " of types: " +
         String.join(", ",
             types.stream().map(DexType::toSourceString).collect(Collectors.toList())));
   }
 
   private TypeLatticeElement getLatticeElement(DexType type) {
-    return TypeLatticeElement.fromDexType(type, appInfo, true);
+    return TypeLatticeElement.fromDexType(type, true, appInfo);
   }
 
   public Map<Value, DexType> computeVerificationTypes() {

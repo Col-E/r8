@@ -105,7 +105,7 @@ public class MoveException extends Instruction {
         if (targets.get(i) == currentBlock) {
           DexType guard = guards.get(i);
           exceptionTypes.add(
-              guard == dexItemFactory.catchAllType
+              guard == DexItemFactory.catchAllType
                   ? dexItemFactory.throwableType
                   : guard);
         }
@@ -122,8 +122,6 @@ public class MoveException extends Instruction {
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
     Set<DexType> exceptionTypes = collectExceptionTypes(getBlock(), appInfo.dexItemFactory);
-    return TypeLatticeElement.join(
-        appInfo,
-        exceptionTypes.stream().map(t -> TypeLatticeElement.fromDexType(t, appInfo, false)));
+    return TypeLatticeElement.join(exceptionTypes.stream(), false, appInfo);
   }
 }

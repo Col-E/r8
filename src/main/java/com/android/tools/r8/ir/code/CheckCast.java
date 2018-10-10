@@ -133,12 +133,12 @@ public class CheckCast extends Instruction {
 
     TypeLatticeElement outType = outValue().getTypeLattice();
     TypeLatticeElement castType =
-        TypeLatticeElement.fromDexType(getType(), appInfo, inType.isNullable());
+        TypeLatticeElement.fromDexType(getType(), inType.isNullable(), appInfo);
 
-    if (TypeLatticeElement.lessThanOrEqual(appInfo, inType, castType)) {
+    if (inType.lessThanOrEqual(castType, appInfo)) {
       // Cast can be removed. Check that it is sound to replace all users of the out-value by the
       // in-value.
-      assert TypeLatticeElement.lessThanOrEqual(appInfo, inType, outType);
+      assert inType.lessThanOrEqual(outType, appInfo);
 
       // TODO(b/72693244): Consider checking equivalence. This requires that the types are always
       // as precise as possible, though, meaning that almost all changes to the IR must be followed
