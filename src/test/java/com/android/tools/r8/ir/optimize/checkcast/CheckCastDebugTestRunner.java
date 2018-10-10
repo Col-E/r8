@@ -29,7 +29,6 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -77,7 +76,6 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
     assertThat(classSubject, isPresent());
   }
 
-  @Ignore("todo: jsjeon")
   @Test
   public void test_differentLocals() throws Throwable {
     ClassSubject classSubject = inspector.clazz(MAIN);
@@ -131,7 +129,6 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
     );
   }
 
-  @Ignore("todo: jsjeon")
   @Test
   public void test_sameLocal() throws Throwable {
     ClassSubject classSubject = inspector.clazz(MAIN);
