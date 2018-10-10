@@ -85,8 +85,7 @@ public class B115867670 extends ProguardCompatibilityTestBase {
         .add("  public static void main(java.lang.String[]);")
         .add("}")
         .add(additionalKeepRules);
-    String config = String.join(System.lineSeparator(), builder.build());
-    CodeInspector inspector = inspectAfterShrinking(shrinker, CLASSES, config);
+    CodeInspector inspector = inspectAfterShrinking(shrinker, CLASSES, builder.build());
     inspection.accept(inspector);
   }
 

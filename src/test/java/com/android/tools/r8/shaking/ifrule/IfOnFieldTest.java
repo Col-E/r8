@@ -4,11 +4,13 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,8 +45,12 @@ public class IfOnFieldTest extends ProguardCompatibilityTestBase {
 
   @Override
   protected CodeInspector inspectR8Result(
-      List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
-    return super.inspectR8Result(programClasses, adaptConfiguration(proguardConfig), backend);
+      List<Class> programClasses,
+      String proguardConfig,
+      Consumer<InternalOptions> config,
+      Backend backend) throws Exception {
+    return super.inspectR8Result(
+        programClasses, adaptConfiguration(proguardConfig), config, backend);
   }
 
   @Override

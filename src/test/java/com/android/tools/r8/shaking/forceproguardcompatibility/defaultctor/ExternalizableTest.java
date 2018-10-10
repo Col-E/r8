@@ -310,14 +310,7 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
     assertThat(init, isPresent());
   }
 
-  @Test
-  public void testSerializable() throws Exception {
-    // TODO(b/116735204): R8 should keep default ctor() of first non-serializable superclass of
-    // serializable class.
-    if (shrinker.isR8()) {
-      return;
-    }
-
+  private void testSerializable(boolean enableVerticalClassMerging) throws Exception {
     String javaOutput = runOnJava(SerializableTestMain.class);
 
     List<String> config = ImmutableList.of(
@@ -331,7 +324,9 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
         "  java.lang.Object readResolve();",
         "}");
 
-    AndroidApp processedApp = runShrinker(shrinker, CLASSES_FOR_SERIALIZABLE, config);
+    AndroidApp processedApp =
+        runShrinker(shrinker, CLASSES_FOR_SERIALIZABLE, config,
+            o -> o.enableVerticalClassMerging = enableVerticalClassMerging);
     // TODO(b/117302947): Need to update ART binary.
     if (shrinker.generatesCf()) {
       String output = runOnVM(
@@ -346,9 +341,33 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
     //   ...
     //     * Have access to the no-arg constructor of its first non-serializable superclass
     CodeInspector codeInspector = new CodeInspector(processedApp, proguardMap);
-    ClassSubject classSubject = codeInspector.clazz(NonSerializableSuperClass.class);
+    ClassSubject classSubject;
+    if (shrinker.isR8() && enableVerticalClassMerging) {
+      // Vertical class merging.
+      classSubject = codeInspector.clazz(SerializableDataClass.class);
+    } else {
+      classSubject = codeInspector.clazz(NonSerializableSuperClass.class);
+    }
     assertThat(classSubject, isPresent());
     MethodSubject init = classSubject.init(ImmutableList.of());
     assertThat(init, isPresent());
+  }
+
+  @Test
+  public void testSerializable_withVerticalClassMerging() throws Exception {
+    if (!shrinker.isR8()) {
+      // Already covered by the other tests.
+      return;
+    }
+    // TODO(b/117514095): Vertical class merging should preserve non/serializable behavior.
+    if (shrinker.isR8()) {
+      return;
+    }
+    testSerializable(true);
+  }
+
+  @Test
+  public void testSerializable_withoutVerticalClassMerging() throws Exception {
+    testSerializable(false);
   }
 }

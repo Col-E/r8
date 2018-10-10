@@ -74,10 +74,25 @@ public class ProguardCompatibilityTestBase extends TestBase {
   protected AndroidApp runShrinker(
       Shrinker mode, List<Class> programClasses, Iterable<String> proguardConfigs)
       throws Exception {
-    return runShrinker(mode, programClasses, String.join(System.lineSeparator(), proguardConfigs));
+    return runShrinker(
+        mode, programClasses, String.join(System.lineSeparator(), proguardConfigs), null);
   }
 
-  protected AndroidApp runShrinker(Shrinker mode, List<Class> programClasses, String proguardConfig)
+  protected AndroidApp runShrinker(
+      Shrinker mode,
+      List<Class> programClasses,
+      Iterable<String> proguardConfigs,
+      Consumer<InternalOptions> configure)
+      throws Exception {
+    return runShrinker(
+        mode, programClasses, String.join(System.lineSeparator(), proguardConfigs), configure);
+  }
+
+  protected AndroidApp runShrinker(
+      Shrinker mode,
+      List<Class> programClasses,
+      String proguardConfig,
+      Consumer<InternalOptions> configure)
       throws Exception {
     proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
     switch (mode) {
@@ -86,42 +101,56 @@ public class ProguardCompatibilityTestBase extends TestBase {
       case PROGUARD6:
         return runProguard6(programClasses, proguardConfig, proguardMap);
       case PROGUARD6_THEN_D8:
-        return runProguard6AndD8(programClasses, proguardConfig, proguardMap);
+        return runProguard6AndD8(programClasses, proguardConfig, proguardMap, configure);
       case R8_COMPAT:
-        return runR8Compat(programClasses, proguardConfig, proguardMap, Backend.DEX);
+        return runR8Compat(programClasses, proguardConfig, proguardMap, configure, Backend.DEX);
       case R8_COMPAT_CF:
-        return runR8Compat(programClasses, proguardConfig, proguardMap, Backend.CF);
+        return runR8Compat(programClasses, proguardConfig, proguardMap, configure, Backend.CF);
       case R8:
-        return runR8(programClasses, proguardConfig, proguardMap, Backend.DEX);
+        return runR8(programClasses, proguardConfig, proguardMap, configure, Backend.DEX);
       case R8_CF:
-        return runR8(programClasses, proguardConfig, proguardMap, Backend.CF);
+        return runR8(programClasses, proguardConfig, proguardMap, configure, Backend.CF);
     }
     throw new IllegalArgumentException("Unknown shrinker: " + mode);
   }
 
   protected CodeInspector inspectAfterShrinking(
-      Shrinker mode, List<Class> programClasses, List<String> proguardConfigs) throws Exception {
-    return inspectAfterShrinking(
-        mode, programClasses, String.join(System.lineSeparator(), proguardConfigs));
+      Shrinker mode, List<Class> programClasses, List<String> proguardConfigs)
+      throws Exception {
+    return inspectAfterShrinking(mode, programClasses, proguardConfigs, null);
   }
 
   protected CodeInspector inspectAfterShrinking(
-      Shrinker mode, List<Class> programClasses, String proguardConfig) throws Exception {
+      Shrinker mode,
+      List<Class> programClasses,
+      List<String> proguardConfigs,
+      Consumer<InternalOptions> configure)
+      throws Exception {
+    return inspectAfterShrinking(
+        mode, programClasses, String.join(System.lineSeparator(), proguardConfigs), configure);
+  }
+
+  protected CodeInspector inspectAfterShrinking(
+      Shrinker mode,
+      List<Class> programClasses,
+      String proguardConfig,
+      Consumer<InternalOptions> configure)
+      throws Exception {
     switch (mode) {
       case PROGUARD5:
         return inspectProguard5Result(programClasses, proguardConfig);
       case PROGUARD6:
         return inspectProguard6Result(programClasses, proguardConfig);
       case PROGUARD6_THEN_D8:
-        return inspectProguard6AndD8Result(programClasses, proguardConfig);
+        return inspectProguard6AndD8Result(programClasses, proguardConfig, configure);
       case R8_COMPAT:
-        return inspectR8CompatResult(programClasses, proguardConfig, Backend.DEX);
+        return inspectR8CompatResult(programClasses, proguardConfig, configure, Backend.DEX);
       case R8_COMPAT_CF:
-        return inspectR8CompatResult(programClasses, proguardConfig, Backend.CF);
+        return inspectR8CompatResult(programClasses, proguardConfig, configure, Backend.CF);
       case R8:
-        return inspectR8Result(programClasses, proguardConfig, Backend.DEX);
+        return inspectR8Result(programClasses, proguardConfig, configure, Backend.DEX);
       case R8_CF:
-        return inspectR8Result(programClasses, proguardConfig, Backend.CF);
+        return inspectR8Result(programClasses, proguardConfig, configure, Backend.CF);
     }
     throw new IllegalArgumentException("Unknown shrinker: " + mode);
   }
@@ -151,14 +180,19 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected CodeInspector inspectR8Result(
-      List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
-    return new CodeInspector(runR8(programClasses, proguardConfig, null, backend));
+      List<Class> programClasses,
+      String proguardConfig,
+      Consumer<InternalOptions> configure,
+      Backend backend)
+      throws Exception {
+    return new CodeInspector(runR8(programClasses, proguardConfig, null, configure, backend));
   }
 
   protected AndroidApp runR8Compat(
       List<Class> programClasses,
       String proguardConfig,
       Path proguardMap,
+      Consumer<InternalOptions> configure,
       Backend backend)
       throws Exception {
     CompatProguardCommandBuilder builder = new CompatProguardCommandBuilder(true);
@@ -175,12 +209,15 @@ public class ProguardCompatibilityTestBase extends TestBase {
       builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
       builder.setProgramConsumer(ClassFileConsumer.emptyConsumer());
     }
-    return ToolHelper.runR8(builder.build());
+    return ToolHelper.runR8(builder.build(), configure);
   }
 
   protected CodeInspector inspectR8CompatResult(
-      List<Class> programClasses, String proguardConfig, Backend backend) throws Exception {
-    return new CodeInspector(runR8Compat(programClasses, proguardConfig, null, backend));
+      List<Class> programClasses,
+      String proguardConfig,
+      Consumer<InternalOptions> configure,
+      Backend backend) throws Exception {
+    return new CodeInspector(runR8Compat(programClasses, proguardConfig, null, configure, backend));
   }
 
   protected AndroidApp runProguard5(
@@ -278,7 +315,11 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected AndroidApp runProguard6AndD8(
-      List<Class> programClasses, String proguardConfig, Path proguardMap) throws Exception {
+      List<Class> programClasses,
+      String proguardConfig,
+      Path proguardMap,
+      Consumer<InternalOptions> configure)
+      throws Exception {
     Path proguardedJar =
         File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
     Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
@@ -292,14 +333,15 @@ public class ProguardCompatibilityTestBase extends TestBase {
     if (result.exitCode != 0) {
       fail("Proguard failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
     }
-    return ToolHelper.runD8(readJar(proguardedJar));
+    return ToolHelper.runD8(readJar(proguardedJar), configure);
   }
 
   protected CodeInspector inspectProguard6AndD8Result(
-      List<Class> programClasses, String proguardConfig) throws Exception {
+      List<Class> programClasses, String proguardConfig, Consumer<InternalOptions> configure)
+      throws Exception {
     proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
     return new CodeInspector(
-        runProguard6AndD8(programClasses, proguardConfig, proguardMap), proguardMap);
+        runProguard6AndD8(programClasses, proguardConfig, proguardMap, configure), proguardMap);
   }
 
   protected void verifyClassesPresent(
