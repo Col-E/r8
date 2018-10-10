@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstString;
@@ -211,5 +212,14 @@ public class CfInstructionSubject implements InstructionSubject {
 
   public boolean isLoad() {
     return instruction instanceof CfLoad;
+  }
+
+  @Override
+  public boolean isMultiplication() {
+    if (!(instruction instanceof CfArithmeticBinop)) {
+      return false;
+    }
+    int opcode = ((CfArithmeticBinop) instruction).getAsmOpcode();
+    return Opcodes.IMUL <= opcode && opcode <= Opcodes.DMUL;
   }
 }

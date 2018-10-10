@@ -65,4 +65,6 @@ public interface InstructionSubject {
   boolean isPackedSwitch();
 
   boolean isSparseSwitch();
+
+  boolean isMultiplication();
 }

@@ -6,20 +6,26 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent;
+import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import java.util.Arrays;
 import java.util.Iterator;
-import java.util.ListIterator;
 import java.util.function.Predicate;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.LineNumberNode;
 
 public class FoundMethodSubject extends MethodSubject {
 
@@ -144,40 +150,6 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
-  public boolean hasLineNumberTable() {
-    Code code = getMethod().getCode();
-    if (code.isDexCode()) {
-      DexCode dexCode = code.asDexCode();
-      if (dexCode.getDebugInfo() != null) {
-        for (DexDebugEvent event : dexCode.getDebugInfo().events) {
-          if (event instanceof DexDebugEvent.Default) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-    if (code.isCfCode()) {
-      for (CfInstruction insn : code.asCfCode().getInstructions()) {
-        if (insn instanceof CfPosition) {
-          return true;
-        }
-      }
-      return false;
-    }
-    if (code.isJarCode()) {
-      ListIterator<AbstractInsnNode> it = code.asJarCode().getNode().instructions.iterator();
-      while (it.hasNext()) {
-        if (it.next() instanceof LineNumberNode) {
-          return true;
-        }
-      }
-      return false;
-    }
-    throw new Unreachable("Unexpected code type: " + code.getClass().getSimpleName());
-  }
-
-  @Override
   public boolean hasLocalVariableTable() {
     Code code = getMethod().getCode();
     if (code.isDexCode()) {
@@ -204,6 +176,60 @@ public class FoundMethodSubject extends MethodSubject {
           && !code.asJarCode().getNode().localVariables.isEmpty();
     }
     throw new Unreachable("Unexpected code type: " + code.getClass().getSimpleName());
+  }
+
+  @Override
+  public LineNumberTable getLineNumberTable() {
+    Code code = getMethod().getCode();
+    if (code.isDexCode()) {
+      return getDexLineNumberTable(code.asDexCode());
+    }
+    if (code.isCfCode()) {
+      return getCfLineNumberTable(code.asCfCode());
+    }
+    if (code.isJarCode()) {
+      return getJarLineNumberTable(code.asJarCode());
+    }
+    throw new Unreachable("Unexpected code type: " + code.getClass().getSimpleName());
+  }
+
+  private LineNumberTable getJarLineNumberTable(JarCode code) {
+    throw new Unimplemented("No support for inspecting the line number table for JarCode");
+  }
+
+  private LineNumberTable getCfLineNumberTable(CfCode code) {
+    int currentLine = -1;
+    Reference2IntMap<InstructionSubject> lineNumberTable =
+        new Reference2IntOpenHashMap<>(code.getInstructions().size());
+    for (CfInstruction insn : code.getInstructions()) {
+      if (insn instanceof CfPosition) {
+        currentLine = ((CfPosition) insn).getPosition().line;
+      }
+      if (currentLine != -1) {
+        lineNumberTable.put(new CfInstructionSubject(insn), currentLine);
+      }
+    }
+    return currentLine == -1 ? null : new LineNumberTable(lineNumberTable);
+  }
+
+  private LineNumberTable getDexLineNumberTable(DexCode code) {
+    DexDebugInfo debugInfo = code.getDebugInfo();
+    if (debugInfo == null) {
+      return null;
+    }
+    Reference2IntMap<InstructionSubject> lineNumberTable =
+        new Reference2IntOpenHashMap<>(code.instructions.length);
+    DexDebugPositionState state =
+        new DexDebugPositionState(debugInfo.startLine, getMethod().method);
+    Iterator<DexDebugEvent> iterator = Arrays.asList(debugInfo.events).iterator();
+    for (Instruction insn : code.instructions) {
+      int offset = insn.getOffset();
+      while (state.getCurrentPc() < offset && iterator.hasNext()) {
+        iterator.next().accept(state);
+      }
+      lineNumberTable.put(new DexInstructionSubject(insn), state.getCurrentLine());
+    }
+    return new LineNumberTable(lineNumberTable);
   }
 
   @Override
