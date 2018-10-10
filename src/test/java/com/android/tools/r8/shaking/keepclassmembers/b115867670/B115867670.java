@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.graph.invokesuper.Consumer;
@@ -103,8 +102,7 @@ public class B115867670 extends ProguardCompatibilityTestBase {
       ClassSubject cls = inspector.clazz(clazz);
       assertThat(cls, isPresent());
       assertEquals(1, cls.asFoundClassSubject().allFields().size());
-      // TODD(116079696): This is a hack!
-      cls.forAllFields(field -> assertNotEquals(1, field.getFinalName().length()));
+      cls.forAllFields(field -> assertThat(field, not(isRenamed())));
     }
   }
 
@@ -115,8 +113,7 @@ public class B115867670 extends ProguardCompatibilityTestBase {
       assertThat(cls, isPresent());
       assertThat(cls, isRenamed());
       assertEquals(1, cls.asFoundClassSubject().allFields().size());
-      // TODD(116079696): This is a hack!
-      cls.forAllFields(field -> assertEquals(1, field.getFinalName().length()));
+      cls.forAllFields(field -> assertThat(field, isRenamed()));
     }
   }
 

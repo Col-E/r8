@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -134,6 +135,23 @@ public class CodeInspector {
 
   private DexType toDexTypeIgnorePrimitives(String string) {
     return dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptorIgnorePrimitives(string));
+  }
+
+  String mapType(Map<String, String> mapping, String typeName) {
+    final String ARRAY_POSTFIX = "[]";
+    int arrayCount = 0;
+    while (typeName.endsWith(ARRAY_POSTFIX)) {
+      arrayCount++;
+      typeName = typeName.substring(0, typeName.length() - 2);
+    }
+    String mappedType = mapping.get(typeName);
+    if (mappedType == null) {
+      return null;
+    }
+    for (int i = 0; i < arrayCount; i++) {
+      mappedType += ARRAY_POSTFIX;
+    }
+    return mappedType;
   }
 
   static <S, T extends Subject> void forAll(
@@ -248,12 +266,11 @@ public class CodeInspector {
   }
 
   String getObfuscatedTypeName(String originalTypeName) {
-    String obfuscatedType = null;
+    String obfuscatedTypeName = null;
     if (mapping != null) {
-      obfuscatedType = originalToObfuscatedMapping.get(originalTypeName);
+      obfuscatedTypeName = mapType(originalToObfuscatedMapping, originalTypeName);
     }
-    obfuscatedType = obfuscatedType == null ? originalTypeName : obfuscatedType;
-    return obfuscatedType;
+    return obfuscatedTypeName != null ? obfuscatedTypeName : originalTypeName;
   }
 
   InstructionSubject createInstructionSubject(Instruction instruction) {
@@ -321,7 +338,7 @@ public class CodeInspector {
     public String parsedTypeName(String name) {
       String type = name;
       if (originalToObfuscatedMapping != null) {
-        String original = originalToObfuscatedMapping.inverse().get(name);
+        String original = mapType(originalToObfuscatedMapping.inverse(), name);
         type = original != null ? original : name;
       }
       signature.append(type);
@@ -330,14 +347,17 @@ public class CodeInspector {
 
     @Override
     public String parsedInnerTypeName(String enclosingType, String name) {
-      String type;
+      String type = null;
       if (originalToObfuscatedMapping != null) {
         // The enclosingType has already been mapped if a mapping is present.
         String minifiedEnclosing = originalToObfuscatedMapping.get(enclosingType);
-        type = originalToObfuscatedMapping.inverse().get(minifiedEnclosing + "$" + name);
-        if (type != null) {
-          assert type.startsWith(enclosingType + "$");
-          name = type.substring(enclosingType.length() + 1);
+        if (minifiedEnclosing != null) {
+          assert !minifiedEnclosing.contains("[");
+          type = mapType(originalToObfuscatedMapping.inverse(), minifiedEnclosing + "$" + name);
+          if (type != null) {
+            assert type.startsWith(enclosingType + "$");
+            name = type.substring(enclosingType.length() + 1);
+          }
         }
       } else {
         type = enclosingType + "$" + name;
