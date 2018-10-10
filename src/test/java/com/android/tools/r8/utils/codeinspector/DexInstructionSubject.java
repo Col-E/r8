@@ -46,6 +46,16 @@ import com.android.tools.r8.code.IputChar;
 import com.android.tools.r8.code.IputObject;
 import com.android.tools.r8.code.IputShort;
 import com.android.tools.r8.code.IputWide;
+import com.android.tools.r8.code.MulDouble;
+import com.android.tools.r8.code.MulDouble2Addr;
+import com.android.tools.r8.code.MulFloat;
+import com.android.tools.r8.code.MulFloat2Addr;
+import com.android.tools.r8.code.MulInt;
+import com.android.tools.r8.code.MulInt2Addr;
+import com.android.tools.r8.code.MulIntLit16;
+import com.android.tools.r8.code.MulIntLit8;
+import com.android.tools.r8.code.MulLong;
+import com.android.tools.r8.code.MulLong2Addr;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.code.PackedSwitch;
@@ -264,5 +274,19 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isSparseSwitch() {
     return instruction instanceof SparseSwitch;
+  }
+
+  @Override
+  public boolean isMultiplication() {
+    return instruction instanceof MulInt
+        || instruction instanceof MulIntLit8
+        || instruction instanceof MulIntLit16
+        || instruction instanceof MulInt2Addr
+        || instruction instanceof MulFloat
+        || instruction instanceof MulFloat2Addr
+        || instruction instanceof MulLong
+        || instruction instanceof MulLong2Addr
+        || instruction instanceof MulDouble
+        || instruction instanceof MulDouble2Addr;
   }
 }

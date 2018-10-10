@@ -253,7 +253,8 @@ public class PeepholeOptimizer {
             changed = true;
             int otherPredIndex = blockToIndex.get(wrapper);
             BasicBlock otherPred = block.getPredecessors().get(otherPredIndex);
-            assert Objects.equals(pred.getPosition(), otherPred.getPosition());
+            assert !allocator.getOptions().debug
+                || Objects.equals(pred.getPosition(), otherPred.getPosition());
             pred.clearCatchHandlers();
             pred.getInstructions().clear();
             equivalence.clearComputedHash(pred);

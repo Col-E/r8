@@ -401,12 +401,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
   }
 
-  public boolean hasDebugPositions() {
-    checkIfObsolete();
-    assert code != null && code.isDexCode();
-    return code.asDexCode().hasDebugPositions();
-  }
-
   public int getClassFileVersion() {
     checkIfObsolete();
     assert classFileVersion >= 0;

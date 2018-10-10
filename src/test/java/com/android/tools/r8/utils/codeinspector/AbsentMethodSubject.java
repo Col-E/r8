@@ -80,8 +80,8 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
-  public boolean hasLineNumberTable() {
-    return false;
+  public LineNumberTable getLineNumberTable() {
+    return null;
   }
 
   @Override

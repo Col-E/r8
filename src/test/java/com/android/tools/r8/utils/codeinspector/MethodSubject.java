@@ -33,7 +33,11 @@ public abstract class MethodSubject extends MemberSubject {
     return null;
   }
 
-  public abstract boolean hasLineNumberTable();
+  public boolean hasLineNumberTable() {
+    return getLineNumberTable() != null;
+  }
+
+  public abstract LineNumberTable getLineNumberTable();
 
   public abstract boolean hasLocalVariableTable();
 }
