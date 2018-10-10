@@ -13,6 +13,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -61,17 +62,47 @@ public class RetraceTest extends TestBase {
     return StringUtils.splitLines(ToolHelper.runRetrace(mapFile, stackTraceFile));
   }
 
+  private boolean isDalvik() {
+    return backend == Backend.DEX && ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST);
+  }
+
   private List<String> extractStackTrace(ProcessResult result) {
     ImmutableList.Builder<String> builder = ImmutableList.builder();
     List<String> stderr = StringUtils.splitLines(result.stderr);
     Iterator<String> iterator = stderr.iterator();
-    while (iterator.hasNext()) {
-      String line = iterator.next();
-      if (line.startsWith("Exception in thread \"main\"")) {
-        break;
-      }
+
+    // A Dalvik stacktrace looks like this:
+    // W(209693) threadid=1: thread exiting with uncaught exception (group=0xf616cb20)  (dalvikvm)
+    // java.lang.NullPointerException
+    // \tat com.android.tools.r8.naming.retrace.Main.a(:133)
+    // \tat com.android.tools.r8.naming.retrace.Main.a(:139)
+    // \tat com.android.tools.r8.naming.retrace.Main.main(:145)
+    // \tat dalvik.system.NativeStart.main(Native Method)
+    //
+    // An Art 5.1.1 and 6.0.1 stacktrace looks like this:
+    // java.lang.NullPointerException: throw with null exception
+    // \tat com.android.tools.r8.naming.retrace.Main.a(:154)
+    // \tat com.android.tools.r8.naming.retrace.Main.a(:160)
+    // \tat com.android.tools.r8.naming.retrace.Main.main(:166)
+    //
+    // An Art 7.0.0 and latest stacktrace looks like this:
+    // Exception in thread "main" java.lang.NullPointerException: throw with null exception
+    // \tat com.android.tools.r8.naming.retrace.Main.a(:150)
+    // \tat com.android.tools.r8.naming.retrace.Main.a(:156)
+    // \tat com.android.tools.r8.naming.retrace.Main.main(:162)
+    int last = stderr.size();
+    if (isDalvik()) {
+      // Skip the bottom frame "dalvik.system.NativeStart.main".
+      last--;
     }
-    iterator.forEachRemaining(builder::add);
+    // Take all lines from the bottom starting with "\tat ".
+    int first = last;
+    while (first - 1 >= 0 && stderr.get(first - 1).startsWith("\tat ")) {
+      first--;
+    }
+    for (int i = first; i < last; i++) {
+      builder.add(stderr.get(i));
+    }
     return builder.build();
   }
 
