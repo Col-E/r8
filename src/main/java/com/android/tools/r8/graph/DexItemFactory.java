@@ -217,6 +217,7 @@ public class DexItemFactory {
   public final LongMethods longMethods = new LongMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final ClassMethods classMethods = new ClassMethods();
+  public final EnumMethods enumMethods = new EnumMethods();
   public final PrimitiveTypesBoxedTypeFields primitiveTypesBoxedTypeFields =
       new PrimitiveTypesBoxedTypeFields();
   public final AtomicFieldUpdaterMethods atomicFieldUpdaterMethods =
@@ -405,6 +406,20 @@ public class DexItemFactory {
 
     public boolean isReflectiveMemberLookup(DexMethod method) {
       return getMembers.contains(method);
+    }
+  }
+
+  public class EnumMethods {
+
+    public DexMethod valueOf;
+
+    private EnumMethods() {
+      valueOf =
+          createMethod(
+              enumDescriptor,
+              valueOfMethodName,
+              enumDescriptor,
+              new DexString[] {classDescriptor, stringDescriptor});
     }
   }
 
