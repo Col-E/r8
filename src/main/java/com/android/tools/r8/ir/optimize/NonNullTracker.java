@@ -108,31 +108,12 @@ public class NonNullTracker {
         // goto A
         //
         // A: ...y // blockWithNonNullInstruction
-        //
+        boolean split = block.hasCatchHandlers();
         BasicBlock blockWithNonNullInstruction =
-            block.hasCatchHandlers() ? iterator.split(code, blockIterator) : block;
-        // Next, add non-null fake IR, e.g.,
-        // ...x
-        // invoke(rcv, ...)
-        // goto A
-        // ...
-        // A: non_null_rcv <- non-null(rcv)
-        // ...y
-        Value nonNullValue = code.createValue(
-            knownToBeNonNullValue.getTypeLattice(),
-            knownToBeNonNullValue.getLocalInfo());
-        nonNullValueCollector.add(nonNullValue);
-        NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
-        nonNull.setPosition(current.getPosition());
-        if (blockWithNonNullInstruction !=  block) {
-          // If we split, add non-null IR on top of the new split block.
-          blockWithNonNullInstruction.listIterator().add(nonNull);
-        } else {
-          // Otherwise, just add it to the current block at the position of the iterator.
-          iterator.add(nonNull);
-        }
-        // Then, replace all users of the original value that are dominated by either the current
-        // block or the new split-off block. Since NPE can be explicitly caught, nullness should be
+            split ? iterator.split(code, blockIterator) : block;
+
+        // Find all users of the original value that are dominated by either the current block
+        // or the new split-off block. Since NPE can be explicitly caught, nullness should be
         // propagated through dominance.
         Set<Instruction> users = knownToBeNonNullValue.uniqueUsers();
         Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
@@ -142,14 +123,13 @@ public class NonNullTracker {
         for (BasicBlock dominatee : dominatorTree.dominatedBlocks(blockWithNonNullInstruction)) {
           dominatedBlocks.add(dominatee);
           InstructionListIterator dominateeIterator = dominatee.listIterator();
-          if (dominatee == blockWithNonNullInstruction) {
-            // In the block with the inserted non null instruction, skip instructions up to and
-            // including the newly inserted instruction.
-            dominateeIterator.nextUntil(instruction -> instruction == nonNull);
+          if (dominatee == blockWithNonNullInstruction && !split) {
+            // In the block where the non null instruction will be inserted, skip instructions up
+            // to and including the insertion point.
+            dominateeIterator.nextUntil(instruction -> instruction == current);
           }
           while (dominateeIterator.hasNext()) {
             Instruction potentialUser = dominateeIterator.next();
-            assert potentialUser != nonNull;
             if (users.contains(potentialUser)) {
               dominatedUsers.add(potentialUser);
             }
@@ -162,8 +142,35 @@ public class NonNullTracker {
             dominatedPhiUsersWithPositions.put(user, dominatedPredecessorIndexes);
           }
         }
-        knownToBeNonNullValue.replaceSelectiveUsers(
-            nonNullValue, dominatedUsers, dominatedPhiUsersWithPositions);
+
+        // Only insert non-null instruction if it is ever used.
+        if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
+          // Add non-null fake IR, e.g.,
+          // ...x
+          // invoke(rcv, ...)
+          // goto A
+          // ...
+          // A: non_null_rcv <- non-null(rcv)
+          // ...y
+          Value nonNullValue =
+              code.createValue(
+                  knownToBeNonNullValue.getTypeLattice(), knownToBeNonNullValue.getLocalInfo());
+          nonNullValueCollector.add(nonNullValue);
+          NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
+          nonNull.setPosition(current.getPosition());
+          if (blockWithNonNullInstruction != block) {
+            // If we split, add non-null IR on top of the new split block.
+            blockWithNonNullInstruction.listIterator().add(nonNull);
+          } else {
+            // Otherwise, just add it to the current block at the position of the iterator.
+            iterator.add(nonNull);
+          }
+
+          // Replace all users of the original value that are dominated by either the current
+          // block or the new split-off block.
+          knownToBeNonNullValue.replaceSelectiveUsers(
+              nonNullValue, dominatedUsers, dominatedPhiUsersWithPositions);
+        }
       }
 
       // Add non-null on top of the successor block if the current block ends with a null check.
