@@ -1288,6 +1288,21 @@ public class VerticalClassMerger {
 
       return field.toTypeSubstitutedField(newSignature);
     }
+
+    private void makeStatic(DexEncodedMethod method) {
+      method.accessFlags.setStatic();
+
+      Code code = method.getCode();
+      if (code.isJarCode()) {
+        MethodNode node = code.asJarCode().getNode();
+        node.access |= Opcodes.ACC_STATIC;
+        node.desc = method.method.proto.toDescriptorString();
+      } else {
+        // Due to member rebinding we may have inserted bridge methods with synthesized code.
+        // Currently, there is no easy way to make such code static.
+        abortMerge = true;
+      }
+    }
   }
 
   private static void makePrivate(DexEncodedMethod method) {
@@ -1295,17 +1310,6 @@ public class VerticalClassMerger {
     method.accessFlags.unsetPublic();
     method.accessFlags.unsetProtected();
     method.accessFlags.setPrivate();
-  }
-
-  private static void makeStatic(DexEncodedMethod method) {
-    method.accessFlags.setStatic();
-
-    Code code = method.getCode();
-    if (code.isJarCode()) {
-      MethodNode node = code.asJarCode().getNode();
-      node.access |= Opcodes.ACC_STATIC;
-      node.desc = method.method.proto.toDescriptorString();
-    }
   }
 
   private DexProto getStaticProto(DexType receiverType, DexProto proto) {
