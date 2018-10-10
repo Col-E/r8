@@ -108,7 +108,7 @@ public class Reporter implements DiagnosticsHandler {
   }
 
   private <T extends Throwable> T addSuppressedExceptions(T t) {
-    suppressedExceptions.forEach(throwable -> t.addSuppressed(throwable));
+    suppressedExceptions.forEach(t::addSuppressed);
     return t;
   }
 

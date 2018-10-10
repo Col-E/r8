@@ -65,7 +65,7 @@ public abstract class ExceptionUtils {
       } catch (ResourceException e) {
         throw reporter.fatalError(new ExceptionDiagnostic(e, e.getOrigin()));
       } catch (AssertionError e) {
-        throw reporter.fatalError(new ExceptionDiagnostic(e, Origin.unknown()));
+        throw reporter.fatalError(new ExceptionDiagnostic(e, Origin.unknown()), e);
       }
       reporter.failIfPendingErrors();
     } catch (AbortException e) {
