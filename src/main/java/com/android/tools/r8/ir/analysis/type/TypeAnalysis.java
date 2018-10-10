@@ -84,12 +84,12 @@ public class TypeAnalysis {
         TypeLatticeElement derived;
         if (argumentsSeen < 0) {
           // Receiver
-          derived = fromDexType(encodedMethod.method.holder, appInfo,
+          derived = fromDexType(encodedMethod.method.holder,
               // Now we try inlining even when the receiver could be null.
-              encodedMethod != context);
+              encodedMethod != context, appInfo);
         } else {
           DexType argType = encodedMethod.method.proto.parameters.values[argumentsSeen];
-          derived = fromDexType(argType, appInfo, true);
+          derived = fromDexType(argType, true, appInfo);
         }
         argumentsSeen++;
         updateTypeOfValue(outValue, derived);
@@ -149,8 +149,7 @@ public class TypeAnalysis {
 
   private TypeLatticeElement computePhiType(Phi phi) {
     // Type of phi(v1, v2, ..., vn) is the least upper bound of all those n operands.
-    return TypeLatticeElement.join(
-        appInfo, phi.getOperands().stream().map(Value::getTypeLattice));
+    return TypeLatticeElement.join(phi.getOperands().stream().map(Value::getTypeLattice), appInfo);
   }
 
   public static DexType getRefinedReceiverType(

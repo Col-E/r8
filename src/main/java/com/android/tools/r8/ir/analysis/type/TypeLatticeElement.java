@@ -81,57 +81,55 @@ public abstract class TypeLatticeElement {
   /**
    * Computes the least upper bound of the current and the other elements.
    *
+   * @param other {@link TypeLatticeElement} to join.
    * @param appInfo {@link AppInfo}.
-   * @param l1 {@link TypeLatticeElement} to join.
-   * @param l2 {@link TypeLatticeElement} to join.
-   * @return {@link TypeLatticeElement}, a least upper bound of {@param l1} and {@param l2}.
+   * @return {@link TypeLatticeElement}, a least upper bound of {@param this} and {@param other}.
    */
-  public static TypeLatticeElement join(
-      AppInfo appInfo, TypeLatticeElement l1, TypeLatticeElement l2) {
-    if (l1.isBottom()) {
-      return l2;
+  public TypeLatticeElement join(TypeLatticeElement other, AppInfo appInfo) {
+    if (isBottom()) {
+      return other;
     }
-    if (l2.isBottom()) {
-      return l1;
+    if (other.isBottom()) {
+      return this;
     }
-    if (l1.isTop() || l2.isTop()) {
+    if (isTop() || other.isTop()) {
       return TOP;
     }
-    if (l1.isNull()) {
-      return l2.asNullable();
+    if (isNull()) {
+      return other.asNullable();
     }
-    if (l2.isNull()) {
-      return l1.asNullable();
+    if (other.isNull()) {
+      return asNullable();
     }
-    if (l1.isPrimitive()) {
-      return l2.isPrimitive()
+    if (isPrimitive()) {
+      return other.isPrimitive()
           ? PrimitiveTypeLatticeElement.join(
-              l1.asPrimitiveTypeLatticeElement(), l2.asPrimitiveTypeLatticeElement())
+              asPrimitiveTypeLatticeElement(), other.asPrimitiveTypeLatticeElement())
           : TOP;
     }
-    if (l2.isPrimitive()) {
-      // By the above case, !(l1.isPrimitive())
+    if (other.isPrimitive()) {
+      // By the above case, !(isPrimitive())
       return TOP;
     }
-    // From now on, l1 and l2 are reference types, but might be imprecise yet.
-    assert l1.isReference() && l2.isReference();
-    if (!l1.isPreciseType() || !l2.isPreciseType()) {
-      if (l1.isReferenceInstance()) {
-        return l1;
+    // From now on, this and other are reference types, but might be imprecise yet.
+    assert isReference() && other.isReference();
+    if (!isPreciseType() || !other.isPreciseType()) {
+      if (isReferenceInstance()) {
+        return this;
       }
-      assert l2.isReferenceInstance();
-      return l2;
+      assert other.isReferenceInstance();
+      return other;
     }
-    // From now on, l1 and l2 are precise reference types, i.e., either ArrayType or ClassType.
-    boolean isNullable = l1.isNullable() || l2.isNullable();
-    if (l1.getClass() != l2.getClass()) {
+    // From now on, this and other are precise reference types, i.e., either ArrayType or ClassType.
+    boolean isNullable = isNullable() || other.isNullable();
+    if (getClass() != other.getClass()) {
       return objectClassType(appInfo, isNullable);
     }
-    // From now on, l1.getClass() == l2.getClass()
-    if (l1.isArrayType()) {
-      assert l2.isArrayType();
-      ArrayTypeLatticeElement a1 = l1.asArrayTypeLatticeElement();
-      ArrayTypeLatticeElement a2 = l2.asArrayTypeLatticeElement();
+    // From now on, getClass() == other.getClass()
+    if (isArrayType()) {
+      assert other.isArrayType();
+      ArrayTypeLatticeElement a1 = asArrayTypeLatticeElement();
+      ArrayTypeLatticeElement a2 = other.asArrayTypeLatticeElement();
       // Identical types are the same elements
       if (a1.getArrayType() == a2.getArrayType()) {
         return a1.isNullable() ? a1 : a2;
@@ -166,10 +164,10 @@ public abstract class TypeLatticeElement {
       DexType arrayTypeLub = appInfo.dexItemFactory.createArrayType(a1Nesting, lub);
       return new ArrayTypeLatticeElement(arrayTypeLub, isNullable);
     }
-    if (l1.isClassType()) {
-      assert l2.isClassType();
-      ClassTypeLatticeElement c1 = l1.asClassTypeLatticeElement();
-      ClassTypeLatticeElement c2 = l2.asClassTypeLatticeElement();
+    if (isClassType()) {
+      assert other.isClassType();
+      ClassTypeLatticeElement c1 = asClassTypeLatticeElement();
+      ClassTypeLatticeElement c2 = other.asClassTypeLatticeElement();
       DexType lubType =
           c1.getClassType().computeLeastUpperBoundOfClasses(appInfo, c2.getClassType());
       return new ClassTypeLatticeElement(lubType, isNullable,
@@ -258,47 +256,43 @@ public abstract class TypeLatticeElement {
   }
 
   public static BinaryOperator<TypeLatticeElement> joiner(AppInfo appInfo) {
-    return (l1, l2) -> join(appInfo, l1, l2);
+    return (l1, l2) -> l1.join(l2, appInfo);
   }
 
-  public static TypeLatticeElement join(AppInfo appInfo, Stream<TypeLatticeElement> types) {
+  public static TypeLatticeElement join(Stream<TypeLatticeElement> types, AppInfo appInfo) {
     BinaryOperator<TypeLatticeElement> joiner = joiner(appInfo);
     return types.reduce(BottomTypeLatticeElement.getInstance(), joiner, joiner);
   }
 
   public static TypeLatticeElement join(
-      AppInfo appInfo, Stream<DexType> types, boolean isNullable) {
-    return join(appInfo, types.map(t -> fromDexType(t, appInfo, isNullable)));
+      Stream<DexType> types, boolean isNullable, AppInfo appInfo) {
+    return join(types.map(t -> fromDexType(t, isNullable, appInfo)), appInfo);
   }
 
   /**
    * Determines the strict partial order of the given {@link TypeLatticeElement}s.
    *
+   * @param other expected to be *strictly* bigger than {@param this}
    * @param appInfo {@link AppInfo} to compute the least upper bound of {@link TypeLatticeElement}
-   * @param l1 subject {@link TypeLatticeElement}
-   * @param l2 expected to be *strict* bigger than {@param l1}
-   * @return {@code true} if {@param l1} is strictly less than {@param l2}.
+   * @return {@code true} if {@param this} is strictly less than {@param other}.
    */
-  public static boolean strictlyLessThan(
-      AppInfo appInfo, TypeLatticeElement l1, TypeLatticeElement l2) {
-    if (l1.equals(l2)) {
+  public boolean strictlyLessThan(TypeLatticeElement other, AppInfo appInfo) {
+    if (equals(other)) {
       return false;
     }
-    TypeLatticeElement lub = join(appInfo, Stream.of(l1, l2));
-    return !l1.equals(lub) && l2.equals(lub);
+    TypeLatticeElement lub = join(other, appInfo);
+    return !equals(lub) && other.equals(lub);
   }
 
   /**
    * Determines the partial order of the given {@link TypeLatticeElement}s.
    *
+   * @param other expected to be bigger than or equal to {@param this}
    * @param appInfo {@link AppInfo} to compute the least upper bound of {@link TypeLatticeElement}
-   * @param l1 subject {@link TypeLatticeElement}
-   * @param l2 expected to be bigger than or equal to {@param l1}
-   * @return {@code true} if {@param l1} is less than or equal to {@param l2}.
+   * @return {@code true} if {@param this} is less than or equal to {@param other}.
    */
-  public static boolean lessThanOrEqual(
-      AppInfo appInfo, TypeLatticeElement l1, TypeLatticeElement l2) {
-    return l1.equals(l2) || strictlyLessThan(appInfo, l1, l2);
+  public boolean lessThanOrEqual(TypeLatticeElement other, AppInfo appInfo) {
+    return equals(other) || strictlyLessThan(other, appInfo);
   }
 
   /**
@@ -404,14 +398,14 @@ public abstract class TypeLatticeElement {
   }
 
   public static TypeLatticeElement classClassType(AppInfo appInfo) {
-    return fromDexType(appInfo.dexItemFactory.classType, appInfo, false);
+    return fromDexType(appInfo.dexItemFactory.classType, false, appInfo);
   }
 
   public static TypeLatticeElement stringClassType(AppInfo appInfo) {
-    return fromDexType(appInfo.dexItemFactory.stringType, appInfo, false);
+    return fromDexType(appInfo.dexItemFactory.stringType, false, appInfo);
   }
 
-  public static TypeLatticeElement fromDexType(DexType type, AppInfo appInfo, boolean isNullable) {
+  public static TypeLatticeElement fromDexType(DexType type, boolean isNullable, AppInfo appInfo) {
     if (type == DexItemFactory.nullValueType) {
       return NULL;
     }
@@ -483,8 +477,8 @@ public abstract class TypeLatticeElement {
   }
 
   public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
-    TypeLatticeElement castTypeLattice = fromDexType(castType, appInfo, isNullable());
-    if (lessThanOrEqual(appInfo, this, castTypeLattice)) {
+    TypeLatticeElement castTypeLattice = fromDexType(castType, isNullable(), appInfo);
+    if (lessThanOrEqual(castTypeLattice, appInfo)) {
       return this;
     }
     return castTypeLattice;

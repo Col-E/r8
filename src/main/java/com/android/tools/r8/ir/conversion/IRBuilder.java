@@ -680,8 +680,8 @@ public class IRBuilder {
     Position position = source.getCanonicalDebugPositionAtOffset(moveExceptionItem.targetOffset);
     if (moveExceptionDest >= 0) {
       Set<DexType> exceptionTypes = MoveException.collectExceptionTypes(currentBlock, getFactory());
-      TypeLatticeElement typeLattice = TypeLatticeElement.join(appInfo,
-          exceptionTypes.stream().map(t -> TypeLatticeElement.fromDexType(t, appInfo, false)));
+      TypeLatticeElement typeLattice =
+          TypeLatticeElement.join(exceptionTypes.stream(), false, appInfo);
       Value out = writeRegister(moveExceptionDest, typeLattice, ThrowingInfo.NO_THROW, null);
       MoveException moveException = new MoveException(out);
       moveException.setPosition(position);
@@ -731,7 +731,7 @@ public class IRBuilder {
     DebugLocalInfo local = getOutgoingLocal(register);
     // TODO(b/72693244): Update nullability if this is for building inlinee's IR.
     TypeLatticeElement receiver =
-        TypeLatticeElement.fromDexType(method.method.getHolder(), appInfo, false);
+        TypeLatticeElement.fromDexType(method.method.getHolder(), false, appInfo);
     Value value = writeRegister(register, receiver, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
     value.markAsThis();
@@ -872,7 +872,7 @@ public class IRBuilder {
   public void addCheckCast(int value, DexType type) {
     Value in = readRegister(value, ValueType.OBJECT);
     TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(type, appInfo, in.getTypeLattice().isNullable());
+        TypeLatticeElement.fromDexType(type, in.getTypeLattice().isNullable(), appInfo);
     Value out = writeRegister(value, castTypeLattice, ThrowingInfo.CAN_THROW);
     CheckCast instruction = new CheckCast(out, in, type);
     assert instruction.instructionTypeCanThrow();
@@ -931,7 +931,7 @@ public class IRBuilder {
           null /* sourceString */);
     }
     TypeLatticeElement typeLattice =
-        TypeLatticeElement.fromDexType(appInfo.dexItemFactory.methodHandleType, appInfo, false);
+        TypeLatticeElement.fromDexType(appInfo.dexItemFactory.methodHandleType, false, appInfo);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstMethodHandle instruction = new ConstMethodHandle(out, methodHandle);
     add(instruction);
@@ -945,7 +945,7 @@ public class IRBuilder {
           null /* sourceString */);
     }
     TypeLatticeElement typeLattice =
-        TypeLatticeElement.fromDexType(appInfo.dexItemFactory.methodTypeType, appInfo, false);
+        TypeLatticeElement.fromDexType(appInfo.dexItemFactory.methodTypeType, false, appInfo);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstMethodType instruction = new ConstMethodType(out, methodType);
     add(instruction);
@@ -1104,7 +1104,7 @@ public class IRBuilder {
     MemberType type = MemberType.fromDexType(field.type);
     Value in = readRegister(object, ValueType.OBJECT);
     Value out = writeRegister(
-        dest, TypeLatticeElement.fromDexType(field.type, appInfo, true), ThrowingInfo.CAN_THROW);
+        dest, TypeLatticeElement.fromDexType(field.type, true, appInfo), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     InstanceGet instruction = new InstanceGet(type, out, in, field);
     assert instruction.instructionTypeCanThrow();
@@ -1415,7 +1415,7 @@ public class IRBuilder {
   public void addNewArrayEmpty(int dest, int size, DexType type) {
     assert type.isArrayType();
     Value in = readRegister(size, ValueType.INT);
-    TypeLatticeElement arrayTypeLattice = TypeLatticeElement.fromDexType(type, appInfo, false);
+    TypeLatticeElement arrayTypeLattice = TypeLatticeElement.fromDexType(type, false, appInfo);
     Value out = writeRegister(dest, arrayTypeLattice, ThrowingInfo.CAN_THROW);
     NewArrayEmpty instruction = new NewArrayEmpty(out, in, type);
     assert instruction.instructionTypeCanThrow();
@@ -1427,7 +1427,7 @@ public class IRBuilder {
   }
 
   public void addNewInstance(int dest, DexType type) {
-    TypeLatticeElement instanceType = TypeLatticeElement.fromDexType(type, appInfo, false);
+    TypeLatticeElement instanceType = TypeLatticeElement.fromDexType(type, false, appInfo);
     Value out = writeRegister(dest, instanceType, ThrowingInfo.CAN_THROW);
     NewInstance instruction = new NewInstance(type, out);
     assert instruction.instructionTypeCanThrow();
@@ -1455,7 +1455,7 @@ public class IRBuilder {
   public void addStaticGet(int dest, DexField field) {
     MemberType type = MemberType.fromDexType(field.type);
     Value out = writeRegister(
-        dest, TypeLatticeElement.fromDexType(field.type, appInfo, true), ThrowingInfo.CAN_THROW);
+        dest, TypeLatticeElement.fromDexType(field.type, true, appInfo), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     StaticGet instruction = new StaticGet(type, out, field);
     assert instruction.instructionTypeCanThrow();

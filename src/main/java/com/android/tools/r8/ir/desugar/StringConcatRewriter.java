@@ -337,7 +337,7 @@ public class StringConcatRewriter {
 
       // new-instance v0, StringBuilder
       TypeLatticeElement stringBuilderTypeLattice =
-          TypeLatticeElement.fromDexType(factory.stringBuilderType, appInfo, false);
+          TypeLatticeElement.fromDexType(factory.stringBuilderType, false, appInfo);
       Value sbInstance = code.createValue(stringBuilderTypeLattice);
       appendInstruction(new NewInstance(factory.stringBuilderType, sbInstance));
 

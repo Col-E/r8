@@ -120,9 +120,9 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          InvokeVirtual.class, fromDexType(appInfo.dexItemFactory.stringType, appInfo, true),
-          NonNull.class, fromDexType(appInfo.dexItemFactory.stringType, appInfo, false),
-          NewInstance.class, fromDexType(assertionErrorType, appInfo, false));
+          InvokeVirtual.class, fromDexType(appInfo.dexItemFactory.stringType, true, appInfo),
+          NonNull.class, fromDexType(appInfo.dexItemFactory.stringType, false, appInfo),
+          NewInstance.class, fromDexType(assertionErrorType, false, appInfo));
       forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
@@ -136,9 +136,9 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       DexType mainClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          InvokeVirtual.class, fromDexType(appInfo.dexItemFactory.stringType, appInfo, true),
-          NonNull.class, fromDexType(appInfo.dexItemFactory.stringType, appInfo, false),
-          NewInstance.class, fromDexType(assertionErrorType, appInfo, false));
+          InvokeVirtual.class, fromDexType(appInfo.dexItemFactory.stringType, true, appInfo),
+          NonNull.class, fromDexType(appInfo.dexItemFactory.stringType, false, appInfo),
+          NewInstance.class, fromDexType(assertionErrorType, false, appInfo));
       forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
@@ -153,8 +153,8 @@ public class NullabilityTest extends NonNullTrackerTestBase {
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           // An element inside a non-null array could be null.
-          ArrayGet.class, fromDexType(appInfo.dexItemFactory.stringType, appInfo, true),
-          NewInstance.class, fromDexType(assertionErrorType, appInfo, false));
+          ArrayGet.class, fromDexType(appInfo.dexItemFactory.stringType, true, appInfo),
+          NewInstance.class, fromDexType(assertionErrorType, false, appInfo));
       forEachOutValue(irCode, (v, l) -> {
         if (l.isArrayType()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
@@ -179,8 +179,8 @@ public class NullabilityTest extends NonNullTrackerTestBase {
           DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
           // An element inside a non-null array could be null.
-          ArrayGet.class, fromDexType(appInfo.dexItemFactory.stringType, appInfo, true),
-          NewInstance.class, fromDexType(assertionErrorType, appInfo, false));
+          ArrayGet.class, fromDexType(appInfo.dexItemFactory.stringType, true, appInfo),
+          NewInstance.class, fromDexType(assertionErrorType, false, appInfo));
       forEachOutValue(irCode, (v, l) -> {
         if (l.isArrayType()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
@@ -206,11 +206,11 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       DexType testClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(FieldAccessTest.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          Argument.class, fromDexType(testClass, appInfo, true),
-          NonNull.class, fromDexType(testClass, appInfo, false),
+          Argument.class, fromDexType(testClass, true, appInfo),
+          NonNull.class, fromDexType(testClass, false, appInfo),
           // instance may not be initialized.
-          InstanceGet.class, fromDexType(appInfo.dexItemFactory.stringType, appInfo, true),
-          NewInstance.class, fromDexType(assertionErrorType, appInfo, false));
+          InstanceGet.class, fromDexType(appInfo.dexItemFactory.stringType, true, appInfo),
+          NewInstance.class, fromDexType(assertionErrorType, false, appInfo));
       forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }
@@ -226,11 +226,11 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       DexType testClass = appInfo.dexItemFactory.createType(
           DescriptorUtils.javaTypeToDescriptor(FieldAccessTest.class.getCanonicalName()));
       Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          Argument.class, fromDexType(testClass, appInfo, true),
-          NonNull.class, fromDexType(testClass, appInfo, false),
+          Argument.class, fromDexType(testClass, true, appInfo),
+          NonNull.class, fromDexType(testClass, false, appInfo),
           // instance may not be initialized.
-          InstanceGet.class, fromDexType(appInfo.dexItemFactory.stringType, appInfo, true),
-          NewInstance.class, fromDexType(assertionErrorType, appInfo, false));
+          InstanceGet.class, fromDexType(appInfo.dexItemFactory.stringType, true, appInfo),
+          NewInstance.class, fromDexType(assertionErrorType, false, appInfo));
       forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
     });
   }

@@ -75,7 +75,7 @@ public class TypeLatticeTest extends TestBase {
   }
 
   private TypeLatticeElement element(DexType type) {
-    return TypeLatticeElement.fromDexType(type, appInfo, true);
+    return TypeLatticeElement.fromDexType(type, true, appInfo);
   }
 
   private ArrayTypeLatticeElement array(int nesting, DexType base) {
@@ -84,15 +84,15 @@ public class TypeLatticeTest extends TestBase {
 
   private TypeLatticeElement join(TypeLatticeElement... elements) {
     assertTrue(elements.length > 1);
-    return TypeLatticeElement.join(appInfo, Arrays.stream(elements));
+    return TypeLatticeElement.join(Arrays.stream(elements), appInfo);
   }
 
   private boolean strictlyLessThan(TypeLatticeElement l1, TypeLatticeElement l2) {
-    return TypeLatticeElement.strictlyLessThan(appInfo, l1, l2);
+    return l1.strictlyLessThan(l2, appInfo);
   }
 
   private boolean lessThanOrEqual(TypeLatticeElement l1, TypeLatticeElement l2) {
-    return TypeLatticeElement.lessThanOrEqual(appInfo, l1, l2);
+    return l1.lessThanOrEqual(l2, appInfo);
   }
 
   @Test

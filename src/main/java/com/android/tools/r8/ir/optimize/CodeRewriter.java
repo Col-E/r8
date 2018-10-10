@@ -297,7 +297,7 @@ public class CodeRewriter {
       BasicBlock rethrowBlock = BasicBlock.createRethrowBlock(
           code,
           lastSelfRecursiveCall.getPosition(),
-          TypeLatticeElement.fromDexType(guard, appInfo, true));
+          TypeLatticeElement.fromDexType(guard, true, appInfo));
       code.blocks.add(rethrowBlock);
       // Add catch handler to the block containing the last recursive call.
       newBlock.addCatchHandler(rethrowBlock, guard);
@@ -1660,11 +1660,11 @@ public class CodeRewriter {
       if (inTypeLattice.isPreciseType() || inTypeLattice.isNull()) {
         TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
         TypeLatticeElement castTypeLattice =
-            TypeLatticeElement.fromDexType(castType, appInfo, inTypeLattice.isNullable());
+            TypeLatticeElement.fromDexType(castType, inTypeLattice.isNullable(), appInfo);
 
         assert inTypeLattice.nullElement().lessThanOrEqual(outTypeLattice.nullElement());
 
-        if (TypeLatticeElement.lessThanOrEqual(appInfo, inTypeLattice, castTypeLattice)) {
+        if (inTypeLattice.lessThanOrEqual(castTypeLattice, appInfo)) {
           // 1) Trivial cast.
           //   A a = ...
           //   A a' = (A) a;
@@ -1672,7 +1672,7 @@ public class CodeRewriter {
           //   A < B
           //   A a = ...
           //   B b = (B) a;
-          assert TypeLatticeElement.lessThanOrEqual(appInfo, inTypeLattice, outTypeLattice);
+          assert inTypeLattice.lessThanOrEqual(outTypeLattice, appInfo);
           needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
           removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
         } else {
@@ -3013,7 +3013,7 @@ public class CodeRewriter {
     DexType javaLangSystemType = dexItemFactory.createType("Ljava/lang/System;");
     DexType javaIoPrintStreamType = dexItemFactory.createType("Ljava/io/PrintStream;");
     Value out = code.createValue(
-        TypeLatticeElement.fromDexType(javaIoPrintStreamType, appInfo, false));
+        TypeLatticeElement.fromDexType(javaIoPrintStreamType, false, appInfo));
 
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     DexMethod print = dexItemFactory.createMethod(javaIoPrintStreamType, proto, "print");
