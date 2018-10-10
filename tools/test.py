@@ -156,6 +156,8 @@ def Main():
     gradle_args.append('-PHEAD_sha1=' + utils.get_HEAD_sha1())
   # Add Gradle tasks
   gradle_args.append('cleanTest')
+  # Build R8lib with dependencies for bootstrapping tests.
+  gradle_args.append('r8libWithDeps')
   gradle_args.append('test')
   # Test filtering. Must always follow the 'test' task.
   for testFilter in args:
