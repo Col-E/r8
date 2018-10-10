@@ -69,6 +69,8 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
             || NonNullTracker.throwsOnNullInput(prev)
             || (prev.isIf() && prev.asIf().isZeroTest())
             || !curr.getBlock().getPredecessors().contains(prev.getBlock()));
+        // Make sure non-null is used.
+        assertTrue(curr.outValue().numberOfAllUsers() > 0);
         count++;
       }
     }
@@ -114,7 +116,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     buildAndTest(NonNullAfterInvoke.class, foo, 1, this::checkInvokeGetsNonNullReceiver);
     MethodSignature bar =
         new MethodSignature("bar", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, bar, 2, this::checkInvokeGetsNullReceiver);
+    buildAndTest(NonNullAfterInvoke.class, bar, 1, this::checkInvokeGetsNullReceiver);
   }
 
   @Test
@@ -176,6 +178,6 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     buildAndTest(NonNullAfterNullCheck.class, bar, 1, this::checkInvokeGetsNonNullReceiver);
     MethodSignature baz =
         new MethodSignature("baz", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterNullCheck.class, baz, 2, this::checkInvokeGetsNullReceiver);
+    buildAndTest(NonNullAfterNullCheck.class, baz, 1, this::checkInvokeGetsNullReceiver);
   }
 }
