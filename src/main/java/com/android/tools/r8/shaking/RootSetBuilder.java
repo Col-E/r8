@@ -29,6 +29,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -164,39 +165,9 @@ public class RootSetBuilder {
     // seems not to care, so users have started to use this inconsistently. We are thus
     // inconsistent, as well, but tell them.
     // TODO(herhut): One day make this do what it says.
-    if (rule.hasInheritanceClassName()) {
-      boolean extendsExpected =
-          anySuperTypeMatches(
-              clazz.superType,
-              application::definitionFor,
-              rule.getInheritanceClassName(),
-              rule.getInheritanceAnnotation());
-      boolean implementsExpected = false;
-      if (!extendsExpected) {
-        implementsExpected =
-            anyImplementedInterfaceMatches(
-                clazz,
-                application::definitionFor,
-                rule.getInheritanceClassName(),
-                rule.getInheritanceAnnotation());
-      }
-      if (!extendsExpected && !implementsExpected) {
-        return;
-      }
-      // Warn if users got it wrong, but only warn once.
-      if (extendsExpected && !rule.getInheritanceIsExtends()) {
-        if (rulesThatUseExtendsOrImplementsWrong.add(rule)) {
-          options.reporter.warning(
-              new StringDiagnostic(
-                  "The rule `" + rule + "` uses implements but actually matches extends."));
-        }
-      } else if (implementsExpected && rule.getInheritanceIsExtends()) {
-        if (rulesThatUseExtendsOrImplementsWrong.add(rule)) {
-          options.reporter.warning(
-              new StringDiagnostic(
-                  "The rule `" + rule + "` uses extends but actually matches implements."));
-        }
-      }
+    if (rule.hasInheritanceClassName()
+        && !satisfyInheritanceRule(clazz, application::definitionFor, rule)) {
+      return;
     }
 
     if (rule.getClassNames().matches(clazz.type)) {
@@ -340,100 +311,153 @@ public class RootSetBuilder {
       Set<DexEncodedMethod> liveMethods,
       Set<DexEncodedField> liveFields) throws ExecutionException {
     application.timing.begin("Find consequent items for -if rules...");
-    Function<DexType, DexClass> definitionForWithLiveTypes =
-        type -> {
-          DexClass clazz = appView.appInfo().definitionFor(type);
-          if (clazz != null && liveTypes.contains(clazz.type)) {
-            return clazz;
-          }
-          return null;
-        };
     try {
-      List<Future<?>> futures = new ArrayList<>();
       if (rules != null) {
+        IfRuleEvaluator evaluator =
+            new IfRuleEvaluator(liveTypes, liveMethods, liveFields, executorService);
         for (ProguardConfigurationRule rule : rules) {
           assert rule instanceof ProguardIfRule;
           ProguardIfRule ifRule = (ProguardIfRule) rule;
-          // Depending on which types trigger the -if rule, the application of the subsequent
+          // Depending on which types that trigger the -if rule, the application of the subsequent
           // -keep rule may vary (due to back references). So, we need to try all pairs of -if rule
           // and live types.
-          for (DexType currentLiveType : liveTypes) {
-            DexClass currentLiveClass = appView.appInfo().definitionFor(currentLiveType);
-            if (currentLiveClass == null) {
+          for (DexType type : liveTypes) {
+            DexClass clazz = appView.appInfo().definitionFor(type);
+            if (clazz == null) {
               continue;
             }
-            if (!satisfyClassType(rule, currentLiveClass)) {
-              continue;
-            }
-            if (!satisfyAccessFlag(rule, currentLiveClass)) {
-              continue;
-            }
-            if (!satisfyAnnotation(rule, currentLiveClass)) {
-              continue;
-            }
-            if (ifRule.hasInheritanceClassName()) {
-              if (!satisfyInheritanceRule(currentLiveType, definitionForWithLiveTypes, ifRule)) {
-                // Try another live type since the current one doesn't satisfy the inheritance rule.
-                continue;
-              }
-            }
-            if (ifRule.getClassNames().matches(currentLiveType)) {
-              Collection<ProguardMemberRule> memberKeepRules = ifRule.getMemberRules();
-              if (memberKeepRules.isEmpty()) {
-                ProguardIfRule materializedRule = ifRule.materialize();
-                runPerRule(
-                    executorService, futures, materializedRule.subsequentRule, materializedRule);
-                // No member rule to satisfy. Move on to the next live type.
-                continue;
-              }
-              Set<DexDefinition> filteredFields = liveFields.stream()
-                  .filter(f -> f.field.getHolder() == currentLiveType)
-                  .collect(Collectors.toSet());
-              Set<DexDefinition> filteredMethods = liveMethods.stream()
-                  .filter(m -> m.method.getHolder() == currentLiveType)
-                  .collect(Collectors.toSet());
-              // If the number of member rules to hold is more than live members, we can't make it.
-              if (filteredFields.size() + filteredMethods.size() < memberKeepRules.size()) {
-                continue;
-              }
-              // Depending on which members trigger the -if rule, the application of the subsequent
-              // -keep rule may vary (due to back references). So, we need to try literally all
-              // combinations of live members.
-              // TODO(b/79486261): Some of those are equivalent from the point of view of -if rule.
-              Set<Set<DexDefinition>> combinationsOfMembers = Sets.combinations(
-                  Sets.union(filteredFields, filteredMethods), memberKeepRules.size());
-              for (Set<DexDefinition> combination : combinationsOfMembers) {
-                Set<DexEncodedField> fieldsInCombination =
-                    DexDefinition.filterDexEncodedField(combination.stream())
-                        .collect(Collectors.toSet());
-                Set<DexEncodedMethod> methodsInCombination =
-                    DexDefinition.filterDexEncodedMethod(combination.stream())
-                        .collect(Collectors.toSet());
-                // Member rules are combined as AND logic: if found unsatisfied member rule, this
-                // combination of live members is not a good fit.
-                boolean satisfied = true;
-                for (ProguardMemberRule memberRule : memberKeepRules) {
-                  if (!ruleSatisfiedByFields(memberRule, fieldsInCombination)
-                      && !ruleSatisfiedByMethods(memberRule, methodsInCombination)) {
-                    satisfied = false;
-                    break;
-                  }
-                }
-                if (satisfied) {
-                  ProguardIfRule materializedRule = ifRule.materialize();
-                  runPerRule(
-                      executorService, futures, materializedRule.subsequentRule, materializedRule);
-                }
+
+            // Check if the class matches the if-rule.
+            evaluator.evaluateIfRule(ifRule, clazz, clazz);
+
+            // Check if one of the types that have been merged into `clazz` satisfies the if-rule.
+            if (options.enableVerticalClassMerging && appView.verticallyMergedClasses() != null) {
+              for (DexType sourceType : appView.verticallyMergedClasses().getSourcesFor(type)) {
+                // Note that, although `sourceType` has been merged into `type`, the dex class for
+                // `sourceType` is still available until the second round of tree shaking. This way
+                // we can still retrieve the access flags of `sourceType`.
+                DexClass sourceClass = appView.appInfo().definitionFor(sourceType);
+                assert sourceClass != null;
+                evaluator.evaluateIfRule(ifRule, sourceClass, clazz);
               }
             }
           }
         }
-        ThreadUtils.awaitFutures(futures);
+        ThreadUtils.awaitFutures(evaluator.futures);
       }
     } finally {
       application.timing.end();
     }
     return new ConsequentRootSet(noShrinking, noOptimization, noObfuscation, dependentNoShrinking);
+  }
+
+  private class IfRuleEvaluator {
+
+    private final Set<DexType> liveTypes;
+    private final Set<DexEncodedMethod> liveMethods;
+    private final Set<DexEncodedField> liveFields;
+    private final ExecutorService executorService;
+
+    private final List<Future<?>> futures = new ArrayList<>();
+
+    public IfRuleEvaluator(
+        Set<DexType> liveTypes,
+        Set<DexEncodedMethod> liveMethods,
+        Set<DexEncodedField> liveFields,
+        ExecutorService executorService) {
+      this.liveTypes = liveTypes;
+      this.liveMethods = liveMethods;
+      this.liveFields = liveFields;
+      this.executorService = executorService;
+    }
+
+    /**
+     * Determines if `sourceClass` satisfies the given if-rule. If `sourceClass` has not been merged
+     * into another class, then `targetClass` is the same as `sourceClass`. Otherwise, `targetClass`
+     * denotes the class that `sourceClass` has been merged into.
+     */
+    private void evaluateIfRule(ProguardIfRule rule, DexClass sourceClass, DexClass targetClass) {
+      if (!satisfyClassType(rule, sourceClass)) {
+        return;
+      }
+      if (!satisfyAccessFlag(rule, sourceClass)) {
+        return;
+      }
+      if (!satisfyAnnotation(rule, sourceClass)) {
+        return;
+      }
+      // TODO(b/110141157): Handle the situation where the class in the extends/implements clause
+      // has been merged.
+      if (rule.hasInheritanceClassName()
+          && !satisfyInheritanceRule(sourceClass, this::definitionForWithLiveTypes, rule)) {
+        // Try another live type since the current one doesn't satisfy the inheritance rule.
+        return;
+      }
+      if (!rule.getClassNames().matches(sourceClass.type)) {
+        return;
+      }
+      Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
+      if (memberKeepRules.isEmpty()) {
+        materializeIfRule(rule);
+        return;
+      }
+
+      Set<DexDefinition> filteredMembers = Sets.newIdentityHashSet();
+      Iterables.addAll(
+          filteredMembers,
+          targetClass.fields(
+              f ->
+                  liveFields.contains(f)
+                      && appView.graphLense().getOriginalFieldSignature(f.field).getHolder()
+                          == sourceClass.type));
+      Iterables.addAll(
+          filteredMembers,
+          targetClass.methods(
+              m ->
+                  liveMethods.contains(m)
+                      && appView.graphLense().getOriginalMethodSignature(m.method).getHolder()
+                          == sourceClass.type));
+
+      // If the number of member rules to hold is more than live members, we can't make it.
+      if (filteredMembers.size() < memberKeepRules.size()) {
+        return;
+      }
+
+      // Depending on which members trigger the -if rule, the application of the subsequent
+      // -keep rule may vary (due to back references). So, we need to try literally all
+      // combinations of live members.
+      // TODO(b/79486261): Some of those are equivalent from the point of view of -if rule.
+      Sets.combinations(filteredMembers, memberKeepRules.size())
+          .forEach(
+              combination -> {
+                Collection<DexEncodedField> fieldsInCombination =
+                    DexDefinition.filterDexEncodedField(combination.stream())
+                        .collect(Collectors.toList());
+                Collection<DexEncodedMethod> methodsInCombination =
+                    DexDefinition.filterDexEncodedMethod(combination.stream())
+                        .collect(Collectors.toList());
+                // Member rules are combined as AND logic: if found unsatisfied member rule, this
+                // combination of live members is not a good fit.
+                boolean satisfied =
+                    memberKeepRules.stream()
+                        .allMatch(
+                            memberRule ->
+                                ruleSatisfiedByFields(memberRule, fieldsInCombination)
+                                    || ruleSatisfiedByMethods(memberRule, methodsInCombination));
+                if (satisfied) {
+                  materializeIfRule(rule);
+                }
+              });
+    }
+
+    private void materializeIfRule(ProguardIfRule rule) {
+      ProguardIfRule materializedRule = rule.materialize();
+      runPerRule(executorService, futures, materializedRule.subsequentRule, materializedRule);
+    }
+
+    private DexClass definitionForWithLiveTypes(DexType type) {
+      return liveTypes.contains(type) ? appView.appInfo().definitionFor(type) : null;
+    }
   }
 
   private static DexDefinition testAndGetPrecondition(
@@ -497,7 +521,7 @@ public class RootSetBuilder {
     });
   }
 
-  // TODO(67934426): Test this code.
+  // TODO(b/67934426): Test this code.
   public static void writeSeeds(
       AppInfoWithLiveness appInfo, PrintStream out, Predicate<DexType> include) {
     for (DexReference seed : appInfo.getPinnedItems()) {
@@ -564,24 +588,34 @@ public class RootSetBuilder {
   }
 
   private boolean satisfyInheritanceRule(
-      DexType type,
-      Function<DexType, DexClass> definitionFor,
-      ProguardConfigurationRule rule) {
-    DexClass clazz = definitionFor.apply(type);
-    if (clazz == null) {
-      return false;
-    }
-    return
+      DexClass clazz, Function<DexType, DexClass> definitionFor, ProguardConfigurationRule rule) {
+    ProguardTypeMatcher inheritanceClassName = rule.getInheritanceClassName();
+    ProguardTypeMatcher inheritanceAnnotation = rule.getInheritanceAnnotation();
+    boolean extendsExpected =
         anySuperTypeMatches(
-            clazz.superType,
-            definitionFor,
-            rule.getInheritanceClassName(),
-            rule.getInheritanceAnnotation())
-        || anyImplementedInterfaceMatches(
-            clazz,
-            definitionFor,
-            rule.getInheritanceClassName(),
-            rule.getInheritanceAnnotation());
+            clazz.superType, definitionFor, inheritanceClassName, inheritanceAnnotation);
+    boolean implementsExpected = false;
+    if (!extendsExpected) {
+      implementsExpected =
+          anyImplementedInterfaceMatches(
+              clazz, definitionFor, inheritanceClassName, inheritanceAnnotation);
+    }
+    if (extendsExpected || implementsExpected) {
+      // Warn if users got it wrong, but only warn once.
+      if (rule.getInheritanceIsExtends()) {
+        if (implementsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
+          options.reporter.warning(
+              new StringDiagnostic(
+                  "The rule `" + rule + "` uses extends but actually matches implements."));
+        }
+      } else if (extendsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
+        options.reporter.warning(
+            new StringDiagnostic(
+                "The rule `" + rule + "` uses implements but actually matches extends."));
+      }
+      return true;
+    }
+    return false;
   }
 
   private boolean allRulesSatisfied(Collection<ProguardMemberRule> memberKeepRules,
@@ -606,11 +640,10 @@ public class RootSetBuilder {
   }
 
   private boolean ruleSatisfiedByMethods(
-      ProguardMemberRule rule,
-      Iterable<DexEncodedMethod> methods) {
+      ProguardMemberRule rule, Iterable<DexEncodedMethod> methods) {
     if (rule.getRuleType().includesMethods()) {
       for (DexEncodedMethod method : methods) {
-        if (rule.matches(method, dexStringCache)) {
+        if (rule.matches(method, appView, dexStringCache)) {
           return true;
         }
       }
@@ -619,22 +652,13 @@ public class RootSetBuilder {
   }
 
   private boolean ruleSatisfiedByMethods(ProguardMemberRule rule, DexEncodedMethod[] methods) {
-    if (rule.getRuleType().includesMethods()) {
-      for (DexEncodedMethod method : methods) {
-        if (rule.matches(method, dexStringCache)) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return ruleSatisfiedByMethods(rule, Arrays.asList(methods));
   }
 
-  private boolean ruleSatisfiedByFields(
-      ProguardMemberRule rule,
-      Iterable<DexEncodedField> fields) {
+  private boolean ruleSatisfiedByFields(ProguardMemberRule rule, Iterable<DexEncodedField> fields) {
     if (rule.getRuleType().includesFields()) {
       for (DexEncodedField field : fields) {
-        if (rule.matches(field, dexStringCache)) {
+        if (rule.matches(field, appView, dexStringCache)) {
           return true;
         }
       }
@@ -643,14 +667,7 @@ public class RootSetBuilder {
   }
 
   private boolean ruleSatisfiedByFields(ProguardMemberRule rule, DexEncodedField[] fields) {
-    if (rule.getRuleType().includesFields()) {
-      for (DexEncodedField field : fields) {
-        if (rule.matches(field, dexStringCache)) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return ruleSatisfiedByFields(rule, Arrays.asList(fields));
   }
 
   static boolean containsAnnotation(ProguardTypeMatcher classAnnotation,
@@ -680,7 +697,7 @@ public class RootSetBuilder {
       return;
     }
     for (ProguardMemberRule rule : rules) {
-      if (rule.matches(method, dexStringCache)) {
+      if (rule.matches(method, appView, dexStringCache)) {
         if (Log.ENABLED) {
           Log.verbose(getClass(), "Marking method `%s` due to `%s { %s }`.", method, context,
               rule);
@@ -699,7 +716,7 @@ public class RootSetBuilder {
       ProguardConfigurationRule context,
       DexDefinition precondition) {
     for (ProguardMemberRule rule : rules) {
-      if (rule.matches(field, dexStringCache)) {
+      if (rule.matches(field, appView, dexStringCache)) {
         if (Log.ENABLED) {
           Log.verbose(getClass(), "Marking field `%s` due to `%s { %s }`.", field, context,
               rule);

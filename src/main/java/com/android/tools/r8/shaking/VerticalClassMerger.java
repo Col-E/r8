@@ -49,7 +49,9 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
@@ -91,9 +93,19 @@ public class VerticalClassMerger {
   public static class VerticallyMergedClasses {
 
     private final Map<DexType, DexType> mergedClasses;
+    private final Map<DexType, List<DexType>> sources;
 
     private VerticallyMergedClasses(Map<DexType, DexType> mergedClasses) {
+      Map<DexType, List<DexType>> sources = Maps.newIdentityHashMap();
+      mergedClasses.forEach(
+          (source, target) ->
+              sources.computeIfAbsent(target, key -> new ArrayList<>()).add(source));
       this.mergedClasses = mergedClasses;
+      this.sources = sources;
+    }
+
+    public List<DexType> getSourcesFor(DexType type) {
+      return sources.getOrDefault(type, ImmutableList.of());
     }
 
     public DexType getTargetFor(DexType type) {
