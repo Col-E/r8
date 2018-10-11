@@ -191,7 +191,7 @@ public class ProguardMemberRule {
           break;
         }
         // Type check.
-        if (!getType().matches(originalSignature.type)) {
+        if (!matches(getType(), originalSignature.type, appView)) {
           break;
         }
         // Annotations check

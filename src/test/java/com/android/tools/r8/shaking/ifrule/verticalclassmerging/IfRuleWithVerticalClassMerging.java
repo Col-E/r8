@@ -59,7 +59,6 @@ class Main {
 }
 
 // TODO(b/110141157):
-// - Add tests where the type of a kept field changes.
 // - Add tests where fields and methods get renamed due to naming conflicts.
 // - Add tests where the type in a implements/extends clause has changed.
 // - Add tests where the then-clause of an -if rule keeps a class that has been merged into another.
