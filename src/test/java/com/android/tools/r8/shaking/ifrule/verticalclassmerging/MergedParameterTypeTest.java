@@ -4,20 +4,20 @@
 
 package com.android.tools.r8.shaking.ifrule.verticalclassmerging;
 
-public class MergedReturnTypeTest extends MergedTypeBaseTest {
+public class MergedParameterTypeTest extends MergedTypeBaseTest {
 
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.print(method().getClass().getTypeName());
+      method(new B());
     }
 
-    public static A method() {
-      return new B();
+    public static void method(A obj) {
+      System.out.print(obj.getClass().getTypeName());
     }
   }
 
-  public MergedReturnTypeTest(Backend backend, boolean enableVerticalClassMerging) {
+  public MergedParameterTypeTest(Backend backend, boolean enableVerticalClassMerging) {
     super(backend, enableVerticalClassMerging);
   }
 
@@ -28,7 +28,7 @@ public class MergedReturnTypeTest extends MergedTypeBaseTest {
 
   @Override
   public String getConditionForProguardIfRule() {
-    return "-if class **$TestClass { **$A method(); }";
+    return "-if class **$TestClass { void method(**$A); }";
   }
 
   @Override

@@ -59,7 +59,6 @@ class Main {
 }
 
 // TODO(b/110141157):
-// - Add tests where the parameter type of a kept method changes.
 // - Add tests where the type of a kept field changes.
 // - Add tests where fields and methods get renamed due to naming conflicts.
 // - Add tests where the type in a implements/extends clause has changed.

@@ -259,9 +259,7 @@ public class ProguardMemberRule {
           break;
         }
         for (int i = 0; i < parameters.length; i++) {
-          // TODO(b/110141157): The names of the parameter types may have changed as a result of
-          // vertical class merging. We should use the original type names.
-          if (!arguments.get(i).matches(parameters[i])) {
+          if (!matches(arguments.get(i), parameters[i], appView)) {
             return false;
           }
         }
