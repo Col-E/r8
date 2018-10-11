@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking.ifrule.verticalclassmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -26,7 +27,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public abstract class MergedTypeBaseTest extends TestBase {
 
-  private final List<Class> CLASSES = ImmutableList.of(A.class, B.class, C.class, getTestClass());
+  private final List<Class> CLASSES =
+      ImmutableList.of(A.class, B.class, C.class, Unused.class, getTestClass());
 
   static class A {}
 
@@ -34,8 +36,10 @@ public abstract class MergedTypeBaseTest extends TestBase {
 
   static class C {}
 
-  private final Backend backend;
-  private final boolean enableVerticalClassMerging;
+  static class Unused {}
+
+  final Backend backend;
+  final boolean enableVerticalClassMerging;
 
   public MergedTypeBaseTest(Backend backend, boolean enableVerticalClassMerging) {
     this.backend = backend;
@@ -58,6 +62,15 @@ public abstract class MergedTypeBaseTest extends TestBase {
 
   public abstract String getExpectedStdout();
 
+  public void inspect(CodeInspector inspector) {
+    assertThat(inspector.clazz(Unused.class), isPresent());
+
+    // Verify that A is no longer present when vertical class merging is enabled.
+    if (enableVerticalClassMerging) {
+      assertThat(inspector.clazz(A.class), not(isPresent()));
+    }
+  }
+
   @Test
   public void testIfRule() throws Exception {
     String expected = getExpectedStdout();
@@ -69,12 +82,10 @@ public abstract class MergedTypeBaseTest extends TestBase {
             "  public static void main(java.lang.String[]);",
             "}",
             getConditionForProguardIfRule(),
-            "-keep class " + C.class.getTypeName());
+            "-keep class " + Unused.class.getTypeName());
     AndroidApp output = compileWithR8(readClasses(CLASSES), config, this::configure, backend);
     assertEquals(expected, runOnVM(output, getTestClass(), backend));
-
-    CodeInspector inspector = new CodeInspector(output);
-    assertThat(inspector.clazz(MergedReturnTypeTest.C.class), isPresent());
+    inspect(new CodeInspector(output));
   }
 
   private void configure(InternalOptions options) {

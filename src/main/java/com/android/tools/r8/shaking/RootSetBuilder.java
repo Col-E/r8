@@ -107,7 +107,10 @@ public class RootSetBuilder {
         // TODO(herhut): Warn about broken supertype chain?
         return false;
       }
-      if (name.matches(clazz.type) && containsAnnotation(annotation, clazz.annotations)) {
+      // TODO(b/110141157): Should the vertical class merger move annotations from the source to
+      // the target class? If so, it is sufficient only to apply the annotation-matcher to the
+      // annotations of `class`.
+      if (name.matches(clazz.type, appView) && containsAnnotation(annotation, clazz.annotations)) {
         return true;
       }
       type = clazz.superType;
@@ -386,15 +389,16 @@ public class RootSetBuilder {
       if (!satisfyAnnotation(rule, sourceClass)) {
         return;
       }
-      // TODO(b/110141157): Handle the situation where the class in the extends/implements clause
-      // has been merged.
-      if (rule.hasInheritanceClassName()
-          && !satisfyInheritanceRule(sourceClass, this::definitionForWithLiveTypes, rule)) {
-        // Try another live type since the current one doesn't satisfy the inheritance rule.
-        return;
-      }
       if (!rule.getClassNames().matches(sourceClass.type)) {
         return;
+      }
+      if (rule.hasInheritanceClassName()) {
+        // Note that, in presence of vertical class merging, we check if the resulting class
+        // (i.e., the target class) satisfies the implements/extends-matcher.
+        if (!satisfyInheritanceRule(targetClass, this::definitionForWithLiveTypes, rule)) {
+          // Try another live type since the current one doesn't satisfy the inheritance rule.
+          return;
+        }
       }
       Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
       if (memberKeepRules.isEmpty()) {
@@ -456,6 +460,8 @@ public class RootSetBuilder {
     }
 
     private DexClass definitionForWithLiveTypes(DexType type) {
+      assert appView.verticallyMergedClasses() == null
+          || !appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(type);
       return liveTypes.contains(type) ? appView.appInfo().definitionFor(type) : null;
     }
   }
@@ -592,8 +598,7 @@ public class RootSetBuilder {
     ProguardTypeMatcher inheritanceClassName = rule.getInheritanceClassName();
     ProguardTypeMatcher inheritanceAnnotation = rule.getInheritanceAnnotation();
     boolean extendsExpected =
-        anySuperTypeMatches(
-            clazz.superType, definitionFor, inheritanceClassName, inheritanceAnnotation);
+        satisfyExtendsRule(clazz, definitionFor, inheritanceClassName, inheritanceAnnotation);
     boolean implementsExpected = false;
     if (!extendsExpected) {
       implementsExpected =
@@ -614,6 +619,27 @@ public class RootSetBuilder {
                 "The rule `" + rule + "` uses implements but actually matches extends."));
       }
       return true;
+    }
+    return false;
+  }
+
+  private boolean satisfyExtendsRule(
+      DexClass clazz,
+      Function<DexType, DexClass> definitionFor,
+      ProguardTypeMatcher inheritanceClassName,
+      ProguardTypeMatcher inheritanceAnnotation) {
+    if (anySuperTypeMatches(
+        clazz.superType, definitionFor, inheritanceClassName, inheritanceAnnotation)) {
+      return true;
+    }
+
+    // It is possible that this class used to inherit from another class X, but no longer does it,
+    // because X has been merged into `clazz`.
+    if (appView.verticallyMergedClasses() != null) {
+      // TODO(b/110141157): Figure out what to do with annotations. Should the annotations of
+      // the DexClass corresponding to `sourceType` satisfy the `annotation`-matcher?
+      return appView.verticallyMergedClasses().getSourcesFor(clazz.type).stream()
+          .anyMatch(inheritanceClassName::matches);
     }
     return false;
   }

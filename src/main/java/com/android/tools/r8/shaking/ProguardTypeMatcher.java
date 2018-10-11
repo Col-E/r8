@@ -5,6 +5,8 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
@@ -31,7 +33,20 @@ public abstract class ProguardTypeMatcher {
     TYPE
   }
 
+  // Evaluates this matcher on the given type.
   public abstract boolean matches(DexType type);
+
+  // Evaluates this matcher on the given type, and on all types that have been merged into the given
+  // type, if any.
+  public final boolean matches(DexType type, AppView<? extends AppInfo> appView) {
+    if (matches(type)) {
+      return true;
+    }
+    if (appView.verticallyMergedClasses() != null) {
+      return appView.verticallyMergedClasses().getSourcesFor(type).stream().anyMatch(this::matches);
+    }
+    return false;
+  }
 
   protected Iterable<ProguardWildcard> getWildcards() {
     return Collections::emptyIterator;

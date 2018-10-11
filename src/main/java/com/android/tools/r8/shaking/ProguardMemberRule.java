@@ -191,7 +191,7 @@ public class ProguardMemberRule {
           break;
         }
         // Type check.
-        if (!matches(getType(), originalSignature.type, appView)) {
+        if (!getType().matches(originalSignature.type, appView)) {
           break;
         }
         // Annotations check
@@ -228,7 +228,7 @@ public class ProguardMemberRule {
         return RootSetBuilder.containsAnnotation(annotation, method.annotations);
       case METHOD:
         // Check return type.
-        if (!matches(type, originalSignature.proto.returnType, appView)) {
+        if (!type.matches(originalSignature.proto.returnType, appView)) {
           break;
         }
         // Fall through for access flags, name and arguments.
@@ -259,7 +259,7 @@ public class ProguardMemberRule {
           break;
         }
         for (int i = 0; i < parameters.length; i++) {
-          if (!matches(arguments.get(i), parameters[i], appView)) {
+          if (!arguments.get(i).matches(parameters[i], appView)) {
             return false;
           }
         }
@@ -268,18 +268,6 @@ public class ProguardMemberRule {
       case ALL_FIELDS:
       case FIELD:
         break;
-    }
-    return false;
-  }
-
-  private static boolean matches(
-      ProguardTypeMatcher matcher, DexType type, AppView<? extends AppInfo> appView) {
-    if (matcher.matches(type)) {
-      return true;
-    }
-    if (appView.verticallyMergedClasses() != null) {
-      return appView.verticallyMergedClasses().getSourcesFor(type).stream()
-          .anyMatch(matcher::matches);
     }
     return false;
   }
