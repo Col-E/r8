@@ -228,9 +228,7 @@ public class ProguardMemberRule {
         return RootSetBuilder.containsAnnotation(annotation, method.annotations);
       case METHOD:
         // Check return type.
-        // TODO(b/110141157): The name of the return type may have changed as a result of vertical
-        // class merging. We should use the original type name.
-        if (!type.matches(originalSignature.proto.returnType)) {
+        if (!matches(type, originalSignature.proto.returnType, appView)) {
           break;
         }
         // Fall through for access flags, name and arguments.
@@ -272,6 +270,18 @@ public class ProguardMemberRule {
       case ALL_FIELDS:
       case FIELD:
         break;
+    }
+    return false;
+  }
+
+  private static boolean matches(
+      ProguardTypeMatcher matcher, DexType type, AppView<? extends AppInfo> appView) {
+    if (matcher.matches(type)) {
+      return true;
+    }
+    if (appView.verticallyMergedClasses() != null) {
+      return appView.verticallyMergedClasses().getSourcesFor(type).stream()
+          .anyMatch(matcher::matches);
     }
     return false;
   }
