@@ -14,6 +14,7 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -189,12 +190,25 @@ public class MemberResolutionAsmTest extends AsmTestBase {
     List<byte[]> classBytes = ImmutableList.of(ADump.dump(), BDump.dump(), MainDump.dump());
     ProcessResult outputBefore = runOnJavaRaw(main, classBytes, ImmutableList.of());
     assertNotEquals(0, outputBefore.exitCode);
-    assertThat(outputBefore.stderr, containsString("IllegalAccessError"));
-    assertThat(outputBefore.stderr, containsString("A.x()"));
+    String expectedErrorMessage = "IllegalAccessError";
+    String expectedErrorSignature = "A.x()V";
+    assertThat(outputBefore.stderr, containsString(expectedErrorMessage));
+    assertThat(outputBefore.stderr, containsString(expectedErrorSignature));
     ProcessResult outputAfter = runOnVMRaw(processedApp, main, backend);
     assertNotEquals(0, outputAfter.exitCode);
-    assertThat(outputAfter.stderr, containsString("IllegalAccessError"));
-    assertThat(outputAfter.stderr, containsString("X.y()"));
+    expectedErrorSignature = "X.y()V";
+    if (backend == Backend.DEX) {
+      expectedErrorSignature = "void X.y()";
+      if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V6_0_1)) {
+        expectedErrorMessage ="IncompatibleClassChangeError";
+      }
+      if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
+        expectedErrorMessage ="illegal method access";
+        expectedErrorSignature = "LX;.y ()V";
+      }
+    }
+    assertThat(outputAfter.stderr, containsString(expectedErrorMessage));
+    assertThat(outputAfter.stderr, containsString(expectedErrorSignature));
 
     CodeInspector codeInspector = new CodeInspector(processedApp, mapPath);
     ClassSubject base = codeInspector.clazz("A");
