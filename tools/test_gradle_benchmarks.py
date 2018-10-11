@@ -8,6 +8,7 @@ import argparse
 import gradle
 import golem
 import os
+import subprocess
 import sys
 import utils
 from enum import Enum
@@ -82,7 +83,9 @@ class Benchmark:
       args.append('-Dandroid.enableDesugar=true')
     else:
       raise AssertionError("Unknown desugar mode: " + repr(desugarMode))
-
+    # Running with a daemon will give inconsistent results based on previous runs
+    # and if the golem runners restarted.
+    args.append('--no-daemon')
     args.extend(command)
 
     return gradle.RunGradleWrapperInGetOutput(args, self.appPath, env=self.env)
@@ -158,6 +161,9 @@ def PrintBuildTimeForGolem(benchmark, stdOut):
 def Main():
   args = parse_arguments()
   if args.golem:
+    # Ensure that we don't have a running daemon
+    exitcode = subprocess.call(['pkill', 'java'])
+    assert exitcode == 0 or exitcode == 1
     golem.link_third_party()
 
   if args.tool == 'd8':
