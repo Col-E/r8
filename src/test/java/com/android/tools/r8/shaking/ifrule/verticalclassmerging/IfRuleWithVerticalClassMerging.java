@@ -8,17 +8,14 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.io.File;
-import java.nio.file.Path;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
@@ -31,7 +28,7 @@ class A {
   int a() throws ClassNotFoundException {
     // Class D is expected to be kept - vertical class merging or not. The -if rule say that if
     // the method A.a is in the output, then class D is needed.
-    String p =getClass().getPackage().getName();
+    String p = getClass().getPackage().getName();
     Class.forName(p + ".D");
     return 4;
   }
@@ -61,72 +58,67 @@ class Main {
   }
 }
 
+// TODO(b/110141157):
+// - Add tests where the return type of a kept method changes.
+// - Add tests where the parameter type of a kept method changes.
+// - Add tests where the type of a kept field changes.
+// - Add tests where fields and methods get renamed due to naming conflicts.
+// - Add tests where the type in a implements/extends clause has changed.
 @RunWith(Parameterized.class)
-public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBase {
-  private final static List<Class> CLASSES = ImmutableList.of(
-      A.class, B.class, C.class, D.class, Main.class);
+public class IfRuleWithVerticalClassMerging extends TestBase {
 
-  private final Shrinker shrinker;
-  private final boolean enableClassMerging;
+  private static final List<Class> CLASSES =
+      ImmutableList.of(A.class, B.class, C.class, D.class, Main.class);
 
-  public IfRuleWithVerticalClassMerging(Shrinker shrinker, boolean enableClassMerging) {
-    this.shrinker = shrinker;
-    this.enableClassMerging = enableClassMerging;
+  private final Backend backend;
+  private final boolean enableVerticalClassMerging;
+
+  public IfRuleWithVerticalClassMerging(Backend backend, boolean enableVerticalClassMerging) {
+    this.backend = backend;
+    this.enableVerticalClassMerging = enableVerticalClassMerging;
   }
 
-  @Parameters(name = "shrinker: {0} classMerging: {1}")
+  @Parameters(name = "Backend: {0}, vertical class merging: {1}")
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as Proguard does not merge A into B.
     return ImmutableList.of(
-        new Object[] {Shrinker.R8, true},
-        new Object[] {Shrinker.R8, false},
-        new Object[] {Shrinker.R8_CF, true},
-        new Object[] {Shrinker.R8_CF, false});
+        new Object[] {Backend.DEX, true},
+        new Object[] {Backend.DEX, false},
+        new Object[] {Backend.CF, true},
+        new Object[] {Backend.CF, false});
   }
 
   private void configure(InternalOptions options) {
-    options.enableVerticalClassMerging = enableClassMerging;
+    options.enableVerticalClassMerging = enableVerticalClassMerging;
+
+    // TODO(b/110148109): Allow ordinary method inlining when -if rules work with inlining.
+    options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
   }
 
   private void check(AndroidApp app) throws Exception {
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazzA = inspector.clazz(A.class);
-    assertEquals(!enableClassMerging, clazzA.isPresent());
+    assertEquals(!enableVerticalClassMerging, clazzA.isPresent());
     ClassSubject clazzB = inspector.clazz(B.class);
     assertThat(clazzB, isPresent());
     ClassSubject clazzD = inspector.clazz(D.class);
-    // TODO(110141157): Class D should be kept - vertical class merging or not.
-    assertEquals(!enableClassMerging, clazzD.isPresent());
-
-    ProcessResult result;
-    if (shrinker == Shrinker.R8) {
-      result = runOnArtRaw(app, Main.class.getName());
-    } else {
-      assert shrinker == Shrinker.R8_CF;
-      Path file = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
-      app.writeToZip(file, OutputMode.ClassFile);
-      result = ToolHelper.runJava(file, Main.class.getName());
-    }
-    // TODO(110141157): The code should run - vertical class merging or not.
-    assertEquals(enableClassMerging ? 1 : 0, result.exitCode);
-    if (!enableClassMerging) {
-      assertEquals("123456", result.stdout);
-    }
+    assertThat(clazzD, isPresent());
+    assertEquals("123456", runOnVM(app, Main.class, backend));
   }
 
   @Test
   public void testMergedClassInIfRule() throws Exception {
     // Class C is kept, meaning that it will not be touched.
     // Class A will be merged into class B.
-    List<String> config = ImmutableList.of(
-        "-keep class **.Main { public static void main(java.lang.String[]); }",
-        "-keep class **.C",
-        "-if class **.A",
-        "-keep class **.D",
-        "-dontobfuscate"
-    );
-
-    check(runShrinker(shrinker, CLASSES, config, this::configure));
+    String config =
+        String.join(
+            System.lineSeparator(),
+            "-keep class **.Main { public static void main(java.lang.String[]); }",
+            "-keep class **.C",
+            "-if class **.A",
+            "-keep class **.D",
+            "-dontobfuscate");
+    check(compileWithR8(readClasses(CLASSES), config, this::configure, backend));
   }
 
   @Test
@@ -134,15 +126,15 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
     // Class C is kept, meaning that it will not be touched.
     // Class A will be merged into class B.
     // Main.main access A.x, so that field exists satisfying the if rule.
-    List<String> config = ImmutableList.of(
-        "-keep class **.Main { public static void main(java.lang.String[]); }",
-        "-keep class **.C",
-        "-if class **.A { int x; }",
-        "-keep class **.D",
-        "-dontobfuscate"
-    );
-
-    check(runShrinker(shrinker, CLASSES, config, this::configure));
+    String config =
+        String.join(
+            System.lineSeparator(),
+            "-keep class **.Main { public static void main(java.lang.String[]); }",
+            "-keep class **.C",
+            "-if class **.A { int x; }",
+            "-keep class **.D",
+            "-dontobfuscate");
+    check(compileWithR8(readClasses(CLASSES), config, this::configure, backend));
   }
 
   @Test
@@ -150,14 +142,14 @@ public class IfRuleWithVerticalClassMerging extends ProguardCompatibilityTestBas
     // Class C is kept, meaning that it will not be touched.
     // Class A will be merged into class B.
     // Main.main access A.a(), that method exists satisfying the if rule.
-    List<String> config = ImmutableList.of(
-        "-keep class **.Main { public static void main(java.lang.String[]); }",
-        "-keep class **.C",
-        "-if class **.A { int a(); }",
-        "-keep class **.D",
-        "-dontobfuscate"
-    );
-
-    check(runShrinker(shrinker, CLASSES, config, this::configure));
+    String config =
+        String.join(
+            System.lineSeparator(),
+            "-keep class **.Main { public static void main(java.lang.String[]); }",
+            "-keep class **.C",
+            "-if class **.A { int a(); }",
+            "-keep class **.D",
+            "-dontobfuscate");
+    check(compileWithR8(readClasses(CLASSES), config, this::configure, backend));
   }
 }

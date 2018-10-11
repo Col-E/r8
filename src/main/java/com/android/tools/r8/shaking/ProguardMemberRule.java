@@ -4,8 +4,12 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.utils.StringUtils;
@@ -160,11 +164,14 @@ public class ProguardMemberRule {
     return type;
   }
 
-  public boolean matches(DexEncodedField field, DexStringCache stringCache) {
+  public boolean matches(
+      DexEncodedField field, AppView<? extends AppInfo> appView, DexStringCache stringCache) {
+    DexField originalSignature = appView.graphLense().getOriginalFieldSignature(field.field);
     switch (getRuleType()) {
       case ALL:
       case ALL_FIELDS:
         // Access flags check.
+        // TODO(b/117330692): The access flags may have changed as a result of access relaxation.
         if (!getAccessFlags().containsAll(field.accessFlags)
             || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
           break;
@@ -173,17 +180,18 @@ public class ProguardMemberRule {
         return RootSetBuilder.containsAnnotation(annotation, field.annotations);
       case FIELD:
         // Name check.
-        String name = stringCache.lookupString(field.field.name);
+        String name = stringCache.lookupString(originalSignature.name);
         if (!getName().matches(name)) {
           break;
         }
         // Access flags check.
+        // TODO(b/117330692): The access flags may have changed as a result of access relaxation.
         if (!getAccessFlags().containsAll(field.accessFlags)
             || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
           break;
         }
         // Type check.
-        if (!this.type.matches(field.field.type)) {
+        if (!getType().matches(originalSignature.type)) {
           break;
         }
         // Annotations check
@@ -200,7 +208,9 @@ public class ProguardMemberRule {
     return false;
   }
 
-  public boolean matches(DexEncodedMethod method, DexStringCache stringCache) {
+  public boolean matches(
+      DexEncodedMethod method, AppView<? extends AppInfo> appView, DexStringCache stringCache) {
+    DexMethod originalSignature = appView.graphLense().getOriginalMethodSignature(method.method);
     switch (getRuleType()) {
       case ALL_METHODS:
         if (method.isClassInitializer()) {
@@ -209,6 +219,7 @@ public class ProguardMemberRule {
         // Fall through for all other methods.
       case ALL:
         // Access flags check.
+        // TODO(b/117330692): The access flags may have changed as a result of access relaxation.
         if (!getAccessFlags().containsAll(method.accessFlags)
             || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
           break;
@@ -217,18 +228,21 @@ public class ProguardMemberRule {
         return RootSetBuilder.containsAnnotation(annotation, method.annotations);
       case METHOD:
         // Check return type.
-        if (!type.matches(method.method.proto.returnType)) {
+        // TODO(b/110141157): The name of the return type may have changed as a result of vertical
+        // class merging. We should use the original type name.
+        if (!type.matches(originalSignature.proto.returnType)) {
           break;
         }
         // Fall through for access flags, name and arguments.
       case CONSTRUCTOR:
       case INIT:
         // Name check.
-        String name = stringCache.lookupString(method.method.name);
+        String name = stringCache.lookupString(originalSignature.name);
         if (!getName().matches(name)) {
           break;
         }
         // Access flags check.
+        // TODO(b/117330692): The access flags may have changed as a result of access relaxation.
         if (!getAccessFlags().containsAll(method.accessFlags)
             || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
           break;
@@ -241,23 +255,20 @@ public class ProguardMemberRule {
         List<ProguardTypeMatcher> arguments = getArguments();
         if (arguments.size() == 1 && arguments.get(0).isTripleDotPattern()) {
           return true;
-        } else {
-          DexType[] parameters = method.method.proto.parameters.values;
-          if (parameters.length != arguments.size()) {
-            break;
-          }
-          int i = 0;
-          for (; i < parameters.length; i++) {
-            if (!arguments.get(i).matches(parameters[i])) {
-              break;
-            }
-          }
-          if (i == parameters.length) {
-            // All parameters matched.
-            return true;
+        }
+        DexType[] parameters = originalSignature.proto.parameters.values;
+        if (parameters.length != arguments.size()) {
+          break;
+        }
+        for (int i = 0; i < parameters.length; i++) {
+          // TODO(b/110141157): The names of the parameter types may have changed as a result of
+          // vertical class merging. We should use the original type names.
+          if (!arguments.get(i).matches(parameters[i])) {
+            return false;
           }
         }
-        break;
+        // All parameters matched.
+        return true;
       case ALL_FIELDS:
       case FIELD:
         break;

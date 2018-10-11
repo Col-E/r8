@@ -12,10 +12,8 @@ import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.SmaliWriter;
@@ -443,7 +441,7 @@ public class TestBase {
       String proguardConfig,
       Consumer<InternalOptions> optionsConsumer,
       Backend backend)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(app, emptyConsumer(backend))
             .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown())
@@ -455,7 +453,7 @@ public class TestBase {
   /** Compile an application with R8 using the supplied proguard configuration. */
   protected AndroidApp compileWithR8(
       AndroidApp app, Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(app)
             .addProguardConfigurationFiles(proguardConfig)

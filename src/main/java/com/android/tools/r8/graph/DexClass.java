@@ -9,7 +9,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.Iterators;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -99,13 +100,23 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public Iterable<DexEncodedField> fields() {
-    return () ->
-        Iterators.concat(Iterators.forArray(instanceFields), Iterators.forArray(staticFields));
+    return fields(Predicates.alwaysTrue());
+  }
+
+  public Iterable<DexEncodedField> fields(final Predicate<? super DexEncodedField> predicate) {
+    return Iterables.concat(
+        Iterables.filter(Arrays.asList(instanceFields), predicate::test),
+        Iterables.filter(Arrays.asList(staticFields), predicate::test));
   }
 
   public Iterable<DexEncodedMethod> methods() {
-    return () ->
-        Iterators.concat(Iterators.forArray(directMethods), Iterators.forArray(virtualMethods));
+    return methods(Predicates.alwaysTrue());
+  }
+
+  public Iterable<DexEncodedMethod> methods(Predicate<? super DexEncodedMethod> predicate) {
+    return Iterables.concat(
+        Iterables.filter(Arrays.asList(directMethods), predicate::test),
+        Iterables.filter(Arrays.asList(virtualMethods), predicate::test));
   }
 
   @Override
