@@ -1531,11 +1531,17 @@ public class ToolHelper {
     public final int exitCode;
     public final String stdout;
     public final String stderr;
+    public final String command;
 
-    ProcessResult(int exitCode, String stdout, String stderr) {
+    ProcessResult(int exitCode, String stdout, String stderr, String command) {
       this.exitCode = exitCode;
       this.stdout = stdout;
       this.stderr = stderr;
+      this.command = command;
+    }
+
+    ProcessResult(int exitCode, String stdout, String stderr) {
+      this(exitCode, stdout, stderr, null);
     }
 
     @Override
@@ -1574,7 +1580,8 @@ public class ToolHelper {
   }
 
   public static ProcessResult runProcess(ProcessBuilder builder) throws IOException {
-    System.out.println(String.join(" ", builder.command()));
+    String command = String.join(" ", builder.command());
+    System.out.println(command);
     Process p = builder.start();
     // Drain stdout and stderr so that the process does not block. Read stdout and stderr
     // in parallel to make sure that neither buffer can get filled up which will cause the
@@ -1592,7 +1599,8 @@ public class ToolHelper {
     } catch (InterruptedException e) {
       throw new RuntimeException("Execution interrupted", e);
     }
-    return new ProcessResult(p.exitValue(), stdoutReader.getResult(), stderrReader.getResult());
+    return new ProcessResult(
+        p.exitValue(), stdoutReader.getResult(), stderrReader.getResult(), command);
   }
 
   public static R8Command.Builder addProguardConfigurationConsumer(

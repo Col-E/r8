@@ -9,15 +9,8 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes.TestKeepAttributes;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -70,7 +63,6 @@ public class KeepAttributesTest extends TestBase {
   public void keepLineNumberTable()
       throws CompilationFailedException, IOException, ExecutionException {
     List<String> keepRules = ImmutableList.of(
-        "-keep class ** { *; }",
         "-keepattributes " + ProguardKeepAttributes.LINE_NUMBER_TABLE
     );
     MethodSubject mainMethod = compileRunAndGetMain(keepRules, CompilationMode.RELEASE);
@@ -82,7 +74,6 @@ public class KeepAttributesTest extends TestBase {
   public void keepLineNumberTableAndLocalVariableTable()
       throws CompilationFailedException, IOException, ExecutionException {
     List<String> keepRules = ImmutableList.of(
-        "-keep class ** { *; }",
         "-keepattributes "
             + ProguardKeepAttributes.LINE_NUMBER_TABLE
             + ", "
@@ -97,7 +88,6 @@ public class KeepAttributesTest extends TestBase {
   @Test
   public void keepLocalVariableTable() throws IOException, ExecutionException {
     List<String> keepRules = ImmutableList.of(
-        "-keep class ** { *; }",
         "-keepattributes " + ProguardKeepAttributes.LOCAL_VARIABLE_TABLE
     );
     // Compiling with a keep rule for locals but no line results in an error in R8.
@@ -113,21 +103,14 @@ public class KeepAttributesTest extends TestBase {
 
   private MethodSubject compileRunAndGetMain(List<String> keepRules, CompilationMode mode)
       throws CompilationFailedException, IOException, ExecutionException {
-    AndroidAppConsumers sink = new AndroidAppConsumers();
-    R8.run(
-        R8Command.builder()
-            .setMode(mode)
-            .addProgramFiles(
-                ToolHelper.getClassFilesForTestDirectory(
-                    ToolHelper.getClassFileForTestClass(CLASS).getParent()))
-            .addLibraryFiles(runtimeJar(backend))
-            .addProguardConfiguration(keepRules, Origin.unknown())
-            .setProgramConsumer(sink.wrapProgramConsumer(emptyConsumer(backend)))
-            .build());
-    AndroidApp app = sink.build();
-    CodeInspector codeInspector = new CodeInspector(app);
-    runOnVM(app, CLASS.getTypeName(), backend);
-    return codeInspector.clazz(CLASS).mainMethod();
+    return testForR8(backend)
+        .setMode(mode)
+        .addProgramClassesAndInnerClasses(CLASS)
+        .addKeepAllClassesRule()
+        .addKeepRules(keepRules)
+        .run(CLASS)
+        .inspector()
+        .clazz(CLASS)
+        .mainMethod();
   }
-
 }

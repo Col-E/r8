@@ -3,17 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.memberrebinding;
 
-import static org.junit.Assert.assertEquals;
-
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8;
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -149,38 +141,23 @@ public class IndirectSuperInterfaceTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    String expected =
-        String.join(
-            System.lineSeparator(),
-            "A::method -> InterfaceA::method",
-            "B::method -> InterfaceB::method",
-            "C::method -> InterfaceC::method",
-            "D::method -> InterfaceD::method");
-    assertEquals(expected, runOnJava(TestClass.class));
+    String expected = StringUtils.joinLines(
+        "A::method -> InterfaceA::method",
+        "B::method -> InterfaceB::method",
+        "C::method -> InterfaceC::method",
+        "D::method -> InterfaceD::method");
 
-    AndroidAppConsumers sink = new AndroidAppConsumers();
-    Builder builder = R8Command.builder();
-    for (Class<?> clazz : CLASSES) {
-      builder.addClassProgramData(ToolHelper.getClassAsBytes(clazz), Origin.unknown());
-    }
-    builder
-        .setProgramConsumer(sink.wrapProgramConsumer(emptyConsumer(backend)))
-        .addLibraryFiles(runtimeJar(backend))
-        .addProguardConfiguration(
-            ImmutableList.of(
-                // Keep all classes to prevent changes to the class hierarchy (e.g., due to
-                // vertical class merging).
-                "-keep class " + InterfaceA.class.getPackage().getName() + ".*",
-                keepMainProguardConfigurationWithInliningAnnotation(TestClass.class)),
-            Origin.unknown());
-    ToolHelper.allowTestProguardOptions(builder);
-    if (backend == Backend.DEX) {
-      builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-    }
-    R8.run(builder.build());
+    testForJvm()
+        .addTestClasspath()
+        .run(TestClass.class)
+        .assertSuccessWithOutput(expected);
 
-    ProcessResult result = runOnVMRaw(sink.build(), TestClass.class, backend);
-    assertEquals(result.toString(), 0, result.exitCode);
-    assertEquals(expected, result.stdout);
+    testForR8(backend)
+        .addProgramClasses(CLASSES)
+        .addKeepPackageRules(TestClass.class.getPackage())
+        .addKeepMainRule(TestClass.class)
+        .enableInliningAnnotations()
+        .run(TestClass.class)
+        .assertSuccessWithOutput(expected);
   }
 }

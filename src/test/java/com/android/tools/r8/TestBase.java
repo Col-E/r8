@@ -59,6 +59,19 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 
 public class TestBase {
+
+  public R8TestBuilder testForR8(Backend backend) {
+    return R8TestBuilder.create(new TestState(temp), backend);
+  }
+
+  public D8TestBuilder testForD8() {
+    return D8TestBuilder.create(new TestState(temp));
+  }
+
+  public JvmTestBuilder testForJvm() {
+    return JvmTestBuilder.create(new TestState(temp));
+  }
+
   public enum Backend {
     CF,
     DEX

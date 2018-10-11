@@ -60,6 +60,58 @@ public class AndroidApp {
   private final List<StringResource> mainDexListResources;
   private final List<String> mainDexClasses;
 
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    try {
+      if (!programResourceProviders.isEmpty()) {
+        builder.append("  Program resources:").append(System.lineSeparator());
+        printProgramResourceProviders(builder, programResourceProviders);
+      }
+      if (!classpathResourceProviders.isEmpty()) {
+        builder.append("  Classpath resources:").append(System.lineSeparator());
+        printClassFileProviders(builder, classpathResourceProviders);
+      }
+      if (!libraryResourceProviders.isEmpty()) {
+        builder.append("  Library resources:").append(System.lineSeparator());
+        printClassFileProviders(builder, libraryResourceProviders);
+      }
+    } catch (ResourceException e) {
+      e.printStackTrace();
+    }
+    return builder.toString();
+  }
+
+  private static void printProgramResourceProviders(
+      StringBuilder builder, Collection<ProgramResourceProvider> providers)
+      throws ResourceException {
+    for (ProgramResourceProvider provider : providers) {
+      for (ProgramResource resource : provider.getProgramResources()) {
+        printProgramResource(builder, resource);
+      }
+    }
+  }
+
+  private static void printClassFileProviders(
+      StringBuilder builder, Collection<ClassFileResourceProvider> providers) {
+    for (ClassFileResourceProvider provider : providers) {
+      for (String descriptor : provider.getClassDescriptors()) {
+        ProgramResource resource = provider.getProgramResource(descriptor);
+        printProgramResource(builder, resource);
+      }
+    }
+  }
+
+  private static void printProgramResource(StringBuilder builder, ProgramResource resource) {
+    builder.append("    ").append(resource.getOrigin());
+    Set<String> descriptors = resource.getClassDescriptors();
+    if (descriptors != null && !descriptors.isEmpty()) {
+      builder.append(" contains ");
+      StringUtils.append(builder, descriptors);
+    }
+    builder.append(System.lineSeparator());
+  }
+
   // See factory methods and AndroidApp.Builder below.
   private AndroidApp(
       ImmutableList<ProgramResourceProvider> programResourceProviders,
