@@ -66,8 +66,11 @@ public class DexTypeList extends DexItem implements Comparable<DexTypeList> {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    for (DexType type : values) {
-      builder.append(' ').append(type);
+    if (values.length > 0) {
+      builder.append(values[0]);
+      for (int i = 1; i < values.length; i++) {
+        builder.append(' ').append(values[i]);
+      }
     }
     return builder.toString();
   }

@@ -47,7 +47,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -80,7 +79,7 @@ public class RootSetBuilder {
   public RootSetBuilder(
       AppView<? extends AppInfo> appView,
       DexApplication application,
-      List<ProguardConfigurationRule> rules,
+      Collection<? extends ProguardConfigurationRule> rules,
       InternalOptions options) {
     this.appView = appView;
     this.application = application.asDirect();
@@ -89,64 +88,10 @@ public class RootSetBuilder {
   }
 
   RootSetBuilder(
-      AppView<? extends AppInfo> appView, Set<ProguardIfRule> ifRules, InternalOptions options) {
-    this.appView = appView;
-    this.application = appView.appInfo().app.asDirect();
-    this.rules = Collections.unmodifiableCollection(ifRules);
-    this.options = options;
-  }
-
-  private boolean anySuperTypeMatches(
-      DexType type,
-      Function<DexType, DexClass> definitionFor,
-      ProguardTypeMatcher name,
-      ProguardTypeMatcher annotation) {
-    while (type != null) {
-      DexClass clazz = definitionFor.apply(type);
-      if (clazz == null) {
-        // TODO(herhut): Warn about broken supertype chain?
-        return false;
-      }
-      // TODO(b/110141157): Should the vertical class merger move annotations from the source to
-      // the target class? If so, it is sufficient only to apply the annotation-matcher to the
-      // annotations of `class`.
-      if (name.matches(clazz.type, appView) && containsAnnotation(annotation, clazz.annotations)) {
-        return true;
-      }
-      type = clazz.superType;
-    }
-    return false;
-  }
-
-  private boolean anyImplementedInterfaceMatches(
-      DexClass clazz,
-      Function<DexType, DexClass> definitionFor,
-      ProguardTypeMatcher className,
-      ProguardTypeMatcher annotation) {
-    if (clazz == null) {
-      return false;
-    }
-    for (DexType iface : clazz.interfaces.values) {
-      DexClass ifaceClass = definitionFor.apply(iface);
-      if (ifaceClass == null) {
-        // TODO(herhut): Warn about broken supertype chain?
-        return false;
-      }
-      // TODO(herhut): Maybe it would be better to do this breadth first.
-      if ((className.matches(iface) && containsAnnotation(annotation, ifaceClass.annotations))
-          || anyImplementedInterfaceMatches(ifaceClass, definitionFor, className, annotation)) {
-        return true;
-      }
-    }
-    if (clazz.superType == null) {
-      return false;
-    }
-    DexClass superClass = definitionFor.apply(clazz.superType);
-    if (superClass == null) {
-      // TODO(herhut): Warn about broken supertype chain?
-      return false;
-    }
-    return anyImplementedInterfaceMatches(superClass, definitionFor, className, annotation);
+      AppView<? extends AppInfo> appView,
+      Collection<ProguardIfRule> ifRules,
+      InternalOptions options) {
+    this(appView, appView.appInfo().app, ifRules, options);
   }
 
   // Process a class with the keep rule.
@@ -168,8 +113,7 @@ public class RootSetBuilder {
     // seems not to care, so users have started to use this inconsistently. We are thus
     // inconsistent, as well, but tell them.
     // TODO(herhut): One day make this do what it says.
-    if (rule.hasInheritanceClassName()
-        && !satisfyInheritanceRule(clazz, application::definitionFor, rule)) {
+    if (rule.hasInheritanceClassName() && !satisfyInheritanceRule(clazz, rule)) {
       return;
     }
 
@@ -180,7 +124,7 @@ public class RootSetBuilder {
         switch (((ProguardKeepRule) rule).getType()) {
           case KEEP_CLASS_MEMBERS: {
             // Members mentioned at -keepclassmembers always depend on their holder.
-            preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
+            preconditionSupplier = ImmutableMap.of(definition -> true, clazz);
             markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier);
             markMatchingFields(clazz, memberKeepRules, rule, preconditionSupplier);
             break;
@@ -395,7 +339,7 @@ public class RootSetBuilder {
       if (rule.hasInheritanceClassName()) {
         // Note that, in presence of vertical class merging, we check if the resulting class
         // (i.e., the target class) satisfies the implements/extends-matcher.
-        if (!satisfyInheritanceRule(targetClass, this::definitionForWithLiveTypes, rule)) {
+        if (!satisfyInheritanceRule(targetClass, rule)) {
           // Try another live type since the current one doesn't satisfy the inheritance rule.
           return;
         }
@@ -457,12 +401,6 @@ public class RootSetBuilder {
     private void materializeIfRule(ProguardIfRule rule) {
       ProguardIfRule materializedRule = rule.materialize();
       runPerRule(executorService, futures, materializedRule.subsequentRule, materializedRule);
-    }
-
-    private DexClass definitionForWithLiveTypes(DexType type) {
-      assert appView.verticallyMergedClasses() == null
-          || !appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(type);
-      return liveTypes.contains(type) ? appView.appInfo().definitionFor(type) : null;
     }
   }
 
@@ -593,27 +531,23 @@ public class RootSetBuilder {
     return containsAnnotation(rule.getClassAnnotation(), clazz.annotations);
   }
 
-  private boolean satisfyInheritanceRule(
-      DexClass clazz, Function<DexType, DexClass> definitionFor, ProguardConfigurationRule rule) {
-    ProguardTypeMatcher inheritanceClassName = rule.getInheritanceClassName();
-    ProguardTypeMatcher inheritanceAnnotation = rule.getInheritanceAnnotation();
-    boolean extendsExpected =
-        satisfyExtendsRule(clazz, definitionFor, inheritanceClassName, inheritanceAnnotation);
+  private boolean satisfyInheritanceRule(DexClass clazz, ProguardConfigurationRule rule) {
+    boolean extendsExpected = satisfyExtendsRule(clazz, rule);
     boolean implementsExpected = false;
     if (!extendsExpected) {
-      implementsExpected =
-          anyImplementedInterfaceMatches(
-              clazz, definitionFor, inheritanceClassName, inheritanceAnnotation);
+      implementsExpected = satisfyImplementsRule(clazz, rule);
     }
     if (extendsExpected || implementsExpected) {
       // Warn if users got it wrong, but only warn once.
       if (rule.getInheritanceIsExtends()) {
         if (implementsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
+          assert options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong;
           options.reporter.warning(
               new StringDiagnostic(
                   "The rule `" + rule + "` uses extends but actually matches implements."));
         }
       } else if (extendsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
+        assert options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong;
         options.reporter.warning(
             new StringDiagnostic(
                 "The rule `" + rule + "` uses implements but actually matches extends."));
@@ -623,25 +557,88 @@ public class RootSetBuilder {
     return false;
   }
 
-  private boolean satisfyExtendsRule(
-      DexClass clazz,
-      Function<DexType, DexClass> definitionFor,
-      ProguardTypeMatcher inheritanceClassName,
-      ProguardTypeMatcher inheritanceAnnotation) {
-    if (anySuperTypeMatches(
-        clazz.superType, definitionFor, inheritanceClassName, inheritanceAnnotation)) {
+  private boolean satisfyExtendsRule(DexClass clazz, ProguardConfigurationRule rule) {
+    if (anySuperTypeMatchesExtendsRule(clazz.superType, rule)) {
       return true;
     }
-
     // It is possible that this class used to inherit from another class X, but no longer does it,
     // because X has been merged into `clazz`.
-    if (appView.verticallyMergedClasses() != null) {
-      // TODO(b/110141157): Figure out what to do with annotations. Should the annotations of
-      // the DexClass corresponding to `sourceType` satisfy the `annotation`-matcher?
-      return appView.verticallyMergedClasses().getSourcesFor(clazz.type).stream()
-          .anyMatch(inheritanceClassName::matches);
+    return anySourceMatchesInheritanceRuleDirectly(clazz, rule, false);
+  }
+
+  private boolean anySuperTypeMatchesExtendsRule(DexType type, ProguardConfigurationRule rule) {
+    while (type != null) {
+      DexClass clazz = application.definitionFor(type);
+      if (clazz == null) {
+        // TODO(herhut): Warn about broken supertype chain?
+        return false;
+      }
+      // TODO(b/110141157): Should the vertical class merger move annotations from the source to
+      // the target class? If so, it is sufficient only to apply the annotation-matcher to the
+      // annotations of `class`.
+      if (rule.getInheritanceClassName().matches(clazz.type, appView)
+          && containsAnnotation(rule.getInheritanceAnnotation(), clazz.annotations)) {
+        return true;
+      }
+      type = clazz.superType;
     }
     return false;
+  }
+
+  private boolean satisfyImplementsRule(DexClass clazz, ProguardConfigurationRule rule) {
+    if (anyImplementedInterfaceMatchesImplementsRule(clazz, rule)) {
+      return true;
+    }
+    // It is possible that this class used to implement an interface I, but no longer does it,
+    // because I has been merged into `clazz`.
+    return anySourceMatchesInheritanceRuleDirectly(clazz, rule, true);
+  }
+
+  private boolean anyImplementedInterfaceMatchesImplementsRule(
+      DexClass clazz, ProguardConfigurationRule rule) {
+    // TODO(herhut): Maybe it would be better to do this breadth first.
+    if (clazz == null) {
+      return false;
+    }
+    for (DexType iface : clazz.interfaces.values) {
+      DexClass ifaceClass = application.definitionFor(iface);
+      if (ifaceClass == null) {
+        // TODO(herhut): Warn about broken supertype chain?
+        return false;
+      }
+      // TODO(b/110141157): Should the vertical class merger move annotations from the source to
+      // the target class? If so, it is sufficient only to apply the annotation-matcher to the
+      // annotations of `ifaceClass`.
+      if (rule.getInheritanceClassName().matches(iface, appView)
+          && containsAnnotation(rule.getInheritanceAnnotation(), ifaceClass.annotations)) {
+        return true;
+      }
+      if (anyImplementedInterfaceMatchesImplementsRule(ifaceClass, rule)) {
+        return true;
+      }
+    }
+    if (clazz.superType == null) {
+      return false;
+    }
+    DexClass superClass = application.definitionFor(clazz.superType);
+    if (superClass == null) {
+      // TODO(herhut): Warn about broken supertype chain?
+      return false;
+    }
+    return anyImplementedInterfaceMatchesImplementsRule(superClass, rule);
+  }
+
+  private boolean anySourceMatchesInheritanceRuleDirectly(
+      DexClass clazz, ProguardConfigurationRule rule, boolean isInterface) {
+    // TODO(b/110141157): Figure out what to do with annotations. Should the annotations of
+    // the DexClass corresponding to `sourceType` satisfy the `annotation`-matcher?
+    return appView.verticallyMergedClasses() != null
+        && appView.verticallyMergedClasses().getSourcesFor(clazz.type).stream()
+            .filter(
+                sourceType ->
+                    appView.appInfo().definitionFor(sourceType).accessFlags.isInterface()
+                        == isInterface)
+            .anyMatch(rule.getInheritanceClassName()::matches);
   }
 
   private boolean allRulesSatisfied(Collection<ProguardMemberRule> memberKeepRules,
