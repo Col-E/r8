@@ -33,6 +33,8 @@ third_party/benchmarks/santa-tracker
 third_party/benchmarks/santa-tracker.tar.gz
 third_party/chrome.tar.gz
 third_party/chrome
+third_party/dart-sdk
+third_party/dart-sdk.tar.gz
 third_party/desugar/desugar_*/
 third_party/desugar/desugar_*.tar.gz
 third_party/gmail/*
