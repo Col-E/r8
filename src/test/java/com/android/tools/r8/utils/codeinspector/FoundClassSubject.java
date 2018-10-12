@@ -20,7 +20,6 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -107,12 +106,6 @@ public class FoundClassSubject extends ClassSubject {
         (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),
         this,
         inspection);
-  }
-
-  public List<FoundFieldSubject> allFields() {
-    ImmutableList.Builder<FoundFieldSubject> builder = ImmutableList.builder();
-    forAllFields(builder::add);
-    return builder.build();
   }
 
   @Override

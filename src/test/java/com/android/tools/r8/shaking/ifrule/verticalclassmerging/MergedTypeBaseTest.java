@@ -27,10 +27,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public abstract class MergedTypeBaseTest extends TestBase {
 
-  private final List<Class> CLASSES =
-      ImmutableList.of(
-          A.class, B.class, C.class, I.class, J.class, K.class, Unused.class, getTestClass());
-
   static class A {}
 
   static class B extends A {}
@@ -46,11 +42,22 @@ public abstract class MergedTypeBaseTest extends TestBase {
   static class Unused {}
 
   final Backend backend;
+  final List<Class> classes;
   final boolean enableVerticalClassMerging;
 
   public MergedTypeBaseTest(Backend backend, boolean enableVerticalClassMerging) {
+    this(backend, enableVerticalClassMerging, ImmutableList.of());
+  }
+
+  public MergedTypeBaseTest(
+      Backend backend, boolean enableVerticalClassMerging, List<Class<?>> additionalClasses) {
     this.backend = backend;
     this.enableVerticalClassMerging = enableVerticalClassMerging;
+    this.classes =
+        ImmutableList.<Class>builder()
+            .add(A.class, B.class, C.class, Unused.class, getTestClass())
+            .addAll(additionalClasses)
+            .build();
   }
 
   @Parameters(name = "Backend: {0}, vertical class merging: {1}")
@@ -96,7 +103,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
             getConditionForProguardIfRule(),
             "-keep class " + Unused.class.getTypeName(),
             getAdditionalKeepRules());
-    AndroidApp output = compileWithR8(readClasses(CLASSES), config, this::configure, backend);
+    AndroidApp output = compileWithR8(readClasses(classes), config, this::configure, backend);
     assertEquals(expected, runOnVM(output, getTestClass(), backend));
     inspect(new CodeInspector(output));
   }
