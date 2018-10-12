@@ -10,8 +10,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -21,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -76,8 +73,6 @@ public abstract class MergedTypeBaseTest extends TestBase {
 
   @Test
   public void testIfRule() throws Exception {
-    Assume.assumeTrue(backend != Backend.DEX || ToolHelper.getDexVm() == DexVm.ART_DEFAULT);
-
     String expected = getExpectedStdout();
     assertEquals(expected, runOnJava(getTestClass()));
 

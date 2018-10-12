@@ -15,7 +15,7 @@ public class ExtendsMergedTypeIndirectlyTest extends MergedTypeBaseTest {
 
     public static void main(String[] args) {
       // The instantiation of B prevents it from being merged into TestClass.
-      System.out.print(new B().getClass().getTypeName());
+      System.out.print(new B().getClass().getName());
     }
   }
 
@@ -37,7 +37,7 @@ public class ExtendsMergedTypeIndirectlyTest extends MergedTypeBaseTest {
 
   @Override
   public String getExpectedStdout() {
-    return B.class.getTypeName();
+    return B.class.getName();
   }
 
   public void inspect(CodeInspector inspector) {

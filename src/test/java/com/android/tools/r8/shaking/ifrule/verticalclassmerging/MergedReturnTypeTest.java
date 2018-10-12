@@ -9,7 +9,7 @@ public class MergedReturnTypeTest extends MergedTypeBaseTest {
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.print(method().getClass().getTypeName());
+      System.out.print(method().getClass().getName());
     }
 
     public static A method() {
@@ -33,6 +33,6 @@ public class MergedReturnTypeTest extends MergedTypeBaseTest {
 
   @Override
   public String getExpectedStdout() {
-    return B.class.getTypeName();
+    return B.class.getName();
   }
 }

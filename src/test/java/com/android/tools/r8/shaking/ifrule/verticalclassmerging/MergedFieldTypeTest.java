@@ -11,7 +11,7 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
     private static A field = new B();
 
     public static void main(String[] args) {
-      System.out.print(field.getClass().getTypeName());
+      System.out.print(field.getClass().getName());
     }
   }
 
@@ -31,6 +31,6 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
 
   @Override
   public String getExpectedStdout() {
-    return B.class.getTypeName();
+    return B.class.getName();
   }
 }

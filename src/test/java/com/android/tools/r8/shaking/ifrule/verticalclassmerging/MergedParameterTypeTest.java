@@ -13,7 +13,7 @@ public class MergedParameterTypeTest extends MergedTypeBaseTest {
     }
 
     public static void method(A obj) {
-      System.out.print(obj.getClass().getTypeName());
+      System.out.print(obj.getClass().getName());
     }
   }
 
@@ -33,6 +33,6 @@ public class MergedParameterTypeTest extends MergedTypeBaseTest {
 
   @Override
   public String getExpectedStdout() {
-    return B.class.getTypeName();
+    return B.class.getName();
   }
 }
