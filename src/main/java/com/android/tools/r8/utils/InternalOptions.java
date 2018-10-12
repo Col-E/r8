@@ -453,6 +453,7 @@ public class InternalOptions {
             ? NondeterministicIROrdering.getInstance()
             : IdentityIROrdering.getInstance();
 
+    public boolean allowProguardRulesThatUseExtendsOrImplementsWrong = true;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean invertConditionals = false;
     public boolean placeExceptionalBlocksLast = false;

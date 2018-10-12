@@ -28,13 +28,20 @@ import org.junit.runners.Parameterized.Parameters;
 public abstract class MergedTypeBaseTest extends TestBase {
 
   private final List<Class> CLASSES =
-      ImmutableList.of(A.class, B.class, C.class, Unused.class, getTestClass());
+      ImmutableList.of(
+          A.class, B.class, C.class, I.class, J.class, K.class, Unused.class, getTestClass());
 
   static class A {}
 
   static class B extends A {}
 
   static class C {}
+
+  interface I {}
+
+  interface J extends I {}
+
+  interface K {}
 
   static class Unused {}
 
@@ -58,6 +65,10 @@ public abstract class MergedTypeBaseTest extends TestBase {
 
   public abstract Class<?> getTestClass();
 
+  public String getAdditionalKeepRules() {
+    return "";
+  }
+
   public abstract String getConditionForProguardIfRule();
 
   public abstract String getExpectedStdout();
@@ -65,9 +76,10 @@ public abstract class MergedTypeBaseTest extends TestBase {
   public void inspect(CodeInspector inspector) {
     assertThat(inspector.clazz(Unused.class), isPresent());
 
-    // Verify that A is no longer present when vertical class merging is enabled.
+    // Verify that A and I are no longer present when vertical class merging is enabled.
     if (enableVerticalClassMerging) {
       assertThat(inspector.clazz(A.class), not(isPresent()));
+      assertThat(inspector.clazz(I.class), not(isPresent()));
     }
   }
 
@@ -82,7 +94,8 @@ public abstract class MergedTypeBaseTest extends TestBase {
             "  public static void main(java.lang.String[]);",
             "}",
             getConditionForProguardIfRule(),
-            "-keep class " + Unused.class.getTypeName());
+            "-keep class " + Unused.class.getTypeName(),
+            getAdditionalKeepRules());
     AndroidApp output = compileWithR8(readClasses(CLASSES), config, this::configure, backend);
     assertEquals(expected, runOnVM(output, getTestClass(), backend));
     inspect(new CodeInspector(output));
@@ -91,6 +104,10 @@ public abstract class MergedTypeBaseTest extends TestBase {
   private void configure(InternalOptions options) {
     options.enableMinification = false;
     options.enableVerticalClassMerging = enableVerticalClassMerging;
+
+    // To ensure that the handling of extends and implements rules work as intended,
+    // and that we don't end up keeping `Unused` only because one of the two implementations work.
+    options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong = false;
 
     // TODO(b/110148109): Allow ordinary method inlining when -if rules work with inlining.
     options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);

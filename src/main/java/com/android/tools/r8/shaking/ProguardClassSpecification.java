@@ -230,6 +230,10 @@ public abstract class ProguardClassSpecification {
     return inheritanceIsExtends;
   }
 
+  public boolean getInheritanceIsImplements() {
+    return !inheritanceIsExtends;
+  }
+
   public boolean hasInheritanceClassName() {
     return inheritanceClassName != null;
   }
