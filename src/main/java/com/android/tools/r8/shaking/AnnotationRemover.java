@@ -11,8 +11,10 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.List;
 
 public class AnnotationRemover {
 
@@ -135,11 +137,36 @@ public class AnnotationRemover {
     field.annotations = field.annotations.keepIf(this::filterAnnotations);
   }
 
+  private boolean enclosingMethodPinned(DexClass clazz) {
+    return clazz.getEnclosingMethod() != null
+        && clazz.getEnclosingMethod().getEnclosingClass() != null
+        && appInfo.isPinned(clazz.getEnclosingMethod().getEnclosingClass());
+  }
+
+  private boolean innerClassPinned(DexClass clazz) {
+    List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
+    for (InnerClassAttribute innerClass : innerClasses) {
+      if (appInfo.isPinned(innerClass.getInner())) {
+        return true;
+      }
+      if (appInfo.isPinned(innerClass.getOuter())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private void stripAttributes(DexProgramClass clazz) {
     // If [clazz] is mentioned by a keep rule, it could be used for reflection, and we therefore
     // need to keep the enclosing method and inner classes attributes, if requested. In Proguard
     // compatibility mode we keep these attributes independent of whether the given class is kept.
-    if (appInfo.isPinned(clazz.type) || options.forceProguardCompatibility) {
+    // To ensure reflection from both inner to outer and and outer to inner for kept classes - even
+    // if only one side is kept - keep the attributes is any class mentioned in these attributes
+    // is kept.
+    if (appInfo.isPinned(clazz.type)
+        || enclosingMethodPinned(clazz)
+        || innerClassPinned(clazz)
+        || options.forceProguardCompatibility) {
       if (!keep.enclosingMethod) {
         clazz.clearEnclosingMethod();
       }
