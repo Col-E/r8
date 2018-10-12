@@ -11,6 +11,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.concurrent.ExecutionException;
 
 public class TestRunResult {
@@ -47,22 +48,43 @@ public class TestRunResult {
 
   private String errorMessage(String message) {
     StringBuilder builder = new StringBuilder(message).append('\n');
-    printInfo(builder);
+    appendInfo(builder);
     return builder.toString();
   }
 
-  private void printInfo(StringBuilder builder) {
+  private void appendInfo(StringBuilder builder) {
     builder.append("APPLICATION: ");
-    printApplication(builder);
+    appendApplication(builder);
     builder.append('\n');
-    printProcessResult(builder);
+    appendProcessResult(builder);
   }
 
-  private void printApplication(StringBuilder builder) {
+  private void appendApplication(StringBuilder builder) {
     builder.append(app == null ? "<default>" : app.toString());
   }
 
-  private void printProcessResult(StringBuilder builder) {
+  private void appendProcessResult(StringBuilder builder) {
     builder.append("COMMAND: ").append(result.command).append('\n').append(result);
+  }
+
+  public TestRunResult writeInfo(PrintStream ps) {
+    StringBuilder sb = new StringBuilder();
+    appendInfo(sb);
+    ps.println(sb.toString());
+    return this;
+  }
+
+  public TestRunResult writeApplicaion(PrintStream ps) {
+    StringBuilder sb = new StringBuilder();
+    appendApplication(sb);
+    ps.println(sb.toString());
+    return this;
+  }
+
+  public TestRunResult writeProcessResult(PrintStream ps) {
+    StringBuilder sb = new StringBuilder();
+    appendProcessResult(sb);
+    ps.println(sb.toString());
+    return this;
   }
 }
