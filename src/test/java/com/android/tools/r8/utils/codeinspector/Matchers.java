@@ -115,6 +115,25 @@ public class Matchers {
     };
   }
 
+  public static Matcher<ClassSubject> isMemberClass() {
+    return new TypeSafeMatcher<ClassSubject>() {
+      @Override
+      public boolean matchesSafely(final ClassSubject clazz) {
+        return clazz.isMemberClass();
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("is member class");
+      }
+
+      @Override
+      public void describeMismatchSafely(final ClassSubject clazz, Description description) {
+        description.appendText("class ").appendValue(clazz.getOriginalName()).appendText(" is not");
+      }
+    };
+  }
+
   public static Matcher<MethodSubject> isAbstract() {
     return new TypeSafeMatcher<MethodSubject>() {
       @Override
