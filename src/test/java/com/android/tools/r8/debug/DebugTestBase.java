@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -506,6 +507,15 @@ public abstract class DebugTestBase extends TestBase {
 
   protected final JUnit3Wrapper.Command inspect(Consumer<JUnit3Wrapper.DebuggeeState> inspector) {
     return t -> inspector.accept(t.debuggeeState);
+  }
+
+  protected final JUnit3Wrapper.Command conditional(
+      Function<JUnit3Wrapper.DebuggeeState, List<JUnit3Wrapper.Command>> conditional) {
+    return t -> subcommands(conditional.apply(t.debuggeeState)).perform(t);
+  }
+
+  protected final JUnit3Wrapper.Command subcommands(List<JUnit3Wrapper.Command> commands) {
+    return t -> Lists.reverse(commands).forEach(t.commandsQueue::addFirst);
   }
 
   protected final JUnit3Wrapper.Command setLocal(String localName, Value newValue) {
