@@ -52,14 +52,14 @@ def ParseOptions():
       help='Print a line before a tests starts and after it ends to stdout.',
       default=False, action='store_true')
   result.add_option('--tool',
-      help='Tool to run ART tests with: "r8" (default) or "d8". Ignored if'
-          ' "--all_tests" enabled.',
-      default=None, choices=["r8", "d8"])
+      help='Tool to run ART tests with: "r8" (default) or "d8" or "r8cf"'
+          ' (r8 w/CF-backend). Ignored if "--all_tests" enabled.',
+      default=None, choices=["r8", "d8", "r8cf"])
   result.add_option('--jctf',
-      help='Run JCTF tests with: "r8" (default) or "d8".',
+      help='Run JCTF tests with: "r8" (default) or "d8" or "r8cf".',
       default=False, action='store_true')
   result.add_option('--only-jctf', '--only_jctf',
-      help='Run only JCTF tests with: "r8" (default) or "d8".',
+      help='Run only JCTF tests with: "r8" (default) or "d8" or "r8cf".',
       default=False, action='store_true')
   result.add_option('--jctf-compile-only', '--jctf_compile_only',
       help="Don't run, only compile JCTF tests.",
