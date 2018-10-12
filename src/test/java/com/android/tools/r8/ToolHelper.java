@@ -104,6 +104,7 @@ public class ToolHelper {
   private static final String PROGUARD5_2_1 = "third_party/proguard/proguard5.2.1/bin/proguard";
   private static final String PROGUARD6_0_1 = "third_party/proguard/proguard6.0.1/bin/proguard";
   private static final String PROGUARD = PROGUARD5_2_1;
+  public static final String JACOCO_AGENT = "third_party/jacoco/org.jacoco.agent-0.8.2-runtime.jar";
 
   private static final String RETRACE6_0_1 = "third_party/proguard/proguard6.0.1/bin/retrace";
   private static final String RETRACE = RETRACE6_0_1;

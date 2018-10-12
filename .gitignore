@@ -45,6 +45,8 @@ third_party/gradle/gradle.tar.gz
 third_party/gradle/gradle
 third_party/gradle-plugin
 third_party/gradle-plugin.tar.gz
+third_party/jacoco/*
+third_party/jacoco.tar.gz
 third_party/jasmin.tar.gz
 third_party/jasmin
 third_party/jdwp-tests.tar.gz
