@@ -582,9 +582,7 @@ public class InternalOptions {
   //
   // See b/116683601 and b/116837585.
   public boolean canHaveThisJitCodeDebuggingBug() {
-    // TODO(b/116841249): Make this an actual min-sdk guard once we know that Art no longer crashes
-    // on these accesses.
-    return true;
+    return minApiLevel < AndroidApiLevel.Q.getLevel();
   }
 
   // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
