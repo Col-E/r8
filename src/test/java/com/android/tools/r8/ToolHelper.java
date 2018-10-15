@@ -761,7 +761,7 @@ public class ToolHelper {
     while (enclosing.getEnclosingClass() != null) {
       parts.set(parts.size() - 2, parts.get(parts.size() - 2) + "$" + parts.get(parts.size() - 1));
       parts.remove(parts.size() - 1);
-      enclosing = clazz.getEnclosingClass();
+      enclosing = enclosing.getEnclosingClass();
     }
     parts.set(parts.size() - 1, parts.get(parts.size() - 1) + ".class");
     return parts;
