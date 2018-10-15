@@ -736,7 +736,7 @@ public class TestBase {
     }
   }
 
-  private String extractClassName(byte[] ccc) {
+  public String extractClassName(byte[] ccc) {
     class ClassNameExtractor extends ClassVisitor {
       private String className;
 
