@@ -6,10 +6,13 @@ package com.android.tools.r8;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.function.Consumer;
 
 public class R8TestBuilder extends TestCompilerBuilder<R8Command, Builder, R8TestBuilder> {
 
@@ -32,11 +35,17 @@ public class R8TestBuilder extends TestCompilerBuilder<R8Command, Builder, R8Tes
   }
 
   @Override
-  public void internalCompile(Builder builder) throws CompilationFailedException {
+  void internalCompile(Builder builder, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationFailedException {
     if (enableInliningAnnotations) {
       ToolHelper.allowTestProguardOptions(builder);
     }
-    R8.run(builder.build());
+    ToolHelper.runR8WithoutResult(builder.build(), optionsConsumer);
+  }
+
+  public R8TestBuilder addDataResources(List<DataEntryResource> resources) {
+    resources.forEach(builder.getAppBuilder()::addDataResource);
+    return self();
   }
 
   public R8TestBuilder addKeepRules(String... rules) {
@@ -79,6 +88,11 @@ public class R8TestBuilder extends TestCompilerBuilder<R8Command, Builder, R8Tes
           "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
           "-neverinline class * { @com.android.tools.r8.NeverInline *; }");
     }
+    return self();
+  }
+
+  public R8TestBuilder enableProguardTestOptions() {
+    builder.allowTestProguardOptions();
     return self();
   }
 }

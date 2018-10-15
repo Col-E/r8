@@ -5,9 +5,11 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.utils.InternalOptions;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.function.Consumer;
 
 public class D8TestBuilder extends TestCompilerBuilder<D8Command, Builder, D8TestBuilder> {
 
@@ -28,8 +30,9 @@ public class D8TestBuilder extends TestCompilerBuilder<D8Command, Builder, D8Tes
   }
 
   @Override
-  void internalCompile(Builder builder) throws CompilationFailedException {
-    D8.run(builder.build());
+  void internalCompile(Builder builder, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationFailedException {
+    ToolHelper.runD8(builder, optionsConsumer);
   }
 
   public D8TestBuilder addClasspathClasses(Class<?>... classes) {
