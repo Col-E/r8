@@ -793,7 +793,7 @@ public class IRConverter {
 
     assert code.verifyTypes(appInfo);
 
-    codeRewriter.removeCasts(code);
+    codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
     codeRewriter.simplifyArrayConstruction(code);

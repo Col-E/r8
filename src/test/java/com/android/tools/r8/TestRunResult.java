@@ -33,9 +33,10 @@ public class TestRunResult {
     return this;
   }
 
-  public void assertSuccessWithOutput(String expected) {
+  public TestRunResult assertSuccessWithOutput(String expected) {
     assertSuccess();
     assertEquals(errorMessage("Run std output incorrect."), expected, result.stdout);
+    return this;
   }
 
   public CodeInspector inspector() throws IOException, ExecutionException {
