@@ -80,7 +80,7 @@ public class ConstMethodType extends ConstInstruction {
   }
 
   @Override
-  public boolean isConstString() {
+  public boolean isConstMethodType() {
     return true;
   }
 
