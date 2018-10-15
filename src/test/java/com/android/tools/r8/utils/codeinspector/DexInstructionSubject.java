@@ -28,6 +28,7 @@ import com.android.tools.r8.code.IgetChar;
 import com.android.tools.r8.code.IgetObject;
 import com.android.tools.r8.code.IgetShort;
 import com.android.tools.r8.code.IgetWide;
+import com.android.tools.r8.code.InstanceOf;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeDirectRange;
@@ -244,6 +245,11 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isCheckCast(String type) {
     return isCheckCast() && ((CheckCast) instruction).getType().toString().equals(type);
+  }
+
+  @Override
+  public boolean isInstanceOf() {
+    return instruction instanceof InstanceOf;
   }
 
   public boolean isConst4() {

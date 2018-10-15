@@ -103,7 +103,8 @@ public class Devirtualizer {
         //
         //  ~>
         //
-        // i <- check-cast I o  // could be removed by {@link CodeRewriter#removeCasts}.
+        // i <- check-cast I o  // could be removed by {@link
+        // CodeRewriter#removeTrivialCheckCastAndInstanceOfInstructions}.
         // a <- check-cast A i  // Otherwise ART verification error.
         // (out <-) invoke-virtual a, ... A#foo
         if (holderType != invoke.getInvokedMethod().getHolder()) {

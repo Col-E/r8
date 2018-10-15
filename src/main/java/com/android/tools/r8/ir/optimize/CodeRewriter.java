@@ -53,6 +53,7 @@ import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
@@ -1617,72 +1618,20 @@ public class CodeRewriter {
     return converter.definitionFor(type);
   }
 
-  public void removeCasts(IRCode code) {
+  public void removeTrivialCheckCastAndInstanceOfInstructions(IRCode code) {
     InstructionIterator it = code.instructionIterator();
     boolean needToRemoveTrivialPhis = false;
     while (it.hasNext()) {
       Instruction current = it.next();
-      if (!current.isCheckCast()) {
-        continue;
-      }
-      CheckCast checkCast = current.asCheckCast();
-      Value inValue = checkCast.object();
-      Value outValue = checkCast.outValue();
-      DexType castType = checkCast.getType();
-
-      // If the cast type is not accessible in the current context, we should not remove the cast
-      // in order to preserve IllegalAccessError. Note that JVM and ART behave differently: see
-      // {@link com.android.tools.r8.ir.optimize.checkcast.IllegalAccessErrorTest}.
-      DexType baseCastType = castType.toBaseType(appInfo.dexItemFactory);
-      DexClass castClass = definitionFor(baseCastType);
-      if (castClass != null) {
-        ConstraintWithTarget classVisibility = ConstraintWithTarget.deriveConstraint(
-            code.method.method.getHolder(), baseCastType, castClass.accessFlags, appInfo);
-        if (classVisibility == ConstraintWithTarget.NEVER) {
-          continue;
+      if (current.isCheckCast()) {
+        boolean hasPhiUsers = current.outValue().numberOfPhiUsers() != 0;
+        if (removeCheckCastInstructionIfTrivial(current.asCheckCast(), it, code)) {
+          needToRemoveTrivialPhis |= hasPhiUsers;
         }
-      }
-
-      // We might see chains of casts on subtypes. It suffices to cast to the lowest subtype,
-      // as that will fail if a cast on a supertype would have failed.
-      Predicate<Instruction> isCheckcastToSubtype =
-          user -> user.isCheckCast() && user.asCheckCast().getType().isSubtypeOf(castType, appInfo);
-      if (!checkCast.getBlock().hasCatchHandlers()
-          && outValue.isUsed()
-          && outValue.numberOfPhiUsers() == 0
-          && outValue.uniqueUsers().stream().allMatch(isCheckcastToSubtype)) {
-        removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
-        continue;
-      }
-
-      TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
-      // TODO(b/72693244): Soon, there won't be a value with imprecise type at this point.
-      if (inTypeLattice.isPreciseType() || inTypeLattice.isNull()) {
-        TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
-        TypeLatticeElement castTypeLattice =
-            TypeLatticeElement.fromDexType(castType, inTypeLattice.isNullable(), appInfo);
-
-        assert inTypeLattice.nullElement().lessThanOrEqual(outTypeLattice.nullElement());
-
-        if (inTypeLattice.lessThanOrEqual(castTypeLattice, appInfo)) {
-          // 1) Trivial cast.
-          //   A a = ...
-          //   A a' = (A) a;
-          // 2) Up-cast: we already have finer type info.
-          //   A < B
-          //   A a = ...
-          //   B b = (B) a;
-          assert inTypeLattice.lessThanOrEqual(outTypeLattice, appInfo);
-          needToRemoveTrivialPhis = needToRemoveTrivialPhis || outValue.numberOfPhiUsers() != 0;
-          removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
-        } else {
-          // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:
-          // A < B < C
-          // c = ...        // Even though we know c is of type A,
-          // a' = (B) c;    // (this could be removed, since chained below.)
-          // a'' = (A) a';  // this should remain for runtime verification.
-          assert !inTypeLattice.isNull();
-          assert outTypeLattice.asNullable().equals(castTypeLattice.asNullable());
+      } else if (current.isInstanceOf()) {
+        boolean hasPhiUsers = current.outValue().numberOfPhiUsers() != 0;
+        if (removeInstanceOfInstructionIfTrivial(current.asInstanceOf(), it, code)) {
+          needToRemoveTrivialPhis |= hasPhiUsers;
         }
       }
     }
@@ -1696,6 +1645,121 @@ public class CodeRewriter {
       code.removeAllTrivialPhis();
     }
     assert code.isConsistentSSA();
+  }
+
+  // Returns true if the given check-cast instruction was removed.
+  private boolean removeCheckCastInstructionIfTrivial(
+      CheckCast checkCast, InstructionIterator it, IRCode code) {
+    Value inValue = checkCast.object();
+    Value outValue = checkCast.outValue();
+    DexType castType = checkCast.getType();
+
+    // If the cast type is not accessible in the current context, we should not remove the cast
+    // in order to preserve IllegalAccessError. Note that JVM and ART behave differently: see
+    // {@link com.android.tools.r8.ir.optimize.checkcast.IllegalAccessErrorTest}.
+    if (isTypeInaccessibleInCurrentContext(castType, code.method)) {
+      return false;
+    }
+
+    // We might see chains of casts on subtypes. It suffices to cast to the lowest subtype,
+    // as that will fail if a cast on a supertype would have failed.
+    Predicate<Instruction> isCheckcastToSubtype =
+        user -> user.isCheckCast() && user.asCheckCast().getType().isSubtypeOf(castType, appInfo);
+    if (!checkCast.getBlock().hasCatchHandlers()
+        && outValue.isUsed()
+        && outValue.numberOfPhiUsers() == 0
+        && outValue.uniqueUsers().stream().allMatch(isCheckcastToSubtype)) {
+      removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
+      return true;
+    }
+
+    TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
+    // TODO(b/72693244): Soon, there won't be a value with imprecise type at this point.
+    if (!inTypeLattice.isPreciseType() && !inTypeLattice.isNull()) {
+      return false;
+    }
+
+    TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
+    TypeLatticeElement castTypeLattice =
+        TypeLatticeElement.fromDexType(castType, inTypeLattice.isNullable(), appInfo);
+
+    assert inTypeLattice.nullElement().lessThanOrEqual(outTypeLattice.nullElement());
+
+    if (inTypeLattice.lessThanOrEqual(castTypeLattice, appInfo)) {
+      // 1) Trivial cast.
+      //   A a = ...
+      //   A a' = (A) a;
+      // 2) Up-cast: we already have finer type info.
+      //   A < B
+      //   A a = ...
+      //   B b = (B) a;
+      assert inTypeLattice.lessThanOrEqual(outTypeLattice, appInfo);
+      removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
+      return true;
+    }
+
+    // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:
+    // A < B < C
+    // c = ...        // Even though we know c is of type A,
+    // a' = (B) c;    // (this could be removed, since chained below.)
+    // a'' = (A) a';  // this should remain for runtime verification.
+    assert !inTypeLattice.isNull();
+    assert outTypeLattice.asNullable().equals(castTypeLattice.asNullable());
+    return false;
+  }
+
+  private boolean isTypeInaccessibleInCurrentContext(DexType type, DexEncodedMethod context) {
+    DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+    DexClass clazz = definitionFor(baseType);
+    if (clazz == null) {
+      // Conservatively say yes.
+      return true;
+    }
+    ConstraintWithTarget classVisibility =
+        ConstraintWithTarget.deriveConstraint(
+            context.method.getHolder(), baseType, clazz.accessFlags, appInfo);
+    return classVisibility == ConstraintWithTarget.NEVER;
+  }
+
+  // Returns true if the given instance-of instruction was removed.
+  private boolean removeInstanceOfInstructionIfTrivial(
+      InstanceOf instanceOf, InstructionIterator it, IRCode code) {
+    // If the instance-of type is not accessible in the current context, we should not remove the
+    // instance-of instruction in order to preserve IllegalAccessError.
+    if (isTypeInaccessibleInCurrentContext(instanceOf.type(), code.method)) {
+      return false;
+    }
+
+    Value inValue = instanceOf.value();
+    TypeLatticeElement inType = inValue.getTypeLattice();
+    // TODO(b/72693244): Soon, there won't be a value with imprecise type at this point.
+    if (!inType.isPreciseType() && !inType.isNull()) {
+      return false;
+    }
+
+    TypeLatticeElement instanceOfType =
+        TypeLatticeElement.fromDexType(instanceOf.type(), inType.isNullable(), appInfo);
+
+    boolean result;
+    if (inType.isNull()) {
+      result = false;
+    } else if (inType.lessThanOrEqual(instanceOfType, appInfo) && !inType.isNullable()) {
+      result = true;
+    } else if (!inValue.isPhi()
+        && inValue.definition.isNewInstance()
+        && instanceOfType.strictlyLessThan(inType, appInfo)) {
+      result = false;
+    } else {
+      return false;
+    }
+    it.replaceCurrentInstruction(
+        new ConstNumber(
+            new Value(
+                code.valueNumberGenerator.next(),
+                TypeLatticeElement.INT,
+                instanceOf.outValue().getLocalInfo()),
+            result ? 1 : 0));
+    return true;
   }
 
   private void removeOrReplaceByDebugLocalWrite(

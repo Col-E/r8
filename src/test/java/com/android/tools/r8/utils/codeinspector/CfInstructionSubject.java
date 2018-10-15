@@ -12,6 +12,7 @@ import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
+import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
@@ -161,6 +162,11 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public boolean isCheckCast(String type) {
     return isCheckCast() && ((CfCheckCast) instruction).getType().toString().equals(type);
+  }
+
+  @Override
+  public boolean isInstanceOf() {
+    return instruction instanceof CfInstanceOf;
   }
 
   @Override
