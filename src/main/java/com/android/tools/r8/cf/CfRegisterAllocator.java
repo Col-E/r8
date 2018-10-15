@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StackValue;
+import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
@@ -116,7 +117,9 @@ public class CfRegisterAllocator implements RegisterAllocator {
       Instruction next = it.next();
       Value outValue = next.outValue();
       if (outValue != null) {
-        outValue.setNeedsRegister(!(outValue instanceof StackValue));
+        boolean isStackValue =
+            (outValue instanceof StackValue) || (outValue instanceof StackValues);
+        outValue.setNeedsRegister(!isStackValue);
       }
     }
   }

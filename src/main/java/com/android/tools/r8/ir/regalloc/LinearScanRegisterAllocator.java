@@ -26,6 +26,8 @@ import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.StackValue;
+import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
@@ -2520,7 +2522,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           // For instructions that define values which have no use create a live range covering
           // the instruction. This will typically be instructions that can have side effects even
           // if their output is not used.
-          if (!definition.isUsed()) {
+          if (definition instanceof StackValues) {
+            for (StackValue value : ((StackValues) definition).getStackValues()) {
+              live.remove(value);
+            }
+          } else if (!definition.isUsed()) {
             addLiveRange(
                 definition,
                 block,

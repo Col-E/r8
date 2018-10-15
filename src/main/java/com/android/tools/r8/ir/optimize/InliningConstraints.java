@@ -94,6 +94,10 @@ public class InliningConstraints {
     return ConstraintWithTarget.ALWAYS;
   }
 
+  public ConstraintWithTarget forDup() {
+    return ConstraintWithTarget.ALWAYS;
+  }
+
   public ConstraintWithTarget forInstanceGet(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(

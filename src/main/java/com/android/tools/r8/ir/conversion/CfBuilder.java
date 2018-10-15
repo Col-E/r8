@@ -36,6 +36,7 @@ import com.android.tools.r8.ir.code.Load;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
+import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
@@ -362,6 +363,11 @@ public class CfBuilder {
         Value outValue = instruction.outValue();
         if (outValue instanceof StackValue) {
           stack.push(outValue);
+        }
+        if (outValue instanceof StackValues) {
+          for (StackValue outVal : ((StackValues) outValue).getStackValues()) {
+            stack.push(outVal);
+          }
         }
       }
       if (instruction.isDebugLocalsChange()) {
