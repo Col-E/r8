@@ -876,6 +876,14 @@ public class ToolHelper {
     return runR8WithFullResult(command, optionsConsumer);
   }
 
+  public static void runR8WithoutResult(
+      R8Command command, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationFailedException {
+    InternalOptions internalOptions = command.getInternalOptions();
+    optionsConsumer.accept(internalOptions);
+    R8.runForTesting(command.getInputApp(), internalOptions);
+  }
+
   public static AndroidApp runR8WithFullResult(
       R8Command command, Consumer<InternalOptions> optionsConsumer)
       throws CompilationFailedException {
@@ -931,6 +939,14 @@ public class ToolHelper {
     }
     D8.runForTesting(command.getInputApp(), options);
     return compatSink.build();
+  }
+
+  public static void runD8WithoutResult(
+      D8Command command, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationFailedException {
+    InternalOptions internalOptions = command.getInternalOptions();
+    optionsConsumer.accept(internalOptions);
+    D8.runForTesting(command.getInputApp(), internalOptions);
   }
 
   public static AndroidApp runDexer(String fileName, String outDir, String... extraArgs)

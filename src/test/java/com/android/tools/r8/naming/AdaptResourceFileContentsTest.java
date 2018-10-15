@@ -17,19 +17,16 @@ import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -46,6 +43,12 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase {
+
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(
+          AdaptResourceFileContentsTestClass.class,
+          AdaptResourceFileContentsTestClass.A.class,
+          AdaptResourceFileContentsTestClass.B.class);
 
   private Backend backend;
 
@@ -171,9 +174,9 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
 
   @Test
   public void testEnabled() throws Exception {
+    String pgConf = getProguardConfigWithNeverInline(true, null);
     CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
-    AndroidApp out =
-        compileWithR8(getProguardConfigWithNeverInline(true, null), dataResourceConsumer);
+    CodeInspector inspector = compileWithR8(pgConf, dataResourceConsumer).inspector();
 
     // Check that the data resources have changed as expected.
     checkAllAreChanged(
@@ -182,8 +185,7 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
         dataResourceConsumer.get("resource-all-changed.txt"), originalAllChangedResource);
 
     // Check that the new names are consistent with the actual application code.
-    checkAllArePresent(
-        dataResourceConsumer.get("resource-all-present.txt"), new CodeInspector(out));
+    checkAllArePresent(dataResourceConsumer.get("resource-all-present.txt"), inspector);
 
     // Check that the data resources have not changed unexpectedly.
     checkAllAreUnchanged(
@@ -315,32 +317,22 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
     }
   }
 
-  private AndroidApp compileWithR8(String proguardConfig, DataResourceConsumer dataResourceConsumer)
-      throws CompilationFailedException, IOException {
-    R8Command command =
-        ToolHelper.allowTestProguardOptions(
-                ToolHelper.prepareR8CommandBuilder(getAndroidApp(), emptyConsumer(backend))
-                    .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown()))
-            .addLibraryFiles(runtimeJar(backend))
-            .build();
-    return ToolHelper.runR8(
-        command,
-        options -> {
-          // TODO(christofferqa): Class inliner should respect -neverinline.
-          options.enableClassInlining = false;
-          options.enableVerticalClassMerging = true;
-          options.dataResourceConsumer = dataResourceConsumer;
-        });
-  }
-
-  private AndroidApp getAndroidApp() throws IOException {
-    AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addProgramFiles(
-        ToolHelper.getClassFileForTestClass(AdaptResourceFileContentsTestClass.class),
-        ToolHelper.getClassFileForTestClass(AdaptResourceFileContentsTestClass.A.class),
-        ToolHelper.getClassFileForTestClass(AdaptResourceFileContentsTestClass.B.class));
-    getDataResources().forEach(builder::addDataResource);
-    return builder.build();
+  private TestCompileResult compileWithR8(
+      String proguardConfig, DataResourceConsumer dataResourceConsumer)
+      throws CompilationFailedException {
+    return testForR8(backend)
+        .addProgramClasses(CLASSES)
+        .addDataResources(getDataResources())
+        .enableProguardTestOptions()
+        .addKeepRules(proguardConfig)
+        .addOptionsModification(
+            o -> {
+              // TODO(christofferqa): Class inliner should respect -neverinline.
+              o.enableClassInlining = false;
+              o.enableVerticalClassMerging = true;
+              o.dataResourceConsumer = dataResourceConsumer;
+            })
+        .compile();
   }
 
   private List<DataEntryResource> getDataResources() {

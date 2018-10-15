@@ -6,15 +6,23 @@ package com.android.tools.r8;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.function.Consumer;
 
 public abstract class TestCompilerBuilder<
         C extends BaseCompilerCommand,
         B extends BaseCompilerCommand.Builder<C, B>,
         T extends TestCompilerBuilder<C, B, T>>
     extends TestBuilder<T> {
+
+  public static final Consumer<InternalOptions> DEFAULT_OPTIONS =
+      new Consumer<InternalOptions>() {
+        @Override
+        public void accept(InternalOptions options) {}
+      };
 
   private final B builder;
   private final Backend backend;
@@ -23,6 +31,7 @@ public abstract class TestCompilerBuilder<
   private Path defaultLibrary;
   private ProgramConsumer programConsumer;
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
+  private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
 
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
     super(state);
@@ -34,7 +43,13 @@ public abstract class TestCompilerBuilder<
 
   abstract T self();
 
-  abstract void internalCompile(B builder) throws CompilationFailedException;
+  abstract void internalCompile(B builder, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationFailedException;
+
+  public T addOptionsModification(Consumer<InternalOptions> optionsConsumer) {
+    this.optionsConsumer = this.optionsConsumer.andThen(optionsConsumer);
+    return self();
+  }
 
   public TestCompileResult compile() throws CompilationFailedException {
     AndroidAppConsumers sink = new AndroidAppConsumers();
@@ -45,7 +60,7 @@ public abstract class TestCompilerBuilder<
     if (backend == Backend.DEX && defaultMinApiLevel != null) {
       builder.setMinApiLevel(defaultMinApiLevel.getLevel());
     }
-    internalCompile(builder);
+    internalCompile(builder, optionsConsumer);
     return new TestCompileResult(getState(), backend, sink.build());
   }
 

@@ -7,8 +7,10 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutionException;
 
 public class TestCompileResult {
   private final TestState state;
@@ -30,6 +32,10 @@ public class TestCompileResult {
       default:
         throw new Unreachable();
     }
+  }
+
+  public CodeInspector inspector() throws IOException, ExecutionException {
+    return new CodeInspector(app);
   }
 
   private TestRunResult runJava(String mainClass) throws IOException {
