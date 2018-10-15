@@ -55,7 +55,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
     this.enableVerticalClassMerging = enableVerticalClassMerging;
     this.classes =
         ImmutableList.<Class>builder()
-            .add(A.class, B.class, C.class, Unused.class, getTestClass())
+            .add(A.class, B.class, C.class, I.class, J.class, K.class, Unused.class, getTestClass())
             .addAll(additionalClasses)
             .build();
   }
