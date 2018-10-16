@@ -12,19 +12,23 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 
-public class TestCompileResult {
-  private final TestState state;
-  private final Backend backend;
-  private final AndroidApp app;
+public abstract class TestCompileResult {
+  final TestState state;
+  final AndroidApp app;
 
-  public TestCompileResult(TestState state, Backend backend, AndroidApp app) {
+  TestCompileResult(TestState state, AndroidApp app) {
     this.state = state;
-    this.backend = backend;
     this.app = app;
   }
 
+  public abstract Backend getBackend();
+
+  public TestRunResult run(Class<?> mainClass) throws IOException {
+    return run(mainClass.getTypeName());
+  }
+
   public TestRunResult run(String mainClass) throws IOException {
-    switch (backend) {
+    switch (getBackend()) {
       case DEX:
         return runArt(mainClass);
       case CF:
@@ -32,6 +36,12 @@ public class TestCompileResult {
       default:
         throw new Unreachable();
     }
+  }
+
+  public TestCompileResult writeToZip(Path file) throws IOException {
+    app.writeToZip(
+        file, getBackend() == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile);
+    return this;
   }
 
   public CodeInspector inspector() throws IOException, ExecutionException {

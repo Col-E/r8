@@ -5,19 +5,19 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-public class D8TestBuilder extends TestCompilerBuilder<D8Command, Builder, D8TestBuilder> {
+public class D8TestBuilder
+    extends TestCompilerBuilder<D8Command, Builder, D8TestCompileResult, D8TestBuilder> {
 
-  private final D8Command.Builder builder;
-
-  private D8TestBuilder(TestState state, D8Command.Builder builder) {
+  private D8TestBuilder(TestState state, Builder builder) {
     super(state, builder, Backend.DEX);
-    this.builder = builder;
   }
 
   public static D8TestBuilder create(TestState state) {
@@ -30,9 +30,11 @@ public class D8TestBuilder extends TestCompilerBuilder<D8Command, Builder, D8Tes
   }
 
   @Override
-  void internalCompile(Builder builder, Consumer<InternalOptions> optionsConsumer)
+  D8TestCompileResult internalCompile(
+      Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
     ToolHelper.runD8(builder, optionsConsumer);
+    return new D8TestCompileResult(getState(), app.get());
   }
 
   public D8TestBuilder addClasspathClasses(Class<?>... classes) {

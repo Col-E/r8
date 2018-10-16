@@ -26,6 +26,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -111,10 +112,18 @@ public class CodeInspector {
     return internalOptions;
   }
 
-  public CodeInspector(AndroidApp app, Path proguardMap) throws IOException, ExecutionException {
+  public CodeInspector(AndroidApp app, Path proguardMapFile)
+      throws IOException, ExecutionException {
     this(
         new ApplicationReader(app, runOptionsConsumer(null), new Timing("CodeInspector"))
-            .read(StringResource.fromFile(proguardMap)));
+            .read(StringResource.fromFile(proguardMapFile)));
+  }
+
+  public CodeInspector(AndroidApp app, String proguardMapContent)
+      throws IOException, ExecutionException {
+    this(
+        new ApplicationReader(app, runOptionsConsumer(null), new Timing("CodeInspector"))
+            .read(StringResource.fromString(proguardMapContent, Origin.unknown())));
   }
 
   public CodeInspector(DexApplication application) {
