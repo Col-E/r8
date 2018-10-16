@@ -6,15 +6,16 @@ package com.android.tools.r8.ir.optimize.peepholes;
 
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class PeepholeHelper {
 
   public static class PeepholeLayout {
     private Instruction[] instructions;
-    private Predicate<Instruction>[] predicates;
+    private List<Predicate<Instruction>> predicates;
 
-    public PeepholeLayout(Instruction[] instructions, Predicate<Instruction>... predicates) {
+    public PeepholeLayout(Instruction[] instructions, List<Predicate<Instruction>> predicates) {
       this.instructions = instructions;
       this.predicates = predicates;
     }
@@ -41,8 +42,8 @@ public class PeepholeHelper {
     }
   }
 
-  public static PeepholeLayout getLayout(Predicate<Instruction>... predicates) {
-    Instruction[] arr = new Instruction[predicates.length];
+  public static PeepholeLayout getLayout(List<Predicate<Instruction>> predicates) {
+    Instruction[] arr = new Instruction[predicates.size()];
     return new PeepholeLayout(arr, predicates);
   }
 
