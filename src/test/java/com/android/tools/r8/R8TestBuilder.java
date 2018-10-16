@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
@@ -13,14 +14,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-public class R8TestBuilder extends TestCompilerBuilder<R8Command, Builder, R8TestBuilder> {
-
-  private final R8Command.Builder builder;
+public class R8TestBuilder
+    extends TestCompilerBuilder<R8Command, Builder, R8TestCompileResult, R8TestBuilder> {
 
   private R8TestBuilder(TestState state, Builder builder, Backend backend) {
     super(state, builder, backend);
-    this.builder = builder;
   }
 
   public static R8TestBuilder create(TestState state, Backend backend) {
@@ -35,12 +35,16 @@ public class R8TestBuilder extends TestCompilerBuilder<R8Command, Builder, R8Tes
   }
 
   @Override
-  void internalCompile(Builder builder, Consumer<InternalOptions> optionsConsumer)
+  R8TestCompileResult internalCompile(
+      Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
     if (enableInliningAnnotations) {
       ToolHelper.allowTestProguardOptions(builder);
     }
+    StringBuilder proguardMapBuilder = new StringBuilder();
+    builder.setProguardMapConsumer((string, ignore) -> proguardMapBuilder.append(string));
     ToolHelper.runR8WithoutResult(builder.build(), optionsConsumer);
+    return new R8TestCompileResult(getState(), backend, app.get(), proguardMapBuilder.toString());
   }
 
   public R8TestBuilder addDataResources(List<DataEntryResource> resources) {

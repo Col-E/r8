@@ -5,17 +5,21 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.base.Suppliers;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public abstract class TestCompilerBuilder<
         C extends BaseCompilerCommand,
         B extends BaseCompilerCommand.Builder<C, B>,
-        T extends TestCompilerBuilder<C, B, T>>
+        R extends TestCompileResult,
+        T extends TestCompilerBuilder<C, B, R, T>>
     extends TestBuilder<T> {
 
   public static final Consumer<InternalOptions> DEFAULT_OPTIONS =
@@ -24,8 +28,8 @@ public abstract class TestCompilerBuilder<
         public void accept(InternalOptions options) {}
       };
 
-  private final B builder;
-  private final Backend backend;
+  final B builder;
+  final Backend backend;
 
   // Default initialized setup. Can be overwritten if needed.
   private Path defaultLibrary;
@@ -43,7 +47,8 @@ public abstract class TestCompilerBuilder<
 
   abstract T self();
 
-  abstract void internalCompile(B builder, Consumer<InternalOptions> optionsConsumer)
+  abstract R internalCompile(
+      B builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException;
 
   public T addOptionsModification(Consumer<InternalOptions> optionsConsumer) {
@@ -51,7 +56,7 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
-  public TestCompileResult compile() throws CompilationFailedException {
+  public R compile() throws CompilationFailedException {
     AndroidAppConsumers sink = new AndroidAppConsumers();
     builder.setProgramConsumer(sink.wrapProgramConsumer(programConsumer));
     if (defaultLibrary != null) {
@@ -60,8 +65,7 @@ public abstract class TestCompilerBuilder<
     if (backend == Backend.DEX && defaultMinApiLevel != null) {
       builder.setMinApiLevel(defaultMinApiLevel.getLevel());
     }
-    internalCompile(builder, optionsConsumer);
-    return new TestCompileResult(getState(), backend, sink.build());
+    return internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build));
   }
 
   @Override
