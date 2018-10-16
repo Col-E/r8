@@ -38,6 +38,10 @@ public class StackValue extends Value {
     return objectType;
   }
 
+  public StackValue duplicate(int height) {
+    return new StackValue(this.objectType, this.type.toTypeLattice(), height);
+  }
+
   @Override
   public boolean needsRegister() {
     return false;

@@ -27,7 +27,7 @@ public class Dup extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    if (this.inValues.get(0).type == ValueType.LONG_OR_DOUBLE) {
+    if (this.inValues.get(0).type.isWide()) {
       builder.add(new CfStackInstruction(Opcode.Dup2));
     } else {
       builder.add(new CfStackInstruction(Opcode.Dup));
