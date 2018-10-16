@@ -157,6 +157,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return compilationState != CompilationState.NOT_PROCESSED;
   }
 
+  public boolean isInitializer() {
+    checkIfObsolete();
+    return isInstanceInitializer() || isClassInitializer();
+  }
+
   public boolean isInstanceInitializer() {
     checkIfObsolete();
     return accessFlags.isConstructor() && !accessFlags.isStatic();

@@ -44,6 +44,7 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.StaticClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.VerticalClassMerger;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -353,6 +354,14 @@ public class R8 {
           timing.end();
         }
         appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness, options).run());
+        if (options.enableHorizontalClassMerging) {
+          StaticClassMerger staticClassMerger = new StaticClassMerger(appViewWithLiveness);
+          appView.setGraphLense(staticClassMerger.run());
+          appViewWithLiveness.setAppInfo(
+              appViewWithLiveness
+                  .appInfo()
+                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+        }
         if (options.enableVerticalClassMerging) {
           timing.begin("ClassMerger");
           VerticalClassMerger verticalClassMerger =

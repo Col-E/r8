@@ -15,6 +15,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -84,7 +85,7 @@ public class ReserveOuterClassNameTest extends TestBase {
         Origin.unknown());
 
     ToolHelper.allowTestProguardOptions(builder);
-    AndroidApp processedApp = ToolHelper.runR8(builder.build());
+    AndroidApp processedApp = ToolHelper.runR8(builder.build(), this::configure);
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject mainSubject = inspector.clazz(mainClass);
@@ -109,6 +110,11 @@ public class ReserveOuterClassNameTest extends TestBase {
     assertThat(foo, isRenamed());
   }
 
+  private void configure(InternalOptions options) {
+    // Disable horizontal class merging to avoid that all members of Outer are moved to Outer$Inner
+    // or vice versa (both Outer and Outer$Inner are merge candidates for the static class merger).
+    options.enableHorizontalClassMerging = false;
+  }
 
   @Test
   public void test_keepOuterName() throws Exception {

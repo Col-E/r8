@@ -61,7 +61,7 @@ import org.junit.runner.RunWith;
 // TODO(christofferqa): Add tests to check that statically typed invocations on method handles
 // continue to work after class merging.
 @RunWith(VmTestRunner.class)
-public class ClassMergingTest extends TestBase {
+public class VerticalClassMergerTest extends TestBase {
 
   private static final Path CF_DIR =
       Paths.get(ToolHelper.BUILD_DIR).resolve("test/examples/classes/classmerging");
@@ -1154,7 +1154,7 @@ public class ClassMergingTest extends TestBase {
 
     public void test(AndroidApp app, Path proguardMapPath) throws Throwable {
       Path appPath =
-          File.createTempFile("app", ".zip", ClassMergingTest.this.temp.getRoot()).toPath();
+          File.createTempFile("app", ".zip", VerticalClassMergerTest.this.temp.getRoot()).toPath();
       app.writeToZip(appPath, OutputMode.DexIndexed);
 
       DexDebugTestConfig config = new DexDebugTestConfig(appPath);

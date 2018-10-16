@@ -20,6 +20,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -61,7 +62,13 @@ public class ForceInlineTest extends TestBase {
             .addLibraryFiles(library);
     ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(proguardConfiguration, Origin.unknown());
-    return new CodeInspector(ToolHelper.runR8(builder.build()));
+    return new CodeInspector(ToolHelper.runR8(builder.build(), this::configure));
+  }
+
+  private void configure(InternalOptions options) {
+    // Disable horizontal class merging to prevent that A and C are merged (both classes are
+    // candidates for the static class merger).
+    options.enableHorizontalClassMerging = false;
   }
 
   @Test
