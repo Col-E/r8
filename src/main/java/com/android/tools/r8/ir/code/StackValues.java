@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import java.util.List;
 
@@ -13,19 +14,12 @@ import java.util.List;
  */
 public class StackValues extends Value {
 
-  private final int height;
   private final List<StackValue> stackValues;
 
-  public StackValues(TypeLatticeElement typeLattice, int height, List<StackValue> stackValues) {
-    super(Value.UNDEFINED_NUMBER, typeLattice, null);
-    this.height = height;
+  public StackValues(List<StackValue> stackValues) {
+    super(Value.UNDEFINED_NUMBER, TypeLatticeElement.BOTTOM, null);
     this.stackValues = stackValues;
-    assert height >= 0;
     assert stackValues.size() >= 2;
-  }
-
-  public int getHeight() {
-    return height;
   }
 
   public List<StackValue> getStackValues() {
@@ -45,6 +39,19 @@ public class StackValues extends Value {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    return String.format("s%d+%d", height, stackValues.size() - 1);
+    sb.append('[');
+    for (StackValue value : stackValues) {
+      if (sb.length() > 1) {
+        sb.append(", ");
+      }
+      sb.append(value);
+    }
+    sb.append(']');
+    return sb.toString();
+  }
+
+  @Override
+  public TypeLatticeElement getTypeLattice() {
+    throw new Unreachable();
   }
 }
