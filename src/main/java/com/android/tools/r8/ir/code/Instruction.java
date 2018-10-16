@@ -621,6 +621,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isDup() {
+    return false;
+  }
+
+  public Dup asDup() {
+    return null;
+  }
+
   public boolean isJumpInstruction() {
     return false;
   }
@@ -1049,6 +1057,14 @@ public abstract class Instruction {
   }
 
   public Store asStore() {
+    return null;
+  }
+
+  public boolean isSwap() {
+    return false;
+  }
+
+  public Swap asSwap() {
     return null;
   }
 

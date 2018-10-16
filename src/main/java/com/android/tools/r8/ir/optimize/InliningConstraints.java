@@ -237,6 +237,10 @@ public class InliningConstraints {
     return ConstraintWithTarget.ALWAYS;
   }
 
+  public ConstraintWithTarget forSwap() {
+    return ConstraintWithTarget.ALWAYS;
+  }
+
   public ConstraintWithTarget forThrow() {
     return ConstraintWithTarget.ALWAYS;
   }
