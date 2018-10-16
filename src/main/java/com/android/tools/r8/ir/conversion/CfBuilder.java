@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
+import com.android.tools.r8.ir.optimize.peepholes.BasicBlockMuncher;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -135,6 +136,8 @@ public class CfBuilder {
     new DeadCodeRemover(code, rewriter, graphLense, options).run();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
     loadStoreHelper.insertLoadsAndStores();
+    BasicBlockMuncher muncher = new BasicBlockMuncher();
+    muncher.optimize(code);
     removeUnneededLoadsAndStores();
     registerAllocator = new CfRegisterAllocator(code, options);
     registerAllocator.allocateRegisters();
