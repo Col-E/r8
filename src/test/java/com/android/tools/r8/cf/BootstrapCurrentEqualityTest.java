@@ -36,8 +36,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * This test relies on a freshly built from builds/libs/r8lib_with_deps.jar. If this test fails
- * rebuild r8lib_with_deps by calling test.py or gradle r8libWithdeps.
+ * This test relies on a freshly built builds/libs/r8lib_with_deps.jar. If this test fails
+ * remove build directory and rebuild r8lib_with_deps by calling test.py or gradle r8libWithdeps.
  */
 public class BootstrapCurrentEqualityTest extends TestBase {
 

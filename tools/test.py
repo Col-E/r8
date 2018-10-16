@@ -103,6 +103,9 @@ def Main():
   if 'BUILDBOT_BUILDERNAME' in os.environ:
     gradle.RunGradle(['clean'])
 
+  # Build R8lib with dependencies for bootstrapping tests before adding test sources
+  gradle.RunGradle(['r8libwithdeps'])
+
   gradle_args = ['--stacktrace']
   # Set all necessary Gradle properties and options first.
   if options.verbose:
@@ -156,8 +159,6 @@ def Main():
     gradle_args.append('-PHEAD_sha1=' + utils.get_HEAD_sha1())
   # Add Gradle tasks
   gradle_args.append('cleanTest')
-  # Build R8lib with dependencies for bootstrapping tests.
-  gradle_args.append('r8libWithDeps')
   gradle_args.append('test')
   # Test filtering. Must always follow the 'test' task.
   for testFilter in args:
