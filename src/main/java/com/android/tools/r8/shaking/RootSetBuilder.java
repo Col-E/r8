@@ -66,6 +66,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
+  private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
   private final Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking =
       new IdentityHashMap<>();
   private final Map<DexDefinition, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
@@ -173,6 +174,10 @@ public class RootSetBuilder {
       } else if (rule instanceof ProguardAssumeNoSideEffectRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
         markMatchingFields(clazz, memberKeepRules, rule, null);
+      } else if (rule instanceof ClassMergingRule) {
+        if (allRulesSatisfied(memberKeepRules, clazz)) {
+          markClass(clazz, rule);
+        }
       } else if (rule instanceof InlineRule) {
         markMatchingMethods(clazz, memberKeepRules, rule, null);
       } else if (rule instanceof ProguardAssumeValuesRule) {
@@ -245,6 +250,7 @@ public class RootSetBuilder {
         alwaysInline,
         forceInline,
         neverInline,
+        neverMerge,
         noSideEffects,
         assumedValues,
         dependentNoShrinking,
@@ -844,6 +850,16 @@ public class RootSetBuilder {
         default:
           throw new Unreachable();
       }
+    } else if (context instanceof ClassMergingRule) {
+      switch (((ClassMergingRule) context).getType()) {
+        case NEVER:
+          if (item.isDexClass()) {
+            neverMerge.add(item.asDexClass().type);
+          }
+          break;
+        default:
+          throw new Unreachable();
+      }
     } else if (context instanceof ProguardIdentifierNameStringRule) {
       if (item.isDexEncodedField()) {
         identifierNameStrings.add(item.asDexEncodedField().field);
@@ -864,6 +880,7 @@ public class RootSetBuilder {
     public final Set<DexMethod> alwaysInline;
     public final Set<DexMethod> forceInline;
     public final Set<DexMethod> neverInline;
+    public final Set<DexType> neverMerge;
     public final Map<DexDefinition, ProguardMemberRule> noSideEffects;
     public final Map<DexDefinition, ProguardMemberRule> assumedValues;
     private final Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking;
@@ -880,6 +897,7 @@ public class RootSetBuilder {
         Set<DexMethod> alwaysInline,
         Set<DexMethod> forceInline,
         Set<DexMethod> neverInline,
+        Set<DexType> neverMerge,
         Map<DexDefinition, ProguardMemberRule> noSideEffects,
         Map<DexDefinition, ProguardMemberRule> assumedValues,
         Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking,
@@ -894,6 +912,7 @@ public class RootSetBuilder {
       this.alwaysInline = Collections.unmodifiableSet(alwaysInline);
       this.forceInline = Collections.unmodifiableSet(forceInline);
       this.neverInline = Collections.unmodifiableSet(neverInline);
+      this.neverMerge = Collections.unmodifiableSet(neverMerge);
       this.noSideEffects = Collections.unmodifiableMap(noSideEffects);
       this.assumedValues = Collections.unmodifiableMap(assumedValues);
       this.dependentNoShrinking = dependentNoShrinking;
