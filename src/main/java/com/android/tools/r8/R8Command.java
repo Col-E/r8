@@ -648,6 +648,7 @@ public final class R8Command extends BaseCompilerCommand {
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
 
+    assert internal.enableHorizontalClassMerging || !proguardConfiguration.isOptimizing();
     assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();
     if (internal.debug) {
       internal.proguardConfiguration.getKeepAttributes().lineNumberTable = true;
@@ -656,6 +657,7 @@ public final class R8Command extends BaseCompilerCommand {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       internal.enableInlining = false;
       internal.enableClassInlining = false;
+      internal.enableHorizontalClassMerging = false;
       internal.enableVerticalClassMerging = false;
       internal.enableClassStaticizer = false;
       // TODO(zerny): Should we support outlining in debug mode? b/62937285

@@ -72,6 +72,10 @@ public abstract class AccessFlags {
     return visibilityOrdinal() > other.visibilityOrdinal();
   }
 
+  public boolean isAtLeastAsVisibleAs(AccessFlags other) {
+    return visibilityOrdinal() >= other.visibilityOrdinal();
+  }
+
   private int visibilityOrdinal() {
     // public > protected > package > private
     if (isPublic()) {

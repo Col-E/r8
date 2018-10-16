@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
@@ -18,7 +19,6 @@ import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -477,7 +477,7 @@ public class VerticalClassMerger {
     // Check that all accesses from [source] to classes or members from the current package of
     // [source] will continue to work. This is guaranteed if the methods of [source] do not access
     // any private or protected classes or members from the current package of [source].
-    IllegalAccessDetector registry = new IllegalAccessDetector(options.itemFactory, source);
+    IllegalAccessDetector registry = new IllegalAccessDetector(appInfo, source);
     for (DexEncodedMethod method : source.methods()) {
       method.registerCodeReferences(registry);
       if (registry.foundIllegalAccess()) {
@@ -1334,7 +1334,7 @@ public class VerticalClassMerger {
   private class TreeFixer {
 
     private final Builder lense = GraphLense.builder();
-    Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
+    private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
     private GraphLense fixupTypeReferences(GraphLense graphLense) {
       // Globally substitute merged class types in protos and holders.
@@ -1345,7 +1345,7 @@ public class VerticalClassMerger {
         clazz.setStaticFields(substituteTypesIn(clazz.staticFields()));
         clazz.setInstanceFields(substituteTypesIn(clazz.instanceFields()));
       }
-      // Record type renamings so instanceof and checkcast checks are also fixed.
+      // Record type renamings so check-cast and instance-of checks are also fixed.
       for (DexType type : mergedClasses.keySet()) {
         DexType fixed = fixupType(type);
         lense.map(type, fixed);
@@ -1649,12 +1649,16 @@ public class VerticalClassMerger {
 
   // Searches for a reference to a non-public class, field or method declared in the same package
   // as [source].
-  private class IllegalAccessDetector extends UseRegistry {
-    private boolean foundIllegalAccess = false;
-    private DexClass source;
+  public static class IllegalAccessDetector extends UseRegistry {
 
-    public IllegalAccessDetector(DexItemFactory factory, DexClass source) {
-      super(factory);
+    private boolean foundIllegalAccess = false;
+
+    private final AppInfo appInfo;
+    private final DexClass source;
+
+    public IllegalAccessDetector(AppInfo appInfo, DexClass source) {
+      super(appInfo.dexItemFactory);
+      this.appInfo = appInfo;
       this.source = source;
     }
 
@@ -1664,7 +1668,8 @@ public class VerticalClassMerger {
 
     private boolean checkFieldReference(DexField field) {
       if (!foundIllegalAccess) {
-        if (field.clazz.isSamePackage(source.type)) {
+        DexType baseType = field.clazz.toBaseType(appInfo.dexItemFactory);
+        if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
           checkTypeReference(field.clazz);
           checkTypeReference(field.type);
 
@@ -1679,7 +1684,8 @@ public class VerticalClassMerger {
 
     private boolean checkMethodReference(DexMethod method) {
       if (!foundIllegalAccess) {
-        if (method.holder.isSamePackage(source.type)) {
+        DexType baseType = method.holder.toBaseType(appInfo.dexItemFactory);
+        if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
           checkTypeReference(method.holder);
           checkTypeReference(method.proto.returnType);
           for (DexType type : method.proto.parameters.values) {
@@ -1696,8 +1702,9 @@ public class VerticalClassMerger {
 
     private boolean checkTypeReference(DexType type) {
       if (!foundIllegalAccess) {
-        if (type.isClassType() && type.isSamePackage(source.type)) {
-          DexClass clazz = appInfo.definitionFor(type);
+        DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+        if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
+          DexClass clazz = appInfo.definitionFor(baseType);
           if (clazz == null || !clazz.accessFlags.isPublic()) {
             foundIllegalAccess = true;
           }

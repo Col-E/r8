@@ -53,7 +53,15 @@ public abstract class TestBuilder<T extends TestBuilder<T>> {
   }
 
   public T addProgramClassesAndInnerClasses(Collection<Class<?>> classes) throws IOException {
-    return addProgramFiles(getFilesForClassesAndInnerClasses(classes));
+    return addProgramClasses(classes).addInnerClasses(classes);
+  }
+
+  public T addInnerClasses(Class<?>... classes) throws IOException {
+    return addInnerClasses(Arrays.asList(classes));
+  }
+
+  public T addInnerClasses(Collection<Class<?>> classes) throws IOException {
+    return addProgramFiles(getFilesForInnerClasses(classes));
   }
 
   public abstract T addLibraryFiles(Collection<Path> files);
@@ -74,15 +82,14 @@ public abstract class TestBuilder<T extends TestBuilder<T>> {
     return ListUtils.map(classes, ToolHelper::getClassFileForTestClass);
   }
 
-  static Collection<Path> getFilesForClassesAndInnerClasses(Collection<Class<?>> classes)
-      throws IOException {
+  static Collection<Path> getFilesForInnerClasses(Collection<Class<?>> classes) throws IOException {
     Set<Path> paths = new HashSet<>();
     for (Class clazz : classes) {
       Path path = ToolHelper.getClassFileForTestClass(clazz);
       String prefix = path.toString().replace(CLASS_EXTENSION, "$");
       paths.addAll(
           ToolHelper.getClassFilesForTestDirectory(
-              path.getParent(), p -> p.equals(path) || p.toString().startsWith(prefix)));
+              path.getParent(), p -> p.toString().startsWith(prefix)));
     }
     return paths;
   }

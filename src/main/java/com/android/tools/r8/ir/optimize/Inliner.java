@@ -75,7 +75,7 @@ public class Inliner {
   }
 
   public boolean isBlackListed(DexEncodedMethod method) {
-    return blackList.contains(method.method)
+    return blackList.contains(appView.graphLense().getOriginalMethodSignature(method.method))
         || appView.appInfo().neverInline.contains(method.method)
         || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method.method, converter);
   }

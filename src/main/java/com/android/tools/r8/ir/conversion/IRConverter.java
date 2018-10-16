@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
@@ -732,10 +733,8 @@ public class IRConverter {
     printC1VisualizerHeader(method);
     printMethod(code, "Initial IR (SSA)");
 
-    DexClass holder = definitionFor(method.method.holder);
-    if (method.getCode() != null && method.getCode().isJarCode()
-        && holder.hasKotlinInfo()) {
-      computeKotlinNotNullParamHints(feedback, holder.getKotlinInfo(), method, code);
+    if (method.getCode() != null && method.getCode().isJarCode()) {
+      computeKotlinNotNullParamHints(feedback, method, code);
     }
 
     if (options.canHaveArtStringNewInitBug()) {
@@ -907,11 +906,19 @@ public class IRConverter {
   }
 
   private void computeKotlinNotNullParamHints(
-      OptimizationFeedback feedback, KotlinInfo kotlinInfo, DexEncodedMethod method, IRCode code) {
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+    DexMethod originalSignature = graphLense().getOriginalMethodSignature(method.method);
+    DexClass originalHolder = definitionFor(originalSignature.holder);
+    if (!originalHolder.hasKotlinInfo()) {
+      return;
+    }
+
     // Use non-null parameter hints in Kotlin metadata if available.
+    KotlinInfo kotlinInfo = originalHolder.getKotlinInfo();
     if (kotlinInfo.hasNonNullParameterHints()) {
-      BitSet hintFromMetadata = kotlinInfo.lookupNonNullParameterHint(
-          method.method.name.toString(), method.method.proto.toDescriptorString());
+      BitSet hintFromMetadata =
+          kotlinInfo.lookupNonNullParameterHint(
+              originalSignature.name.toString(), originalSignature.proto.toDescriptorString());
       if (hintFromMetadata != null) {
         if (hintFromMetadata.length() > 0) {
           feedback.setKotlinNotNullParamHints(method, hintFromMetadata);
@@ -934,12 +941,15 @@ public class IRConverter {
         // to the mentioned intrinsic as the first argument. We do it only for
         // code coming from Java classfile, since after the method is rewritten
         // by R8 this call gets inlined.
-        if (!user.isInvokeStatic() ||
-            user.asInvokeMethod().getInvokedMethod() != checkParameterIsNotNull ||
-            user.inValues().indexOf(argument) != 0) {
+        if (!user.isInvokeStatic()) {
           continue;
         }
-        paramsCheckedForNull.set(index);
+        InvokeMethod invoke = user.asInvokeMethod();
+        DexMethod invokedMethod =
+            appView.graphLense().getOriginalMethodSignature(invoke.getInvokedMethod());
+        if (invokedMethod == checkParameterIsNotNull && user.inValues().indexOf(argument) == 0) {
+          paramsCheckedForNull.set(index);
+        }
       }
     }
     if (paramsCheckedForNull.length() > 0) {
