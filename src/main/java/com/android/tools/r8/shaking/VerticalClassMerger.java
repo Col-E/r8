@@ -34,6 +34,7 @@ import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -57,15 +58,12 @@ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -198,6 +196,7 @@ public class VerticalClassMerger {
 
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final ExecutorService executorService;
   private final GraphLense graphLense;
   private final MethodPoolCollection methodPoolCollection;
@@ -231,6 +230,7 @@ public class VerticalClassMerger {
       Timing timing) {
     this.application = application;
     this.appInfo = appView.appInfo();
+    this.appView = appView;
     this.executorService = executorService;
     this.graphLense = appView.graphLense();
     this.methodPoolCollection = new MethodPoolCollection(application);
@@ -584,7 +584,7 @@ public class VerticalClassMerger {
     }
   }
 
-  public GraphLense run() throws ExecutionException {
+  public GraphLense run() {
     timing.begin("merge");
     GraphLense mergingGraphLense = mergeClasses(graphLense);
     timing.end();
@@ -604,108 +604,11 @@ public class VerticalClassMerger {
     return result;
   }
 
-  private void addCandidateAncestorsToWorklist(
-      DexProgramClass clazz, Deque<DexProgramClass> worklist, Set<DexProgramClass> seenBefore) {
-    if (seenBefore.contains(clazz)) {
-      return;
-    }
-
-    if (mergeCandidates.contains(clazz)) {
-      worklist.addFirst(clazz);
-    }
-
-    // Add super classes to worklist.
-    if (clazz.superType != null) {
-      DexClass definition = appInfo.definitionFor(clazz.superType);
-      if (definition != null && definition.isProgramClass()) {
-        addCandidateAncestorsToWorklist(definition.asProgramClass(), worklist, seenBefore);
-      }
-    }
-
-    // Add super interfaces to worklist.
-    for (DexType interfaceType : clazz.interfaces.values) {
-      DexClass definition = appInfo.definitionFor(interfaceType);
-      if (definition != null && definition.isProgramClass()) {
-        addCandidateAncestorsToWorklist(definition.asProgramClass(), worklist, seenBefore);
-      }
-    }
-  }
-
-  private GraphLense mergeClasses(GraphLense graphLense) throws ExecutionException {
-    Deque<DexProgramClass> worklist = new ArrayDeque<>();
-    Set<DexProgramClass> seenBefore = new HashSet<>();
-
-    int numberOfMerges = 0;
-
-    Iterator<DexProgramClass> candidatesIterator = mergeCandidates.iterator();
-
+  private GraphLense mergeClasses(GraphLense graphLense) {
     // Visit the program classes in a top-down order according to the class hierarchy.
-    while (candidatesIterator.hasNext() || !worklist.isEmpty()) {
-      if (worklist.isEmpty()) {
-        // Add the ancestors of this class (including the class itself) to the worklist in such a
-        // way that all super types of the class come before the class itself.
-        addCandidateAncestorsToWorklist(candidatesIterator.next(), worklist, seenBefore);
-        if (worklist.isEmpty()) {
-          continue;
-        }
-      }
-
-      DexProgramClass clazz = worklist.removeFirst();
-      assert isMergeCandidate(clazz, pinnedTypes);
-      if (!seenBefore.add(clazz)) {
-        continue;
-      }
-
-      DexProgramClass targetClass =
-          appInfo.definitionFor(clazz.type.getSingleSubtype()).asProgramClass();
-      assert !mergedClasses.containsKey(targetClass.type);
-
-      boolean clazzOrTargetClassHasBeenMerged =
-          mergedClassesInverse.containsKey(clazz.type)
-              || mergedClassesInverse.containsKey(targetClass.type);
-      if (clazzOrTargetClassHasBeenMerged) {
-        if (!isStillMergeCandidate(clazz)) {
-          continue;
-        }
-      } else {
-        assert isStillMergeCandidate(clazz);
-      }
-
-      // Guard against the case where we have two methods that may get the same signature
-      // if we replace types. This is rare, so we approximate and err on the safe side here.
-      if (new CollisionDetector(clazz.type, targetClass.type).mayCollide()) {
-        if (Log.ENABLED) {
-          AbortReason.CONFLICT.printLogMessageForClass(clazz);
-        }
-        continue;
-      }
-
-      ClassMerger merger = new ClassMerger(clazz, targetClass);
-      boolean merged = merger.merge();
-      if (merged) {
-        // Commit the changes to the graph lense.
-        renamedMembersLense.merge(merger.getRenamings());
-        synthesizedBridges.addAll(merger.getSynthesizedBridges());
-      }
-      if (Log.ENABLED) {
-        if (merged) {
-          numberOfMerges++;
-          Log.info(
-              getClass(),
-              "Merged class %s into %s.",
-              clazz.toSourceString(),
-              targetClass.toSourceString());
-        } else {
-          Log.info(
-              getClass(),
-              "Aborted merge for class %s into %s.",
-              clazz.toSourceString(),
-              targetClass.toSourceString());
-        }
-      }
-    }
+    TopDownClassHierarchyTraversal.visit(appView, mergeCandidates, this::mergeClassIfPossible);
     if (Log.ENABLED) {
-      Log.debug(getClass(), "Merged %d classes.", numberOfMerges);
+      Log.debug(getClass(), "Merged %d classes.", mergedClasses.size());
     }
     return renamedMembersLense.build(graphLense, mergedClasses, synthesizedBridges, appInfo);
   }
@@ -762,6 +665,66 @@ public class VerticalClassMerger {
       }
     }
     return false;
+  }
+
+  private void mergeClassIfPossible(DexProgramClass clazz) {
+    if (!mergeCandidates.contains(clazz)) {
+      return;
+    }
+
+    assert isMergeCandidate(clazz, pinnedTypes);
+
+    DexProgramClass targetClass =
+        appInfo.definitionFor(clazz.type.getSingleSubtype()).asProgramClass();
+    assert !mergedClasses.containsKey(targetClass.type);
+
+    boolean clazzOrTargetClassHasBeenMerged =
+        mergedClassesInverse.containsKey(clazz.type)
+            || mergedClassesInverse.containsKey(targetClass.type);
+    if (clazzOrTargetClassHasBeenMerged) {
+      if (!isStillMergeCandidate(clazz)) {
+        return;
+      }
+    } else {
+      assert isStillMergeCandidate(clazz);
+    }
+
+    // Guard against the case where we have two methods that may get the same signature
+    // if we replace types. This is rare, so we approximate and err on the safe side here.
+    if (new CollisionDetector(clazz.type, targetClass.type).mayCollide()) {
+      if (Log.ENABLED) {
+        AbortReason.CONFLICT.printLogMessageForClass(clazz);
+      }
+      return;
+    }
+
+    ClassMerger merger = new ClassMerger(clazz, targetClass);
+    boolean merged;
+    try {
+      merged = merger.merge();
+    } catch (ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+    if (merged) {
+      // Commit the changes to the graph lense.
+      renamedMembersLense.merge(merger.getRenamings());
+      synthesizedBridges.addAll(merger.getSynthesizedBridges());
+    }
+    if (Log.ENABLED) {
+      if (merged) {
+        Log.info(
+            getClass(),
+            "Merged class %s into %s.",
+            clazz.toSourceString(),
+            targetClass.toSourceString());
+      } else {
+        Log.info(
+            getClass(),
+            "Aborted merge for class %s into %s.",
+            clazz.toSourceString(),
+            targetClass.toSourceString());
+      }
+    }
   }
 
   private boolean fieldResolutionMayChange(DexClass source, DexClass target) {
