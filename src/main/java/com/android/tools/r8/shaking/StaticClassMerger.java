@@ -5,16 +5,15 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
@@ -25,12 +24,8 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
-import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -64,74 +59,34 @@ public class StaticClassMerger {
     this.appView = appView;
   }
 
-  // TODO(christofferqa): Share top-down traversal with vertical class merger.
   public GraphLense run() {
-    // Visit classes in top-down order.
-    Deque<DexProgramClass> worklist = new ArrayDeque<>();
-    Set<DexProgramClass> seenBefore = new HashSet<>();
-
-    Iterator<DexProgramClass> classIterator =
-        appView.appInfo().app.classesWithDeterministicOrder().iterator();
-
     // Visit the program classes in a top-down order according to the class hierarchy.
-    while (classIterator.hasNext() || !worklist.isEmpty()) {
-      if (worklist.isEmpty()) {
-        // Add the ancestors of this class (including the class itself) to the worklist in such a
-        // way that all super types of the class come before the class itself.
-        addAncestorsToWorklist(classIterator.next(), worklist, seenBefore);
-        if (worklist.isEmpty()) {
-          continue;
-        }
-      }
-
-      DexProgramClass clazz = worklist.removeFirst();
-      if (!seenBefore.add(clazz)) {
-        continue;
-      }
-
+    Iterable<DexProgramClass> classes = appView.appInfo().app.classesWithDeterministicOrder();
+    TopDownClassHierarchyTraversal.visit(appView, classes, clazz -> {
       if (satisfiesMergeCriteria(clazz)) {
         merge(clazz);
       }
-    }
-
-    BiMap<DexField, DexField> originalFieldSignatures = fieldMapping.inverse();
-    BiMap<DexMethod, DexMethod> originalMethodSignatures = methodMapping.inverse();
-    return new NestedGraphLense(
-        ImmutableMap.of(),
-        methodMapping,
-        fieldMapping,
-        originalFieldSignatures,
-        originalMethodSignatures,
-        appView.graphLense(),
-        appView.dexItemFactory());
+    });
+    return buildGraphLense();
   }
 
-  private void addAncestorsToWorklist(
-      DexProgramClass clazz, Deque<DexProgramClass> worklist, Set<DexProgramClass> seenBefore) {
-    if (seenBefore.contains(clazz)) {
-      return;
+  private GraphLense buildGraphLense() {
+    if (!fieldMapping.isEmpty() || !methodMapping.isEmpty()) {
+      BiMap<DexField, DexField> originalFieldSignatures = fieldMapping.inverse();
+      BiMap<DexMethod, DexMethod> originalMethodSignatures = methodMapping.inverse();
+      return new NestedGraphLense(
+          ImmutableMap.of(),
+          methodMapping,
+          fieldMapping,
+          originalFieldSignatures,
+          originalMethodSignatures,
+          appView.graphLense(),
+          appView.dexItemFactory());
     }
-
-    worklist.addFirst(clazz);
-
-    // Add super classes to worklist.
-    if (clazz.superType != null) {
-      DexClass definition = appView.appInfo().definitionFor(clazz.superType);
-      if (definition != null && definition.isProgramClass()) {
-        addAncestorsToWorklist(definition.asProgramClass(), worklist, seenBefore);
-      }
-    }
-
-    // Add super interfaces to worklist.
-    for (DexType interfaceType : clazz.interfaces.values) {
-      DexClass definition = appView.appInfo().definitionFor(interfaceType);
-      if (definition != null && definition.isProgramClass()) {
-        addAncestorsToWorklist(definition.asProgramClass(), worklist, seenBefore);
-      }
-    }
+    return appView.graphLense();
   }
 
-  public boolean satisfiesMergeCriteria(DexProgramClass clazz) {
+  private boolean satisfiesMergeCriteria(DexProgramClass clazz) {
     if (appView.appInfo().neverMerge.contains(clazz.type)) {
       return false;
     }
@@ -169,7 +124,7 @@ public class StaticClassMerger {
     return true;
   }
 
-  public boolean merge(DexProgramClass clazz) {
+  private boolean merge(DexProgramClass clazz) {
     assert satisfiesMergeCriteria(clazz);
 
     String pkg = clazz.type.getPackageDescriptor();
