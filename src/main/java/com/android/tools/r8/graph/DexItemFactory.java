@@ -15,6 +15,9 @@ import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ReferenceTypeLatticeElement;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
@@ -61,6 +64,10 @@ public class DexItemFactory {
   // -identifiernamestring canonicalization.
   private final ConcurrentHashMap<DexItemBasedString, DexItemBasedString> identifiers =
       new ConcurrentHashMap<>();
+
+  // ReferenceTypeLattice canonicalization.
+  private final ConcurrentHashMap<DexType, ReferenceTypeLatticeElement>
+      referenceTypeLatticeElements = new ConcurrentHashMap<>();
 
   boolean sorted = false;
 
@@ -887,6 +894,37 @@ public class DexItemFactory {
 
   public boolean isClassConstructor(DexMethod method) {
     return method.name == classConstructorMethodName;
+  }
+
+  public ReferenceTypeLatticeElement createReferenceTypeLatticeElement(
+      DexType type, boolean isNullable, AppInfo appInfo) {
+    ReferenceTypeLatticeElement typeLattice = referenceTypeLatticeElements.get(type);
+    if (typeLattice != null) {
+      return isNullable == typeLattice.isNullable() ? typeLattice
+          : typeLattice.getOrCreateDualLattice();
+    }
+    synchronized (type) {
+      typeLattice = referenceTypeLatticeElements.get(type);
+      if (typeLattice == null) {
+        if (type.isClassType()) {
+          if (!type.isUnknown() && type.isInterface()) {
+            typeLattice = new ClassTypeLatticeElement(
+                appInfo.dexItemFactory.objectType, isNullable, ImmutableSet.of(type));
+          } else {
+            // In theory, `interfaces` is the least upper bound of implemented interfaces.
+            // It is expensive to walk through type hierarchy; collect implemented interfaces; and
+            // compute the least upper bound of two interface sets. Hence, lazy computations.
+            // Most likely during lattice join. See {@link ClassTypeLatticeElement#getInterfaces}.
+            typeLattice = new ClassTypeLatticeElement(type, isNullable, null);
+          }
+        } else {
+          assert type.isArrayType();
+          typeLattice = new ArrayTypeLatticeElement(type, isNullable);
+        }
+        referenceTypeLatticeElements.put(type, typeLattice);
+      }
+    }
+    return typeLattice;
   }
 
   private static <S extends PresortedComparable<S>> void assignSortedIndices(Collection<S> items,

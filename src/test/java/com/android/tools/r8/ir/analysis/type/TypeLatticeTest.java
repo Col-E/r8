@@ -84,7 +84,7 @@ public class TypeLatticeTest extends TestBase {
 
   private TypeLatticeElement join(TypeLatticeElement... elements) {
     assertTrue(elements.length > 1);
-    return TypeLatticeElement.join(Arrays.stream(elements), appInfo);
+    return TypeLatticeElement.join(Arrays.asList(elements), appInfo);
   }
 
   private boolean strictlyLessThan(TypeLatticeElement l1, TypeLatticeElement l2) {

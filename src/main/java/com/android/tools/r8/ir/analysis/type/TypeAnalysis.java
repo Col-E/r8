@@ -109,7 +109,7 @@ public class TypeAnalysis {
   private void analyzeValue(Value value) {
     TypeLatticeElement derived =
         value.isPhi()
-            ? computePhiType(value.asPhi())
+            ? value.asPhi().computePhiType(appInfo)
             : value.definition.evaluate(appInfo);
     updateTypeOfValue(value, derived);
   }
@@ -145,11 +145,6 @@ public class TypeAnalysis {
     for (Phi phi : value.uniquePhiUsers()) {
       enqueue(phi);
     }
-  }
-
-  private TypeLatticeElement computePhiType(Phi phi) {
-    // Type of phi(v1, v2, ..., vn) is the least upper bound of all those n operands.
-    return TypeLatticeElement.join(phi.getOperands().stream().map(Value::getTypeLattice), appInfo);
   }
 
   public static DexType getRefinedReceiverType(

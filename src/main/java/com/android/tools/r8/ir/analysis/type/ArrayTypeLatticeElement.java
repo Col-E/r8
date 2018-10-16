@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexType;
 
 public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
-  ArrayTypeLatticeElement(DexType type, boolean isNullable) {
+  public ArrayTypeLatticeElement(DexType type, boolean isNullable) {
     super(type, isNullable);
     assert type.isArrayType();
   }
@@ -31,13 +31,27 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
+  public ReferenceTypeLatticeElement getOrCreateDualLattice() {
+    if (dual != null) {
+      return dual;
+    }
+    synchronized (this) {
+      if (dual == null) {
+        ArrayTypeLatticeElement dual = new ArrayTypeLatticeElement(type, !isNullable());
+        linkDualLattice(this, dual);
+      }
+    }
+    return this.dual;
+  }
+
+  @Override
   public TypeLatticeElement asNullable() {
-    return isNullable() ? this : new ArrayTypeLatticeElement(type, true);
+    return isNullable() ? this : getOrCreateDualLattice();
   }
 
   @Override
   public TypeLatticeElement asNonNullable() {
-    return isNullable() ? new ArrayTypeLatticeElement(type, false) : this;
+    return !isNullable() ? this : getOrCreateDualLattice();
   }
 
   @Override
