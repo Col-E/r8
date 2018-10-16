@@ -1813,6 +1813,10 @@ public class Enqueuer {
      */
     public final Set<DexMethod> neverInline;
     /**
+     * All types that *must* never be merged due to a configuration directive (testing only).
+     */
+    public final Set<DexType> neverMerge;
+    /**
      * All items with -identifiernamestring rule.
      * Bound boolean value indicates the rule is explicitly specified by users (<code>true</code>)
      * or not, i.e., implicitly added by R8 (<code>false</code>).
@@ -1871,6 +1875,7 @@ public class Enqueuer {
       this.alwaysInline = enqueuer.rootSet.alwaysInline;
       this.forceInline = enqueuer.rootSet.forceInline;
       this.neverInline = enqueuer.rootSet.neverInline;
+      this.neverMerge = enqueuer.rootSet.neverMerge;
       this.identifierNameStrings = joinIdentifierNameStrings(
           enqueuer.rootSet.identifierNameStrings, enqueuer.identifierNameStrings);
       this.prunedTypes = Collections.emptySet();
@@ -1913,6 +1918,7 @@ public class Enqueuer {
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = previous.forceInline;
       this.neverInline = previous.neverInline;
+      this.neverMerge = previous.neverMerge;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
       this.switchMaps = previous.switchMaps;
@@ -1965,6 +1971,10 @@ public class Enqueuer {
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = lense.rewriteMethodsWithRenamedSignature(previous.forceInline);
       this.neverInline = lense.rewriteMethodsWithRenamedSignature(previous.neverInline);
+      assert lense.assertDefinitionNotModified(
+          previous.neverMerge.stream().map(this::definitionFor).filter(Objects::nonNull)
+              .collect(Collectors.toList()));
+      this.neverMerge = previous.neverMerge;
       this.identifierNameStrings =
           lense.rewriteReferencesConservatively(previous.identifierNameStrings);
       // Switchmap classes should never be affected by renaming.
@@ -2008,6 +2018,7 @@ public class Enqueuer {
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = previous.forceInline;
       this.neverInline = previous.neverInline;
+      this.neverMerge = previous.neverMerge;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = previous.prunedTypes;
       this.switchMaps = switchMaps;

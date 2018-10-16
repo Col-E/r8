@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.shaking.testrules;
 
+import com.android.tools.r8.NeverMerge;
+
+@NeverMerge
 public class A {
 
   public static int m(int a, int b) {

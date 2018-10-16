@@ -353,7 +353,8 @@ public class VerticalClassMerger {
     if (appInfo.instantiatedTypes.contains(clazz.type)
         || appInfo.instantiatedLambdas.contains(clazz.type)
         || appInfo.isPinned(clazz.type)
-        || pinnedTypes.contains(clazz.type)) {
+        || pinnedTypes.contains(clazz.type)
+        || appInfo.neverMerge.contains(clazz.type)) {
       return false;
     }
     // Note that the property "singleSubtype == null" cannot change during merging, since we visit

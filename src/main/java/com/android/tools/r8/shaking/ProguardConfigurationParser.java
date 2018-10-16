@@ -364,6 +364,9 @@ public class ProguardConfigurationParser {
       } else if (allowTestOptions && acceptString("neverinline")) {
         InlineRule rule = parseInlineRule(Type.NEVER, optionStart);
         configurationBuilder.addRule(rule);
+      } else if (allowTestOptions && acceptString("nevermerge")) {
+        ClassMergingRule rule = parseClassMergingRule(ClassMergingRule.Type.NEVER, optionStart);
+        configurationBuilder.addRule(rule);
       } else if (acceptString("useuniqueclassmembernames")) {
         configurationBuilder.setUseUniqueClassMemberNames(true);
       } else if (acceptString("adaptclassstrings")) {
@@ -587,6 +590,17 @@ public class ProguardConfigurationParser {
       ProguardCheckDiscardRule.Builder keepRuleBuilder = ProguardCheckDiscardRule.builder()
           .setOrigin(origin)
           .setStart(start);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
+    }
+
+    private ClassMergingRule parseClassMergingRule(ClassMergingRule.Type type, Position start)
+        throws ProguardRuleParserException {
+      ClassMergingRule.Builder keepRuleBuilder =
+          ClassMergingRule.builder().setOrigin(origin).setStart(start).setType(type);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));

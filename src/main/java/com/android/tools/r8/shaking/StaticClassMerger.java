@@ -132,6 +132,9 @@ public class StaticClassMerger {
   }
 
   public boolean satisfiesMergeCriteria(DexProgramClass clazz) {
+    if (appView.appInfo().neverMerge.contains(clazz.type)) {
+      return false;
+    }
     if (clazz.accessFlags.isInterface()) {
       return false;
     }

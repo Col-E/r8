@@ -10,12 +10,12 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -27,8 +27,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+@NeverMerge
 class Outer {
 
+  @NeverMerge
   static class Inner {
     @NeverInline
     static void foo() {
@@ -80,12 +82,12 @@ public class ReserveOuterClassNameTest extends TestBase {
             // Note that reproducing b/116840216 relies on the order of following rules that cause
             // the visiting of classes during class minification to be Outer$Inner before Outer.
             "-keepnames class " + Outer.class.getCanonicalName() + "$Inner",
-            keepOuterName ? "-keepnames class " + Outer.class.getCanonicalName() : ""
-        ),
+            keepOuterName ? "-keepnames class " + Outer.class.getCanonicalName() : "",
+            "-nevermerge @com.android.tools.r8.NeverMerge class *"),
         Origin.unknown());
 
     ToolHelper.allowTestProguardOptions(builder);
-    AndroidApp processedApp = ToolHelper.runR8(builder.build(), this::configure);
+    AndroidApp processedApp = ToolHelper.runR8(builder.build());
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject mainSubject = inspector.clazz(mainClass);
@@ -108,12 +110,6 @@ public class ReserveOuterClassNameTest extends TestBase {
     MethodSubject foo = inner.method("void", "foo", ImmutableList.of());
     assertThat(foo, isPresent());
     assertThat(foo, isRenamed());
-  }
-
-  private void configure(InternalOptions options) {
-    // Disable horizontal class merging to avoid that all members of Outer are moved to Outer$Inner
-    // or vice versa (both Outer and Outer$Inner are merge candidates for the static class merger).
-    options.enableHorizontalClassMerging = false;
   }
 
   @Test
