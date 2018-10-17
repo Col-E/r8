@@ -354,7 +354,10 @@ public class R8 {
           timing.end();
         }
         appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness, options).run());
-        if (options.enableHorizontalClassMerging) {
+        // TODO(117854943): Pass information on main dex classes to class merging.
+        if (options.enableHorizontalClassMerging
+            && options.mainDexKeepRules.isEmpty()
+            && application.mainDexList.isEmpty()) {
           StaticClassMerger staticClassMerger = new StaticClassMerger(appViewWithLiveness);
           appView.setGraphLense(staticClassMerger.run());
           appViewWithLiveness.setAppInfo(
