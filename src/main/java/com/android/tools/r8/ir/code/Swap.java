@@ -13,19 +13,19 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import java.util.Arrays;
+import com.google.common.collect.ImmutableList;
 
 public class Swap extends Instruction {
 
   public Swap(StackValues dest, StackValues src) {
     super(dest, src.getStackValues());
     assert src.getStackValues().size() == 2;
-    assert !(this.inValues.get(0).type.isWide() ^ this.inValues.get(1).type.isWide());
+    assert !this.inValues.get(0).type.isWide() && !this.inValues.get(1).type.isWide();
   }
 
   public Swap(StackValues dest, StackValue src1, StackValue src2) {
-    super(dest, Arrays.asList(src1, src2));
-    assert !(this.inValues.get(0).type.isWide() ^ !this.inValues.get(1).type.isWide());
+    super(dest, ImmutableList.of(src1, src2));
+    assert !this.inValues.get(0).type.isWide() && !this.inValues.get(1).type.isWide();
   }
 
   @Override
@@ -35,12 +35,7 @@ public class Swap extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    if (this.inValues.get(0).type.isWide()) {
-      builder.add(new CfStackInstruction(Opcode.Dup2X2));
-      builder.add(new CfStackInstruction(Opcode.Pop2));
-    } else {
-      builder.add(new CfStackInstruction(Opcode.Swap));
-    }
+    builder.add(new CfStackInstruction(Opcode.Swap));
   }
 
   @Override

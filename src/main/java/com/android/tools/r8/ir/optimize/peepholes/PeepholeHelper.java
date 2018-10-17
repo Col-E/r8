@@ -58,4 +58,10 @@ public class PeepholeHelper {
     it.set(moveBack);
     it.next();
   }
+
+  public static void resetNext(InstructionListIterator it, int count) {
+    for (int i = 0; i < count; i++) {
+      it.previous();
+    }
+  }
 }
