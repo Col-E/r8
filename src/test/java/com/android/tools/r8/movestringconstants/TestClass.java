@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.movestringconstants;
 
+import com.android.tools.r8.ForceInline;
+
 public class TestClass {
   public static void main(String[] args) {}
 
@@ -27,6 +29,7 @@ public class TestClass {
 }
 
 class Utils {
+  @ForceInline
   static void check(Object value, String message) {
     if (value == null) {
       throwException(message);

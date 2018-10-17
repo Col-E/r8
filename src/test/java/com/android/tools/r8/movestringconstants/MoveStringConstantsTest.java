@@ -7,6 +7,7 @@ package com.android.tools.r8.movestringconstants;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -41,6 +42,7 @@ public class MoveStringConstantsTest extends TestBase {
 
   private void runTest(Consumer<CodeInspector> inspection) throws Exception {
     R8Command.Builder builder = R8Command.builder();
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(ForceInline.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(Utils.class));
     builder.addLibraryFiles(runtimeJar(backend));
@@ -48,20 +50,14 @@ public class MoveStringConstantsTest extends TestBase {
     builder.setMode(CompilationMode.RELEASE);
     builder.addProguardConfiguration(
         ImmutableList.of(
+            "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
             "-keep class " + TestClass.class.getCanonicalName() + "{ *; }",
             "-dontobfuscate",
             "-allowaccessmodification"
         ),
         Origin.unknown());
-    AndroidApp app =
-        ToolHelper.runR8(
-            builder.build(),
-            options -> {
-              // This test relies on that TestClass.java/Utils.check will be inlined.
-              // Its size must fit into the inlining instruction limit. For CF, the default
-              // setting (5) is just too small.
-              options.inliningInstructionLimit = 10;
-            });
+    ToolHelper.allowTestProguardOptions(builder);
+    AndroidApp app = ToolHelper.runR8(builder.build());
     inspection.accept(new CodeInspector(app));
 
     if (backend == Backend.DEX) {
