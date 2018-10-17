@@ -24,6 +24,19 @@ public class ConstMethodHandle extends ConstInstruction {
     this.methodHandle = methodHandle;
   }
 
+  public static ConstMethodHandle copyOf(IRCode code, ConstMethodHandle original) {
+    Value newValue =
+        new Value(
+            code.valueNumberGenerator.next(),
+            original.outValue().getTypeLattice(),
+            original.getLocalInfo());
+    return copyOf(newValue, original);
+  }
+
+  public static ConstMethodHandle copyOf(Value newValue, ConstMethodHandle original) {
+    return new ConstMethodHandle(newValue, original.getValue());
+  }
+
   public Value dest() {
     return outValue;
   }

@@ -31,6 +31,10 @@ public class ConstString extends ConstInstruction {
         new Value(code.valueNumberGenerator.next(),
             original.outValue().getTypeLattice(),
             original.getLocalInfo());
+    return copyOf(newValue, original);
+  }
+
+  public static ConstString copyOf(Value newValue, ConstString original) {
     return new ConstString(newValue, original.getValue());
   }
 

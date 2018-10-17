@@ -235,6 +235,8 @@ public class StringLengthTest extends TestBase {
     builder.addProguardConfiguration(ImmutableList.of(pgConf), Origin.unknown());
 
     AndroidApp processedApp = ToolHelper.runR8(builder.build());
-    test(processedApp, 0, 5);
+    // TODO we could remove const counting if it needs to be changed too frequently, since
+    // the string length count is what we're interested in.
+    test(processedApp, 0, backend == Backend.DEX ? 5 : 6);
   }
 }

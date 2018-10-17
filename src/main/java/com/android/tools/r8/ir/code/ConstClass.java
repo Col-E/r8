@@ -27,6 +27,19 @@ public class ConstClass extends ConstInstruction {
     this.clazz = clazz;
   }
 
+  public static ConstClass copyOf(IRCode code, ConstClass original) {
+    Value newValue =
+        new Value(
+            code.valueNumberGenerator.next(),
+            original.outValue().getTypeLattice(),
+            original.getLocalInfo());
+    return copyOf(newValue, original);
+  }
+
+  public static ConstClass copyOf(Value newValue, ConstClass original) {
+    return new ConstClass(newValue, original.getValue());
+  }
+
   public Value dest() {
     return outValue;
   }

@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,20 +31,76 @@ public class LoadStoreHelper {
   private final IRCode code;
   private final Map<Value, DexType> types;
 
+  private Map<Value, ConstInstruction> clonableConstants = null;
+  private BasicBlock block = null;
+
   public LoadStoreHelper(IRCode code, Map<Value, DexType> types) {
     this.code = code;
     this.types = types;
   }
 
-  public void insertLoadsAndStores() {
-    // Insert per-instruction loads and stores.
-    for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
-      while (it.hasNext()) {
-        Instruction current = it.next();
-        current.insertLoadAndStores(it, this);
+  private static boolean hasLocalInfoOrUsersOutsideThisBlock(Value value, BasicBlock block) {
+    if (value.hasLocalInfo()) {
+      return true;
+    }
+    if (value.numberOfPhiUsers() > 0) {
+      return true;
+    }
+    for (Instruction instruction : value.uniqueUsers()) {
+      if (instruction.getBlock() != block) {
+        return true;
       }
     }
+    return false;
+  }
+
+  private static boolean isConstInstructionAlwaysThreeBytes(ConstInstruction instr) {
+    if (instr.isConstNumber()) {
+      ConstNumber constNumber = instr.asConstNumber();
+      switch (instr.outType()) {
+        case OBJECT:
+        case INT:
+        case FLOAT:
+          return false;
+        case LONG:
+          {
+            long number = constNumber.getLongValue();
+            return number != 0 && number != 1;
+          }
+        case DOUBLE:
+          {
+            double number = constNumber.getDoubleValue();
+            return number != 0.0f && number != 1.0f;
+          }
+        default:
+          throw new Unreachable();
+      }
+    }
+    assert instr.isConstClass()
+        || instr.isConstMethodHandle()
+        || instr.isConstMethodType()
+        || instr.isConstString();
+    return false;
+  }
+
+  private static boolean canRemoveConstInstruction(ConstInstruction instr, BasicBlock block) {
+    Value value = instr.outValue();
+    return !hasLocalInfoOrUsersOutsideThisBlock(value, block)
+        && (value.numberOfUsers() <= 1 || !isConstInstructionAlwaysThreeBytes(instr));
+  }
+
+  public void insertLoadsAndStores() {
+    clonableConstants = new IdentityHashMap<>();
+    for (BasicBlock block : code.blocks) {
+      this.block = block;
+      InstructionListIterator it = block.listIterator();
+      while (it.hasNext()) {
+        it.next().insertLoadAndStores(it, this);
+      }
+      clonableConstants.clear();
+    }
+    clonableConstants = null;
+    block = null;
   }
 
   public void insertPhiMoves(CfRegisterAllocator allocator) {
@@ -93,18 +150,33 @@ public class LoadStoreHelper {
     for (int i = 0; i < instruction.inValues().size(); i++) {
       Value value = instruction.inValues().get(i);
       StackValue stackValue = createStackValue(value, topOfStack++);
-      add(load(stackValue, value), instruction, it);
+      assert clonableConstants != null;
+      ConstInstruction constInstruction = clonableConstants.get(value);
+      if (constInstruction != null) {
+        ConstInstruction clonedConstInstruction =
+            ConstInstruction.copyOf(stackValue, constInstruction);
+        add(clonedConstInstruction, instruction, it);
+      } else {
+        add(load(stackValue, value), instruction, it);
+      }
       instruction.replaceValue(i, stackValue);
     }
     it.next();
   }
 
   public void storeOutValue(Instruction instruction, InstructionListIterator it) {
-    if (instruction.outValue() instanceof StackValue) {
-      assert instruction.isConstInstruction();
-      return;
-    }
-    if (!instruction.outValue().isUsed()) {
+    assert !(instruction.outValue() instanceof StackValue);
+    if (instruction.isConstInstruction()) {
+      ConstInstruction constInstruction = instruction.asConstInstruction();
+      assert block != null;
+      if (canRemoveConstInstruction(constInstruction, block)) {
+        clonableConstants.put(instruction.outValue(), constInstruction);
+        instruction.outValue().clearUsers();
+        it.removeOrReplaceByDebugLocalRead();
+        return;
+      }
+      assert instruction.outValue().isUsed(); // Should have removed it above.
+    } else if (!instruction.outValue().isUsed()) {
       popOutValue(instruction.outValue(), instruction, it);
       return;
     }

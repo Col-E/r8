@@ -45,6 +45,10 @@ public class ConstNumber extends ConstInstruction {
         code.valueNumberGenerator.next(),
         original.outValue().getTypeLattice(),
         original.getLocalInfo());
+    return copyOf(newValue, original);
+  }
+
+  public static ConstNumber copyOf(Value newValue, ConstNumber original) {
     return new ConstNumber(newValue, original.getRawValue());
   }
 
