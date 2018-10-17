@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.neverreturnsnormally;
 
+import com.android.tools.r8.ForceInline;
+
 public class TestClass {
   public static boolean throwNpe(String message) {
     String newMessage = "prefix:" + message + ":suffix";
@@ -11,6 +13,7 @@ public class TestClass {
     throw new NullPointerException(newMessage);
   }
 
+  @ForceInline
   public static int throwToBeInlined() {
     throwNpe("throwToBeInlined");
     return "Nobody cares".length();

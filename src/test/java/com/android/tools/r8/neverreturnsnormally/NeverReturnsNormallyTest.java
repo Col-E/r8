@@ -8,6 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -50,12 +51,14 @@ public class NeverReturnsNormallyTest extends TestBase {
       BiConsumer<CodeInspector, CompilationMode> inspection,
       boolean enableClassInliner, CompilationMode mode) throws Exception {
     R8Command.Builder builder = R8Command.builder();
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(ForceInline.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
     builder.setProgramConsumer(emptyConsumer(backend));
     builder.addLibraryFiles(runtimeJar(backend));
     builder.setMode(mode);
     builder.addProguardConfiguration(
         ImmutableList.of(
+            "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
             "-keep class " + TestClass.class.getCanonicalName() + "{",
             "  public static void main(java.lang.String[]);",
             "  *** test*(...);",
@@ -70,6 +73,7 @@ public class NeverReturnsNormallyTest extends TestBase {
             "-dontobfuscate",
             "-allowaccessmodification"),
         Origin.unknown());
+    ToolHelper.allowTestProguardOptions(builder);
     AndroidApp app =
         ToolHelper.runR8(builder.build(), opts -> opts.enableClassInlining = enableClassInliner);
     inspection.accept(new CodeInspector(app), mode);
@@ -133,7 +137,7 @@ public class NeverReturnsNormallyTest extends TestBase {
     }
     verifyTrailingPattern(instructions);
 
-    // Check the instruction used for testInlinedIntoVoidMethod
+    // Check the instruction used for outerTrivial
     MethodSubject methodOuterTrivial =
         clazz.method("int", "outerTrivial", ImmutableList.of());
     assertTrue(methodOuterTrivial.isPresent());
