@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProto;
@@ -111,6 +112,10 @@ public abstract class Invoke extends Instruction {
   abstract public Type getType();
 
   abstract public DexType getReturnType();
+
+  public boolean hasReturnTypeVoid(DexItemFactory factory) {
+    return getReturnType() == factory.voidType;
+  }
 
   public List<Value> arguments() {
     return inValues;

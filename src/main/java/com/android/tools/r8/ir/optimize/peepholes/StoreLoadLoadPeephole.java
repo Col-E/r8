@@ -1,5 +1,6 @@
 package com.android.tools.r8.ir.optimize.peepholes;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Load;
@@ -35,7 +36,7 @@ public class StoreLoadLoadPeephole implements BasicBlockPeephole {
           ImmutableList.of(Instruction::isStore, Instruction::isLoad, Instruction::isLoad));
 
   @Override
-  public boolean match(InstructionListIterator it) {
+  public boolean match(InstructionListIterator it, DexItemFactory factory) {
     Instruction[] match = layout.test(it);
     if (match == null) {
       return false;
