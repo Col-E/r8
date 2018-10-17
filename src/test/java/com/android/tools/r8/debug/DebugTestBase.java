@@ -1059,6 +1059,8 @@ public abstract class DebugTestBase extends TestBase {
       void checkLocal(String localName);
       void checkLocal(String localName, Value expectedValue);
 
+      void setLocal(String localName, Value newValue);
+
       void checkLine(String sourceFile, int line);
     }
 
@@ -1066,11 +1068,14 @@ public abstract class DebugTestBase extends TestBase {
 
       private class DebuggeeFrame implements FrameInspector {
 
+        private final JUnit3Wrapper wrapper;
         private final long frameId;
         private final Location location;
         private final Translator translator;
 
-        public DebuggeeFrame(long frameId, Location location, Translator translator) {
+        public DebuggeeFrame(
+            JUnit3Wrapper wrapper, long frameId, Location location, Translator translator) {
+          this.wrapper = wrapper;
           this.frameId = frameId;
           this.location = location;
           this.translator = translator;
@@ -1244,6 +1249,23 @@ public abstract class DebugTestBase extends TestBase {
         }
 
         @Override
+        public void setLocal(String localName, Value newValue) {
+          Optional<Variable> localVar = getVariableAt(mirror, getLocation(), localName);
+          Assert.assertTrue("No local '" + localName + "'", localVar.isPresent());
+
+          CommandPacket setValues =
+              new CommandPacket(
+                  StackFrameCommandSet.CommandSetID, StackFrameCommandSet.SetValuesCommand);
+          setValues.setNextValueAsThreadID(getThreadId());
+          setValues.setNextValueAsFrameID(getFrameId());
+          setValues.setNextValueAsInt(1);
+          setValues.setNextValueAsInt(localVar.get().getSlot());
+          setValues.setNextValueAsValue(newValue);
+          ReplyPacket replyPacket = mirror.performCommand(setValues);
+          wrapper.checkReplyPacket(replyPacket, "StackFrame.SetValues");
+        }
+
+        @Override
         public void checkLine(String sourceFile, int line) {
           if (!Objects.equals(sourceFile, getSourceFile()) || line != getLineNumber()) {
             String locationString = convertCurrentLocationToString();
@@ -1378,6 +1400,11 @@ public abstract class DebugTestBase extends TestBase {
       @Override
       public void checkLocal(String localName, Value expectedValue) {
         getTopFrame().checkLocal(localName, expectedValue);
+      }
+
+      @Override
+      public void setLocal(String localName, Value newValue) {
+        getTopFrame().setLocal(localName, newValue);
       }
 
       @Override
@@ -1556,7 +1583,7 @@ public abstract class DebugTestBase extends TestBase {
         for (int i = 0; i < frameCount; ++i) {
           long frameId = replyPacket.getNextValueAsFrameID();
           Location location = replyPacket.getNextValueAsLocation();
-          frames.add(debuggeeState.new DebuggeeFrame(frameId, location, translator));
+          frames.add(debuggeeState.new DebuggeeFrame(this, frameId, location, translator));
         }
         assertAllDataRead(replyPacket);
       }
