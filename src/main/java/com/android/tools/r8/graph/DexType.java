@@ -237,10 +237,15 @@ public class DexType extends DexReference implements PresortedComparable<DexType
    * @return a set of interfaces of {@link DexType}.
    */
   public Set<DexType> implementedInterfaces(AppInfo appInfo) {
-    if (implementedInterfaces == null) {
-      Set<DexType> interfaces = Sets.newIdentityHashSet();
-      implementedInterfaces(appInfo, interfaces);
-      implementedInterfaces = interfaces;
+    if (implementedInterfaces != null) {
+      return implementedInterfaces;
+    }
+    synchronized (this) {
+      if (implementedInterfaces == null) {
+        Set<DexType> interfaces = Sets.newIdentityHashSet();
+        implementedInterfaces(appInfo, interfaces);
+        implementedInterfaces = interfaces;
+      }
     }
     return implementedInterfaces;
   }

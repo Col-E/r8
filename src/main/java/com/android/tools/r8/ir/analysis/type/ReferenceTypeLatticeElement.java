@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -18,7 +19,20 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
       new ReferenceTypeLatticeElement(DexItemFactory.unknownType, true);
 
   final DexType type;
-  final Set<DexType> interfaces;
+  Set<DexType> interfaces;
+
+  // Link between maybe-null and definitely-not-null reference type lattices.
+  ReferenceTypeLatticeElement dual;
+
+  public ReferenceTypeLatticeElement getOrCreateDualLattice() {
+    throw new Unreachable("Should be defined/used by class/array types.");
+  }
+
+  static void linkDualLattice(ReferenceTypeLatticeElement t1, ReferenceTypeLatticeElement t2) {
+    assert t1.dual == null && t2.dual == null;
+    t1.dual = t2;
+    t2.dual = t1;
+  }
 
   ReferenceTypeLatticeElement(DexType type, boolean isNullable) {
     this(type, isNullable, ImmutableSet.of());
@@ -27,7 +41,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   ReferenceTypeLatticeElement(DexType type, boolean isNullable, Set<DexType> interfaces) {
     super(isNullable);
     this.type = type;
-    this.interfaces = Collections.unmodifiableSet(interfaces);
+    this.interfaces = interfaces == null ? null : Collections.unmodifiableSet(interfaces);
   }
 
   static ReferenceTypeLatticeElement getNullTypeLatticeElement() {
@@ -68,7 +82,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append(isNullableString()).append(type.toString());
-    if (!interfaces.isEmpty()) {
+    if (interfaces != null) {
       builder.append(" [");
       builder.append(
           interfaces.stream().map(DexType::toString).collect(Collectors.joining(", ")));
@@ -85,6 +99,9 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
     ReferenceTypeLatticeElement other = (ReferenceTypeLatticeElement) o;
     if (!type.equals(other.type)) {
       return false;
+    }
+    if (interfaces == null || other.interfaces == null) {
+      return interfaces == other.interfaces;
     }
     if (interfaces.size() != other.interfaces.size()) {
       return false;

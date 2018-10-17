@@ -282,7 +282,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     DexType test = appInfo.dexItemFactory.createType("LTest;");
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
         ArrayLength.class, INT,
-        ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
+        ConstString.class, TypeLatticeElement.stringClassType(appInfo),
         CheckCast.class, new ClassTypeLatticeElement(test, true),
         NewInstance.class, new ClassTypeLatticeElement(test, false));
     IRCode irCode =
@@ -313,7 +313,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     DexType test = appInfo.dexItemFactory.createType("LTest;");
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-      ConstString.class, new ClassTypeLatticeElement(appInfo.dexItemFactory.stringType, false),
+      ConstString.class, TypeLatticeElement.stringClassType(appInfo),
       InstanceOf.class, INT,
       StaticGet.class, new ClassTypeLatticeElement(test, true));
     IRCode irCode =
