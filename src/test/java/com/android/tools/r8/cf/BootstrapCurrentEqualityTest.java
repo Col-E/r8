@@ -9,8 +9,9 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -70,6 +71,8 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   private static Path r8R8Debug;
   private static Path r8R8Release;
 
+  private static boolean testExternal = true;
+
   @ClassRule public static TemporaryFolder testFolder = new TemporaryFolder();
 
   @BeforeClass
@@ -80,13 +83,32 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   private static Path compileR8(String mode) throws Exception {
     // Run R8 on r8.jar.
-    R8Result output = runExternalR8(
-        ToolHelper.R8_LIB_JAR, ToolHelper.R8_LIB_JAR, testFolder.newFolder().toPath(), MAIN_KEEP, mode);
+    Path jar;
+    if (testExternal) {
+      R8Result output =
+          runExternalR8(
+              ToolHelper.R8_LIB_JAR,
+              ToolHelper.R8_LIB_JAR,
+              testFolder.newFolder().toPath(),
+              MAIN_KEEP,
+              mode);
+      jar = output.outputJar;
+    } else {
+      jar = testFolder.newFolder().toPath().resolve("out.zip");
+      R8.run(
+          R8Command.builder()
+              .setMode(CompilationMode.RELEASE)
+              .addLibraryFiles(runtimeJar(Backend.CF))
+              .addProgramFiles(ToolHelper.R8_LIB_JAR)
+              .setOutput(jar, OutputMode.ClassFile)
+              .build());
+    }
     // Check that all non-abstract classes in the R8'd R8 implement all abstract/interface methods
     // from their supertypes. This is a sanity check for the tree shaking and minification.
-    AndroidApp app = AndroidApp.builder().addProgramFile(output.outputJar).build();
+    AndroidApp app = AndroidApp.builder().addProgramFile(jar).build();
+
     new ClassHierarchyVerifier(new CodeInspector(app)).run();
-    return output.outputJar;
+    return jar;
   }
 
   @Test
