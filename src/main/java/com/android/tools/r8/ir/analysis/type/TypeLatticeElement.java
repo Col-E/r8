@@ -481,19 +481,10 @@ public abstract class TypeLatticeElement {
   }
 
   @Override
-  abstract public String toString();
+  public abstract String toString();
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || o.getClass() != this.getClass()) {
-      return false;
-    }
-    TypeLatticeElement otherElement = (TypeLatticeElement) o;
-    return otherElement.isNullable() == isNullable;
-  }
+  public abstract boolean equals(Object o);
 
   @Override
   public int hashCode() {

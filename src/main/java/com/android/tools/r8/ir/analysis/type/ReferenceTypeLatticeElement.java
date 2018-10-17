@@ -93,10 +93,16 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public boolean equals(Object o) {
-    if (!super.equals(o)) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof ReferenceTypeLatticeElement)) {
       return false;
     }
     ReferenceTypeLatticeElement other = (ReferenceTypeLatticeElement) o;
+    if (this.isNullable() != other.isNullable()) {
+      return false;
+    }
     if (!type.equals(other.type)) {
       return false;
     }

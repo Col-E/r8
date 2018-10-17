@@ -28,6 +28,11 @@ public class SingleTypeLatticeElement extends PrimitiveTypeLatticeElement {
   }
 
   @Override
+  public boolean equals(Object o) {
+    return this == o;
+  }
+
+  @Override
   public int hashCode() {
     return super.hashCode() * 31;
   }

@@ -43,6 +43,11 @@ public class TopTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
+  public boolean equals(Object o) {
+    return this == o;
+  }
+
+  @Override
   public int hashCode() {
     return Integer.MAX_VALUE;
   }
