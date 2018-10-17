@@ -1233,6 +1233,9 @@ public class CodeRewriter {
 
   // Replace result uses for methods where something is known about what is returned.
   public void rewriteMoveResult(IRCode code) {
+    if (options.isGeneratingClassFiles()) {
+      return;
+    }
     AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
