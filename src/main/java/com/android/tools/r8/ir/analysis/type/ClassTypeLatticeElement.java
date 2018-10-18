@@ -71,4 +71,13 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     return this;
   }
 
+  @Override
+  public int hashCode() {
+    int result = (isNullable() ? 1 : -1) * type.hashCode();
+    if (interfaces != null) {
+      result = result * 31 + interfaces.hashCode();
+    }
+    return result;
+  }
+
 }
