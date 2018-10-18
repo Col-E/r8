@@ -4,6 +4,8 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.debug.CfDebugTestConfig;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -108,6 +110,11 @@ public class JvmTestBuilder extends TestBuilder<JvmTestBuilder> {
   public TestRunResult run(String mainClass) throws IOException {
     ProcessResult result = ToolHelper.runJava(classpath, mainClass);
     return new TestRunResult(builder.build(), result);
+  }
+
+  @Override
+  public DebugTestConfig debugConfig() {
+    return new CfDebugTestConfig().addPaths(classpath);
   }
 
   @Override

@@ -60,16 +60,28 @@ import org.objectweb.asm.ClassVisitor;
 
 public class TestBase {
 
-  public R8TestBuilder testForR8(Backend backend) {
+  public static R8TestBuilder testForR8(TemporaryFolder temp, Backend backend) {
     return R8TestBuilder.create(new TestState(temp), backend);
   }
 
-  public D8TestBuilder testForD8() {
+  public static D8TestBuilder testForD8(TemporaryFolder temp) {
     return D8TestBuilder.create(new TestState(temp));
   }
 
-  public JvmTestBuilder testForJvm() {
+  public static JvmTestBuilder testForJvm(TemporaryFolder temp) {
     return JvmTestBuilder.create(new TestState(temp));
+  }
+
+  public R8TestBuilder testForR8(Backend backend) {
+    return testForR8(temp, backend);
+  }
+
+  public D8TestBuilder testForD8() {
+    return testForD8(temp);
+  }
+
+  public JvmTestBuilder testForJvm() {
+    return testForJvm(temp);
   }
 
   public enum Backend {

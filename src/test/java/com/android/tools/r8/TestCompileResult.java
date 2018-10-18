@@ -3,8 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.TestBase.Backend.DEX;
+
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.debug.CfDebugTestConfig;
+import com.android.tools.r8.debug.DebugTestConfig;
+import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -39,13 +44,36 @@ public abstract class TestCompileResult {
   }
 
   public TestCompileResult writeToZip(Path file) throws IOException {
-    app.writeToZip(
-        file, getBackend() == Backend.DEX ? OutputMode.DexIndexed : OutputMode.ClassFile);
+    app.writeToZip(file, getBackend() == DEX ? OutputMode.DexIndexed : OutputMode.ClassFile);
     return this;
   }
 
   public CodeInspector inspector() throws IOException, ExecutionException {
     return new CodeInspector(app);
+  }
+
+  public DebugTestConfig debugConfig() {
+    // Rethrow exceptions since debug config is usually used in a delayed wrapper which
+    // does not declare exceptions.
+    try {
+      Path out = state.getNewTempFolder().resolve("out.zip");
+      switch (getBackend()) {
+        case CF:
+          {
+            app.writeToZip(out, OutputMode.ClassFile);
+            return new CfDebugTestConfig().addPaths(out);
+          }
+        case DEX:
+          {
+            app.writeToZip(out, OutputMode.DexIndexed);
+            return new DexDebugTestConfig().addPaths(out);
+          }
+        default:
+          throw new Unreachable();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private TestRunResult runJava(String mainClass) throws IOException {

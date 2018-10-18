@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,12 +26,10 @@ public class InterfaceMethodTest extends DebugTestBase {
 
   @Parameters(name = "{0}")
   public static Collection configs() {
-    ImmutableList.Builder<Object[]> builder = ImmutableList.builder();
-    DelayedDebugTestConfig cfConfig = temp -> new CfDebugTestConfig(JAR);
-    DelayedDebugTestConfig d8Config = temp -> new D8DebugTestConfig().compileAndAdd(temp, JAR);
-    builder.add(new Object[]{"CF", cfConfig});
-    builder.add(new Object[]{"D8", d8Config});
-    return builder.build();
+    return parameters()
+        .add("CF", new CfDebugTestConfig(JAR))
+        .add("D8", temp -> new D8DebugTestConfig().compileAndAdd(temp, JAR))
+        .build();
   }
 
   private final DebugTestConfig config;

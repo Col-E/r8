@@ -4,15 +4,9 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8;
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
-import java.util.Collection;
+import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,31 +25,21 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
   private final DebugTestConfig config;
 
   @Parameters(name = "{0}")
-  public static Collection<Object[]> setup() {
-    DelayedDebugTestConfig cf =
-        temp -> new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());
-    DelayedDebugTestConfig r8cf =
-        temp -> {
-          Path out = null;
-          try {
-            out = temp.newFolder().toPath().resolve("out.jar");
-            R8.run(
-                R8Command.builder()
-                    .addProgramFiles(ToolHelper.getClassFileForTestClass(CLASS))
-                    .addLibraryFiles(runtimeJar(Backend.CF))
-                    .setMode(CompilationMode.DEBUG)
-                    .setOutput(out, OutputMode.ClassFile)
-                    .build());
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-          return new CfDebugTestConfig().addPaths(out);
-        };
-    DelayedDebugTestConfig d8 =
-        temp ->
-            new D8DebugTestConfig().compileAndAdd(temp, ToolHelper.getClassFileForTestClass(CLASS));
-    return ImmutableList.of(
-        new Object[] {"CF", cf}, new Object[] {"R8CF", r8cf}, new Object[] {"D8", d8});
+  public static List<Object[]> setup() {
+    DebugTestParameters parameters =
+        parameters()
+            .add("CF", temp -> testForJvm(temp).addTestClasspath().debugConfig())
+            .add("D8", temp -> testForD8(temp).addProgramClasses(CLASS).debugConfig());
+    for (Backend backend : Backend.values()) {
+      parameters.add(
+          "R8/" + backend,
+          temp ->
+              testForR8(temp, Backend.CF)
+                  .addProgramClasses(CLASS)
+                  .setMode(CompilationMode.DEBUG)
+                  .debugConfig());
+    }
+    return parameters.build();
   }
 
   public LoadInvokeLoadOptimizationTestRunner(String name, DelayedDebugTestConfig config) {

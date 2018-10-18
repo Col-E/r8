@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -109,6 +110,32 @@ public abstract class DebugTestBase extends TestBase {
       this.signature = signature;
       this.line = line;
     }
+  }
+
+  public static class DebugTestParameters {
+
+    final HashMap<String, DelayedDebugTestConfig> map = new HashMap<>();
+
+    public DebugTestParameters add(String name, DebugTestConfig config) {
+      return add(name, temp -> config);
+    }
+
+    public DebugTestParameters add(String name, DelayedDebugTestConfig config) {
+      assert !map.containsKey(name);
+      map.put(name, config);
+      return this;
+    }
+
+    // Returns a list of parameters used in most debug tests of the form: name * config.
+    public List<Object[]> build() {
+      return map.entrySet().stream()
+          .map(e -> new Object[] {e.getKey(), e.getValue()})
+          .collect(Collectors.toList());
+    }
+  }
+
+  public static DebugTestParameters parameters() {
+    return new DebugTestParameters();
   }
 
   @ClassRule

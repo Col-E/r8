@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.utils.ListUtils;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,6 +34,8 @@ public abstract class TestBuilder<T extends TestBuilder<T>> {
   public TestRunResult run(Class mainClass) throws IOException, CompilationFailedException {
     return run(mainClass.getTypeName());
   }
+
+  public abstract DebugTestConfig debugConfig();
 
   public abstract T addProgramFiles(Collection<Path> files);
 

@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -71,6 +72,17 @@ public abstract class TestCompilerBuilder<
   @Override
   public TestRunResult run(String mainClass) throws IOException, CompilationFailedException {
     return compile().run(mainClass);
+  }
+
+  @Override
+  public DebugTestConfig debugConfig() {
+    // Rethrow exceptions since debug config is usually used in a delayed wrapper which
+    // does not declare exceptions.
+    try {
+      return compile().debugConfig();
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public T setMode(CompilationMode mode) {
