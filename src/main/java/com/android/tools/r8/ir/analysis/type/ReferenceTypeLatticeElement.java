@@ -117,7 +117,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public int hashCode() {
-    int prime = type.isUnknown() ? 3 : (type.isArrayType() ? 7 : 5);
-    return super.hashCode() * type.hashCode() * prime;
+    assert isNull() || isReferenceInstance();
+    return this.hashCode();
   }
 }

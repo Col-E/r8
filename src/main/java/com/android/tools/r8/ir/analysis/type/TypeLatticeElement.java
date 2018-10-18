@@ -487,7 +487,5 @@ public abstract class TypeLatticeElement {
   public abstract boolean equals(Object o);
 
   @Override
-  public int hashCode() {
-    return isNullable ? 1 : -1;
-  }
+  public abstract int hashCode();
 }
