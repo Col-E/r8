@@ -84,7 +84,7 @@ public class LineNumberOptimizer {
     private final DexItemFactory dexItemFactory;
     private int startLine = -1;
     private final DexMethod method;
-    private int previousPc = DexDebugEventBuilder.NO_PC_INFO;
+    private int previousPc = 0;
     private Position previousPosition = null;
     private final List<DexDebugEvent> processedEvents;
 

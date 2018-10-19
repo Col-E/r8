@@ -5,15 +5,14 @@ package com.android.tools.r8.debug;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.KeepingDiagnosticHandler;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
@@ -24,7 +23,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class KotlinStdLibCompilationTest {
+public class KotlinStdLibCompilationTest extends TestBase {
 
   private static final Path kotlinStdLib =
       Paths.get("third_party", "kotlin", "kotlinc", "lib", "kotlin-stdlib.jar");
@@ -41,7 +40,7 @@ public class KotlinStdLibCompilationTest {
   }
 
   @Test
-  public void testD8() throws CompilationFailedException, IOException {
+  public void testD8() throws CompilationFailedException {
     Assume.assumeFalse("b/110804489 New CF frontend fails on type conflict.", useCfFrontend);
     KeepingDiagnosticHandler handler = new KeepingDiagnosticHandler();
     ToolHelper.runD8(
@@ -57,15 +56,25 @@ public class KotlinStdLibCompilationTest {
   }
 
   @Test
-  public void testR8CF() throws CompilationFailedException, IOException {
+  public void testR8Dex() throws CompilationFailedException {
+    Assume.assumeFalse("b/117969690 New CF frontend does not support DEX output.", useCfFrontend);
+    testR8(Backend.DEX);
+  }
+
+  @Test
+  public void testR8Cf() throws CompilationFailedException {
+    testR8(Backend.CF);
+  }
+
+  public void testR8(Backend backend) throws CompilationFailedException {
     Assume.assumeFalse("b/110804489 New CF frontend fails on type conflict.", useCfFrontend);
     KeepingDiagnosticHandler handler = new KeepingDiagnosticHandler();
     ToolHelper.runR8(
         R8Command.builder(handler)
             .setMode(CompilationMode.DEBUG)
             .addProgramFiles(kotlinStdLib)
-            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-            .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+            .addLibraryFiles(runtimeJar(backend))
+            .setProgramConsumer(emptyConsumer(backend))
             .build(),
         internalOptions -> internalOptions.enableCfFrontend = useCfFrontend);
     assertTrue(
