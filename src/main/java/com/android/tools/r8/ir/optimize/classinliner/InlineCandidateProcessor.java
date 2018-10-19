@@ -42,10 +42,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -224,58 +226,64 @@ final class InlineCandidateProcessor {
       return false; // Not eligible.
     }
 
-    for (Instruction user : eligibleInstance.uniqueUsers()) {
-      // Field read/write.
-      if (user.isInstanceGet() ||
-          (user.isInstancePut() && user.asInstancePut().value() != eligibleInstance)) {
-        DexField field = user.asFieldInstruction().getField();
-        if (field.clazz == eligibleClass &&
-            eligibleClassDefinition.lookupInstanceField(field) != null) {
-          // Since class inliner currently only supports classes directly extending
-          // java.lang.Object, we don't need to worry about fields defined in superclasses.
-          continue;
+    Set<Instruction> currentUsers = eligibleInstance.uniqueUsers();
+    while (!currentUsers.isEmpty()) {
+      Set<Instruction> indirectUsers = new HashSet<>();
+      for (Instruction user : currentUsers) {
+        // Field read/write.
+        if (user.isInstanceGet()
+            || (user.isInstancePut() && user.asInstancePut().value() != eligibleInstance)) {
+          DexField field = user.asFieldInstruction().getField();
+          if (field.clazz == eligibleClass
+              && eligibleClassDefinition.lookupInstanceField(field) != null) {
+            // Since class inliner currently only supports classes directly extending
+            // java.lang.Object, we don't need to worry about fields defined in superclasses.
+            continue;
+          }
+          return false; // Not eligible.
         }
+
+        // Eligible constructor call (for new instance roots only).
+        if (user.isInvokeDirect() && root.isNewInstance()) {
+          InliningInfo inliningInfo = isEligibleConstructorCall(user.asInvokeDirect());
+          if (inliningInfo != null) {
+            methodCallsOnInstance.put(user.asInvokeDirect(), inliningInfo);
+            continue;
+          }
+        }
+
+        // Eligible virtual method call on the instance as a receiver.
+        if (user.isInvokeVirtual() || user.isInvokeInterface()) {
+          InliningInfo inliningInfo =
+              isEligibleDirectVirtualMethodCall(user.asInvokeMethodWithReceiver(), indirectUsers);
+          if (inliningInfo != null) {
+            methodCallsOnInstance.put(user.asInvokeMethodWithReceiver(), inliningInfo);
+            continue;
+          }
+        }
+
+        // Eligible usage as an invocation argument.
+        if (user.isInvokeMethod()) {
+          if (isExtraMethodCallEligible(defaultOracle, user.asInvokeMethod(), invocationContext)) {
+            continue;
+          }
+        }
+
+        // Allow some IF instructions.
+        if (user.isIf()) {
+          If ifInsn = user.asIf();
+          If.Type type = ifInsn.getType();
+          if (ifInsn.isZeroTest() && (type == If.Type.EQ || type == If.Type.NE)) {
+            // Allow ==/!= null tests, we know that the instance is a non-null value.
+            continue;
+          }
+        }
+
         return false; // Not eligible.
       }
-
-      // Eligible constructor call (for new instance roots only).
-      if (user.isInvokeDirect() && root.isNewInstance()) {
-        InliningInfo inliningInfo = isEligibleConstructorCall(user.asInvokeDirect());
-        if (inliningInfo != null) {
-          methodCallsOnInstance.put(user.asInvokeDirect(), inliningInfo);
-          continue;
-        }
-      }
-
-      // Eligible virtual method call on the instance as a receiver.
-      if (user.isInvokeVirtual() || user.isInvokeInterface()) {
-        InliningInfo inliningInfo =
-            isEligibleDirectVirtualMethodCall(user.asInvokeMethodWithReceiver());
-        if (inliningInfo != null) {
-          methodCallsOnInstance.put(user.asInvokeMethodWithReceiver(), inliningInfo);
-          continue;
-        }
-      }
-
-      // Eligible usage as an invocation argument.
-      if (user.isInvokeMethod()) {
-        if (isExtraMethodCallEligible(defaultOracle, user.asInvokeMethod(), invocationContext)) {
-          continue;
-        }
-      }
-
-      // Allow some IF instructions.
-      if (user.isIf()) {
-        If ifInsn = user.asIf();
-        If.Type type = ifInsn.getType();
-        if (ifInsn.isZeroTest() && (type == If.Type.EQ || type == If.Type.NE)) {
-          // Allow ==/!= null tests, we know that the instance is a non-null value.
-          continue;
-        }
-      }
-
-      return false;  // Not eligible.
+      currentUsers = indirectUsers;
     }
+
     return true;
   }
 
@@ -508,17 +516,61 @@ final class InlineCandidateProcessor {
         ? new InliningInfo(definition, eligibleClass) : null;
   }
 
-  private InliningInfo isEligibleDirectVirtualMethodCall(InvokeMethodWithReceiver invoke) {
+  // An invoke is eligible for inlinining in the following cases:
+  //
+  // - if it does not return the receiver
+  // - if there are no uses of the out value
+  // - if it is a regular chaining pattern where the only users of the out value are receivers to
+  //   other invocations. In that case, we should add all indirect users of the out value to ensure
+  //   they can also be inlined.
+  private static boolean isEligibleInvokeWithAllUsersAsReceivers(
+      ClassInlinerEligibility eligibility,
+      InvokeMethodWithReceiver invoke,
+      Set<Instruction> indirectUsers) {
+    if (!eligibility.returnsReceiver
+        || invoke.outValue() == null
+        || invoke.outValue().numberOfAllUsers() == 0) {
+      return true;
+    }
+    // For CF we no longer perform the code-rewrite in CodeRewriter.rewriteMoveResult that removes
+    // out values if they alias to the receiver since that naively produces a lot of popping values
+    // from the stack.
+    if (invoke.outValue().numberOfPhiUsers() > 0) {
+      return false;
+    }
+    for (Instruction instruction : invoke.outValue().uniqueUsers()) {
+      if (!instruction.isInvokeMethodWithReceiver()) {
+        return false;
+      }
+      InvokeMethodWithReceiver user = instruction.asInvokeMethodWithReceiver();
+      if (user.getReceiver() != invoke.outValue()) {
+        return false;
+      }
+      int uses = 0;
+      for (Value value : user.inValues()) {
+        if (value == invoke.outValue()) {
+          uses++;
+          if (uses > 1) {
+            return false;
+          }
+        }
+      }
+    }
+
+    indirectUsers.addAll(invoke.outValue().uniqueUsers());
+
+    return true;
+  }
+
+  private InliningInfo isEligibleDirectVirtualMethodCall(
+      InvokeMethodWithReceiver invoke, Set<Instruction> indirectUsers) {
     if (invoke.inValues().lastIndexOf(eligibleInstance) > 0) {
       return null; // Instance passed as an argument.
     }
     return isEligibleVirtualMethodCall(
         !invoke.getBlock().hasCatchHandlers(),
         invoke.getInvokedMethod(),
-        eligibility ->
-            !eligibility.returnsReceiver
-                || invoke.outValue() == null
-                || invoke.outValue().numberOfAllUsers() == 0);
+        eligibility -> isEligibleInvokeWithAllUsersAsReceivers(eligibility, invoke, indirectUsers));
   }
 
   private InliningInfo isEligibleIndirectVirtualMethodCall(DexMethod callee) {
@@ -565,7 +617,7 @@ final class InlineCandidateProcessor {
     }
 
     // If the method returns receiver and the return value is actually
-    // used in the code the method is not eligible.
+    // used in the code we need to make some additional checks.
     if (!eligibilityAcceptanceCheck.test(eligibility)) {
       return null;
     }
