@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import java.util.Collections;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   private static final ReferenceTypeLatticeElement NULL_INSTANCE =
@@ -77,13 +76,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append(isNullableString()).append(type.toString());
-    builder.append(" [");
-    builder.append(
-        getInterfaces().stream().map(DexType::toString).collect(Collectors.joining(", ")));
-    builder.append("]");
-    return builder.toString();
+    return isNullableString() + type.toString();
   }
 
   @Override

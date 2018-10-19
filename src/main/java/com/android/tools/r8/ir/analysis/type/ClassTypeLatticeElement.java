@@ -5,21 +5,13 @@ package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
-import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   private Set<DexType> lazyInterfaces;
   private AppInfo appInfoForLazyInterfacesComputation;
-
-  // This is used for testing and should likely be removed.
-  ClassTypeLatticeElement(DexType classType, boolean isNullable) {
-    super(classType, isNullable);
-    assert classType.isClassType();
-    appInfoForLazyInterfacesComputation = null;
-    lazyInterfaces = Collections.emptySet();
-  }
 
   public ClassTypeLatticeElement(DexType classType, boolean isNullable, Set<DexType> interfaces) {
     this(classType, isNullable, interfaces, null);
@@ -48,10 +40,10 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     }
     synchronized (this) {
       if (lazyInterfaces == null) {
-        lazyInterfaces = type.implementedInterfaces(appInfoForLazyInterfacesComputation);
+        Set<DexType> itfs = type.implementedInterfaces(appInfoForLazyInterfacesComputation);
         lazyInterfaces =
             TypeLatticeElement.computeLeastUpperBoundOfInterfaces(
-                appInfoForLazyInterfacesComputation, lazyInterfaces, lazyInterfaces);
+                appInfoForLazyInterfacesComputation, itfs, itfs);
         appInfoForLazyInterfacesComputation = null;
       }
     }
@@ -92,6 +84,17 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   @Override
   public ClassTypeLatticeElement asClassTypeLatticeElement() {
     return this;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append(super.toString());
+    builder.append(" [");
+    builder.append(
+        getInterfaces().stream().map(DexType::toString).collect(Collectors.joining(", ")));
+    builder.append("]");
+    return builder.toString();
   }
 
   @Override

@@ -70,11 +70,6 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public String toString() {
-    return isNullableString() + type.toString();
-  }
-
-  @Override
   public int hashCode() {
     return (isNullable() ? 1 : -1) * type.hashCode();
   }

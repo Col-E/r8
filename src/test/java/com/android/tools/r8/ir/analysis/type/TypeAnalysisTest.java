@@ -283,8 +283,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
         ArrayLength.class, INT,
         ConstString.class, TypeLatticeElement.stringClassType(appInfo),
-        CheckCast.class, new ClassTypeLatticeElement(test, true),
-        NewInstance.class, new ClassTypeLatticeElement(test, false));
+        CheckCast.class, TypeLatticeElement.fromDexType(test, true, appInfo),
+        NewInstance.class, TypeLatticeElement.fromDexType(test, false, appInfo));
     IRCode irCode =
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
@@ -315,7 +315,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
       ConstString.class, TypeLatticeElement.stringClassType(appInfo),
       InstanceOf.class, INT,
-      StaticGet.class, new ClassTypeLatticeElement(test, true));
+      StaticGet.class, TypeLatticeElement.fromDexType(test, true, appInfo));
     IRCode irCode =
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, method);

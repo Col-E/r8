@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.LRUCacheTable;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.HashSet;
@@ -35,6 +36,9 @@ public abstract class TypeLatticeElement {
       ReferenceTypeLatticeElement.getNullTypeLatticeElement();
   public static final ReferenceTypeLatticeElement REFERENCE =
       ReferenceTypeLatticeElement.getReferenceTypeLatticeElement();
+
+  private static final LRUCacheTable<Set<DexType>, Set<DexType>, Set<DexType>>
+      leastUpperBoundOfInterfacesTable = LRUCacheTable.create(8, 8);
 
   // TODO(b/72693244): Switch to NullLatticeElement.
   private final boolean isNullable;
@@ -85,6 +89,9 @@ public abstract class TypeLatticeElement {
    * @return {@link TypeLatticeElement}, a least upper bound of {@param this} and {@param other}.
    */
   public TypeLatticeElement join(TypeLatticeElement other, AppInfo appInfo) {
+    if (this == other) {
+      return this;
+    }
     if (isBottom()) {
       return other;
     }
@@ -157,11 +164,11 @@ public abstract class TypeLatticeElement {
         return objectArrayType(appInfo, min, isNullable);
       }
       // For different class element types, compute the least upper bound of element types.
-      DexType lub =
+      DexType baseTypeLub =
           a1BaseReferenceType.computeLeastUpperBoundOfClasses(appInfo, a2BaseReferenceType);
       // Create the full array type.
-      DexType arrayTypeLub = appInfo.dexItemFactory.createArrayType(a1Nesting, lub);
-      return new ArrayTypeLatticeElement(arrayTypeLub, isNullable);
+      DexType arrayTypeLub = appInfo.dexItemFactory.createArrayType(a1Nesting, baseTypeLub);
+      return fromDexType(arrayTypeLub, isNullable, appInfo);
     }
     if (isClassType()) {
       assert other.isClassType();
@@ -169,10 +176,16 @@ public abstract class TypeLatticeElement {
       ClassTypeLatticeElement c2 = other.asClassTypeLatticeElement();
       DexType lubType =
           c1.getClassType().computeLeastUpperBoundOfClasses(appInfo, c2.getClassType());
-      return new ClassTypeLatticeElement(
-          lubType,
-          isNullable,
-          computeLeastUpperBoundOfInterfaces(appInfo, c1.getInterfaces(), c2.getInterfaces()));
+      Set<DexType> c1lubItfs = c1.getInterfaces();
+      Set<DexType> c2lubItfs = c2.getInterfaces();
+      Set<DexType> lubItfs = null;
+      if (c1lubItfs.size() == c2lubItfs.size() && c1lubItfs.containsAll(c2lubItfs)) {
+        lubItfs = c1lubItfs;
+      }
+      if (lubItfs == null) {
+        lubItfs = computeLeastUpperBoundOfInterfaces(appInfo, c1lubItfs, c2lubItfs);
+      }
+      return new ClassTypeLatticeElement(lubType, isNullable, lubItfs);
     }
     throw new Unreachable("unless a new type lattice is introduced.");
   }
@@ -194,6 +207,14 @@ public abstract class TypeLatticeElement {
 
   public static Set<DexType> computeLeastUpperBoundOfInterfaces(
       AppInfo appInfo, Set<DexType> s1, Set<DexType> s2) {
+    Set<DexType> cached = leastUpperBoundOfInterfacesTable.get(s1, s2);
+    if (cached != null) {
+      return cached;
+    }
+    cached = leastUpperBoundOfInterfacesTable.get(s2, s1);
+    if (cached != null) {
+      return cached;
+    }
     Map<DexType, Set<InterfaceMarker>> seen = new IdentityHashMap<>();
     Queue<InterfaceWithMarker> worklist = new ArrayDeque<>();
     for (DexType itf1 : s1) {
@@ -255,7 +276,14 @@ public abstract class TypeLatticeElement {
       }
       lubBuilder.add(itf);
     }
-    return lubBuilder.build();
+    Set<DexType> lub = lubBuilder.build();
+    // Cache the computation result only if the given two sets of interfaces are different.
+    if (s1.size() != s2.size() || !s1.containsAll(s2)) {
+      synchronized (leastUpperBoundOfInterfacesTable) {
+        leastUpperBoundOfInterfacesTable.put(s1, s2, lub);
+      }
+    }
+    return lub;
   }
 
   public static TypeLatticeElement join(
