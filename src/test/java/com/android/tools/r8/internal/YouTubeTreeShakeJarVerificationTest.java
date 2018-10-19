@@ -9,8 +9,6 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.codeinspector.ClassHierarchyVerifier;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
@@ -34,10 +32,5 @@ public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase 
             ImmutableList.of());
     int bytes = applicationSize(app);
     assertTrue("Expected max size of " + maxSize + ", got " + bytes, bytes < maxSize);
-
-    // Check that all non-abstract classes implement the abstract methods from their super types.
-    // This is a sanity check for the tree shaking and minification.
-    CodeInspector inspector = new CodeInspector(app, proguardMapPath);
-    new ClassHierarchyVerifier(inspector, false).run();
   }
 }
