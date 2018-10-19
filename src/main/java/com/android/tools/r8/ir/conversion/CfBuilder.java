@@ -32,12 +32,10 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.JumpInstruction;
-import com.android.tools.r8.ir.code.Load;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
-import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
@@ -55,7 +53,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -138,7 +135,6 @@ public class CfBuilder {
     loadStoreHelper.insertLoadsAndStores();
     BasicBlockMuncher muncher = new BasicBlockMuncher();
     muncher.optimize(code, factory);
-    removeUnneededLoadsAndStores();
     registerAllocator = new CfRegisterAllocator(code, options);
     registerAllocator.allocateRegisters();
     loadStoreHelper.insertPhiMoves(registerAllocator);
@@ -214,39 +210,6 @@ public class CfBuilder {
       if (hasOutValues) {
         instructions.previous();
         instructions.split(code, it);
-      }
-    }
-  }
-
-  private void removeUnneededLoadsAndStores() {
-    Iterator<BasicBlock> blockIterator = code.listIterator();
-    while (blockIterator.hasNext()) {
-      BasicBlock block = blockIterator.next();
-      InstructionListIterator it = block.listIterator();
-      while (it.hasNext()) {
-        Instruction store = it.next();
-        // Eliminate unneeded loads of stores:
-        //  v <- store si
-        //  si <- load v
-        // where |users(v)| == 1 (ie, the load is the only user)
-        if (store instanceof Store && store.outValue().numberOfAllUsers() == 1) {
-          Instruction load = it.peekNext();
-          if (load instanceof Load && load.inValues().get(0) == store.outValue()) {
-            Value storeIn = store.inValues().get(0);
-            Value loadOut = load.outValue();
-            loadOut.replaceUsers(storeIn);
-            storeIn.removeUser(store);
-            store.outValue().removeUser(load);
-            // Remove the store.
-            it.previous();
-            it.removeOrReplaceByDebugLocalRead();
-            // Remove the load.
-            it.next();
-            it.remove();
-            // Rewind to the instruction before the store so we can identify new patterns.
-            it.previous();
-          }
-        }
       }
     }
   }

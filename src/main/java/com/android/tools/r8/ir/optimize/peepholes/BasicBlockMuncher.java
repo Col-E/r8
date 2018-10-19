@@ -14,7 +14,8 @@ import java.util.List;
 public class BasicBlockMuncher {
 
   private final List<BasicBlockPeephole> peepholes =
-      ImmutableList.of(new MoveLoadUpDupPeephole(), new StoreLoadLoadPeephole());
+      ImmutableList.of(
+          new MoveLoadUpDupPeephole(), new StoreLoadLoadPeephole(), new StoreLoadPeephole());
 
   public void optimize(IRCode code, DexItemFactory factory) {
     for (BasicBlock block : code.blocks) {
