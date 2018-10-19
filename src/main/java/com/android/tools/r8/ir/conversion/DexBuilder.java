@@ -32,6 +32,7 @@ import com.android.tools.r8.code.MoveWide;
 import com.android.tools.r8.code.MoveWide16;
 import com.android.tools.r8.code.MoveWideFrom16;
 import com.android.tools.r8.code.Nop;
+import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -113,6 +114,9 @@ public class DexBuilder {
   // The string reference in the code with the highest index.
   private DexString highestSortingReferencedString = null;
 
+  // Whether or not the generated code has a backwards branch.
+  private boolean hasBackwardsBranch = false;
+
   BasicBlock nextBlock;
 
   public DexBuilder(
@@ -145,7 +149,7 @@ public class DexBuilder {
    * This is a two pass construction that will first compute concrete offsets and then construct
    * the concrete instructions.
    */
-  public DexCode build(int numberOfArguments) {
+  public DexCode build() {
     int numberOfInstructions;
     int offset;
 
@@ -205,6 +209,23 @@ public class DexBuilder {
       debugEventBuilder.add(instructionStartOffset, instructionOffset, ir);
     }
 
+    // Workaround dalvik tracing bug, where the dalvik tracing JIT can end up tracing
+    // past the end of the instruction stream if the instruction streams ends with a throw.
+    // We could have also changed the block order, however, moving the throwing block higher
+    // led to larger code in all experiments (multiple gmscore version and R8 run on itself).
+    if (options.canHaveTracingPastInstructionsStreamBug()
+        && dexInstructions.get(dexInstructions.size() - 1) instanceof Throw
+        && hasBackwardsBranch) {
+      Nop nop = new Nop();
+      dexInstructions.add(nop);
+      nop.setOffset(offset);
+      offset += nop.getSize();
+      Goto go = new Goto(-nop.getSize());
+      dexInstructions.add(go);
+      go.setOffset(offset);
+      offset += go.getSize();
+    }
+
     // Compute switch payloads.
     for (SwitchPayloadInfo switchPayloadInfo : switchPayloadInfos) {
       // Align payloads at even addresses.
@@ -244,7 +265,8 @@ public class DexBuilder {
         registerAllocator.registersUsed(),
         inRegisterCount,
         outRegisterCount,
-        dexInstructions.toArray(new Instruction[dexInstructions.size()]), tryInfo.tries,
+        dexInstructions.toArray(new Instruction[dexInstructions.size()]),
+        tryInfo.tries,
         tryInfo.handlers,
         debugEventBuilder.build(),
         highestSortingReferencedString);
@@ -1024,6 +1046,9 @@ public class DexBuilder {
       int source = builder.getInfo(jump).getOffset();
       Info targetInfo = builder.getTargetInfo(jump.getTarget());
       int relativeOffset = targetInfo.getOffset() - source;
+      if (relativeOffset < 0) {
+        builder.hasBackwardsBranch = true;
+      }
       // Emit a return if the target is a return and the size of the return is the computed
       // size of this instruction.
       Return ret = targetInfo.getIR().asReturn();
@@ -1109,6 +1134,11 @@ public class DexBuilder {
       int target = builder.getInfo(branch.getTrueTarget().entry()).getOffset();
       int relativeOffset = target - source;
       int register1 = builder.allocatedRegister(branch.inValues().get(0), branch.getNumber());
+
+      if (relativeOffset < 0) {
+        builder.hasBackwardsBranch = true;
+      }
+
       if (size == 3) {
         assert branchesToSelf(builder);
         Nop nop = new Nop();
