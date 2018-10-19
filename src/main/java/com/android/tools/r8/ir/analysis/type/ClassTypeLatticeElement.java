@@ -5,36 +5,57 @@ package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
+import java.util.Collections;
 import java.util.Set;
 
 public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
 
+  private Set<DexType> lazyInterfaces;
+  private AppInfo appInfoForLazyInterfacesComputation;
+
+  // This is used for testing and should likely be removed.
   ClassTypeLatticeElement(DexType classType, boolean isNullable) {
     super(classType, isNullable);
     assert classType.isClassType();
+    appInfoForLazyInterfacesComputation = null;
+    lazyInterfaces = Collections.emptySet();
   }
 
   public ClassTypeLatticeElement(DexType classType, boolean isNullable, Set<DexType> interfaces) {
-    super(classType, isNullable, interfaces);
+    this(classType, isNullable, interfaces, null);
+  }
+
+  public ClassTypeLatticeElement(DexType classType, boolean isNullable, AppInfo appInfo) {
+    this(classType, isNullable, null, appInfo);
+  }
+
+  private ClassTypeLatticeElement(
+      DexType classType, boolean isNullable, Set<DexType> interfaces, AppInfo appInfo) {
+    super(classType, isNullable);
     assert classType.isClassType();
+    appInfoForLazyInterfacesComputation = appInfo;
+    lazyInterfaces = interfaces;
   }
 
   public DexType getClassType() {
     return type;
   }
 
-  Set<DexType> getInterfaces(AppInfo appInfo) {
-    if (interfaces != null) {
-      return interfaces;
+  @Override
+  public Set<DexType> getInterfaces() {
+    if (lazyInterfaces != null) {
+      return lazyInterfaces;
     }
     synchronized (this) {
-      if (interfaces == null) {
-        interfaces = type.implementedInterfaces(appInfo);
-        interfaces =
-            TypeLatticeElement.computeLeastUpperBoundOfInterfaces(appInfo, interfaces, interfaces);
+      if (lazyInterfaces == null) {
+        lazyInterfaces = type.implementedInterfaces(appInfoForLazyInterfacesComputation);
+        lazyInterfaces =
+            TypeLatticeElement.computeLeastUpperBoundOfInterfaces(
+                appInfoForLazyInterfacesComputation, lazyInterfaces, lazyInterfaces);
+        appInfoForLazyInterfacesComputation = null;
       }
     }
-    return interfaces;
+    return lazyInterfaces;
   }
 
   @Override
@@ -44,7 +65,9 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     }
     synchronized (this) {
       if (dual == null) {
-        ClassTypeLatticeElement dual = new ClassTypeLatticeElement(type, !isNullable(), interfaces);
+        ClassTypeLatticeElement dual =
+            new ClassTypeLatticeElement(
+                type, !isNullable(), lazyInterfaces, appInfoForLazyInterfacesComputation);
         linkDualLattice(this, dual);
       }
     }
@@ -73,11 +96,8 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   @Override
   public int hashCode() {
-    int result = (isNullable() ? 1 : -1) * type.hashCode();
-    if (interfaces != null) {
-      result = result * 31 + interfaces.hashCode();
-    }
-    return result;
+    // The interfaces of a type do not contribute to its hashCode as they are lazily computed.
+    return (isNullable() ? 1 : -1) * type.hashCode();
   }
 
 }

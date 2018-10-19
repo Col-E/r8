@@ -7,7 +7,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,7 +18,6 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
       new ReferenceTypeLatticeElement(DexItemFactory.unknownType, true);
 
   final DexType type;
-  Set<DexType> interfaces;
 
   // Link between maybe-null and definitely-not-null reference type lattices.
   ReferenceTypeLatticeElement dual;
@@ -35,13 +33,8 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   }
 
   ReferenceTypeLatticeElement(DexType type, boolean isNullable) {
-    this(type, isNullable, ImmutableSet.of());
-  }
-
-  ReferenceTypeLatticeElement(DexType type, boolean isNullable, Set<DexType> interfaces) {
     super(isNullable);
     this.type = type;
-    this.interfaces = interfaces == null ? null : Collections.unmodifiableSet(interfaces);
   }
 
   static ReferenceTypeLatticeElement getNullTypeLatticeElement() {
@@ -50,6 +43,10 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   static ReferenceTypeLatticeElement getReferenceTypeLatticeElement() {
     return REFERENCE_INSTANCE;
+  }
+
+  public Set<DexType> getInterfaces() {
+    return Collections.emptySet();
   }
 
   @Override
@@ -82,12 +79,10 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append(isNullableString()).append(type.toString());
-    if (interfaces != null) {
-      builder.append(" [");
-      builder.append(
-          interfaces.stream().map(DexType::toString).collect(Collectors.joining(", ")));
-      builder.append("]");
-    }
+    builder.append(" [");
+    builder.append(
+        getInterfaces().stream().map(DexType::toString).collect(Collectors.joining(", ")));
+    builder.append("]");
     return builder.toString();
   }
 
@@ -106,13 +101,12 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
     if (!type.equals(other.type)) {
       return false;
     }
-    if (interfaces == null || other.interfaces == null) {
-      return interfaces == other.interfaces;
-    }
-    if (interfaces.size() != other.interfaces.size()) {
+    Set<DexType> thisInterfaces = getInterfaces();
+    Set<DexType> otherInterfaces = other.getInterfaces();
+    if (thisInterfaces.size() != otherInterfaces.size()) {
       return false;
     }
-    return interfaces.containsAll(other.interfaces);
+    return thisInterfaces.containsAll(otherInterfaces);
   }
 
   @Override

@@ -169,9 +169,10 @@ public abstract class TypeLatticeElement {
       ClassTypeLatticeElement c2 = other.asClassTypeLatticeElement();
       DexType lubType =
           c1.getClassType().computeLeastUpperBoundOfClasses(appInfo, c2.getClassType());
-      return new ClassTypeLatticeElement(lubType, isNullable,
-          computeLeastUpperBoundOfInterfaces(
-              appInfo, c1.getInterfaces(appInfo), c2.getInterfaces(appInfo)));
+      return new ClassTypeLatticeElement(
+          lubType,
+          isNullable,
+          computeLeastUpperBoundOfInterfaces(appInfo, c1.getInterfaces(), c2.getInterfaces()));
     }
     throw new Unreachable("unless a new type lattice is introduced.");
   }

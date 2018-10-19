@@ -915,7 +915,7 @@ public class DexItemFactory {
             // It is expensive to walk through type hierarchy; collect implemented interfaces; and
             // compute the least upper bound of two interface sets. Hence, lazy computations.
             // Most likely during lattice join. See {@link ClassTypeLatticeElement#getInterfaces}.
-            typeLattice = new ClassTypeLatticeElement(type, isNullable, null);
+            typeLattice = new ClassTypeLatticeElement(type, isNullable, appInfo);
           }
         } else {
           assert type.isArrayType();
