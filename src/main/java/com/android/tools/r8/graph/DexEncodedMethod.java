@@ -345,7 +345,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public void setCode(IRCode ir, RegisterAllocator registerAllocator, InternalOptions options) {
     checkIfObsolete();
     final DexBuilder builder = new DexBuilder(ir, registerAllocator, options);
-    setCode(builder.build(method.getArity()));
+    setCode(builder.build());
   }
 
   @Override

@@ -733,4 +733,15 @@ public class InternalOptions {
   public boolean canHaveExceptionTargetingLoopHeaderBug() {
     return isGeneratingDex() && !debug && minApiLevel < AndroidApiLevel.M.getLevel();
   }
+
+  // The Dalvik tracing JIT can trace past the end of the instruction stream and end up
+  // parsing non-code bytes as code (typically leading to a crash).
+  //
+  // In order to workaround this we insert "nop; goto -1;" after the throw when the instruction
+  // stream ends with a throw and there are backwards branches in the code.
+  //
+  // See b/117907456.
+  public boolean canHaveTracingPastInstructionsStreamBug() {
+    return minApiLevel < AndroidApiLevel.L.getLevel();
+  }
 }
