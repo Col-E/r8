@@ -191,7 +191,9 @@ public class DexDebugEventBuilder {
       startLine = position.line;
       emittedPosition = new Position(position.line, null, method.method, null);
     }
-    emitAdvancementEvents(emittedPc, emittedPosition, pc, position, events, factory);
+    assert emittedPc != pc;
+    int previousPc = emittedPc == NO_PC_INFO ? 0 : emittedPc;
+    emitAdvancementEvents(previousPc, emittedPosition, pc, position, events, factory);
     emittedPc = pc;
     emittedPosition = position;
     if (localsChanged()) {
@@ -224,8 +226,8 @@ public class DexDebugEventBuilder {
       Position nextPosition,
       List<DexDebugEvent> events,
       DexItemFactory factory) {
-    assert previousPc != nextPc;
-    int pcDelta = previousPc == NO_PC_INFO ? nextPc : nextPc - previousPc;
+    assert previousPc >= 0;
+    int pcDelta = nextPc - previousPc;
     assert !previousPosition.isNone() || nextPosition.isNone();
     assert nextPosition.isNone() || nextPosition.line >= 0;
     int lineDelta = nextPosition.isNone() ? 0 : nextPosition.line - previousPosition.line;
