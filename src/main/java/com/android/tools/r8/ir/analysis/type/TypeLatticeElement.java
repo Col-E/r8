@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
@@ -461,6 +462,24 @@ public abstract class TypeLatticeElement {
         return REFERENCE;
       default:
         throw new Unreachable("Unexpected member type: " + type);
+    }
+  }
+
+  public static TypeLatticeElement fromNumericType(NumericType type) {
+    switch (type) {
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        return INT;
+      case LONG:
+        return LONG;
+      case FLOAT:
+        return FLOAT;
+      case DOUBLE:
+        return DOUBLE;
+      default:
+        throw new Unreachable("Unexpected numeric type: " + type);
     }
   }
 

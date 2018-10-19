@@ -10,7 +10,6 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
@@ -136,8 +135,7 @@ public abstract class Binop extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return PrimitiveTypeLatticeElement.meet(
-        leftValue().getTypeLattice(), rightValue().getTypeLattice());
+    return TypeLatticeElement.fromNumericType(type);
   }
 
   @Override
