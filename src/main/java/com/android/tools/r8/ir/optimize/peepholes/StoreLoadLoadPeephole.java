@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableList;
  */
 public class StoreLoadLoadPeephole implements BasicBlockPeephole {
 
-  private final Point storeExp = new Point(Instruction::isStore);
+  private final Point storeExp = new Point(PeepholeHelper.withoutLocalInfo(Instruction::isStore));
   private final Point load1Exp = new Point(Instruction::isLoad);
   private final Point load2Exp = new Point(Instruction::isLoad);
 

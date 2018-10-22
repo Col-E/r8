@@ -21,7 +21,7 @@ import com.android.tools.r8.ir.code.Store;
  */
 public class StoreLoadPeephole implements BasicBlockPeephole {
 
-  private final Point storeExp = new Point(Instruction::isStore);
+  private final Point storeExp = new Point(PeepholeHelper.withoutLocalInfo(Instruction::isStore));
   private final Point loadExp = new Point(Instruction::isLoad);
 
   private final PeepholeLayout layout = PeepholeLayout.lookForward(storeExp, loadExp);

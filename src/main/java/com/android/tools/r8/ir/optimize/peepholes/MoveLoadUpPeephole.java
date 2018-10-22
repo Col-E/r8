@@ -37,7 +37,7 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
   private final Point firstLoad =
       new Point(
           (i) -> {
-            if (i.isLoad() && !i.asLoad().src().hasLocalInfo()) {
+            if (PeepholeHelper.withoutLocalInfo(Instruction::isLoad).test(i)) {
               local = i.asLoad().src();
               return true;
             }

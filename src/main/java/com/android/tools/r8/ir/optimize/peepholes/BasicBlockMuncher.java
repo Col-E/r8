@@ -14,7 +14,10 @@ public class BasicBlockMuncher {
 
   private final List<BasicBlockPeephole> peepholes =
       ImmutableList.of(
-          new MoveLoadUpPeephole(), new StoreLoadLoadPeephole(), new StoreLoadPeephole());
+          new MoveLoadUpPeephole(),
+          new StoreLoadLoadPeephole(),
+          new StoreLoadPeephole(),
+          new LoadLoadDupPeephole());
 
   public void optimize(IRCode code) {
     for (BasicBlock block : code.blocks) {

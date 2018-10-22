@@ -9,8 +9,13 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Value;
+import java.util.function.Predicate;
 
 public class PeepholeHelper {
+
+  public static Predicate<Instruction> withoutLocalInfo(Predicate<Instruction> predicate) {
+    return t -> !t.hasInValueWithLocalInfo() && predicate.test(t);
+  }
 
   public static void swapNextTwoInstructions(InstructionListIterator it) {
     assert it.hasNext();
