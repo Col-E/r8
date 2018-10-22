@@ -37,6 +37,7 @@ import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -147,6 +148,67 @@ public class VerticalClassMergerTest extends TestBase {
         getProguardConfig(
             EXAMPLE_KEEP,
             "-neverinline public class classmerging.ArrayTypeCollisionTest {",
+            "  static void method(...);",
+            "}"));
+  }
+
+  /**
+   * Tests that two classes A and B are not merged when there are two methods in the same class that
+   * returns an array type and would become conflicting due to the renaming of their return types,
+   * as in the following class.
+   *
+   * <pre>
+   * class ArrayReturnTypeCollisionTest {
+   *   public static A[] method() { ... }
+   *   public static B[] method() { ... }
+   * }
+   * </pre>
+   */
+  @Test
+  public void testArrayReturnTypeCollision() throws Throwable {
+    String main = "classmerging.ArrayReturnTypeCollisionTest";
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.ArrayReturnTypeCollisionTest", "classmerging.A", "classmerging.B");
+
+    JasminBuilder jasminBuilder = new JasminBuilder();
+
+    ClassBuilder classBuilder = jasminBuilder.addClass(main);
+    classBuilder.addMainMethod(
+        ".limit locals 1",
+        ".limit stack 2",
+        "invokestatic classmerging/ArrayReturnTypeCollisionTest/method()[Lclassmerging/A;",
+        "pop",
+        "invokestatic classmerging/ArrayReturnTypeCollisionTest/method()[Lclassmerging/B;",
+        "pop",
+        "return");
+
+    // Add two methods with the same name that have return types A[] and B[], respectively.
+    classBuilder.addStaticMethod(
+        "method", ImmutableList.of(), "[Lclassmerging/A;",
+        ".limit stack 1", ".limit locals 1", "iconst_0", "anewarray classmerging/A", "areturn");
+    classBuilder.addStaticMethod(
+        "method", ImmutableList.of(), "[Lclassmerging/B;",
+        ".limit stack 1", ".limit locals 1", "iconst_0", "anewarray classmerging/B", "areturn");
+
+    // Class A is empty so that it can easily be merged into B.
+    classBuilder = jasminBuilder.addClass("classmerging.A");
+    classBuilder.addDefaultConstructor();
+
+    // Class B inherits from A and is also empty.
+    classBuilder = jasminBuilder.addClass("classmerging.B", "classmerging.A");
+    classBuilder.addDefaultConstructor();
+
+    // Run test.
+    runTestOnInput(
+        main,
+        jasminBuilder.build(),
+        preservedClassNames::contains,
+        StringUtils.joinLines(
+            "-keep class " + main + " {",
+            "  public static void main(...);",
+            "}",
+            "-neverinline class " + main + " {",
             "  static void method(...);",
             "}"));
   }
