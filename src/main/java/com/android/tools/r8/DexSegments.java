@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class DexSegments {
@@ -94,20 +94,39 @@ public class DexSegments {
       return;
     }
     AndroidApp app = command.getInputApp();
-    Map<String, Integer> result = new HashMap<>();
+
+    Map<String, SegmentInfo> result = new LinkedHashMap<>();
     try (Closer closer = Closer.create()) {
       for (ProgramResource resource : app.computeAllProgramResources()) {
         if (resource.getKind() == Kind.DEX) {
           for (DexSection dexSection :
               DexParser.parseMapFrom(
                   closer.register(resource.getByteStream()), resource.getOrigin())) {
-            int value = result.computeIfAbsent(dexSection.typeName(), (key) -> 0);
-            result.put(dexSection.typeName(), value + dexSection.size());
+            SegmentInfo info =
+                result.computeIfAbsent(dexSection.typeName(), (key) -> new SegmentInfo());
+            info.increment(dexSection.length, dexSection.size());
           }
         }
       }
     }
-    System.out.println("Segments in dex application (name: size):");
-    result.forEach( (key, value) -> System.out.println(" - " + key + ": " + value));
+    System.out.println("Segments in dex application (name: size / items):");
+    // This output is parsed by tools/test_framework.py. Check the parsing there when updating.
+    result.forEach(
+        (key, value) -> System.out.println(" - " + key + ": " + value.size + " / " + value.items));
+  }
+
+  private static class SegmentInfo {
+    private int items;
+    private int size;
+
+    SegmentInfo() {
+      this.items = 0;
+      this.size = 0;
+    }
+
+    void increment(int items, int size) {
+      this.items += items;
+      this.size += size;
+    }
   }
 }
