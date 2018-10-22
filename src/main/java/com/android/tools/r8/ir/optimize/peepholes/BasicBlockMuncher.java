@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.peepholes;
 
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -15,9 +14,9 @@ public class BasicBlockMuncher {
 
   private final List<BasicBlockPeephole> peepholes =
       ImmutableList.of(
-          new MoveLoadUpDupPeephole(), new StoreLoadLoadPeephole(), new StoreLoadPeephole());
+          new MoveLoadUpPeephole(), new StoreLoadLoadPeephole(), new StoreLoadPeephole());
 
-  public void optimize(IRCode code, DexItemFactory factory) {
+  public void optimize(IRCode code) {
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator(block.getInstructions().size());
       boolean matched = false;
@@ -27,7 +26,7 @@ public class BasicBlockMuncher {
           it = block.listIterator(block.getInstructions().size());
         }
         for (BasicBlockPeephole peepHole : peepholes) {
-          matched |= peepHole.match(it, factory);
+          matched |= peepHole.match(it);
         }
         if (it.hasPrevious()) {
           it.previous();

@@ -137,7 +137,7 @@ public class CfBuilder {
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
     loadStoreHelper.insertLoadsAndStores();
     BasicBlockMuncher muncher = new BasicBlockMuncher();
-    muncher.optimize(code, factory);
+    muncher.optimize(code);
     registerAllocator = new CfRegisterAllocator(code, options);
     registerAllocator.allocateRegisters();
     loadStoreHelper.insertPhiMoves(registerAllocator);

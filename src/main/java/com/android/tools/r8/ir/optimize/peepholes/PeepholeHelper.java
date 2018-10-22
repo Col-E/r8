@@ -6,46 +6,11 @@ package com.android.tools.r8.ir.optimize.peepholes;
 
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import java.util.List;
-import java.util.function.Predicate;
+import com.android.tools.r8.ir.code.StackValue;
+import com.android.tools.r8.ir.code.StackValues;
+import com.android.tools.r8.ir.code.Value;
 
 public class PeepholeHelper {
-
-  public static class PeepholeLayout {
-    private Instruction[] instructions;
-    private List<Predicate<Instruction>> predicates;
-
-    public PeepholeLayout(Instruction[] instructions, List<Predicate<Instruction>> predicates) {
-      this.instructions = instructions;
-      this.predicates = predicates;
-    }
-
-    public Instruction[] test(InstructionListIterator it) {
-      int index = 0;
-      boolean success = true;
-      for (Predicate<Instruction> p : predicates) {
-        if (!it.hasNext()) {
-          success = false;
-          break;
-        }
-        int insertIndex = index++;
-        instructions[insertIndex] = it.next();
-        if (!p.test(instructions[insertIndex])) {
-          success = false;
-          break;
-        }
-      }
-      for (int i = 0; i < index; i++) {
-        it.previous();
-      }
-      return success ? instructions : null;
-    }
-  }
-
-  public static PeepholeLayout getLayout(List<Predicate<Instruction>> predicates) {
-    Instruction[] arr = new Instruction[predicates.size()];
-    return new PeepholeLayout(arr, predicates);
-  }
 
   public static void swapNextTwoInstructions(InstructionListIterator it) {
     assert it.hasNext();
@@ -63,5 +28,32 @@ public class PeepholeHelper {
     for (int i = 0; i < count; i++) {
       it.previous();
     }
+  }
+
+  public static void resetPrevious(InstructionListIterator it, int count) {
+    for (int i = 0; i < count; i++) {
+      it.next();
+    }
+  }
+
+  public static int numberOfValuesPutOnStack(Instruction instruction) {
+    Value outValue = instruction.outValue();
+    if (outValue instanceof StackValue) {
+      return 1;
+    }
+    if (outValue instanceof StackValues) {
+      return ((StackValues) outValue).getStackValues().size();
+    }
+    return 0;
+  }
+
+  public static int numberOfValuesConsumedFromStack(Instruction instruction) {
+    int count = 0;
+    for (int i = instruction.inValues().size() - 1; i >= 0; i--) {
+      if (instruction.inValues().get(i) instanceof StackValue) {
+        count += 1;
+      }
+    }
+    return count;
   }
 }

@@ -4,9 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.peepholes;
 
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 
 public interface BasicBlockPeephole {
-  boolean match(InstructionListIterator it, DexItemFactory factory);
+  boolean match(InstructionListIterator it);
 }

@@ -1,6 +1,9 @@
+// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
 package com.android.tools.r8.ir.optimize.peepholes;
 
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Load;
@@ -8,7 +11,6 @@ import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Swap;
-import com.android.tools.r8.ir.optimize.peepholes.PeepholeHelper.PeepholeLayout;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -31,19 +33,21 @@ import com.google.common.collect.ImmutableList;
  */
 public class StoreLoadLoadPeephole implements BasicBlockPeephole {
 
-  private final PeepholeLayout layout =
-      PeepholeHelper.getLayout(
-          ImmutableList.of(Instruction::isStore, Instruction::isLoad, Instruction::isLoad));
+  private final Point storeExp = new Point(Instruction::isStore);
+  private final Point load1Exp = new Point(Instruction::isLoad);
+  private final Point load2Exp = new Point(Instruction::isLoad);
+
+  private final PeepholeLayout layout = PeepholeLayout.lookForward(storeExp, load1Exp, load2Exp);
 
   @Override
-  public boolean match(InstructionListIterator it, DexItemFactory factory) {
-    Instruction[] match = layout.test(it);
+  public boolean match(InstructionListIterator it) {
+    Match match = layout.test(it);
     if (match == null) {
       return false;
     }
-    Store store = match[0].asStore();
-    Load load1 = match[1].asLoad();
-    Load load2 = match[2].asLoad();
+    Store store = storeExp.get(match).asStore();
+    Load load1 = load1Exp.get(match).asLoad();
+    Load load2 = load2Exp.get(match).asLoad();
     if (store.src().hasLocalInfo()) {
       return false;
     }
