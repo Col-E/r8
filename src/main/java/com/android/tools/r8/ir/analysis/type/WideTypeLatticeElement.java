@@ -34,6 +34,6 @@ public class WideTypeLatticeElement extends PrimitiveTypeLatticeElement {
 
   @Override
   public int hashCode() {
-    return getClass().hashCode();
+    return System.identityHashCode(WIDE_INSTANCE);
   }
 }

@@ -49,6 +49,6 @@ public class BottomTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public int hashCode() {
-    return getClass().hashCode();
+    return System.identityHashCode(INSTANCE);
   }
 }

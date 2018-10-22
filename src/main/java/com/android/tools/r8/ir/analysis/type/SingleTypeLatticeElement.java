@@ -34,6 +34,6 @@ public class SingleTypeLatticeElement extends PrimitiveTypeLatticeElement {
 
   @Override
   public int hashCode() {
-    return getClass().hashCode();
+    return System.identityHashCode(SINGLE_INSTANCE);
   }
 }
