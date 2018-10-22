@@ -424,11 +424,11 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public boolean isSerializable(AppInfo appInfo) {
-    return type.implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.serializableType);
+    return type.isSerializable(appInfo);
   }
 
   public boolean isExternalizable(AppInfo appInfo) {
-    return type.implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.externalizableType);
+    return type.isExternalizable(appInfo);
   }
 
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {

@@ -6,13 +6,9 @@ package com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor;
 import static com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor.ExternalizableDataClass.TYPE_1;
 import static com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor.ExternalizableDataClass.TYPE_2;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -341,13 +337,7 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
     //   ...
     //     * Have access to the no-arg constructor of its first non-serializable superclass
     CodeInspector codeInspector = new CodeInspector(processedApp, proguardMap);
-    ClassSubject classSubject;
-    if (shrinker.isR8() && enableVerticalClassMerging) {
-      // Vertical class merging.
-      classSubject = codeInspector.clazz(SerializableDataClass.class);
-    } else {
-      classSubject = codeInspector.clazz(NonSerializableSuperClass.class);
-    }
+    ClassSubject classSubject = codeInspector.clazz(NonSerializableSuperClass.class);
     assertThat(classSubject, isPresent());
     MethodSubject init = classSubject.init(ImmutableList.of());
     assertThat(init, isPresent());
@@ -357,10 +347,6 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
   public void testSerializable_withVerticalClassMerging() throws Exception {
     if (!shrinker.isR8()) {
       // Already covered by the other tests.
-      return;
-    }
-    // TODO(b/117514095): Vertical class merging should preserve non/serializable behavior.
-    if (shrinker.isR8()) {
       return;
     }
     testSerializable(true);
