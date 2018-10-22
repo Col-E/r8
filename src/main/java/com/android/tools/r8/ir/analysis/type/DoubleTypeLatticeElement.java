@@ -22,6 +22,6 @@ public class DoubleTypeLatticeElement extends WideTypeLatticeElement {
 
   @Override
   public int hashCode() {
-    return INSTANCE.hashCode();
+    return getClass().hashCode();
   }
 }

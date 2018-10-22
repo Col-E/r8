@@ -22,6 +22,6 @@ public class FloatTypeLatticeElement extends SingleTypeLatticeElement {
 
   @Override
   public int hashCode() {
-    return INSTANCE.hashCode();
+    return getClass().hashCode();
   }
 }
