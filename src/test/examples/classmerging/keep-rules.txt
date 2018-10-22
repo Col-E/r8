@@ -10,6 +10,9 @@
 -keep public class classmerging.Test {
   public static void main(...);
 }
+-keep public class classmerging.ArrayTypeCollisionTest {
+  public static void main(...);
+}
 -keep public class classmerging.CallGraphCycleTest {
   public static void main(...);
 }
