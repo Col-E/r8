@@ -6,8 +6,6 @@ package com.android.tools.r8.internal;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.codeinspector.ClassHierarchyVerifier;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.File;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -24,10 +22,5 @@ public class R8GMSCoreV9TreeShakeJarVerificationTest extends R8GMSCoreTreeShakeJ
             true,
             GMSCORE_V9_MAX_SIZE,
             options -> options.proguardMapConsumer = new FileConsumer(proguardMapPath));
-
-    // Check that all non-abstract classes implement the abstract methods from their super types.
-    // This is a sanity check for the tree shaking and minification.
-    CodeInspector inspector = new CodeInspector(app, proguardMapPath);
-    new ClassHierarchyVerifier(inspector, false).run();
   }
 }

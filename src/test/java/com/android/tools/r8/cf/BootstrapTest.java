@@ -15,10 +15,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.codeinspector.ClassHierarchyVerifier;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.base.Charsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -89,10 +86,6 @@ public class BootstrapTest extends TestBase {
       throws Exception {
     // Run R8 on r8.jar.
     Path output = runR8(R8_STABLE_JAR, internalOutput, KEEP_R8, internalMode);
-    // Check that all non-abstract classes in the R8'd R8 implement all abstract/interface methods
-    // from their supertypes. This is a sanity check for the tree shaking and minification.
-    AndroidApp app = AndroidApp.builder().addProgramFile(output).build();
-    new ClassHierarchyVerifier(new CodeInspector(app)).run();
     // Run the resulting compiler on hello.jar.
     R8Result runR8R8 = runExternalR8(output, hello, externalOutput, KEEP_HELLO, externalMode);
     // Check that the process outputs (exit code, stdout, stderr) are the same.

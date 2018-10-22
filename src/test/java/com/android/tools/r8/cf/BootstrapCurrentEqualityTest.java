@@ -16,10 +16,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.codeinspector.ClassHierarchyVerifier;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.base.Charsets;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -103,11 +100,6 @@ public class BootstrapCurrentEqualityTest extends TestBase {
               .setOutput(jar, OutputMode.ClassFile)
               .build());
     }
-    // Check that all non-abstract classes in the R8'd R8 implement all abstract/interface methods
-    // from their supertypes. This is a sanity check for the tree shaking and minification.
-    AndroidApp app = AndroidApp.builder().addProgramFile(jar).build();
-
-    new ClassHierarchyVerifier(new CodeInspector(app)).run();
     return jar;
   }
 
