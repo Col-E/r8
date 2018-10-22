@@ -1504,12 +1504,13 @@ public class VerticalClassMerger {
       result = 0;
       int bitsUsed = 0;
       int accumulator = 0;
-      for (DexType aType : proto.parameters.values) {
+      for (DexType parameterType : proto.parameters.values) {
+        DexType parameterBaseType = parameterType.toBaseType(appInfo.dexItemFactory);
         // Substitute the type with the already merged class to estimate what it will look like.
-        aType = mergedClasses.getOrDefault(aType, aType);
+        DexType mappedType = mergedClasses.getOrDefault(parameterBaseType, parameterBaseType);
         accumulator <<= 1;
         bitsUsed++;
-        if (aType == type) {
+        if (mappedType == type) {
           accumulator |= 1;
         }
         // Handle overflow on 31 bit boundary.
@@ -1520,9 +1521,10 @@ public class VerticalClassMerger {
         }
       }
       // We also take the return type into account for potential conflicts.
-      DexType returnType = mergedClasses.getOrDefault(proto.returnType, proto.returnType);
+      DexType returnBaseType = proto.returnType.toBaseType(appInfo.dexItemFactory);
+      DexType mappedReturnType = mergedClasses.getOrDefault(returnBaseType, returnBaseType);
       accumulator <<= 1;
-      if (returnType == type) {
+      if (mappedReturnType == type) {
         accumulator |= 1;
       }
       result |= accumulator;

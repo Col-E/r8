@@ -126,6 +126,31 @@ public class VerticalClassMergerTest extends TestBase {
     }
   }
 
+  @Test
+  public void testArrayTypeCollision() throws Throwable {
+    String main = "classmerging.ArrayTypeCollisionTest";
+    Path[] programFiles =
+        new Path[] {
+          CF_DIR.resolve("ArrayTypeCollisionTest.class"),
+          CF_DIR.resolve("ArrayTypeCollisionTest$A.class"),
+          CF_DIR.resolve("ArrayTypeCollisionTest$B.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.ArrayTypeCollisionTest",
+            "classmerging.ArrayTypeCollisionTest$A",
+            "classmerging.ArrayTypeCollisionTest$B");
+    runTest(
+        main,
+        programFiles,
+        preservedClassNames::contains,
+        getProguardConfig(
+            EXAMPLE_KEEP,
+            "-neverinline public class classmerging.ArrayTypeCollisionTest {",
+            "  static void method(...);",
+            "}"));
+  }
+
   // This test has a cycle in the call graph consisting of the methods A.<init> and B.<init>.
   // When nondeterministicCycleElimination is enabled, we shuffle the nodes in the call graph
   // before the cycle elimination. Therefore, it is nondeterministic if the cycle detector will
