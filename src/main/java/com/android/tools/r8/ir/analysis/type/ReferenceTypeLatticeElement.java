@@ -105,6 +105,6 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   @Override
   public int hashCode() {
     assert isNull() || isReferenceInstance();
-    return this.hashCode();
+    return type.hashCode();
   }
 }
