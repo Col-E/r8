@@ -648,11 +648,6 @@ public final class R8Command extends BaseCompilerCommand {
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
 
-    // TODO(117819665): Outlining is currently non-deterministic. Renable when fixed.
-    if (internal.isGeneratingClassFiles()) {
-      internal.outline.enabled = false;
-    }
-
     assert internal.enableHorizontalClassMerging || !proguardConfiguration.isOptimizing();
     assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();
     if (internal.debug) {

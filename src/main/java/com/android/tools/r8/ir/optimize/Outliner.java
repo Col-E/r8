@@ -28,16 +28,19 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
+import com.android.tools.r8.ir.code.Binop;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Sub;
@@ -57,6 +60,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -64,6 +68,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import org.objectweb.asm.Opcodes;
@@ -112,6 +117,402 @@ public class Outliner {
   final private IRConverter converter;
   private final InliningConstraints inliningConstraints;
 
+  private abstract static class OutlineInstruction {
+
+    // Value signaling that this is the one allowed temporary register for an outline.
+    private static final int OUTLINE_TEMP = -1;
+
+    public enum OutlineInstructionType {
+      ADD,
+      SUB,
+      MUL,
+      DIV,
+      REM,
+      INVOKE,
+      NEW;
+
+      static OutlineInstructionType fromInstruction(Instruction instruction) {
+        if (instruction.isAdd()) {
+          return ADD;
+        }
+        if (instruction.isSub()) {
+          return SUB;
+        }
+        if (instruction.isMul()) {
+          return MUL;
+        }
+        if (instruction.isDiv()) {
+          return DIV;
+        }
+        if (instruction.isRem()) {
+          return REM;
+        }
+        if (instruction.isInvokeMethod()) {
+          return INVOKE;
+        }
+        if (instruction.isNewInstance()) {
+          return NEW;
+        }
+        throw new Unreachable();
+      }
+    }
+
+    protected final OutlineInstructionType type;
+
+    protected OutlineInstruction(OutlineInstructionType type) {
+      this.type = type;
+    }
+
+    static OutlineInstruction fromInstruction(Instruction instruction) {
+      if (instruction.isBinop()) {
+        return BinOpOutlineInstruction.fromInstruction(instruction.asBinop());
+      }
+      if (instruction.isNewInstance()) {
+        return new NewInstanceOutlineInstruction(
+            instruction.outValue().getTypeLattice(), instruction.asNewInstance().clazz);
+      }
+      assert instruction.isInvokeMethod();
+      return InvokeOutlineInstruction.fromInstruction(instruction.asInvokeMethod());
+    }
+
+    @Override
+    public int hashCode() {
+      return type.ordinal();
+    }
+
+    public int compareTo(OutlineInstruction other) {
+      return type.compareTo(other.type);
+    }
+
+    @Override
+    public abstract boolean equals(Object other);
+
+    public abstract String getDetailsString();
+
+    public abstract String getInstructionName();
+
+    public abstract boolean hasOutValue();
+
+    public abstract int numberOfInputs();
+
+    public abstract int createInstruction(IRBuilder builder, Outline outline, int argumentMapIndex);
+  }
+
+  private static class BinOpOutlineInstruction extends OutlineInstruction {
+
+    private final TypeLatticeElement latticeElement;
+    private final ValueType valueType;
+    private final NumericType numericType;
+
+    private BinOpOutlineInstruction(
+        OutlineInstructionType type,
+        TypeLatticeElement latticeElement,
+        ValueType valueType,
+        NumericType numericType) {
+      super(type);
+      this.latticeElement = latticeElement;
+      this.valueType = valueType;
+      this.numericType = numericType;
+    }
+
+    static BinOpOutlineInstruction fromInstruction(Binop instruction) {
+      return new BinOpOutlineInstruction(
+          OutlineInstructionType.fromInstruction(instruction),
+          instruction.outValue().getTypeLattice(),
+          instruction.outType(),
+          instruction.getNumericType());
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() * 7 + numericType.ordinal();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof BinOpOutlineInstruction)) {
+        return false;
+      }
+      BinOpOutlineInstruction o = (BinOpOutlineInstruction) other;
+      boolean equal = o.type.equals(type) && o.numericType.equals(numericType);
+      assert !equal || valueType.equals(o.valueType);
+      assert !equal || latticeElement.equals(o.latticeElement);
+      return equal;
+    }
+
+    @Override
+    public int compareTo(OutlineInstruction other) {
+      if (!(other instanceof BinOpOutlineInstruction)) {
+        return super.compareTo(other);
+      }
+      BinOpOutlineInstruction o = (BinOpOutlineInstruction) other;
+      int result = type.compareTo(o.type);
+      if (result != 0) {
+        return result;
+      }
+      return numericType.compareTo(o.numericType);
+    }
+
+    @Override
+    public String getDetailsString() {
+      return "";
+    }
+
+    @Override
+    public String getInstructionName() {
+      return type.name() + "-" + numericType.name();
+    }
+
+    @Override
+    public boolean hasOutValue() {
+      return true;
+    }
+
+    @Override
+    public int numberOfInputs() {
+      return 2;
+    }
+
+    @Override
+    public int createInstruction(IRBuilder builder, Outline outline, int argumentMapIndex) {
+      List<Value> inValues = new ArrayList<>(numberOfInputs());
+      // The template in-values are not re-ordered for commutative binary operations, as it does
+      // not matter.
+      for (int i = 0; i < numberOfInputs(); i++) {
+        int register = outline.argumentMap.get(argumentMapIndex++);
+        if (register == OutlineInstruction.OUTLINE_TEMP) {
+          register = outline.argumentCount();
+        }
+        inValues.add(builder.readRegister(register, valueType));
+      }
+      Value outValue =
+          builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
+      Instruction newInstruction = null;
+      switch (type) {
+        case ADD:
+          newInstruction = new Add(numericType, outValue, inValues.get(0), inValues.get(1));
+          break;
+        case MUL:
+          newInstruction = new Mul(numericType, outValue, inValues.get(0), inValues.get(1));
+          break;
+        case SUB:
+          newInstruction = new Sub(numericType, outValue, inValues.get(0), inValues.get(1));
+          break;
+        case DIV:
+          newInstruction = new Div(numericType, outValue, inValues.get(0), inValues.get(1));
+          break;
+        case REM:
+          newInstruction = new Rem(numericType, outValue, inValues.get(0), inValues.get(1));
+          break;
+        default:
+          throw new Unreachable("Invalid binary operation type: " + type);
+      }
+      builder.add(newInstruction);
+      return argumentMapIndex;
+    }
+  }
+
+  private static class NewInstanceOutlineInstruction extends OutlineInstruction {
+    private final TypeLatticeElement latticeElement;
+    private final DexType clazz;
+
+    NewInstanceOutlineInstruction(TypeLatticeElement latticeElement, DexType clazz) {
+      super(OutlineInstructionType.NEW);
+      this.latticeElement = latticeElement;
+      this.clazz = clazz;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof NewInstanceOutlineInstruction)) {
+        return false;
+      }
+      NewInstanceOutlineInstruction o = (NewInstanceOutlineInstruction) other;
+      boolean result = clazz == o.clazz;
+      assert !result || latticeElement.equals(o.latticeElement);
+      return result;
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() * 7 + clazz.hashCode();
+    }
+
+    @Override
+    public int compareTo(OutlineInstruction other) {
+      if (!(other instanceof NewInstanceOutlineInstruction)) {
+        return super.compareTo(other);
+      }
+      NewInstanceOutlineInstruction o = (NewInstanceOutlineInstruction) other;
+      return clazz.slowCompareTo(o.clazz);
+    }
+
+    @Override
+    public String getDetailsString() {
+      return clazz.toSourceString();
+    }
+
+    @Override
+    public String getInstructionName() {
+      return type.name();
+    }
+
+    @Override
+    public boolean hasOutValue() {
+      return true;
+    }
+
+    @Override
+    public int numberOfInputs() {
+      return 0;
+    }
+
+    @Override
+    public int createInstruction(IRBuilder builder, Outline outline, int argumentMapIndex) {
+      Value outValue =
+          builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
+      Instruction newInstruction = new NewInstance(clazz, outValue);
+      builder.add(newInstruction);
+      return argumentMapIndex;
+    }
+  }
+
+  private static class InvokeOutlineInstruction extends OutlineInstruction {
+    private final DexMethod method;
+    private final Invoke.Type invokeType;
+    private final boolean hasOutValue;
+    private final ValueType[] inputTypes;
+    private final DexProto proto;
+    private final TypeLatticeElement latticeElement;
+
+    private InvokeOutlineInstruction(
+        DexMethod method,
+        Type type,
+        boolean hasOutValue,
+        ValueType[] inputTypes,
+        DexProto proto,
+        TypeLatticeElement latticeElement) {
+      super(OutlineInstructionType.INVOKE);
+      this.method = method;
+      this.invokeType = type;
+      this.hasOutValue = hasOutValue;
+      this.inputTypes = inputTypes;
+      this.proto = proto;
+      this.latticeElement = latticeElement;
+    }
+
+    static InvokeOutlineInstruction fromInstruction(InvokeMethod invoke) {
+      ValueType[] inputTypes = new ValueType[invoke.inValues().size()];
+      int i = 0;
+      for (Value value : invoke.inValues()) {
+        inputTypes[i++] = value.outType();
+      }
+      return new InvokeOutlineInstruction(
+          invoke.getInvokedMethod(),
+          invoke.getType(),
+          invoke.outValue() != null,
+          inputTypes,
+          invoke.isInvokePolymorphic() ? invoke.asInvokePolymorphic().getProto() : null,
+          invoke.outValue() != null ? invoke.outValue().getTypeLattice() : null);
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() * 7
+          + method.hashCode() * 13
+          + invokeType.hashCode()
+          + Boolean.hashCode(hasOutValue)
+          + Arrays.hashCode(inputTypes)
+          + Objects.hashCode(proto)
+          + Objects.hashCode(latticeElement);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof InvokeOutlineInstruction)) {
+        return false;
+      }
+      InvokeOutlineInstruction o = (InvokeOutlineInstruction) other;
+      return method == o.method
+          && invokeType == o.invokeType
+          && hasOutValue == o.hasOutValue
+          && Arrays.equals(inputTypes, o.inputTypes)
+          && Objects.equals(proto, o.proto)
+          && Objects.equals(latticeElement, o.latticeElement);
+    }
+
+    @Override
+    public int compareTo(OutlineInstruction other) {
+      if (!(other instanceof InvokeOutlineInstruction)) {
+        return super.compareTo(other);
+      }
+      InvokeOutlineInstruction o = (InvokeOutlineInstruction) other;
+      int result = method.slowCompareTo(o.method);
+      if (result != 0) {
+        return result;
+      }
+      result = invokeType.compareTo(o.invokeType);
+      if (result != 0) {
+        return result;
+      }
+      result = Boolean.compare(hasOutValue, o.hasOutValue);
+      if (result != 0) {
+        return result;
+      }
+      if (proto != null) {
+        result = proto.slowCompareTo(o.proto);
+        if (result != 0) {
+          return result;
+        }
+      }
+      assert Arrays.equals(inputTypes, o.inputTypes);
+      assert Objects.equals(latticeElement, o.latticeElement);
+      assert this.equals(other);
+      return 0;
+    }
+
+    @Override
+    public String getDetailsString() {
+      return "; method: " + method.toSourceString();
+    }
+
+    @Override
+    public String getInstructionName() {
+      return type.name() + "-" + invokeType.name();
+    }
+
+    @Override
+    public boolean hasOutValue() {
+      return hasOutValue;
+    }
+
+    @Override
+    public int numberOfInputs() {
+      return inputTypes.length;
+    }
+
+    @Override
+    public int createInstruction(IRBuilder builder, Outline outline, int argumentMapIndex) {
+      List<Value> inValues = new ArrayList<>(numberOfInputs());
+      for (int i = 0; i < numberOfInputs(); i++) {
+        int register = outline.argumentMap.get(argumentMapIndex++);
+        if (register == OutlineInstruction.OUTLINE_TEMP) {
+          register = outline.argumentCount();
+        }
+        inValues.add(builder.readRegister(register, inputTypes[i]));
+      }
+      Value outValue = null;
+      if (hasOutValue) {
+        outValue =
+            builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
+      }
+
+      Instruction newInstruction = Invoke.create(invokeType, method, proto, outValue, inValues);
+      builder.add(newInstruction);
+      return argumentMapIndex;
+    }
+  }
+
   // Representation of an outline.
   // This includes the instructions in the outline, and a map from the arguments of this outline
   // to the values in the instructions.
@@ -136,19 +537,22 @@ public class Outliner {
   // of two outlines rely on the instructions and the argument mapping *not* the concrete values.
   public class Outline implements Comparable<Outline> {
 
-    final List<Value> arguments;
     final List<DexType> argumentTypes;
     final List<Integer> argumentMap;
-    final List<Instruction> templateInstructions = new ArrayList<>();
+    final List<OutlineInstruction> templateInstructions = new ArrayList<>();
     final public DexType returnType;
 
     private DexProto proto;
 
     // Build an outline over the instructions [start, end[.
     // The arguments are the arguments to pass to an outline of these instructions.
-    Outline(List<Instruction> instructions, List<Value> arguments, List<DexType> argumentTypes,
-        List<Integer> argumentMap, DexType returnType, int start, int end) {
-      this.arguments = arguments;
+    Outline(
+        List<Instruction> instructions,
+        List<DexType> argumentTypes,
+        List<Integer> argumentMap,
+        DexType returnType,
+        int start,
+        int end) {
       this.argumentTypes = argumentTypes;
       this.argumentMap = argumentMap;
       this.returnType = returnType;
@@ -156,7 +560,7 @@ public class Outliner {
       for (int i = start; i < end; i++) {
         Instruction current = instructions.get(i);
         if (current.isInvoke() || current.isNewInstance() || current.isArithmeticBinop()) {
-          templateInstructions.add(current);
+          templateInstructions.add(OutlineInstruction.fromInstruction(current));
         } else if (current.isConstInstruction()) {
           // Don't include const instructions in the template.
         } else {
@@ -166,7 +570,7 @@ public class Outliner {
     }
 
     int argumentCount() {
-      return arguments.size();
+      return argumentTypes.size();
     }
 
     DexProto buildProto() {
@@ -187,19 +591,15 @@ public class Outliner {
       if (!(other instanceof Outline)) {
         return false;
       }
-      List<Instruction> instructions0 = this.templateInstructions;
-      List<Instruction> instructions1 = ((Outline) other).templateInstructions;
+      List<OutlineInstruction> instructions0 = this.templateInstructions;
+      List<OutlineInstruction> instructions1 = ((Outline) other).templateInstructions;
       if (instructions0.size() != instructions1.size()) {
         return false;
       }
       for (int i = 0; i < instructions0.size(); i++) {
-        Instruction i0 = instructions0.get(i);
-        Instruction i1 = instructions1.get(i);
-        // Note that we don't consider positions as this optimization already breaks stack traces.
-        if (!i0.identicalNonValueNonPositionParts(i1)) {
-          return false;
-        }
-        if ((i0.outValue() != null) != (i1.outValue() != null)) {
+        OutlineInstruction i0 = instructions0.get(i);
+        OutlineInstruction i1 = instructions1.get(i);
+        if (!i0.equals(i1)) {
           return false;
         }
       }
@@ -214,11 +614,9 @@ public class Outliner {
       int hash = templateInstructions.size();
       int hashPart = 0;
       for (int i = 0; i < templateInstructions.size() && i < MAX_HASH_INSTRUCTIONS; i++) {
-        Instruction instruction = templateInstructions.get(i);
-        if (instruction.isInvokeMethod()) {
-          hashPart = hashPart << 4;
-          hashPart += instruction.asInvokeMethod().getInvokedMethod().hashCode();
-        }
+        OutlineInstruction instruction = templateInstructions.get(i);
+        hashPart = hashPart << 4;
+        hashPart += instruction.hashCode();
         hash = hash * 3 + hashPart;
       }
       return hash;
@@ -238,34 +636,19 @@ public class Outliner {
       }
       assert argumentCount() == other.argumentCount();
       // Then compare the instructions (non value part).
-      List<Instruction> instructions0 = templateInstructions;
-      List<Instruction> instructions1 = other.templateInstructions;
+      List<OutlineInstruction> instructions0 = templateInstructions;
+      List<OutlineInstruction> instructions1 = other.templateInstructions;
       result = instructions0.size() - instructions1.size();
       if (result != 0) {
         assert !equals(other);
         return result;
       }
       for (int i = 0; i < instructions0.size(); i++) {
-        Instruction i0 = instructions0.get(i);
-        Instruction i1 = instructions1.get(i);
-        result = i0.getInstructionName().compareTo(i1.getInstructionName());
+        OutlineInstruction i0 = instructions0.get(i);
+        OutlineInstruction i1 = instructions1.get(i);
+        result = i0.compareTo(i1);
         if (result != 0) {
-          assert !equals(other);
-          return result;
-        }
-        result = i0.inValues().size() - i1.inValues().size();
-        if (result != 0) {
-          assert !equals(other);
-          return result;
-        }
-        result = (i0.outValue() != null ? 1 : 0) - (i1.outValue() != null ? 1 : 0);
-        if (result != 0) {
-          assert !equals(other);
-          return result;
-        }
-        result = i0.compareNonValueParts(i1);
-        if (result != 0) {
-          assert !equals(other);
+          assert !i0.equals(i1);
           return result;
         }
       }
@@ -289,21 +672,22 @@ public class Outliner {
     @Override
     public String toString() {
       // The printing of the code for an outline maps the value numbers to the arguments numbers.
-      int outRegisterNumber = arguments.size();
+      int outRegisterNumber = argumentTypes.size();
       StringBuilder builder = new StringBuilder();
       builder.append(returnType);
       builder.append(" anOutline");
       StringUtils.append(builder, argumentTypes, ", ", BraceType.PARENS);
       builder.append("\n");
       int argumentMapIndex = 0;
-      for (Instruction instruction : templateInstructions) {
+      for (OutlineInstruction instruction : templateInstructions) {
+        builder.append(instruction.toString());
         String name = instruction.getInstructionName();
         StringUtils.appendRightPadded(builder, name, 20);
-        if (instruction.outValue() != null) {
+        if (instruction.hasOutValue()) {
           builder.append("v" + outRegisterNumber);
           builder.append(" <- ");
         }
-        for (int i = 0; i < instruction.inValues().size(); i++) {
+        for (int i = 0; i < instruction.numberOfInputs(); i++) {
           builder.append(i > 0 ? ", " : "");
           builder.append("v");
           int index = argumentMap.get(argumentMapIndex++);
@@ -313,13 +697,7 @@ public class Outliner {
             builder.append(outRegisterNumber);
           }
         }
-        if (instruction.isInvoke()) {
-          builder.append("; method: ");
-          builder.append(instruction.asInvokeMethod().getInvokedMethod().toSourceString());
-        }
-        if (instruction.isNewInstance()) {
-          builder.append(instruction.asNewInstance().clazz.toSourceString());
-        }
+        builder.append(instruction.getDetailsString());
         builder.append("\n");
       }
       if (returnType == dexItemFactory.voidType) {
@@ -577,7 +955,7 @@ public class Outliner {
         for (int i = 0; i < inValues.size(); i++) {
           Value value = inValues.get(i);
           if (value == prevReturnValue) {
-            argumentsMap.add(-1);
+            argumentsMap.add(OutlineInstruction.OUTLINE_TEMP);
             continue;
           }
           if (instruction.isInvokeMethodWithReceiver() || instruction.isInvokePolymorphic()) {
@@ -597,7 +975,7 @@ public class Outliner {
               arguments.add(value);
               argumentRegisters += value.requiredRegisters();
               argumentTypes.add(argumentTypeFromInvoke(invoke, i));
-              argumentsMap.add(arguments.size() - 1);
+              argumentsMap.add(argumentTypes.size() - 1);
             }
           } else {
             arguments.add(value);
@@ -607,7 +985,7 @@ public class Outliner {
             } else {
               argumentTypes.add(instruction.asBinop().getNumericType().dexTypeFor(dexItemFactory));
             }
-            argumentsMap.add(arguments.size() - 1);
+            argumentsMap.add(argumentTypes.size() - 1);
           }
         }
       }
@@ -671,8 +1049,8 @@ public class Outliner {
         return;
       }
 
-      Outline outline = new Outline(
-          instructions, arguments, argumentTypes, argumentsMap, returnType, start, end);
+      Outline outline =
+          new Outline(instructions, argumentTypes, argumentsMap, returnType, start, end);
       handle(start, end, outline);
 
       // Start a new candidate search from the next instruction after this outline.
@@ -976,8 +1354,8 @@ public class Outliner {
   private class OutlineSourceCode implements SourceCode {
 
     final private Outline outline;
-    int argumentMapIndex = 0;
     private final Position position;
+    private int argumentMapIndex = 0;
 
     OutlineSourceCode(Outline outline, DexMethod method) {
       this.outline = outline;
@@ -1031,8 +1409,9 @@ public class Outliner {
     @Override
     public void buildPrelude(IRBuilder builder) {
       // Fill in the Argument instructions in the argument block.
-      for (int i = 0; i < outline.arguments.size(); i++) {
-        TypeLatticeElement typeLattice = outline.arguments.get(i).getTypeLattice();
+      for (int i = 0; i < outline.argumentTypes.size(); i++) {
+        TypeLatticeElement typeLattice =
+            TypeLatticeElement.fromDexType(outline.argumentTypes.get(i));
         builder.addNonThisArgument(i, typeLattice);
       }
     }
@@ -1060,57 +1439,11 @@ public class Outliner {
         return;
       }
       // Build IR from the template.
-      Instruction template = outline.templateInstructions.get(instructionIndex);
-      List<Value> inValues = new ArrayList<>(template.inValues().size());
-      List<Value> templateInValues = template.inValues();
-      // The template in-values are not re-ordered for commutative binary operations, as it does
-      // not matter.
-      for (int i = 0; i < templateInValues.size(); i++) {
-        Value value = templateInValues.get(i);
-        int register = outline.argumentMap.get(argumentMapIndex++);
-        if (register == -1) {
-          register = outline.argumentCount();
-        }
-        inValues.add(
-            builder.readRegister(register, value.outType()));
-      }
-      Value outValue = null;
-      if (template.outValue() != null) {
-        Value value = template.outValue();
-        outValue = builder.writeRegister(
-            outline.argumentCount(), value.getTypeLattice(), ThrowingInfo.CAN_THROW);
-      }
-
-      Instruction newInstruction = null;
-      if (template.isInvoke()) {
-        Invoke templateInvoke = template.asInvoke();
-        newInstruction = Invoke.createFromTemplate(templateInvoke, outValue, inValues);
-      } else if (template.isAdd()) {
-        Add templateInvoke = template.asAdd();
-        newInstruction = new Add(
-            templateInvoke.getNumericType(), outValue, inValues.get(0), inValues.get(1));
-      } else if (template.isMul()) {
-        Mul templateInvoke = template.asMul();
-        newInstruction = new Mul(
-            templateInvoke.getNumericType(), outValue, inValues.get(0), inValues.get(1));
-      } else if (template.isSub()) {
-        Sub templateInvoke = template.asSub();
-        newInstruction = new Sub(
-            templateInvoke.getNumericType(), outValue, inValues.get(0), inValues.get(1));
-      } else if (template.isDiv()) {
-        Div templateInvoke = template.asDiv();
-        newInstruction = new Div(
-            templateInvoke.getNumericType(), outValue, inValues.get(0), inValues.get(1));
-      } else if (template.isRem()) {
-        Rem templateInvoke = template.asRem();
-        newInstruction = new Rem(
-            templateInvoke.getNumericType(), outValue, inValues.get(0), inValues.get(1));
-      } else {
-        assert template.isNewInstance();
-        NewInstance templateNewInstance = template.asNewInstance();
-        newInstruction = new NewInstance(templateNewInstance.clazz, outValue);
-      }
-      builder.add(newInstruction);
+      argumentMapIndex =
+          outline
+              .templateInstructions
+              .get(instructionIndex)
+              .createInstruction(builder, outline, argumentMapIndex);
     }
 
     @Override
