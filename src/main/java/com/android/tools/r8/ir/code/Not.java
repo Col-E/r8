@@ -4,8 +4,6 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.cf.code.CfConstNumber;
-import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.code.NotInt;
 import com.android.tools.r8.code.NotLong;
 import com.android.tools.r8.errors.Unreachable;
@@ -92,13 +90,13 @@ public class Not extends Unop {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
-    helper.loadInValues(this, it);
-    helper.storeOutValue(this, it);
+    // JVM has no Not instruction, they should be replaced by "Load -1, Xor" before building CF.
+    throw new Unreachable();
   }
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfConstNumber(-1, ValueType.fromNumericType(type)));
-    builder.add(new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, type));
+    // JVM has no Not instruction, they should be replaced by "Load -1, Xor" before building CF.
+    throw new Unreachable();
   }
 }

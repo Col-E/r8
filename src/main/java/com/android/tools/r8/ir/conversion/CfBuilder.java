@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
+import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
@@ -37,6 +38,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.peepholes.BasicBlockMuncher;
@@ -131,6 +133,7 @@ public class CfBuilder {
     types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
     splitExceptionalBlocks();
     new DeadCodeRemover(code, rewriter, graphLense, options).run();
+    rewriteNots();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
     loadStoreHelper.insertLoadsAndStores();
     BasicBlockMuncher muncher = new BasicBlockMuncher();
@@ -210,6 +213,33 @@ public class CfBuilder {
       if (hasOutValues) {
         instructions.previous();
         instructions.split(code, it);
+      }
+    }
+  }
+
+  private void rewriteNots() {
+    for (BasicBlock block : code.blocks) {
+      InstructionListIterator it = block.listIterator();
+      while (it.hasNext()) {
+        Instruction current = it.next();
+        if (!current.isNot()) {
+          continue;
+        }
+
+        Value inValue = current.inValues().get(0);
+
+        // Insert ConstNumber(v, -1) before Not.
+        it.previous();
+        Value constValue = code.createValue(inValue.getTypeLattice());
+        Instruction newInstruction = new ConstNumber(constValue, -1);
+        newInstruction.setBlock(block);
+        newInstruction.setPosition(current.getPosition());
+        it.add(newInstruction);
+        it.next();
+
+        // Replace Not with Xor.
+        it.replaceCurrentInstruction(
+            new Xor(current.asNot().type, current.outValue(), inValue, constValue));
       }
     }
   }
