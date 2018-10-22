@@ -366,6 +366,15 @@ public class VerticalClassMerger {
       // lead to members being duplicated.
       return false;
     }
+    if (singleSubtype.isSerializable(appInfo) && !clazz.isSerializable(appInfo)) {
+      // https://docs.oracle.com/javase/8/docs/platform/serialization/spec/serial-arch.html
+      //   1.10 The Serializable Interface
+      //   ...
+      //   A Serializable class must do the following:
+      //   ...
+      //     * Have access to the no-arg constructor of its first non-serializable superclass
+      return false;
+    }
     for (DexEncodedField field : clazz.fields()) {
       if (appInfo.isPinned(field.field)) {
         return false;

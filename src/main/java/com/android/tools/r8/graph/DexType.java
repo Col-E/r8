@@ -100,6 +100,14 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return hierarchyLevel == INTERFACE_LEVEL;
   }
 
+  public boolean isExternalizable(AppInfo appInfo) {
+    return implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.externalizableType);
+  }
+
+  public boolean isSerializable(AppInfo appInfo) {
+    return implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.serializableType);
+  }
+
   public boolean isUnknown() {
     return hierarchyLevel == UNKNOWN_LEVEL;
   }
