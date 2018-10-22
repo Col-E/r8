@@ -15,6 +15,7 @@ def Main():
   args = sys.argv[1:]
   if len(args) != 1:
     print('Performance tracking takes exactly one argument, the name for display')
+    return 1
   subprocess.check_call([DART, SCRIPT, args[0]])
 
 if __name__ == '__main__':
