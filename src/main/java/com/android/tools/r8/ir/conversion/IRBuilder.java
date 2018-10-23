@@ -8,6 +8,7 @@ import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
@@ -127,6 +128,32 @@ public class IRBuilder {
   private static final TypeLatticeElement NULL = TypeLatticeElement.NULL;
 
   public static final int INITIAL_BLOCK_OFFSET = -1;
+
+  private static TypeLatticeElement fromMemberType(MemberType type) {
+    switch (type) {
+      case BOOLEAN:
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        return INT;
+      case FLOAT:
+        return FLOAT;
+      case INT_OR_FLOAT:
+        return TypeLatticeElement.SINGLE;
+      case LONG:
+        return LONG;
+      case DOUBLE:
+        return DOUBLE;
+      case LONG_OR_DOUBLE:
+        return TypeLatticeElement.WIDE;
+      case OBJECT:
+        // For object types, we delay the exact type computation until done building.
+        return TypeLatticeElement.BOTTOM;
+      default:
+        throw new Unreachable("Unexpected member type: " + type);
+    }
+  }
 
   public DexItemFactory getFactory() {
     return options.itemFactory;
@@ -533,6 +560,16 @@ public class IRBuilder {
       resolver.resolve(ir, this);
     }
 
+    // TODO(b/72693244): Remove this once we compute a proper fixed point.
+    for (BasicBlock block : blocks) {
+      for (Instruction instruction : block.getInstructions()) {
+        if (instruction.outValue() != null && instruction.outValue().getTypeLattice().isBottom()) {
+          assert instruction.outType() == ValueType.OBJECT;
+          instruction.outValue().widening(appInfo, TypeLatticeElement.REFERENCE);
+        }
+      }
+    }
+
     assert ir.isConsistentSSA();
 
     // Clear the code so we don't build multiple times.
@@ -848,8 +885,7 @@ public class IRBuilder {
   public void addArrayGet(MemberType type, int dest, int array, int index) {
     Value in1 = readRegister(array, ValueType.OBJECT);
     Value in2 = readRegister(index, ValueType.INT);
-    Value out = writeRegister(
-        dest, TypeLatticeElement.fromMemberType(type), ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, fromMemberType(type), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     ArrayGet instruction = new ArrayGet(type, out, in1, in2);
     assert instruction.instructionTypeCanThrow();

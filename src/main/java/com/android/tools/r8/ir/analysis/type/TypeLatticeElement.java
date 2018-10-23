@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.LRUCacheTable;
@@ -448,31 +447,6 @@ public abstract class TypeLatticeElement {
       return PrimitiveTypeLatticeElement.fromDexType(type);
     }
     return appInfo.dexItemFactory.createReferenceTypeLatticeElement(type, isNullable, appInfo);
-  }
-
-  public static TypeLatticeElement fromMemberType(MemberType type) {
-    switch (type) {
-      case BOOLEAN:
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-        return INT;
-      case FLOAT:
-        return FLOAT;
-      case INT_OR_FLOAT:
-        return SINGLE;
-      case LONG:
-        return LONG;
-      case DOUBLE:
-        return DOUBLE;
-      case LONG_OR_DOUBLE:
-        return WIDE;
-      case OBJECT:
-        return REFERENCE;
-      default:
-        throw new Unreachable("Unexpected member type: " + type);
-    }
   }
 
   public static TypeLatticeElement fromNumericType(NumericType type) {
