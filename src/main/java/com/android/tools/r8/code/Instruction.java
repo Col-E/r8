@@ -126,7 +126,19 @@ public abstract class Instruction {
     return false;
   }
 
+  public ConstString asConstString() {
+    return null;
+  }
+
   public boolean isConstString() {
+    return false;
+  }
+
+  public ConstStringJumbo asConstStringJumbo() {
+    return null;
+  }
+
+  public boolean isConstStringJumbo() {
     return false;
   }
 

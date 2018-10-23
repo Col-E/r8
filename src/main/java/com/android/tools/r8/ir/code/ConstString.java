@@ -48,7 +48,6 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public void buildDex(DexBuilder builder) {
-    builder.registerStringReference(value);
     int dest = builder.allocatedRegister(dest(), getNumber());
     builder.add(this, new com.android.tools.r8.code.ConstString(dest, value));
   }

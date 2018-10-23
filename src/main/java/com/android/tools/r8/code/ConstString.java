@@ -45,6 +45,11 @@ public class ConstString extends Format21c {
   }
 
   @Override
+  public ConstString asConstString() {
+    return this;
+  }
+
+  @Override
   public boolean isConstString() {
     return true;
   }

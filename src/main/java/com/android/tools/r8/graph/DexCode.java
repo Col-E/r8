@@ -38,7 +38,7 @@ public class DexCode extends Code {
   public final TryHandler[] handlers;
   public final Instruction[] instructions;
 
-  public final DexString highestSortingString;
+  public DexString highestSortingString;
   private DexDebugInfo debugInfo;
 
   public DexCode(
@@ -48,8 +48,7 @@ public class DexCode extends Code {
       Instruction[] instructions,
       Try[] tries,
       TryHandler[] handlers,
-      DexDebugInfo debugInfo,
-      DexString highestSortingString) {
+      DexDebugInfo debugInfo) {
     this.incomingRegisterSize = insSize;
     this.registerSize = registerSize;
     this.outgoingRegisterSize = outsSize;
@@ -57,7 +56,6 @@ public class DexCode extends Code {
     this.tries = tries;
     this.handlers = handlers;
     this.debugInfo = debugInfo;
-    this.highestSortingString = highestSortingString;
     hashCode();  // Cache the hash code eagerly.
   }
 
@@ -68,8 +66,14 @@ public class DexCode extends Code {
     // by 1, it becomes just a regular register which is never used, and thus will be
     // gone when we build an IR from this code. Rebuilding IR for methods 'staticized'
     // this way is highly recommended to improve register allocation.
-    return new DexCode(registerSize, incomingRegisterSize - 1, outgoingRegisterSize,
-        instructions, tries, handlers, debugInfoWithoutFirstParameter(), highestSortingString);
+    return new DexCode(
+        registerSize,
+        incomingRegisterSize - 1,
+        outgoingRegisterSize,
+        instructions,
+        tries,
+        handlers,
+        debugInfoWithoutFirstParameter());
   }
 
   @Override
@@ -360,8 +364,14 @@ public class DexCode extends Code {
   public void collectIndexedItems(
       IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
     assert instructionOffset == -1;
+    highestSortingString = null;
     for (Instruction insn : instructions) {
       insn.collectIndexedItems(indexedItems, method, insn.getOffset());
+      if (insn.isConstString()) {
+        updateHighestSortingString(insn.asConstString().getString());
+      } else if (insn.isConstStringJumbo()) {
+        updateHighestSortingString(insn.asConstStringJumbo().getString());
+      }
     }
     if (debugInfo != null) {
       debugInfo.collectIndexedItems(indexedItems);
@@ -370,6 +380,14 @@ public class DexCode extends Code {
       for (TryHandler handler : handlers) {
         handler.collectIndexedItems(indexedItems);
       }
+    }
+  }
+
+  private void updateHighestSortingString(DexString candidate) {
+    assert candidate != null;
+    assert !(candidate instanceof DexItemBasedString);
+    if (highestSortingString == null || highestSortingString.slowCompareTo(candidate) < 0) {
+      highestSortingString = candidate;
     }
   }
 

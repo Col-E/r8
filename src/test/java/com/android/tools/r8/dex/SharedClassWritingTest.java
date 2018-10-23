@@ -77,8 +77,7 @@ public class SharedClassWritingTest {
       instructions[i] = new ConstString(0, strings[startOffset + i]);
     }
     instructions[stringCount] = new ReturnVoid();
-    DexCode code = new DexCode(1, 0, 0, instructions, new Try[0], new TryHandler[0], null,
-        strings[startOffset + stringCount - 1]);
+    DexCode code = new DexCode(1, 0, 0, instructions, new Try[0], new TryHandler[0], null);
     return new DexEncodedMethod(
         dexItemFactory.createMethod(
             holder, dexItemFactory.createProto(dexItemFactory.voidType), "theMethod"),

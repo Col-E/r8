@@ -156,7 +156,6 @@ public class JumboStringProcessing extends TestBase {
         instructions,
         new Try[0],
         null,
-        null,
         null);
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false);
     DexEncodedMethod method = new DexEncodedMethod(null, flags, null, null, code);
