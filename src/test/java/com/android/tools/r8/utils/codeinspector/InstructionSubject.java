@@ -38,6 +38,10 @@ public interface InstructionSubject {
 
   boolean isNop();
 
+  boolean isConstNumber();
+
+  boolean isConstNumber(long value);
+
   boolean isConstString(JumboStringMode jumboStringMode);
 
   boolean isConstString(String value, JumboStringMode jumboStringMode);
