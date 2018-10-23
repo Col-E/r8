@@ -90,25 +90,6 @@ public abstract class Invoke extends Instruction {
     throw new Unreachable("Unknown invoke type: " + type);
   }
 
-  public static Instruction createFromTemplate(
-      Invoke template, Value outValue, List<Value> inValues) {
-    if (template.isInvokeMethod()) {
-      return create(template.getType(),
-          template.asInvokeMethod().getInvokedMethod(),
-          template.isInvokePolymorphic() ? template.asInvokePolymorphic().getProto() : null,
-          outValue,
-          inValues);
-    }
-
-    if (template.isInvokeNewArray()) {
-      return new InvokeNewArray(template.asInvokeNewArray().getArrayType(), outValue, inValues);
-    }
-
-    assert template.isInvokeCustom();
-    InvokeCustom custom = template.asInvokeCustom();
-    return new InvokeCustom(custom.getCallSite(), outValue, inValues);
-  }
-
   abstract public Type getType();
 
   abstract public DexType getReturnType();
