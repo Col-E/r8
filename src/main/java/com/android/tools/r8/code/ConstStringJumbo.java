@@ -42,6 +42,16 @@ public class ConstStringJumbo extends Format31c {
   }
 
   @Override
+  public ConstStringJumbo asConstStringJumbo() {
+    return this;
+  }
+
+  @Override
+  public boolean isConstStringJumbo() {
+    return true;
+  }
+
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", \"" + BBBBBBBB.toString() + "\"");
   }

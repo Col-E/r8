@@ -7,6 +7,8 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import java.util.Arrays;
 
+// TODO(b/117828645): Introduce a DexItemBasedConstString instruction instead, as the use of
+// DexItemBasedString implies that we cannot rely on DexStrings being canonicalized.
 public class DexItemBasedString extends DexString {
   public final DexReference basedOn;
 

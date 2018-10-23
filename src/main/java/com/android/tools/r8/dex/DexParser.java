@@ -825,15 +825,7 @@ public class DexParser {
     InstructionFactory factory = new InstructionFactory();
     Instruction[] instructions =
         factory.readSequenceFrom(ShortBuffer.wrap(code), 0, code.length, indexedItems);
-    return new DexCode(
-        registerSize,
-        insSize,
-        outsSize,
-        instructions,
-        tries,
-        handlers,
-        debugInfo,
-        factory.getHighestSortingString());
+    return new DexCode(registerSize, insSize, outsSize, instructions, tries, handlers, debugInfo);
   }
 
   void populateIndexTables() {

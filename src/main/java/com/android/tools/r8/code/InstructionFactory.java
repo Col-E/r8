@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
@@ -11,8 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InstructionFactory extends BaseInstructionFactory {
-
-  private DexString highestSortingString = null;
 
   static private Instruction readFrom(ShortBufferBytecodeStream stream,
       OffsetToObjectMapping mapping) {
@@ -33,24 +30,9 @@ public class InstructionFactory extends BaseInstructionFactory {
     List<Instruction> insn = new ArrayList<>(length);
     while (range.hasMore()) {
       Instruction instruction = readFrom(range, mapping);
-      if (instruction instanceof ConstString) {
-        updateHighestSortingString(((ConstString) instruction).getString());
-      } else if (instruction instanceof ConstStringJumbo) {
-        updateHighestSortingString(((ConstStringJumbo) instruction).getString());
-      }
       insn.add(instruction);
     }
     return insn.toArray(new Instruction[insn.size()]);
-  }
-
-  public DexString getHighestSortingString() {
-    return highestSortingString;
-  }
-
-  private void updateHighestSortingString(DexString string) {
-    if (highestSortingString == null || highestSortingString.slowCompareTo(string) < 0) {
-      highestSortingString = string;
-    }
   }
 
   private static class ShortBufferBytecodeStream implements BytecodeStream {

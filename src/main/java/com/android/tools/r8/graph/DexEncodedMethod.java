@@ -502,9 +502,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     for (DexType type : method.proto.parameters.values) {
       requiredArgRegisters += ValueType.fromDexType(type).requiredRegisters();
     }
-    // Passing null as highestSortingString is save, as ConstString instructions are not allowed.
-    return new DexCode(Math.max(numberOfRegisters, requiredArgRegisters), requiredArgRegisters,
-        outRegisters, instructions, new DexCode.Try[0], new DexCode.TryHandler[0], null, null);
+    return new DexCode(
+        Math.max(numberOfRegisters, requiredArgRegisters),
+        requiredArgRegisters,
+        outRegisters,
+        instructions,
+        new DexCode.Try[0],
+        new DexCode.TryHandler[0],
+        null);
   }
 
   public DexEncodedMethod toEmptyThrowingMethodDex() {
@@ -684,9 +689,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     DexString firstJumboString = null;
     if (force) {
       firstJumboString = mapping.getFirstString();
-    } else if (code.highestSortingString != null
-        && mapping.getOffsetFor(code.highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
-      firstJumboString = mapping.getFirstJumboString();
+    } else {
+      assert code.highestSortingString != null
+          || Arrays.stream(code.instructions).noneMatch(Instruction::isConstString);
+      if (code.highestSortingString != null
+          && mapping.getOffsetFor(code.highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
+        firstJumboString = mapping.getFirstJumboString();
+      }
     }
     if (firstJumboString != null) {
       JumboStringRewriter rewriter =
