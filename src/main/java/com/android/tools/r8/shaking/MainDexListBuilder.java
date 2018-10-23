@@ -3,26 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexAnnotation;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.UseRegistry;
 import com.google.common.collect.Maps;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -39,9 +29,6 @@ public class MainDexListBuilder {
   private final Set<DexType> baseClasses;
   private final AppInfoWithSubtyping appInfo;
   private final Set<DexType> mainDexTypes = new HashSet<>();
-  private final DirectReferencesCollector codeDirectReferenceCollector;
-  private final AnnotationDirectReferenceCollector annotationDirectReferenceCollector =
-      new AnnotationDirectReferenceCollector();
   private final Map<DexType, Boolean> annotationTypeContainEnum;
   private final DexApplication dexApplication;
 
@@ -52,7 +39,6 @@ public class MainDexListBuilder {
   public MainDexListBuilder(Set<DexType> baseClasses, DexApplication application) {
     this.dexApplication = application;
     this.appInfo = new AppInfoWithSubtyping(dexApplication);
-    this.codeDirectReferenceCollector = new DirectReferencesCollector(appInfo.dexItemFactory);
     this.baseClasses =
         baseClasses.stream().filter(this::isProgramClass).collect(Collectors.toSet());
     DexClass enumType = appInfo.definitionFor(appInfo.dexItemFactory.enumType);
@@ -140,33 +126,7 @@ public class MainDexListBuilder {
   }
 
   private void traceMainDexDirectDependencies() {
-    for (DexType type : baseClasses) {
-      DexClass clazz = appInfo.definitionFor(type);
-      if (clazz == null) {
-        // Happens for library classes.
-        continue;
-      }
-      addMainDexType(type);
-      // Super and interfaces are live, no need to add them.
-      traceAnnotationsDirectDendencies(clazz.annotations);
-      clazz.forEachField(field -> addMainDexType(field.field.type));
-      clazz.forEachMethod(method -> {
-        traceMethodDirectDependencies(method.method);
-        method.registerCodeReferences(codeDirectReferenceCollector);
-      });
-    }
-  }
-
-  private void traceAnnotationsDirectDendencies(DexAnnotationSet annotations) {
-    annotations.collectIndexedItems(annotationDirectReferenceCollector);
-  }
-
-  private void traceMethodDirectDependencies(DexMethod method) {
-    DexProto proto = method.proto;
-    addMainDexType(proto.returnType);
-    for (DexType parameterType : proto.parameters.values) {
-      addMainDexType(parameterType);
-    }
+    new MainDexDirectReferenceTracer(appInfo, this::addMainDexType).run(baseClasses);
   }
 
   private void addMainDexType(DexType type) {
@@ -194,134 +154,6 @@ public class MainDexListBuilder {
       for (DexType interfaze : dexClass.interfaces.values) {
         addMainDexType(interfaze);
       }
-    }
-  }
-
-  private class DirectReferencesCollector extends UseRegistry {
-
-    private DirectReferencesCollector(DexItemFactory factory) {
-      super(factory);
-    }
-
-    @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
-      return registerInvoke(method);
-    }
-
-    @Override
-    public boolean registerInvokeDirect(DexMethod method) {
-      return registerInvoke(method);
-    }
-
-    @Override
-    public boolean registerInvokeStatic(DexMethod method) {
-      return registerInvoke(method);
-    }
-
-    @Override
-    public boolean registerInvokeInterface(DexMethod method) {
-      return registerInvoke(method);
-    }
-
-    @Override
-    public boolean registerInvokeSuper(DexMethod method) {
-      return registerInvoke(method);
-    }
-
-    protected boolean registerInvoke(DexMethod method) {
-      addMainDexType(method.getHolder());
-      traceMethodDirectDependencies(method);
-      return true;
-    }
-
-    @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      return registerFieldAccess(field);
-    }
-
-    @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      return registerFieldAccess(field);
-    }
-
-    @Override
-    public boolean registerStaticFieldRead(DexField field) {
-      return registerFieldAccess(field);
-    }
-
-    @Override
-    public boolean registerStaticFieldWrite(DexField field) {
-      return registerFieldAccess(field);
-    }
-
-    protected boolean registerFieldAccess(DexField field) {
-      addMainDexType(field.getHolder());
-      addMainDexType(field.type);
-      return true;
-    }
-
-    @Override
-    public boolean registerNewInstance(DexType type) {
-      addMainDexType(type);
-      return true;
-    }
-
-    @Override
-    public boolean registerTypeReference(DexType type) {
-      addMainDexType(type);
-      return true;
-    }
-  }
-
-  private class AnnotationDirectReferenceCollector implements IndexedItemCollection {
-
-    @Override
-    public boolean addClass(DexProgramClass dexProgramClass) {
-      addMainDexType(dexProgramClass.type);
-      return false;
-    }
-
-    @Override
-    public boolean addField(DexField field) {
-      addMainDexType(field.getHolder());
-      addMainDexType(field.type);
-      return false;
-    }
-
-    @Override
-    public boolean addMethod(DexMethod method) {
-      addMainDexType(method.getHolder());
-      addProto(method.proto);
-      return false;
-    }
-
-    @Override
-    public boolean addString(DexString string) {
-      return false;
-    }
-
-    @Override
-    public boolean addProto(DexProto proto) {
-      addMainDexType(proto.returnType);
-      Collections.addAll(mainDexTypes, proto.parameters.values);
-      return false;
-    }
-
-    @Override
-    public boolean addType(DexType type) {
-      addMainDexType(type);
-      return false;
-    }
-
-    @Override
-    public boolean addCallSite(DexCallSite callSite) {
-      throw new AssertionError("CallSite are not supported when tracing for legacy multi dex");
-    }
-
-    @Override
-    public boolean addMethodHandle(DexMethodHandle methodHandle) {
-      throw new AssertionError(
-          "DexMethodHandle are not supported when tracing for legacy multi dex");
     }
   }
 }
