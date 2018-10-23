@@ -5,9 +5,16 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.code.CheckCast;
+import com.android.tools.r8.code.Const;
+import com.android.tools.r8.code.Const16;
 import com.android.tools.r8.code.Const4;
+import com.android.tools.r8.code.ConstHigh16;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
+import com.android.tools.r8.code.ConstWide;
+import com.android.tools.r8.code.ConstWide16;
+import com.android.tools.r8.code.ConstWide32;
+import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.code.Goto;
 import com.android.tools.r8.code.IfEq;
 import com.android.tools.r8.code.IfEqz;
@@ -80,6 +87,8 @@ import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.SingleConstant;
+import com.android.tools.r8.ir.code.WideConstant;
 
 public class DexInstructionSubject implements InstructionSubject {
   protected final Instruction instruction;
@@ -184,6 +193,36 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isNop() {
     return instruction instanceof Nop;
+  }
+
+  @Override
+  public boolean isConstNumber() {
+    return instruction instanceof Const
+        || instruction instanceof Const4
+        || instruction instanceof Const16
+        || instruction instanceof ConstHigh16
+        || instruction instanceof ConstWide
+        || instruction instanceof ConstWide16
+        || instruction instanceof ConstWide32
+        || instruction instanceof ConstWideHigh16;
+  }
+
+  @Override
+  public boolean isConstNumber(long value) {
+    if (!isConstNumber()) {
+      return false;
+    }
+    if (instruction instanceof Const
+        || instruction instanceof Const4
+        || instruction instanceof Const16
+        || instruction instanceof ConstHigh16) {
+      return ((SingleConstant) instruction).decodedValue() == value;
+    }
+    assert instruction instanceof ConstWide
+        || instruction instanceof ConstWide16
+        || instruction instanceof ConstWide32
+        || instruction instanceof ConstWideHigh16;
+    return ((WideConstant) instruction).decodedValue() == value;
   }
 
   @Override

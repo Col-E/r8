@@ -7,6 +7,7 @@ package com.android.tools.r8.utils.codeinspector;
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNull;
+import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfGoto;
@@ -105,6 +106,17 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public boolean isNop() {
     return instruction instanceof CfNop;
+  }
+
+  @Override
+  public boolean isConstNumber() {
+    return instruction instanceof CfConstNumber;
+  }
+
+  @Override
+  public boolean isConstNumber(long value) {
+    return instruction instanceof CfConstNumber
+        && ((CfConstNumber) instruction).getRawValue() == value;
   }
 
   @Override

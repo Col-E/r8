@@ -8,37 +8,16 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.D8Command;
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.cf.code.CfConstNumber;
-import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.code.Const16;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeVirtual;
-import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.ir.code.SingleConstant;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
+import com.google.common.collect.Streams;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -97,11 +76,11 @@ class StringLengthTestMain {
 @RunWith(Parameterized.class)
 public class StringLengthTest extends TestBase {
   private final Backend backend;
-  List<byte[]> classes;
+  List<Class<?>> classes;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public StringLengthTest(Backend backend) {
@@ -109,91 +88,41 @@ public class StringLengthTest extends TestBase {
   }
 
   @Before
-  public void setUp() throws Exception {
-    classes = ImmutableList.of(
-        ToolHelper.getClassAsBytes(ForceInline.class),
-        ToolHelper.getClassAsBytes(NeverInline.class),
-        ToolHelper.getClassAsBytes(StringLengthTestMain.class)
-    );
+  public void setUp() {
+    classes = ImmutableList.of(ForceInline.class, NeverInline.class, StringLengthTestMain.class);
   }
 
-  private int countStringLength(Code code) {
-    int count = 0;
-    if (code.isDexCode()) {
-      DexCode dexCode = code.asDexCode();
-      for (Instruction instr : dexCode.instructions) {
-        if (instr instanceof InvokeVirtual) {
-          InvokeVirtual invoke = (InvokeVirtual) instr;
-          if (isStringLength(invoke.getMethod(), null)) {
-            count++;
-          }
-        }
+  private long countStringLength(MethodSubject method) {
+    return Streams.stream(method.iterateInstructions(instructionSubject -> {
+      if (instructionSubject.isInvoke()) {
+        return isStringLength(instructionSubject.getMethod(), null);
       }
-      return count;
-    }
-    assert code.isCfCode();
-    CfCode cfCode = code.asCfCode();
-    for (CfInstruction instr : cfCode.getInstructions()) {
-      if (instr instanceof CfInvoke) {
-        CfInvoke invoke = (CfInvoke) instr;
-        if (isStringLength(invoke.getMethod(), null)) {
-          count++;
-        }
-      }
-    }
-    return count;
+      return false;
+    })).count();
   }
 
-  private int countConstNumber(Code code) {
-    int count = 0;
-    if (code.isDexCode()) {
-      DexCode dexCode = code.asDexCode();
-      for (Instruction instr : dexCode.instructions) {
-        if (instr instanceof Const4 || instr instanceof Const16) {
-          int constValue = ((SingleConstant) instr).decodedValue();
-          if (constValue != 0) {
-            count++;
-          }
-        }
-      }
-      return count;
-    }
-    assert code.isCfCode();
-    CfCode cfCode = code.asCfCode();
-    for (CfInstruction instr : cfCode.getInstructions()) {
-      if (instr instanceof CfConstNumber) {
-        CfConstNumber constNumber = (CfConstNumber) instr;
-        if (constNumber.getIntValue() != 0) {
-          count++;
-        }
-      }
-    }
-    return count;
+  private long countNonZeroConstNumber(MethodSubject method) {
+    return Streams.stream(method.iterateInstructions(InstructionSubject::isConstNumber)).count()
+        - Streams.stream(method.iterateInstructions(instr -> instr.isConstNumber(0))).count();
   }
 
   private void test(
-      AndroidApp processedApp,
+      TestCompileResult result,
       int expectedStringLengthCount,
       int expectedConstNumberCount)
       throws Exception {
     String main = StringLengthTestMain.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJavaRaw(main, classes, ImmutableList.of());
-    assertEquals(0, javaOutput.exitCode);
+    String javaOutput = runOnJava(StringLengthTestMain.class);
+    String vmOutput = runOnVM(result.app, main, backend);
+    assertEquals(javaOutput, vmOutput);
 
-    ProcessResult output =
-        backend == Backend.DEX
-            ? runOnArtRaw(processedApp, main)
-            : runOnJavaRaw(processedApp, main, ImmutableList.of());
-    assertEquals(0, output.exitCode);
-
-    CodeInspector codeInspector = new CodeInspector(processedApp);
+    CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(main);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    Code code = mainMethod.getMethod().getCode();
-    int count = countStringLength(code);
+    long count = countStringLength(mainMethod);
     assertEquals(expectedStringLengthCount, count);
-    count = countConstNumber(code);
+    count = countNonZeroConstNumber(mainMethod);
     assertEquals(expectedConstNumberCount, count);
   }
 
@@ -203,40 +132,29 @@ public class StringLengthTest extends TestBase {
       return;
     }
 
-    AndroidApp app = buildAndroidApp(classes);
-    D8Command.Builder builder = ToolHelper.prepareD8CommandBuilder(app);
-    builder.setMode(CompilationMode.RELEASE);
-    AndroidApp processedApp = ToolHelper.runD8(builder);
-    test(processedApp, 1, 4);
+    TestCompileResult result = testForD8()
+        .release()
+        .addProgramClasses(classes)
+        .compile();
+    test(result, 1, 4);
 
-    builder = ToolHelper.prepareD8CommandBuilder(app);
-    builder.setMode(CompilationMode.DEBUG);
-    processedApp = ToolHelper.runD8(builder);
-    test(processedApp, 6, 0);
+    result = testForD8()
+        .debug()
+        .addProgramClasses(classes)
+        .compile();
+    test(result, 6, 0);
   }
 
   @Test
   public void testR8() throws Exception {
-    AndroidApp app = buildAndroidApp(classes);
-    ProgramConsumer programConsumer;
-    Path library;
-    if (backend == Backend.DEX) {
-      programConsumer = DexIndexedConsumer.emptyConsumer();
-      library = ToolHelper.getDefaultAndroidJar();
-    } else {
-      assert backend == Backend.CF;
-      programConsumer = ClassFileConsumer.emptyConsumer();
-      library = ToolHelper.getJava8RuntimeJar();
-    }
-    R8Command.Builder builder =
-        ToolHelper.prepareR8CommandBuilder(app, programConsumer).addLibraryFiles(library);
-    ToolHelper.allowTestProguardOptions(builder);
-    String pgConf = keepMainProguardConfigurationWithInliningAnnotation(StringLengthTestMain.class);
-    builder.addProguardConfiguration(ImmutableList.of(pgConf), Origin.unknown());
-
-    AndroidApp processedApp = ToolHelper.runR8(builder.build());
+    TestCompileResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .enableProguardTestOptions()
+        .enableInliningAnnotations()
+        .addKeepMainRule(StringLengthTestMain.class)
+        .compile();
     // TODO we could remove const counting if it needs to be changed too frequently, since
     // the string length count is what we're interested in.
-    test(processedApp, 0, backend == Backend.DEX ? 5 : 6);
+    test(result, 0, backend == Backend.DEX ? 5 : 6);
   }
 }

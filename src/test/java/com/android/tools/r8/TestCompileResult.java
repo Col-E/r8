@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutionException;
 
 public abstract class TestCompileResult {
   final TestState state;
-  final AndroidApp app;
+  public final AndroidApp app;
 
   TestCompileResult(TestState state, AndroidApp app) {
     this.state = state;
