@@ -31,11 +31,11 @@ import com.google.common.collect.ImmutableList;
  */
 public class LoadLoadDupPeephole implements BasicBlockPeephole {
 
-  // This searches in reverse, so the pattern is build from the bottom.
   private final Point bottomLoadExp =
       new Point(PeepholeHelper.withoutLocalInfo(Instruction::isLoad));
-  private final Point topLoadExp = new Point(Instruction::isLoad);
+  private final Point topLoadExp = new Point(PeepholeHelper.withoutLocalInfo(Instruction::isLoad));
 
+  // This searches backwards thus the pattern is built from the bottom.
   private final PeepholeLayout layout = PeepholeLayout.lookBackward(bottomLoadExp, topLoadExp);
 
   @Override
@@ -46,9 +46,12 @@ public class LoadLoadDupPeephole implements BasicBlockPeephole {
     }
     Load bottomLoad = bottomLoadExp.get(match).asLoad();
     Load topLoad = topLoadExp.get(match).asLoad();
-    if (topLoad.src() != bottomLoad.src() || topLoad.src().hasLocalInfo()) {
+    if (topLoad.src() != bottomLoad.src()) {
       return false;
     }
+
+    assert !topLoad.src().hasLocalInfo();
+    assert !bottomLoad.src().hasLocalInfo();
 
     StackValue src = (StackValue) topLoad.outValue();
     src.removeUser(bottomLoad);
