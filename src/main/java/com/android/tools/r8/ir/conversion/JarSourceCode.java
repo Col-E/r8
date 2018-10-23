@@ -33,6 +33,8 @@ import com.android.tools.r8.logging.Log;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -280,28 +282,24 @@ public class JarSourceCode implements SourceCode {
 
     // Record types for arguments.
     Int2ReferenceMap<TypeLatticeElement> argumentLocals = recordArgumentTypes(builder);
-    Int2ReferenceMap<TypeLatticeElement> initializedLocals =
-        new Int2ReferenceOpenHashMap<>(argumentLocals);
+    IntSet initializedLocals = new IntOpenHashSet(node.localVariables.size());
+    initializedLocals.addAll(argumentLocals.keySet());
     // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
     for (Object o : node.localVariables) {
       LocalVariableNode local = (LocalVariableNode) o;
       Type localType;
-      TypeLatticeElement localValueTypeLattice;
       switch (application.getAsmType(local.desc).getSort()) {
         case Type.OBJECT:
         case Type.ARRAY: {
           localType = JarState.NULL_TYPE;
-          localValueTypeLattice = TypeLatticeElement.REFERENCE;
           break;
         }
         case Type.LONG: {
           localType = Type.LONG_TYPE;
-          localValueTypeLattice = TypeLatticeElement.LONG;
           break;
         }
         case Type.DOUBLE: {
           localType = Type.DOUBLE_TYPE;
-          localValueTypeLattice = TypeLatticeElement.DOUBLE;
           break;
         }
         case Type.BOOLEAN:
@@ -310,12 +308,10 @@ public class JarSourceCode implements SourceCode {
         case Type.SHORT:
         case Type.INT: {
           localType = Type.INT_TYPE;
-          localValueTypeLattice = TypeLatticeElement.INT;
           break;
         }
         case Type.FLOAT: {
           localType = Type.FLOAT_TYPE;
-          localValueTypeLattice = TypeLatticeElement.FLOAT;
           break;
         }
         case Type.VOID:
@@ -324,11 +320,10 @@ public class JarSourceCode implements SourceCode {
           throw new Unreachable("Invalid local variable type: " );
       }
       int localRegister = state.getLocalRegister(local.index, localType);
-      TypeLatticeElement existingLocalTypeLattice = initializedLocals.get(localRegister);
-      if (existingLocalTypeLattice == null) {
+      if (!initializedLocals.contains(localRegister)) {
         int writeRegister = state.writeLocal(local.index, localType);
         assert writeRegister == localRegister;
-        initializedLocals.put(localRegister, localValueTypeLattice);
+        initializedLocals.add(localRegister);
       }
     }
 
