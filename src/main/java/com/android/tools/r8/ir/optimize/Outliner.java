@@ -1411,7 +1411,7 @@ public class Outliner {
       // Fill in the Argument instructions in the argument block.
       for (int i = 0; i < outline.argumentTypes.size(); i++) {
         TypeLatticeElement typeLattice =
-            TypeLatticeElement.fromDexType(outline.argumentTypes.get(i));
+            TypeLatticeElement.fromDexType(outline.argumentTypes.get(i), true, appInfo);
         builder.addNonThisArgument(i, typeLattice);
       }
     }

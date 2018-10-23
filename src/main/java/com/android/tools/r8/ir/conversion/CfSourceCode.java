@@ -347,7 +347,8 @@ public class CfSourceCode implements SourceCode {
       if (type.isBooleanType()) {
         builder.addBooleanNonThisArgument(argumentRegister++);
       } else {
-        TypeLatticeElement typeLattice = TypeLatticeElement.fromDexType(type);
+        TypeLatticeElement typeLattice =
+            TypeLatticeElement.fromDexType(type, true, builder.getAppInfo());
         builder.addNonThisArgument(argumentRegister, typeLattice);
         argumentRegister += typeLattice.requiredRegisters();
       }

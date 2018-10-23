@@ -178,8 +178,12 @@ public abstract class SyntheticSourceCode implements SourceCode {
   @Override
   public final void buildPrelude(IRBuilder builder) {
     if (receiver != null) {
-      receiverValue = builder.writeRegister(
-          receiverRegister, TypeLatticeElement.fromDexType(receiver), NO_THROW);
+      // TODO(zerny): Why does this not call builder.addThisArgument?
+      receiverValue =
+          builder.writeRegister(
+              receiverRegister,
+              TypeLatticeElement.fromDexType(receiver, false, builder.getAppInfo()),
+              NO_THROW);
       builder.add(new Argument(receiverValue));
       receiverValue.markAsThis();
     }
@@ -187,7 +191,9 @@ public abstract class SyntheticSourceCode implements SourceCode {
     // Fill in the Argument instructions in the argument block.
     DexType[] parameters = proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {
-      TypeLatticeElement typeLattice = TypeLatticeElement.fromDexType(parameters[i]);
+      // TODO(zerny): Why does this not call builder.addNonThisArgument?
+      TypeLatticeElement typeLattice =
+          TypeLatticeElement.fromDexType(parameters[i], true, builder.getAppInfo());
       Value paramValue = builder.writeRegister(paramRegisters[i], typeLattice, NO_THROW);
       paramValues[i] = paramValue;
       builder.add(new Argument(paramValue));

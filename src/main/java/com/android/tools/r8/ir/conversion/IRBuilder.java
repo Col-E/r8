@@ -132,6 +132,10 @@ public class IRBuilder {
     return options.itemFactory;
   }
 
+  public AppInfo getAppInfo() {
+    return appInfo;
+  }
+
   // SSA construction uses a worklist of basic blocks reachable from the entry and their
   // instruction offsets.
   private static class WorklistItem {
@@ -1384,7 +1388,8 @@ public class IRBuilder {
     assert invoke.instructionTypeCanThrow();
     DexType outType = invoke.getReturnType();
     Value outValue =
-        writeRegister(dest, TypeLatticeElement.fromDexType(outType), ThrowingInfo.CAN_THROW);
+        writeRegister(
+            dest, TypeLatticeElement.fromDexType(outType, true, appInfo), ThrowingInfo.CAN_THROW);
     outValue.setKnownToBeBoolean(outType.isBooleanType());
     invoke.setOutValue(outValue);
   }

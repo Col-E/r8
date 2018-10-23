@@ -450,25 +450,6 @@ public abstract class TypeLatticeElement {
     return appInfo.dexItemFactory.createReferenceTypeLatticeElement(type, isNullable, appInfo);
   }
 
-  public static TypeLatticeElement fromDexType(DexType type) {
-    if (type == DexItemFactory.nullValueType) {
-      return NULL;
-    }
-    return fromTypeDescriptorChar((char) type.descriptor.content[0]);
-  }
-
-  public static TypeLatticeElement fromTypeDescriptorChar(char descriptor) {
-    switch (descriptor) {
-      case 'L':
-        // TODO(jsjeon): class type with Object?
-      case '[':
-        // TODO(jsjeon): array type with Object?
-        return REFERENCE;
-      default:
-        return PrimitiveTypeLatticeElement.fromTypeDescriptorChar(descriptor);
-    }
-  }
-
   public static TypeLatticeElement fromMemberType(MemberType type) {
     switch (type) {
       case BOOLEAN:

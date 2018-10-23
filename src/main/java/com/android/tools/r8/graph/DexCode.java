@@ -188,7 +188,11 @@ public class DexCode extends Code {
     assert getOwner() == encodedMethod;
     DexSourceCode source =
         new DexSourceCode(
-            this, encodedMethod, graphLense.getOriginalMethodSignature(encodedMethod.method), null);
+            this,
+            encodedMethod,
+            graphLense.getOriginalMethodSignature(encodedMethod.method),
+            null,
+            appInfo);
     IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options, origin);
     return builder.build();
   }
@@ -208,7 +212,8 @@ public class DexCode extends Code {
             this,
             encodedMethod,
             graphLense.getOriginalMethodSignature(encodedMethod.method),
-            callerPosition);
+            callerPosition,
+            appInfo);
     IRBuilder builder =
         new IRBuilder(encodedMethod, appInfo, source, options, origin, valueNumberGenerator);
     return builder.build();

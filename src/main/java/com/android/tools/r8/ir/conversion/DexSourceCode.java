@@ -27,6 +27,7 @@ import com.android.tools.r8.code.MoveResultObject;
 import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.code.SwitchPayload;
 import com.android.tools.r8.code.Throw;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
@@ -78,13 +79,17 @@ public class DexSourceCode implements SourceCode {
   private final DexMethod originalMethod;
 
   public DexSourceCode(
-      DexCode code, DexEncodedMethod method, DexMethod originalMethod, Position callerPosition) {
+      DexCode code,
+      DexEncodedMethod method,
+      DexMethod originalMethod,
+      Position callerPosition,
+      AppInfo appInfo) {
     this.code = code;
     this.proto = method.method.proto;
     this.accessFlags = method.accessFlags;
     this.originalMethod = originalMethod;
 
-    argumentTypes = computeArgumentTypes();
+    argumentTypes = computeArgumentTypes(appInfo);
     DexDebugInfo info = code.getDebugInfo();
     if (info != null) {
       debugEntries = info.computeEntries(originalMethod);
@@ -303,12 +308,10 @@ public class DexSourceCode implements SourceCode {
         arrayFilledDataPayloadResolver.getData(payloadOffset));
   }
 
-  private List<TypeLatticeElement> computeArgumentTypes() {
+  private List<TypeLatticeElement> computeArgumentTypes(AppInfo appInfo) {
     List<TypeLatticeElement> types = new ArrayList<>(proto.parameters.size());
-    String shorty = proto.shorty.toString();
-    for (int i = 1; i < proto.shorty.size; i++) {
-      TypeLatticeElement typeLattice = TypeLatticeElement.fromTypeDescriptorChar(shorty.charAt(i));
-      types.add(typeLattice);
+    for (DexType type : proto.parameters.values) {
+      types.add(TypeLatticeElement.fromDexType(type, true, appInfo));
     }
     return types;
   }

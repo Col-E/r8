@@ -430,8 +430,9 @@ final class InlineCandidateProcessor {
       InstanceGet fieldRead, Map<DexField, FieldValueHelper> fieldHelpers) {
     Value value = fieldRead.outValue();
     if (value != null) {
-      FieldValueHelper helper = fieldHelpers.computeIfAbsent(
-          fieldRead.getField(), field -> new FieldValueHelper(field, code, root));
+      FieldValueHelper helper =
+          fieldHelpers.computeIfAbsent(
+              fieldRead.getField(), field -> new FieldValueHelper(field, code, root, appInfo));
       Value newValue = helper.getValueForFieldRead(fieldRead.getBlock(), fieldRead);
       value.replaceUsers(newValue);
       for (FieldValueHelper fieldValueHelper : fieldHelpers.values()) {

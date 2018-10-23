@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -19,9 +20,9 @@ public class StackValue extends Value {
     assert height >= 0;
   }
 
-  public static StackValue forObjectType(DexType type, int height) {
+  public static StackValue forObjectType(DexType type, int height, AppInfo appInfo) {
     assert DexItemFactory.nullValueType == type || type.isClassType() || type.isArrayType();
-    return new StackValue(type, TypeLatticeElement.fromDexType(type), height);
+    return new StackValue(type, TypeLatticeElement.fromDexType(type, true, appInfo), height);
   }
 
   public static StackValue forNonObjectType(ValueType valueType, int height) {

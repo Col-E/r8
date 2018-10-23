@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -30,13 +31,15 @@ public class LoadStoreHelper {
 
   private final IRCode code;
   private final Map<Value, DexType> types;
+  private final AppInfo appInfo;
 
   private Map<Value, ConstInstruction> clonableConstants = null;
   private BasicBlock block = null;
 
-  public LoadStoreHelper(IRCode code, Map<Value, DexType> types) {
+  public LoadStoreHelper(IRCode code, Map<Value, DexType> types, AppInfo appInfo) {
     this.code = code;
     this.types = types;
+    this.appInfo = appInfo;
   }
 
   private static boolean hasLocalInfoOrUsersOutsideThisBlock(Value value, BasicBlock block) {
@@ -131,17 +134,19 @@ public class LoadStoreHelper {
   }
 
   private StackValue createStackValue(Value value, int height) {
+    // TODO(b/72693244): Use the lattice element directly.
     if (value.outType().isObject()) {
-      return StackValue.forObjectType(types.get(value), height);
+      return StackValue.forObjectType(types.get(value), height, appInfo);
     }
     return StackValue.forNonObjectType(value.outType(), height);
   }
 
   private StackValue createStackValue(DexType type, int height) {
+    // TODO(b/72693244): Use the lattice element directly.
     if (type.isPrimitiveType()) {
       return StackValue.forNonObjectType(ValueType.fromDexType(type), height);
     }
-    return StackValue.forObjectType(type, height);
+    return StackValue.forObjectType(type, height, appInfo);
   }
 
   public void loadInValues(Instruction instruction, InstructionListIterator it) {

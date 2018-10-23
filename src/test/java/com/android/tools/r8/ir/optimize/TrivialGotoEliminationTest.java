@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.optimize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
@@ -22,6 +24,7 @@ import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedList;
 import org.junit.Test;
@@ -76,6 +79,8 @@ public class TrivialGotoEliminationTest {
 
   @Test
   public void trivialGotoLoopAsFallthrough() {
+    DexApplication app = DexApplication.builder(new DexItemFactory(), new Timing("")).build();
+    AppInfo appInfo = new AppInfo(app);
     // Setup block structure:
     // block0:
     //   v0 <- argument
@@ -111,7 +116,9 @@ public class TrivialGotoEliminationTest {
 
     BasicBlock block0 = new BasicBlock();
     block0.setNumber(0);
-    Value value = new Value(0, TypeLatticeElement.fromDexType(DexItemFactory.catchAllType), null);
+    Value value =
+        new Value(
+            0, TypeLatticeElement.fromDexType(DexItemFactory.catchAllType, false, appInfo), null);
     instruction = new Argument(value);
     instruction.setPosition(position);
     block0.add(instruction);

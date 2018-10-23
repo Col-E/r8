@@ -134,7 +134,7 @@ public class CfBuilder {
     splitExceptionalBlocks();
     new DeadCodeRemover(code, rewriter, graphLense, options).run();
     rewriteNots();
-    LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types);
+    LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types, appInfo);
     loadStoreHelper.insertLoadsAndStores();
     BasicBlockMuncher muncher = new BasicBlockMuncher();
     muncher.optimize(code);
