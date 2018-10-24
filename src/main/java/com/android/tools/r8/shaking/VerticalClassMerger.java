@@ -992,11 +992,16 @@ public class VerticalClassMerger {
           method -> {
             if (method.isObsolete()) {
               method.unsetObsolete();
-              method.getCode().setOwner(method);
+              if (method.hasCode()) {
+                method.getCode().setOwner(method);
+              }
             }
           });
       assert Streams.stream(target.methods())
-          .allMatch(method -> !method.isObsolete() && method.getCode().getOwner() == method);
+          .allMatch(
+              method ->
+                  !method.isObsolete()
+                      && (!method.hasCode() || method.getCode().getOwner() == method));
       return true;
     }
 
