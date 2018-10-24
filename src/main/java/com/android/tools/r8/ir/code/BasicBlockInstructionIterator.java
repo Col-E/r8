@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Objects;
+import java.util.Set;
 
 public class BasicBlockInstructionIterator implements InstructionIterator, InstructionListIterator {
 
@@ -430,18 +430,12 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       // Replace the invoke value with the return value if non-void.
       assert inlineeIterator.peekNext().isReturn();
       if (invoke.outValue() != null) {
+        Set<Value> affectedValues = invoke.outValue().affectedValues();
         Return returnInstruction = inlineeIterator.peekNext().asReturn();
-        ImmutableList<Value> usersOfReturn =
-            invoke.outValue().uniqueUsers().stream()
-                .map(Instruction::outValue)
-                .filter(Objects::nonNull)
-                .collect(ImmutableList.toImmutableList());
-        ImmutableList<Value> phiUsersOfReturn =
-            ImmutableList.copyOf(invoke.outValue().uniquePhiUsers());
         invoke.outValue().replaceUsers(returnInstruction.returnValue());
         // The return type is flown to the original context.
-        typeAnalysis.narrowing(Iterables.concat(
-            ImmutableList.of(returnInstruction.returnValue()), usersOfReturn, phiUsersOfReturn));
+        new TypeAnalysis(appInfo, code.method).narrowing(
+            Iterables.concat(ImmutableList.of(returnInstruction.returnValue()), affectedValues));
       }
 
       // Split before return and unlink return.

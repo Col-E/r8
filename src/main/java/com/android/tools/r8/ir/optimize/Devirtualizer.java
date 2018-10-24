@@ -20,12 +20,13 @@ import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 public class Devirtualizer {
 
@@ -36,7 +37,7 @@ public class Devirtualizer {
   }
 
   public void devirtualizeInvokeInterface(IRCode code, DexType invocationContext) {
-    TypeAnalysis typeAnalysis = new TypeAnalysis(appInfo, code.method);
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     Map<InvokeInterface, InvokeVirtual> devirtualizedCall = new IdentityHashMap<>();
     DominatorTree dominatorTree = new DominatorTree(code);
     Map<Value, Map<DexType, Value>> castedReceiverCache = new IdentityHashMap<>();
@@ -176,7 +177,7 @@ public class Devirtualizer {
               }
             }
 
-            // TODO(b/72693244): Analyze it when creating a new Value or after replace*Users
+            affectedValues.addAll(receiver.affectedValues());
             if (!receiver.hasLocalInfo()) {
               receiver.replaceSelectiveUsers(
                   newReceiver, ImmutableSet.of(devirtualizedInvoke), ImmutableMap.of());
@@ -184,10 +185,12 @@ public class Devirtualizer {
               receiver.removeUser(devirtualizedInvoke);
               devirtualizedInvoke.replaceValue(receiver, newReceiver);
             }
-            typeAnalysis.narrowing(ImmutableList.of(newReceiver));
           }
         }
       }
+    }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }

@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -439,6 +440,7 @@ final class InlineCandidateProcessor {
         fieldValueHelper.replaceValue(value, newValue);
       }
       assert value.numberOfAllUsers() == 0;
+      new TypeAnalysis(appInfo, code.method).widening(code.method, code);
     }
     removeInstruction(fieldRead);
   }

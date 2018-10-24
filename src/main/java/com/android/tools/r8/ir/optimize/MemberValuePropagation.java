@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -25,6 +26,8 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
+import com.google.common.collect.Sets;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public class MemberValuePropagation {
@@ -118,6 +121,7 @@ public class MemberValuePropagation {
    */
   public void rewriteWithConstantValues(
       IRCode code, DexType callingContext, Predicate<DexEncodedMethod> isProcessedConcurrently) {
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -145,6 +149,7 @@ public class MemberValuePropagation {
             Instruction replacement =
                 constantReplacementFromProguardRule(lookup.rule, code, invoke);
             if (replacement != null) {
+              affectedValues.add(replacement.outValue());
               replaceInstructionFromProguardRule(lookup.type, iterator, current, replacement);
               invokeReplaced = true;
             } else {
@@ -167,6 +172,7 @@ public class MemberValuePropagation {
               Value value = code.createValue(
                   invoke.outValue().getTypeLattice(), invoke.getLocalInfo());
               Instruction knownConstReturn = new ConstNumber(value, constant);
+              affectedValues.add(value);
               invoke.outValue().replaceUsers(value);
               invoke.setOutValue(null);
               knownConstReturn.setPosition(invoke.getPosition());
@@ -206,6 +212,7 @@ public class MemberValuePropagation {
             }
           }
           if (replacement != null) {
+            affectedValues.add(replacement.outValue());
             // Ignore assumenosideeffects for fields.
             if (lookup != null && lookup.type == RuleType.ASSUME_VALUES) {
               replaceInstructionFromProguardRule(lookup.type, iterator, current, replacement);
@@ -256,6 +263,9 @@ public class MemberValuePropagation {
           }
         }
       }
+    }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }

@@ -288,14 +288,7 @@ public class NonNullTracker {
         NonNull nonNull = instruction.asNonNull();
         Value src = nonNull.src();
         Value dest = nonNull.dest();
-
-        // Add all values whose definition may depend on `dest` to `affectedValues`.
-        for (Instruction user : dest.uniqueUsers()) {
-          if (user.outValue() != null) {
-            affectedValues.add(user.outValue());
-          }
-        }
-        affectedValues.addAll(dest.uniquePhiUsers());
+        affectedValues.addAll(dest.affectedValues());
 
         // Replace `dest` by `src`.
         needToCheckTrivialPhis = needToCheckTrivialPhis || dest.uniquePhiUsers().size() != 0;
@@ -323,7 +316,9 @@ public class NonNullTracker {
     // to mark z as non-null. However, cleanupNonNull() have now replaced y by a nullable value x.
     // Since z is defined as "z = (T) x", and x is nullable, it is no longer sound to have that z
     // is not nullable. This is fixed by rerunning the type analysis for the affected values.
-    new TypeAnalysis(appInfo, code.method).widening(affectedValues);
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appInfo, code.method).widening(affectedValues);
+    }
   }
 
 }

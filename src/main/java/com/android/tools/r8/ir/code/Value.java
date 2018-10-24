@@ -405,6 +405,18 @@ public class Value {
     }
   }
 
+  // Returns the set of Value that are affected if the current value's type lattice is updated.
+  public Set<Value> affectedValues() {
+    ImmutableSet.Builder<Value> affectedValues = ImmutableSet.builder();
+    for (Instruction user : uniqueUsers()) {
+      if (user.outValue() != null) {
+        affectedValues.add(user.outValue());
+      }
+    }
+    affectedValues.addAll(uniquePhiUsers());
+    return affectedValues.build();
+  }
+
   public void replaceUsers(Value newValue) {
     if (this == newValue) {
       return;
