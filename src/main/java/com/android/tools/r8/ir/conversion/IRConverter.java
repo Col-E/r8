@@ -282,9 +282,10 @@ public class IRConverter {
     }
   }
 
-  private void staticizeClasses(OptimizationFeedback feedback) {
+  private void staticizeClasses(OptimizationFeedback feedback, ExecutorService executorService)
+      throws ExecutionException {
     if (classStaticizer != null) {
-      classStaticizer.staticizeCandidates(feedback);
+      classStaticizer.staticizeCandidates(feedback, executorService);
     }
   }
 
@@ -481,9 +482,10 @@ public class IRConverter {
     // Build a new application with jumbo string info.
     Builder<?> builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
-    // b/112831361
+
+    // TODO(b/112831361): Implement support for staticizeClasses in CF backend.
     if (!options.isGeneratingClassFiles()) {
-      staticizeClasses(directFeedback);
+      staticizeClasses(directFeedback, executorService);
     }
 
     // Second inlining pass for dealing with double inline callers.

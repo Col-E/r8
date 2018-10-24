@@ -35,6 +35,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -526,9 +528,10 @@ public final class ClassStaticizer {
   //  2. Rewrite instance methods of classes being staticized into static ones
   //  3. Rewrite methods referencing staticized members, also remove instance creation
   //
-  public final void staticizeCandidates(OptimizationFeedback feedback) {
+  public final void staticizeCandidates(
+      OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
     phase = Phase.None; // We are done with processing/examining methods.
-    new StaticizingProcessor(this).run(feedback);
+    new StaticizingProcessor(this, executorService).run(feedback);
   }
 
   public final void fixupMethodCode(DexEncodedMethod method, IRCode code) {

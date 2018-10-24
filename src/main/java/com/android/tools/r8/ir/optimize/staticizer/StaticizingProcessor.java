@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer.CandidateInfo;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
@@ -40,12 +41,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 final class StaticizingProcessor {
+
   private final ClassStaticizer classStaticizer;
+  private final ExecutorService executorService;
 
   private final Set<DexEncodedMethod> referencingExtraMethods = Sets.newIdentityHashSet();
   private final Map<DexEncodedMethod, CandidateInfo> hostClassInits = new IdentityHashMap<>();
@@ -53,35 +59,36 @@ final class StaticizingProcessor {
   private final Map<DexField, CandidateInfo> singletonFields = new IdentityHashMap<>();
   private final Map<DexType, DexType> candidateToHostMapping = new IdentityHashMap<>();
 
-  StaticizingProcessor(ClassStaticizer classStaticizer) {
+  StaticizingProcessor(ClassStaticizer classStaticizer, ExecutorService executorService) {
     this.classStaticizer = classStaticizer;
+    this.executorService = executorService;
   }
 
-  final void run(OptimizationFeedback feedback) {
-    // Filter out candidates based on the information we collected
-    // while examining methods.
+  final void run(OptimizationFeedback feedback) throws ExecutionException {
+    // Filter out candidates based on the information we collected while examining methods.
     finalEligibilityCheck();
 
     // Prepare interim data.
     prepareCandidates();
 
     // Process all host class initializers (only remove instantiations).
-    processMethods(hostClassInits.keySet().stream(), this::removeCandidateInstantiation, feedback);
+    processMethodsConcurrently(
+        hostClassInits.keySet(), this::removeCandidateInstantiation, feedback);
 
     // Process instance methods to be staticized (only remove references to 'this').
-    processMethods(methodsToBeStaticized.stream(), this::removeReferencesToThis, feedback);
+    processMethodsConcurrently(methodsToBeStaticized, this::removeReferencesToThis, feedback);
 
     // Convert instance methods into static methods with an extra parameter.
     Set<DexEncodedMethod> staticizedMethods = staticizeMethodSymbols();
 
-    // Process all other methods that may reference singleton fields
-    // and call methods on them. (Note that we exclude the former instance methods,
-    // but include new static methods created as a result of staticizing.
-    Stream<DexEncodedMethod> methods = Streams.concat(
-        referencingExtraMethods.stream(),
-        staticizedMethods.stream(),
-        hostClassInits.keySet().stream());
-    processMethods(methods, this::rewriteReferences, feedback);
+    // Process all other methods that may reference singleton fields and call methods on them.
+    // (Note that we exclude the former instance methods, but include new static methods created as
+    // a result of staticizing.)
+    Set<DexEncodedMethod> methods = Sets.newIdentityHashSet();
+    methods.addAll(referencingExtraMethods);
+    methods.addAll(staticizedMethods);
+    methods.addAll(hostClassInits.keySet());
+    processMethodsConcurrently(methods, this::rewriteReferences, feedback);
   }
 
   private void finalEligibilityCheck() {
@@ -165,12 +172,39 @@ final class StaticizingProcessor {
     referencingExtraMethods.removeAll(removedInstanceMethods);
   }
 
-  private void processMethods(Stream<DexEncodedMethod> methods,
-      BiConsumer<DexEncodedMethod, IRCode> strategy, OptimizationFeedback feedback) {
+  /**
+   * Processes the given methods concurrently using the given strategy.
+   *
+   * <p>Note that, when the strategy {@link #rewriteReferences(DexEncodedMethod, IRCode)} is being
+   * applied, it is important that we never inline a method from `methods` which has still not been
+   * reprocessed. This could lead to broken code, because the strategy that rewrites the broken
+   * references is applied *before* inlining (because the broken references in the inlinee are never
+   * rewritten). We currently avoid this situation by processing all the methods concurrently
+   * (inlining of a method that is processed concurrently is not allowed).
+   */
+  private void processMethodsConcurrently(
+      Set<DexEncodedMethod> methods,
+      BiConsumer<DexEncodedMethod, IRCode> strategy,
+      OptimizationFeedback feedback)
+      throws ExecutionException {
     classStaticizer.setFixupStrategy(strategy);
-    methods.sorted(DexEncodedMethod::slowCompare).forEach(
-        method -> classStaticizer.converter.processMethod(method, feedback,
-            x -> false, CallSiteInformation.empty(), Outliner::noProcessing));
+
+    List<Future<?>> futures = new ArrayList<>();
+    for (DexEncodedMethod method : methods) {
+      futures.add(
+          executorService.submit(
+              () -> {
+                classStaticizer.converter.processMethod(
+                    method,
+                    feedback,
+                    methods::contains,
+                    CallSiteInformation.empty(),
+                    Outliner::noProcessing);
+                return null; // we want a Callable not a Runnable to be able to throw
+              }));
+    }
+    ThreadUtils.awaitFutures(futures);
+
     classStaticizer.cleanFixupStrategy();
   }
 
