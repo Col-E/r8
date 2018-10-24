@@ -168,8 +168,7 @@ public class Outliner {
         return BinOpOutlineInstruction.fromInstruction(instruction.asBinop());
       }
       if (instruction.isNewInstance()) {
-        return new NewInstanceOutlineInstruction(
-            instruction.outValue().getTypeLattice(), instruction.asNewInstance().clazz);
+        return new NewInstanceOutlineInstruction(instruction.asNewInstance().clazz);
       }
       assert instruction.isInvokeMethod();
       return InvokeOutlineInstruction.fromInstruction(instruction.asInvokeMethod());
@@ -200,17 +199,14 @@ public class Outliner {
 
   private static class BinOpOutlineInstruction extends OutlineInstruction {
 
-    private final TypeLatticeElement latticeElement;
     private final ValueType valueType;
     private final NumericType numericType;
 
     private BinOpOutlineInstruction(
         OutlineInstructionType type,
-        TypeLatticeElement latticeElement,
         ValueType valueType,
         NumericType numericType) {
       super(type);
-      this.latticeElement = latticeElement;
       this.valueType = valueType;
       this.numericType = numericType;
     }
@@ -218,7 +214,6 @@ public class Outliner {
     static BinOpOutlineInstruction fromInstruction(Binop instruction) {
       return new BinOpOutlineInstruction(
           OutlineInstructionType.fromInstruction(instruction),
-          instruction.outValue().getTypeLattice(),
           instruction.outType(),
           instruction.getNumericType());
     }
@@ -236,7 +231,6 @@ public class Outliner {
       BinOpOutlineInstruction o = (BinOpOutlineInstruction) other;
       boolean equal = o.type.equals(type) && o.numericType.equals(numericType);
       assert !equal || valueType.equals(o.valueType);
-      assert !equal || latticeElement.equals(o.latticeElement);
       return equal;
     }
 
@@ -285,6 +279,7 @@ public class Outliner {
         }
         inValues.add(builder.readRegister(register, valueType));
       }
+      TypeLatticeElement latticeElement = TypeLatticeElement.fromNumericType(numericType);
       Value outValue =
           builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       Instruction newInstruction = null;
@@ -313,12 +308,10 @@ public class Outliner {
   }
 
   private static class NewInstanceOutlineInstruction extends OutlineInstruction {
-    private final TypeLatticeElement latticeElement;
     private final DexType clazz;
 
-    NewInstanceOutlineInstruction(TypeLatticeElement latticeElement, DexType clazz) {
+    NewInstanceOutlineInstruction(DexType clazz) {
       super(OutlineInstructionType.NEW);
-      this.latticeElement = latticeElement;
       this.clazz = clazz;
     }
 
@@ -329,7 +322,6 @@ public class Outliner {
       }
       NewInstanceOutlineInstruction o = (NewInstanceOutlineInstruction) other;
       boolean result = clazz == o.clazz;
-      assert !result || latticeElement.equals(o.latticeElement);
       return result;
     }
 
@@ -369,6 +361,8 @@ public class Outliner {
 
     @Override
     public int createInstruction(IRBuilder builder, Outline outline, int argumentMapIndex) {
+      TypeLatticeElement latticeElement =
+          TypeLatticeElement.fromDexType(clazz, false, builder.getAppInfo());
       Value outValue =
           builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       Instruction newInstruction = new NewInstance(clazz, outValue);
@@ -383,22 +377,19 @@ public class Outliner {
     private final boolean hasOutValue;
     private final ValueType[] inputTypes;
     private final DexProto proto;
-    private final TypeLatticeElement latticeElement;
 
     private InvokeOutlineInstruction(
         DexMethod method,
         Type type,
         boolean hasOutValue,
         ValueType[] inputTypes,
-        DexProto proto,
-        TypeLatticeElement latticeElement) {
+        DexProto proto) {
       super(OutlineInstructionType.INVOKE);
       this.method = method;
       this.invokeType = type;
       this.hasOutValue = hasOutValue;
       this.inputTypes = inputTypes;
       this.proto = proto;
-      this.latticeElement = latticeElement;
     }
 
     static InvokeOutlineInstruction fromInstruction(InvokeMethod invoke) {
@@ -412,8 +403,7 @@ public class Outliner {
           invoke.getType(),
           invoke.outValue() != null,
           inputTypes,
-          invoke.isInvokePolymorphic() ? invoke.asInvokePolymorphic().getProto() : null,
-          invoke.outValue() != null ? invoke.outValue().getTypeLattice() : null);
+          invoke.isInvokePolymorphic() ? invoke.asInvokePolymorphic().getProto() : null);
     }
 
     @Override
@@ -423,8 +413,7 @@ public class Outliner {
           + invokeType.hashCode()
           + Boolean.hashCode(hasOutValue)
           + Arrays.hashCode(inputTypes)
-          + Objects.hashCode(proto)
-          + Objects.hashCode(latticeElement);
+          + Objects.hashCode(proto);
     }
 
     @Override
@@ -437,8 +426,7 @@ public class Outliner {
           && invokeType == o.invokeType
           && hasOutValue == o.hasOutValue
           && Arrays.equals(inputTypes, o.inputTypes)
-          && Objects.equals(proto, o.proto)
-          && Objects.equals(latticeElement, o.latticeElement);
+          && Objects.equals(proto, o.proto);
     }
 
     @Override
@@ -466,7 +454,6 @@ public class Outliner {
         }
       }
       assert Arrays.equals(inputTypes, o.inputTypes);
-      assert Objects.equals(latticeElement, o.latticeElement);
       assert this.equals(other);
       return 0;
     }
@@ -503,6 +490,8 @@ public class Outliner {
       }
       Value outValue = null;
       if (hasOutValue) {
+        TypeLatticeElement latticeElement =
+            TypeLatticeElement.fromDexType(method.proto.returnType, true, builder.getAppInfo());
         outValue =
             builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       }
