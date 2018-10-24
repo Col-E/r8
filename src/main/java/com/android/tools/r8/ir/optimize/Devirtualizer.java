@@ -138,13 +138,13 @@ public class Devirtualizer {
 
             // No cached, we need a new downcast'ed receiver.
             if (newReceiver == null) {
-              newReceiver =
-                  receiver.definition != null
-                      ? code.createValue(receiverTypeLattice, receiver.definition.getLocalInfo())
-                      : code.createValue(receiverTypeLattice);
+              newReceiver = code.createValue(receiverTypeLattice);
               // Cache the new receiver with a narrower type to avoid redundant checkcast.
-              castedReceiverCache.putIfAbsent(receiver, new IdentityHashMap<>());
-              castedReceiverCache.get(receiver).put(holderType, newReceiver);
+              if (!receiver.hasLocalInfo()) {
+                // TODO(b/118125038): Add a test for this.
+                castedReceiverCache.putIfAbsent(receiver, new IdentityHashMap<>());
+                castedReceiverCache.get(receiver).put(holderType, newReceiver);
+              }
               CheckCast checkCast = new CheckCast(newReceiver, receiver, holderType);
               checkCast.setPosition(invoke.getPosition());
 
@@ -177,8 +177,13 @@ public class Devirtualizer {
             }
 
             // TODO(b/72693244): Analyze it when creating a new Value or after replace*Users
-            receiver.replaceSelectiveUsers(
-                newReceiver, ImmutableSet.of(devirtualizedInvoke), ImmutableMap.of());
+            if (!receiver.hasLocalInfo()) {
+              receiver.replaceSelectiveUsers(
+                  newReceiver, ImmutableSet.of(devirtualizedInvoke), ImmutableMap.of());
+            } else {
+              receiver.removeUser(devirtualizedInvoke);
+              devirtualizedInvoke.replaceValue(receiver, newReceiver);
+            }
             typeAnalysis.narrowing(ImmutableList.of(newReceiver));
           }
         }
