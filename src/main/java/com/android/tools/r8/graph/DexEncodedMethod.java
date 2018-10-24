@@ -120,10 +120,23 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return obsolete;
   }
 
-  private void setObsolete() {
+  public void setObsolete() {
     // By assigning an Exception, you can see when/how this instance becomes obsolete v.s.
     // when/how such obsolete instance is used.
     obsolete = true;
+  }
+
+  /**
+   * Flags this method as no longer being obsolete.
+   *
+   * Example use case: The vertical class merger optimistically merges two classes before it is
+   * guaranteed that the two classes can be merged. In this process, methods are moved from the
+   * source class to the target class using {@link #toTypeSubstitutedMethod(DexMethod)}, which
+   * causes the original methods of the source class to become obsolete. If vertical class merging
+   * is aborted, the original methods of the source class needs to be marked as not being obsolete.
+   */
+  public void unsetObsolete() {
+    obsolete = false;
   }
 
   public DexEncodedMethod(
@@ -400,7 +413,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
   }
 
-  private void voidCodeOwnership() {
+  public void voidCodeOwnership() {
     if (code != null) {
       code.setOwner(null);
     }

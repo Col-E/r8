@@ -53,6 +53,7 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
@@ -75,6 +76,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -833,6 +835,8 @@ public class VerticalClassMerger {
         } else {
           if (abortMerge) {
             // If [virtualMethod] does not resolve to a single method in [target], abort.
+            assert restoreDebuggingState(
+                Streams.concat(directMethods.values().stream(), virtualMethods.values().stream()));
             return false;
           }
 
@@ -903,6 +907,8 @@ public class VerticalClassMerger {
       }
 
       if (abortMerge) {
+        assert restoreDebuggingState(
+            Streams.concat(directMethods.values().stream(), virtualMethods.values().stream()));
         return false;
       }
 
@@ -972,6 +978,25 @@ public class VerticalClassMerger {
       mergedClasses.put(source.type, target.type);
       mergedClassesInverse.computeIfAbsent(target.type, key -> new HashSet<>()).add(source.type);
       assert !abortMerge;
+      return true;
+    }
+
+    private boolean restoreDebuggingState(Stream<DexEncodedMethod> toBeDiscarded) {
+      toBeDiscarded.forEach(
+          method -> {
+            assert !method.isObsolete();
+            method.voidCodeOwnership();
+            method.setObsolete();
+          });
+      source.forEachMethod(
+          method -> {
+            if (method.isObsolete()) {
+              method.unsetObsolete();
+              method.getCode().setOwner(method);
+            }
+          });
+      assert Streams.stream(target.methods())
+          .allMatch(method -> !method.isObsolete() && method.getCode().getOwner() == method);
       return true;
     }
 
