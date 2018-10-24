@@ -162,7 +162,7 @@ public final class LambdaMerger {
             lambdas.put(lambda.type, group);
           } catch (LambdaStructureError error) {
             if (error.reportable) {
-              reporter.warning(
+              reporter.info(
                   new StringDiagnostic("Unrecognized Kotlin lambda [" +
                       lambda.type.toSourceString() + "]: " + error.getMessage()));
             }
