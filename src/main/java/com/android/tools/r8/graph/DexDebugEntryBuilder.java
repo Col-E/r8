@@ -81,7 +81,8 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
     DexString[] names = info.parameters;
     for (int i = 0; i < types.length; i++) {
       // If null, the parameter has a parameterized type and the local is introduced in the stream.
-      if (names[i] != null) {
+      // TODO(114704754): The check 'i < names.length' is a bug workaround which should be removed.
+      if (i < names.length && names[i] != null) {
         startArgument(argumentRegister, names[i], types[i]);
       }
       argumentRegister += ValueType.fromDexType(types[i]).requiredRegisters();
