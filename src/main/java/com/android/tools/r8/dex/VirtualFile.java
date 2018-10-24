@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -313,6 +314,16 @@ public class VirtualFile {
                         + "` as referenced in main-dex-list."));
           }
           mainDexFile.commitTransaction();
+        }
+        if (Log.ENABLED) {
+          Log.info(
+              VirtualFile.class,
+              "Main dex classes: " + mainDexFile.transaction.getNumberOfClasses());
+          Log.info(
+              VirtualFile.class,
+              "Main dex methods: " + mainDexFile.transaction.getNumberOfMethods());
+          Log.info(
+              VirtualFile.class, "Main dex fields: " + mainDexFile.transaction.getNumberOfFields());
         }
         mainDexFile.throwIfFull(true, options.reporter);
       }
