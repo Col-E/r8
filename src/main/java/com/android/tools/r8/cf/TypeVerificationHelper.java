@@ -4,13 +4,16 @@
 package com.android.tools.r8.cf;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,25 +26,105 @@ import java.util.stream.Collectors;
 // The actual types are needed to emit stack-map frames for Java 1.6 and above.
 public class TypeVerificationHelper {
 
+  public interface TypeInfo {
+    DexType getDexType();
+  }
+
+  public static class InitializedTypeInfo implements TypeInfo {
+    final DexType type;
+
+    public InitializedTypeInfo(DexType type) {
+      assert type != null;
+      this.type = type;
+    }
+
+    @Override
+    public DexType getDexType() {
+      return type;
+    }
+  }
+
+  public static class NewInstanceInfo implements TypeInfo {
+    public final NewInstance newInstance;
+
+    public NewInstanceInfo(NewInstance newInstance) {
+      assert newInstance != null;
+      this.newInstance = newInstance;
+    }
+
+    @Override
+    public DexType getDexType() {
+      return newInstance.clazz;
+    }
+  }
+
+  public static class ThisInstanceInfo implements TypeInfo {
+    final DexType type;
+    public final Argument thisArgument;
+
+    public ThisInstanceInfo(Argument thisArgument, DexType type) {
+      assert thisArgument != null;
+      assert type != null;
+      this.thisArgument = thisArgument;
+      this.type = type;
+    }
+
+    @Override
+    public DexType getDexType() {
+      return type;
+    }
+  }
+
+  private final TypeInfo INT;
+  private final TypeInfo FLOAT;
+  private final TypeInfo LONG;
+  private final TypeInfo DOUBLE;
+
   private final IRCode code;
   private final DexItemFactory factory;
   private final AppInfo appInfo;
 
-  private Map<Value, DexType> types;
+  private Map<Value, TypeInfo> types;
+
+  // Flag to indicate that we are computing types in the fixed point.
+  private boolean computingVerificationTypes = false;
 
   public TypeVerificationHelper(IRCode code, DexItemFactory factory, AppInfo appInfo) {
     this.code = code;
     this.factory = factory;
     this.appInfo = appInfo;
+    INT = new InitializedTypeInfo(factory.intType);
+    FLOAT = new InitializedTypeInfo(factory.floatType);
+    LONG = new InitializedTypeInfo(factory.longType);
+    DOUBLE = new InitializedTypeInfo(factory.doubleType);
   }
 
   public DexItemFactory getFactory() {
     return factory;
   }
 
-  public DexType getType(Value value) {
+  public DexType getDexType(Value value) {
+    assert computingVerificationTypes;
     assert value.outType().isObject();
-    return types.get(value);
+    TypeInfo typeInfo = types.get(value);
+    return typeInfo == null ? null : typeInfo.getDexType();
+  }
+
+  public TypeInfo getTypeInfo(Value value) {
+    switch (value.outType()) {
+      case OBJECT:
+        return types.get(value);
+      case INT:
+        return INT;
+      case FLOAT:
+        return FLOAT;
+      case LONG:
+        return LONG;
+      case DOUBLE:
+        return DOUBLE;
+      default:
+        throw new Unreachable("Unexpected type: " + value.outType() + " for value: " + value);
+    }
   }
 
   // Helper to compute the join of a set of reference types.
@@ -71,7 +154,8 @@ public class TypeVerificationHelper {
     return TypeLatticeElement.fromDexType(type, true, appInfo);
   }
 
-  public Map<Value, DexType> computeVerificationTypes() {
+  public Map<Value, TypeInfo> computeVerificationTypes() {
+    computingVerificationTypes = true;
     types = new HashMap<>();
     Set<Value> worklist = new HashSet<>();
     {
@@ -84,10 +168,16 @@ public class TypeVerificationHelper {
         if (!instruction.isArgument()) {
           break;
         }
-        DexType argumentType =
-            (argumentIndex < 0)
-                ? code.method.method.getHolder()
-                : code.method.method.proto.parameters.values[argumentIndex];
+        TypeInfo argumentType;
+        if (argumentIndex < 0) {
+          argumentType =
+              code.method.isInstanceInitializer()
+                  ? new ThisInstanceInfo(instruction.asArgument(), code.method.method.getHolder())
+                  : new InitializedTypeInfo(code.method.method.getHolder());
+        } else {
+          argumentType =
+              new InitializedTypeInfo(code.method.method.proto.parameters.values[argumentIndex]);
+        }
         Value outValue = instruction.outValue();
         if (outValue.outType().isObject()) {
           types.put(outValue, argumentType);
@@ -98,13 +188,17 @@ public class TypeVerificationHelper {
       // Compute the out-value type of each normal instruction with an invariant out-value type.
       while (instruction != null) {
         assert !instruction.isArgument();
-        if (instruction.outValue() != null && instruction.outType().isObject()) {
-          Value outValue = instruction.outValue();
-          if (instruction.hasInvariantOutType()) {
-            DexType type = instruction.computeVerificationType(this);
-            assert type != null;
-            types.put(outValue, type);
-            addUsers(outValue, worklist);
+        if (instruction.outValue() != null) {
+          if (instruction.isNewInstance()) {
+            types.put(instruction.outValue(), new NewInstanceInfo(instruction.asNewInstance()));
+            addUsers(instruction.outValue(), worklist);
+          } else if (instruction.outType().isObject()) {
+            Value outValue = instruction.outValue();
+            if (instruction.hasInvariantOutType()) {
+              DexType type = instruction.computeVerificationType(this);
+              types.put(outValue, new InitializedTypeInfo(type));
+              addUsers(outValue, worklist);
+            }
           }
         }
         instruction = it.hasNext() ? it.next() : null;
@@ -115,13 +209,15 @@ public class TypeVerificationHelper {
       Value item = worklist.iterator().next();
       worklist.remove(item);
       assert item.outType().isObject();
-      DexType previousType = types.get(item);
+      TypeInfo typeInfo = types.get(item);
+      DexType previousType = typeInfo == null ? null : typeInfo.getDexType();
       DexType refinedType = computeVerificationType(item);
       if (previousType != refinedType) {
-        types.put(item, refinedType);
+        types.put(item, new InitializedTypeInfo(refinedType));
         addUsers(item, worklist);
       }
     }
+    computingVerificationTypes = false;
     return types;
   }
 

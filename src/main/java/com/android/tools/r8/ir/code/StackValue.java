@@ -3,31 +3,26 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
 public class StackValue extends Value {
 
   private final int height;
-  private final DexType objectType;
+  private final TypeInfo typeInfo;
 
-  private StackValue(DexType objectType, TypeLatticeElement typeLattice, int height) {
+  private StackValue(TypeInfo typeInfo, TypeLatticeElement typeLattice, int height) {
     super(Value.UNDEFINED_NUMBER, typeLattice, null);
     this.height = height;
-    this.objectType = objectType;
+    this.typeInfo = typeInfo;
     assert height >= 0;
   }
 
-  public static StackValue forObjectType(DexType type, int height, AppInfo appInfo) {
-    assert DexItemFactory.nullValueType == type || type.isClassType() || type.isArrayType();
-    return new StackValue(type, TypeLatticeElement.fromDexType(type, true, appInfo), height);
-  }
-
-  public static StackValue forNonObjectType(ValueType valueType, int height) {
-    assert valueType.isPreciseType() && !valueType.isObject();
-    return new StackValue(null, valueType.toTypeLattice(), height);
+  public static StackValue create(TypeInfo typeInfo, int height, AppInfo appInfo) {
+    return new StackValue(
+        typeInfo, TypeLatticeElement.fromDexType(typeInfo.getDexType(), true, appInfo), height);
   }
 
   public int getHeight() {
@@ -36,11 +31,11 @@ public class StackValue extends Value {
 
   public DexType getObjectType() {
     assert outType().isObject();
-    return objectType;
+    return typeInfo.getDexType();
   }
 
   public StackValue duplicate(int height) {
-    return new StackValue(this.objectType, this.type.toTypeLattice(), height);
+    return new StackValue(typeInfo, getTypeLattice(), height);
   }
 
   @Override
