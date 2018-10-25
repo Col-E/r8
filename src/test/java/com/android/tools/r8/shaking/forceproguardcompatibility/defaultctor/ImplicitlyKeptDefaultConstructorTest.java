@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.smali.ConstantFoldingTest.TriConsumer;
@@ -47,7 +48,8 @@ class MainGetClassSubClass {
 class MainCheckCastSubClass {
 
   public static void main(String[] args) {
-    System.out.println((SubClass) null);
+    // The instance to check-cast is conditional on args to prevent the compiler from removing it.
+    System.out.println((SubClass) (args.length == 42 ? new Object() : null));
   }
 }
 
@@ -199,9 +201,13 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
         keepMainProguardConfiguration(mainClass),
-        this::checkOnlyMainPresent);
+        (ignoreMainClass, ignoreProgramClasses, inspector) -> {
+          assertTrue(inspector.clazz(mainClass).isPresent());
+          assertTrue(inspector.clazz(SubClass.class).isPresent());
+          // SuperClass may have been merged with SubClass.
+          inspector.forAllClasses(this::checkPresentWithDefaultConstructor);
+        });
   }
-
 
   @Test
   public void testCheckCastWithoutInlining() throws Exception {
