@@ -255,7 +255,7 @@ def handle_output(archive, stderr, stdout, exitcode, timed_out, cmd):
     with open(stdout, 'r') as f:
       print 'stdout: %s' % f.read()
 
-def execute(cmd, archive):
+def execute(cmd, archive, env=None):
   utils.PrintCmd(cmd)
   with utils.TempDir() as temp:
     try:
@@ -269,7 +269,8 @@ def execute(cmd, archive):
       popen = subprocess.Popen(cmd,
                                bufsize=1024*1024*10,
                                stdout=stdout_fd,
-                               stderr=stderr_fd)
+                               stderr=stderr_fd,
+                               env=env)
       begin = time.time()
       timed_out = False
       while popen.poll() == None:
@@ -294,7 +295,10 @@ def run_once(archive):
   log('Running once with hash %s' % git_hash)
   # Run test.py internal testing.
   cmd = ['tools/test.py', '--only_internal']
-  if execute(cmd, archive):
+  env = os.environ.copy()
+  # Bot does not have a lot of memory.
+  env['R8_GRADLE_CORES_PER_FORK'] = '8'
+  if execute(cmd, archive, env):
     failed = True
   # Ensure that all internal apps compile.
   cmd = ['tools/run_on_app.py', '--ignore-java-version','--run-all',
