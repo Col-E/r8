@@ -15,6 +15,6 @@ try:
     except:
       return
 
-except ImportError:
+except (ImportError, ValueError):
   def notify(message):
     return
