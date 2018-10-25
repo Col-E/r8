@@ -79,6 +79,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -386,7 +387,10 @@ public class IRConverter {
     for (Map.Entry<DexProgramClass, Collection<DexProgramClass>> entry :
         originalToSynthesized.asMap().entrySet()) {
       DexProgramClass original = entry.getKey();
-      Set<DexType> synthesized = new HashSet<>();
+      // Use a tree set to make sure that we have an ordering on the types.
+      // These types are put in an array in annotations in the output and we
+      // need a consistent ordering on them.
+      TreeSet<DexType> synthesized = new TreeSet<>(DexType::slowCompareTo);
       entry.getValue()
           .stream()
           .map(dexProgramClass -> dexProgramClass.type)

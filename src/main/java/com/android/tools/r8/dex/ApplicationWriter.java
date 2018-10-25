@@ -489,7 +489,9 @@ public class ApplicationWriter {
 
   private static String writeMainDexList(DexApplication application, NamingLens namingLens) {
     StringBuilder builder = new StringBuilder();
-    application.mainDexList.forEach(
+    List<DexType> list = new ArrayList<>(application.mainDexList);
+    list.sort(DexType::slowCompareTo);
+    list.forEach(
         type -> builder.append(mapMainDexListName(type, namingLens)).append('\n'));
     return builder.toString();
   }

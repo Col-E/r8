@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
+import java.util.TreeSet;
 
 public class DexAnnotation extends DexItem {
   public static final int VISIBILITY_BUILD = 0x00;
@@ -355,7 +355,7 @@ public class DexAnnotation extends DexItem {
   }
 
   public static DexAnnotation createAnnotationSynthesizedClassMap(
-      Set<DexType> synthesized,
+      TreeSet<DexType> synthesized,
       DexItemFactory dexItemFactory) {
     DexValueType[] values = synthesized.stream()
         .map(DexValueType::new)

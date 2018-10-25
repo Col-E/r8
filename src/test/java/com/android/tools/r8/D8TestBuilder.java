@@ -53,4 +53,9 @@ public class D8TestBuilder
     builder.addClasspathFiles(files);
     return self();
   }
+
+  public D8TestBuilder setIntermediate(boolean b) {
+    builder.setIntermediate(true);
+    return self();
+  }
 }
