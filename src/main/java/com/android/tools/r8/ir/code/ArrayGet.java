@@ -146,7 +146,7 @@ public class ArrayGet extends Instruction {
   public DexType computeVerificationType(TypeVerificationHelper helper) {
     // This method is not called for ArrayGet on primitive array.
     assert this.outValue.type.isObject();
-    DexType arrayType = helper.getDexType(array());
+    DexType arrayType = helper.getType(array());
     if (arrayType == DexItemFactory.nullValueType) {
       // JVM 8 §4.10.1.9.aaload: Array component type of null is null.
       return arrayType;

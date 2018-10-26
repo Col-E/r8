@@ -382,7 +382,7 @@ public class Phi extends Value {
     assert outType().isObject();
     Set<DexType> operandTypes = new HashSet<>(operands.size());
     for (Value operand : operands) {
-      DexType operandType = helper.getDexType(operand);
+      DexType operandType = helper.getType(operand);
       if (operandType != null) {
         operandTypes.add(operandType);
       }

@@ -6,10 +6,6 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.cf.CfRegisterAllocator;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
-import com.android.tools.r8.cf.TypeVerificationHelper.InitializedTypeInfo;
-import com.android.tools.r8.cf.TypeVerificationHelper.NewInstanceInfo;
-import com.android.tools.r8.cf.TypeVerificationHelper.ThisInstanceInfo;
-import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -25,6 +21,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -69,7 +66,7 @@ public class CfBuilder {
   private final DexEncodedMethod method;
   private final IRCode code;
 
-  private TypeVerificationHelper typeVerificationHelper;
+  private Map<Value, DexType> types;
   private Map<BasicBlock, CfLabel> labels;
   private Set<CfLabel> emittedLabels;
   private List<CfInstruction> instructions;
@@ -133,12 +130,11 @@ public class CfBuilder {
     this.options = options;
     this.appInfo = appInfo;
     computeInitializers();
-    typeVerificationHelper = new TypeVerificationHelper(code, factory, appInfo);
-    typeVerificationHelper.computeVerificationTypes();
+    types = new TypeVerificationHelper(code, factory, appInfo).computeVerificationTypes();
     splitExceptionalBlocks();
     new DeadCodeRemover(code, rewriter, graphLense, options).run();
     rewriteNots();
-    LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, typeVerificationHelper, appInfo);
+    LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, types, appInfo);
     loadStoreHelper.insertLoadsAndStores();
     BasicBlockMuncher muncher = new BasicBlockMuncher();
     muncher.optimize(code);
@@ -468,11 +464,10 @@ public class CfBuilder {
       stackTypes = Collections.emptyList();
     }
 
-    Int2ReferenceMap<TypeInfo> locals =
-        registerAllocator.getTypeInfoAtBlockEntry(block, typeVerificationHelper);
+    Collection<Value> locals = registerAllocator.getLocalsAtBlockEntry(block);
     Int2ReferenceSortedMap<FrameType> mapping = new Int2ReferenceAVLTreeMap<>();
-    for (Entry<TypeInfo> local : locals.int2ReferenceEntrySet()) {
-      mapping.put(local.getIntKey(), getFrameType(block, local.getValue()));
+    for (Value local : locals) {
+      mapping.put(getLocalRegister(local), getFrameType(block, local));
     }
     CfFrame frame = new CfFrame(mapping, stackTypes);
 
@@ -492,25 +487,42 @@ public class CfBuilder {
     instructions.add(frame);
   }
 
-  private FrameType getFrameType(BasicBlock liveBlock, TypeInfo typeInfo) {
-    if (typeInfo instanceof InitializedTypeInfo) {
-      return FrameType.initialized(typeInfo.getDexType());
+  private FrameType getFrameType(BasicBlock liveBlock, Value local) {
+    switch (local.outType()) {
+      case INT:
+        return FrameType.initialized(factory.intType);
+      case FLOAT:
+        return FrameType.initialized(factory.floatType);
+      case LONG:
+        return FrameType.initialized(factory.longType);
+      case DOUBLE:
+        return FrameType.initialized(factory.doubleType);
+      case OBJECT:
+        FrameType type = findAllocator(liveBlock, local);
+        return type != null ? type : FrameType.initialized(types.get(local));
+      default:
+        throw new Unreachable(
+            "Unexpected local type: " + local.outType() + " for local: " + local);
     }
-    FrameType type = findAllocator(liveBlock, typeInfo);
-    return type != null ? type : FrameType.initialized(typeInfo.getDexType());
   }
 
-  private FrameType findAllocator(BasicBlock liveBlock, TypeInfo typeInfo) {
+  private FrameType findAllocator(BasicBlock liveBlock, Value value) {
+    Instruction definition = value.definition;
+    while (definition != null && (definition.isStore() || definition.isLoad())) {
+      definition = definition.inValues().get(0).definition;
+    }
+    if (definition == null) {
+      return null;
+    }
     FrameType res;
-    Instruction definition;
-    if (typeInfo instanceof NewInstanceInfo) {
-      definition = ((NewInstanceInfo) typeInfo).newInstance;
-      res = FrameType.uninitializedNew(newInstanceLabels.get(definition));
-    } else if (typeInfo instanceof ThisInstanceInfo) {
-      definition = ((ThisInstanceInfo) typeInfo).thisArgument;
+    if (definition.isNewInstance()) {
+      res = FrameType.uninitializedNew(newInstanceLabels.get(definition.asNewInstance()));
+    } else if (definition.isArgument()
+        && method.isInstanceInitializer()
+        && definition.outValue().isThis()) {
       res = FrameType.uninitializedThis();
     } else {
-      throw new Unreachable("Unexpected type info: " + typeInfo);
+      return null;
     }
     BasicBlock definitionBlock = definition.getBlock();
     Set<BasicBlock> visited = new HashSet<>();
