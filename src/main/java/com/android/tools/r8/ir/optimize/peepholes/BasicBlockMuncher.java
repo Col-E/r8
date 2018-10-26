@@ -19,7 +19,10 @@ public class BasicBlockMuncher {
   // other peepholes to allow for more matches.
   private final List<BasicBlockPeephole> destructivePeepholes =
       ImmutableList.of(
-          new StoreSequenceLoadPeephole(), new StoreLoadPeephole(), new LoadLoadDupPeephole());
+          new StoreSequenceLoadPeephole(),
+          new StoreLoadPeephole(),
+          new LoadLoadDupPeephole(),
+          new DupDupDupPeephole());
 
   private final List<List<BasicBlockPeephole>> allPeepholes =
       ImmutableList.of(nonDestructivePeepholes, destructivePeepholes);

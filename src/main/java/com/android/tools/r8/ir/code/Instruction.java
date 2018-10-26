@@ -629,6 +629,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isDup2() {
+    return false;
+  }
+
+  public Dup2 asDup2() {
+    return null;
+  }
+
   public boolean isJumpInstruction() {
     return false;
   }
