@@ -90,9 +90,6 @@ public class StaticClassMerger {
     if (appView.appInfo().neverMerge.contains(clazz.type)) {
       return false;
     }
-    if (clazz.accessFlags.isInterface()) {
-      return false;
-    }
     if (clazz.staticFields().length + clazz.directMethods().length + clazz.virtualMethods().length
         == 0) {
       return false;
@@ -119,6 +116,15 @@ public class StaticClassMerger {
                     // modify any methods from the sets alwaysInline and noSideEffects.
                     || appView.appInfo().alwaysInline.contains(method.method)
                     || appView.appInfo().noSideEffects.keySet().contains(method))) {
+      return false;
+    }
+    if (clazz.classInitializationMayHaveSideEffects(appView.appInfo())) {
+      // This could have a negative impact on inlining.
+      //
+      // See {@link com.android.tools.r8.ir.optimize.DefaultInliningOracle#canInlineStaticInvoke}
+      // for further details.
+      //
+      // Note that this will be true for all classes that inherit from or implement a library class.
       return false;
     }
     return true;

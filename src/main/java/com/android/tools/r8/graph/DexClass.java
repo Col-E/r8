@@ -431,6 +431,24 @@ public abstract class DexClass extends DexDefinition {
     return type.isExternalizable(appInfo);
   }
 
+  public boolean classInitializationMayHaveSideEffects(AppInfo appInfo) {
+    if (hasNonTrivialClassInitializer()) {
+      return true;
+    }
+    if (defaultValuesForStaticFieldsMayTriggerAllocation()) {
+      return true;
+    }
+    for (DexType iface : interfaces.values) {
+      if (iface.classInitializationMayHaveSideEffects(appInfo)) {
+        return true;
+      }
+    }
+    if (superType != null && superType.classInitializationMayHaveSideEffects(appInfo)) {
+      return true;
+    }
+    return false;
+  }
+
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {
     return Arrays.stream(staticFields())
         .anyMatch(field -> !field.getStaticValue().mayTriggerAllocation());

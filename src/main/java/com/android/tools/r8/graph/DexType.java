@@ -108,6 +108,11 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.serializableType);
   }
 
+  public boolean classInitializationMayHaveSideEffects(AppInfo appInfo) {
+    DexClass clazz = appInfo.definitionFor(this);
+    return clazz == null || clazz.classInitializationMayHaveSideEffects(appInfo);
+  }
+
   public boolean isUnknown() {
     return hierarchyLevel == UNKNOWN_LEVEL;
   }
@@ -185,6 +190,10 @@ public class DexType extends DexReference implements PresortedComparable<DexType
       self = holder.superType;
     }
     return self == other;
+  }
+
+  public Set<DexType> allImmediateSubtypes() {
+    return directSubtypes;
   }
 
   /**

@@ -128,31 +128,14 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
     if (target.getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
       return true;
     }
-    return classInitializationHasNoSideffects(targetHolder);
-  }
-
-  /**
-   * Check for class initializer side effects when loading this class, as inlining might remove the
-   * load operation.
-   * <p>
-   * See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-5.html#jvms-5.5.
-   * <p>
-   * For simplicity, we are conservative and consider all interfaces, not only the ones with default
-   * methods.
-   */
-  private boolean classInitializationHasNoSideffects(DexType classToCheck) {
-    DexClass clazz = inliner.appView.appInfo().definitionFor(classToCheck);
-    if ((clazz == null)
-        || clazz.hasNonTrivialClassInitializer()
-        || clazz.defaultValuesForStaticFieldsMayTriggerAllocation()) {
-      return false;
-    }
-    for (DexType iface : clazz.interfaces.values) {
-      if (!classInitializationHasNoSideffects(iface)) {
-        return false;
-      }
-    }
-    return clazz.superType == null || classInitializationHasNoSideffects(clazz.superType);
+    // Check for class initializer side effects when loading this class, as inlining might remove
+    // the load operation.
+    //
+    // See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-5.html#jvms-5.5.
+    //
+    // For simplicity, we are conservative and consider all interfaces, not only the ones with
+    // default methods.
+    return !clazz.classInitializationMayHaveSideEffects(appView.appInfo());
   }
 
   private synchronized boolean isDoubleInliningTarget(DexEncodedMethod candidate) {
