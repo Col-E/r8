@@ -723,9 +723,6 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
-    // TODO(b/117916645): Re-enable horizontal class merging by deleting this line.
-    internal.enableHorizontalClassMerging = false;
-
     return internal;
   }
 }

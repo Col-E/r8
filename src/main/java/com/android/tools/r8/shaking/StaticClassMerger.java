@@ -266,7 +266,9 @@ public class StaticClassMerger {
 
       DexMethod originalMethod =
           methodMapping.inverse().getOrDefault(sourceMethod.method, sourceMethod.method);
-      methodMapping.put(originalMethod, sourceMethodAfterMove.method);
+      methodMapping.forcePut(originalMethod, sourceMethodAfterMove.method);
+
+      existingMethods.add(equivalence.wrap(sourceMethodAfterMove.method));
     }
 
     return result;
@@ -297,7 +299,9 @@ public class StaticClassMerger {
 
       DexField originalField =
           fieldMapping.inverse().getOrDefault(sourceField.field, sourceField.field);
-      fieldMapping.put(originalField, sourceFieldAfterMove.field);
+      fieldMapping.forcePut(originalField, sourceFieldAfterMove.field);
+
+      existingFields.add(equivalence.wrap(sourceFieldAfterMove.field));
     }
 
     return result;

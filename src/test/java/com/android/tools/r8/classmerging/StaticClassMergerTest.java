@@ -78,12 +78,10 @@ public class StaticClassMergerTest extends TestBase {
         inspector.allClasses().stream()
             .filter(clazz -> clazz.getOriginalName().contains("StaticMergeCandidate"))
             .collect(Collectors.toList());
-    // TODO(b/117916645): Revert back to 1 here once the issue is fixed.
-    assertEquals(2, classes.size());
+    assertEquals(1, classes.size());
 
     // Check that the remaining static merge candidate has two methods.
     FoundClassSubject remaining = classes.get(0);
-    // TODO(b/117916645): Revert back to 2 here once the issue is fixed.
-    assertEquals(1, remaining.allMethods().size());
+    assertEquals(2, remaining.allMethods().size());
   }
 }

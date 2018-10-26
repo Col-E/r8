@@ -491,16 +491,18 @@ public final class InterfaceMethodRewriter {
     if (!reportedMissing.add(missing)) {
       return;
     }
+    DexMethod originalReferencedFrom =
+        converter.graphLense().getOriginalMethodSignature(referencedFrom);
     StringBuilder builder = new StringBuilder();
     builder
         .append("Type `")
         .append(missing.toSourceString())
         .append("` was not found, ")
         .append("it is required for default or static interface methods desugaring of `")
-        .append(referencedFrom.toSourceString())
+        .append(originalReferencedFrom.toSourceString())
         .append("`");
     options.reporter.warning(
-        new StringDiagnostic(builder.toString(), getMethodOrigin(referencedFrom)));
+        new StringDiagnostic(builder.toString(), getMethodOrigin(originalReferencedFrom)));
   }
 
   private Origin getMethodOrigin(DexMethod method) {
