@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
-import com.android.tools.r8.cf.TypeVerificationHelper.InitializedTypeInfo;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
@@ -22,6 +21,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -30,15 +30,15 @@ import java.util.Map;
 public class LoadStoreHelper {
 
   private final IRCode code;
-  private final TypeVerificationHelper typesHelper;
+  private final Map<Value, DexType> types;
   private final AppInfo appInfo;
 
   private Map<Value, ConstInstruction> clonableConstants = null;
   private BasicBlock block = null;
 
-  public LoadStoreHelper(IRCode code, TypeVerificationHelper typesHelper, AppInfo appInfo) {
+  public LoadStoreHelper(IRCode code, Map<Value, DexType> types, AppInfo appInfo) {
     this.code = code;
-    this.typesHelper = typesHelper;
+    this.types = types;
     this.appInfo = appInfo;
   }
 
@@ -134,11 +134,19 @@ public class LoadStoreHelper {
   }
 
   private StackValue createStackValue(Value value, int height) {
-    return StackValue.create(typesHelper.getTypeInfo(value), height, appInfo);
+    // TODO(b/72693244): Use the lattice element directly.
+    if (value.outType().isObject()) {
+      return StackValue.forObjectType(types.get(value), height, appInfo);
+    }
+    return StackValue.forNonObjectType(value.outType(), height);
   }
 
   private StackValue createStackValue(DexType type, int height) {
-    return StackValue.create(new InitializedTypeInfo(type), height, appInfo);
+    // TODO(b/72693244): Use the lattice element directly.
+    if (type.isPrimitiveType()) {
+      return StackValue.forNonObjectType(ValueType.fromDexType(type), height);
+    }
+    return StackValue.forObjectType(type, height, appInfo);
   }
 
   public void loadInValues(Instruction instruction, InstructionListIterator it) {

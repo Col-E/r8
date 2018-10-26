@@ -51,7 +51,7 @@ public class DebugLocalWrite extends Move {
 
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return helper.getDexType(src());
+    return helper.getType(src());
   }
 
   @Override
