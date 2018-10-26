@@ -24,6 +24,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
@@ -266,7 +267,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
     if (inliningReason == Reason.FORCE) {
       // Make sure we would be able to inline this normally.
-      assert isInliningCandidate(containerType, Reason.SIMPLE, appInfo);
+      if (!isInliningCandidate(containerType, Reason.SIMPLE, appInfo)) {
+        // If not, raise a flag, because some optimizations that depend on force inlining would
+        // silently produce an invalid code, which is worse than an internal error.
+        throw new InternalCompilerError("FORCE inlining on non-inlinable: " + toSourceString());
+      }
       return true;
     }
     // TODO(b/111080693): inlining candidate should satisfy all states if multiple states are there.
