@@ -217,8 +217,8 @@ public final class LambdaMerger {
     this.strategyFactory = ApplyStrategy::new;
 
     // Add synthesized lambda group classes to the builder.
+    converter.optimizeSynthesizedClasses(lambdaGroupsClasses.values(), executorService);
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
-      converter.optimizeSynthesizedClass(entry.getValue());
       builder.addSynthesizedClass(entry.getValue(),
           entry.getKey().shouldAddToMainDex(converter.appInfo));
     }
