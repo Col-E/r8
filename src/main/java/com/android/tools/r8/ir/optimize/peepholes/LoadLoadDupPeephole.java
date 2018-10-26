@@ -31,12 +31,12 @@ import com.google.common.collect.ImmutableList;
  */
 public class LoadLoadDupPeephole implements BasicBlockPeephole {
 
-  private final Point bottomLoadExp =
+  private final Point lastLoadExp =
       new Point(PeepholeHelper.withoutLocalInfo(Instruction::isLoad));
-  private final Point topLoadExp = new Point(PeepholeHelper.withoutLocalInfo(Instruction::isLoad));
+  private final Point firstLoadExp = new Point(PeepholeHelper.withoutLocalInfo(Instruction::isLoad));
 
   // This searches backwards thus the pattern is built from the bottom.
-  private final PeepholeLayout layout = PeepholeLayout.lookBackward(bottomLoadExp, topLoadExp);
+  private final PeepholeLayout layout = PeepholeLayout.lookBackward(lastLoadExp, firstLoadExp);
 
   @Override
   public boolean match(InstructionListIterator it) {
@@ -44,24 +44,26 @@ public class LoadLoadDupPeephole implements BasicBlockPeephole {
     if (match == null) {
       return false;
     }
-    Load bottomLoad = bottomLoadExp.get(match).asLoad();
-    Load topLoad = topLoadExp.get(match).asLoad();
-    if (topLoad.src() != bottomLoad.src()) {
+    Load lastLoad = lastLoadExp.get(match).asLoad();
+    Load firstLoad = firstLoadExp.get(match).asLoad();
+    if (firstLoad.src() != lastLoad.src()) {
       return false;
     }
 
-    assert !topLoad.src().hasLocalInfo();
-    assert !bottomLoad.src().hasLocalInfo();
+    assert !firstLoad.src().hasLocalInfo();
+    assert !lastLoad.src().hasLocalInfo();
 
-    StackValue src = (StackValue) topLoad.outValue();
-    src.removeUser(bottomLoad);
+    StackValue src = (StackValue) firstLoad.outValue();
+    src.removeUser(lastLoad);
 
     int height = src.getHeight();
-    StackValue newSrc = src.duplicate(height);
-    StackValue newTop = src.duplicate(height + 1);
-    StackValues dest = new StackValues(ImmutableList.of(newSrc, newTop));
+    StackValue newFirstLoadOut = src.duplicate(height);
+    StackValue newLastLoadOut = src.duplicate(height + 1);
+    StackValues dest = new StackValues(ImmutableList.of(newFirstLoadOut, newLastLoadOut));
 
-    bottomLoad.outValue().replaceUsers(newSrc);
+    firstLoad.outValue().replaceUsers(newFirstLoadOut);
+    lastLoad.outValue().replaceUsers(newLastLoadOut);
+
     it.replaceCurrentInstruction(new Dup(dest, src));
     return true;
   }

@@ -14,7 +14,10 @@ import java.util.function.Predicate;
 public class PeepholeHelper {
 
   public static Predicate<Instruction> withoutLocalInfo(Predicate<Instruction> predicate) {
-    return t -> !t.hasInValueWithLocalInfo() && predicate.test(t);
+    return t ->
+        predicate.test(t)
+            && !t.hasInValueWithLocalInfo()
+            && (t.outValue() == null || !t.outValue().hasLocalInfo());
   }
 
   public static void swapNextTwoInstructions(InstructionListIterator it) {
