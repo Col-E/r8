@@ -66,7 +66,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public void finish() {
-    if (Log.ENABLED) {
+    if (Log.ENABLED && info != null) {
       Log.debug(getClass(), info.toString());
     }
   }

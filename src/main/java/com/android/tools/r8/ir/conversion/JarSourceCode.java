@@ -531,7 +531,7 @@ public class JarSourceCode implements SourceCode {
       currentPosition = getCanonicalDebugPositionAtOffset(instructionIndex);
     }
 
-    String preInstructionState;
+    String preInstructionState = "";
     if (Log.ENABLED) {
       preInstructionState = state.toString();
     }
