@@ -63,28 +63,6 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    NewArrayFilledData o = other.asNewArrayFilledData();
-    int result;
-    result = element_width - o.element_width;
-    if (result != 0) {
-      return result;
-    }
-    result = Long.signum(size - o.size);
-    if (result != 0) {
-      return result;
-    }
-    assert data.length == o.data.length;
-    for (int i = 0; i < data.length; i++) {
-      result = data[i] - o.data[i];
-      if (result != 0) {
-        return result;
-      }
-    }
-    return 0;
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U8BIT_MAX;
   }

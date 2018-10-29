@@ -84,13 +84,6 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isInvokeCustom();
-    assert false : "Not supported";
-    return 0;
-  }
-
-  @Override
   public boolean isInvokeCustom() {
     return true;
   }

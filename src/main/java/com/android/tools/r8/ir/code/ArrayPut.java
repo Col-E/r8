@@ -139,11 +139,6 @@ public class ArrayPut extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.ordinal() - other.asArrayPut().type.ordinal();
-  }
-
-  @Override
   public boolean isArrayPut() {
     return true;
   }

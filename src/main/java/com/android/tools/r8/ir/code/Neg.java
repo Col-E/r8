@@ -40,11 +40,6 @@ public class Neg extends Unop {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.ordinal() - other.asNeg().type.ordinal();
-  }
-
-  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int dest = builder.allocatedRegister(dest(), getNumber());

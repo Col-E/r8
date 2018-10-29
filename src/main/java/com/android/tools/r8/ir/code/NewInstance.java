@@ -48,11 +48,6 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return clazz.slowCompareTo(other.asNewInstance().clazz);
-  }
-
-  @Override
   public int maxInValueRegister() {
     assert false : "NewInstance has no register arguments";
     return 0;

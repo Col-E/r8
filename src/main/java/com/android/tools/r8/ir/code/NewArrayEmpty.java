@@ -68,11 +68,6 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.slowCompareTo(other.asNewArrayEmpty().type);
-  }
-
-  @Override
   public boolean isNewArrayEmpty() {
     return true;
   }

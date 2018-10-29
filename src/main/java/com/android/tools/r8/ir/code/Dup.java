@@ -40,11 +40,6 @@ public class Dup extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    throw new Unreachable();
-  }
-
-  @Override
   public int maxInValueRegister() {
     return 0;
   }

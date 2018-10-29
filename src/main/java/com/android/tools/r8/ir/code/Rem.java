@@ -95,11 +95,6 @@ public class Rem extends ArithmeticBinop {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.ordinal() - other.asRem().type.ordinal();
-  }
-
-  @Override
   public boolean canBeFolded() {
     return super.canBeFolded() && !rightValue().isZero();
   }

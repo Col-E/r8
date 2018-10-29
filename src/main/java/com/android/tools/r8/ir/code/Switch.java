@@ -153,12 +153,6 @@ public class Switch extends JumpInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isSwitch();
-    return 0;
-  }
-
-  @Override
   public void buildDex(DexBuilder builder) {
     int value = builder.allocatedRegister(value(), getNumber());
     if (emitPacked()) {

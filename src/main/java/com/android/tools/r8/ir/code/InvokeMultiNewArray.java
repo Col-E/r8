@@ -60,14 +60,6 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    if (!other.isInvokeMultiNewArray()) {
-      return -1;
-    }
-    return type.slowCompareTo(other.asInvokeMultiNewArray().type);
-  }
-
-  @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forInvokeMultiNewArray(type, invocationContext);

@@ -40,11 +40,6 @@ public class AlwaysMaterializingUser extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return 0;
-  }
-
-  @Override
   public int maxInValueRegister() {
     assert inValues.get(0).definition instanceof AlwaysMaterializingDefinition;
     return inValues.get(0).definition.maxOutValueRegister();

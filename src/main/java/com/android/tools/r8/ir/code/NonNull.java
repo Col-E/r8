@@ -78,12 +78,6 @@ public class NonNull extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other instanceof NonNull;
-    return 0;
-  }
-
-  @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forNonNull();

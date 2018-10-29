@@ -103,16 +103,6 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    InstanceGet o = other.asInstanceGet();
-    int result = field.slowCompareTo(o.field);
-    if (result != 0) {
-      return result;
-    }
-    return type.ordinal() - o.type.ordinal();
-  }
-
-  @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forInstanceGet(field, invocationContext);

@@ -101,11 +101,6 @@ public class ArrayGet extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.ordinal() - other.asArrayGet().type.ordinal();
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U8BIT_MAX;
   }

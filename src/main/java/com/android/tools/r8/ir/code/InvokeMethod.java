@@ -39,11 +39,6 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return getInvokedMethod().slowCompareTo(other.asInvokeMethod().getInvokedMethod());
-  }
-
-  @Override
   public String toString() {
     return super.toString() + "; method: " + method.toSourceString();
   }

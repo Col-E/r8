@@ -58,11 +58,6 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return value.slowCompareTo(other.asConstString().value);
-  }
-
-  @Override
   public int maxInValueRegister() {
     assert false : "ConstString has no register arguments.";
     return 0;

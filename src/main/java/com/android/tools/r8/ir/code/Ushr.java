@@ -74,11 +74,6 @@ public class Ushr extends LogicalBinop {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.ordinal() - other.asUshr().type.ordinal();
-  }
-
-  @Override
   int foldIntegers(int left, int right) {
     return left >>> right;
   }

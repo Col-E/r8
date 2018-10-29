@@ -66,11 +66,6 @@ public class Monitor extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.ordinal() - other.asMonitor().type.ordinal();
-  }
-
-  @Override
   public int maxInValueRegister() {
     return U8BIT_MAX;
   }

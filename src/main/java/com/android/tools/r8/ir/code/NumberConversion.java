@@ -128,17 +128,6 @@ public class NumberConversion extends Unop {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    NumberConversion o = other.asNumberConversion();
-    int result;
-    result = from.ordinal() - o.from.ordinal();
-    if (result != 0) {
-      return result;
-    }
-    return to.ordinal() - o.to.ordinal();
-  }
-
-  @Override
   public boolean isNumberConversion() {
     return true;
   }

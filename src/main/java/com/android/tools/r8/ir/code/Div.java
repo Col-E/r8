@@ -95,11 +95,6 @@ public class Div extends ArithmeticBinop {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.ordinal() - other.asDiv().type.ordinal();
-  }
-
-  @Override
   public boolean canBeFolded() {
     return super.canBeFolded() && !rightValue().isZero();
   }

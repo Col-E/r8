@@ -215,17 +215,6 @@ public class ConstNumber extends ConstInstruction {
     return o.outType() == outType() && o.value == value;
   }
 
-  @Override
-  public int compareNonValueParts(Instruction other) {
-    ConstNumber o = other.asConstNumber();
-    int result;
-    result = outType().ordinal() - o.outType().ordinal();
-    if (result != 0) {
-      return result;
-    }
-    return Long.signum(value - o.value);
-  }
-
   public boolean is8Bit() {
     return NumberUtils.is8Bit(value);
   }

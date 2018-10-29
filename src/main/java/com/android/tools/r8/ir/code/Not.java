@@ -74,11 +74,6 @@ public class Not extends Unop {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.ordinal() - other.asNot().type.ordinal();
-  }
-
-  @Override
   public boolean isNot() {
     return true;
   }

@@ -127,11 +127,6 @@ public class Cmp extends Binop {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return bias.ordinal() - other.asCmp().bias.ordinal();
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U8BIT_MAX;
   }

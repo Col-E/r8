@@ -74,12 +74,6 @@ public class DebugLocalsChange extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isDebugLocalsChange();
-    return 0;
-  }
-
-  @Override
   public int maxInValueRegister() {
     throw new Unreachable();
   }

@@ -164,13 +164,6 @@ public class If extends JumpInstruction {
         && o.type == type;
   }
 
-  @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isIf();
-    assert false : "Not supported";
-    return 0;
-  }
-
   public BasicBlock targetFromCondition(ConstNumber value) {
     assert isZeroTest();
     assert value.outType() == ValueType.INT

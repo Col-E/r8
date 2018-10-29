@@ -42,11 +42,6 @@ public class Load extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return 0;
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U16BIT_MAX;
   }

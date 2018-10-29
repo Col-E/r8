@@ -49,12 +49,6 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isThrow();
-    return 0;
-  }
-
-  @Override
   public boolean isThrow() {
     return true;
   }

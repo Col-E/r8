@@ -83,11 +83,6 @@ public class Add extends ArithmeticBinop {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.ordinal() - other.asAdd().type.ordinal();
-  }
-
-  @Override
   int foldIntegers(int left, int right) {
     return left + right;
   }

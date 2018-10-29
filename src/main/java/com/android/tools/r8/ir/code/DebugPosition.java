@@ -41,12 +41,6 @@ public class DebugPosition extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isDebugPosition();
-    return 0;
-  }
-
-  @Override
   public int maxInValueRegister() {
     throw new Unreachable();
   }

@@ -77,11 +77,6 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.slowCompareTo(other.asCheckCast().type);
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U8BIT_MAX;
   }

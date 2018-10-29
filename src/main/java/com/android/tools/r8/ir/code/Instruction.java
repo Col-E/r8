@@ -345,8 +345,6 @@ public abstract class Instruction {
     return position.equals(other.position) && identicalNonValueNonPositionParts(other);
   }
 
-  public abstract int compareNonValueParts(Instruction other);
-
   private boolean identicalInputAfterRegisterAllocation(
       Value a, int aInstrNumber, Instruction bInstr, Value b, int bInstrNumber,
       RegisterAllocator allocator) {

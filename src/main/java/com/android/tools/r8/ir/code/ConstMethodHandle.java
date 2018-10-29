@@ -62,11 +62,6 @@ public class ConstMethodHandle extends ConstInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return methodHandle.slowCompareTo(other.asConstMethodHandle().methodHandle);
-  }
-
-  @Override
   public int maxInValueRegister() {
     assert false : "ConstMethodHandle has no register arguments.";
     return 0;

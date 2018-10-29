@@ -82,12 +82,6 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isArrayLength();
-    return 0;
-  }
-
-  @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forArrayLength();

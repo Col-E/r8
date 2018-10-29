@@ -80,14 +80,6 @@ public class InvokeNewArray extends Invoke {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    if (!other.isInvokeNewArray()) {
-      return -1;
-    }
-    return type.slowCompareTo(other.asInvokeNewArray().type);
-  }
-
-  @Override
   public boolean isInvokeNewArray() {
     return true;
   }

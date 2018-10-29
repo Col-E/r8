@@ -64,11 +64,6 @@ public class InstanceOf extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return type.slowCompareTo(other.asInstanceOf().type);
-  }
-
-  @Override
   public boolean isInstanceOf() {
     return true;
   }

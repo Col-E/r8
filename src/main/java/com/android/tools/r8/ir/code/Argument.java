@@ -56,12 +56,6 @@ public class Argument extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isArgument();
-    return 0;
-  }
-
-  @Override
   public boolean isArgument() {
     return true;
   }

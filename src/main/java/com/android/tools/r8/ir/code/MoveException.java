@@ -53,12 +53,6 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isMoveException();
-    return 0;
-  }
-
-  @Override
   public boolean isMoveException() {
     return true;
   }

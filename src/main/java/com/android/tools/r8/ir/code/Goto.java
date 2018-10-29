@@ -76,13 +76,6 @@ public class Goto extends JumpInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isGoto();
-    assert false : "Not supported";
-    return 0;
-  }
-
-  @Override
   public boolean isGoto() {
     return true;
   }

@@ -86,11 +86,6 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return clazz.slowCompareTo(other.asConstClass().clazz);
-  }
-
-  @Override
   public boolean canBeDeadCode(IRCode code, InternalOptions options) {
     // A const-class instruction can be dead code only if the resulting program is known to contain
     // the class mentioned.

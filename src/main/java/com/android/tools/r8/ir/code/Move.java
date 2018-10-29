@@ -67,12 +67,6 @@ public class Move extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    assert other.isMove();
-    return 0;
-  }
-
-  @Override
   public String toString() {
     return super.toString() + " (" + outType() + ")";
   }

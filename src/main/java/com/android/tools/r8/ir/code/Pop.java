@@ -35,11 +35,6 @@ public class Pop extends Instruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return 0;
-  }
-
-  @Override
   public int maxInValueRegister() {
     throw new Unreachable();
   }

@@ -86,15 +86,6 @@ public class Return extends JumpInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    if (isReturnVoid()) {
-      return other.asReturn().isReturnVoid() ? 0 : -1;
-    } else {
-      return returnValue().type.ordinal() - other.asReturn().returnValue().type.ordinal();
-    }
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U8BIT_MAX;
   }

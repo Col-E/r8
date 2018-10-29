@@ -42,11 +42,6 @@ public class AlwaysMaterializingDefinition extends ConstInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    return 0;
-  }
-
-  @Override
   public int maxInValueRegister() {
     throw new Unreachable();
   }

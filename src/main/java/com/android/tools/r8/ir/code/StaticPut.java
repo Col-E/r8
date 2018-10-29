@@ -96,17 +96,6 @@ public class StaticPut extends FieldInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    StaticPut o = other.asStaticPut();
-    int result;
-    result = field.slowCompareTo(o.field);
-    if (result != 0) {
-      return result;
-    }
-    return type.ordinal() - o.type.ordinal();
-  }
-
-  @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forStaticPut(field, invocationContext);

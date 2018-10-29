@@ -92,16 +92,6 @@ public class InstancePut extends FieldInstruction {
   }
 
   @Override
-  public int compareNonValueParts(Instruction other) {
-    InstancePut o = other.asInstancePut();
-    int result = field.slowCompareTo(o.field);
-    if (result != 0) {
-      return result;
-    }
-    return type.ordinal() - o.type.ordinal();
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U4BIT_MAX;
   }
