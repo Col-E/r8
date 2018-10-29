@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
+import static com.android.tools.r8.ir.optimize.CodeRewriter.checksNullReceiverBeforeSideEffect;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -740,7 +741,7 @@ public class IRConverter {
     printMethod(code, "Initial IR (SSA)");
 
     if (method.getCode() != null && method.getCode().isJarCode()) {
-      computeKotlinNotNullParamHints(feedback, method, code);
+      computeKotlinNonNullParamHints(feedback, method, code);
     }
 
     if (options.canHaveArtStringNewInitBug()) {
@@ -886,6 +887,11 @@ public class IRConverter {
     if (options.enableInlining && inliner != null) {
       codeRewriter.identifyInvokeSemanticsForInlining(method, code, feedback);
     }
+    // If hints from Kotlin metadata or use of Kotlin Intrinsics were not available, track usage of
+    // parameters and compute their nullability.
+    if (method.getOptimizationInfo().getNonNullParamHints() == null) {
+      computeNonNullParamHints(feedback, method, code);
+    }
 
     // Insert code to log arguments if requested.
     if (options.methodMatchesLogArgumentsFilter(method)) {
@@ -911,7 +917,7 @@ public class IRConverter {
     finalizeIR(method, code, feedback);
   }
 
-  private void computeKotlinNotNullParamHints(
+  private void computeKotlinNonNullParamHints(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     DexMethod originalSignature = graphLense().getOriginalMethodSignature(method.method);
     DexClass originalHolder = definitionFor(originalSignature.holder);
@@ -927,7 +933,7 @@ public class IRConverter {
               originalSignature.name.toString(), originalSignature.proto.toDescriptorString());
       if (hintFromMetadata != null) {
         if (hintFromMetadata.length() > 0) {
-          feedback.setKotlinNotNullParamHints(method, hintFromMetadata);
+          feedback.setNonNullParamHints(method, hintFromMetadata);
         }
         return;
       }
@@ -959,7 +965,28 @@ public class IRConverter {
       }
     }
     if (paramsCheckedForNull.length() > 0) {
-      feedback.setKotlinNotNullParamHints(method, paramsCheckedForNull);
+      feedback.setNonNullParamHints(method, paramsCheckedForNull);
+    }
+  }
+
+  private void computeNonNullParamHints(
+    OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+    List<Value> arguments = code.collectArguments(true);
+    BitSet paramsCheckedForNull = new BitSet();
+    for (int index = 0; index < arguments.size(); index++) {
+      Value argument = arguments.get(index);
+      if (argument.isUsed()
+          && checksNullReceiverBeforeSideEffect(code, appInfo.dexItemFactory, argument)) {
+        paramsCheckedForNull.set(index);
+      }
+      // TODO(b/71500340): More sophisticated analysis?
+      // The above one only catches something like:
+      //   if (param == null) return;
+      //   throw new NPE;
+      // which is good enough to handle Intrinsics.checkParameterIsNotNull(param, message)
+    }
+    if (paramsCheckedForNull.length() > 0) {
+      feedback.setNonNullParamHints(method, paramsCheckedForNull);
     }
   }
 

@@ -783,7 +783,8 @@ public class CodeRewriter {
       // Identifies if the method preserves null check of the receiver after inlining.
       final Value receiver = code.getThis();
       feedback.markCheckNullReceiverBeforeAnySideEffect(method,
-          receiver.isUsed() && checksNullReceiverBeforeSideEffect(code, receiver));
+          receiver.isUsed()
+              && checksNullReceiverBeforeSideEffect(code, appInfo.dexItemFactory, receiver));
     }
   }
 
@@ -1096,6 +1097,7 @@ public class CodeRewriter {
    */
   private enum InstructionEffect {
     DESIRED_EFFECT,
+    CONDITIONAL_EFFECT,
     OTHER_EFFECT,
     NO_EFFECT
   }
@@ -1106,14 +1108,48 @@ public class CodeRewriter {
    *
    * Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
-  private static boolean checksNullReceiverBeforeSideEffect(IRCode code, Value receiver) {
+  public static boolean checksNullReceiverBeforeSideEffect(
+      IRCode code, DexItemFactory factory, Value receiver) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(code, instr -> {
+      BasicBlock currentBlock = instr.getBlock();
+      // If the code explicitly checks the nullability of receiver, we should visit the next block
+      // that corresponds to the null receiver where NPE semantic could be preserved.
+      if (!currentBlock.hasCatchHandlers() && isNullabilityCheck(instr, receiver)) {
+        return InstructionEffect.CONDITIONAL_EFFECT;
+      }
+      // In general, new-instance can raise ClassNotFoundException or OutOfMemoryError, hence
+      // OTHER_EFFECT. However, if the code is creating an instance of NPE and throwing it in the
+      // same block, that's another way of preserving NPE, if the predecessor checks nullability of
+      // the receiver.
+      if (instr.isNewInstance()) {
+        if (!currentBlock.hasCatchHandlers()
+            && instr.asNewInstance().clazz.equals(factory.npeType)) {
+          boolean isThowingInTheSameBlock = false;
+          for (Instruction user : instr.outValue().uniqueUsers()) {
+            if (user.isThrow() && user.getBlock().equals(currentBlock)) {
+              isThowingInTheSameBlock = true;
+              break;
+            }
+          }
+          // We found a NPE throwing code.
+          if (isThowingInTheSameBlock) {
+            // Combined with the above CONDITIONAL_EFFECT, the code checks NPE on receiver.
+            for (BasicBlock predecessor : currentBlock.getPredecessors()) {
+              Instruction last =
+                  predecessor.listIterator(predecessor.getInstructions().size()).previous();
+              if (isNullabilityCheck(last, receiver)) {
+                return InstructionEffect.DESIRED_EFFECT;
+              }
+            }
+          }
+        }
+      }
       if (instr.throwsNpeIfValueIsNull(receiver)) {
         // In order to preserve NPE semantic, the exception must not be caught by any handler.
         // Therefore, we must ignore this instruction if it is covered by a catch handler.
         // Note: this is a conservative approach where we consider that any catch handler could
         // catch the exception, even if it cannot catch a NullPointerException.
-        if (!instr.getBlock().hasCatchHandlers()) {
+        if (!currentBlock.hasCatchHandlers()) {
           // We found a NPE check on receiver.
           return InstructionEffect.DESIRED_EFFECT;
         }
@@ -1123,6 +1159,12 @@ public class CodeRewriter {
       }
       return InstructionEffect.NO_EFFECT;
     });
+  }
+
+  private static boolean isNullabilityCheck(Instruction instr, Value receiver) {
+    return instr.isIf() && instr.asIf().isZeroTest()
+        && instr.inValues().get(0).equals(receiver)
+        && (instr.asIf().getType() == Type.EQ || instr.asIf().getType() == Type.NE);
   }
 
   private static boolean instructionHasSideEffects(Instruction instruction) {
@@ -1163,8 +1205,8 @@ public class CodeRewriter {
    *
    * Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
-  private static boolean alwaysTriggerExpectedEffectBeforeAnythingElse(IRCode code,
-      Function<Instruction, InstructionEffect> function) {
+  private static boolean alwaysTriggerExpectedEffectBeforeAnythingElse(
+      IRCode code, Function<Instruction, InstructionEffect> function) {
     final int color = code.reserveMarkingColor();
     try {
       ArrayDeque<BasicBlock> worklist = new ArrayDeque<>();
@@ -1188,6 +1230,17 @@ public class CodeRewriter {
           // The current path is causing the expected effect. No need to go deeper in this path,
           // go to the next block in the work list.
           continue;
+        } else if (result == InstructionEffect.CONDITIONAL_EFFECT) {
+          assert !currentBlock.getNormalSuccessors().isEmpty();
+          Instruction lastInstruction = currentBlock.getInstructions().getLast();
+          assert lastInstruction.isIf();
+          // The current path is checking if the value of interest is null. Go deeper into the path
+          // that corresponds to the null value.
+          BasicBlock targetIfReceiverIsNull = lastInstruction.asIf().targetFromCondition(0);
+          if (!targetIfReceiverIsNull.isMarked(color)) {
+            worklist.add(targetIfReceiverIsNull);
+            targetIfReceiverIsNull.mark(color);
+          }
         } else {
           assert result == InstructionEffect.NO_EFFECT;
           // The block did not cause any particular effect.

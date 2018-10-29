@@ -160,6 +160,8 @@ public class DexItemFactory {
   public final DexString methodHandleDescriptor = createString("Ljava/lang/invoke/MethodHandle;");
   public final DexString methodTypeDescriptor = createString("Ljava/lang/invoke/MethodType;");
 
+  public final DexString npeDescriptor = createString("Ljava/lang/NullPointerException;");
+
   public final DexString intFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
   public final DexString longFieldUpdaterDescriptor =
@@ -214,6 +216,8 @@ public class DexItemFactory {
   public final DexType varHandleType = createType(varHandleDescriptor);
   public final DexType methodHandleType = createType(methodHandleDescriptor);
   public final DexType methodTypeType = createType(methodTypeDescriptor);
+
+  public final DexType npeType = createType(npeDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);

@@ -817,7 +817,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private TrivialInitializer trivialInitializerInfo = null;
     private boolean initializerEnablingJavaAssertions = false;
     private ParameterUsagesInfo parametersUsages = null;
-    private BitSet kotlinNotNullParamHints = null;
+    // Stores information about nullability hint per parameter. If set, that means, the method
+    // somehow (e.g., null check, such as arg != null, or using checkParameterIsNotNull) ensures
+    // the corresponding parameter is not null, or throws NPE before any other side effects.
+    // TODO(b/71500340): We call this *hint* because it does not 100% guarantee that a parameter is
+    // not null when the method returns normally. Maybe nonNullParamOnNormalExit in the future.
+    private BitSet nonNullParamHints = null;
 
     private OptimizationInfo() {
       // Intentionally left empty.
@@ -843,12 +848,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return parametersUsages == null ? null : parametersUsages.getParameterUsage(parameter);
     }
 
-    public BitSet getKotlinNotNullParamHints() {
-      return kotlinNotNullParamHints;
+    public BitSet getNonNullParamHints() {
+      return nonNullParamHints;
     }
 
-    public void setKotlinNotNullParamHints(BitSet hints) {
-      this.kotlinNotNullParamHints = hints;
+    public void setNonNullParamHints(BitSet hints) {
+      this.nonNullParamHints = hints;
     }
 
     public boolean returnsArgument() {
@@ -1032,8 +1037,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     ensureMutableOI().setParameterUsages(parametersUsages);
   }
 
-  synchronized public void setKotlinNotNullParamHints(BitSet hints) {
-    ensureMutableOI().setKotlinNotNullParamHints(hints);
+  synchronized public void setNonNullParamHints(BitSet hints) {
+    ensureMutableOI().setNonNullParamHints(hints);
   }
 
   synchronized public void setTrivialInitializer(TrivialInitializer info) {
