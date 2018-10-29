@@ -37,6 +37,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 //
 // Default and static interface method desugaring rewriter (note that lambda
@@ -374,7 +376,9 @@ public final class InterfaceMethodRewriter {
    * Move static and default interface methods to companion classes,
    * add missing methods to forward to moved default methods implementation.
    */
-  public void desugarInterfaceMethods(Builder<?> builder, Flavor flavour) {
+  public void desugarInterfaceMethods(
+      Builder<?> builder, Flavor flavour, ExecutorService executorService)
+      throws ExecutionException {
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
     synthesizedMethods.addAll(processClasses(builder, flavour));
@@ -391,9 +395,7 @@ public final class InterfaceMethodRewriter {
       builder.addSynthesizedClass(entry.getValue(), isInMainDexList(entry.getKey()));
     }
 
-    for (DexEncodedMethod method : synthesizedMethods) {
-      converter.optimizeSynthesizedMethod(method);
-    }
+    converter.optimizeSynthesizedMethods(synthesizedMethods, executorService);
 
     // Cached data is not needed any more.
     clear();

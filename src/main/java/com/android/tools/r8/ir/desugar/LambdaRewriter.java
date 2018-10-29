@@ -29,12 +29,15 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Lambda desugaring rewriter.
@@ -189,10 +192,14 @@ public class LambdaRewriter {
   }
 
   /** Generates lambda classes and adds them to the builder. */
-  public void synthesizeLambdaClasses(Builder<?> builder) {
+  public void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
+      throws ExecutionException {
+    converter.optimizeSynthesizedClasses(
+        knownLambdaClasses.values().stream()
+            .map(LambdaClass::getLambdaClass).collect(ImmutableSet.toImmutableSet()),
+        executorService);
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
       DexProgramClass synthesizedClass = lambdaClass.getLambdaClass();
-      converter.optimizeSynthesizedClass(synthesizedClass);
       builder.addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
     }
   }

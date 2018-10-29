@@ -71,6 +71,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -276,10 +277,11 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeLambdaClasses(Builder<?> builder) {
+  private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
+      throws ExecutionException {
     if (lambdaRewriter != null) {
       lambdaRewriter.adjustAccessibility();
-      lambdaRewriter.synthesizeLambdaClasses(builder);
+      lambdaRewriter.synthesizeLambdaClasses(builder, executorService);
     }
   }
 
@@ -297,9 +299,13 @@ public class IRConverter {
   }
 
   private void desugarInterfaceMethods(
-      Builder<?> builder, InterfaceMethodRewriter.Flavor includeAllResources) {
+      Builder<?> builder,
+      InterfaceMethodRewriter.Flavor includeAllResources,
+      ExecutorService executorService)
+      throws ExecutionException {
     if (interfaceMethodRewriter != null) {
-      interfaceMethodRewriter.desugarInterfaceMethods(builder, includeAllResources);
+      interfaceMethodRewriter.desugarInterfaceMethods(
+          builder, includeAllResources, executorService);
     }
   }
 
@@ -326,8 +332,8 @@ public class IRConverter {
     Builder<?> builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
 
-    synthesizeLambdaClasses(builder);
-    desugarInterfaceMethods(builder, ExcludeDexResources);
+    synthesizeLambdaClasses(builder, executor);
+    desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     synthesizeTwrCloseResourceUtilityClass(builder);
     processCovariantReturnTypeAnnotations(builder);
 
@@ -499,8 +505,8 @@ public class IRConverter {
       inliner.processDoubleInlineCallers(this, directFeedback);
     }
 
-    synthesizeLambdaClasses(builder);
-    desugarInterfaceMethods(builder, IncludeAllResources);
+    synthesizeLambdaClasses(builder, executorService);
+    desugarInterfaceMethods(builder, IncludeAllResources, executorService);
     synthesizeTwrCloseResourceUtilityClass(builder);
 
     handleSynthesizedClassMapping(builder);
@@ -650,6 +656,24 @@ public class IRConverter {
     }
   }
 
+  public void optimizeSynthesizedClasses(
+      Collection<DexProgramClass> classes, ExecutorService executorService)
+      throws ExecutionException {
+    Set<DexEncodedMethod> methods = Sets.newIdentityHashSet();
+    try {
+      for (DexProgramClass clazz : classes) {
+        enterCachedClass(clazz);
+        clazz.forEachMethod(methods::add);
+      }
+      // Process the generated class, but don't apply any outlining.
+      optimizeSynthesizedMethods(methods, executorService);
+    } finally {
+      for (DexProgramClass clazz : classes) {
+        leaveCachedClass(clazz);
+      }
+    }
+  }
+
   public void optimizeMethodOnSynthesizedClass(DexProgramClass clazz, DexEncodedMethod method) {
     if (!method.isProcessed()) {
       try {
@@ -668,6 +692,26 @@ public class IRConverter {
       processMethod(method, ignoreOptimizationFeedback, x -> false, CallSiteInformation.empty(),
           Outliner::noProcessing);
     }
+  }
+
+  public void optimizeSynthesizedMethods(
+      Collection<DexEncodedMethod> methods, ExecutorService executorService)
+      throws ExecutionException {
+    List<Future<?>> futures = new ArrayList<>();
+    for (DexEncodedMethod method : methods) {
+      futures.add(
+          executorService.submit(
+              () -> {
+                processMethod(
+                    method,
+                    ignoreOptimizationFeedback,
+                    methods::contains,
+                    CallSiteInformation.empty(),
+                    Outliner::noProcessing);
+                return null; // we want a Callable not a Runnable to be able to throw
+              }));
+    }
+    ThreadUtils.awaitFutures(futures);
   }
 
   private void enterCachedClass(DexProgramClass clazz) {
