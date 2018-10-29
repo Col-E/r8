@@ -17,11 +17,54 @@ import com.google.common.collect.ImmutableList;
 
 public class Dup2 extends Instruction {
 
-  public Dup2(StackValues dest, StackValue src1, StackValue src2) {
-    super(dest, ImmutableList.of(src1, src2));
-    assert !src1.getTypeLattice().isWide();
-    assert !src2.getTypeLattice().isWide();
-    assert dest.getStackValues().size() == 4;
+  public Dup2(
+      StackValue destTowMinusThree,
+      StackValue destTopMinusTwo,
+      StackValue destTopMinusOne,
+      StackValue destTop,
+      StackValue srcBottom,
+      StackValue srcTop) {
+    this(
+        new StackValues(destTowMinusThree, destTopMinusTwo, destTopMinusOne, destTop),
+        srcBottom,
+        srcTop);
+  }
+
+  private Dup2(StackValues dest, StackValue srcBottom, StackValue srcTop) {
+    super(dest, ImmutableList.of(srcBottom, srcTop));
+    assert !srcBottom.getTypeLattice().isWide();
+    assert !srcTop.getTypeLattice().isWide();
+    assert dest.getStackValues().length == 4;
+  }
+
+  @Override
+  public void setOutValue(Value value) {
+    assert outValue == null || !outValue.hasUsersInfo() || !outValue.isUsed() ||
+        value instanceof StackValues;
+    this.outValue = value;
+    for (StackValue val : ((StackValues)value).getStackValues()) {
+      val.definition = this;
+    }
+  }
+
+  private StackValue[] getStackValues() {
+    return ((StackValues) outValue()).getStackValues();
+  }
+
+  public StackValue outTopMinusThree() {
+    return getStackValues()[0];
+  }
+
+  public StackValue outTopMinusTwo() {
+    return getStackValues()[1];
+  }
+
+  public StackValue outTopMinusOne() {
+    return getStackValues()[2];
+  }
+
+  public StackValue outTop() {
+    return getStackValues()[3];
   }
 
   @Override

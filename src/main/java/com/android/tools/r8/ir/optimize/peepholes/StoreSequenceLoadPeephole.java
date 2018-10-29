@@ -11,7 +11,6 @@ import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Swap;
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 /**
@@ -99,8 +98,8 @@ public class StoreSequenceLoadPeephole implements BasicBlockPeephole {
     if (last.outValue() instanceof StackValue) {
       lastOut = (StackValue) last.outValue();
     } else if (last.outValue() instanceof StackValues) {
-      List<StackValue> stackValues = ((StackValues) last.outValue()).getStackValues();
-      lastOut = stackValues.get(stackValues.size() - 1);
+      StackValue[] stackValues = ((StackValues) last.outValue()).getStackValues();
+      lastOut = stackValues[stackValues.length - 1];
     }
 
     if (lastOut == null || lastOut.getTypeLattice().isWide()) {
@@ -115,19 +114,15 @@ public class StoreSequenceLoadPeephole implements BasicBlockPeephole {
 
     // Remove the first store.
     it.removeOrReplaceByDebugLocalRead();
-    Instruction current = it.next();
 
-    while (current != load) {
-      current = it.next();
-    }
+    it.nextUntil(i -> i == load);
 
     // Insert a swap instruction
     StackValue swapLastOut = lastOut.duplicate(source.getHeight());
     StackValue swapSource = source.duplicate(swapLastOut.getHeight() + 1);
-    StackValues dest = new StackValues(ImmutableList.of(swapLastOut, swapSource));
     source.replaceUsers(swapSource);
     lastOut.replaceUsers(swapLastOut);
-    it.replaceCurrentInstruction(new Swap(dest, source, lastOut));
+    it.replaceCurrentInstruction(new Swap(swapLastOut, swapSource, source, lastOut));
     PeepholeHelper.resetNext(it, 2);
     return true;
   }

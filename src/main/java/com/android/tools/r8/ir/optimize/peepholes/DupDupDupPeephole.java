@@ -8,8 +8,6 @@ import com.android.tools.r8.ir.code.Dup;
 import com.android.tools.r8.ir.code.Dup2;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.StackValue;
-import com.android.tools.r8.ir.code.StackValues;
-import com.google.common.collect.ImmutableList;
 
 /**
  * Peephole that looks for the following pattern:
@@ -49,36 +47,28 @@ public class DupDupDupPeephole implements BasicBlockPeephole {
     Dup dupMiddle = dup2Exp.get(match).asDup();
     Dup dupBottom = dup1Exp.get(match).asDup();
 
-    StackValue src = (StackValue) dupTop.inValues().get(0);
-    StackValue srcMiddle = (StackValue) dupMiddle.inValues().get(0);
-    StackValue srcBottom = (StackValue) dupBottom.inValues().get(0);
-
-    StackValues tv = (StackValues) dupTop.outValue();
-    StackValues mv = (StackValues) dupMiddle.outValue();
-    StackValues bv = (StackValues) dupBottom.outValue();
-
     // The stack looks like:
-    // ..., tv0, mv0, bv0, bv1,.. -->
-    // because tv1 was used by dupMiddle and mv1 was used by dupBottom.
+    // ..., dupTop0, dupMiddle0, dupBottom0, dupBottom1,.. -->
+    // because dupTop1 was used by dupMiddle and dupMiddle1 was used by dupBottom.
 
-    StackValue tv0Dup2 = tv.getStackValues().get(0).duplicate(src.getHeight());
-    StackValue mv0Dup2 = mv.getStackValues().get(0).duplicate(src.getHeight() + 1);
-    StackValue bv0Dup2 = bv.getStackValues().get(0).duplicate(src.getHeight() + 2);
-    StackValue bv1Dup2 = bv.getStackValues().get(1).duplicate(src.getHeight() + 3);
+    int height = dupTop.src().getHeight();
+
+    StackValue tv0Dup2 = dupTop.outBottom().duplicate(height);
+    StackValue mv0Dup2 = dupMiddle.outBottom().duplicate(height + 1);
+    StackValue bv0Dup2 = dupBottom.outBottom().duplicate(height + 2);
+    StackValue bv1Dup2 = dupBottom.outTop().duplicate(height + 3);
 
     // Remove tv1 use.
-    srcMiddle.removeUser(dupMiddle);
+    dupMiddle.src().removeUser(dupMiddle);
     // Remove mv1 use.
-    srcBottom.removeUser(dupBottom);
+    dupBottom.src().removeUser(dupBottom);
     // Replace other uses.
-    tv.getStackValues().get(0).replaceUsers(tv0Dup2);
-    mv.getStackValues().get(0).replaceUsers(mv0Dup2);
-    bv.getStackValues().get(0).replaceUsers(bv0Dup2);
-    bv.getStackValues().get(1).replaceUsers(bv1Dup2);
+    dupTop.outBottom().replaceUsers(tv0Dup2);
+    dupMiddle.outBottom().replaceUsers(mv0Dup2);
+    dupBottom.outBottom().replaceUsers(bv0Dup2);
+    dupBottom.outTop().replaceUsers(bv1Dup2);
 
-    StackValues dest = new StackValues(ImmutableList.of(tv0Dup2, mv0Dup2, bv0Dup2, bv1Dup2));
-
-    Dup2 dup2 = new Dup2(dest, tv.getStackValues().get(0), tv.getStackValues().get(1));
+    Dup2 dup2 = new Dup2(tv0Dup2, mv0Dup2, bv0Dup2, bv1Dup2, dupTop.outBottom(), dupTop.outTop());
 
     it.removeOrReplaceByDebugLocalRead();
     it.previous();

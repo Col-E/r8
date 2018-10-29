@@ -16,8 +16,38 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class Dup extends Instruction {
 
-  public Dup(StackValues dest, StackValue src) {
+  public Dup(StackValue destBottom, StackValue destTop, StackValue src) {
+    this(new StackValues(destBottom, destTop), src);
+  }
+
+  private Dup(StackValues dest, StackValue src) {
     super(dest, src);
+  }
+
+  @Override
+  public void setOutValue(Value value) {
+    assert outValue == null || !outValue.hasUsersInfo() || !outValue.isUsed() ||
+        value instanceof StackValues;
+    this.outValue = value;
+    for (StackValue val : ((StackValues)value).getStackValues()) {
+      val.definition = this;
+    }
+  }
+
+  private StackValue[] getStackValues() {
+    return ((StackValues) outValue()).getStackValues();
+  }
+
+  public StackValue outBottom() {
+    return getStackValues()[0];
+  }
+
+  public StackValue outTop() {
+    return getStackValues()[1];
+  }
+
+  public StackValue src() {
+    return (StackValue) inValues.get(0);
   }
 
   @Override

@@ -50,7 +50,7 @@ public class PeepholeHelper {
       return 1;
     }
     if (outValue instanceof StackValues) {
-      return ((StackValues) outValue).getStackValues().size();
+      return ((StackValues) outValue).getStackValues().length;
     }
     return 0;
   }
