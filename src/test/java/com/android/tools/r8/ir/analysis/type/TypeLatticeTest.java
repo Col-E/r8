@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.computeLeastUpperBoundOfInterfaces;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -449,6 +450,18 @@ public class TypeLatticeTest extends TestBase {
     assertTrue(strictlyLessThan(
         ReferenceTypeLatticeElement.getNullTypeLatticeElement(),
         array(1, factory.classType)));
+  }
+
+  @Test
+  public void testSelfOrderWithoutSubtypingInfo() {
+    DexType type = appInfo.dexItemFactory.createType("Lmy/Type;");
+    TypeLatticeElement nonNullType = fromDexType(type, false, appInfo);
+    TypeLatticeElement nullableType = nonNullType.asNullable();
+    // TODO(zerny): Once the null lattice is used for null info check that the class-type null is
+    // also more specific that the nullableType.
+    assertTrue(strictlyLessThan(nonNullType, nullableType));
+    assertTrue(lessThanOrEqual(nonNullType, nullableType));
+    assertFalse(lessThanOrEqual(nullableType, nonNullType));
   }
 
   @Test

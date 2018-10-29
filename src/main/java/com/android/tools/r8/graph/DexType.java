@@ -553,6 +553,9 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   }
 
   public DexType computeLeastUpperBoundOfClasses(AppInfo appInfo, DexType other) {
+    if (this == other) {
+      return this;
+    }
     DexType objectType = appInfo.dexItemFactory.objectType;
     // If we have no definition for either class, stop proceeding.
     if (hierarchyLevel == UNKNOWN_LEVEL || other.hierarchyLevel == UNKNOWN_LEVEL) {
@@ -561,10 +564,6 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     if (this == objectType || other == objectType) {
       return objectType;
     }
-    if (this == other) {
-      return this;
-    }
-
     DexType t1;
     DexType t2;
     if (other.hierarchyLevel < this.hierarchyLevel) {
