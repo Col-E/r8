@@ -224,7 +224,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
   private int computeInstructionLimit(InvokeMethod invoke, DexEncodedMethod candidate) {
     int instructionLimit = inliningInstructionLimit;
-    BitSet hints = candidate.getOptimizationInfo().getKotlinNotNullParamHints();
+    BitSet hints = candidate.getOptimizationInfo().getNonNullParamHints();
     if (hints != null) {
       List<Value> arguments = invoke.inValues();
       if (invoke.isInvokeMethodWithReceiver()) {

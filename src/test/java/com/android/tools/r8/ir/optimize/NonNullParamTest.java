@@ -69,15 +69,15 @@ public class NonNullParamTest extends TestBase {
 
     MethodSubject selfCheck = mainSubject.method("void", "selfCheck", ImmutableList.of());
     assertThat(selfCheck, isPresent());
+    assertEquals(0, countCallToParamNullCheck(selfCheck));
     assertEquals(1, countPrintCall(selfCheck));
     assertEquals(0, countThrow(selfCheck));
 
     MethodSubject checkNull = mainSubject.method("void", "checkNull", ImmutableList.of());
     assertThat(checkNull, isPresent());
-    // TODO(b/117848700): these can be checked iff checkParameterIsNotNull is inlined even after
-    // the global inline threshold change.
-    //assertEquals(0, countPrintCall(checkNull));
-    //assertEquals(1, countThrow(checkNull));
+    assertEquals(1, countCallToParamNullCheck(checkNull));
+    assertEquals(1, countPrintCall(checkNull));
+    assertEquals(0, countThrow(checkNull));
 
     String mainName = mainClass.getCanonicalName();
     MethodSubject paramCheck =
@@ -114,6 +114,7 @@ public class NonNullParamTest extends TestBase {
     MethodSubject checkViaIntrinsic =
         mainSubject.method("void", "checkViaIntrinsic", ImmutableList.of(mainName));
     assertThat(checkViaIntrinsic, isPresent());
+    assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
     // TODO(b/71500340): can be checked iff non-param info is propagated.
     //assertEquals(1, countPrintCall(checkViaIntrinsic));
 
@@ -124,12 +125,20 @@ public class NonNullParamTest extends TestBase {
     //assertEquals(1, countPrintCall(checkAtOneLevelHigher));
   }
 
+  private long countCallToParamNullCheck(MethodSubject method) {
+    return countCall(method, IntrinsicsDeputy.class.getSimpleName(), "checkParameterIsNotNull");
+  }
+
   private long countPrintCall(MethodSubject method) {
+    return countCall(method, "PrintStream", "print");
+  }
+
+  private long countCall(MethodSubject method, String className, String methodName) {
     return Streams.stream(method.iterateInstructions(instructionSubject -> {
       if (instructionSubject.isInvoke()) {
         DexMethod invokedMethod = instructionSubject.getMethod();
-        return invokedMethod.getHolder().toString().contains("PrintStream")
-            && invokedMethod.name.toString().contains("print");
+        return invokedMethod.getHolder().toString().contains(className)
+            && invokedMethod.name.toString().contains(methodName);
       }
       return false;
     })).count();

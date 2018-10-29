@@ -70,7 +70,7 @@ public class OptimizationFeedbackDirect implements OptimizationFeedback {
   }
 
   @Override
-  public void setKotlinNotNullParamHints(DexEncodedMethod method, BitSet hints) {
-    method.setKotlinNotNullParamHints(hints);
+  public void setNonNullParamHints(DexEncodedMethod method, BitSet hints) {
+    method.setNonNullParamHints(hints);
   }
 }
