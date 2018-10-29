@@ -17,15 +17,35 @@ import com.google.common.collect.ImmutableList;
 
 public class Swap extends Instruction {
 
-  public Swap(StackValues dest, StackValues src) {
-    super(dest, src.getStackValues());
-    assert src.getStackValues().size() == 2;
+  public Swap(StackValue destBottom, StackValue destTop, StackValue srcBottom, StackValue srcTop) {
+    this(new StackValues(destBottom, destTop), srcBottom, srcTop);
+  }
+
+  private Swap(StackValues dest, StackValue src1, StackValue src2) {
+    super(dest, ImmutableList.of(src1, src2));
     assert !this.inValues.get(0).type.isWide() && !this.inValues.get(1).type.isWide();
   }
 
-  public Swap(StackValues dest, StackValue src1, StackValue src2) {
-    super(dest, ImmutableList.of(src1, src2));
-    assert !this.inValues.get(0).type.isWide() && !this.inValues.get(1).type.isWide();
+  @Override
+  public void setOutValue(Value value) {
+    assert outValue == null || !outValue.hasUsersInfo() || !outValue.isUsed() ||
+        value instanceof StackValues;
+    this.outValue = value;
+    for (StackValue val : ((StackValues)value).getStackValues()) {
+      val.definition = this;
+    }
+  }
+
+  private StackValue[] getStackValues() {
+    return ((StackValues) outValue()).getStackValues();
+  }
+
+  public StackValue outBottom() {
+    return getStackValues()[0];
+  }
+
+  public StackValue outTop() {
+    return getStackValues()[1];
   }
 
   @Override

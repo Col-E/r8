@@ -9,8 +9,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Load;
 import com.android.tools.r8.ir.code.StackValue;
-import com.android.tools.r8.ir.code.StackValues;
-import com.google.common.collect.ImmutableList;
 
 /**
  * {@link LoadLoadDupPeephole} looks for the following pattern:
@@ -59,12 +57,11 @@ public class LoadLoadDupPeephole implements BasicBlockPeephole {
     int height = src.getHeight();
     StackValue newFirstLoadOut = src.duplicate(height);
     StackValue newLastLoadOut = src.duplicate(height + 1);
-    StackValues dest = new StackValues(ImmutableList.of(newFirstLoadOut, newLastLoadOut));
 
     firstLoad.outValue().replaceUsers(newFirstLoadOut);
     lastLoad.outValue().replaceUsers(newLastLoadOut);
 
-    it.replaceCurrentInstruction(new Dup(dest, src));
+    it.replaceCurrentInstruction(new Dup(newFirstLoadOut, newLastLoadOut, src));
     return true;
   }
 }

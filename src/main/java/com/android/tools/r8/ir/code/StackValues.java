@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
-import java.util.List;
 
 /**
  * {@link StackValues} allow us to represent stack operations that produces two or more elements on
@@ -14,15 +13,15 @@ import java.util.List;
  */
 public class StackValues extends Value {
 
-  private final List<StackValue> stackValues;
+  private final StackValue[] stackValues;
 
-  public StackValues(List<StackValue> stackValues) {
+  public StackValues(StackValue... stackValues) {
     super(Value.UNDEFINED_NUMBER, TypeLatticeElement.BOTTOM, null);
     this.stackValues = stackValues;
-    assert stackValues.size() >= 2;
+    assert stackValues.length >= 2;
   }
 
-  public List<StackValue> getStackValues() {
+  public StackValue[] getStackValues() {
     return stackValues;
   }
 
