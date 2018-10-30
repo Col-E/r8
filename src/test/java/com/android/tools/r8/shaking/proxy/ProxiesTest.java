@@ -78,7 +78,12 @@ public class ProxiesTest extends TestBase {
           .setProgramConsumer(ClassFileConsumer.emptyConsumer())
           .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
     }
-    AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableDevirtualization = false);
+    AndroidApp app = ToolHelper.runR8(builder.build(), o -> {
+      o.enableDevirtualization = false;
+      // Tests indirectly check if a certain method is inlined or not, where the target method has
+      // at least 4 instructions.
+      o.inliningInstructionLimit = 4;
+    });
     inspection.accept(new CodeInspector(app));
     String result = backend == Backend.DEX ? runOnArt(app, mainClass) : runOnJava(app, mainClass);
     assertEquals(StringUtils.withNativeLineSeparator(expectedResult), result);
