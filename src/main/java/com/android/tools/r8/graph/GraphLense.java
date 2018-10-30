@@ -7,6 +7,8 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.HashSet;
@@ -30,6 +32,8 @@ import java.util.Set;
  */
 public abstract class GraphLense {
 
+  private static IntList emptyIntList = new IntArrayList();
+
   /**
    * Result of a method lookup in a GraphLense.
    *
@@ -38,10 +42,23 @@ public abstract class GraphLense {
   public static class GraphLenseLookupResult {
     private final DexMethod method;
     private final Type type;
+    private final IntList removedArguments;
 
     public GraphLenseLookupResult(DexMethod method, Type type) {
       this.method = method;
       this.type = type;
+      this.removedArguments = emptyIntList;
+    }
+
+    public GraphLenseLookupResult(DexMethod method, Type type, IntList removedArguments) {
+      this.method = method;
+      this.type = type;
+      this.removedArguments = removedArguments;
+    }
+
+    public GraphLenseLookupResult withRemovedArguments(IntList removedArguments) {
+      assert removedArguments != null;
+      return new GraphLenseLookupResult(method, type, removedArguments);
     }
 
     public DexMethod getMethod() {
@@ -50,6 +67,18 @@ public abstract class GraphLense {
 
     public Type getType() {
       return type;
+    }
+
+    public boolean hasRemovedArguments() {
+      return !removedArguments.isEmpty();
+    }
+
+    public boolean isArgumentRemoved(int i) {
+      return removedArguments.contains(i);
+    }
+
+    public IntList getRemovedArguments() {
+      return removedArguments;
     }
   }
 
@@ -169,6 +198,10 @@ public abstract class GraphLense {
     return new IdentityGraphLense();
   }
 
+  public static IntList getNoRemovedArguments() {
+    return emptyIntList;
+  }
+
   public final boolean isIdentityLense() {
     return this instanceof IdentityGraphLense;
   }
@@ -255,7 +288,6 @@ public abstract class GraphLense {
   }
 
   private static class IdentityGraphLense extends GraphLense {
-
     @Override
     public DexField getOriginalFieldSignature(DexField field) {
       return field;

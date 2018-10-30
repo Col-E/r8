@@ -49,6 +49,10 @@ public abstract class Code extends CachedHashValueDexItem {
 
   public abstract void registerCodeReferences(UseRegistry registry);
 
+  public void registerArgumentReferences(ArgumentUse registry) {
+    throw new Unreachable();
+  }
+
   @Override
   public abstract String toString();
 

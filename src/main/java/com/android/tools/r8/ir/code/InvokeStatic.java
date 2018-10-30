@@ -27,6 +27,7 @@ public class InvokeStatic extends InvokeMethod {
 
   public InvokeStatic(DexMethod target, Value result, List<Value> arguments) {
     this(target, result, arguments, false);
+    assert target.asDexReference().asDexMethod().proto.parameters.size() == arguments.size();
   }
 
   public InvokeStatic(DexMethod target, Value result, List<Value> arguments, boolean itf) {

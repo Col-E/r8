@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
+import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -380,6 +381,17 @@ public class R8 {
                   .prunedCopyFrom(application, verticalClassMerger.getRemovedClasses())
                   .rewrittenWithLense(application.asDirect(), appView.graphLense()));
         }
+        if (options.enableUnusedArgumentRemoval) {
+          timing.begin("UnusedArgumentRemoval");
+          appView.setGraphLense(new UnusedArgumentsCollector(appViewWithLiveness).run());
+          application = application.asDirect().rewrittenWithLense(appView.graphLense());
+          timing.end();
+          appViewWithLiveness.setAppInfo(
+              appViewWithLiveness
+                  .appInfo()
+                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+        }
+
         // Collect switch maps and ordinals maps.
         appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness, options).run());
         appViewWithLiveness.setAppInfo(

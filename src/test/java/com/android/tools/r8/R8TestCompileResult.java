@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -28,5 +29,12 @@ public class R8TestCompileResult extends TestCompileResult {
   @Override
   public CodeInspector inspector() throws IOException, ExecutionException {
     return new CodeInspector(app, proguardMap);
+  }
+
+  @Override
+  public TestCompileResult inspect(Consumer<CodeInspector> consumer)
+      throws IOException, ExecutionException {
+    consumer.accept(new CodeInspector(app, proguardMap));
+    return this;
   }
 }

@@ -11,6 +11,7 @@ import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -50,6 +51,12 @@ public abstract class TestCompileResult {
 
   public CodeInspector inspector() throws IOException, ExecutionException {
     return new CodeInspector(app);
+  }
+
+  public TestCompileResult inspect(Consumer<CodeInspector> consumer)
+      throws IOException, ExecutionException {
+    consumer.accept(new CodeInspector(app));
+    return this;
   }
 
   public DebugTestConfig debugConfig() {

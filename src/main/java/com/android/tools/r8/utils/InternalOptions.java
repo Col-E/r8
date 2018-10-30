@@ -81,6 +81,7 @@ public class InternalOptions {
     if (!proguardConfiguration.isOptimizing()) {
       enableHorizontalClassMerging = false;
       enableVerticalClassMerging = false;
+      enableUnusedArgumentRemoval = false;
       enableDevirtualization = false;
       enableNonNullTracking = false;
       enableInlining = false;
@@ -100,6 +101,8 @@ public class InternalOptions {
   // Optimization-related flags. These should conform to -dontoptimize.
   public boolean enableHorizontalClassMerging = true;
   public boolean enableVerticalClassMerging = true;
+  // TODO(65810338): Make this on by default.
+  public boolean enableUnusedArgumentRemoval = false;
   public boolean enableDevirtualization = true;
   public boolean enableNonNullTracking = true;
   public boolean enableInlining =
@@ -426,6 +429,10 @@ public class InternalOptions {
     // Currently the filter is simple string equality on the qualified name.
     String qualifiedName = method.qualifiedName();
     return logArgumentsFilter.indexOf(qualifiedName) >= 0;
+  }
+
+  public void enableUnusedArgumentRemoval() {
+    enableUnusedArgumentRemoval = true;
   }
 
   public enum PackageObfuscationMode {
