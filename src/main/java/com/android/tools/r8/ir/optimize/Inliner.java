@@ -42,8 +42,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Inliner {
-  private static final int INITIAL_INLINING_INSTRUCTION_ALLOWANCE = 1500;
-
   // Threshold found empirically by testing on GMS Core.
   private static final int CONTROL_FLOW_RESOLUTION_BLOCKS_THRESHOLD = 15;
 
@@ -545,7 +543,7 @@ public class Inliner {
         method, code,
         isProcessedConcurrently, callSiteInformation,
         options.inliningInstructionLimit,
-        INITIAL_INLINING_INSTRUCTION_ALLOWANCE - numberOfInstructions(code));
+        options.inliningInstructionAllowance - numberOfInstructions(code));
 
     performInliningImpl(oracle, oracle, method, code);
   }
