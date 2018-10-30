@@ -328,8 +328,9 @@ public class StaticClassMerger {
     assert Arrays.stream(clazz.virtualMethods()).allMatch(method -> method.accessFlags.isPrivate());
 
     // Check that no methods access package-private or protected members.
-    IllegalAccessDetector registry = new IllegalAccessDetector(appView.appInfo(), clazz);
+    IllegalAccessDetector registry = new IllegalAccessDetector(appView, clazz);
     for (DexEncodedMethod method : clazz.methods()) {
+      registry.setContext(method);
       method.registerCodeReferences(registry);
       if (registry.foundIllegalAccess()) {
         return false;

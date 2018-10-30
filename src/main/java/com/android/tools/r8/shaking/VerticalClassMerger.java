@@ -489,8 +489,9 @@ public class VerticalClassMerger {
     // Check that all accesses from [source] to classes or members from the current package of
     // [source] will continue to work. This is guaranteed if the methods of [source] do not access
     // any private or protected classes or members from the current package of [source].
-    IllegalAccessDetector registry = new IllegalAccessDetector(appInfo, source);
+    IllegalAccessDetector registry = new IllegalAccessDetector(appView, source);
     for (DexEncodedMethod method : source.methods()) {
+      registry.setContext(method);
       method.registerCodeReferences(registry);
       if (registry.foundIllegalAccess()) {
         return true;
@@ -1657,13 +1658,14 @@ public class VerticalClassMerger {
   public static class IllegalAccessDetector extends UseRegistry {
 
     private boolean foundIllegalAccess = false;
+    private DexEncodedMethod context = null;
 
-    private final AppInfo appInfo;
+    private final AppView<? extends AppInfo> appView;
     private final DexClass source;
 
-    public IllegalAccessDetector(AppInfo appInfo, DexClass source) {
-      super(appInfo.dexItemFactory);
-      this.appInfo = appInfo;
+    public IllegalAccessDetector(AppView<? extends AppInfo> appView, DexClass source) {
+      super(appView.dexItemFactory());
+      this.appView = appView;
       this.source = source;
     }
 
@@ -1671,14 +1673,19 @@ public class VerticalClassMerger {
       return foundIllegalAccess;
     }
 
+    public void setContext(DexEncodedMethod context) {
+      this.context = context;
+    }
+
     private boolean checkFieldReference(DexField field) {
       if (!foundIllegalAccess) {
-        DexType baseType = field.clazz.toBaseType(appInfo.dexItemFactory);
+        DexType baseType =
+            appView.graphLense().lookupType(field.clazz.toBaseType(appView.dexItemFactory()));
         if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
           checkTypeReference(field.clazz);
           checkTypeReference(field.type);
 
-          DexEncodedField definition = appInfo.definitionFor(field);
+          DexEncodedField definition = appView.appInfo().definitionFor(field);
           if (definition == null || !definition.accessFlags.isPublic()) {
             foundIllegalAccess = true;
           }
@@ -1689,14 +1696,15 @@ public class VerticalClassMerger {
 
     private boolean checkMethodReference(DexMethod method) {
       if (!foundIllegalAccess) {
-        DexType baseType = method.holder.toBaseType(appInfo.dexItemFactory);
+        DexType baseType =
+            appView.graphLense().lookupType(method.holder.toBaseType(appView.dexItemFactory()));
         if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
           checkTypeReference(method.holder);
           checkTypeReference(method.proto.returnType);
           for (DexType type : method.proto.parameters.values) {
             checkTypeReference(type);
           }
-          DexEncodedMethod definition = appInfo.definitionFor(method);
+          DexEncodedMethod definition = appView.appInfo().definitionFor(method);
           if (definition == null || !definition.accessFlags.isPublic()) {
             foundIllegalAccess = true;
           }
@@ -1707,9 +1715,10 @@ public class VerticalClassMerger {
 
     private boolean checkTypeReference(DexType type) {
       if (!foundIllegalAccess) {
-        DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+        DexType baseType =
+            appView.graphLense().lookupType(type.toBaseType(appView.dexItemFactory()));
         if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
-          DexClass clazz = appInfo.definitionFor(baseType);
+          DexClass clazz = appView.appInfo().definitionFor(baseType);
           if (clazz == null || !clazz.accessFlags.isPublic()) {
             foundIllegalAccess = true;
           }
@@ -1720,37 +1729,52 @@ public class VerticalClassMerger {
 
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
-      return checkMethodReference(method);
+      assert context != null;
+      GraphLenseLookupResult lookup =
+          appView.graphLense().lookupMethod(method, context, Type.VIRTUAL);
+      return checkMethodReference(lookup.getMethod());
     }
 
     @Override
     public boolean registerInvokeDirect(DexMethod method) {
-      return checkMethodReference(method);
+      assert context != null;
+      GraphLenseLookupResult lookup =
+          appView.graphLense().lookupMethod(method, context, Type.DIRECT);
+      return checkMethodReference(lookup.getMethod());
     }
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
-      return checkMethodReference(method);
+      assert context != null;
+      GraphLenseLookupResult lookup =
+          appView.graphLense().lookupMethod(method, context, Type.STATIC);
+      return checkMethodReference(lookup.getMethod());
     }
 
     @Override
     public boolean registerInvokeInterface(DexMethod method) {
-      return checkMethodReference(method);
+      assert context != null;
+      GraphLenseLookupResult lookup =
+          appView.graphLense().lookupMethod(method, context, Type.INTERFACE);
+      return checkMethodReference(lookup.getMethod());
     }
 
     @Override
     public boolean registerInvokeSuper(DexMethod method) {
-      return checkMethodReference(method);
+      assert context != null;
+      GraphLenseLookupResult lookup =
+          appView.graphLense().lookupMethod(method, context, Type.SUPER);
+      return checkMethodReference(lookup.getMethod());
     }
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      return checkFieldReference(field);
+      return checkFieldReference(appView.graphLense().lookupField(field));
     }
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      return checkFieldReference(field);
+      return checkFieldReference(appView.graphLense().lookupField(field));
     }
 
     @Override
@@ -1760,12 +1784,12 @@ public class VerticalClassMerger {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      return checkFieldReference(field);
+      return checkFieldReference(appView.graphLense().lookupField(field));
     }
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      return checkFieldReference(field);
+      return checkFieldReference(appView.graphLense().lookupField(field));
     }
 
     @Override
