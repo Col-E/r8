@@ -871,6 +871,8 @@ public abstract class R8RunArtTestsTest {
           .put("506-verify-aput", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Test with invalid register usage: returns a register of either long or double.
           .put("510-checker-try-catch", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test with invalid register usage: contains an int-to-byte on the result of aget-object.
+          .put("518-null-array-get", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Test with invalid register usage: phi of int and float.
           .put("535-regression-const-val", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Test with invalid register usage: phi of int and float.

@@ -283,8 +283,8 @@ public class BasicBlock {
             Value value = instruction.inValues().get(i);
             if (value instanceof StackValue) {
               if (value.definition.isLoad()) {
-                assert value.definition.getBlock() == this;
-                removeInstruction(value.definition);
+                assert hasLinearFlow(this, value.definition.getBlock());
+                value.definition.getBlock().removeInstruction(value.definition);
               } else {
                 Pop pop = new Pop((StackValue) value);
                 pop.setBlock(this);
@@ -338,6 +338,20 @@ public class BasicBlock {
         }
       }
     }
+  }
+
+  private boolean hasLinearFlow(BasicBlock current, BasicBlock target) {
+    while (current != target) {
+      if (current.getPredecessors().size() != 1) {
+        return false;
+      }
+      BasicBlock candidate = current.getPredecessors().get(0);
+      if (!candidate.exit().isGoto() || candidate.exit().asGoto().getTarget() != current) {
+        return false;
+      }
+      current = candidate;
+    }
+    return true;
   }
 
   public void replacePredecessor(BasicBlock block, BasicBlock newBlock) {

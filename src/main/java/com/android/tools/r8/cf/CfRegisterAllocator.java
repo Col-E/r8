@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCode.LiveAtEntrySets;
+import com.android.tools.r8.ir.code.IRCode.Stack;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
@@ -260,5 +261,9 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   public Collection<Value> getLocalsAtBlockEntry(BasicBlock block) {
     return liveAtEntrySets.get(block).liveValues;
+  }
+
+  public Stack getStackAtBlockEntry(BasicBlock block) {
+    return liveAtEntrySets.get(block).liveStackValues;
   }
 }

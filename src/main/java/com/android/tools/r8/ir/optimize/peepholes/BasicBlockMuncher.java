@@ -7,8 +7,10 @@ package com.android.tools.r8.ir.optimize.peepholes;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.LinearFlowInstructionIterator;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.ListIterator;
 
 public class BasicBlockMuncher {
 
@@ -28,14 +30,19 @@ public class BasicBlockMuncher {
       ImmutableList.of(nonDestructivePeepholes, destructivePeepholes);
 
   public void optimize(IRCode code) {
-    for (BasicBlock block : code.blocks) {
+    ListIterator<BasicBlock> blocksIterator = code.blocks.listIterator(code.blocks.size());
+    while (blocksIterator.hasPrevious()) {
+      BasicBlock currentBlock = blocksIterator.previous();
       for (List<BasicBlockPeephole> peepholes : allPeepholes) {
-        InstructionListIterator it = block.listIterator(block.getInstructions().size());
+        InstructionListIterator it =
+            new LinearFlowInstructionIterator(currentBlock, currentBlock.getInstructions().size());
         boolean matched = false;
         while (matched || it.hasPrevious()) {
           if (!it.hasPrevious()) {
             matched = false;
-            it = block.listIterator(block.getInstructions().size());
+            it =
+                new LinearFlowInstructionIterator(
+                    currentBlock, currentBlock.getInstructions().size());
           }
           for (BasicBlockPeephole peepHole : peepholes) {
             matched |= peepHole.match(it);

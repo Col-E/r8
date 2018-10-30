@@ -885,7 +885,11 @@ public class IRBuilder {
   public void addArrayGet(MemberType type, int dest, int array, int index) {
     Value in1 = readRegister(array, ValueType.OBJECT);
     Value in2 = readRegister(index, ValueType.INT);
-    Value out = writeRegister(dest, fromMemberType(type), ThrowingInfo.CAN_THROW);
+    TypeLatticeElement typeLattice = fromMemberType(type);
+    Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
+    if (typeLattice.isBottom()) {
+      constrainType(out, ValueType.OBJECT);
+    }
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     ArrayGet instruction = new ArrayGet(type, out, in1, in2);
     assert instruction.instructionTypeCanThrow();
