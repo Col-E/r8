@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.JarSourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.jar.InliningConstraintVisitor;
+import com.android.tools.r8.jar.JarArgumentUseVisitor;
 import com.android.tools.r8.jar.JarRegisterEffectsVisitor;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
@@ -167,6 +168,7 @@ public class JarCode extends Code {
     if (!options.debug || !options.proguardConfiguration.getKeepAttributes().localVariableTable) {
       node.localVariables.clear();
     }
+
     JarSourceCode source =
         new JarSourceCode(
             method.getHolder(),
@@ -185,6 +187,11 @@ public class JarCode extends Code {
     node.tryCatchBlocks.forEach(tryCatchBlockNode ->
         registry.registerTypeReference(application.getTypeFromDescriptor(
             DescriptorUtils.getDescriptorFromClassBinaryName(tryCatchBlockNode.type))));
+  }
+
+  @Override
+  public void registerArgumentReferences(ArgumentUse registry) {
+    node.instructions.accept(new JarArgumentUseVisitor(getOwner(), registry));
   }
 
   public ConstraintWithTarget computeInliningConstraint(

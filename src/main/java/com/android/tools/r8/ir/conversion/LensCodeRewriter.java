@@ -33,8 +33,10 @@ import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -45,6 +47,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
@@ -86,6 +89,11 @@ public class LensCodeRewriter {
    * Replace type appearances, invoke targets and field accesses with actual definitions.
    */
   public void rewrite(IRCode code, DexEncodedMethod method) {
+    removeUnusedArguments(code, method);
+    rewriteInvokeTargets(code, method);
+  }
+
+  private void rewriteInvokeTargets(IRCode code, DexEncodedMethod method) {
     Set<Value> newSSAValues = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.blocks.listIterator();
     while (blocks.hasNext()) {
@@ -140,10 +148,33 @@ public class LensCodeRewriter {
           GraphLenseLookupResult lenseLookup =
               graphLense.lookupMethod(invokedMethod, method, invoke.getType());
           DexMethod actualTarget = lenseLookup.getMethod();
-          Invoke.Type invokeType = lenseLookup.getType();
-          if (actualTarget != invokedMethod || invoke.getType() != invokeType) {
-            Invoke newInvoke = Invoke.create(invokeType, actualTarget, null,
-                invoke.outValue(), invoke.inValues());
+          Invoke.Type actualInvokeType = lenseLookup.getType();
+          if (actualTarget != invokedMethod
+              || invoke.getType() != actualInvokeType
+              || lenseLookup.hasRemovedArguments()) {
+            List<Value> inValues = invoke.inValues();
+            if (lenseLookup.hasRemovedArguments()) {
+              if (Log.ENABLED) {
+                Log.info(
+                    getClass(),
+                    "Invoked method "
+                        + invokedMethod.toSourceString()
+                        + " with "
+                        + lenseLookup.getRemovedArguments().size()
+                        + " arguments removed");
+              }
+              // Remove removed arguments from the invoke.
+              List<Value> newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
+              for (int i = 0; i < inValues.size(); i++) {
+                if (!lenseLookup.isArgumentRemoved(i)) {
+                  newInValues.add(inValues.get(i));
+                }
+              }
+              assert newInValues.size() == actualTarget.proto.parameters.size();
+              inValues = newInValues;
+            }
+            Invoke newInvoke =
+                Invoke.create(actualInvokeType, actualTarget, null, invoke.outValue(), inValues);
             iterator.replaceCurrentInstruction(newInvoke);
             // Fix up the return type if needed.
             if (actualTarget.proto.returnType != invokedMethod.proto.returnType
@@ -404,5 +435,40 @@ public class LensCodeRewriter {
       }
     }
     return methodHandle;
+  }
+
+  private void removeUnusedArguments(IRCode code, DexEncodedMethod method) {
+    if (!method.isStatic()) {
+      return;
+    }
+    GraphLenseLookupResult lookup = graphLense.lookupMethod(method.method, method, Type.STATIC);
+    if (!lookup.hasRemovedArguments()) {
+      return;
+    }
+    int nextRemovedArgumentsIndex = 0;
+    int originalArgumentIndex = 0;
+    InstructionIterator iterator = code.instructionIterator();
+    while (iterator.hasNext()) {
+      Instruction instruction = iterator.next();
+      assert instruction.isArgument();
+      if (lookup.getRemovedArguments().getInt(nextRemovedArgumentsIndex) == originalArgumentIndex) {
+        assert instruction.outValue().numberOfAllUsers() == 0;
+        iterator.remove();
+        nextRemovedArgumentsIndex++;
+        if (nextRemovedArgumentsIndex == lookup.getRemovedArguments().size()) {
+          break;
+        }
+      }
+      originalArgumentIndex++;
+    }
+    assert nextRemovedArgumentsIndex == lookup.getRemovedArguments().size();
+    if (Log.ENABLED) {
+      Log.info(
+          getClass(),
+          "Removed "
+              + lookup.getRemovedArguments().size()
+              + " arguments from "
+              + method.toSourceString());
+    }
   }
 }

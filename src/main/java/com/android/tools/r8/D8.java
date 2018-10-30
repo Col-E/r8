@@ -168,6 +168,7 @@ public final class D8 {
       options.enableClassInlining = false;
       options.enableHorizontalClassMerging = false;
       options.enableVerticalClassMerging = false;
+      options.enableUnusedArgumentRemoval = false;
       options.enableClassStaticizer = false;
       options.outline.enabled = false;
 

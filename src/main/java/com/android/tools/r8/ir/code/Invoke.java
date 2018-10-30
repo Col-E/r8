@@ -56,7 +56,7 @@ public abstract class Invoke extends Instruction {
     }
   }
 
-  public Invoke(Value result, List<Value> arguments) {
+  protected Invoke(Value result, List<Value> arguments) {
     super(result, arguments);
   }
 
