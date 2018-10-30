@@ -216,6 +216,11 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       Code code = candidate.getCode();
       int instructionLimit = computeInstructionLimit(invoke, candidate);
       if (!code.estimatedSizeForInliningAtMost(instructionLimit)) {
+        if (info != null) {
+          info.exclude(invoke,
+              "instruction limit exceeds: "
+                  + code.estimatedSizeForInlining() + " <= " + instructionLimit);
+        }
         return false;
       }
     }

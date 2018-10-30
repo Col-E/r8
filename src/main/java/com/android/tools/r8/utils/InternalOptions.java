@@ -107,7 +107,10 @@ public class InternalOptions {
   public boolean enableClassInlining = true;
   public boolean enableClassStaticizer = true;
   public int classInliningInstructionLimit = 50;
+  // This defines the limit of instructions in the inlinee
   public int inliningInstructionLimit = 5;
+  // This defines how many instructions of inlinees we can inlinee overall.
+  public int inliningInstructionAllowance = 1500;
   public boolean enableSwitchMapRemoval = true;
   public final OutlineOptions outline = new OutlineOptions();
   public boolean enableValuePropagation = true;

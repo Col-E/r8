@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -19,6 +20,7 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -239,7 +241,12 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     // Build with R8
     AndroidApp.Builder builder = AndroidApp.builder();
     builder.addProgramFiles(classpath);
-    AndroidApp app = compileWithR8(builder.build(), proguardRules, optionsConsumer);
+    R8Command.Builder commandBuilder =
+        ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(Backend.DEX))
+            .addLibraryFiles(runtimeJar(Backend.DEX))
+            .addProguardConfiguration(ImmutableList.of(proguardRules), Origin.unknown());
+    ToolHelper.allowTestProguardOptions(commandBuilder);
+    AndroidApp app = ToolHelper.runR8(commandBuilder.build(), optionsConsumer);
 
     // Materialize file for execution.
     Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
@@ -258,7 +265,9 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     }
     assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
 
-    inspector.inspectApp(app);
+    if (inspector != null) {
+      inspector.inspectApp(app);
+    }
   }
 
   protected void checkClassExistsInInput(String className) {
