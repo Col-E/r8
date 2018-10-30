@@ -7,4 +7,4 @@ import sys
 import toolhelper
 
 if __name__ == '__main__':
-  sys.exit(toolhelper.run('disasm', sys.argv[1:]), debug=False)
+  sys.exit(toolhelper.run('disasm', sys.argv[1:], debug=False))
