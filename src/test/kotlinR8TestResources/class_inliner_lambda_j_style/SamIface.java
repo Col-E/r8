@@ -9,7 +9,7 @@ public interface SamIface {
 
   class Consumer {
     public static void consume(SamIface iface) {
-      System.out.println(iface.foo());
+      iface.foo();
     }
 
     public static void consumeBig(SamIface iface) {

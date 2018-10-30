@@ -85,6 +85,7 @@ import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LongInterval;
+import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Supplier;
@@ -1110,36 +1111,28 @@ public class CodeRewriter {
    */
   public static boolean checksNullReceiverBeforeSideEffect(
       IRCode code, DexItemFactory factory, Value receiver) {
+    Wrapper<DexMethod> throwParamIsNullException =
+        MethodSignatureEquivalence.get()
+            .wrap(factory.kotlin.intrinsics.throwParameterIsNullException);
     return alwaysTriggerExpectedEffectBeforeAnythingElse(code, instr -> {
       BasicBlock currentBlock = instr.getBlock();
       // If the code explicitly checks the nullability of receiver, we should visit the next block
       // that corresponds to the null receiver where NPE semantic could be preserved.
-      if (!currentBlock.hasCatchHandlers() && isNullabilityCheck(instr, receiver)) {
+      if (!currentBlock.hasCatchHandlers() && isNullCheck(instr, receiver)) {
         return InstructionEffect.CONDITIONAL_EFFECT;
       }
-      // In general, new-instance can raise ClassNotFoundException or OutOfMemoryError, hence
-      // OTHER_EFFECT. However, if the code is creating an instance of NPE and throwing it in the
-      // same block, that's another way of preserving NPE, if the predecessor checks nullability of
-      // the receiver.
-      if (instr.isNewInstance()) {
-        if (!currentBlock.hasCatchHandlers()
-            && instr.asNewInstance().clazz.equals(factory.npeType)) {
-          boolean isThowingInTheSameBlock = false;
-          for (Instruction user : instr.outValue().uniqueUsers()) {
-            if (user.isThrow() && user.getBlock().equals(currentBlock)) {
-              isThowingInTheSameBlock = true;
-              break;
-            }
-          }
-          // We found a NPE throwing code.
-          if (isThowingInTheSameBlock) {
-            // Combined with the above CONDITIONAL_EFFECT, the code checks NPE on receiver.
-            for (BasicBlock predecessor : currentBlock.getPredecessors()) {
-              Instruction last =
-                  predecessor.listIterator(predecessor.getInstructions().size()).previous();
-              if (isNullabilityCheck(last, receiver)) {
-                return InstructionEffect.DESIRED_EFFECT;
-              }
+      // Kotlin specific way of throwing NPE: throwParameterIsNullException.
+      // Similarly, combined with the above CONDITIONAL_EFFECT, the code checks on NPE on receiver.
+      if (instr.isInvokeStatic()) {
+        DexMethod method = instr.asInvokeStatic().getInvokedMethod();
+        if (MethodSignatureEquivalence.get().wrap(method).equals(throwParamIsNullException)) {
+          // We found a NPE (or similar exception) throwing code.
+          // Combined with the above CONDITIONAL_EFFECT, the code checks NPE on receiver.
+          for (BasicBlock predecessor : currentBlock.getPredecessors()) {
+            Instruction last =
+                predecessor.listIterator(predecessor.getInstructions().size()).previous();
+            if (isNullCheck(last, receiver)) {
+              return InstructionEffect.DESIRED_EFFECT;
             }
           }
         }
@@ -1161,7 +1154,7 @@ public class CodeRewriter {
     });
   }
 
-  private static boolean isNullabilityCheck(Instruction instr, Value receiver) {
+  private static boolean isNullCheck(Instruction instr, Value receiver) {
     return instr.isIf() && instr.asIf().isZeroTest()
         && instr.inValues().get(0).equals(receiver)
         && (instr.asIf().getType() == Type.EQ || instr.asIf().getType() == Type.NE);

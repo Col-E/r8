@@ -225,6 +225,9 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
           options.enableInlining = true;
           options.enableClassInlining = enabled;
           options.enableLambdaMerging = false;
+          // Tests check if specific lambdas are inlined or not, where some of target lambdas have
+          // at least 4 instructions.
+          options.inliningInstructionLimit = 4;
         }, inspector);
   }
 

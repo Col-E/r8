@@ -49,10 +49,6 @@ public class NonNullParamTest extends TestBase {
             ImmutableList.of(
                 "-keepattributes InnerClasses,Signature,EnclosingMethod",
                 "-dontobfuscate"))
-        .addOptionsModification(o -> {
-          // TODO(b/117848700): we're about to adjust this threshold.
-          o.inliningInstructionLimit = 3;
-        })
         .run(mainClass)
         .assertSuccessWithOutput(javaOutput)
         .inspector();

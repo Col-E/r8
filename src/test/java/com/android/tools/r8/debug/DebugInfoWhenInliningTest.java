@@ -73,6 +73,9 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
         builder.build(), options -> {
           options.lineNumberOptimization = lineNumberOptimization;
           options.testing.forceJumboStringProcessing = forceJumboStringProcessing;
+          // TODO(b/117848700): Can we make these tests neutral to inlining threshold?
+          // Also CF needs improvements here.
+          options.inliningInstructionLimit = runtimeKind == RuntimeKind.CF ? 5 : 4;
         });
 
     return config;

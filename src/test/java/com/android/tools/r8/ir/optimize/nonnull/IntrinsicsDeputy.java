@@ -20,7 +20,7 @@ public class IntrinsicsDeputy {
 
   static void checkParameterIsNotNull(Object object, String paramName) {
     if (object == null) {
-      throw new NullPointerException(paramName);
+      throwParameterIsNullException(paramName);
     }
   }
 
@@ -28,6 +28,11 @@ public class IntrinsicsDeputy {
     if (object != null) {
       return;
     }
+    throwParameterIsNullException(paramName);
+  }
+
+  @NeverInline
+  static void throwParameterIsNullException(String paramName) {
     throw new NullPointerException(paramName);
   }
 

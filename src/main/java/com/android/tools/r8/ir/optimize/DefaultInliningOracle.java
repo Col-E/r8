@@ -237,7 +237,8 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       }
       for (int index = 0; index < arguments.size(); index++) {
         Value argument = arguments.get(index);
-        if (argument.isNeverNull() && hints.get(index)) {
+        if ((argument.isArgument() || argument.isNeverNull())
+            && hints.get(index)) {
           // 5-4 instructions per parameter check are expected to be removed.
           instructionLimit += 4;
         }
