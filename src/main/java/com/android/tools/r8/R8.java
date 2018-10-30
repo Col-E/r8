@@ -358,7 +358,7 @@ public class R8 {
         if (options.enableHorizontalClassMerging
             && options.mainDexKeepRules.isEmpty()
             && application.mainDexList.isEmpty()) {
-          StaticClassMerger staticClassMerger = new StaticClassMerger(appViewWithLiveness);
+          StaticClassMerger staticClassMerger = new StaticClassMerger(appViewWithLiveness, options);
           appView.setGraphLense(staticClassMerger.run());
           appViewWithLiveness.setAppInfo(
               appViewWithLiveness

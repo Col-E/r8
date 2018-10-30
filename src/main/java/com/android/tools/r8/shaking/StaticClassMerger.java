@@ -18,11 +18,17 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.SingletonEquivalence;
+import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multiset.Entry;
 import com.google.common.collect.Streams;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -46,17 +52,78 @@ import java.util.stream.Collectors;
  */
 public class StaticClassMerger {
 
+  private static final String GLOBAL = "<global>";
+
+  // There are 52 characters in [a-zA-Z], so with a capacity just below 52 the minifier should be
+  // able to find single-character names for all members, but around 30 appears to work better in
+  // practice.
+  private static final int HEURISTIC_FOR_CAPACITY_OF_REPRESENTATIVES = 30;
+
+  private class Representative {
+
+    private final DexProgramClass clazz;
+
+    // Put all members of this class into buckets, where each bucket represent members that have a
+    // conflicting signature, and therefore must be given distinct names.
+    private final HashMultiset<Wrapper<DexField>> fieldBuckets = HashMultiset.create();
+    private final HashMultiset<Wrapper<DexMethod>> methodBuckets = HashMultiset.create();
+
+    public Representative(DexProgramClass clazz) {
+      this.clazz = clazz;
+      include(clazz);
+    }
+
+    // Includes the members of `clazz` in `fieldBuckets` and `methodBuckets`.
+    public void include(DexProgramClass clazz) {
+      for (DexEncodedField field : clazz.fields()) {
+        Wrapper<DexField> wrapper = fieldEquivalence.wrap(field.field);
+        fieldBuckets.add(wrapper);
+      }
+      for (DexEncodedMethod method : clazz.methods()) {
+        Wrapper<DexMethod> wrapper = methodEquivalence.wrap(method.method);
+        methodBuckets.add(wrapper);
+      }
+    }
+
+    // Returns true if this representative should no longer be used. The current heuristic is to
+    // stop using a representative when the number of members with the same signature (ignoring the
+    // name) exceeds a given threshold. This way it is unlikely that we will not be able to find a
+    // single-character name for all members.
+    public boolean isFull() {
+      int numberOfNamesNeeded = 1;
+      for (Entry<Wrapper<DexField>> entry : fieldBuckets.entrySet()) {
+        numberOfNamesNeeded = Math.max(entry.getCount(), numberOfNamesNeeded);
+      }
+      for (Entry<Wrapper<DexMethod>> entry : methodBuckets.entrySet()) {
+        numberOfNamesNeeded = Math.max(entry.getCount(), numberOfNamesNeeded);
+      }
+      return numberOfNamesNeeded > HEURISTIC_FOR_CAPACITY_OF_REPRESENTATIVES;
+    }
+  }
+
   private final AppView<? extends AppInfoWithLiveness> appView;
 
-  private final Map<String, DexProgramClass> representatives = new HashMap<>();
+  /** The equivalence that should be used for the member buckets in {@link Representative}. */
+  private final Equivalence<DexField> fieldEquivalence;
+  private final Equivalence<DexMethod> methodEquivalence;
 
-  private DexProgramClass globalRepresentative = null;
+  private final Map<String, Representative> representatives = new HashMap<>();
 
   private final BiMap<DexField, DexField> fieldMapping = HashBiMap.create();
   private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
 
-  public StaticClassMerger(AppView<? extends AppInfoWithLiveness> appView) {
+  private int numberOfMergedClasses = 0;
+
+  public StaticClassMerger(
+      AppView<? extends AppInfoWithLiveness> appView, InternalOptions options) {
     this.appView = appView;
+    if (options.proguardConfiguration.isOverloadAggressivelyWithoutUseUniqueClassMemberNames()) {
+      fieldEquivalence = FieldSignatureEquivalence.getEquivalenceIgnoreName();
+      methodEquivalence = MethodSignatureEquivalence.getEquivalenceIgnoreName();
+    } else {
+      fieldEquivalence = new SingletonEquivalence<>();
+      methodEquivalence = MethodJavaSignatureEquivalence.getEquivalenceIgnoreName();
+    }
   }
 
   public GraphLense run() {
@@ -67,6 +134,13 @@ public class StaticClassMerger {
         merge(clazz);
       }
     });
+    if (Log.ENABLED) {
+      Log.info(
+          getClass(),
+          "Merged %s classes with %s members.",
+          numberOfMergedClasses,
+          fieldMapping.size() + methodMapping.size());
+    }
     return buildGraphLense();
   }
 
@@ -134,54 +208,101 @@ public class StaticClassMerger {
     assert satisfiesMergeCriteria(clazz);
 
     String pkg = clazz.type.getPackageDescriptor();
-    DexProgramClass representativeForPackage = representatives.get(pkg);
+    return mayMergeAcrossPackageBoundaries(clazz)
+        ? mergeGlobally(clazz, pkg)
+        : mergeInsidePackage(clazz, pkg);
+  }
 
-    if (mayMergeAcrossPackageBoundaries(clazz)) {
-      if (globalRepresentative != null) {
-        // Merge this class into the global representative.
-        moveMembersFromSourceToTarget(clazz, globalRepresentative);
-        return true;
-      }
+  private boolean mergeGlobally(DexProgramClass clazz, String pkg) {
+    Representative globalRepresentative = representatives.get(GLOBAL);
+    if (globalRepresentative == null) {
+      // Make the current class the global representative.
+      setRepresentative(GLOBAL, getOrCreateRepresentative(clazz, pkg));
 
-      // Make the current class the global representative as well as the representative for this
-      // package.
-      if (Log.ENABLED) {
-        Log.info(getClass(), "Making %s a global representative", clazz.type.toSourceString(), pkg);
-        Log.info(getClass(), "Making %s a representative for %s", clazz.type.toSourceString(), pkg);
-      }
-      globalRepresentative = clazz;
-      representatives.put(pkg, clazz);
-
-      if (representativeForPackage != null) {
-        // If there was a previous representative for this package, we can merge it into the current
-        // class that has just become the global representative.
-        moveMembersFromSourceToTarget(representativeForPackage, clazz);
-        return true;
-      }
-
-      // No merge.
+      // Do not attempt to merge this class inside its own package, because that could lead to
+      // an increase in the global representative, which is not desirable.
       return false;
-    }
+    } else {
+      // Check if we can merge the current class into the current global representative.
+      globalRepresentative.include(clazz);
 
-    if (representativeForPackage != null) {
-      if (clazz.accessFlags.isMoreVisibleThan(representativeForPackage.accessFlags)) {
-        // Use `clazz` as a representative for this package instead.
-        representatives.put(pkg, clazz);
-        moveMembersFromSourceToTarget(representativeForPackage, clazz);
+      if (globalRepresentative.isFull()) {
+        // Make the current class the global representative instead.
+        setRepresentative(GLOBAL, getOrCreateRepresentative(clazz, pkg));
+
+        // Do not attempt to merge this class inside its own package, because that could lead to
+        // an increase in the global representative, which is not desirable.
+        return false;
+      } else {
+        // Merge this class into the global representative.
+        moveMembersFromSourceToTarget(clazz, globalRepresentative.clazz);
         return true;
       }
+    }
+  }
 
-      // Merge current class into the representative for this package.
-      moveMembersFromSourceToTarget(clazz, representativeForPackage);
-      return true;
+  private boolean mergeInsidePackage(DexProgramClass clazz, String pkg) {
+    Representative packageRepresentative = representatives.get(pkg);
+    if (packageRepresentative != null) {
+      if (clazz.accessFlags.isMoreVisibleThan(packageRepresentative.clazz.accessFlags)) {
+        // Use `clazz` as a representative for this package instead.
+        Representative newRepresentative = getOrCreateRepresentative(clazz, pkg);
+        newRepresentative.include(packageRepresentative.clazz);
+
+        if (!newRepresentative.isFull()) {
+          setRepresentative(pkg, newRepresentative);
+          moveMembersFromSourceToTarget(packageRepresentative.clazz, clazz);
+          return true;
+        }
+
+        // We are not allowed to merge members into a class that is less visible.
+        return false;
+      }
+
+      // Merge current class into the representative of this package if it has room.
+      packageRepresentative.include(clazz);
+
+      // If there is room, then merge, otherwise fall-through to update the representative of this
+      // package.
+      if (!packageRepresentative.isFull()) {
+        moveMembersFromSourceToTarget(clazz, packageRepresentative.clazz);
+        return true;
+      }
     }
 
-    // No merge.
-    if (Log.ENABLED) {
-      Log.info(getClass(), "Making %s a representative for %s", clazz.type.toSourceString(), pkg);
-    }
-    representatives.put(pkg, clazz);
+    // We were unable to use the current representative for this package (if any).
+    setRepresentative(pkg, getOrCreateRepresentative(clazz, pkg));
     return false;
+  }
+
+  private Representative getOrCreateRepresentative(DexProgramClass clazz, String pkg) {
+    Representative globalRepresentative = representatives.get(GLOBAL);
+    if (globalRepresentative != null && globalRepresentative.clazz == clazz) {
+      return globalRepresentative;
+    }
+    Representative packageRepresentative = representatives.get(pkg);
+    if (packageRepresentative != null && packageRepresentative.clazz == clazz) {
+      return packageRepresentative;
+    }
+    return new Representative(clazz);
+  }
+
+  private void setRepresentative(String pkg, Representative representative) {
+    if (Log.ENABLED) {
+      if (pkg.equals(GLOBAL)) {
+        Log.info(
+            getClass(),
+            "Making %s the global representative",
+            representative.clazz.type.toSourceString());
+      } else {
+        Log.info(
+            getClass(),
+            "Making %s the representative for package %s",
+            representative.clazz.type.toSourceString(),
+            pkg);
+      }
+    }
+    representatives.put(pkg, representative);
   }
 
   private boolean mayMergeAcrossPackageBoundaries(DexProgramClass clazz) {
@@ -230,6 +351,8 @@ public class StaticClassMerger {
     assert targetClass.accessFlags.isAtLeastAsVisibleAs(sourceClass.accessFlags);
     assert sourceClass.instanceFields().length == 0;
     assert targetClass.instanceFields().length == 0;
+
+    numberOfMergedClasses++;
 
     // Move members from source to target.
     targetClass.setDirectMethods(

@@ -14,23 +14,39 @@ import com.google.common.base.Equivalence;
  */
 public class MethodJavaSignatureEquivalence extends Equivalence<DexMethod> {
 
-  private static final MethodJavaSignatureEquivalence THEINSTANCE
-      = new MethodJavaSignatureEquivalence();
+  private static final MethodJavaSignatureEquivalence INSTANCE =
+      new MethodJavaSignatureEquivalence(false);
 
-  private MethodJavaSignatureEquivalence() {
+  private static final MethodJavaSignatureEquivalence INSTANCE_IGNORE_NAME =
+      new MethodJavaSignatureEquivalence(true);
+
+  private final boolean ignoreName;
+
+  private MethodJavaSignatureEquivalence(boolean ignoreName) {
+    this.ignoreName = ignoreName;
   }
 
   public static MethodJavaSignatureEquivalence get() {
-    return THEINSTANCE;
+    return INSTANCE;
+  }
+
+  public static MethodJavaSignatureEquivalence getEquivalenceIgnoreName() {
+    return INSTANCE_IGNORE_NAME;
   }
 
   @Override
   protected boolean doEquivalent(DexMethod a, DexMethod b) {
+    if (ignoreName) {
+      return a.proto.parameters.equals(b.proto.parameters);
+    }
     return a.name.equals(b.name) && a.proto.parameters.equals(b.proto.parameters);
   }
 
   @Override
   protected int doHash(DexMethod method) {
+    if (ignoreName) {
+      return method.proto.parameters.hashCode();
+    }
     return method.name.hashCode() * 31 + method.proto.parameters.hashCode();
   }
 }
