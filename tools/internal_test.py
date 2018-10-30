@@ -189,6 +189,8 @@ def fetch_and_print_logs(hash):
 
 def run_bot():
   print_magic_file_state()
+  print("TODO(118647285): Reenable when bug fixed")
+  return
   # Ensure that there is nothing currently scheduled (broken/stopped run)
   for magic in ALL_MAGIC:
     if get_magic_file_exists(magic):
