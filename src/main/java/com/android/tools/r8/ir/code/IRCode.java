@@ -15,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -29,6 +30,41 @@ import java.util.stream.Collectors;
 
 public class IRCode {
 
+  public static class Stack {
+
+    private final java.util.Stack<StackValue> currentStack = new java.util.Stack<>();
+
+    public void push(StackValue value) {
+      currentStack.push(value);
+    }
+
+    public StackValue pop(StackValue value) {
+      assert value == currentStack.peek();
+      return currentStack.pop();
+    }
+
+    public Enumeration<StackValue> elements() {
+      return currentStack.elements();
+    }
+
+    public boolean isEmpty() {
+      return currentStack.isEmpty();
+    }
+
+    public int size() {
+      return currentStack.size();
+    }
+
+    Stack copy() {
+      Stack newStack = new Stack();
+      Enumeration<StackValue> enumeration = this.elements();
+      while (enumeration.hasMoreElements()) {
+        newStack.push(enumeration.nextElement());
+      }
+      return newStack;
+    }
+  }
+
   public static class LiveAtEntrySets {
     // Set of live SSA values (regardless of whether they denote a local variable).
     public final Set<Value> liveValues;
@@ -36,10 +72,14 @@ public class IRCode {
     // Subset of live local-variable values.
     public final Set<Value> liveLocalValues;
 
-    public LiveAtEntrySets(Set<Value> liveValues, Set<Value> liveLocalValues) {
+    public final IRCode.Stack liveStackValues;
+
+    public LiveAtEntrySets(
+        Set<Value> liveValues, Set<Value> liveLocalValues, Stack liveStackValues) {
       assert liveValues.containsAll(liveLocalValues);
       this.liveValues = liveValues;
       this.liveLocalValues = liveLocalValues;
+      this.liveStackValues = liveStackValues;
     }
 
     @Override
@@ -126,11 +166,22 @@ public class IRCode {
       BasicBlock block = worklist.poll();
       Set<Value> live = new HashSet<>();
       Set<Value> liveLocals = new HashSet<>();
+      Stack liveStack = new Stack();
+      Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
       for (BasicBlock succ : block.getSuccessors()) {
         LiveAtEntrySets liveAtSucc = liveAtEntrySets.get(succ);
         if (liveAtSucc != null) {
           live.addAll(liveAtSucc.liveValues);
           liveLocals.addAll(liveAtSucc.liveLocalValues);
+          // The stack is only allowed to be non-empty in the case of linear-flow (so-far).
+          // If succ is an exceptional successor the successor stack should be empty
+          // otherwise only one successor must have a non-empty stack.
+          if (exceptionalSuccessors.contains(succ)) {
+            assert liveAtSucc.liveStackValues.size() == 0;
+          } else {
+            assert liveStack.isEmpty();
+            liveStack = liveAtSucc.liveStackValues.copy();
+          }
         }
         int predIndex = succ.getPredecessors().indexOf(block);
         for (Phi phi : succ.getPhis()) {
@@ -148,20 +199,36 @@ public class IRCode {
           }
         }
       }
+      // Sanity-check, making sure that if the stack is non-empty only in the case of a single
+      // normal successor.
+      assert liveStack.isEmpty()
+          || block.getSuccessors().size() - exceptionalSuccessors.size() == 1;
       Iterator<Instruction> iterator = block.getInstructions().descendingIterator();
       while (iterator.hasNext()) {
         Instruction instruction = iterator.next();
         Value outValue = instruction.outValue();
         if (outValue != null) {
-          live.remove(outValue);
-          assert outValue.hasLocalInfo() || !liveLocals.contains(outValue);
-          if (outValue.hasLocalInfo()) {
-            liveLocals.remove(outValue);
+          if (outValue instanceof StackValue) {
+            liveStack.pop((StackValue) outValue);
+          } else if (outValue instanceof StackValues) {
+            StackValue[] values = ((StackValues) outValue).getStackValues();
+            for (int i = values.length - 1; i >= 0; i--) {
+              liveStack.pop(values[i]);
+            }
+          } else {
+            live.remove(outValue);
+            assert outValue.hasLocalInfo() || !liveLocals.contains(outValue);
+            if (outValue.hasLocalInfo()) {
+              liveLocals.remove(outValue);
+            }
           }
         }
         for (Value use : instruction.inValues()) {
           if (use.needsRegister()) {
             live.add(use);
+          }
+          if (use instanceof StackValue) {
+            liveStack.push((StackValue) use);
           }
         }
         assert instruction.getDebugValues().stream().allMatch(Value::needsRegister);
@@ -176,7 +243,7 @@ public class IRCode {
           liveLocals.remove(phi);
         }
       }
-      LiveAtEntrySets liveAtEntry = new LiveAtEntrySets(live, liveLocals);
+      LiveAtEntrySets liveAtEntry = new LiveAtEntrySets(live, liveLocals, liveStack);
       LiveAtEntrySets previousLiveAtEntry = liveAtEntrySets.put(block, liveAtEntry);
       // If the live-at-entry set changed, add the predecessors to the worklist if they are not
       // already there.

@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRCode.Stack;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -50,9 +51,11 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -91,8 +94,8 @@ public class CfBuilder {
 
   private InternalOptions options;
 
-  // Internal abstraction of the stack values and height.
-  private static class Stack {
+  // Internal structure maintaining the stack height.
+  private static class StackHeightTracker {
     int maxHeight = 0;
     int height = 0;
 
@@ -245,7 +248,7 @@ public class CfBuilder {
   }
 
   private CfCode buildCfCode() {
-    Stack stack = new Stack();
+    StackHeightTracker stackHeightTracker = new StackHeightTracker();
     List<CfTryCatch> tryCatchRanges = new ArrayList<>();
     labels = new HashMap<>(code.blocks.size());
     emittedLabels = new HashSet<>(code.blocks.size());
@@ -257,7 +260,6 @@ public class CfBuilder {
     CatchHandlers<BasicBlock> tryCatchHandlers = CatchHandlers.EMPTY_BASIC_BLOCK;
     boolean previousFallthrough = false;
     do {
-      assert stack.isEmpty();
       CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
       if (!tryCatchHandlers.equals(handlers)) {
         if (!tryCatchHandlers.isEmpty()) {
@@ -292,11 +294,11 @@ public class CfBuilder {
         pendingLocals = new Int2ReferenceOpenHashMap<>(locals);
         pendingLocalChanges = true;
       }
-      buildCfInstructions(block, nextBlock, fallthrough, stack);
+      buildCfInstructions(block, nextBlock, fallthrough, stackHeightTracker);
       block = nextBlock;
       previousFallthrough = fallthrough;
     } while (block != null);
-    assert stack.isEmpty();
+    assert stackHeightTracker.isEmpty();
     CfLabel endLabel = ensureLabel();
     for (LocalVariableInfo info : openLocalVariables.values()) {
       info.setEnd(endLabel);
@@ -304,7 +306,7 @@ public class CfBuilder {
     }
     return new CfCode(
         method.method,
-        stack.maxHeight,
+        stackHeightTracker.maxHeight,
         registerAllocator.registersUsed(),
         instructions,
         tryCatchRanges,
@@ -331,7 +333,7 @@ public class CfBuilder {
   }
 
   private void buildCfInstructions(
-      BasicBlock block, BasicBlock nextBlock, boolean fallthrough, Stack stack) {
+      BasicBlock block, BasicBlock nextBlock, boolean fallthrough, StackHeightTracker stack) {
     if (pendingFrame != null) {
       boolean advancesPC = hasMaterializingInstructions(block, nextBlock);
       // If block has no materializing instructions, then we postpone emitting the frame
@@ -339,7 +341,7 @@ public class CfBuilder {
       // (or we would fall off the edge of the method).
       assert advancesPC || nextBlock != null;
       if (advancesPC) {
-        addFrame(pendingFrame, Collections.emptyList());
+        addFrame(pendingFrame);
         pendingFrame = null;
       }
     }
@@ -452,16 +454,19 @@ public class CfBuilder {
     return instructions.isEmpty() ? null : instructions.get(instructions.size() - 1);
   }
 
-  private void addFrame(BasicBlock block, Collection<StackValue> stack) {
-    // TODO(zerny): Support having values on the stack on control-edges.
-    assert stack.isEmpty();
-
+  private void addFrame(BasicBlock block) {
+    Stack stack = registerAllocator.getStackAtBlockEntry(block);
     List<FrameType> stackTypes;
     if (block.entry().isMoveException()) {
+      assert stack.isEmpty();
       StackValue exception = (StackValue) block.entry().outValue();
       stackTypes = Collections.singletonList(FrameType.initialized(exception.getObjectType()));
     } else {
-      stackTypes = Collections.emptyList();
+      stackTypes = new ArrayList<>();
+      Enumeration<StackValue> values = stack.elements();
+      while (values.hasMoreElements()) {
+        stackTypes.add(getFrameType(block, values.nextElement()));
+      }
     }
 
     Collection<Value> locals = registerAllocator.getLocalsAtBlockEntry(block);
@@ -499,17 +504,42 @@ public class CfBuilder {
         return FrameType.initialized(factory.doubleType);
       case OBJECT:
         FrameType type = findAllocator(liveBlock, local);
-        return type != null ? type : FrameType.initialized(types.get(local));
+        return type != null ? type : FrameType.initialized(getDexType(local));
       default:
         throw new Unreachable(
             "Unexpected local type: " + local.outType() + " for local: " + local);
     }
   }
 
+  // TODO(b/72693244) Remove this when fixed.
+  private DexType getDexType(Value local) {
+    if (local instanceof StackValue) {
+      return ((StackValue) local).getObjectType();
+    } else {
+      return types.get(local);
+    }
+  }
+
   private FrameType findAllocator(BasicBlock liveBlock, Value value) {
     Instruction definition = value.definition;
-    while (definition != null && (definition.isStore() || definition.isLoad())) {
-      definition = definition.inValues().get(0).definition;
+    // TODO(b/72693244) Determining the definition should be handled when this is solved.
+    while (definition != null
+        && (definition.isStore()
+            || definition.isLoad()
+            || definition.isDup()
+            || definition.isSwap()
+            || definition.isDup2())) {
+      if (definition.isSwap()) {
+        int index =
+            Arrays.asList(((StackValues) definition.outValue()).getStackValues()).indexOf(value);
+        definition = definition.inValues().get(index ^ 1).definition;
+      } else if (definition.isDup2()) {
+        int index =
+            Arrays.asList(((StackValues) definition.outValue()).getStackValues()).indexOf(value);
+        definition = definition.inValues().get(index / 2).definition;
+      } else {
+        definition = definition.inValues().get(0).definition;
+      }
     }
     if (definition == null) {
       return null;
