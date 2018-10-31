@@ -71,7 +71,7 @@ public class Store extends Instruction {
 
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return helper.getType(src());
+    return helper.getDexType(src());
   }
 
   @Override

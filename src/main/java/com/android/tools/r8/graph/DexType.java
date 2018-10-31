@@ -391,8 +391,24 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return descriptor.content[0] == 'Z';
   }
 
+  public boolean isByteType() {
+    return descriptor.content[0] == 'B';
+  }
+
+  public boolean isCharType() {
+    return descriptor.content[0] == 'C';
+  }
+
+  public boolean isShortType() {
+    return descriptor.content[0] == 'S';
+  }
+
   public boolean isIntType() {
     return descriptor.content[0] == 'I';
+  }
+
+  public boolean isFloatType() {
+    return descriptor.content[0] == 'F';
   }
 
   public boolean isLongType() {

@@ -5,10 +5,10 @@ package com.android.tools.r8.cf;
 
 import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
+import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCode.LiveAtEntrySets;
-import com.android.tools.r8.ir.code.IRCode.Stack;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
@@ -20,14 +20,18 @@ import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.TreeSet;
 
 /**
@@ -259,11 +263,22 @@ public class CfRegisterAllocator implements RegisterAllocator {
     liveAtEntrySets.get(block).liveValues.addAll(phis);
   }
 
-  public Collection<Value> getLocalsAtBlockEntry(BasicBlock block) {
-    return liveAtEntrySets.get(block).liveValues;
+  public Int2ReferenceMap<TypeInfo> getTypeInfoAtBlockEntry(
+      BasicBlock block, TypeVerificationHelper typeHelper) {
+    Set<Value> liveValues = liveAtEntrySets.get(block).liveValues;
+    Int2ReferenceMap<TypeInfo> typesMap = new Int2ReferenceOpenHashMap<>(liveValues.size());
+    for (Value liveValue : liveValues) {
+      typesMap.put(getRegisterForValue(liveValue), typeHelper.getTypeInfo(liveValue));
+    }
+    return typesMap;
   }
 
-  public Stack getStackAtBlockEntry(BasicBlock block) {
-    return liveAtEntrySets.get(block).liveStackValues;
+  public List<TypeInfo> getStackAtBlockEntry(BasicBlock block, TypeVerificationHelper typeHelper) {
+    Deque<StackValue> liveStackValues = liveAtEntrySets.get(block).liveStackValues;
+    List<TypeInfo> typesList = new ArrayList<>(liveStackValues.size());
+    for (StackValue value : liveStackValues) {
+      typesList.add(typeHelper.getTypeInfo(value));
+    }
+    return typesList;
   }
 }

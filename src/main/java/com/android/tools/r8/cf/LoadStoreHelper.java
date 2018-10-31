@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -31,15 +30,15 @@ import java.util.Map;
 public class LoadStoreHelper {
 
   private final IRCode code;
-  private final Map<Value, DexType> types;
+  private final TypeVerificationHelper typesHelper;
   private final AppInfo appInfo;
 
   private Map<Value, ConstInstruction> clonableConstants = null;
   private BasicBlock block = null;
 
-  public LoadStoreHelper(IRCode code, Map<Value, DexType> types, AppInfo appInfo) {
+  public LoadStoreHelper(IRCode code, TypeVerificationHelper typesHelper, AppInfo appInfo) {
     this.code = code;
-    this.types = types;
+    this.typesHelper = typesHelper;
     this.appInfo = appInfo;
   }
 
@@ -136,19 +135,11 @@ public class LoadStoreHelper {
   }
 
   private StackValue createStackValue(Value value, int height) {
-    // TODO(b/72693244): Use the lattice element directly.
-    if (value.outType().isObject()) {
-      return StackValue.forObjectType(types.get(value), height, appInfo);
-    }
-    return StackValue.forNonObjectType(value.outType(), height);
+    return StackValue.create(typesHelper.getTypeInfo(value), height, appInfo);
   }
 
   private StackValue createStackValue(DexType type, int height) {
-    // TODO(b/72693244): Use the lattice element directly.
-    if (type.isPrimitiveType()) {
-      return StackValue.forNonObjectType(ValueType.fromDexType(type), height);
-    }
-    return StackValue.forObjectType(type, height, appInfo);
+    return StackValue.create(typesHelper.createInitializedType(type), height, appInfo);
   }
 
   public void loadInValues(Instruction instruction, InstructionListIterator it) {
