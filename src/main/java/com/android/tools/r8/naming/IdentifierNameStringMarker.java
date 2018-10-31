@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentiferNameString;
+import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.inferMemberOrTypeFromNameString;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 
@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemBasedString;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -20,9 +19,10 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -61,15 +61,15 @@ public class IdentifierNameStringMarker {
 
   public void decoupleIdentifierNameStringsInFields() {
     for (DexProgramClass clazz : appInfo.classes()) {
-      clazz.forEachField(this::decoupleIdentifierNameStringInField);
+      for (DexEncodedField field : clazz.staticFields()) {
+        decoupleIdentifierNameStringInStaticField(field);
+      }
     }
   }
 
-  private void decoupleIdentifierNameStringInField(DexEncodedField encodedField) {
+  private void decoupleIdentifierNameStringInStaticField(DexEncodedField encodedField) {
+    assert encodedField.accessFlags.isStatic();
     if (!identifierNameStrings.containsKey(encodedField.field)) {
-      return;
-    }
-    if (!encodedField.accessFlags.isStatic()) {
       return;
     }
     DexValue staticValue = encodedField.getStaticValue();
@@ -77,9 +77,9 @@ public class IdentifierNameStringMarker {
       return;
     }
     DexString original = ((DexValueString) staticValue).getValue();
-    DexItemBasedString itemBasedString = inferMemberOrTypeFromNameString(appInfo, original);
+    DexReference itemBasedString = inferMemberOrTypeFromNameString(appInfo, original);
     if (itemBasedString != null) {
-      encodedField.setStaticValue(new DexValueString(itemBasedString));
+      encodedField.setStaticValue(new DexItemBasedValueString(itemBasedString));
     }
   }
 
@@ -120,7 +120,7 @@ public class IdentifierNameStringMarker {
             continue;
           }
           DexString original = in.getConstInstruction().asConstString().getValue();
-          DexItemBasedString itemBasedString = inferMemberOrTypeFromNameString(appInfo, original);
+          DexReference itemBasedString = inferMemberOrTypeFromNameString(appInfo, original);
           if (itemBasedString == null) {
             warnUndeterminedIdentifierIfNecessary(
                 appInfo, options, field, originHolder, instruction, original);
@@ -131,7 +131,7 @@ public class IdentifierNameStringMarker {
           iterator.previous();
           // Prepare $decoupled just before $fieldPut
           Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
-          ConstString decoupled = new ConstString(newIn, itemBasedString);
+          DexItemBasedConstString decoupled = new DexItemBasedConstString(newIn, itemBasedString);
           decoupled.setPosition(fieldPut.getPosition());
           // If the current block has catch handler, split into two blocks.
           // Because const-string we're about to add is also a throwing instr, we need to split
@@ -175,7 +175,7 @@ public class IdentifierNameStringMarker {
           List<Value> ins = invoke.arguments();
           Value[] changes = new Value [ins.size()];
           if (isReflectionMethod(dexItemFactory, invokedMethod)) {
-            DexItemBasedString itemBasedString = identifyIdentiferNameString(appInfo, invoke);
+            DexReference itemBasedString = identifyIdentifier(appInfo, invoke);
             if (itemBasedString == null) {
               warnUndeterminedIdentifierIfNecessary(
                   appInfo, options, invokedMethod, originHolder, instruction, null);
@@ -193,7 +193,7 @@ public class IdentifierNameStringMarker {
             iterator.previous();
             // Prepare $decoupled just before $invoke
             Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
-            ConstString decoupled = new ConstString(newIn, itemBasedString);
+            DexItemBasedConstString decoupled = new DexItemBasedConstString(newIn, itemBasedString);
             decoupled.setPosition(invoke.getPosition());
             changes[positionOfIdentifier] = newIn;
             // If the current block has catch handler, split into two blocks.
@@ -228,8 +228,7 @@ public class IdentifierNameStringMarker {
                 continue;
               }
               DexString original = in.getConstInstruction().asConstString().getValue();
-              DexItemBasedString itemBasedString =
-                  inferMemberOrTypeFromNameString(appInfo, original);
+              DexReference itemBasedString = inferMemberOrTypeFromNameString(appInfo, original);
               if (itemBasedString == null) {
                 warnUndeterminedIdentifierIfNecessary(
                     appInfo, options, invokedMethod, originHolder, instruction, original);
@@ -240,7 +239,8 @@ public class IdentifierNameStringMarker {
               iterator.previous();
               // Prepare $decoupled just before $invoke
               Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
-              ConstString decoupled = new ConstString(newIn, itemBasedString);
+              DexItemBasedConstString decoupled =
+                  new DexItemBasedConstString(newIn, itemBasedString);
               decoupled.setPosition(invoke.getPosition());
               changes[i] = newIn;
               // If the current block has catch handler, split into two blocks.

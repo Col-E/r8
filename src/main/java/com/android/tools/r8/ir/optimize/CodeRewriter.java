@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueBoolean;
 import com.android.tools.r8.graph.DexValue.DexValueByte;
 import com.android.tools.r8.graph.DexValue.DexValueChar;
@@ -48,6 +49,7 @@ import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -1525,17 +1527,24 @@ public class CodeRewriter {
       for (StaticPut put : finalFieldPut.values()) {
         DexField field = put.getField();
         DexEncodedField encodedField = appInfo.definitionFor(field);
+        Value inValue = put.inValue();
         if (field.type == dexItemFactory.stringType) {
-          if (put.inValue().isConstant()) {
-            if (put.inValue().isConstNumber()) {
-              assert put.inValue().isZero();
+          if (inValue.isConstant()) {
+            if (inValue.isConstNumber()) {
+              assert inValue.isZero();
               encodedField.setStaticValue(DexValueNull.NULL);
-            } else {
-              ConstString cnst = put.inValue().getConstInstruction().asConstString();
+            } else if (inValue.isConstString()) {
+              ConstString cnst = inValue.getConstInstruction().asConstString();
               encodedField.setStaticValue(new DexValueString(cnst.getValue()));
+            } else if (inValue.isDexItemBasedConstString()) {
+              DexItemBasedConstString cnst =
+                  inValue.getConstInstruction().asDexItemBasedConstString();
+              encodedField.setStaticValue(new DexItemBasedValueString(cnst.getItem()));
+            } else {
+              assert false;
             }
           } else {
-            InvokeVirtual invoke = put.inValue().definition.asInvokeVirtual();
+            InvokeVirtual invoke = inValue.definition.asInvokeVirtual();
             String name = method.method.getHolder().toSourceString();
             if (invoke.getInvokedMethod() == dexItemFactory.classMethods.getSimpleName) {
               String simpleName = name.substring(name.lastIndexOf('.') + 1);
@@ -1547,13 +1556,13 @@ public class CodeRewriter {
             }
           }
         } else if (field.type.isClassType() || field.type.isArrayType()) {
-          if (put.inValue().isZero()) {
+          if (inValue.isZero()) {
             encodedField.setStaticValue(DexValueNull.NULL);
           } else {
             throw new Unreachable("Unexpected default value for field type " + field.type + ".");
           }
         } else {
-          ConstNumber cnst = put.inValue().getConstInstruction().asConstNumber();
+          ConstNumber cnst = inValue.getConstInstruction().asConstNumber();
           if (field.type == dexItemFactory.booleanType) {
             encodedField.setStaticValue(DexValueBoolean.create(cnst.getBooleanValue()));
           } else if (field.type == dexItemFactory.byteType) {
@@ -1647,7 +1656,9 @@ public class CodeRewriter {
                   puts.add(put);
                 }
               }
-            } else if (!(instruction.isConstString() || instruction.isConstClass())) {
+            } else if (!instruction.isConstString()
+                && !instruction.isDexItemBasedConstString()
+                && !instruction.isConstClass()) {
               // Allow const string and const class which can only throw exceptions as their
               // side-effect. Bail out for anything else.
               return;

@@ -134,6 +134,14 @@ public abstract class Instruction {
     return false;
   }
 
+  public DexItemBasedConstString asDexItemBasedConstString() {
+    return null;
+  }
+
+  public boolean isDexItemBasedConstString() {
+    return false;
+  }
+
   public ConstStringJumbo asConstStringJumbo() {
     return null;
   }

@@ -21,6 +21,8 @@ public abstract class ConstInstruction extends Instruction {
       return ConstNumber.copyOf(value, instr.asConstNumber());
     } else if (instr.isConstString()) {
       return ConstString.copyOf(value, instr.asConstString());
+    } else if (instr.isDexItemBasedConstString()) {
+      return DexItemBasedConstString.copyOf(value, instr.asDexItemBasedConstString());
     } else {
       throw new Unreachable();
     }

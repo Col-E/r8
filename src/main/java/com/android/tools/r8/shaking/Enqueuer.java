@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentiferNameString;
+import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 
 import com.android.tools.r8.Diagnostic;
@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
-import com.android.tools.r8.graph.DexItemBasedString;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
@@ -1598,17 +1597,17 @@ public class Enqueuer {
     if (!isReflectionMethod(appInfo.dexItemFactory, invokedMethod)) {
       return;
     }
-    DexItemBasedString itemBasedString = identifyIdentiferNameString(appInfo, invoke);
-    if (itemBasedString == null) {
+    DexReference identifierItem = identifyIdentifier(appInfo, invoke);
+    if (identifierItem == null) {
       return;
     }
-    if (itemBasedString.basedOn.isDexType()) {
-      DexClass clazz = appInfo.definitionFor(itemBasedString.basedOn.asDexType());
+    if (identifierItem.isDexType()) {
+      DexClass clazz = appInfo.definitionFor(identifierItem.asDexType());
       if (clazz != null) {
         markClassAsInstantiatedWithCompatRule(clazz);
       }
-    } else if (itemBasedString.basedOn.isDexField()) {
-      DexEncodedField encodedField = appInfo.definitionFor(itemBasedString.basedOn.asDexField());
+    } else if (identifierItem.isDexField()) {
+      DexEncodedField encodedField = appInfo.definitionFor(identifierItem.asDexField());
       if (encodedField != null) {
         // Normally, we generate a -keepclassmembers rule for the field, such that the field is only
         // kept if it is a static field, or if the holder or one of its subtypes are instantiated.
@@ -1621,8 +1620,8 @@ public class Enqueuer {
         markFieldAsKeptWithCompatRule(encodedField, keepClass);
       }
     } else {
-      assert itemBasedString.basedOn.isDexMethod();
-      DexEncodedMethod encodedMethod = appInfo.definitionFor(itemBasedString.basedOn.asDexMethod());
+      assert identifierItem.isDexMethod();
+      DexEncodedMethod encodedMethod = appInfo.definitionFor(identifierItem.asDexMethod());
       if (encodedMethod != null) {
         markMethodAsKeptWithCompatRule(encodedMethod);
       }

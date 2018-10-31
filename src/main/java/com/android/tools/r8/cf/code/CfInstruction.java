@@ -33,6 +33,22 @@ public abstract class CfInstruction {
     return null;
   }
 
+  public CfConstString asConstString() {
+    return null;
+  }
+
+  public boolean isConstString() {
+    return false;
+  }
+
+  public CfDexItemBasedConstString asDexItemBasedConstString() {
+    return null;
+  }
+
+  public boolean isDexItemBasedConstString() {
+    return false;
+  }
+
   /** Return true if this instruction is CfReturn or CfReturnVoid. */
   public boolean isReturn() {
     return false;

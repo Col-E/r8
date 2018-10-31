@@ -93,5 +93,4 @@ public abstract class DexReference extends IndexedDexItem {
   public static Stream<DexMethod> filterDexMethod(Stream<DexReference> stream) {
     return filter(stream, DexReference::isDexMethod, DexReference::asDexMethod);
   }
-
 }

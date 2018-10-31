@@ -611,6 +611,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isDexItemBasedConstString() {
+    return false;
+  }
+
+  public DexItemBasedConstString asDexItemBasedConstString() {
+    return null;
+  }
+
   public boolean isCmp() {
     return false;
   }

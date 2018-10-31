@@ -74,7 +74,7 @@ public class CfCode extends Code {
   private final DexMethod method;
   private final int maxStack;
   private final int maxLocals;
-  private final List<CfInstruction> instructions;
+  public final List<CfInstruction> instructions;
   private final List<CfTryCatch> tryCatchRanges;
   private final List<LocalVariableInfo> localVariables;
 

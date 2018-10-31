@@ -607,6 +607,10 @@ public class Value {
     return isConstant() && getConstInstruction().isConstString();
   }
 
+  public boolean isDexItemBasedConstString() {
+    return isConstant() && getConstInstruction().isDexItemBasedConstString();
+  }
+
   public boolean isConstClass() {
     return isConstant() && getConstInstruction().isConstClass();
   }

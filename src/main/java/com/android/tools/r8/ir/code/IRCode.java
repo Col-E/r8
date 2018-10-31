@@ -820,9 +820,10 @@ public class IRCode {
     InstructionIterator it = instructionIterator();
     while (it.hasNext()) {
       Instruction instruction = it.next();
-      if (instruction.instructionTypeCanThrow() &&
-          !instruction.isConstString() &&
-          instruction.getPosition().isNone()) {
+      if (instruction.instructionTypeCanThrow()
+          && !instruction.isConstString()
+          && !instruction.isDexItemBasedConstString()
+          && instruction.getPosition().isNone()) {
         return false;
       }
     }

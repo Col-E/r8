@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -82,7 +83,8 @@ public class LoadStoreHelper {
     assert instr.isConstClass()
         || instr.isConstMethodHandle()
         || instr.isConstMethodType()
-        || instr.isConstString();
+        || instr.isConstString()
+        || instr.isDexItemBasedConstString();
     return false;
   }
 
@@ -175,6 +177,8 @@ public class LoadStoreHelper {
       ConstInstruction constInstruction = instruction.asConstInstruction();
       assert block != null;
       if (canRemoveConstInstruction(constInstruction, block)) {
+        assert !constInstruction.isDexItemBasedConstString()
+            || constInstruction.outValue().numberOfUsers() == 1;
         clonableConstants.put(instruction.outValue(), constInstruction);
         instruction.outValue().clearUsers();
         it.removeOrReplaceByDebugLocalRead();
@@ -241,6 +245,9 @@ public class LoadStoreHelper {
         return new ConstNumber(stackValue, constant.asConstNumber().getRawValue());
       } else if (constant.isConstString()) {
         return new ConstString(stackValue, constant.asConstString().getValue());
+      } else if (constant.isDexItemBasedConstString()) {
+        return new DexItemBasedConstString(
+            stackValue, constant.asDexItemBasedConstString().getItem());
       } else if (constant.isConstClass()) {
         return new ConstClass(stackValue, constant.asConstClass().getValue());
       } else {

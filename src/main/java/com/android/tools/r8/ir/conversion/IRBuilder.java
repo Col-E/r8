@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
@@ -45,6 +46,7 @@ import com.android.tools.r8.ir.code.DebugLocalRead;
 import com.android.tools.r8.ir.code.DebugLocalUninitialized;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.DebugPosition;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -763,7 +765,7 @@ public class IRBuilder {
    */
   public void add(Instruction ir) {
     assert !ir.isJumpInstruction();
-    hasConstString |= ir.isConstString();
+    hasConstString |= ir.isConstString() || ir.isDexItemBasedConstString();
     addInstruction(ir);
   }
 
@@ -998,6 +1000,13 @@ public class IRBuilder {
     TypeLatticeElement typeLattice = TypeLatticeElement.stringClassType(appInfo);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstString instruction = new ConstString(out, string);
+    add(instruction);
+  }
+
+  public void addDexItemBasedConstString(int dest, DexReference item) {
+    TypeLatticeElement typeLattice = TypeLatticeElement.stringClassType(appInfo);
+    Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
+    DexItemBasedConstString instruction = new DexItemBasedConstString(out, item);
     add(instruction);
   }
 

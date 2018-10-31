@@ -3,10 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
+
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
@@ -41,6 +45,18 @@ public abstract class NamingLens {
   public abstract DexString lookupMethodName(DexCallSite callSite);
 
   public abstract DexString lookupName(DexField field);
+
+  public final DexString lookupName(DexReference reference, DexItemFactory dexItemFactory) {
+    if (reference.isDexType()) {
+      DexString renamed = lookupDescriptor(reference.asDexType());
+      return dexItemFactory.createString(descriptorToJavaType(renamed.toString()));
+    }
+    if (reference.isDexMethod()) {
+      return lookupName(reference.asDexMethod());
+    }
+    assert reference.isDexField();
+    return lookupName(reference.asDexField());
+  }
 
   public static NamingLens getIdentityLens() {
     return new IdentityLens();

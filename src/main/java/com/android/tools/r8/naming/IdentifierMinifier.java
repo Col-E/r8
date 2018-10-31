@@ -6,27 +6,31 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 
 import com.android.tools.r8.cf.code.CfConstString;
+import com.android.tools.r8.cf.code.CfDexItemBasedConstString;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.ConstStringJumbo;
+import com.android.tools.r8.code.DexItemBasedConstString;
 import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemBasedString;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import java.util.List;
 import java.util.Map;
 
+/**
+ * Replaces all instances of DexItemBasedConstString by ConstString, and all instances of
+ * DexItemBasedValueString by DexValueString.
+ */
 class IdentifierMinifier {
 
   private final AppInfoWithLiveness appInfo;
@@ -53,26 +57,21 @@ class IdentifierMinifier {
 
   private void adaptClassStrings() {
     for (DexProgramClass clazz : appInfo.classes()) {
-      if (!adaptClassStrings.matches(clazz.type)) {
-        continue;
+      if (adaptClassStrings.matches(clazz.type)) {
+        for (DexEncodedField field : clazz.staticFields()) {
+          adaptClassStringsInStaticField(field);
+        }
+        clazz.forEachMethod(this::adaptClassStringsInMethod);
       }
-      clazz.forEachField(this::adaptClassStringsInField);
-      clazz.forEachMethod(this::adaptClassStringsInMethod);
     }
   }
 
-  private void adaptClassStringsInField(DexEncodedField encodedField) {
-    if (!encodedField.accessFlags.isStatic()) {
-      return;
-    }
+  private void adaptClassStringsInStaticField(DexEncodedField encodedField) {
+    assert encodedField.accessFlags.isStatic();
     DexValue staticValue = encodedField.getStaticValue();
-    if (!(staticValue instanceof DexValueString)) {
-      return;
-    }
-    DexString original = ((DexValueString) staticValue).getValue();
-    DexString renamed = getRenamedStringLiteral(original);
-    if (renamed != original) {
-      encodedField.setStaticValue(new DexValueString(renamed));
+    if (staticValue instanceof DexValueString) {
+      DexString original = ((DexValueString) staticValue).getValue();
+      encodedField.setStaticValue(new DexValueString(getRenamedStringLiteral(original)));
     }
   }
 
@@ -86,27 +85,18 @@ class IdentifierMinifier {
       return;
     }
     if (code.isDexCode()) {
-      DexCode dexCode = code.asDexCode();
-      for (Instruction instr : dexCode.instructions) {
-        if (instr instanceof ConstString) {
-          ConstString cnst = (ConstString) instr;
-          DexString dexString = cnst.getString();
-          cnst.BBBB = getRenamedStringLiteral(dexString);
-        } else if (instr instanceof ConstStringJumbo) {
-          ConstStringJumbo cnst = (ConstStringJumbo) instr;
-          DexString dexString = cnst.getString();
-          cnst.BBBBBBBB = getRenamedStringLiteral(dexString);
+      for (Instruction instruction : code.asDexCode().instructions) {
+        if (instruction.isConstString()) {
+          ConstString cnst = instruction.asConstString();
+          cnst.BBBB = getRenamedStringLiteral(cnst.getString());
         }
       }
     } else {
       assert code.isCfCode();
-      CfCode cfCode = code.asCfCode();
-
-      for (CfInstruction instr : cfCode.getInstructions()) {
-        if (instr instanceof CfConstString) {
-          CfConstString cnst = (CfConstString) instr;
-          DexString dexString = cnst.getString();
-          cnst.setString(getRenamedStringLiteral(dexString));
+      for (CfInstruction instruction : code.asCfCode().getInstructions()) {
+        if (instruction.isConstString()) {
+          CfConstString cnst = instruction.asConstString();
+          cnst.setString(getRenamedStringLiteral(cnst.getString()));
         }
       }
     }
@@ -130,25 +120,24 @@ class IdentifierMinifier {
     return originalLiteral;
   }
 
+  // TODO(christofferqa): Rename to replaceDexItemBasedConstString.
   private void replaceIdentifierNameString() {
     for (DexProgramClass clazz : appInfo.classes()) {
       // Some const strings could be moved to field's static value (from <clinit>).
-      clazz.forEachField(this::replaceIdentifierNameStringInField);
+      for (DexEncodedField field : clazz.staticFields()) {
+        replaceIdentifierNameStringInStaticField(field);
+      }
       clazz.forEachMethod(this::replaceIdentifierNameStringInMethod);
     }
   }
 
-  private void replaceIdentifierNameStringInField(DexEncodedField encodedField) {
-    if (!encodedField.accessFlags.isStatic()) {
-      return;
-    }
+  private void replaceIdentifierNameStringInStaticField(DexEncodedField encodedField) {
+    assert encodedField.accessFlags.isStatic();
     DexValue staticValue = encodedField.getStaticValue();
-    if (!(staticValue instanceof DexValueString)) {
-      return;
-    }
-    DexString original = ((DexValueString) staticValue).getValue();
-    if (original instanceof DexItemBasedString) {
-      encodedField.setStaticValue(new DexValueString(materialize((DexItemBasedString) original)));
+    if (staticValue instanceof DexItemBasedValueString) {
+      DexReference original = ((DexItemBasedValueString) staticValue).getValue();
+      encodedField.setStaticValue(
+          new DexValueString(lens.lookupName(original, appInfo.dexItemFactory)));
     }
   }
 
@@ -165,47 +154,26 @@ class IdentifierMinifier {
       return;
     }
     if (code.isDexCode()) {
-      DexCode dexCode = code.asDexCode();
-      for (Instruction instr : dexCode.instructions) {
-        if (instr instanceof ConstString
-            && ((ConstString) instr).getString() instanceof DexItemBasedString) {
-          ConstString cnst = (ConstString) instr;
-          DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
-          cnst.BBBB = materialize(itemBasedString);
-        } else if (instr instanceof ConstStringJumbo
-            && ((ConstStringJumbo) instr).getString() instanceof DexItemBasedString) {
-          ConstStringJumbo cnst = (ConstStringJumbo) instr;
-          DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
-          cnst.BBBBBBBB = materialize(itemBasedString);
+      Instruction[] instructions = code.asDexCode().instructions;
+      for (int i = 0; i < instructions.length; ++i) {
+        Instruction instruction = instructions[i];
+        if (instruction instanceof DexItemBasedConstString) {
+          DexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
+          instructions[i] =
+              new ConstString(cnst.AA, lens.lookupName(cnst.getItem(), appInfo.dexItemFactory));
         }
       }
     } else {
       assert code.isCfCode();
-      CfCode cfCode = code.asCfCode();
-
-      for (CfInstruction instr : cfCode.getInstructions()) {
-        if (instr instanceof CfConstString
-            && ((CfConstString) instr).getString() instanceof DexItemBasedString) {
-          CfConstString cnst = (CfConstString) instr;
-          DexItemBasedString itemBasedString = (DexItemBasedString) cnst.getString();
-          cnst.setString(materialize(itemBasedString));
+      List<CfInstruction> instructions = code.asCfCode().instructions;
+      for (int i = 0; i < instructions.size(); ++i) {
+        CfInstruction instruction = instructions.get(i);
+        if (instruction.isDexItemBasedConstString()) {
+          CfDexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
+          instructions.set(
+              i, new CfConstString(lens.lookupName(cnst.getItem(), appInfo.dexItemFactory)));
         }
       }
-    }
-  }
-
-  private DexString materialize(DexItemBasedString itemBasedString) {
-    if (itemBasedString.basedOn.isDexType()) {
-      DexString renamed = lens.lookupDescriptor(itemBasedString.basedOn.asDexType());
-      if (!renamed.toString().equals(itemBasedString.toString())) {
-        return appInfo.dexItemFactory.createString(descriptorToJavaType(renamed.toString()));
-      }
-      return renamed;
-    } else if (itemBasedString.basedOn.isDexMethod()) {
-      return lens.lookupName(itemBasedString.basedOn.asDexMethod());
-    } else {
-      assert itemBasedString.basedOn.isDexField();
-      return lens.lookupName(itemBasedString.basedOn.asDexField());
     }
   }
 }

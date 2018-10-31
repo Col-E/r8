@@ -643,6 +643,10 @@ public abstract class DexValue extends DexItem {
 
     protected abstract byte getValueKind();
 
+    public T getValue() {
+      return value;
+    }
+
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       int offset = value.getOffset(mapping);
@@ -703,8 +707,21 @@ public abstract class DexValue extends DexItem {
       super(value);
     }
 
-    public DexString getValue() {
-      return value;
+    @Override
+    public Object asAsmEncodedObject() {
+      return value.toString();
+    }
+
+    @Override
+    protected byte getValueKind() {
+      return VALUE_STRING;
+    }
+  }
+
+  public static class DexItemBasedValueString extends NestedDexValue<DexReference> {
+
+    public DexItemBasedValueString(DexReference value) {
+      super(value);
     }
 
     @Override
@@ -715,6 +732,12 @@ public abstract class DexValue extends DexItem {
     @Override
     protected byte getValueKind() {
       return VALUE_STRING;
+    }
+
+    @Override
+    public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
+      throw new Unreachable(
+          "DexItemBasedValueString values should always be rewritten into DexValueString");
     }
   }
 

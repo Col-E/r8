@@ -61,10 +61,6 @@ public class DexItemFactory {
   private final Map<DexString, SetFile> setFiles = new HashMap<>();
   private final Map<SetInlineFrame, SetInlineFrame> setInlineFrames = new HashMap<>();
 
-  // -identifiernamestring canonicalization.
-  private final ConcurrentHashMap<DexItemBasedString, DexItemBasedString> identifiers =
-      new ConcurrentHashMap<>();
-
   // ReferenceTypeLattice canonicalization.
   private final ConcurrentHashMap<DexType, ReferenceTypeLatticeElement>
       referenceTypeLatticeElements = new ConcurrentHashMap<>();
@@ -662,20 +658,6 @@ public class DexItemFactory {
 
   public DexString lookupString(String source) {
     return strings.get(new DexString(source));
-  }
-
-  public DexItemBasedString createItemBasedString(DexReference reference) {
-    assert !sorted;
-    DexItemBasedString dexItemBasedString;
-    if (reference.isDexType()) {
-      dexItemBasedString = new DexItemBasedString(reference.asDexType());
-    } else if (reference.isDexMethod()) {
-      dexItemBasedString = new DexItemBasedString(reference.asDexMethod());
-    } else {
-      assert reference.isDexField();
-      dexItemBasedString = new DexItemBasedString(reference.asDexField());
-    }
-    return canonicalize(identifiers, dexItemBasedString);
   }
 
   // Debugging support to extract marking string.

@@ -15,6 +15,7 @@ import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
+import com.android.tools.r8.cf.code.CfDexItemBasedConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
@@ -344,6 +345,11 @@ public class CfPrinter {
   public void print(CfConstString constString) {
     indent();
     builder.append("ldc ").append(constString.getString());
+  }
+
+  public void print(CfDexItemBasedConstString constString) {
+    indent();
+    builder.append("ldc* ").append(constString.getItem().toString());
   }
 
   public void print(CfArrayLoad arrayLoad) {

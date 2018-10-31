@@ -710,6 +710,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     } else {
       assert code.highestSortingString != null
           || Arrays.stream(code.instructions).noneMatch(Instruction::isConstString);
+      assert Arrays.stream(code.instructions).noneMatch(Instruction::isDexItemBasedConstString);
       if (code.highestSortingString != null
           && mapping.getOffsetFor(code.highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
         firstJumboString = mapping.getFirstJumboString();

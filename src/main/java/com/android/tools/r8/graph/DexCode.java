@@ -371,6 +371,7 @@ public class DexCode extends Code {
     assert instructionOffset == -1;
     highestSortingString = null;
     for (Instruction insn : instructions) {
+      assert !insn.isDexItemBasedConstString();
       insn.collectIndexedItems(indexedItems, method, insn.getOffset());
       if (insn.isConstString()) {
         updateHighestSortingString(insn.asConstString().getString());
@@ -390,7 +391,6 @@ public class DexCode extends Code {
 
   private void updateHighestSortingString(DexString candidate) {
     assert candidate != null;
-    assert !(candidate instanceof DexItemBasedString);
     if (highestSortingString == null || highestSortingString.slowCompareTo(candidate) < 0) {
       highestSortingString = candidate;
     }

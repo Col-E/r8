@@ -9,10 +9,9 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItem;
-import com.android.tools.r8.graph.DexItemBasedString;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -20,6 +19,7 @@ import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -137,17 +137,15 @@ public final class IdentifierNameStringUtils {
   }
 
   /**
-   * Creates {@link DexItemBasedString}, which represents a string literal that corresponds to
-   * either class or member name (i.e., identifier).
+   * Returns a {@link DexReference} if one of the arguments to the invoke instruction is a constant
+   * string that corresponds to either a class or member name (i.e., an identifier).
    *
-   * @param appInfo {@link AppInfo} that contains {@link DexItemFactory} to create
-   *     {@link DexItemBasedString}.
+   * @param appInfo {@link AppInfo} that gives access to {@link DexItemFactory}.
    * @param invoke {@link InvokeMethod} that is expected to have an identifier in its arguments.
-   * @return {@link DexItemBasedString} whose string literal corresponds to {@link DexItem},
-   *     otherwise {@code null}.
+   * @return {@link DexReference} corresponding to the first constant string argument that matches a
+   *     class or member name, or {@code null} if no such constant was found.
    */
-  public static DexItemBasedString identifyIdentiferNameString(
-      AppInfo appInfo, InvokeMethod invoke) {
+  public static DexReference identifyIdentifier(AppInfo appInfo, InvokeMethod invoke) {
     List<Value> ins = invoke.arguments();
     // The only static call: Class#forName, which receives (String) as ins.
     if (ins.size() == 1) {
@@ -156,6 +154,10 @@ public final class IdentifierNameStringUtils {
         ConstString constString = in.getConstInstruction().asConstString();
         return inferMemberOrTypeFromNameString(appInfo, constString.getValue());
       }
+      if (in.isDexItemBasedConstString()) {
+        DexItemBasedConstString constString = in.getConstInstruction().asDexItemBasedConstString();
+        return constString.getItem();
+      }
       return null;
     }
     // All the other cases receive either (Class, String) or (Class, String, Class[]) as ins.
@@ -163,60 +165,59 @@ public final class IdentifierNameStringUtils {
         invoke.getReturnType().descriptor == appInfo.dexItemFactory.referenceFieldUpdaterDescriptor;
     int positionOfIdentifier = isReferenceFieldUpdater ? 2 : 1;
     Value in = ins.get(positionOfIdentifier);
-    if (!in.isConstString()) {
-      return null;
-    }
-    Value classValue = ins.get(0);
-    if (!classValue.isConstClass()) {
-      return null;
-    }
-    DexType holderType = classValue.getConstInstruction().asConstClass().getValue();
-    DexClass holder = appInfo.definitionFor(holderType);
-    if (holder == null) {
-      return null;
-    }
-    DexString dexString = in.getConstInstruction().asConstString().getValue();
-    DexItemBasedString itemBasedString = null;
-    int numOfParams = ins.size();
-    if (isReferenceFieldUpdater) {
-      Value fieldTypeValue = ins.get(1);
-      if (!fieldTypeValue.isConstClass()) {
+    if (in.isConstString()) {
+      Value classValue = ins.get(0);
+      if (!classValue.isConstClass()) {
         return null;
       }
-      DexType fieldType = fieldTypeValue.getConstInstruction().asConstClass().getValue();
-      itemBasedString = inferFieldInHolder(appInfo, holder, dexString.toString(), fieldType);
-    } else if (numOfParams == 2) {
-      itemBasedString = inferFieldInHolder(appInfo, holder, dexString.toString(), null);
-    } else {
+      DexType holderType = classValue.getConstInstruction().asConstClass().getValue();
+      DexClass holder = appInfo.definitionFor(holderType);
+      if (holder == null) {
+        return null;
+      }
+      DexString dexString = in.getConstInstruction().asConstString().getValue();
+      int numOfParams = ins.size();
+      if (isReferenceFieldUpdater) {
+        Value fieldTypeValue = ins.get(1);
+        if (!fieldTypeValue.isConstClass()) {
+          return null;
+        }
+        DexType fieldType = fieldTypeValue.getConstInstruction().asConstClass().getValue();
+        return inferFieldInHolder(holder, dexString.toString(), fieldType);
+      }
+      if (numOfParams == 2) {
+        return inferFieldInHolder(holder, dexString.toString(), null);
+      }
       assert numOfParams == 3;
       DexTypeList arguments =
           retrieveDexTypeListFromClassList(invoke, ins.get(2), appInfo.dexItemFactory);
       if (arguments == null) {
         return null;
       }
-      itemBasedString = inferMethodInHolder(appInfo, holder, dexString.toString(), arguments);
+      return inferMethodInHolder(holder, dexString.toString(), arguments);
     }
-    return itemBasedString;
+    if (in.isDexItemBasedConstString()) {
+      DexItemBasedConstString constString = in.getConstInstruction().asDexItemBasedConstString();
+      return constString.getItem();
+    }
+    return null;
   }
 
-  static DexItemBasedString inferMemberOrTypeFromNameString(
-      AppInfo appInfo, DexString dexString) {
+  static DexReference inferMemberOrTypeFromNameString(AppInfo appInfo, DexString dexString) {
     // "fully.qualified.ClassName.fieldOrMethodName"
     // "fully.qualified.ClassName#fieldOrMethodName"
-    DexItemBasedString itemBasedString = inferMemberFromNameString(appInfo, dexString);
+    DexReference itemBasedString = inferMemberFromNameString(appInfo, dexString);
     if (itemBasedString == null) {
       // "fully.qualified.ClassName"
       String maybeDescriptor = javaTypeToDescriptorIfValidJavaType(dexString.toString());
       if (maybeDescriptor != null) {
-        DexType type = appInfo.dexItemFactory.createType(maybeDescriptor);
-        itemBasedString = appInfo.dexItemFactory.createItemBasedString(type);
+        return appInfo.dexItemFactory.createType(maybeDescriptor);
       }
     }
     return itemBasedString;
   }
 
-  private static DexItemBasedString inferMemberFromNameString(
-      AppInfo appInfo, DexString dexString) {
+  private static DexReference inferMemberFromNameString(AppInfo appInfo, DexString dexString) {
     String identifier = dexString.toString();
     String typeIdentifier = null;
     String memberIdentifier = null;
@@ -249,77 +250,42 @@ public final class IdentifierNameStringUtils {
     if (holder == null) {
       return null;
     }
-    DexItemBasedString itemBasedString =
-        inferFieldInHolder(appInfo, holder, memberIdentifier, null);
+    DexReference itemBasedString = inferFieldInHolder(holder, memberIdentifier, null);
     if (itemBasedString == null) {
-      itemBasedString = inferMethodNameInHolder(appInfo, holder, memberIdentifier);
+      itemBasedString = inferMethodNameInHolder(holder, memberIdentifier);
     }
     return itemBasedString;
   }
 
-  private static DexItemBasedString inferFieldInHolder(
-      AppInfo appInfo, DexClass holder, String name, DexType fieldType) {
-    DexItemBasedString itemBasedString = null;
-    for (DexEncodedField encodedField : holder.staticFields()) {
+  private static DexReference inferFieldInHolder(DexClass holder, String name, DexType fieldType) {
+    for (DexEncodedField encodedField : holder.fields()) {
       if (encodedField.field.name.toString().equals(name)
           && (fieldType == null || encodedField.field.type == fieldType)) {
-        itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedField.field);
-        break;
+        return encodedField.field;
       }
     }
-    if (itemBasedString == null) {
-      for (DexEncodedField encodedField : holder.instanceFields()) {
-        if (encodedField.field.name.toString().equals(name)
-            && (fieldType == null || encodedField.field.type == fieldType)) {
-          itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedField.field);
-          break;
-        }
-      }
-    }
-    return itemBasedString;
+    return null;
   }
 
-  private static DexItemBasedString inferMethodNameInHolder(
-      AppInfo appInfo, DexClass holder, String name) {
-    DexItemBasedString itemBasedString = null;
-    for (DexEncodedMethod encodedMethod : holder.directMethods()) {
+  private static DexReference inferMethodNameInHolder(DexClass holder, String name) {
+    for (DexEncodedMethod encodedMethod : holder.methods()) {
       if (encodedMethod.method.name.toString().equals(name)) {
-        itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedMethod.method);
-        break;
+        return encodedMethod.method;
       }
     }
-    if (itemBasedString == null) {
-      for (DexEncodedMethod encodedMethod : holder.virtualMethods()) {
-        if (encodedMethod.method.name.toString().equals(name)) {
-          itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedMethod.method);
-          break;
-        }
-      }
-    }
-    return itemBasedString;
+    return null;
   }
 
-  private static DexItemBasedString inferMethodInHolder(
-      AppInfo appInfo, DexClass holder, String name, DexTypeList arguments) {
+  private static DexReference inferMethodInHolder(
+      DexClass holder, String name, DexTypeList arguments) {
     assert arguments != null;
-    DexItemBasedString itemBasedString = null;
-    for (DexEncodedMethod encodedMethod : holder.directMethods()) {
+    for (DexEncodedMethod encodedMethod : holder.methods()) {
       if (encodedMethod.method.name.toString().equals(name)
           && encodedMethod.method.proto.parameters.equals(arguments)) {
-        itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedMethod.method);
-        break;
+        return encodedMethod.method;
       }
     }
-    if (itemBasedString == null) {
-      for (DexEncodedMethod encodedMethod : holder.virtualMethods()) {
-        if (encodedMethod.method.name.toString().equals(name)
-            && encodedMethod.method.proto.parameters.equals(arguments)) {
-          itemBasedString = appInfo.dexItemFactory.createItemBasedString(encodedMethod.method);
-          break;
-        }
-      }
-    }
-    return itemBasedString;
+    return null;
   }
 
   private static DexType getTypeFromConstClassOrBoxedPrimitive(
