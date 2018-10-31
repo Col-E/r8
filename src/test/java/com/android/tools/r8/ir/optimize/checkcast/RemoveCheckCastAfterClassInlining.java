@@ -57,7 +57,7 @@ public class RemoveCheckCastAfterClassInlining extends TestBase {
     assertThat(
         classSubject.method("void", "load", ImmutableList.of(Lambda.Consumer.class.getName())),
         not(isPresent()));
-    assertEquals(2, numberOfConstStringInstructions);
+    assertEquals(1, numberOfConstStringInstructions);
   }
 }
 
