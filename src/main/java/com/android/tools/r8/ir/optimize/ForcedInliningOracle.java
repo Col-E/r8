@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
+import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import java.util.ListIterator;
 import java.util.Map;
@@ -78,13 +79,17 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
       IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {}
 
   @Override
-  public boolean exceededAllowance() {
-    return false; // Never exceeds allowance.
+  public boolean stillHasBudget() {
+    return true; // Unlimited allowance.
   }
 
   @Override
-  public void markInlined(IRCode inlinee) {
+  public boolean willExceedBudget(InlineeWithReason inlinee, BasicBlock block) {
+    return false; // Unlimited allowance.
   }
+
+  @Override
+  public void markInlined(InlineeWithReason inlinee) {}
 
   @Override
   public DexType getReceiverTypeIfKnown(InvokeMethod invoke) {
