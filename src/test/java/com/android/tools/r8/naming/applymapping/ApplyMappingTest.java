@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.naming.applymapping;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -21,6 +23,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
@@ -233,7 +236,11 @@ public class ApplyMappingTest extends TestBase {
 
     // Make sure the given proguard map is indeed applied.
     CodeInspector inspector = createDexInspector(outputApp);
-    MethodSubject main = inspector.clazz("naming001.D").method(CodeInspector.MAIN);
+    ClassSubject classD = inspector.clazz("naming001.D");
+    assertThat(classD, isPresent());
+    // D must not be renamed
+    assertEquals("naming001.D", classD.getFinalName());
+    MethodSubject main = classD.method(CodeInspector.MAIN);
     Iterator<InvokeInstructionSubject> iterator =
         main.iterateInstructions(InstructionSubject::isInvoke);
     // mapping-105 simply includes: naming001.D#keep -> peek
@@ -244,8 +251,6 @@ public class ApplyMappingTest extends TestBase {
     // E#keep() should be replaced with peek by applying the map.
     InvokeInstructionSubject m = iterator.next();
     assertEquals("peek", m.invokedMethod().name.toSourceString());
-    // D must not be renamed
-    assertEquals("naming001.D", m.holder().toString());
   }
 
   @Test

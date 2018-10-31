@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMEN
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -42,6 +43,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
 import com.android.tools.r8.ir.code.InvokeNewArray;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -149,6 +151,11 @@ public class LensCodeRewriter {
               graphLense.lookupMethod(invokedMethod, method, invoke.getType());
           DexMethod actualTarget = lenseLookup.getMethod();
           Invoke.Type actualInvokeType = lenseLookup.getType();
+          if (actualInvokeType == Type.VIRTUAL) {
+            actualTarget =
+                rebindVirtualInvokeToMostSpecific(
+                    actualTarget, invoke.inValues().get(0), method.method.holder);
+          }
           if (actualTarget != invokedMethod
               || invoke.getType() != actualInvokeType
               || lenseLookup.hasRemovedArguments()) {
@@ -470,5 +477,71 @@ public class LensCodeRewriter {
               + " arguments from "
               + method.toSourceString());
     }
+  }
+  
+  /**
+   * This rebinds invoke-virtual instructions to their most specific target.
+   *
+   * <p>As a simple example, consider the instruction "invoke-virtual A.foo(v0)", and assume that v0
+   * is defined by an instruction "new-instance v0, B". If B is a subtype of A, and B overrides the
+   * method foo(), then we rewrite the invocation into "invoke-virtual B.foo(v0)".
+   *
+   * <p>If A.foo() ends up being unused, this helps to ensure that we can get rid of A.foo()
+   * entirely. Without this rewriting, we would have to keep A.foo() because the method is targeted.
+   */
+  private DexMethod rebindVirtualInvokeToMostSpecific(
+      DexMethod target, Value receiver, DexType context) {
+    if (!receiver.getTypeLattice().isClassType()) {
+      return target;
+    }
+    DexEncodedMethod encodedTarget = appInfo.definitionFor(target);
+    if (encodedTarget == null
+        || !canInvokeTargetWithInvokeVirtual(encodedTarget)
+        || !hasAccessToInvokeTargetFromContext(encodedTarget, context)) {
+      // Don't rewrite this instruction as it could remove an error from the program.
+      return target;
+    }
+    DexType receiverType =
+        graphLense.lookupType(receiver.getTypeLattice().asClassTypeLatticeElement().getClassType());
+    if (receiverType == target.holder) {
+      // Virtual invoke is already as specific as it can get.
+      return target;
+    }
+    DexEncodedMethod newTarget = appInfo.lookupVirtualTarget(receiverType, target);
+    if (newTarget == null || newTarget.method == target) {
+      // Most likely due to a missing class, or invoke is already as specific as it gets.
+      return target;
+    }
+    if (!canInvokeTargetWithInvokeVirtual(newTarget)
+        || !hasAccessToInvokeTargetFromContext(newTarget, context)) {
+      // Not safe to invoke `newTarget` with virtual invoke from the current context.
+      return target;
+    }
+    return newTarget.method;
+  }
+
+  private boolean canInvokeTargetWithInvokeVirtual(DexEncodedMethod target) {
+    return target.isVirtualMethod() && !target.method.holder.isInterface();
+  }
+
+  private boolean hasAccessToInvokeTargetFromContext(DexEncodedMethod target, DexType context) {
+    assert !target.accessFlags.isPrivate();
+    DexType holder = target.method.holder;
+    if (holder == context) {
+      // It is always safe to invoke a method from the same enclosing class.
+      return true;
+    }
+    DexClass clazz = appInfo.definitionFor(holder);
+    if (clazz == null) {
+      // Conservatively report an illegal access.
+      return false;
+    }
+    if (holder.isSamePackage(context)) {
+      // The class must be accessible (note that we have already established that the method is not
+      // private).
+      return !clazz.accessFlags.isPrivate();
+    }
+    // If the method is in another package, then the method and its holder must be public.
+    return clazz.accessFlags.isPublic() && target.accessFlags.isPublic();
   }
 }

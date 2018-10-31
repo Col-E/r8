@@ -41,8 +41,10 @@ public class Value {
               origin,
               new MethodPosition(method)));
     }
-    type = meet;
-    typeLattice = meet.toTypeLattice();
+    if (type != meet) {
+      type = meet;
+      typeLattice = meet.toTypeLattice();
+    }
   }
 
   public void markNonDebugLocalRead() {

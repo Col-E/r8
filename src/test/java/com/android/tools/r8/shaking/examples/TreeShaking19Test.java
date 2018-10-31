@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,7 +39,6 @@ public class TreeShaking19Test extends TreeShakingTest {
     super("examples/shaking19", "shaking19.Shaking", frontend, backend, minify);
   }
 
-  @Ignore("b/111199171")
   @Test
   public void test() throws Exception {
     runTest(
