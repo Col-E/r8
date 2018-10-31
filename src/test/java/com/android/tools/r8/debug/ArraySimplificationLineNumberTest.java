@@ -17,7 +17,20 @@ public class ArraySimplificationLineNumberTest {
     return result;
   }
 
+  public int[] bar(boolean argument) {
+    int[] result;
+    if (argument) {
+      result = new int[2]; result[0] = 123;
+      result[1] = 456;
+    } else {
+      result = new int[2]; result[0] = 123;
+      result[1] = 456;
+    }
+    return result;
+  }
+
   public static void main(String[] args) {
     new ArraySimplificationLineNumberTest().foo(true);
+    new ArraySimplificationLineNumberTest().bar(true);
   }
 }

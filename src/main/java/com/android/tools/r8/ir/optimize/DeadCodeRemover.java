@@ -43,6 +43,9 @@ public class DeadCodeRemover {
       removeDeadInstructions(worklist, code, block, options);
       removeDeadPhis(worklist, block, options);
     }
+    // We may encounter unneeded catch handlers again, e.g., if a dead instruction (due to
+    // const-string canonicalization for example) is the only throwing instruction in a block.
+    removeUnneededCatchHandlers();
     assert code.isConsistentSSA();
     codeRewriter.rewriteMoveResult(code);
   }

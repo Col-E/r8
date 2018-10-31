@@ -1940,8 +1940,7 @@ public class CodeRewriter {
     for (int i = 0; i < blocks.size(); i++) {
       BasicBlock block = blocks.get(i);
       if (i == 0) {
-        // For the first block process all ConstNumber instructions
-        // as well as ConstString instructions having just one use.
+        // For the first block process all ConstNumber as well as ConstString instructions.
         shortenLiveRangesInsideBlock(
             code,
             block,
@@ -1949,7 +1948,7 @@ public class CodeRewriter {
             addConstantInBlock,
             insn ->
                 (insn.isConstNumber() && insn.outValue().numberOfAllUsers() != 0)
-                    || (insn.isConstString() && insn.outValue().numberOfAllUsers() == 1));
+                    || (insn.isConstString() && insn.outValue().numberOfAllUsers() != 0));
       } else {
         // For all following blocks only process ConstString with just one use.
         shortenLiveRangesInsideBlock(
@@ -2056,11 +2055,6 @@ public class CodeRewriter {
         if (block.hasCatchHandlers() || dominator.hasCatchHandlers()) {
           // Do not move the constant if the constant instruction can throw
           // and the dominator or the original block has catch handlers.
-          continue;
-        }
-        if (!dominator.isSimpleAlwaysThrowingPath()) {
-          // Only move string constants into blocks being part of simple
-          // always throwing path.
           continue;
         }
       }
