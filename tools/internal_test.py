@@ -189,8 +189,6 @@ def fetch_and_print_logs(hash):
 
 def run_bot():
   print_magic_file_state()
-  print("TODO(118647285): Reenable when bug fixed")
-  return
   # Ensure that there is nothing currently scheduled (broken/stopped run)
   for magic in ALL_MAGIC:
     if get_magic_file_exists(magic):
@@ -200,6 +198,8 @@ def run_bot():
   assert not get_magic_file_exists(READY_FOR_TESTING)
   git_hash = utils.get_HEAD_sha1()
   put_magic_file(READY_FOR_TESTING, git_hash)
+  print("TODO(118647285): Reenable when bug fixed")
+  return
   begin = time.time()
   while True:
     if time.time() - begin > BOT_RUN_TIMEOUT:
