@@ -132,7 +132,7 @@ public class IdentifierMinifierTest extends TestBase {
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
     int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
-    assertEquals(3, renamedYetFoundIdentifierCount);
+    assertEquals(4, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
     MethodSubject bar = aClass.method("void", "bar", ImmutableList.of());
@@ -155,7 +155,7 @@ public class IdentifierMinifierTest extends TestBase {
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
     int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
-    assertEquals(3, renamedYetFoundIdentifierCount);
+    assertEquals(4, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
     MethodSubject bar = aClass.method("void", "bar", ImmutableList.of());
@@ -245,7 +245,7 @@ public class IdentifierMinifierTest extends TestBase {
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
     int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
-    assertEquals(1, renamedYetFoundIdentifierCount);
+    assertEquals(2, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("identifiernamestring.A");
     MethodSubject aInit =
