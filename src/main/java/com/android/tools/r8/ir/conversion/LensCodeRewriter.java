@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY;
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
@@ -25,7 +26,6 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -183,42 +183,17 @@ public class LensCodeRewriter {
             }
             DexType actualReturnType = actualTarget.proto.returnType;
             DexType expectedReturnType = graphLense.lookupType(invokedMethod.proto.returnType);
-            if (invoke.outValue() == null || actualReturnType == expectedReturnType) {
-              Invoke newInvoke =
-                  Invoke.create(
-                      actualInvokeType, actualTarget, null, invoke.outValue(), newInValues);
-              iterator.replaceCurrentInstruction(newInvoke);
-            } else {
-              assert false
-                  : "Unexpected need to insert a cast. Possibly related to resolving b/79143143.";
-              // Create a new out value for the invoke. This will not have any debug info.
-              TypeLatticeElement newInvokeOutType =
-                  TypeLatticeElement.fromDexType(expectedReturnType, true, appInfo);
-              Value newInvokeOutValue = code.createValue(newInvokeOutType);
-              Invoke newInvoke =
-                  Invoke.create(
-                      actualInvokeType, actualTarget, null, newInvokeOutValue, newInValues);
-              // Create a cast from the actual type to the expected type.
-              // The cast out value potentially has debug info if the original invoke did.
-              TypeLatticeElement castOutType =
-                  TypeLatticeElement.fromDexType(expectedReturnType, true, appInfo);
-              Value castOutValue = code.createValue(castOutType, invoke.getLocalInfo());
-              CheckCast cast = new CheckCast(castOutValue, newInvokeOutValue, expectedReturnType);
-              cast.setPosition(current.getPosition());
-              // Add new SSA values for type propagation.
-              newSSAValues.add(newInvokeOutValue);
-              newSSAValues.add(castOutValue);
-              // Replace all original invoke users by the case value.
-              newInvoke.outValue().replaceUsers(castOutValue);
-              // Only then replace the current instruction (which has no users) with the new invoke.
-              iterator.replaceCurrentInstruction(newInvoke);
-              iterator.add(cast);
-              // If the current block has catch handlers split the check cast into its own block.
-              if (newInvoke.getBlock().hasCatchHandlers()) {
-                iterator.previous();
-                iterator.split(code, 1, blocks);
-              }
+            if (invoke.outValue() != null && actualReturnType != expectedReturnType) {
+              throw new Unreachable(
+                  "Unexpected need to insert a cast. Possibly related to resolving b/79143143.\n"
+                      + invokedMethod
+                      + " type changed from " + expectedReturnType
+                      + " to " + actualReturnType);
             }
+            Invoke newInvoke =
+                Invoke.create(
+                    actualInvokeType, actualTarget, null, invoke.outValue(), newInValues);
+            iterator.replaceCurrentInstruction(newInvoke);
           }
         } else if (current.isInstanceGet()) {
           InstanceGet instanceGet = current.asInstanceGet();
