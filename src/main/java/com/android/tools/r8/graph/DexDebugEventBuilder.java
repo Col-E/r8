@@ -245,16 +245,21 @@ public class DexDebugEventBuilder {
       // TODO(herhut): To be super clever, encode only the part that is above limit.
       lineDelta = 0;
     }
-    if (pcDelta >= Constants.DBG_ADDRESS_RANGE) {
+    int specialOpcode = computeSpecialOpcode(lineDelta, pcDelta);
+    if (specialOpcode > Constants.DBG_LAST_SPECIAL) {
       events.add(factory.createAdvancePC(pcDelta));
-      pcDelta = 0;
+      // TODO(herhut): To be super clever, encode only the part that is above limit.
+      specialOpcode = computeSpecialOpcode(lineDelta, 0);
     }
-    // TODO(herhut): Maybe only write this one if needed (would differ from DEX).
-    int specialOpcode =
-        0x0a + (lineDelta - Constants.DBG_LINE_BASE) + Constants.DBG_LINE_RANGE * pcDelta;
-    assert specialOpcode >= 0x0a;
-    assert specialOpcode <= 0xff;
+    assert specialOpcode >= Constants.DBG_FIRST_SPECIAL;
+    assert specialOpcode <= Constants.DBG_LAST_SPECIAL;
     events.add(factory.createDefault(specialOpcode));
+  }
+
+  private static int computeSpecialOpcode(int lineDelta, int pcDelta) {
+    return Constants.DBG_FIRST_SPECIAL
+        + (lineDelta - Constants.DBG_LINE_BASE)
+        + Constants.DBG_LINE_RANGE * pcDelta;
   }
 
   private static void emitLocalChangeEvents(
