@@ -279,7 +279,7 @@ public class ConstNumber extends ConstInstruction {
       case INT_OR_FLOAT:
         return TypeLatticeElement.SINGLE;
       case LONG_OR_DOUBLE:
-        return TypeLatticeElement.DOUBLE;
+        return TypeLatticeElement.WIDE;
       case INT_OR_FLOAT_OR_NULL:
         return TypeLatticeElement.BOTTOM;
       default:
