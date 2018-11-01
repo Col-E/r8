@@ -114,6 +114,10 @@ public class InternalOptions {
   public int inliningInstructionLimit = 3;
   // This defines how many instructions of inlinees we can inlinee overall.
   public int inliningInstructionAllowance = 1500;
+  // Maximum number of control flow resolution blocks that setup the register state before
+  // the actual catch handler allowed when inlining. Threshold found empirically by testing on
+  // GMS Core.
+  public int inliningControlFlowResolutionBlocksThreshold = 15;
   public boolean enableSwitchMapRemoval = true;
   public final OutlineOptions outline = new OutlineOptions();
   public boolean enableValuePropagation = true;

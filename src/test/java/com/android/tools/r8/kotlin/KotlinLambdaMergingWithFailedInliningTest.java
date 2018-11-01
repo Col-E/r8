@@ -5,7 +5,6 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class KotlinLambdaMergingWithFailedInliningTest extends AbstractR8KotlinTestBase {
@@ -19,11 +18,9 @@ public class KotlinLambdaMergingWithFailedInliningTest extends AbstractR8KotlinT
         o.inliningInstructionAllowance = 3;
       };
 
-  @Ignore("b/118067353")
-  @Test(timeout=8000)
+  @Test
   public void testJStyleRunnable() throws Exception {
     final String mainClassName = "lambdas_jstyle_runnable.MainKt";
     runTest("lambdas_jstyle_runnable", mainClassName, optionsModifier, null);
   }
-
 }
