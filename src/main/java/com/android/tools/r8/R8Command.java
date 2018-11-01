@@ -641,7 +641,7 @@ public final class R8Command extends BaseCompilerCommand {
 
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;
-    internal.minimalMainDex = internal.debug;
+    internal.minimalMainDex = getMode() == CompilationMode.DEBUG;
     internal.mainDexListConsumer = mainDexListConsumer;
     internal.lineNumberOptimization =
         !internal.debug && (proguardConfiguration.isOptimizing() || internal.enableMinification)
