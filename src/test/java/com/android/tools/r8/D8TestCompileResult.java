@@ -4,9 +4,10 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 
-public class D8TestCompileResult extends TestCompileResult {
+public class D8TestCompileResult extends TestCompileResult<D8TestRunResult> {
   D8TestCompileResult(TestState state, AndroidApp app) {
     super(state, app);
   }
@@ -14,5 +15,10 @@ public class D8TestCompileResult extends TestCompileResult {
   @Override
   public Backend getBackend() {
     return Backend.DEX;
+  }
+
+  @Override
+  public D8TestRunResult createRunResult(AndroidApp app, ProcessResult result) {
+    return new D8TestRunResult(app, result);
   }
 }

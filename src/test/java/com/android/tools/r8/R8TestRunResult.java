@@ -1,38 +1,31 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
+
 package com.android.tools.r8;
 
-import com.android.tools.r8.TestBase.Backend;
+import static org.junit.Assert.assertNotNull;
+
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-public class R8TestCompileResult extends TestCompileResult<R8TestRunResult> {
+public class R8TestRunResult extends TestRunResult {
 
-  private final Backend backend;
   private final String proguardMap;
 
-  R8TestCompileResult(TestState state, Backend backend, AndroidApp app, String proguardMap) {
-    super(state, app);
-    this.backend = backend;
+  public R8TestRunResult(AndroidApp app, ProcessResult result, String proguardMap) {
+    super(app, result);
     this.proguardMap = proguardMap;
   }
 
   @Override
-  public Backend getBackend() {
-    return backend;
-  }
-
-  @Override
   public CodeInspector inspector() throws IOException, ExecutionException {
+    // See comment in base class.
+    assertSuccess();
+    assertNotNull(app);
     return new CodeInspector(app, proguardMap);
-  }
-
-  @Override
-  public R8TestRunResult createRunResult(AndroidApp app, ProcessResult result) {
-    return new R8TestRunResult(app, result, proguardMap);
   }
 }
