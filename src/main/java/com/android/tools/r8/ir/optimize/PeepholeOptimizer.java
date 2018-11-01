@@ -229,10 +229,10 @@ public class PeepholeOptimizer {
   }
 
   /**
-   * If two predecessors have the same code and successors. Replace one of them with an
-   * empty block with a goto to the other.
+   * If two predecessors have the same code and successors. Replace one of them with an empty block
+   * with a goto to the other.
    */
-  private static void removeIdenticalPredecessorBlocks(IRCode code, RegisterAllocator allocator) {
+  public static void removeIdenticalPredecessorBlocks(IRCode code, RegisterAllocator allocator) {
     BasicBlockInstructionsEquivalence equivalence =
         new BasicBlockInstructionsEquivalence(code, allocator);
     // Locate one block at a time that has identical predecessors. Rewrite those predecessors and
@@ -255,6 +255,7 @@ public class PeepholeOptimizer {
             BasicBlock otherPred = block.getPredecessors().get(otherPredIndex);
             assert !allocator.getOptions().debug
                 || Objects.equals(pred.getPosition(), otherPred.getPosition());
+            allocator.mergeBlocks(otherPred, pred);
             pred.clearCatchHandlers();
             pred.getInstructions().clear();
             equivalence.clearComputedHash(pred);

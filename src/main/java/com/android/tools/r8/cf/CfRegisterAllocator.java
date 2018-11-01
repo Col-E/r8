@@ -25,6 +25,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,9 +46,22 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   private final IRCode code;
   private final InternalOptions options;
+  private final TypeVerificationHelper typeHelper;
 
   // Mapping from basic blocks to the set of values live at entry to that basic block.
   private Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets;
+
+  public static class TypesAtBlockEntry {
+    public final Int2ReferenceMap<TypeInfo> registers;
+    public final List<TypeInfo> stack; // Last item is the top.
+
+    TypesAtBlockEntry(Int2ReferenceMap<TypeInfo> registers, List<TypeInfo> stack) {
+      this.registers = registers;
+      this.stack = stack;
+    }
+  };
+
+  private final Map<BasicBlock, TypesAtBlockEntry> lazyTypeInfoAtBlockEntry = new HashMap<>();
 
   // List of all top-level live intervals for all SSA values.
   private final List<LiveIntervals> liveIntervals = new ArrayList<>();
@@ -68,9 +82,11 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   private int maxRegisterNumber = 0;
 
-  public CfRegisterAllocator(IRCode code, InternalOptions options) {
+  public CfRegisterAllocator(
+      IRCode code, InternalOptions options, TypeVerificationHelper typeHelper) {
     this.code = code;
     this.options = options;
+    this.typeHelper = typeHelper;
   }
 
   @Override
@@ -263,22 +279,53 @@ public class CfRegisterAllocator implements RegisterAllocator {
     liveAtEntrySets.get(block).liveValues.addAll(phis);
   }
 
-  public Int2ReferenceMap<TypeInfo> getTypeInfoAtBlockEntry(
-      BasicBlock block, TypeVerificationHelper typeHelper) {
-    Set<Value> liveValues = liveAtEntrySets.get(block).liveValues;
-    Int2ReferenceMap<TypeInfo> typesMap = new Int2ReferenceOpenHashMap<>(liveValues.size());
-    for (Value liveValue : liveValues) {
-      typesMap.put(getRegisterForValue(liveValue), typeHelper.getTypeInfo(liveValue));
-    }
-    return typesMap;
+  public TypesAtBlockEntry getTypesAtBlockEntry(BasicBlock block) {
+    return lazyTypeInfoAtBlockEntry.computeIfAbsent(
+        block,
+        k -> {
+          Set<Value> liveValues = liveAtEntrySets.get(k).liveValues;
+          Int2ReferenceMap<TypeInfo> registers = new Int2ReferenceOpenHashMap<>(liveValues.size());
+          for (Value liveValue : liveValues) {
+            registers.put(getRegisterForValue(liveValue), typeHelper.getTypeInfo(liveValue));
+          }
+
+          Deque<StackValue> liveStackValues = liveAtEntrySets.get(k).liveStackValues;
+          List<TypeInfo> stack = new ArrayList<>(liveStackValues.size());
+          stack = new ArrayList<>(liveStackValues.size());
+          for (StackValue value : liveStackValues) {
+            stack.add(typeHelper.getTypeInfo(value));
+          }
+          return new TypesAtBlockEntry(registers, stack);
+        });
   }
 
-  public List<TypeInfo> getStackAtBlockEntry(BasicBlock block, TypeVerificationHelper typeHelper) {
-    Deque<StackValue> liveStackValues = liveAtEntrySets.get(block).liveStackValues;
-    List<TypeInfo> typesList = new ArrayList<>(liveStackValues.size());
-    for (StackValue value : liveStackValues) {
-      typesList.add(typeHelper.getTypeInfo(value));
+  @Override
+  public void mergeBlocks(BasicBlock kept, BasicBlock removed) {
+    TypesAtBlockEntry typesOfKept = getTypesAtBlockEntry(kept);
+    TypesAtBlockEntry typesOfRemoved = getTypesAtBlockEntry(removed);
+
+    // Join types of registers (= JVM local variables).
+    assert typesOfKept.registers.size() == typesOfRemoved.registers.size();
+    for (Int2ReferenceMap.Entry<TypeInfo> keptEntry :
+        typesOfKept.registers.int2ReferenceEntrySet()) {
+      int register = keptEntry.getIntKey();
+      TypeInfo keptTypeInfo = keptEntry.getValue();
+      TypeInfo removedTypeInfo = typesOfRemoved.registers.get(register);
+      assert removedTypeInfo != null;
+      TypeInfo joinedTypeInfo = typeHelper.join(keptTypeInfo, removedTypeInfo);
+      if (joinedTypeInfo != keptTypeInfo) {
+        typesOfKept.registers.put(register, joinedTypeInfo);
+      }
     }
-    return typesList;
+
+    // Join types of stack elements.
+    assert typesOfKept.stack.size() == typesOfRemoved.stack.size();
+    for (int i = 0; i < typesOfKept.stack.size(); ++i) {
+      TypeInfo keptTypeInfo = typesOfKept.stack.get(i);
+      TypeInfo joinedTypeInfo = typeHelper.join(keptTypeInfo, typesOfRemoved.stack.get(i));
+      if (joinedTypeInfo != keptTypeInfo) {
+        typesOfKept.stack.set(i, joinedTypeInfo);
+      }
+    }
   }
 }

@@ -30,7 +30,7 @@ public class ShareCommonCodeOnDistinctPositionsTestRunner extends TestBase {
 
   private static final Class CLASS = ShareCommonCodeOnDistinctPositionsTest.class;
 
-  @Parameters
+  @Parameters(name = "Backend: {0}")
   public static Backend[] parameters() {
     return Backend.values();
   }
@@ -63,8 +63,7 @@ public class ShareCommonCodeOnDistinctPositionsTestRunner extends TestBase {
     // Check that the two lines have been shared, e.g., there may be only one multiplication left.
     assertEquals(
         "Expected only one multiplcation due to instruction sharing.",
-        // TODO(b/117539423): Implement support for sharing optimizations in the CF backend.
-        backend == Backend.DEX ? 1 : 2,
+        1,
         Streams.stream(method.iterateInstructions())
             .filter(InstructionSubject::isMultiplication)
             .count());

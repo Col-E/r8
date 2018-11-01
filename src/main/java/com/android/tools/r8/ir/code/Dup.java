@@ -66,7 +66,7 @@ public class Dup extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    throw new Unreachable();
+    return other.isDup();
   }
 
   @Override

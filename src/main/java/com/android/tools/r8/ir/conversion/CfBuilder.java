@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -44,6 +45,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
+import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.peepholes.BasicBlockMuncher;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -57,12 +59,15 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
 public class CfBuilder {
+
+  private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
 
   private final DexItemFactory factory;
   private final DexEncodedMethod method;
@@ -112,6 +117,11 @@ public class CfBuilder {
       assert value instanceof StackValue;
       height -= value.requiredRegisters();
     }
+
+    void setHeight(int height) {
+      assert height <= maxHeight;
+      this.height = height;
+    }
   }
 
   public CfBuilder(DexEncodedMethod method, IRCode code, DexItemFactory factory) {
@@ -141,9 +151,15 @@ public class CfBuilder {
     loadStoreHelper.insertLoadsAndStores();
     BasicBlockMuncher muncher = new BasicBlockMuncher();
     muncher.optimize(code);
-    registerAllocator = new CfRegisterAllocator(code, options);
+    registerAllocator = new CfRegisterAllocator(code, options, typeVerificationHelper);
     registerAllocator.allocateRegisters();
     loadStoreHelper.insertPhiMoves(registerAllocator);
+
+    for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
+      CodeRewriter.collapsTrivialGotos(method, code);
+      PeepholeOptimizer.removeIdenticalPredecessorBlocks(code, registerAllocator);
+    }
+
     CodeRewriter.collapsTrivialGotos(method, code);
     DexBuilder.removeRedundantDebugPositions(code);
     CfCode code = buildCfCode();
@@ -247,6 +263,15 @@ public class CfBuilder {
     }
   }
 
+  private int stackHeightAtBlockEntry(BasicBlock block) {
+    int height = 0;
+    for (TypeInfo type : registerAllocator.getTypesAtBlockEntry(block).stack) {
+      DexType dexType = type.getDexType();
+      height += dexType.isDoubleType() || dexType.isLongType() ? 2 : 1;
+    }
+    return height;
+  }
+
   private CfCode buildCfCode() {
     StackHeightTracker stackHeightTracker = new StackHeightTracker();
     List<CfTryCatch> tryCatchRanges = new ArrayList<>();
@@ -254,11 +279,12 @@ public class CfBuilder {
     emittedLabels = new HashSet<>(code.blocks.size());
     newInstanceLabels = new HashMap<>(initializers.size());
     instructions = new ArrayList<>();
-    ListIterator<BasicBlock> blockIterator = code.listIterator();
+    Iterator<BasicBlock> blockIterator = code.blocks.iterator();
     BasicBlock block = blockIterator.next();
     CfLabel tryCatchStart = null;
     CatchHandlers<BasicBlock> tryCatchHandlers = CatchHandlers.EMPTY_BASIC_BLOCK;
     boolean previousFallthrough = false;
+
     do {
       CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
       if (!tryCatchHandlers.equals(handlers)) {
@@ -294,11 +320,18 @@ public class CfBuilder {
         pendingLocals = new Int2ReferenceOpenHashMap<>(locals);
         pendingLocalChanges = true;
       }
+
+      // Continue
+      stackHeightTracker.setHeight(stackHeightAtBlockEntry(block));
+
       buildCfInstructions(block, nextBlock, fallthrough, stackHeightTracker);
+
+      assert !block.exit().isReturn() || stackHeightTracker.isEmpty();
+
       block = nextBlock;
       previousFallthrough = fallthrough;
     } while (block != null);
-    assert stackHeightTracker.isEmpty();
+
     CfLabel endLabel = ensureLabel();
     for (LocalVariableInfo info : openLocalVariables.values()) {
       info.setEnd(endLabel);
@@ -455,7 +488,7 @@ public class CfBuilder {
   }
 
   private void addFrame(BasicBlock block) {
-    List<TypeInfo> stack = registerAllocator.getStackAtBlockEntry(block, typeVerificationHelper);
+    List<TypeInfo> stack = registerAllocator.getTypesAtBlockEntry(block).stack;
     List<FrameType> stackTypes;
     if (block.entry().isMoveException()) {
       assert stack.isEmpty();
@@ -468,8 +501,7 @@ public class CfBuilder {
       }
     }
 
-    Int2ReferenceMap<TypeInfo> locals =
-        registerAllocator.getTypeInfoAtBlockEntry(block, typeVerificationHelper);
+    Int2ReferenceMap<TypeInfo> locals = registerAllocator.getTypesAtBlockEntry(block).registers;
     Int2ReferenceSortedMap<FrameType> mapping = new Int2ReferenceAVLTreeMap<>();
     for (Entry<TypeInfo> local : locals.int2ReferenceEntrySet()) {
       mapping.put(local.getIntKey(), getFrameType(block, local.getValue()));

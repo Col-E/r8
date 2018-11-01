@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
@@ -41,6 +42,11 @@ public class IdenticalAfterRegisterAllocationTest {
     @Override
     public InternalOptions getOptions() {
       return new InternalOptions();
+    }
+
+    @Override
+    public void mergeBlocks(BasicBlock kept, BasicBlock removed) {
+      // Intentionally empty, we don't need to track merging in this allocator.
     }
   }
 

@@ -93,4 +93,11 @@ public class Store extends Instruction {
   public boolean canBeDeadCode(IRCode code, InternalOptions options) {
     return !(outValue instanceof FixedLocalValue);
   }
+
+  @Override
+  public boolean needsValueInRegister(Value value) {
+    assert value == src();
+    assert src() instanceof StackValue;
+    return false;
+  }
 }

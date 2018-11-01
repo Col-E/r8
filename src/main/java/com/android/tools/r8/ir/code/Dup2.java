@@ -79,7 +79,7 @@ public class Dup2 extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    throw new Unreachable();
+    return other.isDup2();
   }
 
   @Override

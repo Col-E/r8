@@ -3096,4 +3096,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
     return builder.toString();
   }
+
+  @Override
+  public void mergeBlocks(BasicBlock kept, BasicBlock removed) {
+    // Intentionally empty, we don't need to track merging in this allocator.
+  }
 }

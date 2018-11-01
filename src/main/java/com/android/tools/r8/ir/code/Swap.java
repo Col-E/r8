@@ -60,7 +60,7 @@ public class Swap extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    throw new Unreachable();
+    return other.isSwap();
   }
 
   @Override

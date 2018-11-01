@@ -31,6 +31,11 @@ public class FixedLocalValue extends Value {
   }
 
   @Override
+  public boolean needsRegister() {
+    return true;
+  }
+
+  @Override
   public boolean isConstant() {
     return false;
   }

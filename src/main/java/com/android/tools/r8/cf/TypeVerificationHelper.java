@@ -16,8 +16,10 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Value;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -86,6 +88,7 @@ public class TypeVerificationHelper {
   private final AppInfo appInfo;
 
   private Map<Value, TypeInfo> types;
+  private Map<NewInstance, NewInstanceInfo> newInstanceInfos = new IdentityHashMap<>();
 
   // Flag to indicate that we are computing types in the fixed point.
   private boolean computingVerificationTypes = false;
@@ -175,6 +178,24 @@ public class TypeVerificationHelper {
             types.stream().map(DexType::toSourceString).collect(Collectors.toList())));
   }
 
+  public TypeInfo join(TypeInfo info1, TypeInfo info2) {
+    if (info1 == info2) {
+      return info1;
+    }
+
+    DexType type1 = info1.getDexType();
+    DexType type2 = info2.getDexType();
+
+    if ((info1 instanceof InitializedTypeInfo)
+        && (info2 instanceof InitializedTypeInfo)
+        && type1 == type2) {
+      return info1;
+    }
+
+    assert !type1.isPrimitiveType() && !type2.isPrimitiveType();
+    return createInitializedType(join(ImmutableSet.of(type1, type2)));
+  }
+
   private TypeLatticeElement getLatticeElement(DexType type) {
     return TypeLatticeElement.fromDexType(type, true, appInfo);
   }
@@ -215,7 +236,9 @@ public class TypeVerificationHelper {
         assert !instruction.isArgument();
         if (instruction.outValue() != null) {
           if (instruction.isNewInstance()) {
-            types.put(instruction.outValue(), new NewInstanceInfo(instruction.asNewInstance()));
+            NewInstanceInfo newInstanceInfo =
+                newInstanceInfos.computeIfAbsent(instruction.asNewInstance(), NewInstanceInfo::new);
+            types.put(instruction.outValue(), newInstanceInfo);
             addUsers(instruction.outValue(), worklist);
           } else if (instruction.outType().isObject()) {
             Value outValue = instruction.outValue();

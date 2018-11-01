@@ -346,22 +346,42 @@ public abstract class Instruction {
   }
 
   private boolean identicalInputAfterRegisterAllocation(
-      Value a, int aInstrNumber, Instruction bInstr, Value b, int bInstrNumber,
+      Value a,
+      int aInstrNumber,
+      Instruction bInstr,
+      Value b,
+      int bInstrNumber,
       RegisterAllocator allocator) {
+    boolean aIsStackValue = a instanceof StackValue;
+    boolean aIsStackValues = a instanceof StackValues;
+
+    if (aIsStackValue != b instanceof StackValue || aIsStackValues != b instanceof StackValues) {
+      return false;
+    }
+
+    if (aIsStackValue) {
+      return identicalStackValuePair((StackValue) a, (StackValue) b);
+    }
+
+    if (aIsStackValues) {
+      return identicalStackValuesPair((StackValues) a, (StackValues) b);
+    }
+
     if (needsValueInRegister(a) != bInstr.needsValueInRegister(b)) {
       return false;
     }
+
     // If the value is needed in a register or one of the instructions is a two-addr instruction,
     // the register for the value is used and it needs to be the same.
     if (needsValueInRegister(a) || isTwoAddr(allocator) || bInstr.isTwoAddr(allocator)) {
-      // Only one of the instructions have a register assigned and one of them will use a register,
-      // so the instructions are not identical.
+      // Only one of the instructions have a register assigned and one of them will use a
+      // register, so the instructions are not identical.
       if (!a.needsRegister() || !b.needsRegister()) {
         return false;
       }
       // Check if the allocated registers are identical.
-      if (allocator.getRegisterForValue(a, aInstrNumber) !=
-          allocator.getRegisterForValue(b, bInstrNumber)) {
+      if (allocator.getRegisterForValue(a, aInstrNumber)
+          != allocator.getRegisterForValue(b, bInstrNumber)) {
         return false;
       }
     } else {
@@ -371,20 +391,34 @@ public abstract class Instruction {
         return false;
       }
     }
-    if (a.outType() != b.outType()) {
-      return false;
-    }
-    return true;
+
+    return a.outType() == b.outType();
   }
 
   private boolean identicalOutputAfterRegisterAllocation(
       Value a, int aInstrNumber, Value b, int bInstrNumber, RegisterAllocator allocator) {
+    boolean aIsStackValue = a instanceof StackValue;
+    boolean aIsStackValues = a instanceof StackValues;
+
+    if (aIsStackValue != b instanceof StackValue || aIsStackValues != b instanceof StackValues) {
+      return false;
+    }
+
+    if (aIsStackValue) {
+      return identicalStackValuePair((StackValue) a, (StackValue) b);
+    }
+
+    if (aIsStackValues) {
+      return identicalStackValuesPair((StackValues) a, (StackValues) b);
+    }
+
     if (a.needsRegister() != b.needsRegister()) {
       return false;
     }
+
     if (a.needsRegister()) {
-      if (allocator.getRegisterForValue(a, aInstrNumber) !=
-          allocator.getRegisterForValue(b, bInstrNumber)) {
+      if (allocator.getRegisterForValue(a, aInstrNumber)
+          != allocator.getRegisterForValue(b, bInstrNumber)) {
         return false;
       }
     } else {
@@ -394,10 +428,8 @@ public abstract class Instruction {
         return false;
       }
     }
-    if (a.outType() != b.outType()) {
-      return false;
-    }
-    return true;
+
+    return a.outType() == b.outType();
   }
 
   public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
@@ -436,6 +468,24 @@ public abstract class Instruction {
       Value in1 = other.inValues.get(j);
       if (!identicalInputAfterRegisterAllocation(in0, getNumber(), other, in1, other.getNumber(),
           allocator)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean identicalStackValuePair(StackValue a, StackValue b) {
+    return a.getHeight() == b.getHeight() && a.outType() == b.outType();
+  }
+
+  private boolean identicalStackValuesPair(StackValues a, StackValues b) {
+    StackValue[] aStackValues = a.getStackValues();
+    StackValue[] bStackValues = b.getStackValues();
+    if (aStackValues.length != bStackValues.length) {
+      return false;
+    }
+    for (int i = 0; i < aStackValues.length; ++i) {
+      if (!identicalStackValuePair(aStackValues[i], bStackValues[i])) {
         return false;
       }
     }

@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.TestBase;
@@ -58,8 +57,7 @@ public class IdenticalCatchHandlerTest extends TestBase {
     assertEquals(1, countCatchHandlers(outputDexApp));
     AndroidApp outputCfApp =
         ToolHelper.runR8WithProgramConsumer(inputApp, ClassFileConsumer.emptyConsumer());
-    // TODO(b/80514966): Change to assertEquals when fixed.
-    assertNotEquals(1, countCatchHandlers(outputCfApp));
+    assertEquals(1, countCatchHandlers(outputCfApp));
   }
 
   private int countCatchHandlers(AndroidApp inputApp) throws Exception {
