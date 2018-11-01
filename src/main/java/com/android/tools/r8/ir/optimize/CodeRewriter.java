@@ -1678,7 +1678,12 @@ public class CodeRewriter {
     return converter.definitionFor(type);
   }
 
-  public void removeTrivialCheckCastAndInstanceOfInstructions(IRCode code) {
+  public void removeTrivialCheckCastAndInstanceOfInstructions(
+      IRCode code, boolean enableWholeProgramOptimizations) {
+    if (!enableWholeProgramOptimizations) {
+      return;
+    }
+
     InstructionIterator it = code.instructionIterator();
     boolean needToRemoveTrivialPhis = false;
     while (it.hasNext()) {
