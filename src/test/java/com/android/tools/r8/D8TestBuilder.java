@@ -14,7 +14,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class D8TestBuilder
-    extends TestCompilerBuilder<D8Command, Builder, D8TestCompileResult, D8TestBuilder> {
+    extends TestCompilerBuilder<
+        D8Command, Builder, D8TestCompileResult, D8TestRunResult, D8TestBuilder> {
 
   private D8TestBuilder(TestState state, Builder builder) {
     super(state, builder, Backend.DEX);

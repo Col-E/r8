@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -15,7 +16,7 @@ import java.io.PrintStream;
 import java.util.concurrent.ExecutionException;
 
 public class TestRunResult {
-  private final AndroidApp app;
+  protected final AndroidApp app;
   private final ProcessResult result;
 
   public TestRunResult(AndroidApp app, ProcessResult result) {
@@ -45,6 +46,12 @@ public class TestRunResult {
     assertSuccess();
     assertNotNull(app);
     return new CodeInspector(app);
+  }
+
+  public TestRunResult inspect(Consumer<CodeInspector> consumer)
+      throws IOException, ExecutionException {
+    consumer.accept(inspector());
+    return this;
   }
 
   private String errorMessage(String message) {

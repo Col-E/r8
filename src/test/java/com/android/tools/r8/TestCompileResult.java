@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 
-public abstract class TestCompileResult {
+public abstract class TestCompileResult<RR extends TestRunResult> {
   final TestState state;
   public final AndroidApp app;
 
@@ -29,11 +29,13 @@ public abstract class TestCompileResult {
 
   public abstract Backend getBackend();
 
-  public TestRunResult run(Class<?> mainClass) throws IOException {
+  protected abstract RR createRunResult(AndroidApp add, ProcessResult result);
+
+  public RR run(Class<?> mainClass) throws IOException {
     return run(mainClass.getTypeName());
   }
 
-  public TestRunResult run(String mainClass) throws IOException {
+  public RR run(String mainClass) throws IOException {
     switch (getBackend()) {
       case DEX:
         return runArt(mainClass);
@@ -53,9 +55,9 @@ public abstract class TestCompileResult {
     return new CodeInspector(app);
   }
 
-  public TestCompileResult inspect(Consumer<CodeInspector> consumer)
+  public TestCompileResult<RR> inspect(Consumer<CodeInspector> consumer)
       throws IOException, ExecutionException {
-    consumer.accept(new CodeInspector(app));
+    consumer.accept(inspector());
     return this;
   }
 
@@ -83,17 +85,17 @@ public abstract class TestCompileResult {
     }
   }
 
-  private TestRunResult runJava(String mainClass) throws IOException {
+  private RR runJava(String mainClass) throws IOException {
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.ClassFile);
     ProcessResult result = ToolHelper.runJava(out, mainClass);
-    return new TestRunResult(app, result);
+    return createRunResult(app, result);
   }
 
-  private TestRunResult runArt(String mainClass) throws IOException {
+  private RR runArt(String mainClass) throws IOException {
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.DexIndexed);
     ProcessResult result = ToolHelper.runArtRaw(out.toString(), mainClass);
-    return new TestRunResult(app, result);
+    return createRunResult(app, result);
   }
 }

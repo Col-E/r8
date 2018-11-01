@@ -60,8 +60,8 @@ public abstract class UnusedArgumentsTestBase extends TestBase {
         .enableInliningAnnotations()
         .addOptionsModification(InternalOptions::enableUnusedArgumentRemoval)
         .compile()
-        .inspect(this::inspect)
         .run(getTestClass())
+        .inspect(this::inspect)
         .assertSuccessWithOutput(getExpectedResult());
   }
 }

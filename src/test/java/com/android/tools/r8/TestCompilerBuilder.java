@@ -19,8 +19,9 @@ import java.util.function.Supplier;
 public abstract class TestCompilerBuilder<
         C extends BaseCompilerCommand,
         B extends BaseCompilerCommand.Builder<C, B>,
-        R extends TestCompileResult,
-        T extends TestCompilerBuilder<C, B, R, T>>
+        CR extends TestCompileResult<RR>,
+        RR extends TestRunResult,
+        T extends TestCompilerBuilder<C, B, CR, RR, T>>
     extends TestBuilder<T> {
 
   public static final Consumer<InternalOptions> DEFAULT_OPTIONS =
@@ -48,7 +49,7 @@ public abstract class TestCompilerBuilder<
 
   abstract T self();
 
-  abstract R internalCompile(
+  abstract CR internalCompile(
       B builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException;
 
@@ -57,7 +58,7 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
-  public R compile() throws CompilationFailedException {
+  public CR compile() throws CompilationFailedException {
     AndroidAppConsumers sink = new AndroidAppConsumers();
     builder.setProgramConsumer(sink.wrapProgramConsumer(programConsumer));
     if (defaultLibrary != null) {
