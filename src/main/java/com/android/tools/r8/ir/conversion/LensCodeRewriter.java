@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -158,7 +159,7 @@ public class LensCodeRewriter {
           if (actualTarget != invokedMethod
               || invoke.getType() != actualInvokeType
               || lenseLookup.hasRemovedArguments()) {
-            List<Value> inValues = invoke.inValues();
+            List<Value> newInValues;
             if (lenseLookup.hasRemovedArguments()) {
               if (Log.ENABLED) {
                 Log.info(
@@ -170,29 +171,47 @@ public class LensCodeRewriter {
                         + " arguments removed");
               }
               // Remove removed arguments from the invoke.
-              List<Value> newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
-              for (int i = 0; i < inValues.size(); i++) {
+              newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
+              for (int i = 0; i < invoke.inValues().size(); i++) {
                 if (!lenseLookup.isArgumentRemoved(i)) {
-                  newInValues.add(inValues.get(i));
+                  newInValues.add(invoke.inValues().get(i));
                 }
               }
               assert newInValues.size() == actualTarget.proto.parameters.size();
-              inValues = newInValues;
+            } else {
+              newInValues = invoke.inValues();
             }
-            Invoke newInvoke =
-                Invoke.create(actualInvokeType, actualTarget, null, invoke.outValue(), inValues);
-            iterator.replaceCurrentInstruction(newInvoke);
-            // Fix up the return type if needed.
-            if (actualTarget.proto.returnType != invokedMethod.proto.returnType
-                && newInvoke.outValue() != null) {
-              Value newValue = makeOutValue(newInvoke, code, newSSAValues);
-              newInvoke.outValue().replaceUsers(newValue);
-              CheckCast cast =
-                  new CheckCast(
-                      newValue,
-                      newInvoke.outValue(),
-                      graphLense.lookupType(invokedMethod.proto.returnType));
+            DexType actualReturnType = actualTarget.proto.returnType;
+            DexType expectedReturnType = graphLense.lookupType(invokedMethod.proto.returnType);
+            if (invoke.outValue() == null || actualReturnType == expectedReturnType) {
+              Invoke newInvoke =
+                  Invoke.create(
+                      actualInvokeType, actualTarget, null, invoke.outValue(), newInValues);
+              iterator.replaceCurrentInstruction(newInvoke);
+            } else {
+              assert false
+                  : "Unexpected need to insert a cast. Possibly related to resolving b/79143143.";
+              // Create a new out value for the invoke. This will not have any debug info.
+              TypeLatticeElement newInvokeOutType =
+                  TypeLatticeElement.fromDexType(expectedReturnType, true, appInfo);
+              Value newInvokeOutValue = code.createValue(newInvokeOutType);
+              Invoke newInvoke =
+                  Invoke.create(
+                      actualInvokeType, actualTarget, null, newInvokeOutValue, newInValues);
+              // Create a cast from the actual type to the expected type.
+              // The cast out value potentially has debug info if the original invoke did.
+              TypeLatticeElement castOutType =
+                  TypeLatticeElement.fromDexType(expectedReturnType, true, appInfo);
+              Value castOutValue = code.createValue(castOutType, invoke.getLocalInfo());
+              CheckCast cast = new CheckCast(castOutValue, newInvokeOutValue, expectedReturnType);
               cast.setPosition(current.getPosition());
+              // Add new SSA values for type propagation.
+              newSSAValues.add(newInvokeOutValue);
+              newSSAValues.add(castOutValue);
+              // Replace all original invoke users by the case value.
+              newInvoke.outValue().replaceUsers(castOutValue);
+              // Only then replace the current instruction (which has no users) with the new invoke.
+              iterator.replaceCurrentInstruction(newInvoke);
               iterator.add(cast);
               // If the current block has catch handlers split the check cast into its own block.
               if (newInvoke.getBlock().hasCatchHandlers()) {
