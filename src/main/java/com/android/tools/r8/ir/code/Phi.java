@@ -50,6 +50,11 @@ public class Phi extends Value {
     this.block = block;
     this.readType = readType;
     block.addPhi(this);
+    // TODO(b/72693244): this is to avoid losing ValueType for Phi.
+    // The underlying issue is conversion between ValueType and TypeLatticeElement.
+    if (!typeLattice.isPreciseType()) {
+      this.typeLattice = TypeLatticeElement.BOTTOM;
+    }
   }
 
   @Override

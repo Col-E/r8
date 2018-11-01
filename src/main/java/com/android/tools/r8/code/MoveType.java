@@ -30,6 +30,19 @@ public enum  MoveType {
     }
   }
 
+  public static MoveType fromTypeLattice(TypeLatticeElement typeLattice) {
+    if (typeLattice.isReference()) {
+      return OBJECT;
+    }
+    if (typeLattice.isSingle()) {
+      return SINGLE;
+    }
+    if (typeLattice.isWide()) {
+      return WIDE;
+    }
+    throw new Unreachable("Unexpected type lattice: " + typeLattice);
+  }
+
   public TypeLatticeElement toTypeLattice() {
     switch (this) {
       case SINGLE:

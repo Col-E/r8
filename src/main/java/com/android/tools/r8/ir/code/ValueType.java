@@ -228,8 +228,9 @@ public enum ValueType {
       case LONG_OR_DOUBLE:
         return TypeLatticeElement.WIDE;
       case INT_OR_FLOAT_OR_NULL:
-      default:
         return TypeLatticeElement.BOTTOM;
+      default:
+        throw new Unreachable("Invalid value type '" + this + "'");
     }
   }
 }

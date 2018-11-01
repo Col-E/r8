@@ -57,10 +57,12 @@ public class Return extends JumpInstruction {
           assert returnValue().outType().isObject();
           return new ReturnObject(register);
         case SINGLE:
-          assert returnValue().outType().isSingle();
+          assert returnValue().outType().isSingle()
+              || returnValue().getTypeLattice().isNull();
           return new com.android.tools.r8.code.Return(register);
         case WIDE:
-          assert returnValue().outType().isWide();
+          assert returnValue().outType().isWide()
+              || returnValue().getTypeLattice().isNull();
           return new ReturnWide(register);
         default:
           throw new Unreachable();

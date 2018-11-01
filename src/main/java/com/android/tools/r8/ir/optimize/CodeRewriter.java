@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsageBuilder;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -2725,7 +2726,10 @@ public class CodeRewriter {
         }
       }
     }
-    code.removeUnreachableBlocks();
+    Set<Value> affectedValues = code.removeUnreachableBlocks();
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
+    }
     assert code.isConsistentSSA();
   }
 

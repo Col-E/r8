@@ -411,15 +411,21 @@ public class Inliner {
     }
 
     public InlineeWithReason buildInliningIR(
+        DexEncodedMethod context,
         ValueNumberGenerator generator,
         AppView<? extends AppInfoWithSubtyping> appView,
         InternalOptions options,
         Position callerPosition) {
       // Build the IR for a yet not processed method, and perform minimal IR processing.
       Origin origin = appView.appInfo().originFor(target.method.holder);
-      IRCode code =
-          target.buildInliningIR(
-              appView.appInfo(), appView.graphLense(), options, generator, callerPosition, origin);
+      IRCode code = target.buildInliningIR(
+          context,
+          appView.appInfo(),
+          appView.graphLense(),
+          options,
+          generator,
+          callerPosition,
+          origin);
       if (!target.isProcessed()) {
         new LensCodeRewriter(appView, options).rewrite(code, target);
       }
@@ -582,7 +588,7 @@ public class Inliner {
   }
 
   private void performInliningImpl(
-      InliningStrategy strategy, InliningOracle oracle, DexEncodedMethod method, IRCode code) {
+      InliningStrategy strategy, InliningOracle oracle, DexEncodedMethod context, IRCode code) {
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
@@ -595,7 +601,7 @@ public class Inliner {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
-          InlineAction result = invoke.computeInlining(oracle, method.method.holder);
+          InlineAction result = invoke.computeInlining(oracle, context.method.holder);
           if (result != null) {
             if (!(strategy.stillHasBudget() || result.reason.mustBeInlined())) {
               continue;
@@ -604,15 +610,14 @@ public class Inliner {
             Position invokePosition = invoke.getPosition();
             if (invokePosition.method == null) {
               assert invokePosition.isNone();
-              invokePosition = Position.noneWithMethod(method.method, null);
+              invokePosition = Position.noneWithMethod(context.method, null);
             }
             assert invokePosition.callerPosition == null
                 || invokePosition.getOutermostCaller().method
-                    == converter.graphLense().getOriginalMethodSignature(method.method);
+                    == converter.graphLense().getOriginalMethodSignature(context.method);
 
-            InlineeWithReason inlinee =
-                result.buildInliningIR(code.valueNumberGenerator, appView, options, invokePosition);
-
+            InlineeWithReason inlinee = result.buildInliningIR(
+                context, code.valueNumberGenerator, appView, options, invokePosition);
             if (inlinee != null) {
               if (strategy.willExceedBudget(inlinee, block)) {
                 continue;
@@ -637,12 +642,12 @@ public class Inliner {
               strategy.updateTypeInformationIfNeeded(inlinee.code, blockIterator, block);
 
               // If we inlined the invoke from a bridge method, it is no longer a bridge method.
-              if (method.accessFlags.isBridge()) {
-                method.accessFlags.unsetSynthetic();
-                method.accessFlags.unsetBridge();
+              if (context.accessFlags.isBridge()) {
+                context.accessFlags.unsetSynthetic();
+                context.accessFlags.unsetBridge();
               }
 
-              method.copyMetadataFromInlinee(target);
+              context.copyMetadataFromInlinee(target);
               code.copyMetadataFromInlinee(inlinee.code);
             }
           }

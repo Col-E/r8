@@ -211,11 +211,13 @@ public class CfCode extends Code {
       InternalOptions options,
       Origin origin) {
     assert getOwner() == encodedMethod;
-    return internalBuild(encodedMethod, appInfo, graphLense, options, null, null, origin);
+    return internalBuild(
+        encodedMethod, encodedMethod, appInfo, graphLense, options, null, null, origin);
   }
 
   @Override
   public IRCode buildInliningIR(
+      DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
       GraphLense graphLense,
@@ -227,10 +229,18 @@ public class CfCode extends Code {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     return internalBuild(
-        encodedMethod, appInfo, graphLense, options, valueNumberGenerator, callerPosition, origin);
+        context,
+        encodedMethod,
+        appInfo,
+        graphLense,
+        options,
+        valueNumberGenerator,
+        callerPosition,
+        origin);
   }
 
   private IRCode internalBuild(
+      DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
       GraphLense graphLense,
@@ -250,7 +260,7 @@ public class CfCode extends Code {
             graphLense.getOriginalMethodSignature(encodedMethod.method),
             callerPosition,
             origin);
-    return new IRBuilder(encodedMethod, appInfo, source, options, origin, generator).build();
+    return new IRBuilder(encodedMethod, appInfo, source, options, origin, generator).build(context);
   }
 
   @Override

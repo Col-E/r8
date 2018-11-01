@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -443,7 +444,7 @@ public class IRCode {
     assert consistentDefUseChains();
     assert validThrowingInstructions();
     assert noCriticalEdges();
-    assert noBottomTypeLatticeLeft();
+    assert noBottomOrTopTypeLatticeLeft();
     return true;
   }
 
@@ -647,24 +648,43 @@ public class IRCode {
     return true;
   }
 
-  private boolean noBottomTypeLatticeLeft() {
-    return verifySSATypeLattice(lattice -> !lattice.isBottom());
+  private boolean noBottomOrTopTypeLatticeLeft() {
+    return verifySSATypeLattice(v -> {
+      TypeLatticeElement lattice = v.getTypeLattice();
+      if (v.definition != null) {
+        if (v.definition.isConstNumber()) {
+          return !lattice.isTop();
+        }
+        if (v.definition.isArrayGet()
+            && !v.definition.asArrayGet().array().getTypeLattice().isArrayType()) {
+          return !lattice.isTop();
+        }
+      }
+      if (v.isPhi()) {
+        if (lattice.isTop()) {
+          boolean foundNull = false;
+          boolean foundPrimitive = false;
+          for (Value operand : v.asPhi().getOperands()) {
+            foundNull |= operand.getTypeLattice().isNull();
+            foundPrimitive |= operand.getTypeLattice().isPrimitive();
+          }
+          return foundNull && foundPrimitive;
+        }
+      }
+      return !lattice.isBottom() && !lattice.isTop();
+    });
   }
 
-  private boolean noImpreciseTypeLatticeLeft() {
-    return verifySSATypeLattice(TypeLatticeElement::isPreciseType);
-  }
-
-  private boolean verifySSATypeLattice(Predicate<TypeLatticeElement> tester) {
+  private boolean verifySSATypeLattice(Predicate<Value> tester) {
     for (BasicBlock block : blocks) {
       for (Instruction instruction : block.getInstructions()) {
         Value outValue = instruction.outValue();
         if (outValue != null) {
-          assert tester.test(outValue.getTypeLattice());
+          assert tester.test(outValue);
         }
       }
       for (Phi phi : block.getPhis()) {
-        assert tester.test(phi.getTypeLattice());
+        assert tester.test(phi);
       }
     }
     return true;
@@ -828,7 +848,8 @@ public class IRCode {
     return usedMarkingColors == 0;
   }
 
-  public void removeUnreachableBlocks() {
+  public Set<Value> removeUnreachableBlocks() {
+    ImmutableSet.Builder<Value> affectedValueBuilder = ImmutableSet.builder();
     int color = reserveMarkingColor();
     Queue<BasicBlock> worklist = new ArrayDeque<>();
     worklist.add(blocks.getFirst());
@@ -848,10 +869,11 @@ public class IRCode {
     while (blockIterator.hasNext()) {
       BasicBlock current = blockIterator.next();
       if (!current.isMarked(color)) {
-        current.cleanForRemoval();
+        affectedValueBuilder.addAll(current.cleanForRemoval());
         blockIterator.remove();
       }
     }
     returnMarkingColor(color);
+    return affectedValueBuilder.build();
   }
 }

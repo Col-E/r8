@@ -327,6 +327,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       InternalOptions options, ValueNumberGenerator valueNumberGenerator, AppInfo appInfo) {
     checkIfObsolete();
     return buildInliningIR(
+        this,
         appInfo,
         GraphLense.getIdentityLense(),
         options,
@@ -342,6 +343,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public IRCode buildInliningIR(
+      DexEncodedMethod context,
       AppInfo appInfo,
       GraphLense graphLense,
       InternalOptions options,
@@ -350,7 +352,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       Origin origin) {
     checkIfObsolete();
     return code.buildInliningIR(
-        this, appInfo, graphLense, options, valueNumberGenerator, callerPosition, origin);
+        context, this, appInfo, graphLense, options, valueNumberGenerator, callerPosition, origin);
   }
 
   public void setCode(Code code) {

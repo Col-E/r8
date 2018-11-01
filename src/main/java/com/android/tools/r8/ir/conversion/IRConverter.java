@@ -27,7 +27,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
 import com.android.tools.r8.ir.code.AlwaysMaterializingUser;
@@ -831,7 +830,6 @@ public class IRConverter {
     if (options.enableInlining && inliner != null) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       assert !options.debug;
-      new TypeAnalysis(appInfo, method).widening(method, code);
       inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
     }
     if (!options.debug) {

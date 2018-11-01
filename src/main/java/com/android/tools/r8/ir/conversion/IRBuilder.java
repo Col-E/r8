@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
@@ -373,6 +374,7 @@ public class IRBuilder {
 
   final private ValueNumberGenerator valueNumberGenerator;
   private final DexEncodedMethod method;
+  private DexEncodedMethod context;
   private final AppInfo appInfo;
   private final Origin origin;
 
@@ -453,11 +455,15 @@ public class IRBuilder {
   /**
    * Build the high-level IR in SSA form.
    *
+   * @param context Under what context this IRCode is built. Either the current method or caller.
+   *
    * @return The list of basic blocks. First block is the main entry.
    */
-  public IRCode build() {
+  public IRCode build(DexEncodedMethod context) {
     assert source != null;
     source.setUp();
+
+    this.context = context;
 
     // Create entry block (at a non-targetable address).
     BlockInfo initialBlockInfo = new BlockInfo();
@@ -562,15 +568,7 @@ public class IRBuilder {
       resolver.resolve(ir, this);
     }
 
-    // TODO(b/72693244): Remove this once we compute a proper fixed point.
-    for (BasicBlock block : blocks) {
-      for (Instruction instruction : block.getInstructions()) {
-        if (instruction.outValue() != null && instruction.outValue().getTypeLattice().isBottom()) {
-          assert instruction.outType() == ValueType.OBJECT;
-          instruction.outValue().widening(appInfo, TypeLatticeElement.REFERENCE);
-        }
-      }
-    }
+    new TypeAnalysis(appInfo, context).widening(method, ir);
 
     assert ir.isConsistentSSA();
 
@@ -771,12 +769,12 @@ public class IRBuilder {
 
   public void addThisArgument(int register) {
     DebugLocalInfo local = getOutgoingLocal(register);
-    // TODO(b/72693244): Update nullability if this is for building inlinee's IR.
+    boolean receiverCouldBeNull = context != null && context != method;
     TypeLatticeElement receiver =
-        TypeLatticeElement.fromDexType(method.method.getHolder(), false, appInfo);
+        TypeLatticeElement.fromDexType(method.method.getHolder(), receiverCouldBeNull, appInfo);
     Value value = writeRegister(register, receiver, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
-    value.markAsThis();
+    value.markAsThis(receiverCouldBeNull);
   }
 
   public void addNonThisArgument(int register, TypeLatticeElement typeLattice) {
@@ -1841,7 +1839,6 @@ public class IRBuilder {
         value = getUninitializedDebugLocalValue(register, type);
       } else {
         DebugLocalInfo local = getIncomingLocalAtBlock(register, block);
-        // TODO(b/72693244): Use BOTTOM, then run type analysis at the end of IR building.
         Phi phi = new Phi(
             valueNumberGenerator.next(), block, type.toTypeLattice(), local, readType);
         if (!block.isSealed()) {

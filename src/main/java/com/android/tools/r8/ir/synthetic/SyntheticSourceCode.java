@@ -185,7 +185,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
               TypeLatticeElement.fromDexType(receiver, false, builder.getAppInfo()),
               NO_THROW);
       builder.add(new Argument(receiverValue));
-      receiverValue.markAsThis();
+      receiverValue.markAsThis(false);
     }
 
     // Fill in the Argument instructions in the argument block.
