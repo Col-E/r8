@@ -187,6 +187,7 @@ public class LazyCfCode extends Code {
 
   @Override
   public IRCode buildInliningIR(
+      DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
       GraphLense graphLense,
@@ -197,6 +198,7 @@ public class LazyCfCode extends Code {
     assert getOwner() == encodedMethod;
     return asCfCode()
         .buildInliningIR(
+            context,
             encodedMethod,
             appInfo,
             graphLense,

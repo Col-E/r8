@@ -43,7 +43,10 @@ public class Value {
     }
     if (type != meet) {
       type = meet;
-      typeLattice = meet.toTypeLattice();
+      TypeLatticeElement newTypeLattice = type.toTypeLattice();
+      if (newTypeLattice.isPreciseType()) {
+        typeLattice = newTypeLattice;
+      }
     }
   }
 
@@ -137,7 +140,7 @@ public class Value {
   private boolean knownToBeBoolean = false;
   private LongInterval valueRange;
   private DebugData debugData;
-  private TypeLatticeElement typeLattice;
+  protected TypeLatticeElement typeLattice;
 
   public Value(int number, TypeLatticeElement typeLattice, DebugLocalInfo local) {
     this.number = number;
@@ -674,11 +677,13 @@ public class Value {
     return knownToBeBoolean;
   }
 
-  public void markAsThis() {
+  public void markAsThis(boolean receiverCanBeNull) {
     assert isArgument;
     assert !isThis;
     isThis = true;
-    markNeverNull();
+    if (!receiverCanBeNull) {
+      markNeverNull();
+    }
   }
 
   /**
@@ -769,6 +774,11 @@ public class Value {
     //    : "During WIDENING, " + newType + " < " + typeLattice
     //    + " at " + (isPhi() ? asPhi().printPhi() : definition.toString());
     typeLattice = newType;
+    // TODO(b/72693244): if type analysis can't figure out precise info, we need imprecise info
+    // from the original input bytecode?
+    if (!type.isPreciseType() && typeLattice.isPreciseType()) {
+      type = ValueType.fromTypeLattice(typeLattice);
+    }
   }
 
   public void narrowing(AppInfo appInfo, TypeLatticeElement newType) {
@@ -779,6 +789,11 @@ public class Value {
     //    : "During NARROWING, " + typeLattice + " < " + newType
     //    + " at " + (isPhi() ? asPhi().printPhi() : definition.toString());
     typeLattice = newType;
+    // TODO(b/72693244): if type analysis can't figure out precise info, we need imprecise info
+    // from the original input bytecode?
+    if (!type.isPreciseType() && typeLattice.isPreciseType()) {
+      type = ValueType.fromTypeLattice(typeLattice);
+    }
   }
 
   public TypeLatticeElement getTypeLattice() {

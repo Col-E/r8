@@ -673,7 +673,8 @@ public class BasicBlock {
     return removedBlocks;
   }
 
-  public void cleanForRemoval() {
+  public Set<Value> cleanForRemoval() {
+    ImmutableSet.Builder<Value> affectValuesBuilder = ImmutableSet.builder();
     for (BasicBlock block : successors) {
       block.removePredecessor(this);
     }
@@ -683,14 +684,16 @@ public class BasicBlock {
     }
     predecessors.clear();
     for (Phi phi : getPhis()) {
+      affectValuesBuilder.addAll(phi.affectedValues());
       for (Value operand : phi.getOperands()) {
         operand.removePhiUser(phi);
       }
     }
     getPhis().clear();
     for (Instruction instruction : getInstructions()) {
-      if (instruction.outValue != null) {
-        instruction.outValue.clearUsers();
+      if (instruction.outValue() != null) {
+        affectValuesBuilder.addAll(instruction.outValue().affectedValues());
+        instruction.outValue().clearUsers();
         instruction.setOutValue(null);
       }
       for (Value value : instruction.inValues) {
@@ -700,6 +703,7 @@ public class BasicBlock {
         value.removeDebugUser(instruction);
       }
     }
+    return affectValuesBuilder.build();
   }
 
   public void linkCatchSuccessors(List<DexType> guards, List<BasicBlock> targets) {

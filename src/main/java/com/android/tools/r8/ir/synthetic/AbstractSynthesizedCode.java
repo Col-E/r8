@@ -44,11 +44,12 @@ public abstract class AbstractSynthesizedCode extends Code {
       Origin origin) {
     assert getOwner() == encodedMethod;
     return new IRBuilder(encodedMethod, appInfo, getSourceCodeProvider().get(null), options, origin)
-        .build();
+        .build(encodedMethod);
   }
 
   @Override
   public IRCode buildInliningIR(
+      DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
       GraphLense graphLense,
@@ -65,7 +66,7 @@ public abstract class AbstractSynthesizedCode extends Code {
             options,
             origin,
             valueNumberGenerator);
-    return builder.build();
+    return builder.build(context);
   }
 
   @Override

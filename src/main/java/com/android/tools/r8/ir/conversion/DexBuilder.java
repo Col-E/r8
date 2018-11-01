@@ -1240,7 +1240,7 @@ public class DexBuilder {
     @Override
     public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
       Move move = getMove();
-      MoveType moveType = MoveType.fromValueType(move.outType());
+      MoveType moveType = MoveType.fromTypeLattice(move.outValue().getTypeLattice());
       int src = builder.argumentOrAllocateRegister(move.src(), move.getNumber());
       int dest = builder.allocatedRegister(move.dest(), move.getNumber());
       Instruction instruction = null;

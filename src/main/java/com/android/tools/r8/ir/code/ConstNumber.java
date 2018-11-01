@@ -16,6 +16,7 @@ import com.android.tools.r8.code.ConstWide16;
 import com.android.tools.r8.code.ConstWide32;
 import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
@@ -280,8 +281,9 @@ public class ConstNumber extends ConstInstruction {
       case LONG_OR_DOUBLE:
         return TypeLatticeElement.DOUBLE;
       case INT_OR_FLOAT_OR_NULL:
-      default:
         return TypeLatticeElement.BOTTOM;
+      default:
+        throw new Unreachable("Invalid value type '" + outType() + "'");
     }
   }
 }

@@ -194,11 +194,12 @@ public class DexCode extends Code {
             null,
             appInfo);
     IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options, origin);
-    return builder.build();
+    return builder.build(encodedMethod);
   }
 
   @Override
   public IRCode buildInliningIR(
+      DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
       GraphLense graphLense,
@@ -216,7 +217,7 @@ public class DexCode extends Code {
             appInfo);
     IRBuilder builder =
         new IRBuilder(encodedMethod, appInfo, source, options, origin, valueNumberGenerator);
-    return builder.build();
+    return builder.build(context);
   }
 
   @Override

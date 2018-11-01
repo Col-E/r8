@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
@@ -17,7 +18,6 @@ import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -67,13 +67,13 @@ public class NonNullTracker {
     throw new Unreachable("Should conform to throwsOnNullInput.");
   }
 
-  public Set<Value> addNonNull(IRCode code) {
-    return addNonNullInPart(code, code.blocks.listIterator(), b -> true);
+  public void addNonNull(IRCode code) {
+    addNonNullInPart(code, code.blocks.listIterator(), b -> true);
   }
 
-  public Set<Value> addNonNullInPart(
+  public void addNonNullInPart(
       IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester) {
-    ImmutableSet.Builder<Value> nonNullValueCollector = ImmutableSet.builder();
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (!blockTester.test(block)) {
@@ -87,8 +87,9 @@ public class NonNullTracker {
           continue;
         }
         Value knownToBeNonNullValue = getNonNullInput(current);
+        TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
         // Avoid adding redundant non-null instruction.
-        if (knownToBeNonNullValue.isNeverNull()) {
+        if (knownToBeNonNullValue.isNeverNull() || !isNonNullCandidate(typeLattice)) {
           // Otherwise, we will have something like:
           // non_null_rcv <- non-null(rcv)
           // ...
@@ -152,10 +153,9 @@ public class NonNullTracker {
           // ...
           // A: non_null_rcv <- non-null(rcv)
           // ...y
-          Value nonNullValue =
-              code.createValue(
-                  knownToBeNonNullValue.getTypeLattice(), knownToBeNonNullValue.getLocalInfo());
-          nonNullValueCollector.add(nonNullValue);
+          Value nonNullValue = code.createValue(
+              typeLattice.asNonNullable(), knownToBeNonNullValue.getLocalInfo());
+          affectedValues.addAll(knownToBeNonNullValue.affectedValues());
           NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
           nonNull.setPosition(current.getPosition());
           if (blockWithNonNullInstruction != block) {
@@ -198,8 +198,9 @@ public class NonNullTracker {
         // ...
         If theIf = block.exit().asIf();
         Value knownToBeNonNullValue = theIf.inValues().get(0);
+        TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
         // Avoid adding redundant non-null instruction (or non-null of non-object types).
-        if (knownToBeNonNullValue.outType().isObject() && !knownToBeNonNullValue.isNeverNull()) {
+        if (!knownToBeNonNullValue.isNeverNull() && isNonNullCandidate(typeLattice)) {
           BasicBlock target = theIf.targetFromNonNullObject();
           // Ignore uncommon empty blocks.
           if (!target.isEmpty()) {
@@ -226,9 +227,8 @@ public class NonNullTracker {
               // Avoid adding a non-null for the value without meaningful users.
               if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
                 Value nonNullValue = code.createValue(
-                    knownToBeNonNullValue.getTypeLattice(),
-                    knownToBeNonNullValue.getLocalInfo());
-                nonNullValueCollector.add(nonNullValue);
+                    typeLattice.asNonNullable(), knownToBeNonNullValue.getLocalInfo());
+                affectedValues.addAll(knownToBeNonNullValue.affectedValues());
                 NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, theIf);
                 InstructionListIterator targetIterator = target.listIterator();
                 nonNull.setPosition(targetIterator.next().getPosition());
@@ -242,7 +242,9 @@ public class NonNullTracker {
         }
       }
     }
-    return nonNullValueCollector.build();
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
+    }
   }
 
   private IntList findDominatedPredecessorIndexesInPhi(
@@ -268,6 +270,16 @@ public class NonNullTracker {
       index++;
     }
     return predecessorIndexes;
+  }
+
+  private boolean isNonNullCandidate(TypeLatticeElement typeLattice) {
+    return
+        // v <- non-null NULL ?!
+        !typeLattice.isNull()
+        // v <- non-null known-to-be-non-null // redundant
+        && typeLattice.isNullable()
+        // e.g., v <- non-null INT ?!
+        && typeLattice.isReference();
   }
 
   public void cleanupNonNull(IRCode code) {

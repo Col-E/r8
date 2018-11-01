@@ -36,6 +36,7 @@ public abstract class Code extends CachedHashValueDexItem {
       Origin origin);
 
   public IRCode buildInliningIR(
+      DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
       AppInfo appInfo,
       GraphLense graphLense,

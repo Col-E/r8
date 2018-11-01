@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -27,7 +26,6 @@ import com.android.tools.r8.utils.IteratorUtils;
 import java.util.BitSet;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Set;
 import java.util.function.Predicate;
 
 final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
@@ -423,9 +421,8 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       assert IteratorUtils.peekNext(blockIterator) == block;
 
       // Kick off the tracker to add non-null IRs only to the inlinee blocks.
-      Set<Value> nonNullValues =
-          new NonNullTracker(appView.appInfo())
-              .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
+      new NonNullTracker(appView.appInfo())
+          .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
       assert !blockIterator.hasNext();
 
       // Restore the old state of the iterator.
@@ -433,8 +430,6 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
         // Do nothing.
       }
       assert IteratorUtils.peekNext(blockIterator) == state;
-      // TODO(b/72693244): could be done when Value is created.
-      new TypeAnalysis(inliner.appView.appInfo(), code.method).narrowing(nonNullValues);
     }
     // TODO(b/72693244): need a test where refined env in inlinee affects the caller.
   }

@@ -72,7 +72,7 @@ public class TypeAnalysis {
     }
   }
 
-  private void analyzeBasicBlock(DexEncodedMethod encodedMethod, BasicBlock block) {
+  public void analyzeBasicBlock(DexEncodedMethod encodedMethod, BasicBlock block) {
     int argumentsSeen = encodedMethod.accessFlags.isStatic() ? 0 : -1;
     for (Instruction instruction : block.getInstructions()) {
       Value outValue = instruction.outValue();
@@ -81,6 +81,10 @@ public class TypeAnalysis {
       }
       // The type for Argument, a quasi instruction, can be inferred from the method signature.
       if (instruction.isArgument()) {
+        // TODO(b/65810338): need a better way to cooperate with UnusedArguments lense.
+        if (argumentsSeen >= encodedMethod.method.proto.parameters.size()) {
+          continue;
+        }
         TypeLatticeElement derived;
         if (argumentsSeen < 0) {
           // Receiver
@@ -122,8 +126,6 @@ public class TypeAnalysis {
       return;
     }
 
-    // TODO(b/72693244): This means some newly added Instruction's out value has not updated ever.
-    // An initial type lattice should be set somehow, and this line should be an assertion instead.
     if (type.isBottom()) {
       return;
     }
