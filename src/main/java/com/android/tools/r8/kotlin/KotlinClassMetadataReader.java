@@ -32,11 +32,11 @@ final class KotlinClassMetadataReader {
       try {
         return createKotlinInfo(kotlin, clazz, meta);
       } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
-        reporter.warning(
+        reporter.info(
             new StringDiagnostic("Class " + clazz.type.toSourceString()
                 + " has malformed kotlin.Metadata: " + e.getMessage()));
       } catch (Throwable e) {
-        reporter.warning(
+        reporter.info(
             new StringDiagnostic("Unexpected error while reading " + clazz.type.toSourceString()
                 + "'s kotlin.Metadata: " + e.getMessage()));
       }
