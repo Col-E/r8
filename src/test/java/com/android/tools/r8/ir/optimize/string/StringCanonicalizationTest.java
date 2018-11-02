@@ -83,7 +83,7 @@ class MessageLoader {
         // Intentionally empty.
       }
     }
-    // Mimic Art596_app_imagesTest.
+    // Mimic part of Art596_app_imagesTest.
     {
       StringBuffer builder = new StringBuffer();
       builder.append("int");
@@ -94,6 +94,11 @@ class MessageLoader {
       System.out.println(intern != tmp);
       System.out.println(intern == StaticInternString.INTERN);
       System.out.println(StaticInternString.getIntern() == StaticInternString2.getIntern());
+    }
+    // Mimic part of Art624_checker_stringops.
+    {
+      StringBuffer s = new StringBuffer();
+      System.out.println(2 == s.append("x").append("x").length());
     }
   }
 
@@ -141,7 +146,8 @@ public class StringCanonicalizationTest extends TestBase {
       int expectedConstStringCount0,
       int expectedConstStringCount1,
       int expectedConstStringCount2,
-      int expectedInternCount) throws Exception {
+      int expectedInternCount,
+      int expectedStringOpsCount) throws Exception {
     String main = MessageLoader.class.getCanonicalName();
     String javaOutput = runOnJava(MessageLoader.class);
     String vmOutput = runOnVM(result.app, main, backend);
@@ -163,6 +169,9 @@ public class StringCanonicalizationTest extends TestBase {
     count = Streams.stream(mainMethod.iterateInstructions(
         i -> i.isConstString("intern", JumboStringMode.ALLOW))).count();
     assertEquals(expectedInternCount, count);
+    count = Streams.stream(mainMethod.iterateInstructions(
+        i -> i.isConstString("x", JumboStringMode.ALLOW))).count();
+    assertEquals(expectedStringOpsCount, count);
   }
 
 
@@ -175,13 +184,13 @@ public class StringCanonicalizationTest extends TestBase {
         .release()
         .addProgramClasses(classes)
         .compile();
-    test(result, 1, 1, 1, 1);
+    test(result, 1, 1, 1, 1, 1);
 
     result = testForD8()
         .debug()
         .addProgramClasses(classes)
         .compile();
-    test(result, 2, 1, 1, 1);
+    test(result, 2, 1, 1, 1, 1);
   }
 
   @Test
@@ -193,10 +202,10 @@ public class StringCanonicalizationTest extends TestBase {
         .addKeepMainRule(MessageLoader.class)
         .compile();
     if (backend == Backend.DEX) {
-      test(result, 1, 1, 1, 1);
+      test(result, 1, 1, 1, 1, 1);
     } else {
       // TODO(b/118235919): improve CF backend
-      test(result, 8, 8, 1, 1);
+      test(result, 8, 8, 1, 1, 2);
     }
   }
 
