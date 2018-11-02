@@ -647,7 +647,16 @@ public class ForceProguardCompatibilityTest extends TestBase {
     }
     Path proguardCompatibilityRules = temp.newFile().toPath();
     builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
-    AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
+    AndroidApp app =
+        ToolHelper.runR8(
+            builder.build(),
+            o -> {
+              o.enableClassInlining = false;
+
+              // Prevent InterfaceWithDefaultMethods from being merged into
+              // ClassImplementingInterface.
+              o.enableVerticalClassMerging = false;
+            });
     inspection.accept(new CodeInspector(app));
     // Check the Proguard compatibility configuration generated.
     ProguardConfigurationParser parser =
