@@ -205,7 +205,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
         register = getNextFreeRegister(wide);
         boolean overlapsInactiveInterval = false;
         for (LiveIntervals inactiveIntervals : inactive) {
-          if (unhandledInterval.hasConflictingRegisters(inactiveIntervals)
+          if (inactiveIntervals.usesRegister(register, wide)
               && unhandledInterval.overlaps(inactiveIntervals)) {
             overlapsInactiveInterval = true;
             break;
