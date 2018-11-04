@@ -382,15 +382,15 @@ public class DexItemFactory {
 
   public class ClassMethods {
 
-    public DexMethod desiredAssertionStatus;
-    public DexMethod forName;
-    public DexMethod getName;
-    public DexMethod getSimpleName;
-    public DexMethod getField;
-    public DexMethod getDeclaredField;
-    public DexMethod getMethod;
-    public DexMethod getDeclaredMethod;
-    private Set<DexMethod> getMembers;
+    public final DexMethod desiredAssertionStatus;
+    public final DexMethod forName;
+    public final DexMethod getName;
+    public final DexMethod getSimpleName;
+    public final DexMethod getField;
+    public final DexMethod getDeclaredField;
+    public final DexMethod getMethod;
+    public final DexMethod getDeclaredMethod;
+    private final Set<DexMethod> getMembers;
 
     private ClassMethods() {
       desiredAssertionStatus = createMethod(classDescriptor,
@@ -437,14 +437,14 @@ public class DexItemFactory {
    * E.g. for Boolean https://docs.oracle.com/javase/8/docs/api/java/lang/Boolean.html#TYPE.
    */
   public class PrimitiveTypesBoxedTypeFields {
-    public DexField booleanTYPE;
-    public DexField byteTYPE;
-    public DexField charTYPE;
-    public DexField shortTYPE;
-    public DexField intTYPE;
-    public DexField longTYPE;
-    public DexField floatTYPE;
-    public DexField doubleTYPE;
+    public final DexField booleanTYPE;
+    public final DexField byteTYPE;
+    public final DexField charTYPE;
+    public final DexField shortTYPE;
+    public final DexField intTYPE;
+    public final DexField longTYPE;
+    public final DexField floatTYPE;
+    public final DexField doubleTYPE;
 
     private final Map<DexField, DexType> boxedFieldTypeToPrimitiveType;
 
@@ -481,10 +481,10 @@ public class DexItemFactory {
    * Atomic(Integer|Long|Reference)FieldUpdater#newUpdater.
    */
   public class AtomicFieldUpdaterMethods {
-    public DexMethod intUpdater;
-    public DexMethod longUpdater;
-    public DexMethod referenceUpdater;
-    private Set<DexMethod> updaters;
+    public final DexMethod intUpdater;
+    public final DexMethod longUpdater;
+    public final DexMethod referenceUpdater;
+    private final Set<DexMethod> updaters;
 
     private AtomicFieldUpdaterMethods() {
       intUpdater =
