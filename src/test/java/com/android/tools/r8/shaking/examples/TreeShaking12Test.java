@@ -3,6 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.examples;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
+
 import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.shaking.TreeShakingTest;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -55,8 +59,11 @@ public class TreeShaking12Test extends TreeShakingTest {
   }
 
   private static void shaking12OnlyInstantiatedClassesHaveConstructors(CodeInspector inspector) {
+    // Since AnimalClass is never instantiated, the instruction "item instanceof AnimalClass" should
+    // be rewritten into the constant false. After this optimization, AnimalClass is removed because
+    // it is no longer reference.
     ClassSubject animalClass = inspector.clazz("shaking12.AnimalClass");
-    Assert.assertTrue(animalClass.isPresent());
+    assertThat(animalClass, not(isPresent()));
     Assert.assertFalse(animalClass.method("void", "<init>", Collections.emptyList()).isPresent());
     Assert.assertTrue(inspector.clazz("shaking12.MetaphorClass").isAbstract());
     ClassSubject peopleClass = inspector.clazz("shaking12.PeopleClass");
