@@ -198,7 +198,7 @@ public abstract class GraphLense {
     return new IdentityGraphLense();
   }
 
-  public static IntList getNoRemovedArguments() {
+  public static IntList emptyRemovedArguments() {
     return emptyIntList;
   }
 

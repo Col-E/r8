@@ -260,7 +260,15 @@ public class CfCode extends Code {
             graphLense.getOriginalMethodSignature(encodedMethod.method),
             callerPosition,
             origin);
-    return new IRBuilder(encodedMethod, appInfo, source, options, origin, generator).build(context);
+    return new IRBuilder(
+            encodedMethod,
+            appInfo,
+            source,
+            options,
+            origin,
+            generator,
+            GraphLense.emptyRemovedArguments())
+        .build(context);
   }
 
   @Override

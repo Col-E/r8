@@ -81,10 +81,6 @@ public class TypeAnalysis {
       }
       // The type for Argument, a quasi instruction, can be inferred from the method signature.
       if (instruction.isArgument()) {
-        // TODO(b/65810338): need a better way to cooperate with UnusedArguments lense.
-        if (argumentsSeen >= encodedMethod.method.proto.parameters.size()) {
-          continue;
-        }
         TypeLatticeElement derived;
         if (argumentsSeen < 0) {
           // Receiver
