@@ -149,8 +149,9 @@ public class ProguardTestBuilder
       }
       AndroidApp.Builder aaabuilder = AndroidApp.builder();
       aaabuilder.addProgramFiles(outJar);
-      return new ProguardTestCompileResult(
-          getState(), aaabuilder.build(), FileUtils.readTextFile(mapFile, Charsets.UTF_8));
+      String proguardMap =
+          Files.exists(mapFile) ? FileUtils.readTextFile(mapFile, Charsets.UTF_8) : "";
+      return new ProguardTestCompileResult(getState(), aaabuilder.build(), proguardMap);
     } catch (IOException e) {
       throw new CompilationFailedException(e);
     }
