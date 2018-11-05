@@ -8,16 +8,14 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class R8TestBuilder
-    extends TestCompilerBuilder<
+    extends TestShrinkerBuilder<
         R8Command, Builder, R8TestCompileResult, R8TestRunResult, R8TestBuilder> {
 
   private R8TestBuilder(TestState state, Builder builder, Backend backend) {
@@ -29,6 +27,7 @@ public class R8TestBuilder
   }
 
   private boolean enableInliningAnnotations = false;
+  private boolean enableMergeAnnotations = false;
 
   @Override
   R8TestBuilder self() {
@@ -39,7 +38,7 @@ public class R8TestBuilder
   R8TestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
-    if (enableInliningAnnotations) {
+    if (enableInliningAnnotations || enableMergeAnnotations) {
       ToolHelper.allowTestProguardOptions(builder);
     }
     StringBuilder proguardMapBuilder = new StringBuilder();
@@ -53,37 +52,10 @@ public class R8TestBuilder
     return self();
   }
 
-  public R8TestBuilder addKeepRules(String... rules) {
-    return addKeepRules(Arrays.asList(rules));
-  }
-
+  @Override
   public R8TestBuilder addKeepRules(Collection<String> rules) {
     builder.addProguardConfiguration(new ArrayList<>(rules), Origin.unknown());
     return self();
-  }
-
-  public R8TestBuilder addKeepAllClassesRule() {
-    addKeepRules("-keep class ** { *; }");
-    return self();
-  }
-
-  public R8TestBuilder addKeepClassRules(Class<?>... classes) {
-    for (Class<?> clazz : classes) {
-      addKeepRules("-keep class " + clazz.getTypeName());
-    }
-    return self();
-  }
-
-  public R8TestBuilder addKeepPackageRules(Package pkg) {
-    return addKeepRules("-keep class " + pkg.getName() + ".*");
-  }
-
-  public R8TestBuilder addKeepMainRule(Class<?> mainClass) {
-    return addKeepRules(
-        StringUtils.joinLines(
-            "-keep class " + mainClass.getTypeName() + " {",
-            "  public static void main(java.lang.String[]);",
-            "}"));
   }
 
   public R8TestBuilder enableInliningAnnotations() {
@@ -92,6 +64,15 @@ public class R8TestBuilder
       addKeepRules(
           "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
           "-neverinline class * { @com.android.tools.r8.NeverInline *; }");
+    }
+    return self();
+  }
+
+  public R8TestBuilder enableMergeAnnotations() {
+    if (!enableMergeAnnotations) {
+      enableMergeAnnotations = true;
+      addKeepRules(
+          "-nevermerge @com.android.tools.r8.NeverMerge class *");
     }
     return self();
   }

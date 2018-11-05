@@ -515,14 +515,14 @@ public class ToolHelper {
     }
   }
 
-  private static String getProguardScript() {
+  public static String getProguardScript() {
     if (isWindows()) {
       return PROGUARD + ".bat";
     }
     return PROGUARD + ".sh";
   }
 
-  private static String getProguard6Script() {
+  public static String getProguard6Script() {
     if (isWindows()) {
       return PROGUARD6_0_1 + ".bat";
     }
