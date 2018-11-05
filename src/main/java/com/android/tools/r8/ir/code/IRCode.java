@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
@@ -461,8 +462,8 @@ public class IRCode {
     return true;
   }
 
-  public boolean verifyTypes(AppInfo appInfo) {
-    assert blocks.stream().allMatch(block -> block.verifyTypes(appInfo));
+  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
+    assert blocks.stream().allMatch(block -> block.verifyTypes(appInfo, graphLense));
     return true;
   }
 

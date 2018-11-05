@@ -12,6 +12,7 @@ import com.android.tools.r8.code.MoveObjectFrom16;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -118,7 +119,9 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppInfo appInfo) {
+  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
+    assert super.verifyTypes(appInfo, graphLense);
+
     TypeLatticeElement inType = object().getTypeLattice();
 
     // TODO(b/72693244): There should never be a value with imprecise type lattice.
