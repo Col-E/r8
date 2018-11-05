@@ -34,9 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -69,8 +67,7 @@ public class R8InliningTest extends TestBase {
   private Path outputDir = null;
 
   public R8InliningTest(
-      String name, Backend backend, boolean minification, boolean allowAccessModification)
-      throws IOException {
+      String name, Backend backend, boolean minification, boolean allowAccessModification) {
     this.name = name.toLowerCase();
     this.keepRulesFile = ToolHelper.EXAMPLES_DIR + this.name + "/keep-rules.txt";
     this.backend = backend;
@@ -80,10 +77,6 @@ public class R8InliningTest extends TestBase {
 
   private Path getInputFile() {
     return Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, name + FileUtils.JAR_EXTENSION);
-  }
-
-  private Path getOriginalDexFile() {
-    return Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, name, DEFAULT_DEX_FILENAME);
   }
 
   private Path getGeneratedDexFile() {
@@ -113,8 +106,6 @@ public class R8InliningTest extends TestBase {
     return null;
   }
 
-  @Rule public ExpectedException thrown = ExpectedException.none();
-
   private void generateR8Version(Path out, Path mapFile, boolean inlining) throws Exception {
     assert backend == Backend.DEX || backend == Backend.CF;
     R8Command.Builder commandBuilder =
@@ -133,6 +124,7 @@ public class R8InliningTest extends TestBase {
       commandBuilder.addProguardConfiguration(
           ImmutableList.of("-allowaccessmodification"), Origin.unknown());
     }
+    ToolHelper.allowTestProguardOptions(commandBuilder);
     ToolHelper.runR8(
         commandBuilder.build(),
         o -> {

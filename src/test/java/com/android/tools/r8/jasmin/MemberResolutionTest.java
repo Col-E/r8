@@ -99,6 +99,50 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  public void lookupStaticFieldWithFieldGetFromNullReferenceDirectly() throws Exception {
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
+
+    ClassBuilder superClass = builder.addClass("SuperClass");
+    superClass.addDefaultConstructor();
+    superClass.addStaticFinalField("aField", "I", "42");
+
+    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
+    mainClass.addMainMethod(
+        ".limit stack 3",
+        ".limit locals 1",
+        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+        "  aconst_null",
+        "  getfield SuperClass/aField I",
+        "  invokevirtual java/io/PrintStream/print(I)V",
+        "  return");
+
+    ensureICCE(builder);
+  }
+
+  @Test
+  public void lookupStaticFieldWithFieldPutFromNullReference() throws Exception {
+    JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
+
+    ClassBuilder superClass = builder.addClass("SuperClass");
+    superClass.addDefaultConstructor();
+    superClass.addStaticFinalField("aField", "I", "42");
+
+    ClassBuilder subClass = builder.addClass("SubClass", "SuperClass");
+    subClass.addDefaultConstructor();
+
+    ClassBuilder mainClass = builder.addClass(MAIN_CLASS);
+    mainClass.addMainMethod(
+        ".limit stack 5",
+        ".limit locals 2",
+        "  aconst_null",
+        "  iconst_0",
+        "  putfield SubClass/aField I",
+        "  return");
+
+    ensureICCE(builder);
+  }
+
+  @Test
   public void lookupStaticFieldFromSupersInterfaceNotSupersSuper() throws Exception {
     JasminBuilder builder = new JasminBuilder(ClassFileVersion.JDK_1_4);
 

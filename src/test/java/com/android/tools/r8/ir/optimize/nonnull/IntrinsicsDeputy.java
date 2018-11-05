@@ -13,6 +13,12 @@ public class IntrinsicsDeputy {
     this.name = name;
   }
 
+  @NeverInline
+  public static IntrinsicsDeputy getInstance() {
+    // Trick to ensure that R8 cannot conclude that this method always returns null.
+    return System.currentTimeMillis() < 0 ? new IntrinsicsDeputy(null) : null;
+  }
+
   @Override
   public String toString() {
     return name;
@@ -46,7 +52,7 @@ public class IntrinsicsDeputy {
 
   @NeverInline
   static void checkNull() {
-    IntrinsicsDeputy nullObject = null;
+    IntrinsicsDeputy nullObject = getInstance();
     checkParameterIsNotNullDifferently(nullObject, "nullObject");
     // Dead code below.
     System.out.println(nullObject);

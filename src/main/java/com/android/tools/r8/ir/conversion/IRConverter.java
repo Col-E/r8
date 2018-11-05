@@ -52,6 +52,7 @@ import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
+import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
@@ -61,6 +62,7 @@ import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -118,6 +120,7 @@ public class IRConverter {
   private final Devirtualizer devirtualizer;
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
   private final StringOptimizer stringOptimizer;
+  private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
 
   public final boolean enableWholeProgramOptimizations;
 
@@ -164,26 +167,26 @@ public class IRConverter {
     this.enableWholeProgramOptimizations = appView != null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
+      AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
+      AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       this.nonNullTracker = new NonNullTracker(appInfo);
-      this.inliner = new Inliner(appView.withLiveness(), this, options);
-      this.outliner = new Outliner(appInfo.withLiveness(), options, this);
+      this.inliner = new Inliner(appViewWithLiveness, this, options);
+      this.outliner = new Outliner(appInfoWithLiveness, options, this);
       this.memberValuePropagation =
-          options.enableValuePropagation ?
-              new MemberValuePropagation(appInfo.withLiveness()) : null;
+          options.enableValuePropagation ? new MemberValuePropagation(appInfoWithLiveness) : null;
       this.lensCodeRewriter = new LensCodeRewriter(appView, options);
-      if (appInfo.hasLiveness()) {
-        if (!appInfo.withLiveness().identifierNameStrings.isEmpty() && options.enableMinification) {
-          this.identifierNameStringMarker =
-              new IdentifierNameStringMarker(appInfo.withLiveness(), options);
-        } else {
-          this.identifierNameStringMarker = null;
-        }
-        this.devirtualizer =
-            options.enableDevirtualization ? new Devirtualizer(appInfo.withLiveness()) : null;
+      if (!appInfoWithLiveness.identifierNameStrings.isEmpty() && options.enableMinification) {
+        this.identifierNameStringMarker =
+            new IdentifierNameStringMarker(appInfoWithLiveness, options);
       } else {
         this.identifierNameStringMarker = null;
-        this.devirtualizer = null;
       }
+      this.devirtualizer =
+          options.enableDevirtualization ? new Devirtualizer(appInfoWithLiveness) : null;
+      this.uninstantiatedTypeOptimization =
+          options.enableUninstantiatedTypeOptimization
+              ? new UninstantiatedTypeOptimization(appViewWithLiveness, options)
+              : null;
     } else {
       this.nonNullTracker = null;
       this.inliner = null;
@@ -192,6 +195,7 @@ public class IRConverter {
       this.lensCodeRewriter = null;
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
+      this.uninstantiatedTypeOptimization = null;
     }
     this.classInliner =
         (options.enableClassInlining && options.enableInlining && inliner != null)
@@ -542,6 +546,10 @@ public class IRConverter {
       identifierNameStringMarker.decoupleIdentifierNameStringsInFields();
     }
 
+    if (Log.ENABLED && uninstantiatedTypeOptimization != null) {
+      uninstantiatedTypeOptimization.logResults();
+    }
+
     return builder.build();
   }
 
@@ -837,6 +845,9 @@ public class IRConverter {
     }
     if (devirtualizer != null) {
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
+    }
+    if (uninstantiatedTypeOptimization != null) {
+      uninstantiatedTypeOptimization.rewrite(method, code);
     }
 
     assert code.verifyTypes(appInfo);

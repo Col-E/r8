@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class CatchHandlers<T> {
 
@@ -59,6 +60,12 @@ public class CatchHandlers<T> {
   public boolean hasCatchAll() {
     return getGuards().size() > 0 &&
         getGuards().get(getGuards().size() - 1) == DexItemFactory.catchAllType;
+  }
+
+  public void forEach(BiConsumer<DexType, T> consumer) {
+    for (int i = 0; i < size(); ++i) {
+      consumer.accept(guards.get(i), targets.get(i));
+    }
   }
 
   @Override

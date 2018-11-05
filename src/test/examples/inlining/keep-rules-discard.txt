@@ -16,3 +16,7 @@
 -alwaysinline class * {
   @inlining.AlwaysInline <methods>;
 }
+
+-neverinline class * {
+  @inlining.NeverInline <methods>;
+}

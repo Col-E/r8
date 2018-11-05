@@ -31,6 +31,10 @@ public abstract class ClassSubject extends Subject {
     return method(method.getReturnType().getTypeName(), method.getName(), parameters);
   }
 
+  public final MethodSubject method(String returnType, String name) {
+    return method(returnType, name, ImmutableList.of());
+  }
+
   public abstract MethodSubject method(String returnType, String name, List<String> parameters);
 
   public MethodSubject mainMethod() {

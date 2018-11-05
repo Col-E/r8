@@ -121,6 +121,7 @@ public class InternalOptions {
   public boolean enableSwitchMapRemoval = true;
   public final OutlineOptions outline = new OutlineOptions();
   public boolean enableValuePropagation = true;
+  public boolean enableUninstantiatedTypeOptimization = true;
 
   // Number of threads to use while processing the dex files.
   public int numberOfThreads = DETERMINISTIC_DEBUGGING ? 1 : ThreadUtils.NOT_SPECIFIED;

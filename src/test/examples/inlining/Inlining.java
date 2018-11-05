@@ -170,7 +170,7 @@ public class Inlining {
     marker1();
     marker1();
 
-    n = null;
+    n = maybeNull();
     ThrowingA aa = new ThrowingA(a.a());
     try {
       n.inlinable(aa);
@@ -252,6 +252,12 @@ public class Inlining {
     marker2();
 
     System.out.println(callInterfaceMethod(InterfaceImplementationContainer.getIFace()));
+  }
+
+  @NeverInline
+  private static Nullability maybeNull() {
+    // Make sure that R8 cannot determine that this method always returns null.
+    return System.currentTimeMillis() < 0 ? new Nullability(42) : null;
   }
 
   private static boolean intCmpExpression(A a, A b) {

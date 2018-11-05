@@ -1022,6 +1022,13 @@ public abstract class R8RunArtTestsTest {
       "435-new-instance"
   );
 
+  private static List<String> requireUninstantiatedTypeOptimizationToBeDisabled = ImmutableList.of(
+      // This test inspects the message of the exception that is thrown when calling a virtual
+      // method with a null-receiver. This message changes when the invocation is rewritten to
+      // "throw null".
+      "201-built-in-except-detail-messages"
+  );
+
   private static List<String> hasMissingClasses = ImmutableList.of(
       "091-override-package-private-method",
       "003-omnibus-opcodes",
@@ -1114,6 +1121,8 @@ public abstract class R8RunArtTestsTest {
     private final boolean disableInlining;
     // Whether to disable class inlining
     private final boolean disableClassInlining;
+    // Whether to disable the uninitialized type optimization.
+    private final boolean disableUninstantiatedTypeOptimization;
     // Has missing classes.
     private final boolean hasMissingClasses;
 
@@ -1132,6 +1141,7 @@ public abstract class R8RunArtTestsTest {
         boolean outputMayDiffer,
         boolean disableInlining,
         boolean disableClassInlining,
+        boolean disableUninstantiatedTypeOptimization,
         boolean hasMissingClasses) {
       this.name = name;
       this.dexTool = dexTool;
@@ -1147,6 +1157,7 @@ public abstract class R8RunArtTestsTest {
       this.outputMayDiffer = outputMayDiffer;
       this.disableInlining = disableInlining;
       this.disableClassInlining = disableClassInlining;
+      this.disableUninstantiatedTypeOptimization = disableUninstantiatedTypeOptimization;
       this.hasMissingClasses = hasMissingClasses;
     }
 
@@ -1173,6 +1184,7 @@ public abstract class R8RunArtTestsTest {
           false,
           disableInlining,
           true, // Disable class inlining for JCTF tests.
+          false,
           false);
     }
 
@@ -1198,6 +1210,7 @@ public abstract class R8RunArtTestsTest {
           false,
           disableInlining,
           true, // Disable class inlining for JCTF tests.
+          false,
           false);
     }
 
@@ -1363,6 +1376,7 @@ public abstract class R8RunArtTestsTest {
                 outputMayDiffer.contains(name),
                 requireInliningToBeDisabled.contains(name),
                 requireClassInliningToBeDisabled.contains(name),
+                requireUninstantiatedTypeOptimizationToBeDisabled.contains(name),
                 hasMissingClasses.contains(name)));
       }
     }
@@ -1433,10 +1447,12 @@ public abstract class R8RunArtTestsTest {
       CompilationMode compilationMode,
       boolean disableInlining,
       boolean disableClassInlining,
+      boolean disableUninstantiatedTypeOptimization,
       boolean hasMissingClasses)
       throws CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultPath, compilationMode, null,
-        disableInlining, disableClassInlining, hasMissingClasses);
+        disableInlining, disableClassInlining, disableUninstantiatedTypeOptimization,
+        hasMissingClasses);
   }
 
   private void executeCompilerUnderTest(
@@ -1447,6 +1463,7 @@ public abstract class R8RunArtTestsTest {
       String keepRulesFile,
       boolean disableInlining,
       boolean disableClassInlining,
+      boolean disableUninstantiatedTypeOptimization,
       boolean hasMissingClasses)
       throws CompilationFailedException {
     assert mode != null;
@@ -1489,8 +1506,7 @@ public abstract class R8RunArtTestsTest {
                   .addProgramResourceProvider(
                       new ProgramResourceProvider() {
                         @Override
-                        public Collection<ProgramResource> getProgramResources()
-                            throws ResourceException {
+                        public Collection<ProgramResource> getProgramResources() {
                           return dexInputs;
                         }
                       })
@@ -1595,6 +1611,9 @@ public abstract class R8RunArtTestsTest {
                 if (disableClassInlining) {
                   options.enableClassInlining = false;
                 }
+                if (disableUninstantiatedTypeOptimization) {
+                  options.enableUninstantiatedTypeOptimization = false;
+                }
                 // Make sure we don't depend on this settings.
                 options.classInliningInstructionLimit = 10000;
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
@@ -1606,10 +1625,6 @@ public abstract class R8RunArtTestsTest {
       default:
         assert false : compilerUnderTest;
     }
-  }
-
-  private static R8Command.Builder setDefaultArgs(R8Command.Builder builder) {
-    return builder.setDisableMinification(true);
   }
 
   private static boolean isAuxClassFile(String fileName, String auxClassFileBase) {
@@ -1833,7 +1848,7 @@ public abstract class R8RunArtTestsTest {
       throws IOException, CompilationFailedException {
     executeCompilerUnderTest(compilerUnderTest, fileNames, resultDir.getAbsolutePath(), mode,
         specification.disableInlining, specification.disableClassInlining,
-        specification.hasMissingClasses);
+        specification.disableUninstantiatedTypeOptimization, specification.hasMissingClasses);
 
     if (!ToolHelper.artSupported() && !ToolHelper.dealsWithGoldenFiles()) {
       return;
@@ -1907,6 +1922,7 @@ public abstract class R8RunArtTestsTest {
         mode,
         specification.disableInlining,
         specification.disableClassInlining,
+        specification.disableUninstantiatedTypeOptimization,
         specification.hasMissingClasses);
 
     boolean compileOnly = System.getProperty("jctf_compile_only", "0").equals("1");
@@ -2053,7 +2069,7 @@ public abstract class R8RunArtTestsTest {
         executeCompilerUnderTest(
             compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
             specification.disableInlining, specification.disableClassInlining,
-            specification.hasMissingClasses);
+            specification.disableUninstantiatedTypeOptimization, specification.hasMissingClasses);
       } catch (CompilationFailedException e) {
         throw new CompilationError(e.getMessage(), e);
       }
@@ -2064,14 +2080,14 @@ public abstract class R8RunArtTestsTest {
       executeCompilerUnderTest(
           compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
           specification.disableInlining, specification.disableClassInlining,
-          specification.hasMissingClasses);
+          specification.disableUninstantiatedTypeOptimization, specification.hasMissingClasses);
       System.err.println("Should have failed R8/D8 compilation with an exception.");
       return;
     } else {
       executeCompilerUnderTest(
           compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
           specification.disableInlining, specification.disableClassInlining,
-          specification.hasMissingClasses);
+          specification.disableUninstantiatedTypeOptimization, specification.hasMissingClasses);
     }
 
     if (!specification.skipRun

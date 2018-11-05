@@ -127,6 +127,7 @@ public abstract class TreeShakingTest {
         throw new Unreachable();
     }
     ToolHelper.getAppBuilder(builder).addProgramFiles(Paths.get(programFile));
+    ToolHelper.allowTestProguardOptions(builder);
     ToolHelper.runR8(
         builder.build(),
         options -> {

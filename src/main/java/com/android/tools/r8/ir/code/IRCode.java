@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
@@ -369,8 +370,7 @@ public class IRCode {
     return true;
   }
 
-
-  public void removeBlocks(List<BasicBlock> blocksToRemove) {
+  public void removeBlocks(Collection<BasicBlock> blocksToRemove) {
     blocks.removeAll(blocksToRemove);
   }
 
