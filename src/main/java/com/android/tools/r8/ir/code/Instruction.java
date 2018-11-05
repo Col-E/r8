@@ -754,6 +754,10 @@ public abstract class Instruction {
     return null;
   }
 
+  public final boolean isFieldPut() {
+    return isInstancePut() || isStaticPut();
+  }
+
   public boolean isInstancePut() {
     return false;
   }
