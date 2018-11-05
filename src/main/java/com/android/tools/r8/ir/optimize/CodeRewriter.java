@@ -130,6 +130,12 @@ import java.util.function.Predicate;
 
 public class CodeRewriter {
 
+  private enum InstanceOfResult {
+    UNKNOWN,
+    TRUE,
+    FALSE
+  }
+
   private static final int MAX_FILL_ARRAY_SIZE = 8 * Constants.KILOBYTE;
   // This constant was determined by experimentation.
   private static final int STOP_SHARED_CONSTANT_THRESHOLD = 50;
@@ -1806,26 +1812,58 @@ public class CodeRewriter {
     TypeLatticeElement instanceOfType =
         TypeLatticeElement.fromDexType(instanceOf.type(), inType.isNullable(), appInfo);
 
-    boolean result;
+    InstanceOfResult result = InstanceOfResult.UNKNOWN;
     if (inType.isNull()) {
-      result = false;
+      result = InstanceOfResult.FALSE;
     } else if (inType.lessThanOrEqual(instanceOfType, appInfo) && !inType.isNullable()) {
-      result = true;
+      result = InstanceOfResult.TRUE;
     } else if (!inValue.isPhi()
         && inValue.definition.isNewInstance()
         && instanceOfType.strictlyLessThan(inType, appInfo)) {
-      result = false;
-    } else {
-      return false;
+      result = InstanceOfResult.FALSE;
+    } else if (appInfo.hasLiveness()) {
+      AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
+
+      if (instanceOf.type().isClassType()
+          && isNeverInstantiatedDirectlyOrIndirectly(instanceOf.type())) {
+        // The type of the instance-of instruction is a program class, and is never instantiated
+        // directly or indirectly. Thus, the in-value must be null, meaning that the instance-of
+        // instruction will always evaluate to false.
+        result = InstanceOfResult.FALSE;
+      }
+
+      if (result == InstanceOfResult.UNKNOWN) {
+        if (inType.isClassType()
+            && isNeverInstantiatedDirectlyOrIndirectly(
+                inType.asClassTypeLatticeElement().getClassType())) {
+          // The type of the in-value is a program class, and is never instantiated directly or
+          // indirectly. This, the in-value must be null, meaning that the instance-of instruction
+          // will always evaluate to false.
+          result = InstanceOfResult.FALSE;
+        }
+      }
     }
-    it.replaceCurrentInstruction(
-        new ConstNumber(
-            new Value(
-                code.valueNumberGenerator.next(),
-                TypeLatticeElement.INT,
-                instanceOf.outValue().getLocalInfo()),
-            result ? 1 : 0));
-    return true;
+    if (result != InstanceOfResult.UNKNOWN) {
+      it.replaceCurrentInstruction(
+          new ConstNumber(
+              new Value(
+                  code.valueNumberGenerator.next(),
+                  TypeLatticeElement.INT,
+                  instanceOf.outValue().getLocalInfo()),
+              result == InstanceOfResult.TRUE ? 1 : 0));
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isNeverInstantiatedDirectlyOrIndirectly(DexType type) {
+    assert appInfo.hasLiveness();
+    assert type.isClassType();
+    DexClass clazz = appInfo.definitionFor(type);
+    return clazz != null
+        && clazz.isProgramClass()
+        && !clazz.accessFlags.isAnnotation()
+        && !appInfo.withLiveness().isInstantiatedDirectlyOrIndirectly(type);
   }
 
   private void removeOrReplaceByDebugLocalWrite(
