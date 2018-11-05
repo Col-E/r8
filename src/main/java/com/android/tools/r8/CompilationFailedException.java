@@ -18,4 +18,7 @@ public class CompilationFailedException extends Exception {
     super("Compilation failed to complete", cause);
   }
 
+  public CompilationFailedException(String message) {
+    super(message);
+  }
 }

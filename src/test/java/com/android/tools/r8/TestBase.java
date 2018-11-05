@@ -72,6 +72,10 @@ public class TestBase {
     return JvmTestBuilder.create(new TestState(temp));
   }
 
+  public static ProguardTestBuilder testForProguard(TemporaryFolder temp) {
+    return ProguardTestBuilder.create(new TestState(temp));
+  }
+
   public R8TestBuilder testForR8(Backend backend) {
     return testForR8(temp, backend);
   }
@@ -82,6 +86,10 @@ public class TestBase {
 
   public JvmTestBuilder testForJvm() {
     return testForJvm(temp);
+  }
+
+  public ProguardTestBuilder testForProguard() {
+    return testForProguard(temp);
   }
 
   public enum Backend {
