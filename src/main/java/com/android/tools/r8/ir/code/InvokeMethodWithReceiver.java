@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import java.util.List;
@@ -37,5 +40,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   @Override
   public boolean throwsNpeIfValueIsNull(Value value) {
     return getReceiver() == value;
+  }
+
+  @Override
+  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
+    TypeLatticeElement receiverType = getReceiver().getTypeLattice();
+    assert receiverType.isPreciseType();
+    return true;
   }
 }

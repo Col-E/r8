@@ -1746,11 +1746,6 @@ public class CodeRewriter {
     }
 
     TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
-    // TODO(b/72693244): Soon, there won't be a value with imprecise type at this point.
-    if (!inTypeLattice.isPreciseType() && !inTypeLattice.isNull()) {
-      return false;
-    }
-
     TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
     TypeLatticeElement castTypeLattice =
         TypeLatticeElement.fromDexType(castType, inTypeLattice.isNullable(), appInfo);
@@ -1804,11 +1799,6 @@ public class CodeRewriter {
 
     Value inValue = instanceOf.value();
     TypeLatticeElement inType = inValue.getTypeLattice();
-    // TODO(b/72693244): Soon, there won't be a value with imprecise type at this point.
-    if (!inType.isPreciseType() && !inType.isNull()) {
-      return false;
-    }
-
     TypeLatticeElement instanceOfType =
         TypeLatticeElement.fromDexType(instanceOf.type(), inType.isNullable(), appInfo);
 

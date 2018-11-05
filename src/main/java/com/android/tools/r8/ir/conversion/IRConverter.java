@@ -846,6 +846,7 @@ public class IRConverter {
       stringOptimizer.removeValueOfIfTrivial(code, appInfo);
     }
     if (devirtualizer != null) {
+      assert code.verifyTypes(appInfo, graphLense());
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
     }
     if (uninstantiatedTypeOptimization != null) {
@@ -853,9 +854,9 @@ public class IRConverter {
     }
 
     assert code.verifyTypes(appInfo, graphLense());
-
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
         code, enableWholeProgramOptimizations);
+
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
     codeRewriter.simplifyArrayConstruction(code);

@@ -124,10 +124,7 @@ public class CheckCast extends Instruction {
 
     TypeLatticeElement inType = object().getTypeLattice();
 
-    // TODO(b/72693244): There should never be a value with imprecise type lattice.
-    if (!inType.isPreciseType()) {
-      return true;
-    }
+    assert inType.isPreciseType();
 
     TypeLatticeElement outType = outValue().getTypeLattice();
     TypeLatticeElement castType =

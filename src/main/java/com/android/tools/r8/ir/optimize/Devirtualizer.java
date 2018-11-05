@@ -116,9 +116,7 @@ public class Devirtualizer {
           // Avoid adding trivial cast and up-cast.
           // We should not use strictlyLessThan(castType, receiverType), which detects downcast,
           // due to side-casts, e.g., A (unused) < I, B < I, and cast from A to B.
-          // TODO(b/72693244): Soon, there won't be a value with imprecise type at this point.
-          if (!receiverTypeLattice.isPreciseType()
-              || !receiverTypeLattice.lessThanOrEqual(castTypeLattice, appInfo)) {
+          if (!receiverTypeLattice.lessThanOrEqual(castTypeLattice, appInfo)) {
             Value newReceiver = null;
             // If this value is ever downcast'ed to the same holder type before, and that casted
             // value is safely accessible, i.e., the current line is dominated by that cast, use it.
