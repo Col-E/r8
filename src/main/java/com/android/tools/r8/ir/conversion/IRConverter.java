@@ -833,7 +833,9 @@ public class IRConverter {
       inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
     }
     if (!options.debug) {
+      // TODO(jsjeon): Consider merging these into one single optimize().
       stringOptimizer.computeConstStringLength(code, appInfo.dexItemFactory);
+      stringOptimizer.removeValueOfIfTrivial(code, appInfo);
     }
     if (devirtualizer != null) {
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());

@@ -1828,7 +1828,7 @@ public class CodeRewriter {
     return true;
   }
 
-  private void removeOrReplaceByDebugLocalWrite(
+  public static void removeOrReplaceByDebugLocalWrite(
       Instruction currentInstruction, InstructionIterator it, Value inValue, Value outValue) {
     if (outValue.hasLocalInfo() && outValue.getLocalInfo() != inValue.getLocalInfo()) {
       DebugLocalWrite debugLocalWrite = new DebugLocalWrite(outValue, inValue);
