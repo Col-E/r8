@@ -936,6 +936,10 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    if (appInfo.hasLiveness()) {
+      codeRewriter.rewriteGetClass(code);
+    }
+
     ConstantCanonicalizer.canonicalize(code);
     codeRewriter.useDedicatedConstantForLitInstruction(code);
     codeRewriter.shortenLiveRanges(code);

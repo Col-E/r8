@@ -8,6 +8,7 @@ import com.android.tools.r8.code.CheckCast;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.Const16;
 import com.android.tools.r8.code.Const4;
+import com.android.tools.r8.code.ConstClass;
 import com.android.tools.r8.code.ConstHigh16;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
@@ -243,6 +244,16 @@ public class DexInstructionSubject implements InstructionSubject {
         || (jumboStringMode == JumboStringMode.ALLOW
             && instruction instanceof ConstStringJumbo
             && ((ConstStringJumbo) instruction).BBBBBBBB.toSourceString().equals(value));
+  }
+
+  @Override
+  public boolean isConstClass() {
+    return instruction instanceof ConstClass;
+  }
+
+  @Override
+  public boolean isConstClass(String type) {
+    return isConstClass() && ((ConstClass) instruction).getType().toString().equals(type);
   }
 
   @Override
