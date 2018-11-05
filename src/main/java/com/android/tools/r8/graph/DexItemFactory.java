@@ -120,6 +120,7 @@ public class DexItemFactory {
   public final DexString unboxFloatMethodName = createString("floatValue");
   public final DexString unboxDoubleMethodName = createString("doubleValue");
 
+  public final DexString lengthMethodName = createString("length");
   public final DexString valueOfMethodName = createString("valueOf");
 
   public final DexString getClassMethodName = createString("getClass");
@@ -221,6 +222,7 @@ public class DexItemFactory {
       new StringBuildingMethods(stringBufferType);
   public final ObjectsMethods objectsMethods = new ObjectsMethods();
   public final ObjectMethods objectMethods = new ObjectMethods();
+  public final StringMethods stringMethods = new StringMethods();
   public final LongMethods longMethods = new LongMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final ClassMethods classMethods = new ClassMethods();
@@ -510,6 +512,18 @@ public class DexItemFactory {
 
     public boolean isFieldUpdater(DexMethod method) {
       return updaters.contains(method);
+    }
+  }
+
+  public class StringMethods {
+    public final DexMethod length;
+    public final DexMethod valueOf;
+
+    private StringMethods() {
+      length = createMethod(
+          stringDescriptor, lengthMethodName, intDescriptor, DexString.EMPTY_ARRAY);
+      valueOf = createMethod(
+          stringDescriptor, valueOfMethodName, stringDescriptor, new DexString[]{objectDescriptor});
     }
   }
 

@@ -42,6 +42,8 @@ public interface InstructionSubject {
 
   boolean isConstNumber(long value);
 
+  boolean isConstNull();
+
   boolean isConstString(JumboStringMode jumboStringMode);
 
   boolean isConstString(String value, JumboStringMode jumboStringMode);

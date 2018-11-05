@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.string;
 
-import static com.android.tools.r8.ir.optimize.string.StringOptimizer.isStringLength;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -11,7 +10,9 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestCompileResult;
+import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -20,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -76,7 +78,9 @@ class StringLengthTestMain {
 @RunWith(Parameterized.class)
 public class StringLengthTest extends TestBase {
   private final Backend backend;
-  List<Class<?>> classes;
+  private List<Class<?>> classes;
+  private static String javaOutput;
+  private static Class<?> main;
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
@@ -87,15 +91,39 @@ public class StringLengthTest extends TestBase {
     this.backend = backend;
   }
 
+  @BeforeClass
+  public static void buildExpectedJavaOutput() {
+    javaOutput = StringUtils.lines(
+        "4",
+        "6",
+        "Shared",
+        "14",
+        "Another_shared",
+        "2",
+        "1",
+        "𐀀",
+        "3"
+    );
+    main = StringLengthTestMain.class;
+  }
+
   @Before
-  public void setUp() {
+  public void setUp() throws Exception {
     classes = ImmutableList.of(ForceInline.class, NeverInline.class, StringLengthTestMain.class);
+    testForJvm().addTestClasspath().run(main).assertSuccessWithOutput(javaOutput);
+  }
+
+  private static boolean isStringLength(DexMethod method) {
+    return method.getHolder().toDescriptorString().equals("Ljava/lang/String;")
+        && method.getArity() == 0
+        && method.proto.returnType.isIntType()
+        && method.name.toString().equals("length");
   }
 
   private long countStringLength(MethodSubject method) {
     return Streams.stream(method.iterateInstructions(instructionSubject -> {
       if (instructionSubject.isInvoke()) {
-        return isStringLength(instructionSubject.getMethod(), null);
+        return isStringLength(instructionSubject.getMethod());
       }
       return false;
     })).count();
@@ -107,15 +135,8 @@ public class StringLengthTest extends TestBase {
   }
 
   private void test(
-      TestCompileResult result,
-      int expectedStringLengthCount,
-      int expectedConstNumberCount)
+      TestRunResult result, int expectedStringLengthCount, int expectedConstNumberCount)
       throws Exception {
-    String main = StringLengthTestMain.class.getCanonicalName();
-    String javaOutput = runOnJava(StringLengthTestMain.class);
-    String vmOutput = runOnVM(result.app, main, backend);
-    assertEquals(javaOutput, vmOutput);
-
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(main);
     MethodSubject mainMethod = mainClass.mainMethod();
@@ -132,27 +153,30 @@ public class StringLengthTest extends TestBase {
       return;
     }
 
-    TestCompileResult result = testForD8()
+    TestRunResult result = testForD8()
         .release()
         .addProgramClasses(classes)
-        .compile();
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
     test(result, 1, 4);
 
     result = testForD8()
         .debug()
         .addProgramClasses(classes)
-        .compile();
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
     test(result, 6, 0);
   }
 
   @Test
   public void testR8() throws Exception {
-    TestCompileResult result = testForR8(backend)
+    TestRunResult result = testForR8(backend)
         .addProgramClasses(classes)
         .enableProguardTestOptions()
         .enableInliningAnnotations()
-        .addKeepMainRule(StringLengthTestMain.class)
-        .compile();
+        .addKeepMainRule(main)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
     // TODO we could remove const counting if it needs to be changed too frequently, since
     // the string length count is what we're interested in.
     test(result, 0, backend == Backend.DEX ? 5 : 6);

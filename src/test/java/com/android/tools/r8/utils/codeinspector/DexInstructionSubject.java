@@ -226,6 +226,11 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isConstNull() {
+    return isConst4() && isConstNumber(0);
+  }
+
+  @Override
   public boolean isConstString(JumboStringMode jumboStringMode) {
     return instruction instanceof ConstString
         || (jumboStringMode == JumboStringMode.ALLOW && instruction instanceof ConstStringJumbo);

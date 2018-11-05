@@ -3,33 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.string;
 
+import static com.android.tools.r8.ir.optimize.CodeRewriter.removeOrReplaceByDebugLocalWrite;
+
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
-import com.google.common.annotations.VisibleForTesting;
-import java.util.List;
 
 public class StringOptimizer {
-
-  @VisibleForTesting
-  static boolean isStringLength(DexMethod method, DexItemFactory factory) {
-    boolean isStringClass;
-    if (factory != null) {
-      isStringClass = method.getHolder().equals(factory.stringType);
-    } else {
-      isStringClass = method.getHolder().toDescriptorString().equals("Ljava/lang/String;");
-    }
-    return isStringClass
-        && method.getArity() == 0
-        && method.proto.returnType.isIntType()
-        && method.name.toString().equals("length");
-  }
 
   // Find String#length() with a constant string and compute the length of it at compile time.
   public void computeConstStringLength(IRCode code, DexItemFactory factory) {
@@ -45,12 +34,11 @@ public class StringOptimizer {
       }
       InvokeVirtual invoke = instr.asInvokeVirtual();
       DexMethod invokedMethod = invoke.getInvokedMethod();
-      if (!isStringLength(invokedMethod, factory)) {
+      if (invokedMethod != factory.stringMethods.length) {
         continue;
       }
-      List<Value> ins = invoke.arguments();
-      assert ins.size() == 1;
-      Value in = ins.get(0);
+      assert invoke.inValues().size() == 1;
+      Value in = invoke.getReceiver();
       if (in.definition == null
           || !in.definition.isConstString()
           || !in.definition.outValue().isConstant()) {
@@ -61,6 +49,41 @@ public class StringOptimizer {
       ConstNumber constNumber = code.createIntConstant(length);
       it.replaceCurrentInstruction(constNumber);
     }
+  }
+
+  // String#valueOf(null) -> "null"
+  // String#valueOf(String s) -> s
+  public void removeValueOfIfTrivial(IRCode code, AppInfo appInfo) {
+    InstructionIterator it = code.instructionIterator();
+    while (it.hasNext()) {
+      Instruction instr = it.next();
+      if (!instr.isInvokeStatic()) {
+        continue;
+      }
+      InvokeStatic invoke = instr.asInvokeStatic();
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      if (invokedMethod != appInfo.dexItemFactory.stringMethods.valueOf) {
+        continue;
+      }
+      assert invoke.inValues().size() == 1;
+      Value in = invoke.inValues().get(0);
+      if (in.hasLocalInfo()) {
+        continue;
+      }
+      TypeLatticeElement inType = in.getTypeLattice();
+      if (inType.isNull()) {
+        Value nullStringValue =
+            code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
+        ConstString nullString =
+            new ConstString(nullStringValue, appInfo.dexItemFactory.createString("null"));
+        it.replaceCurrentInstruction(nullString);
+      } else if (inType.isClassType()
+          && inType.asClassTypeLatticeElement().getClassType()
+              .equals(appInfo.dexItemFactory.stringType)) {
+        removeOrReplaceByDebugLocalWrite(invoke, it, in, invoke.outValue());
+      }
+    }
+    assert code.isConsistentSSA();
   }
 
 }

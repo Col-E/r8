@@ -120,6 +120,11 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isConstNull() {
+    return instruction instanceof CfConstNull;
+  }
+
+  @Override
   public boolean isConstString(JumboStringMode jumboStringMode) {
     return instruction instanceof CfConstString;
   }
@@ -218,10 +223,6 @@ public class CfInstructionSubject implements InstructionSubject {
   public boolean isStackInstruction(CfStackInstruction.Opcode opcode) {
     return instruction instanceof CfStackInstruction
         && ((CfStackInstruction) instruction).getOpcode() == opcode;
-  }
-
-  public boolean isConstNull() {
-    return instruction instanceof CfConstNull;
   }
 
   public boolean isIfNull() {
