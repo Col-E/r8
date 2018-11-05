@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -166,7 +168,7 @@ public class UninstantiatedTypeOptimization {
     instructionIterator.previous();
 
     // Unlink all blocks that are dominated by successor.
-    DominatorTree dominatorTree = new DominatorTree(code);
+    DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
     blocksToBeRemoved.addAll(block.unlink(normalSuccessorBlock, dominatorTree));
 
     // Insert constant null before the instruction.
