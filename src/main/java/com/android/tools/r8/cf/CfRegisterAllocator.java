@@ -198,29 +198,34 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
       // Find a free register that is not used by an inactive interval that overlaps with
       // unhandledInterval.
-      boolean wide = unhandledInterval.getType().isWide();
-      int register;
-      NavigableSet<Integer> previousFreeRegisters = new TreeSet<Integer>(freeRegisters);
-      while (true) {
-        register = getNextFreeRegister(wide);
-        boolean overlapsInactiveInterval = false;
-        for (LiveIntervals inactiveIntervals : inactive) {
-          if (inactiveIntervals.usesRegister(register, wide)
-              && unhandledInterval.overlaps(inactiveIntervals)) {
-            overlapsInactiveInterval = true;
+      if (tryHint(unhandledInterval)) {
+        assignRegisterToUnhandledInterval(
+            unhandledInterval, unhandledInterval.getHint().getRegister());
+      } else {
+        boolean wide = unhandledInterval.getType().isWide();
+        int register;
+        NavigableSet<Integer> previousFreeRegisters = new TreeSet<Integer>(freeRegisters);
+        while (true) {
+          register = getNextFreeRegister(wide);
+          boolean overlapsInactiveInterval = false;
+          for (LiveIntervals inactiveIntervals : inactive) {
+            if (inactiveIntervals.usesRegister(register, wide)
+                && unhandledInterval.overlaps(inactiveIntervals)) {
+              overlapsInactiveInterval = true;
+              break;
+            }
+          }
+          if (!overlapsInactiveInterval) {
             break;
           }
+          // Remove so that next invocation of getNextFreeRegister does not consider this.
+          freeRegisters.remove(register);
+          // For wide types, register + 1 and 2 might be good even though register + 0 and 1
+          // weren't, so don't remove register+1 from freeRegisters.
         }
-        if (!overlapsInactiveInterval) {
-          break;
-        }
-        // Remove so that next invocation of getNextFreeRegister does not consider this.
-        freeRegisters.remove(register);
-        // For wide types, register + 1 and 2 might be good even though register + 0 and 1 weren't,
-        // so don't remove register+1 from freeRegisters.
+        freeRegisters = previousFreeRegisters;
+        assignRegisterToUnhandledInterval(unhandledInterval, register);
       }
-      freeRegisters = previousFreeRegisters;
-      assignRegisterToUnhandledInterval(unhandledInterval, register);
     }
   }
 
@@ -256,10 +261,38 @@ public class CfRegisterAllocator implements RegisterAllocator {
     }
   }
 
+  private void updateHints(LiveIntervals intervals) {
+    for (Phi phi : intervals.getValue().uniquePhiUsers()) {
+      phi.getLiveIntervals().setHint(intervals);
+      for (Value value : phi.getOperands()) {
+        value.getLiveIntervals().setHint(intervals);
+      }
+    }
+  }
+
+  private boolean tryHint(LiveIntervals unhandled) {
+    if (unhandled.getHint() == null) {
+      return false;
+    }
+    boolean isWide = unhandled.getType().isWide();
+    int hintRegister = unhandled.getHint().getRegister();
+    if (freeRegisters.contains(hintRegister)
+        && (!isWide || freeRegisters.contains(hintRegister + 1))) {
+      for (LiveIntervals inactive : inactive) {
+        if (inactive.usesRegister(hintRegister, isWide) && inactive.overlaps(unhandled)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
   private void assignRegisterToUnhandledInterval(LiveIntervals unhandledInterval, int register) {
     assignRegister(unhandledInterval, register);
     takeRegistersForIntervals(unhandledInterval);
     updateRegisterState(register, unhandledInterval.getType().isWide());
+    updateHints(unhandledInterval);
     active.add(unhandledInterval);
   }
 
