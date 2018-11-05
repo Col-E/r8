@@ -160,7 +160,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             mode,
             "--pg-map-output",
             pgMapFile.toString());
-    assertEquals(0, processResult.exitCode);
+    assertEquals(processResult.stderr, 0, processResult.exitCode);
     String pgMap = FileUtils.readTextFile(pgMapFile, Charsets.UTF_8);
     return new R8Result(processResult, outputJar, pgMap);
   }

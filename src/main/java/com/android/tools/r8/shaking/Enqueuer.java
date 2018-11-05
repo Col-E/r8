@@ -2052,22 +2052,24 @@ public class Enqueuer {
 
     public boolean isInstantiatedDirectly(DexType type) {
       assert type.isClassType();
-      return instantiatedTypes.contains(type);
+      return instantiatedTypes.contains(type) || instantiatedLambdas.contains(type);
     }
 
     public boolean isInstantiatedIndirectly(DexType type) {
       assert type.isClassType();
-      if (indirectlyInstantiatedTypes.containsKey(type)) {
-        return indirectlyInstantiatedTypes.get(type).booleanValue();
-      }
-      for (DexType directSubtype : type.allImmediateSubtypes()) {
-        if (isInstantiatedDirectlyOrIndirectly(directSubtype)) {
-          indirectlyInstantiatedTypes.put(type, Boolean.TRUE);
-          return true;
+      synchronized (indirectlyInstantiatedTypes) {
+        if (indirectlyInstantiatedTypes.containsKey(type)) {
+          return indirectlyInstantiatedTypes.get(type).booleanValue();
         }
+        for (DexType directSubtype : type.allImmediateSubtypes()) {
+          if (isInstantiatedDirectlyOrIndirectly(directSubtype)) {
+            indirectlyInstantiatedTypes.put(type, Boolean.TRUE);
+            return true;
+          }
+        }
+        indirectlyInstantiatedTypes.put(type, Boolean.FALSE);
+        return false;
       }
-      indirectlyInstantiatedTypes.put(type, Boolean.FALSE);
-      return false;
     }
 
     public boolean isInstantiatedDirectlyOrIndirectly(DexType type) {

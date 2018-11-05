@@ -119,9 +119,16 @@ public class FieldTypeTest extends TestBase {
     assertEquals(0, javaResult.exitCode);
     assertThat(javaResult.stdout, containsString(impl2.name));
 
-    AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
-        // Disable inlining to avoid the (short) tested method from being inlined and then removed.
-        internalOptions -> internalOptions.enableInlining = false);
+    AndroidApp processedApp =
+        compileWithR8(
+            jasminBuilder.build(),
+            proguardConfig,
+            // Disable inlining to avoid the (short) tested method from being inlined and then
+            // removed.
+            options -> {
+              options.enableInlining = false;
+              options.testing.allowBrokenTypeHierarchy = true;
+            });
 
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);

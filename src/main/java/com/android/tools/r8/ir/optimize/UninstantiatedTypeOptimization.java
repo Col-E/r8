@@ -148,7 +148,8 @@ public class UninstantiatedTypeOptimization {
       InstructionListIterator instructionIterator,
       IRCode code,
       Set<BasicBlock> blocksToBeRemoved) {
-    if (isAlwaysNull(instruction.getField().type)) {
+    DexType fieldType = instruction.getField().type;
+    if (isAlwaysNull(fieldType)) {
       // Before trying to remove this instruction, we need to be sure that the field actually
       // exists. Otherwise this instruction would throw a NoSuchFieldError exception.
       DexEncodedField field = appView.appInfo().definitionFor(instruction.getField());
@@ -167,7 +168,21 @@ public class UninstantiatedTypeOptimization {
       }
 
       BasicBlock block = instruction.getBlock();
-      if (instruction.isInstancePut() || instruction.isStaticPut()) {
+      if (instruction.isFieldPut()) {
+        Value value =
+            instruction.isInstancePut()
+                ? instruction.asInstancePut().value()
+                : instruction.asStaticPut().inValue();
+
+        TypeLatticeElement fieldLatticeType =
+            TypeLatticeElement.fromDexType(fieldType, true, appView.appInfo());
+        if (!value.getTypeLattice().lessThanOrEqual(fieldLatticeType, appView.appInfo())) {
+          // Broken type hierarchy. See FieldTypeTest#test_brokenTypeHierarchy.
+          // TODO(christofferqa): Enable assert.
+          // assert options.testing.allowBrokenTypeHierarchy;
+          return;
+        }
+
         // We know that the right-hand side must be null, so this is a no-op.
         instructionIterator.removeOrReplaceByDebugLocalRead();
       } else {

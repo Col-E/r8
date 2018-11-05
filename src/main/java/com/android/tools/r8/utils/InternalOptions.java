@@ -470,6 +470,7 @@ public class InternalOptions {
             ? NondeterministicIROrdering.getInstance()
             : IdentityIROrdering.getInstance();
 
+    public boolean allowBrokenTypeHierarchy = false;
     public boolean allowProguardRulesThatUseExtendsOrImplementsWrong = true;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean invertConditionals = false;

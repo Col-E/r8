@@ -137,7 +137,7 @@ public class BootstrapTest extends TestBase {
     if (processResult.exitCode != 0) {
       System.out.println(processResult);
     }
-    assertEquals(0, processResult.exitCode);
+    assertEquals(processResult.stderr, 0, processResult.exitCode);
     String pgMap = FileUtils.readTextFile(pgMapFile, Charsets.UTF_8);
     return new R8Result(processResult, outputJar, pgMap);
   }
