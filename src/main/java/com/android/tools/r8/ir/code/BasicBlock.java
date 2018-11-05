@@ -70,8 +70,9 @@ public class BasicBlock {
     return true;
   }
 
-  public boolean verifyTypes(AppInfo appInfo) {
-    assert instructions.stream().allMatch(instruction -> instruction.verifyTypes(appInfo));
+  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
+    assert instructions.stream()
+        .allMatch(instruction -> instruction.verifyTypes(appInfo, graphLense));
     return true;
   }
 
@@ -726,16 +727,26 @@ public class BasicBlock {
     catchHandlers = new CatchHandlers<>(ImmutableList.of(guard), ImmutableList.of(0));
   }
 
-  // Due to class merging, it is possible that two exception classes have been merged into one.
-  // This function renames the guards according to the given graph lense.
-  public void renameGuardsInCatchHandlers(GraphLense graphLense) {
+  /**
+   * Due to class merging, it is possible that two exception classes have been merged into one. This
+   * function renames the guards according to the given graph lense.
+   *
+   * @return true if any guards were renamed.
+   */
+  public boolean renameGuardsInCatchHandlers(GraphLense graphLense) {
     assert hasCatchHandlers();
+    boolean anyGuardsRenamed = false;
     List<DexType> newGuards = new ArrayList<>(catchHandlers.getGuards().size());
     for (DexType guard : catchHandlers.getGuards()) {
       // The type may have changed due to class merging.
-      newGuards.add(graphLense.lookupType(guard));
+      DexType renamed = graphLense.lookupType(guard);
+      newGuards.add(renamed);
+      anyGuardsRenamed |= renamed != guard;
     }
-    this.catchHandlers = new CatchHandlers<>(newGuards, catchHandlers.getAllTargets());
+    if (anyGuardsRenamed) {
+      this.catchHandlers = new CatchHandlers<>(newGuards, catchHandlers.getAllTargets());
+    }
+    return anyGuardsRenamed;
   }
 
   public boolean consistentCatchHandlers() {

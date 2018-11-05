@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -13,13 +12,9 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
-import java.util.Set;
 
 public class DeadCodeRemover {
   private final IRCode code;
@@ -121,13 +116,7 @@ public class DeadCodeRemover {
   private void removeUnneededCatchHandlers() {
     for (BasicBlock block : code.blocks) {
       if (block.hasCatchHandlers()) {
-        if (block.canThrow()) {
-          if (options.enableVerticalClassMerging) {
-            // Handle the case where an exception class has been merged into its sub class.
-            block.renameGuardsInCatchHandlers(graphLense);
-            unlinkDeadCatchHandlers(block);
-          }
-        } else {
+        if (!block.canThrow()) {
           CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
           for (BasicBlock target : handlers.getUniqueTargets()) {
             target.unlinkCatchHandler();
@@ -136,30 +125,5 @@ public class DeadCodeRemover {
       }
     }
     code.removeUnreachableBlocks();
-  }
-
-  // Due to class merging, it is possible that two exception classes have been merged into one. This
-  // function removes catch handlers where the guards ended up being the same as a previous one.
-  private void unlinkDeadCatchHandlers(BasicBlock block) {
-    assert block.hasCatchHandlers();
-    CatchHandlers<BasicBlock> catchHandlers = block.getCatchHandlers();
-    List<DexType> guards = catchHandlers.getGuards();
-    List<BasicBlock> targets = catchHandlers.getAllTargets();
-
-    Set<DexType> previouslySeenGuards = new HashSet<>();
-    List<BasicBlock> deadCatchHandlers = new ArrayList<>();
-    for (int i = 0; i < guards.size(); i++) {
-      // The type may have changed due to class merging.
-      DexType guard = graphLense.lookupType(guards.get(i));
-      boolean guardSeenBefore = !previouslySeenGuards.add(guard);
-      if (guardSeenBefore) {
-        deadCatchHandlers.add(targets.get(i));
-      }
-    }
-    // Remove the guards that are guaranteed to be dead.
-    for (BasicBlock deadCatchHandler : deadCatchHandlers) {
-      deadCatchHandler.unlinkCatchHandler();
-    }
-    assert block.consistentCatchHandlers();
   }
 }

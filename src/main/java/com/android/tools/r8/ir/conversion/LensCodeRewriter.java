@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstMethodHandle;
@@ -43,6 +44,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
 import com.android.tools.r8.ir.code.InvokeNewArray;
+import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -53,6 +55,7 @@ import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -92,8 +95,15 @@ public class LensCodeRewriter {
   public void rewrite(IRCode code, DexEncodedMethod method) {
     Set<Value> newSSAValues = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.blocks.listIterator();
+    boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
+      if (block.hasCatchHandlers() && options.enableVerticalClassMerging) {
+        boolean anyGuardsRenamed = block.renameGuardsInCatchHandlers(graphLense);
+        if (anyGuardsRenamed) {
+          mayHaveUnreachableBlocks |= unlinkDeadCatchHandlers(block);
+        }
+      }
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
@@ -186,7 +196,11 @@ public class LensCodeRewriter {
             }
             Invoke newInvoke =
                 Invoke.create(
-                    actualInvokeType, actualTarget, null, invoke.outValue(), newInValues);
+                    actualInvokeType,
+                    actualTarget,
+                    null,
+                    makeOutValue(invoke, code, newSSAValues),
+                    newInValues);
             iterator.replaceCurrentInstruction(newInvoke);
           }
         } else if (current.isInstanceGet()) {
@@ -196,7 +210,10 @@ public class LensCodeRewriter {
           if (actualField != field) {
             InstanceGet newInstanceGet =
                 new InstanceGet(
-                    instanceGet.getType(), instanceGet.dest(), instanceGet.object(), actualField);
+                    instanceGet.getType(),
+                    makeOutValue(instanceGet, code, newSSAValues),
+                    instanceGet.object(),
+                    actualField);
             iterator.replaceCurrentInstruction(newInstanceGet);
           }
         } else if (current.isInstancePut()) {
@@ -215,7 +232,8 @@ public class LensCodeRewriter {
           DexField actualField = graphLense.lookupField(field);
           if (actualField != field) {
             StaticGet newStaticGet =
-                new StaticGet(staticGet.getType(), staticGet.dest(), actualField);
+                new StaticGet(
+                    staticGet.getType(), makeOutValue(staticGet, code, newSSAValues), actualField);
             iterator.replaceCurrentInstruction(newStaticGet);
           }
         } else if (current.isStaticPut()) {
@@ -270,6 +288,13 @@ public class LensCodeRewriter {
                 newType, makeOutValue(newArray, code, newSSAValues), newArray.inValues());
             iterator.replaceCurrentInstruction(newNewArray);
           }
+        } else if (current.isMoveException()) {
+          MoveException moveException = current.asMoveException();
+          if (moveException.hasOutValue()) {
+            // Conservatively add the out-value to `newSSAValues` since the catch handler guards
+            // may have been renamed as a result of class merging.
+            newSSAValues.add(moveException.outValue());
+          }
         } else if (current.isNewArrayEmpty()) {
           NewArrayEmpty newArrayEmpty = current.asNewArrayEmpty();
           DexType newType = graphLense.lookupType(newArrayEmpty.type);
@@ -289,10 +314,14 @@ public class LensCodeRewriter {
         }
       }
     }
+    if (mayHaveUnreachableBlocks) {
+      code.removeUnreachableBlocks();
+    }
     if (!newSSAValues.isEmpty()) {
       new TypeAnalysis(appInfo, method).widening(newSSAValues);
     }
     assert code.isConsistentSSA();
+    assert code.verifyTypes(appInfo, graphLense);
   }
 
   // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of
@@ -336,6 +365,36 @@ public class LensCodeRewriter {
                 invokedMethod.holder.toSourceString()));
       }
     }
+  }
+
+  /**
+   * Due to class merging, it is possible that two exception classes have been merged into one. This
+   * function removes catch handlers where the guards ended up being the same as a previous one.
+   *
+   * @return true if any dead catch handlers were removed.
+   */
+  private boolean unlinkDeadCatchHandlers(BasicBlock block) {
+    assert block.hasCatchHandlers();
+    CatchHandlers<BasicBlock> catchHandlers = block.getCatchHandlers();
+    List<DexType> guards = catchHandlers.getGuards();
+    List<BasicBlock> targets = catchHandlers.getAllTargets();
+
+    Set<DexType> previouslySeenGuards = new HashSet<>();
+    List<BasicBlock> deadCatchHandlers = new ArrayList<>();
+    for (int i = 0; i < guards.size(); i++) {
+      // The type may have changed due to class merging.
+      DexType guard = graphLense.lookupType(guards.get(i));
+      boolean guardSeenBefore = !previouslySeenGuards.add(guard);
+      if (guardSeenBefore) {
+        deadCatchHandlers.add(targets.get(i));
+      }
+    }
+    // Remove the guards that are guaranteed to be dead.
+    for (BasicBlock deadCatchHandler : deadCatchHandlers) {
+      deadCatchHandler.unlinkCatchHandler();
+    }
+    assert block.consistentCatchHandlers();
+    return !deadCatchHandlers.isEmpty();
   }
 
   private List<DexValue> rewriteBootstrapArgs(

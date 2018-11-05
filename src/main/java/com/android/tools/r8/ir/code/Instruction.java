@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstRangeLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
@@ -102,6 +103,10 @@ public abstract class Instruction {
       }
     }
     return false;
+  }
+
+  public boolean hasOutValue() {
+    return outValue != null;
   }
 
   public Value outValue() {
@@ -1175,8 +1180,22 @@ public abstract class Instruction {
         "Implement type lattice evaluation for: " + getInstructionName());
   }
 
-  public boolean verifyTypes(AppInfo appInfo) {
+  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
     // TODO(b/72693244): for instructions with invariant out type, we can verify type directly here.
+    if (outValue != null) {
+      TypeLatticeElement outTypeLatticeElement = outValue.getTypeLattice();
+      if (outTypeLatticeElement.isArrayType()) {
+        DexType outBaseType =
+            outTypeLatticeElement
+                .asArrayTypeLatticeElement()
+                .getArrayType()
+                .toBaseType(appInfo.dexItemFactory);
+        assert graphLense.lookupType(outBaseType) == outBaseType;
+      } else if (outTypeLatticeElement.isClassType()) {
+        DexType outType = outTypeLatticeElement.asClassTypeLatticeElement().getClassType();
+        assert graphLense.lookupType(outType) == outType;
+      }
+    }
     return true;
   }
 

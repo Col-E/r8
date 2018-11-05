@@ -850,7 +850,7 @@ public class IRConverter {
       uninstantiatedTypeOptimization.rewrite(method, code);
     }
 
-    assert code.verifyTypes(appInfo);
+    assert code.verifyTypes(appInfo, graphLense());
 
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
         code, enableWholeProgramOptimizations);
@@ -897,7 +897,7 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
-    assert code.verifyTypes(appInfo);
+    assert code.verifyTypes(appInfo, graphLense());
 
     if (classInliner != null) {
       // Class inliner should work before lambda merger, so if it inlines the
