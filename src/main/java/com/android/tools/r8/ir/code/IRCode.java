@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,6 +31,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class IRCode {
+
+  private static final int MAX_MARKING_COLOR = 0x40000000;
 
   public static class LiveAtEntrySets {
     // Set of live SSA values (regardless of whether they denote a local variable).
@@ -321,7 +324,7 @@ public class IRCode {
     }
     blocks = tracedBlocks;
     returnMarkingColor(color);
-    assert verifyNoColorsInUse();
+    assert noColorsInUse();
   }
 
   private void ensureBlockNumbering() {
@@ -449,7 +452,7 @@ public class IRCode {
   }
 
   public boolean isConsistentGraph() {
-    assert verifyNoColorsInUse();
+    assert noColorsInUse();
     assert consistentBlockNumbering();
     assert consistentPredecessorSuccessors();
     assert consistentCatchHandlers();
@@ -826,31 +829,84 @@ public class IRCode {
   }
 
   public int reserveMarkingColor() {
+    assert anyMarkingColorAvailable();
     int color = 1;
     while ((usedMarkingColors & color) == color) {
-      assert color <= 0x40000000;
+      assert color <= MAX_MARKING_COLOR;
       color <<= 1;
     }
-    // TODO(sgjesse): Remove this assert if more colors will be required.
-    assert color == 1;
-    assert verifyNoBlocksMarked(color);
     usedMarkingColors |= color;
+    assert isMarkingColorInUse(color);
+    assert verifyNoBlocksMarked(color);
     return color;
   }
 
+  public boolean anyMarkingColorAvailable() {
+    int color = 1;
+    while ((usedMarkingColors & color) == color) {
+      if (color > MAX_MARKING_COLOR) {
+        return false;
+      }
+      color <<= 1;
+    }
+    return true;
+  }
+
   public void returnMarkingColor(int color) {
-    assert (usedMarkingColors | color) == color;
+    assert isMarkingColorInUse(color);
     clearMarks(color);
     usedMarkingColors &= ~color;
   }
 
-  public boolean verifyNoColorsInUse() {
+  public boolean isMarkingColorInUse(int color) {
+    return (usedMarkingColors & color) != 0;
+  }
+
+  public boolean anyBlocksMarkedWithColor(int color) {
+    for (BasicBlock block : blocks) {
+      if (block.isMarked(color)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean noColorsInUse() {
     return usedMarkingColors == 0;
+  }
+
+  public Set<BasicBlock> getUnreachableBlocks() {
+    Set<BasicBlock> unreachableBlocks = Sets.newIdentityHashSet();
+    int color = reserveMarkingColor();
+    markReachableBlocks(color);
+    for (BasicBlock block : blocks) {
+      if (!block.isMarked(color)) {
+        unreachableBlocks.add(block);
+      }
+    }
+    returnMarkingColor(color);
+    return unreachableBlocks;
   }
 
   public Set<Value> removeUnreachableBlocks() {
     ImmutableSet.Builder<Value> affectedValueBuilder = ImmutableSet.builder();
     int color = reserveMarkingColor();
+    markReachableBlocks(color);
+    ListIterator<BasicBlock> blockIterator = listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock current = blockIterator.next();
+      if (!current.isMarked(color)) {
+        affectedValueBuilder.addAll(current.cleanForRemoval());
+        blockIterator.remove();
+      }
+    }
+    returnMarkingColor(color);
+    return affectedValueBuilder.build();
+  }
+
+  // Note: It is the responsibility of the caller to return the marking color.
+  private void markReachableBlocks(int color) {
+    assert isMarkingColorInUse(color) && !anyBlocksMarkedWithColor(color);
     Queue<BasicBlock> worklist = new ArrayDeque<>();
     worklist.add(blocks.getFirst());
     while (!worklist.isEmpty()) {
@@ -865,15 +921,5 @@ public class IRCode {
         }
       }
     }
-    ListIterator<BasicBlock> blockIterator = listIterator();
-    while (blockIterator.hasNext()) {
-      BasicBlock current = blockIterator.next();
-      if (!current.isMarked(color)) {
-        affectedValueBuilder.addAll(current.cleanForRemoval());
-        blockIterator.remove();
-      }
-    }
-    returnMarkingColor(color);
-    return affectedValueBuilder.build();
   }
 }

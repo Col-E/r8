@@ -562,6 +562,7 @@ public class IRBuilder {
     }
 
     ir.removeAllTrivialPhis();
+    ir.removeUnreachableBlocks();
 
     if (hasImpreciseTypes()) {
       TypeConstraintResolver resolver = new TypeConstraintResolver();

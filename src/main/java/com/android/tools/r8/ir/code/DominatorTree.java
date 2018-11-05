@@ -4,16 +4,33 @@
 
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Iterator;
 
 public class DominatorTree {
+
+  public enum Assumption {
+    NO_UNREACHABLE_BLOCKS,
+    MAY_HAVE_UNREACHABLE_BLOCKS
+  }
+
   private final BasicBlock[] sorted;
   private BasicBlock[] doms;
   private final BasicBlock normalExitBlock = new BasicBlock();
 
+  private final int unreachableStartIndex;
+
   public DominatorTree(IRCode code) {
+    this(code, Assumption.NO_UNREACHABLE_BLOCKS);
+  }
+
+  public DominatorTree(IRCode code, Assumption assumption) {
+    assert assumption != null;
+    assert assumption == MAY_HAVE_UNREACHABLE_BLOCKS || code.getUnreachableBlocks().isEmpty();
+
     ImmutableList<BasicBlock> blocks = code.topologicallySortedBlocks();
     // Add the internal exit block to the block list.
     for (BasicBlock block : blocks) {
@@ -21,8 +38,34 @@ public class DominatorTree {
         normalExitBlock.getPredecessors().add(block);
       }
     }
-    sorted = blocks.toArray(new BasicBlock[blocks.size() + 1]);
-    sorted[blocks.size()] = normalExitBlock;
+    int numberOfBlocks = code.blocks.size();
+    if (assumption == MAY_HAVE_UNREACHABLE_BLOCKS) {
+      // Unreachable blocks have been removed implicitly by the topological sort.
+      sorted = new BasicBlock[numberOfBlocks + 1];
+      // Move topologically sorted blocks into `sorted`.
+      int color = code.reserveMarkingColor();
+      int i = 0;
+      for (BasicBlock block : blocks) {
+        sorted[i] = block;
+        block.mark(color);
+        i++;
+      }
+      sorted[i] = normalExitBlock;
+      i++;
+      // Move unreachable blocks into the end of `sorted`.
+      unreachableStartIndex = i;
+      for (BasicBlock block : code.blocks) {
+        if (!block.isMarked(color)) {
+          sorted[i] = block;
+          i++;
+        }
+      }
+      code.returnMarkingColor(color);
+    } else {
+      sorted = blocks.toArray(new BasicBlock[numberOfBlocks + 1]);
+      sorted[numberOfBlocks] = normalExitBlock;
+      unreachableStartIndex = numberOfBlocks + 1;
+    }
     numberBlocks();
     build();
   }
@@ -98,11 +141,11 @@ public class DominatorTree {
           @Override
           public boolean hasNext() {
             boolean found = false;
-            while (current < sorted.length
+            while (current < unreachableStartIndex
                 && !(found = dominatedBy(sorted[current], dominator))) {
               current++;
             }
-            return found && current < sorted.length;
+            return found && current < unreachableStartIndex;
           }
 
           @Override

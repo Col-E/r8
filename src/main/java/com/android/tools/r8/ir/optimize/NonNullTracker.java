@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
+
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -119,7 +121,7 @@ public class NonNullTracker {
         Set<Instruction> users = knownToBeNonNullValue.uniqueUsers();
         Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
         Map<Phi, IntList> dominatedPhiUsersWithPositions = new IdentityHashMap<>();
-        DominatorTree dominatorTree = new DominatorTree(code);
+        DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
         Set<BasicBlock> dominatedBlocks = Sets.newIdentityHashSet();
         for (BasicBlock dominatee : dominatorTree.dominatedBlocks(blockWithNonNullInstruction)) {
           dominatedBlocks.add(dominatee);
@@ -204,7 +206,7 @@ public class NonNullTracker {
           BasicBlock target = theIf.targetFromNonNullObject();
           // Ignore uncommon empty blocks.
           if (!target.isEmpty()) {
-            DominatorTree dominatorTree = new DominatorTree(code);
+            DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
             // Make sure there are no paths to the target block without passing the current block.
             if (dominatorTree.dominatedBy(target, block)) {
               // Collect users of the original value that are dominated by the target block.

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
+
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -497,7 +499,8 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     // catch handlers would otherwise be removed although they are not actually dead).
     if (normalExits.isEmpty()) {
       assert inlineeCanThrow;
-      blocksToRemove.addAll(invokePredecessor.unlink(invokeBlock, new DominatorTree(code)));
+      DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
+      blocksToRemove.addAll(invokePredecessor.unlink(invokeBlock, dominatorTree));
     }
 
     // Position the iterator after the invoke block.
