@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNR
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -58,13 +59,22 @@ public class UninstantiatedTypeOptimization {
       InstructionListIterator instructionIterator = block.listIterator();
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
-        if (instruction.isInstanceGet() || instruction.isInstancePut()) {
-          rewriteInstanceFieldInstruction(
-              instruction.asFieldInstruction(),
-              blockIterator,
-              instructionIterator,
-              code,
-              blocksToBeRemoved);
+        if (instruction.isFieldInstruction()) {
+          if (instruction.isInstanceGet() || instruction.isInstancePut()) {
+            rewriteInstanceFieldInstruction(
+                instruction.asFieldInstruction(),
+                blockIterator,
+                instructionIterator,
+                code,
+                blocksToBeRemoved);
+          } else {
+            rewriteStaticFieldInstruction(
+                instruction.asFieldInstruction(),
+                blockIterator,
+                instructionIterator,
+                code,
+                blocksToBeRemoved);
+          }
         } else if (instruction.isInvokeMethod()) {
           rewriteInvoke(
               instruction.asInvokeMethod(),
@@ -100,6 +110,8 @@ public class UninstantiatedTypeOptimization {
       IRCode code,
       Set<BasicBlock> blocksToBeRemoved) {
     assert instruction.isInstanceGet() || instruction.isInstancePut();
+    boolean replacedByThrowNull = false;
+
     Value receiver = instruction.inValues().get(0);
     if (isAlwaysNull(receiver)) {
       // Unable to rewrite instruction if the receiver is defined from "const-number 0", since this
@@ -109,6 +121,63 @@ public class UninstantiatedTypeOptimization {
         replaceCurrentInstructionWithThrowNull(
             instruction, blockIterator, instructionIterator, code, blocksToBeRemoved);
         ++numberOfInstanceGetOrInstancePutWithNullReceiver;
+        replacedByThrowNull = true;
+      }
+    }
+
+    if (!replacedByThrowNull) {
+      rewriteFieldInstruction(
+          instruction, blockIterator, instructionIterator, code, blocksToBeRemoved);
+    }
+  }
+
+  private void rewriteStaticFieldInstruction(
+      FieldInstruction instruction,
+      ListIterator<BasicBlock> blockIterator,
+      InstructionListIterator instructionIterator,
+      IRCode code,
+      Set<BasicBlock> blocksToBeRemoved) {
+    assert instruction.isStaticGet() || instruction.isStaticPut();
+    rewriteFieldInstruction(
+        instruction, blockIterator, instructionIterator, code, blocksToBeRemoved);
+  }
+
+  private void rewriteFieldInstruction(
+      FieldInstruction instruction,
+      ListIterator<BasicBlock> blockIterator,
+      InstructionListIterator instructionIterator,
+      IRCode code,
+      Set<BasicBlock> blocksToBeRemoved) {
+    if (isAlwaysNull(instruction.getField().type)) {
+      // Before trying to remove this instruction, we need to be sure that the field actually
+      // exists. Otherwise this instruction would throw a NoSuchFieldError exception.
+      DexEncodedField field = appView.appInfo().definitionFor(instruction.getField());
+      if (field == null) {
+        return;
+      }
+
+      // We also need to be sure that this field instruction cannot trigger static class
+      // initialization.
+      if (field.field.clazz != code.method.method.holder) {
+        DexClass enclosingClass = appView.appInfo().definitionFor(code.method.method.holder);
+        if (enclosingClass == null
+            || enclosingClass.classInitializationMayHaveSideEffects(appView.appInfo())) {
+          return;
+        }
+      }
+
+      BasicBlock block = instruction.getBlock();
+      if (instruction.isInstancePut() || instruction.isStaticPut()) {
+        // We know that the right-hand side must be null, so this is a no-op.
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+      } else {
+        // Replace the field read by the constant null.
+        instructionIterator.replaceCurrentInstruction(code.createConstNull());
+      }
+
+      if (block.hasCatchHandlers()) {
+        // This block can no longer throw.
+        block.getCatchHandlers().getUniqueTargets().forEach(BasicBlock::unlinkCatchHandler);
       }
     }
   }
@@ -219,11 +288,18 @@ public class UninstantiatedTypeOptimization {
       return true;
     }
     if (typeLatticeElement.isClassType()) {
-      DexType type = typeLatticeElement.asClassTypeLatticeElement().getClassType();
+      return isAlwaysNull(typeLatticeElement.asClassTypeLatticeElement().getClassType());
+    }
+    return false;
+  }
+
+  private boolean isAlwaysNull(DexType type) {
+    if (type.isClassType()) {
       DexClass clazz = appView.appInfo().definitionFor(type);
-      if (clazz != null && clazz.isProgramClass()) {
-        return !appView.appInfo().isInstantiatedDirectlyOrIndirectly(type);
-      }
+      return clazz != null
+          && clazz.isProgramClass()
+          && !clazz.accessFlags.isAnnotation()
+          && !appView.appInfo().isInstantiatedDirectlyOrIndirectly(type);
     }
     return false;
   }

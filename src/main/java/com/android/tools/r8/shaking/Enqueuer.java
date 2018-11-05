@@ -59,8 +59,6 @@ import com.google.common.collect.Sets.SetView;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
-import it.unimi.dsi.fastutil.objects.Reference2BooleanMap;
-import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -1717,8 +1715,8 @@ public class Enqueuer {
      */
     final SortedSet<DexType> instantiatedTypes;
     /** Cache for {@link #isInstantiatedDirectlyOrIndirectly(DexType)}. */
-    private final Reference2BooleanMap<DexType> indirectlyInstantiatedTypes =
-        new Reference2BooleanOpenHashMap<>();
+    private final IdentityHashMap<DexType, Boolean> indirectlyInstantiatedTypes =
+        new IdentityHashMap<>();
     /**
      * Set of methods that are the immediate target of an invoke. They might not actually be live
      * but are required so that invokes can find the method. If such a method is not live (i.e. not
@@ -2060,15 +2058,15 @@ public class Enqueuer {
     public boolean isInstantiatedIndirectly(DexType type) {
       assert type.isClassType();
       if (indirectlyInstantiatedTypes.containsKey(type)) {
-        return indirectlyInstantiatedTypes.getBoolean(type);
+        return indirectlyInstantiatedTypes.get(type).booleanValue();
       }
       for (DexType directSubtype : type.allImmediateSubtypes()) {
         if (isInstantiatedDirectlyOrIndirectly(directSubtype)) {
-          indirectlyInstantiatedTypes.put(type, true);
+          indirectlyInstantiatedTypes.put(type, Boolean.TRUE);
           return true;
         }
       }
-      indirectlyInstantiatedTypes.put(type, false);
+      indirectlyInstantiatedTypes.put(type, Boolean.FALSE);
       return false;
     }
 
