@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -60,6 +61,19 @@ public class CatchHandlers<T> {
   public boolean hasCatchAll() {
     return getGuards().size() > 0 &&
         getGuards().get(getGuards().size() - 1) == DexItemFactory.catchAllType;
+  }
+
+  public CatchHandlers<T> removeGuard(DexType guardToBeRemoved) {
+    List<DexType> newGuards = new ArrayList<>();
+    List<T> newTargets = new ArrayList<>();
+    forEach(
+        (guard, target) -> {
+          if (guard != guardToBeRemoved) {
+            newGuards.add(guard);
+            newTargets.add(target);
+          }
+        });
+    return new CatchHandlers<>(newGuards, newTargets);
   }
 
   public void forEach(BiConsumer<DexType, T> consumer) {

@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -11,19 +14,27 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 
 public class DeadCodeRemover {
+
+  private final AppInfo appInfo;
   private final IRCode code;
   private final CodeRewriter codeRewriter;
   private final GraphLense graphLense;
   private final InternalOptions options;
 
   public DeadCodeRemover(
-      IRCode code, CodeRewriter codeRewriter, GraphLense graphLense, InternalOptions options) {
+      AppInfo appInfo,
+      IRCode code,
+      CodeRewriter codeRewriter,
+      GraphLense graphLense,
+      InternalOptions options) {
+    this.appInfo = appInfo;
     this.code = code;
     this.codeRewriter = codeRewriter;
     this.graphLense = graphLense;
@@ -114,16 +125,37 @@ public class DeadCodeRemover {
   }
 
   private void removeUnneededCatchHandlers() {
+    boolean mayHaveIntroducedUnreachableBlocks = false;
     for (BasicBlock block : code.blocks) {
       if (block.hasCatchHandlers()) {
-        if (!block.canThrow()) {
+        if (block.canThrow()) {
+          if (appInfo.hasLiveness()) {
+            AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
+            CatchHandlers<BasicBlock> catchHandlers = block.getCatchHandlers();
+            for (int i = 0; i < catchHandlers.size(); ++i) {
+              DexType guard = catchHandlers.getGuards().get(i);
+              BasicBlock target = catchHandlers.getAllTargets().get(i);
+              DexClass clazz = appInfo.definitionFor(guard);
+              if (clazz != null
+                  && clazz.isProgramClass()
+                  && !appInfoWithLiveness.isInstantiatedDirectlyOrIndirectly(guard)) {
+                target.unlinkCatchHandlerForGuard(guard);
+                mayHaveIntroducedUnreachableBlocks = true;
+              }
+            }
+          }
+        } else {
           CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
           for (BasicBlock target : handlers.getUniqueTargets()) {
             target.unlinkCatchHandler();
+            mayHaveIntroducedUnreachableBlocks = true;
           }
         }
       }
     }
-    code.removeUnreachableBlocks();
+    if (mayHaveIntroducedUnreachableBlocks) {
+      code.removeUnreachableBlocks();
+    }
+    assert code.isConsistentGraph();
   }
 }

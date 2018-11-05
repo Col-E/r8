@@ -145,7 +145,7 @@ public class CfBuilder {
     typeVerificationHelper = new TypeVerificationHelper(code, factory, appInfo);
     typeVerificationHelper.computeVerificationTypes();
     splitExceptionalBlocks();
-    new DeadCodeRemover(code, rewriter, graphLense, options).run();
+    new DeadCodeRemover(appInfo, code, rewriter, graphLense, options).run();
     rewriteNots();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, typeVerificationHelper, appInfo);
     loadStoreHelper.insertLoadsAndStores();

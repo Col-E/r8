@@ -577,7 +577,7 @@ public class IRConverter {
                 // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
                 // unused out-values.
                 codeRewriter.rewriteMoveResult(code);
-                new DeadCodeRemover(code, codeRewriter, appView.graphLense(), options).run();
+                new DeadCodeRemover(appInfo, code, codeRewriter, graphLense(), options).run();
                 consumer.accept(code, method);
                 return null;
               }));
@@ -883,7 +883,7 @@ public class IRConverter {
     // Dead code removal. Performed after simplifications to remove code that becomes dead
     // as a result of those simplifications. The following optimizations could reveal more
     // dead code which is removed right before register allocation in performRegisterAllocation.
-    new DeadCodeRemover(code, codeRewriter, graphLense(), options).run();
+    new DeadCodeRemover(appInfo, code, codeRewriter, graphLense(), options).run();
     assert code.isConsistentSSA();
 
     if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
@@ -1102,7 +1102,7 @@ public class IRConverter {
   private RegisterAllocator performRegisterAllocation(IRCode code, DexEncodedMethod method) {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
-    new DeadCodeRemover(code, codeRewriter, graphLense(), options).run();
+    new DeadCodeRemover(appInfo, code, codeRewriter, graphLense(), options).run();
     materializeInstructionBeforeLongOperationsWorkaround(code);
     workaroundForwardingInitializerBug(code);
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);

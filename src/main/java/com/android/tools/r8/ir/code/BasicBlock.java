@@ -654,6 +654,52 @@ public class BasicBlock {
     predecessors.clear();
   }
 
+  /**
+   * Removes this basic block as a catch handler for the given guard, based on the assumption that
+   * this block is a catch handler.
+   *
+   * <p>If this basic block is the target for a unique guard, then this catch handler will be
+   * unlinked. If this basic block is the target for multiple guards, then the catch handlers of the
+   * predecessor block will be updated such that this block is no longer a catch handler for the
+   * given guard.
+   */
+  public void unlinkCatchHandlerForGuard(DexType guard) {
+    assert predecessors.size() == 1;
+    if (isCatchHandlerForSingleGuard()) {
+      // Unlink catch handler entirely.
+      unlinkCatchHandler();
+    } else {
+      // Update catch handlers of predecessor.
+      BasicBlock predecessor = predecessors.get(0);
+      predecessor.removeCatchHandlerWithGuard(guard);
+    }
+  }
+
+  private void removeCatchHandlerWithGuard(DexType guard) {
+    int successorIndex = catchHandlers.getGuards().indexOf(guard);
+    if (successorIndex >= 0) {
+      catchHandlers = catchHandlers.removeGuard(guard);
+      if (getCatchHandlers().getAllTargets().stream()
+          .noneMatch(target -> target == successors.get(successorIndex))) {
+        successors.remove(successorIndex);
+      }
+      assert consistentCatchHandlers();
+    }
+  }
+
+  private boolean isCatchHandlerForSingleGuard() {
+    assert predecessors.size() == 1;
+    BasicBlock predecessor = predecessors.get(0);
+    assert predecessor.getCatchHandlers().getAllTargets().contains(this);
+    int count = 0;
+    for (BasicBlock target : predecessor.getCatchHandlers().getAllTargets()) {
+      if (target == this && ++count > 1) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public void detachAllSuccessors() {
     for (BasicBlock successor : successors) {
       successor.predecessors.remove(this);
