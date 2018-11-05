@@ -65,7 +65,8 @@ public abstract class AbstractSynthesizedCode extends Code {
             getSourceCodeProvider().get(callerPosition),
             options,
             origin,
-            valueNumberGenerator);
+            valueNumberGenerator,
+            GraphLense.emptyRemovedArguments());
     return builder.build(context);
   }
 

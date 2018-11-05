@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -90,6 +91,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
+import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
@@ -377,6 +379,9 @@ public class IRBuilder {
   private DexEncodedMethod context;
   private final AppInfo appInfo;
   private final Origin origin;
+  private IntList removedArguments;
+  private int nextRemovedArgumentsIndex = 0;
+  private int argumentCount = 0;
 
   // Source code to build IR from. Null if already built.
   private SourceCode source;
@@ -405,7 +410,14 @@ public class IRBuilder {
       SourceCode source,
       InternalOptions options,
       Origin origin) {
-    this(method, appInfo, source, options, origin, new ValueNumberGenerator());
+    this(
+        method,
+        appInfo,
+        source,
+        options,
+        origin,
+        new ValueNumberGenerator(),
+        GraphLense.emptyRemovedArguments());
   }
 
   public IRBuilder(
@@ -414,7 +426,8 @@ public class IRBuilder {
       SourceCode source,
       InternalOptions options,
       Origin origin,
-      ValueNumberGenerator valueNumberGenerator) {
+      ValueNumberGenerator valueNumberGenerator,
+      IntList removedArguments) {
     assert source != null;
     this.method = method;
     this.appInfo = appInfo;
@@ -423,6 +436,12 @@ public class IRBuilder {
         valueNumberGenerator != null ? valueNumberGenerator : new ValueNumberGenerator();
     this.options = options;
     this.origin = origin;
+    this.removedArguments = removedArguments;
+    if (Log.ENABLED && !removedArguments.isEmpty()) {
+      Log.info(
+          getClass(),
+          "Removed " + removedArguments.size() + " arguments from " + method.toSourceString());
+    }
   }
 
   public boolean isGeneratingClassFiles() {
@@ -768,7 +787,19 @@ public class IRBuilder {
     addInstruction(ir);
   }
 
+  private boolean skipArgument() {
+    if (nextRemovedArgumentsIndex < removedArguments.size()
+        && removedArguments.getInt(nextRemovedArgumentsIndex) == argumentCount) {
+      nextRemovedArgumentsIndex++;
+      argumentCount++;
+      return true;
+    }
+    argumentCount++;
+    return false;
+  }
+
   public void addThisArgument(int register) {
+    assert !skipArgument(); // Only static methods support removed arguments.
     DebugLocalInfo local = getOutgoingLocal(register);
     boolean receiverCouldBeNull = context != null && context != method;
     TypeLatticeElement receiver =
@@ -779,12 +810,18 @@ public class IRBuilder {
   }
 
   public void addNonThisArgument(int register, TypeLatticeElement typeLattice) {
+    if (skipArgument()) {
+      return;
+    }
     DebugLocalInfo local = getOutgoingLocal(register);
     Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
   }
 
   public void addBooleanNonThisArgument(int register) {
+    if (skipArgument()) {
+      return;
+    }
     DebugLocalInfo local = getOutgoingLocal(register);
     Value value = writeRegister(register, INT, ThrowingInfo.NO_THROW, local);
     value.setKnownToBeBoolean(true);

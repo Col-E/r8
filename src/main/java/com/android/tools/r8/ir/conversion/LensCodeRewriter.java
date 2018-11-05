@@ -35,7 +35,6 @@ import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -91,11 +90,6 @@ public class LensCodeRewriter {
    * Replace type appearances, invoke targets and field accesses with actual definitions.
    */
   public void rewrite(IRCode code, DexEncodedMethod method) {
-    removeUnusedArguments(code, method);
-    rewriteInvokeTargets(code, method);
-  }
-
-  private void rewriteInvokeTargets(IRCode code, DexEncodedMethod method) {
     Set<Value> newSSAValues = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.blocks.listIterator();
     while (blocks.hasNext()) {
@@ -437,41 +431,6 @@ public class LensCodeRewriter {
     return methodHandle;
   }
 
-  private void removeUnusedArguments(IRCode code, DexEncodedMethod method) {
-    if (!method.isStatic()) {
-      return;
-    }
-    GraphLenseLookupResult lookup = graphLense.lookupMethod(method.method, method, Type.STATIC);
-    if (!lookup.hasRemovedArguments()) {
-      return;
-    }
-    int nextRemovedArgumentsIndex = 0;
-    int originalArgumentIndex = 0;
-    InstructionIterator iterator = code.instructionIterator();
-    while (iterator.hasNext()) {
-      Instruction instruction = iterator.next();
-      assert instruction.isArgument();
-      if (lookup.getRemovedArguments().getInt(nextRemovedArgumentsIndex) == originalArgumentIndex) {
-        assert instruction.outValue().numberOfAllUsers() == 0;
-        iterator.remove();
-        nextRemovedArgumentsIndex++;
-        if (nextRemovedArgumentsIndex == lookup.getRemovedArguments().size()) {
-          break;
-        }
-      }
-      originalArgumentIndex++;
-    }
-    assert nextRemovedArgumentsIndex == lookup.getRemovedArguments().size();
-    if (Log.ENABLED) {
-      Log.info(
-          getClass(),
-          "Removed "
-              + lookup.getRemovedArguments().size()
-              + " arguments from "
-              + method.toSourceString());
-    }
-  }
-  
   /**
    * This rebinds invoke-virtual instructions to their most specific target.
    *
