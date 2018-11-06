@@ -402,10 +402,12 @@ public abstract class TypeLatticeElement {
   public boolean isPreciseType() {
     return isArrayType()
         || isClassType()
+        || isNull()
         || isInt()
         || isFloat()
         || isLong()
-        || isDouble();
+        || isDouble()
+        || isBottom();
   }
 
   public boolean isNull() {
