@@ -17,12 +17,14 @@ import com.google.common.collect.ImmutableList;
 
 public class Swap extends Instruction {
 
-  public Swap(StackValue destBottom, StackValue destTop, StackValue srcBottom, StackValue srcTop) {
+  public Swap(StackValue destBottom, StackValue destTop, Value srcBottom, Value srcTop) {
     this(new StackValues(destBottom, destTop), srcBottom, srcTop);
   }
 
-  private Swap(StackValues dest, StackValue src1, StackValue src2) {
+  private Swap(StackValues dest, Value src1, Value src2) {
     super(dest, ImmutableList.of(src1, src2));
+    assert src1.isValueOnStack() && !(src1 instanceof StackValues);
+    assert src2.isValueOnStack() && !(src2 instanceof StackValues);
     assert !this.inValues.get(0).type.isWide() && !this.inValues.get(1).type.isWide();
   }
 

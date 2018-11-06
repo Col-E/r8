@@ -42,10 +42,10 @@ public class IRCode {
     // Subset of live local-variable values.
     public final Set<Value> liveLocalValues;
 
-    public final Deque<StackValue> liveStackValues;
+    public final Deque<Value> liveStackValues;
 
     public LiveAtEntrySets(
-        Set<Value> liveValues, Set<Value> liveLocalValues, Deque<StackValue> liveStackValues) {
+        Set<Value> liveValues, Set<Value> liveLocalValues, Deque<Value> liveStackValues) {
       assert liveValues.containsAll(liveLocalValues);
       this.liveValues = liveValues;
       this.liveLocalValues = liveLocalValues;
@@ -136,7 +136,7 @@ public class IRCode {
       BasicBlock block = worklist.poll();
       Set<Value> live = new HashSet<>();
       Set<Value> liveLocals = new HashSet<>();
-      Deque<StackValue> liveStack = new ArrayDeque<>();
+      Deque<Value> liveStack = new ArrayDeque<>();
       Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
       for (BasicBlock succ : block.getSuccessors()) {
         LiveAtEntrySets liveAtSucc = liveAtEntrySets.get(succ);
@@ -156,16 +156,21 @@ public class IRCode {
         int predIndex = succ.getPredecessors().indexOf(block);
         for (Phi phi : succ.getPhis()) {
           Value operand = phi.getOperand(predIndex);
-          live.add(operand);
-          if (phi.hasLocalInfo()) {
-            // If the phi has local information that implies that the local *must* be live at entry
-            // to the block (ie, phis can't end a local explicitly only instructions can).
-            // The graph also requires that any local live at entry to a block is at the latest
-            // started in the split edge prior to that block (ie, phis cannot start a local range).
-            // Therefore, if the phi has local information, that local is live and the operand must
-            // be live at block exit.
-            assert phi.getLocalInfo() == operand.getLocalInfo();
-            liveLocals.add(operand);
+          if (operand.isValueOnStack()) {
+            liveStack.addLast(operand);
+          } else {
+            live.add(operand);
+            if (phi.hasLocalInfo()) {
+              // If the phi has local information that implies that the local *must* be live at
+              // entry to the block (ie, phis can't end a local explicitly only instructions can).
+              // The graph also requires that any local live at entry to a block is at the latest
+              // started in the split edge prior to that block (ie, phis cannot start a local
+              // range).
+              // Therefore, if the phi has local information, that local is live and the operand
+              // must be live at block exit.
+              assert phi.getLocalInfo() == operand.getLocalInfo();
+              liveLocals.add(operand);
+            }
           }
         }
       }
@@ -179,12 +184,12 @@ public class IRCode {
         Value outValue = instruction.outValue();
         if (outValue != null) {
           if (outValue instanceof StackValue) {
-            StackValue pop = liveStack.removeLast();
+            Value pop = liveStack.removeLast();
             assert pop == outValue;
           } else if (outValue instanceof StackValues) {
             StackValue[] values = ((StackValues) outValue).getStackValues();
             for (int i = values.length - 1; i >= 0; i--) {
-              StackValue pop = liveStack.removeLast();
+              Value pop = liveStack.removeLast();
               assert pop == values[i];
             }
           } else {
@@ -198,9 +203,8 @@ public class IRCode {
         for (Value use : instruction.inValues()) {
           if (use.needsRegister()) {
             live.add(use);
-          }
-          if (use instanceof StackValue) {
-            liveStack.addLast((StackValue) use);
+          } else if (use.isValueOnStack()) {
+            liveStack.addLast(use);
           }
         }
         assert instruction.getDebugValues().stream().allMatch(Value::needsRegister);
@@ -209,7 +213,11 @@ public class IRCode {
         liveLocals.addAll(instruction.getDebugValues());
       }
       for (Phi phi : block.getPhis()) {
-        live.remove(phi);
+        if (phi.isValueOnStack()) {
+          liveStack.remove(phi);
+        } else {
+          live.remove(phi);
+        }
         assert phi.hasLocalInfo() || !liveLocals.contains(phi);
         if (phi.hasLocalInfo()) {
           liveLocals.remove(phi);
