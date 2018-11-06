@@ -159,15 +159,19 @@ public class StringLengthTest extends TestBase {
     TestRunResult result = testForD8()
         .release()
         .addProgramClasses(classes)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+        .run(main);
+    if (!ToolHelper.isWindows()) {
+      result.assertSuccessWithOutput(javaOutput);
+    }
     test(result, 1, 4);
 
     result = testForD8()
         .debug()
         .addProgramClasses(classes)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+        .run(main);
+    if (!ToolHelper.isWindows()) {
+      result.assertSuccessWithOutput(javaOutput);
+    }
     test(result, 6, 0);
   }
 
@@ -178,8 +182,10 @@ public class StringLengthTest extends TestBase {
         .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(main)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+        .run(main);
+    if (!ToolHelper.isWindows()) {
+      result.assertSuccessWithOutput(javaOutput);
+    }
     // TODO we could remove const counting if it needs to be changed too frequently, since
     // the string length count is what we're interested in.
     test(result, 0, backend == Backend.DEX ? 5 : 6);
