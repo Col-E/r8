@@ -11,6 +11,7 @@ import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -101,7 +102,7 @@ public class StringLengthTest extends TestBase {
         "Another_shared",
         "2",
         "1",
-        "𐀀",
+        "𐀀", // Different output in Windows.
         "3"
     );
     main = StringLengthTestMain.class;
@@ -110,7 +111,9 @@ public class StringLengthTest extends TestBase {
   @Before
   public void setUp() throws Exception {
     classes = ImmutableList.of(ForceInline.class, NeverInline.class, StringLengthTestMain.class);
-    testForJvm().addTestClasspath().run(main).assertSuccessWithOutput(javaOutput);
+    if (!ToolHelper.isWindows()) {
+      testForJvm().addTestClasspath().run(main).assertSuccessWithOutput(javaOutput);
+    }
   }
 
   private static boolean isStringLength(DexMethod method) {
