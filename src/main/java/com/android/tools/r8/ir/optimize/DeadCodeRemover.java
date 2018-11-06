@@ -187,7 +187,7 @@ public class DeadCodeRemover {
 
       // We can exploit that a catch handler must be dead if its guard is never instantiated
       // directly or indirectly.
-      if (appInfoWithLiveness != null) {
+      if (appInfoWithLiveness != null && options.enableUninstantiatedTypeOptimization) {
         DexClass clazz = appInfo.definitionFor(guard);
         if (clazz != null
             && clazz.isProgramClass()
