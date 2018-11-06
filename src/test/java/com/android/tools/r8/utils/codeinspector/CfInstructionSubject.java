@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfCheckCast;
+import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
@@ -133,6 +134,16 @@ public class CfInstructionSubject implements InstructionSubject {
   public boolean isConstString(String value, JumboStringMode jumboStringMode) {
     return isConstString(jumboStringMode)
         && ((CfConstString) instruction).getString().toSourceString().equals(value);
+  }
+
+  @Override
+  public boolean isConstClass() {
+    return instruction instanceof CfConstClass;
+  }
+
+  @Override
+  public boolean isConstClass(String type) {
+    return isConstClass() && ((CfConstClass) instruction).getType().toString().equals(type);
   }
 
   @Override
