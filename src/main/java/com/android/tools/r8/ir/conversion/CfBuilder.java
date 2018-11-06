@@ -45,6 +45,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
+import com.android.tools.r8.ir.optimize.PhiOptimizations;
 import com.android.tools.r8.ir.optimize.peepholes.BasicBlockMuncher;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -113,7 +114,7 @@ public class CfBuilder {
     }
 
     void pop(Value value) {
-      assert value instanceof StackValue;
+      assert value.isValueOnStack();
       height -= value.requiredRegisters();
     }
 
@@ -148,8 +149,15 @@ public class CfBuilder {
     rewriteNots();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, typeVerificationHelper, appInfo);
     loadStoreHelper.insertLoadsAndStores();
+    // Run optimizations on phis and basic blocks in a fixpoint.
     BasicBlockMuncher muncher = new BasicBlockMuncher();
-    muncher.optimize(code);
+    PhiOptimizations phiOptimizations = new PhiOptimizations();
+    boolean reachedFixpoint = false;
+    phiOptimizations.optimize(code);
+    while (!reachedFixpoint) {
+      muncher.optimize(code);
+      reachedFixpoint = !phiOptimizations.optimize(code);
+    }
     registerAllocator = new CfRegisterAllocator(code, options, typeVerificationHelper);
     registerAllocator.allocateRegisters();
     loadStoreHelper.insertPhiMoves(registerAllocator);
@@ -319,10 +327,8 @@ public class CfBuilder {
         pendingLocals = new Int2ReferenceOpenHashMap<>(locals);
         pendingLocalChanges = true;
       }
-
       // Continue
       stackHeightTracker.setHeight(stackHeightAtBlockEntry(block));
-
       buildCfInstructions(block, nextBlock, fallthrough, stackHeightTracker);
 
       assert !block.exit().isReturn() || stackHeightTracker.isEmpty();
@@ -330,7 +336,7 @@ public class CfBuilder {
       block = nextBlock;
       previousFallthrough = fallthrough;
     } while (block != null);
-
+    // TODO(mkroghj) Move computation of stack-height to CF instructions.
     CfLabel endLabel = ensureLabel();
     for (LocalVariableInfo info : openLocalVariables.values()) {
       info.setEnd(endLabel);
@@ -349,6 +355,7 @@ public class CfBuilder {
     // From DexBuilder
     return instruction.isArgument()
         || instruction.isDebugLocalsChange()
+        || instruction.isMoveException()
         || (instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock);
   }
 
@@ -385,7 +392,7 @@ public class CfBuilder {
         return;
       }
       for (int i = instruction.inValues().size() - 1; i >= 0; i--) {
-        if (instruction.inValues().get(i) instanceof StackValue) {
+        if (instruction.inValues().get(i).isValueOnStack()) {
           stack.pop(instruction.inValues().get(i));
         }
       }
