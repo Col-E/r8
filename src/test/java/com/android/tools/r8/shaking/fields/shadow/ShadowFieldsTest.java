@@ -38,8 +38,8 @@ class Main {
       clazz.getDeclaredField(name);
       System.out.println(clazz.getSimpleName() + "." + name + " found");
     } catch (NoSuchFieldException e) {
+      System.out.println(clazz.getSimpleName() + "." + name + " not found");
     }
-    System.out.println(clazz.getSimpleName() + "." + name + " not found");
   }
 
   public static void main(String[] args) {
