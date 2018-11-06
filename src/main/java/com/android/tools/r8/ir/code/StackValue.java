@@ -37,6 +37,11 @@ public class StackValue extends Value {
   }
 
   @Override
+  public boolean isValueOnStack() {
+    return true;
+  }
+
+  @Override
   public boolean needsRegister() {
     return false;
   }
