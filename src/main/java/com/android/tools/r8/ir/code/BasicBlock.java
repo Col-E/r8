@@ -676,8 +676,10 @@ public class BasicBlock {
   }
 
   private void removeCatchHandlerWithGuard(DexType guard) {
-    int successorIndex = catchHandlers.getGuards().indexOf(guard);
-    if (successorIndex >= 0) {
+    int guardIndex = catchHandlers.getGuards().indexOf(guard);
+    if (guardIndex >= 0) {
+      int successorIndex = catchHandlers.getAllTargets().get(guardIndex);
+      assert successorIndex >= 0;
       catchHandlers = catchHandlers.removeGuard(guard);
       if (getCatchHandlers().getAllTargets().stream()
           .noneMatch(target -> target == successors.get(successorIndex))) {
