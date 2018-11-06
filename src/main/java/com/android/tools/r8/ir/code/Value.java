@@ -560,10 +560,6 @@ public class Value {
     return false;
   }
 
-  public boolean isValueOnStack() {
-    return false;
-  }
-
   @Override
   public int hashCode() {
     return number;

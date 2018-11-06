@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.peepholes;
 
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Value;
 import java.util.function.Predicate;
@@ -45,10 +46,11 @@ public class PeepholeHelper {
 
   public static int numberOfValuesPutOnStack(Instruction instruction) {
     Value outValue = instruction.outValue();
+    if (outValue instanceof StackValue) {
+      return 1;
+    }
     if (outValue instanceof StackValues) {
       return ((StackValues) outValue).getStackValues().length;
-    } else if (outValue != null && outValue.isValueOnStack()) {
-      return 1;
     }
     return 0;
   }
@@ -56,7 +58,7 @@ public class PeepholeHelper {
   public static int numberOfValuesConsumedFromStack(Instruction instruction) {
     int count = 0;
     for (int i = instruction.inValues().size() - 1; i >= 0; i--) {
-      if (instruction.inValues().get(i).isValueOnStack()) {
+      if (instruction.inValues().get(i) instanceof StackValue) {
         count += 1;
       }
     }

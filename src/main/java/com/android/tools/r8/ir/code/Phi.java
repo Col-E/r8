@@ -33,7 +33,6 @@ public class Phi extends Value {
   private final BasicBlock block;
   private final List<Value> operands = new ArrayList<>();
   private RegisterReadType readType;
-  private boolean isStackPhi;
 
   // Trivial phis are eliminated during IR construction. When a trivial phi is eliminated
   // we need to update all references to it. A phi can be referenced from phis, instructions
@@ -376,31 +375,8 @@ public class Phi extends Value {
   }
 
   @Override
-  public boolean isValueOnStack() {
-    assert verifyIsStackPhi(new HashSet<>());
-    return isStackPhi;
-  }
-
-  public void setIsStackPhi(boolean isStackPhi) {
-    this.isStackPhi = isStackPhi;
-  }
-
-  private boolean verifyIsStackPhi(Set<Phi> seenPhis) {
-    seenPhis.add(this);
-    operands.forEach(
-        v -> {
-          if (v.isPhi()) {
-            assert seenPhis.contains(v) || v.asPhi().verifyIsStackPhi(seenPhis);
-          } else {
-            assert v.isValueOnStack() == isStackPhi;
-          }
-        });
-    return true;
-  }
-
-  @Override
   public boolean needsRegister() {
-    return !isValueOnStack();
+    return true;
   }
 
   public boolean usesValueOneTime(Value usedValue) {

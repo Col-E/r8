@@ -16,13 +16,12 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class Dup extends Instruction {
 
-  public Dup(StackValue destBottom, StackValue destTop, Value src) {
+  public Dup(StackValue destBottom, StackValue destTop, StackValue src) {
     this(new StackValues(destBottom, destTop), src);
   }
 
-  private Dup(StackValues dest, Value src) {
+  private Dup(StackValues dest, StackValue src) {
     super(dest, src);
-    assert src.isValueOnStack() && !(src instanceof StackValues);
   }
 
   @Override
