@@ -1812,8 +1812,6 @@ public class CodeRewriter {
         && instanceOfType.strictlyLessThan(inType, appInfo)) {
       result = InstanceOfResult.FALSE;
     } else if (appInfo.hasLiveness()) {
-      AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
-
       if (instanceOf.type().isClassType()
           && isNeverInstantiatedDirectlyOrIndirectly(instanceOf.type())) {
         // The type of the instance-of instruction is a program class, and is never instantiated
@@ -1852,7 +1850,6 @@ public class CodeRewriter {
     DexClass clazz = appInfo.definitionFor(type);
     return clazz != null
         && clazz.isProgramClass()
-        && !clazz.accessFlags.isAnnotation()
         && !appInfo.withLiveness().isInstantiatedDirectlyOrIndirectly(type);
   }
 

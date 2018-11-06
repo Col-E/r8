@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
+import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
@@ -147,6 +148,10 @@ public class Enqueuer {
    * for these.
    */
   private final Set<DexType> liveTypes = Sets.newIdentityHashSet();
+  /**
+   * Set of annotation types that are instantiated.
+   */
+  private final Set<DexType> instantiatedAnnotations = Sets.newIdentityHashSet();
   /**
    * Set of types that are actually instantiated. These cannot be abstract.
    */
@@ -735,6 +740,11 @@ public class Enqueuer {
   }
 
   private void handleAnnotationOfLiveType(DexAnnotation annotation) {
+    DexType type = annotation.annotation.type;
+    // Record that it is instantiated if it should be kept when its type is live.
+    if (shouldKeepAnnotation(annotation, true, appInfo.dexItemFactory, options)) {
+      instantiatedAnnotations.add(type);
+    }
     AnnotationReferenceMarker referenceMarker = new AnnotationReferenceMarker(
         annotation.annotation.type, appInfo.dexItemFactory);
     annotation.annotation.collectIndexedItems(referenceMarker);
@@ -752,6 +762,10 @@ public class Enqueuer {
       // The type of this annotation is already live, so pick up its dependencies.
       handleAnnotationOfLiveType(annotation);
     } else {
+      // Record that it is instantiated if it should be kept although its type is not live.
+      if (shouldKeepAnnotation(annotation, false, appInfo.dexItemFactory, options)) {
+        instantiatedAnnotations.add(type);
+      }
       // Remember this annotation for later.
       deferredAnnotations.computeIfAbsent(type, ignore -> new HashSet<>()).add(annotation);
     }
@@ -1711,10 +1725,16 @@ public class Enqueuer {
      */
     public final SortedSet<DexType> liveTypes;
     /**
+     * Set of annotation types that are instantiated.
+     */
+    final SortedSet<DexType> instantiatedAnnotations;
+    /**
      * Set of types that are actually instantiated. These cannot be abstract.
      */
     final SortedSet<DexType> instantiatedTypes;
-    /** Cache for {@link #isInstantiatedDirectlyOrIndirectly(DexType)}. */
+    /**
+     * Cache for {@link #isInstantiatedDirectlyOrIndirectly(DexType)}.
+     */
     private final IdentityHashMap<DexType, Boolean> indirectlyInstantiatedTypes =
         new IdentityHashMap<>();
     /**
@@ -1843,6 +1863,8 @@ public class Enqueuer {
       super(appInfo);
       this.liveTypes = ImmutableSortedSet.copyOf(
           PresortedComparable<DexType>::slowCompareTo, enqueuer.liveTypes);
+      this.instantiatedAnnotations = ImmutableSortedSet.copyOf(
+          PresortedComparable<DexType>::slowCompareTo, enqueuer.instantiatedAnnotations);
       this.instantiatedTypes = ImmutableSortedSet.copyOf(
           PresortedComparable<DexType>::slowCompareTo, enqueuer.instantiatedTypes.getItems());
       this.instantiatedLambdas =
@@ -1893,6 +1915,7 @@ public class Enqueuer {
         Collection<DexType> removedClasses) {
       super(application);
       this.liveTypes = previous.liveTypes;
+      this.instantiatedAnnotations = previous.instantiatedAnnotations;
       this.instantiatedTypes = previous.instantiatedTypes;
       this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;
@@ -1935,6 +1958,8 @@ public class Enqueuer {
         GraphLense lense) {
       super(application, lense);
       this.liveTypes = rewriteItems(previous.liveTypes, lense::lookupType);
+      this.instantiatedAnnotations =
+          rewriteItems(previous.instantiatedAnnotations, lense::lookupType);
       this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
       this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
       this.targetedMethods = lense.rewriteMethodsConservatively(previous.targetedMethods);
@@ -1995,6 +2020,7 @@ public class Enqueuer {
         Map<DexType, Reference2IntMap<DexField>> ordinalsMaps) {
       super(previous);
       this.liveTypes = previous.liveTypes;
+      this.instantiatedAnnotations = previous.instantiatedAnnotations;
       this.instantiatedTypes = previous.instantiatedTypes;
       this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;
@@ -2052,7 +2078,9 @@ public class Enqueuer {
 
     public boolean isInstantiatedDirectly(DexType type) {
       assert type.isClassType();
-      return instantiatedTypes.contains(type) || instantiatedLambdas.contains(type);
+      return instantiatedTypes.contains(type)
+          || instantiatedLambdas.contains(type)
+          || instantiatedAnnotations.contains(type);
     }
 
     public boolean isInstantiatedIndirectly(DexType type) {
