@@ -50,11 +50,6 @@ public class StackValues extends Value {
   }
 
   @Override
-  public boolean isValueOnStack() {
-    return true;
-  }
-
-  @Override
   public TypeLatticeElement getTypeLattice() {
     throw new Unreachable();
   }

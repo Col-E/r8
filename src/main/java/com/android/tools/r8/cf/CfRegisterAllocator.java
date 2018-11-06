@@ -309,13 +309,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
   }
 
   public void addToLiveAtEntrySet(BasicBlock block, Collection<Phi> phis) {
-    for (Phi phi : phis) {
-      if (phi.isValueOnStack()) {
-        liveAtEntrySets.get(block).liveStackValues.addLast(phi);
-      } else {
-        liveAtEntrySets.get(block).liveValues.add(phi);
-      }
-    }
+    liveAtEntrySets.get(block).liveValues.addAll(phis);
   }
 
   public TypesAtBlockEntry getTypesAtBlockEntry(BasicBlock block) {
@@ -328,9 +322,10 @@ public class CfRegisterAllocator implements RegisterAllocator {
             registers.put(getRegisterForValue(liveValue), typeHelper.getTypeInfo(liveValue));
           }
 
-          Deque<Value> liveStackValues = liveAtEntrySets.get(k).liveStackValues;
+          Deque<StackValue> liveStackValues = liveAtEntrySets.get(k).liveStackValues;
           List<TypeInfo> stack = new ArrayList<>(liveStackValues.size());
-          for (Value value : liveStackValues) {
+          stack = new ArrayList<>(liveStackValues.size());
+          for (StackValue value : liveStackValues) {
             stack.add(typeHelper.getTypeInfo(value));
           }
           return new TypesAtBlockEntry(registers, stack);

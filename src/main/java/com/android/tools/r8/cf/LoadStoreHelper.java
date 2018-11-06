@@ -118,9 +118,6 @@ public class LoadStoreHelper {
           List<Phi> phis = block.getPhis();
           List<PhiMove> moves = new ArrayList<>(phis.size());
           for (Phi phi : phis) {
-            if (!phi.needsRegister()) {
-              continue;
-            }
             Value value = phi.getOperand(predIndex);
             if (allocator.getRegisterForValue(phi) != allocator.getRegisterForValue(value)) {
               moves.add(new PhiMove(phi, value));
