@@ -127,7 +127,7 @@ public class RootSetBuilder {
             // Members mentioned at -keepclassmembers always depend on their holder.
             preconditionSupplier = ImmutableMap.of(definition -> true, clazz);
             markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier);
-            markMatchingFields(clazz, memberKeepRules, rule, preconditionSupplier);
+            markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier);
             break;
           }
           case KEEP_CLASSES_WITH_MEMBERS: {
@@ -150,7 +150,7 @@ public class RootSetBuilder {
               preconditionSupplier.put((definition -> true), null);
             }
             markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier);
-            markMatchingFields(clazz, memberKeepRules, rule, preconditionSupplier);
+            markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier);
             break;
           }
           case CONDITIONAL:
@@ -170,10 +170,10 @@ public class RootSetBuilder {
           || rule instanceof ProguardKeepPackageNamesRule) {
         markClass(clazz, rule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-        markMatchingFields(clazz, memberKeepRules, rule, null);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null);
       } else if (rule instanceof ProguardAssumeNoSideEffectRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-        markMatchingFields(clazz, memberKeepRules, rule, null);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null);
       } else if (rule instanceof ClassMergingRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
           markClass(clazz, rule);
@@ -182,7 +182,7 @@ public class RootSetBuilder {
         markMatchingMethods(clazz, memberKeepRules, rule, null);
       } else if (rule instanceof ProguardAssumeValuesRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-        markMatchingFields(clazz, memberKeepRules, rule, null);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null);
       } else {
         assert rule instanceof ProguardIdentifierNameStringRule;
         markMatchingFields(clazz, memberKeepRules, rule, null);
@@ -458,6 +458,21 @@ public class RootSetBuilder {
       DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
       markMethod(method, memberKeepRules, null, rule, precondition);
     });
+  }
+
+  private void markMatchingVisibleFields(
+      DexClass clazz,
+      Collection<ProguardMemberRule> memberKeepRules,
+      ProguardConfigurationRule rule,
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
+    while (clazz != null) {
+      clazz.forEachField(
+          field -> {
+            DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
+            markField(field, memberKeepRules, rule, precondition);
+          });
+      clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
+    }
   }
 
   private void markMatchingFields(
