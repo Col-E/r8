@@ -122,6 +122,8 @@ public class IRConverter {
   private final StringOptimizer stringOptimizer;
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
 
+  final DeadCodeRemover deadCodeRemover;
+
   public final boolean enableWholeProgramOptimizations;
 
   private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
@@ -204,6 +206,9 @@ public class IRConverter {
             : null;
     this.classStaticizer = options.enableClassStaticizer && appInfo.hasLiveness()
         ? new ClassStaticizer(appInfo.withLiveness(), this) : null;
+    this.deadCodeRemover =
+        new DeadCodeRemover(
+            appInfo, codeRewriter, graphLense(), options, enableWholeProgramOptimizations);
   }
 
   public GraphLense graphLense() {
@@ -577,7 +582,7 @@ public class IRConverter {
                 // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
                 // unused out-values.
                 codeRewriter.rewriteMoveResult(code);
-                new DeadCodeRemover(appInfo, code, codeRewriter, graphLense(), options).run();
+                deadCodeRemover.run(code);
                 consumer.accept(code, method);
                 return null;
               }));
@@ -886,7 +891,7 @@ public class IRConverter {
     // Dead code removal. Performed after simplifications to remove code that becomes dead
     // as a result of those simplifications. The following optimizations could reveal more
     // dead code which is removed right before register allocation in performRegisterAllocation.
-    new DeadCodeRemover(appInfo, code, codeRewriter, graphLense(), options).run();
+    deadCodeRemover.run(code);
     assert code.isConsistentSSA();
 
     if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
@@ -1105,7 +1110,7 @@ public class IRConverter {
   private RegisterAllocator performRegisterAllocation(IRCode code, DexEncodedMethod method) {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
-    new DeadCodeRemover(appInfo, code, codeRewriter, graphLense(), options).run();
+    deadCodeRemover.run(code);
     materializeInstructionBeforeLongOperationsWorkaround(code);
     workaroundForwardingInitializerBug(code);
     LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);

@@ -14,6 +14,17 @@ import java.util.function.BiConsumer;
 
 public class CatchHandlers<T> {
 
+  public static class CatchHandler<T> {
+
+    public final DexType guard;
+    public final T target;
+
+    public CatchHandler(DexType guard, T target) {
+      this.guard = guard;
+      this.target = target;
+    }
+  }
+
   private final List<DexType> guards;
   private final List<T> targets;
   private Set<T> uniqueTargets;
