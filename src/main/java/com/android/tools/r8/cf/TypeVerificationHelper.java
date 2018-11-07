@@ -45,6 +45,11 @@ public class TypeVerificationHelper {
     public DexType getDexType() {
       return type;
     }
+
+    @Override
+    public String toString() {
+      return type.toString();
+    }
   }
 
   public static class NewInstanceInfo implements TypeInfo {
@@ -58,6 +63,11 @@ public class TypeVerificationHelper {
     @Override
     public DexType getDexType() {
       return newInstance.clazz;
+    }
+
+    @Override
+    public String toString() {
+      return "new:" + getDexType();
     }
   }
 
@@ -75,6 +85,11 @@ public class TypeVerificationHelper {
     @Override
     public DexType getDexType() {
       return type;
+    }
+
+    @Override
+    public String toString() {
+      return "this:" + getDexType();
     }
   }
 
@@ -136,6 +151,9 @@ public class TypeVerificationHelper {
   }
 
   public TypeInfo getTypeInfo(Value value) {
+    if (value instanceof FixedLocalValue) {
+      value = ((FixedLocalValue) value).getPhi();
+    }
     if (value instanceof StackValue) {
       return ((StackValue) value).getTypeInfo();
     }

@@ -68,6 +68,7 @@ import java.util.Set;
 public class CfBuilder {
 
   private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
+  private static final int SUFFIX_SHARING_OVERHEAD = 30;
 
   private final DexItemFactory factory;
   private final DexEncodedMethod method;
@@ -165,6 +166,7 @@ public class CfBuilder {
     for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
       CodeRewriter.collapsTrivialGotos(method, code);
       PeepholeOptimizer.removeIdenticalPredecessorBlocks(code, registerAllocator);
+      PeepholeOptimizer.shareIdenticalBlockSuffix(code, registerAllocator, SUFFIX_SHARING_OVERHEAD);
     }
 
     CodeRewriter.collapsTrivialGotos(method, code);
@@ -354,6 +356,7 @@ public class CfBuilder {
   private static boolean isNopInstruction(Instruction instruction, BasicBlock nextBlock) {
     // From DexBuilder
     return instruction.isArgument()
+        || instruction.isMoveException()
         || instruction.isDebugLocalsChange()
         || instruction.isMoveException()
         || (instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock);

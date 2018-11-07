@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.List;
 import org.junit.Test;
 
 public class IdenticalAfterRegisterAllocationTest {
@@ -47,6 +48,12 @@ public class IdenticalAfterRegisterAllocationTest {
     @Override
     public void mergeBlocks(BasicBlock kept, BasicBlock removed) {
       // Intentionally empty, we don't need to track merging in this allocator.
+    }
+
+    @Override
+    public void addNewBlockToShareIdenticalSuffix(
+        BasicBlock block, int suffixSize, List<BasicBlock> predsBeforeSplit) {
+      // Intentionally empty, we don't need to track suffix sharing in this allocator.
     }
   }
 

@@ -6,14 +6,22 @@ package com.android.tools.r8.cf;
 import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
 import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.DebugLocalWrite;
+import com.android.tools.r8.ir.code.Dup;
+import com.android.tools.r8.ir.code.Dup2;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCode.LiveAtEntrySets;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.Load;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Pop;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
+import com.android.tools.r8.ir.code.Store;
+import com.android.tools.r8.ir.code.Swap;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
@@ -22,7 +30,11 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -58,6 +70,21 @@ public class CfRegisterAllocator implements RegisterAllocator {
     TypesAtBlockEntry(Int2ReferenceMap<TypeInfo> registers, List<TypeInfo> stack) {
       this.registers = registers;
       this.stack = stack;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append("regs[");
+      for (Int2ReferenceMap.Entry<TypeInfo> kv : registers.int2ReferenceEntrySet()) {
+        sb.append(kv.getIntKey()).append(":").append(kv.getValue()).append(", ");
+      }
+      sb.append("], stack[");
+      for (TypeInfo t : stack) {
+        sb.append(t).append(", ");
+      }
+      sb.append("]");
+      return sb.toString();
     }
   };
 
@@ -346,25 +373,193 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
     // Join types of registers (= JVM local variables).
     assert typesOfKept.registers.size() == typesOfRemoved.registers.size();
-    for (Int2ReferenceMap.Entry<TypeInfo> keptEntry :
-        typesOfKept.registers.int2ReferenceEntrySet()) {
-      int register = keptEntry.getIntKey();
-      TypeInfo keptTypeInfo = keptEntry.getValue();
-      TypeInfo removedTypeInfo = typesOfRemoved.registers.get(register);
-      assert removedTypeInfo != null;
-      TypeInfo joinedTypeInfo = typeHelper.join(keptTypeInfo, removedTypeInfo);
-      if (joinedTypeInfo != keptTypeInfo) {
-        typesOfKept.registers.put(register, joinedTypeInfo);
-      }
-    }
+    // Updating the reference into lazyTypeInfoAtBlockEntry directly.
+    updateFirstRegisterMapByJoiningTheSecond(typesOfKept.registers, typesOfRemoved.registers);
 
     // Join types of stack elements.
     assert typesOfKept.stack.size() == typesOfRemoved.stack.size();
-    for (int i = 0; i < typesOfKept.stack.size(); ++i) {
-      TypeInfo keptTypeInfo = typesOfKept.stack.get(i);
-      TypeInfo joinedTypeInfo = typeHelper.join(keptTypeInfo, typesOfRemoved.stack.get(i));
-      if (joinedTypeInfo != keptTypeInfo) {
-        typesOfKept.stack.set(i, joinedTypeInfo);
+    // Updating the reference into lazyTypeInfoAtBlockEntry directly.
+    updateFirstStackByJoiningTheSecond(typesOfKept.stack, typesOfRemoved.stack);
+  }
+
+  // Return false if this is not an instruction with the type of outvalue dependent on types of
+  // invalues.
+  private boolean tryApplyInstructionWithDependentOutType(
+      Instruction instruction, Int2ReferenceMap<TypeInfo> registers, Deque<TypeInfo> stack) {
+    if (instruction.outValue() == null || instruction.inValues().isEmpty()) {
+      return false;
+    }
+    if (instruction instanceof Load) {
+      int register = getRegisterForValue(instruction.inValues().get(0));
+      assert registers.containsKey(register);
+      stack.addLast(registers.get(register));
+    } else if (instruction instanceof Store) {
+      int register = getRegisterForValue(instruction.outValue());
+      registers.put(register, stack.removeLast());
+    } else if (instruction instanceof Pop) {
+      stack.removeLast();
+    } else if (instruction instanceof Dup) {
+      stack.addLast(stack.getLast());
+    } else if (instruction instanceof Dup2) {
+      TypeInfo wasTop = stack.removeLast();
+      TypeInfo wasBelowTop = stack.getLast();
+      stack.addLast(wasTop);
+      stack.addLast(wasBelowTop);
+      stack.addLast(wasTop);
+    } else if (instruction instanceof Swap) {
+      TypeInfo wasTop = stack.removeLast();
+      TypeInfo wasBelowTop = stack.removeLast();
+      stack.addLast(wasTop);
+      stack.addLast(wasBelowTop);
+    } else if (instruction instanceof DebugLocalWrite) {
+      int dstRegister = getRegisterForValue(instruction.outValue());
+      registers.put(dstRegister, stack.removeLast());
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  private void applyInstructionsToTypes(
+      BasicBlock block,
+      Int2ReferenceMap<TypeInfo> registers,
+      Deque<TypeInfo> stack,
+      int prefixSize) {
+    InstructionIterator it = block.iterator();
+    int instructionsLeft = prefixSize;
+    while (--instructionsLeft >= 0 && it.hasNext()) {
+      Instruction current = it.next();
+
+      if (tryApplyInstructionWithDependentOutType(current, registers, stack)) {
+        continue;
+      }
+      for (int i = current.inValues().size() - 1; i >= 0; --i) {
+        Value inValue = current.inValues().get(i);
+        if (inValue.isValueOnStack()) {
+          stack.removeLast();
+        }
+      }
+
+      Value outValue = current.outValue();
+      if (outValue == null) {
+        continue;
+      }
+
+      TypeInfo outType = typeHelper.getTypeInfo(outValue);
+      assert outType != null;
+      if (outValue.needsRegister()) {
+        int register = getRegisterForValue(outValue);
+        registers.put(register, outType);
+      } else if (outValue.isValueOnStack()) {
+        stack.addLast(outType);
+      } else {
+        throw new Unreachable();
+      }
+    }
+  }
+
+  private void applyInstructionsBackwardsToRegisterLiveness(
+      BasicBlock block, IntSet liveRegisters, int suffixSize) {
+    Iterator<Instruction> iterator = block.getInstructions().descendingIterator();
+    int instructionsLeft = suffixSize;
+    while (--instructionsLeft >= 0 && iterator.hasNext()) {
+      Instruction current = iterator.next();
+      Value outValue = current.outValue();
+      if (outValue != null && outValue.needsRegister()) {
+        int register = getRegisterForValue(outValue);
+        assert liveRegisters.contains(register);
+        liveRegisters.remove(register);
+      }
+      for (Value inValue : current.inValues()) {
+        if (inValue.needsRegister()) {
+          int register = getRegisterForValue(inValue);
+          liveRegisters.add(register);
+        }
+      }
+    }
+  }
+
+  @Override
+  public void addNewBlockToShareIdenticalSuffix(
+      BasicBlock block, int suffixSize, List<BasicBlock> predsBeforeSplit) {
+    Int2ReferenceMap<TypeInfo> joinedRegistersBeforeSuffix = new Int2ReferenceOpenHashMap<>();
+    List<TypeInfo> joinedStackBeforeSuffix = new ArrayList<>(); // Last item is the top.
+
+    assert !predsBeforeSplit.isEmpty();
+    for (BasicBlock pred : predsBeforeSplit) {
+      // Replay instructions of prefix on registers and stack at block entry.
+      TypesAtBlockEntry types = getTypesAtBlockEntry(pred);
+      Int2ReferenceMap<TypeInfo> registersFromPrefix =
+          new Int2ReferenceOpenHashMap<>(types.registers);
+      Deque<TypeInfo> stackFromPrefix = new ArrayDeque<>(types.stack);
+      applyInstructionsToTypes(
+          pred, registersFromPrefix, stackFromPrefix, pred.getInstructions().size() - suffixSize);
+
+      // Replay instructions of suffix on registers at block end to compute liveness between prefix
+      // and suffix.
+      Int2ReferenceMap<TypeInfo> registersAtExit;
+      if (pred.getSuccessors().isEmpty()) {
+        registersAtExit = new Int2ReferenceOpenHashMap<>();
+      } else {
+        assert pred.getSuccessors().size() == 1;
+        registersAtExit = getTypesAtBlockEntry(pred.getSuccessors().get(0)).registers;
+      }
+      IntSet registersLiveFromSuffix = new IntOpenHashSet(registersAtExit.size() * 2);
+      registersLiveFromSuffix.addAll(registersAtExit.keySet());
+      applyInstructionsBackwardsToRegisterLiveness(pred, registersLiveFromSuffix, suffixSize);
+
+      // We have two sets of registers between the prefix and suffix:
+      // - 'registersFromPrefix', which is computed from block entry forwards, and
+      // - 'registersLiveFromSuffix', which is computed from block exit backwards.
+      // Keep only the registers from the prefix which are live as computed from the suffix.
+      Int2ReferenceMap<TypeInfo> registersBeforeSuffix =
+          new Int2ReferenceOpenHashMap<>(registersFromPrefix.size());
+      for (int register : registersLiveFromSuffix) {
+        assert registersFromPrefix.containsKey(register);
+        registersBeforeSuffix.put(register, registersFromPrefix.get(register));
+      }
+
+      updateFirstRegisterMapByJoiningTheSecond(joinedRegistersBeforeSuffix, registersBeforeSuffix);
+      updateFirstStackByJoiningTheSecond(
+          joinedStackBeforeSuffix, Arrays.asList(stackFromPrefix.toArray(new TypeInfo[0])));
+    }
+
+    assert !lazyTypeInfoAtBlockEntry.containsKey(block);
+    lazyTypeInfoAtBlockEntry.put(
+        block, new TypesAtBlockEntry(joinedRegistersBeforeSuffix, joinedStackBeforeSuffix));
+  }
+
+  // First registermap can be empty, otherwise they must have identical keysets
+  private void updateFirstRegisterMapByJoiningTheSecond(
+      Int2ReferenceMap<TypeInfo> map1, Int2ReferenceMap<TypeInfo> map2) {
+    if (map1.isEmpty()) {
+      map1.putAll(map2);
+      return;
+    }
+    assert map1.size() == map2.size();
+    for (Int2ReferenceMap.Entry<TypeInfo> entry1 : map1.int2ReferenceEntrySet()) {
+      int register = entry1.getIntKey();
+      TypeInfo type1 = entry1.getValue();
+      assert map2.containsKey(register);
+      TypeInfo joinedType = typeHelper.join(type1, map2.get(register));
+      if (joinedType != type1) {
+        map1.put(register, joinedType);
+      }
+    }
+  }
+
+  // First stack can be empty, otherwise they must have the same size.
+  private void updateFirstStackByJoiningTheSecond(List<TypeInfo> stack1, List<TypeInfo> stack2) {
+    if (stack1.isEmpty()) {
+      stack1.addAll(stack2);
+      return;
+    }
+    assert stack1.size() == stack2.size();
+    for (int i = 0; i < stack1.size(); ++i) {
+      TypeInfo type1 = stack1.get(i);
+      TypeInfo joinedType = typeHelper.join(type1, stack2.get(i));
+      if (joinedType != type1) {
+        stack1.set(i, joinedType);
       }
     }
   }

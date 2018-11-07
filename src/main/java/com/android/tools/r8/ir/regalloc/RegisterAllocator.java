@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.regalloc;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.List;
 
 public interface RegisterAllocator {
   void allocateRegisters(boolean debug);
@@ -15,4 +16,8 @@ public interface RegisterAllocator {
   InternalOptions getOptions();
 
   void mergeBlocks(BasicBlock kept, BasicBlock removed);
+
+  // Call before removing the suffix from the preds. Block is used only as a key.
+  void addNewBlockToShareIdenticalSuffix(
+      BasicBlock block, int suffixSize, List<BasicBlock> predsBeforeSplit);
 }

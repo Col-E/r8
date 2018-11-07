@@ -31,21 +31,19 @@ import java.util.Map;
 import java.util.Objects;
 
 public class PeepholeOptimizer {
-
   /**
    * Perform optimizations of the code with register assignments provided by the register allocator.
    */
   public static void optimize(IRCode code, LinearScanRegisterAllocator allocator) {
     removeIdenticalPredecessorBlocks(code, allocator);
     removeRedundantInstructions(code, allocator);
-    shareIdenticalBlockSuffix(code, allocator);
+    shareIdenticalBlockSuffix(code, allocator, 0);
     assert code.isConsistentGraph();
   }
 
-  /**
-   * Identify common suffixes in predecessor blocks and share them.
-   */
-  private static void shareIdenticalBlockSuffix(IRCode code, RegisterAllocator allocator) {
+  /** Identify common suffixes in predecessor blocks and share them. */
+  public static void shareIdenticalBlockSuffix(
+      IRCode code, RegisterAllocator allocator, int overhead) {
     Collection<BasicBlock> blocks = code.blocks;
     BasicBlock normalExit = null;
     ImmutableList<BasicBlock> normalExits = code.computeNormalExitBlocks();
@@ -101,8 +99,11 @@ public class PeepholeOptimizer {
             commonSuffixSize =
                 Math.min(commonSuffixSize, sharedSuffixSize(firstPred, pred, allocator));
           }
+
+          int sizeDelta = overhead - (predsWithSameLastInstruction.size() - 1) * commonSuffixSize;
+
           // Don't share a suffix that is just a single goto or return instruction.
-          if (commonSuffixSize <= 1) {
+          if (commonSuffixSize <= 1 || sizeDelta >= 0) {
             continue;
           }
           int blockNumber = startNumberOfNewBlock + newBlocks.size();
@@ -111,7 +112,8 @@ public class PeepholeOptimizer {
                   blockNumber,
                   commonSuffixSize,
                   predsWithSameLastInstruction,
-                  block == normalExit ? null : block);
+                  block == normalExit ? null : block,
+                  allocator);
           newBlocks.put(predsWithSameLastInstruction.get(0), newBlock);
         }
       }
@@ -128,7 +130,11 @@ public class PeepholeOptimizer {
   }
 
   private static BasicBlock createAndInsertBlockForSuffix(
-      int blockNumber, int suffixSize, List<BasicBlock> preds, BasicBlock successorBlock) {
+      int blockNumber,
+      int suffixSize,
+      List<BasicBlock> preds,
+      BasicBlock successorBlock,
+      RegisterAllocator allocator) {
     BasicBlock first = preds.get(0);
     assert (successorBlock != null && first.exit().isGoto())
         || (successorBlock == null && first.exit().isReturn());
@@ -147,6 +153,9 @@ public class PeepholeOptimizer {
         }
       }
     }
+
+    allocator.addNewBlockToShareIdenticalSuffix(newBlock, suffixSize, preds);
+
     boolean movedThrowingInstruction = false;
     for (int i = 0; i < suffixSize; i++) {
       Instruction instruction = from.previous();

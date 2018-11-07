@@ -3101,4 +3101,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   public void mergeBlocks(BasicBlock kept, BasicBlock removed) {
     // Intentionally empty, we don't need to track merging in this allocator.
   }
+
+  @Override
+  public void addNewBlockToShareIdenticalSuffix(
+      BasicBlock block, int suffixSize, List<BasicBlock> predsBeforeSplit) {
+    // Intentionally empty, we don't need to track suffix sharing in this allocator.
+  }
 }
