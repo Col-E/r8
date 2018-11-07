@@ -295,6 +295,17 @@ public class TypeLatticeTest extends TestBase {
   }
 
   @Test
+  public void joinInterfaceArrayAndImplementerArray() {
+    DexType charSequence = factory.createType("Ljava/lang/CharSequence;");
+    assertEquals(
+        // TODO(b/119181813): This should be array(1, charSequence)
+        array(1, factory.objectType),
+        join(
+            array(1, charSequence),
+            array(1, factory.stringType)));
+  }
+
+  @Test
   public void joinImplementers() {
     DexType appendable = factory.createType("Ljava/lang/Appendable;");
     DexType writer = factory.createType("Ljava/io/Writer;");
