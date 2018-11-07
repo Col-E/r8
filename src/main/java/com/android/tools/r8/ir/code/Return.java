@@ -6,13 +6,13 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
-import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.ReturnWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -20,26 +20,21 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class Return extends JumpInstruction {
 
-  // Need to keep track of the original return type, as a null value will have MoveType.SINGLE.
-  final private ValueType returnType;
-
   public Return() {
     super(null);
-    returnType = null;
   }
 
-  public Return(Value value, ValueType returnType) {
+  public Return(Value value) {
     super(null, value);
-    assert returnType != ValueType.INT_OR_FLOAT_OR_NULL;
-    this.returnType = returnType;
   }
 
   public boolean isReturnVoid() {
     return inValues.size() == 0;
   }
 
-  public ValueType getReturnType() {
-    return returnType;
+  public TypeLatticeElement getReturnType() {
+    assert !isReturnVoid();
+    return returnValue().getTypeLattice();
   }
 
   public Value returnValue() {
@@ -50,24 +45,19 @@ public class Return extends JumpInstruction {
   public com.android.tools.r8.code.Instruction createDexInstruction(DexBuilder builder) {
     if (isReturnVoid()) {
       return new ReturnVoid();
-    } else {
-      int register = builder.allocatedRegister(returnValue(), getNumber());
-      switch (MoveType.fromValueType(returnType)) {
-        case OBJECT:
-          assert returnValue().outType().isObject();
-          return new ReturnObject(register);
-        case SINGLE:
-          assert returnValue().outType().isSingle()
-              || returnValue().getTypeLattice().isNull();
-          return new com.android.tools.r8.code.Return(register);
-        case WIDE:
-          assert returnValue().outType().isWide()
-              || returnValue().getTypeLattice().isNull();
-          return new ReturnWide(register);
-        default:
-          throw new Unreachable();
-      }
     }
+    int register = builder.allocatedRegister(returnValue(), getNumber());
+    TypeLatticeElement returnType = getReturnType();
+    if (returnType.isReference()) {
+      return new ReturnObject(register);
+    }
+    if (returnType.isSingle()) {
+      return new com.android.tools.r8.code.Return(register);
+    }
+    if (returnType.isWide()) {
+      return new ReturnWide(register);
+    }
+    throw new Unreachable();
   }
 
   @Override
@@ -84,7 +74,7 @@ public class Return extends JumpInstruction {
     if (isReturnVoid()) {
       return o.isReturnVoid();
     }
-    return o.returnValue().type == returnValue().type;
+    return getReturnType().isValueTypeCompatible(o.getReturnType());
   }
 
   @Override
@@ -123,6 +113,9 @@ public class Return extends JumpInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(isReturnVoid() ? new CfReturnVoid() : new CfReturn(returnType));
+    builder.add(
+        isReturnVoid()
+            ? new CfReturnVoid()
+            : new CfReturn(ValueType.fromTypeLattice(getReturnType())));
   }
 }

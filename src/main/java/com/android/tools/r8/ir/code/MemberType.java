@@ -21,6 +21,58 @@ public enum MemberType {
   INT_OR_FLOAT,
   LONG_OR_DOUBLE;
 
+  public boolean isPrecise() {
+    return this != INT_OR_FLOAT && this != LONG_OR_DOUBLE;
+  }
+
+  public static MemberType constrainedType(MemberType type, ValueType constraint) {
+    switch (constraint) {
+      case OBJECT:
+        if (type == OBJECT) {
+          return OBJECT;
+        }
+        break;
+      case INT:
+        if (type == INT || type == INT_OR_FLOAT) {
+          return INT;
+        }
+        break;
+      case FLOAT:
+        if (type == FLOAT || type == INT_OR_FLOAT) {
+          return FLOAT;
+        }
+        break;
+      case INT_OR_FLOAT:
+        if (type == INT || type == FLOAT || type == INT_OR_FLOAT) {
+          return type;
+        }
+        break;
+      case INT_OR_FLOAT_OR_NULL:
+        if (type == INT || type == FLOAT || type == OBJECT || type == INT_OR_FLOAT) {
+          return type;
+        }
+        break;
+      case LONG:
+        if (type == LONG || type == LONG_OR_DOUBLE) {
+          return LONG;
+        }
+        break;
+      case DOUBLE:
+        if (type == DOUBLE || type == LONG_OR_DOUBLE) {
+          return DOUBLE;
+        }
+        break;
+      case LONG_OR_DOUBLE:
+        if (type == LONG || type == DOUBLE || type == LONG_OR_DOUBLE) {
+          return type;
+        }
+        break;
+      default:
+        throw new Unreachable("Unexpected type constraint: " + constraint);
+    }
+    return null;
+  }
+
   public static MemberType fromTypeDescriptorChar(char descriptor) {
     switch (descriptor) {
       case 'L':

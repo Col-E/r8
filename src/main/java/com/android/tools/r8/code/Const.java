@@ -59,7 +59,7 @@ public class Const extends Format31i implements SingleConstant {
   public void buildIR(IRBuilder builder) {
     int value = decodedValue();
     TypeLatticeElement typeLattice =
-        value == 0 ? TypeLatticeElement.BOTTOM : TypeLatticeElement.SINGLE;
+        value == 0 ? TypeLatticeElement.TOP : TypeLatticeElement.SINGLE;
     builder.addConst(typeLattice, AA, value);
   }
 }

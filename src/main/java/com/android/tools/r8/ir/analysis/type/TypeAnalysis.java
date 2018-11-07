@@ -111,6 +111,7 @@ public class TypeAnalysis {
         value.isPhi()
             ? value.asPhi().computePhiType(appInfo)
             : value.definition.evaluate(appInfo);
+    assert derived.isPreciseType();
     updateTypeOfValue(value, derived);
   }
 

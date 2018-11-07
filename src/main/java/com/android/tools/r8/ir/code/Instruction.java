@@ -1176,7 +1176,7 @@ public abstract class Instruction {
   public abstract void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper);
 
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    assert outValue == null || !outValue.type.isObject();
+    assert outValue == null || !outValue.getTypeLattice().isReference();
     throw new Unreachable("Instruction without object outValue cannot compute verification type");
   }
 
@@ -1244,6 +1244,10 @@ public abstract class Instruction {
     assert position != null;
     assert !debug || getPosition().isSome();
     assert !instructionTypeCanThrow() || getPosition().isSome() || getPosition().isSyntheticNone();
+    return true;
+  }
+
+  public boolean constrainType() {
     return true;
   }
 }

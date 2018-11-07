@@ -29,8 +29,8 @@ public class InstancePut extends FieldInstruction {
 
   public InstancePut(MemberType type, DexField field, Value object, Value value) {
     super(type, field, null, Arrays.asList(object, value));
-    assert object().type.isObject();
-    assert value().type.verifyCompatible(ValueType.fromDexType(field.type));
+    assert object().verifyCompatible(ValueType.OBJECT);
+    assert value().verifyCompatible(ValueType.fromDexType(field.type));
   }
 
   public Value object() {
@@ -42,19 +42,23 @@ public class InstancePut extends FieldInstruction {
   }
 
   @Override
+  Value getFieldInOrOutValue() {
+    return value();
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int valueRegister = builder.allocatedRegister(value(), getNumber());
     int objectRegister = builder.allocatedRegister(object(), getNumber());
-    switch (type) {
+    DexField field = getField();
+    switch (getType()) {
       case INT:
       case FLOAT:
-      case INT_OR_FLOAT:
         instruction = new Iput(valueRegister, objectRegister, field);
         break;
       case LONG:
       case DOUBLE:
-      case LONG_OR_DOUBLE:
         instruction = new IputWide(valueRegister, objectRegister, field);
         break;
       case OBJECT:
@@ -72,8 +76,11 @@ public class InstancePut extends FieldInstruction {
       case SHORT:
         instruction = new IputShort(valueRegister, objectRegister, field);
         break;
+      case INT_OR_FLOAT:
+      case LONG_OR_DOUBLE:
+        throw new Unreachable("Unexpected imprecise type: " + getType());
       default:
-        throw new Unreachable("Unexpected type " + type);
+        throw new Unreachable("Unexpected type: " + getType());
     }
     builder.add(this, instruction);
   }
@@ -89,7 +96,7 @@ public class InstancePut extends FieldInstruction {
       return false;
     }
     InstancePut o = other.asInstancePut();
-    return o.field == field && o.type == type;
+    return o.getField() == getField() && o.getType() == getType();
   }
 
   @Override
@@ -106,7 +113,7 @@ public class InstancePut extends FieldInstruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInstancePut(field, invocationContext);
+    return inliningConstraints.forInstancePut(getField(), invocationContext);
   }
 
   @Override
@@ -121,7 +128,7 @@ public class InstancePut extends FieldInstruction {
 
   @Override
   public String toString() {
-    return super.toString() + "; field: " + field.toSourceString();
+    return super.toString() + "; field: " + getField().toSourceString();
   }
 
   @Override
@@ -131,7 +138,8 @@ public class InstancePut extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfFieldInstruction(Opcodes.PUTFIELD, field, builder.resolveField(field)));
+    builder.add(
+        new CfFieldInstruction(Opcodes.PUTFIELD, getField(), builder.resolveField(getField())));
   }
 
   @Override

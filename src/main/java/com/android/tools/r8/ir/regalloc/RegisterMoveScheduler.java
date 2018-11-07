@@ -156,8 +156,8 @@ public class RegisterMoveScheduler {
         }
       }
     } else {
-      Value to = new FixedRegisterValue(move.type.toTypeLattice(), move.dst);
-      Value from = new FixedRegisterValue(move.type.toTypeLattice(), valueMap.get(move.src));
+      Value to = new FixedRegisterValue(move.type, move.dst);
+      Value from = new FixedRegisterValue(move.type, valueMap.get(move.src));
       instruction = new Move(to, from);
     }
     instruction.setPosition(position);
@@ -178,10 +178,8 @@ public class RegisterMoveScheduler {
       // if the previously used tempRegisters is still needed by any of the moves in the move set
       // (taking the value map into account). If not, we can reuse the temp register instead
       // of generating a new one.
-      Value to = new FixedRegisterValue(
-          moveWithSrc.type.toTypeLattice(), tempRegister + usedTempRegisters);
-      Value from = new FixedRegisterValue(
-          moveWithSrc.type.toTypeLattice(), valueMap.get(moveWithSrc.src));
+      Value to = new FixedRegisterValue(moveWithSrc.type, tempRegister + usedTempRegisters);
+      Value from = new FixedRegisterValue(moveWithSrc.type, valueMap.get(moveWithSrc.src));
       Move instruction = new Move(to, from);
       instruction.setPosition(position);
       insertAt.add(instruction);

@@ -33,8 +33,6 @@ public abstract class TypeLatticeElement {
   public static final WideTypeLatticeElement WIDE = WideTypeLatticeElement.getInstance();
   public static final ReferenceTypeLatticeElement NULL =
       ReferenceTypeLatticeElement.getNullTypeLatticeElement();
-  public static final ReferenceTypeLatticeElement REFERENCE =
-      ReferenceTypeLatticeElement.getReferenceTypeLatticeElement();
 
   private static final LRUCacheTable<Set<DexType>, Set<DexType>, Set<DexType>>
       leastUpperBoundOfInterfacesTable = LRUCacheTable.create(8, 8);
@@ -116,16 +114,9 @@ public abstract class TypeLatticeElement {
       // By the above case, !(isPrimitive())
       return TOP;
     }
-    // From now on, this and other are reference types, but might be imprecise yet.
-    assert isReference() && other.isReference();
-    if (!isPreciseType() || !other.isPreciseType()) {
-      if (isReferenceInstance()) {
-        return this;
-      }
-      assert other.isReferenceInstance();
-      return other;
-    }
     // From now on, this and other are precise reference types, i.e., either ArrayType or ClassType.
+    assert isReference() && other.isReference();
+    assert isPreciseType() && other.isPreciseType();
     boolean isNullable = isNullable() || other.isNullable();
     if (getClass() != other.getClass()) {
       return objectClassType(appInfo, isNullable);
@@ -492,6 +483,12 @@ public abstract class TypeLatticeElement {
       default:
         throw new Unreachable("Unexpected numeric type: " + type);
     }
+  }
+
+  public boolean isValueTypeCompatible(TypeLatticeElement other) {
+    return (isReference() && other.isReference())
+        || (isSingle() && other.isSingle())
+        || (isWide() && other.isWide());
   }
 
   public static TypeLatticeElement newArray(DexType arrayType, boolean isNullable) {

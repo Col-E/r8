@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import java.util.Collections;
@@ -13,8 +12,6 @@ import java.util.Set;
 public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   private static final ReferenceTypeLatticeElement NULL_INSTANCE =
       new ReferenceTypeLatticeElement(DexItemFactory.nullValueType, true);
-  private static final ReferenceTypeLatticeElement REFERENCE_INSTANCE =
-      new ReferenceTypeLatticeElement(DexItemFactory.unknownType, true);
 
   final DexType type;
 
@@ -40,10 +37,6 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
     return NULL_INSTANCE;
   }
 
-  static ReferenceTypeLatticeElement getReferenceTypeLatticeElement() {
-    return REFERENCE_INSTANCE;
-  }
-
   public Set<DexType> getInterfaces() {
     return Collections.emptySet();
   }
@@ -54,24 +47,14 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public boolean isReferenceInstance() {
-    return type == DexItemFactory.unknownType;
-  }
-
-  @Override
   public TypeLatticeElement asNullable() {
-    assert isNull() || isReferenceInstance();
+    assert isNull();
     return this;
   }
 
   @Override
   public boolean isReference() {
     return true;
-  }
-
-  @Override
-  public TypeLatticeElement arrayGet(AppInfo appInfo) {
-    return isNull() ? this : BOTTOM;
   }
 
   @Override
@@ -104,7 +87,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public int hashCode() {
-    assert isNull() || isReferenceInstance();
+    assert isNull();
     return System.identityHashCode(this);
   }
 }

@@ -34,21 +34,91 @@ public class Value {
 
   public void constrainType(
       ValueType constraint, DexMethod method, Origin origin, Reporter reporter) {
-    ValueType meet = type.meet(constraint);
-    if (meet == null) {
+    TypeLatticeElement constrainedType = constrainedType(constraint);
+    if (constrainedType == null) {
       throw reporter.fatalError(
           new StringDiagnostic(
-              "Cannot compute meet of types: " + type + " and " + constraint,
+              "Cannot constrain type: "
+                  + typeLattice
+                  + " for value: "
+                  + this
+                  + " by constraint: "
+                  + constraint,
               origin,
               new MethodPosition(method)));
+    } else if (constrainedType != typeLattice) {
+      typeLattice = constrainedType;
     }
-    if (type != meet) {
-      type = meet;
-      TypeLatticeElement newTypeLattice = type.toTypeLattice();
-      if (newTypeLattice.isPreciseType()) {
-        typeLattice = newTypeLattice;
-      }
+  }
+
+  public TypeLatticeElement constrainedType(ValueType constraint) {
+    if (constraint == ValueType.INT_OR_FLOAT_OR_NULL && !typeLattice.isWide()) {
+      return typeLattice;
     }
+    switch (constraint) {
+      case OBJECT:
+        if (typeLattice.isTop()) {
+          if (definition != null && definition.isConstNumber()) {
+            assert definition.asConstNumber().isZero();
+            return TypeLatticeElement.NULL;
+          } else {
+            return TypeLatticeElement.BOTTOM;
+          }
+        }
+        if (typeLattice.isReference()) {
+          return typeLattice;
+        }
+        if (typeLattice.isBottom()) {
+          // Only a few instructions may propagate a bottom input to a bottom output.
+          assert isPhi()
+              || definition.isDebugLocalWrite()
+              || (definition.isArrayGet()
+                  && definition.asArrayGet().getMemberType() == MemberType.OBJECT);
+          return typeLattice;
+        }
+        break;
+      case INT:
+        if (typeLattice.isTop() || (typeLattice.isSingle() && !typeLattice.isFloat())) {
+          return TypeLatticeElement.INT;
+        }
+        break;
+      case FLOAT:
+        if (typeLattice.isTop() || (typeLattice.isSingle() && !typeLattice.isInt())) {
+          return TypeLatticeElement.FLOAT;
+        }
+        break;
+      case INT_OR_FLOAT:
+        if (typeLattice.isTop()) {
+          return TypeLatticeElement.SINGLE;
+        }
+        if (typeLattice.isSingle()) {
+          return typeLattice;
+        }
+        break;
+      case LONG:
+        if (typeLattice.isWide()) {
+          return TypeLatticeElement.LONG;
+        }
+        break;
+      case DOUBLE:
+        if (typeLattice.isWide()) {
+          return TypeLatticeElement.DOUBLE;
+        }
+        break;
+      case LONG_OR_DOUBLE:
+        if (typeLattice.isWide()) {
+          return typeLattice;
+        }
+        break;
+      default:
+        throw new Unreachable("Unexpected constraint: " + constraint);
+    }
+    return null;
+  }
+
+  public boolean verifyCompatible(ValueType constraint) {
+    assert constrainedType(constraint) != null;
+    return true;
   }
 
   public void markNonDebugLocalRead() {
@@ -123,8 +193,6 @@ public class Value {
       new Value(UNDEFINED_NUMBER, TypeLatticeElement.BOTTOM, null);
 
   protected final int number;
-  // TODO(b/72693244): deprecate once typeLattice is landed.
-  protected ValueType type;
   public Instruction definition = null;
   private LinkedList<Instruction> users = new LinkedList<>();
   private Set<Instruction> uniqueUsers = null;
@@ -145,7 +213,6 @@ public class Value {
 
   public Value(int number, TypeLatticeElement typeLattice, DebugLocalInfo local) {
     this.number = number;
-    this.type = ValueType.fromTypeLattice(typeLattice);
     this.debugData = local == null ? null : new DebugData(local);
     this.typeLattice = typeLattice;
   }
@@ -198,7 +265,7 @@ public class Value {
   }
 
   public int requiredRegisters() {
-    return type.requiredRegisters();
+    return typeLattice.requiredRegisters();
   }
 
   public DebugLocalInfo getLocalInfo() {
@@ -615,7 +682,7 @@ public class Value {
       builder.append("(");
       if (isConstant) {
         ConstNumber constNumber = definition.asConstNumber();
-        if (constNumber.outType().isSingle()) {
+        if (constNumber.outValue().getTypeLattice().isSingle()) {
           builder.append((int) constNumber.getRawValue());
         } else {
           builder.append(constNumber.getRawValue());
@@ -636,7 +703,7 @@ public class Value {
   }
 
   public ValueType outType() {
-    return type;
+    return ValueType.fromTypeLattice(typeLattice);
   }
 
   public ConstInstruction getConstInstruction() {
@@ -753,11 +820,11 @@ public class Value {
 
   public LongInterval getValueRange() {
     if (isConstNumber()) {
-      if (type.isSingle()) {
+      if (typeLattice.isSingle()) {
         int value = getConstInstruction().asConstNumber().getIntValue();
         return new LongInterval(value, value);
       } else {
-        assert type.isWide();
+        assert typeLattice.isWide();
         long value = getConstInstruction().asConstNumber().getLongValue();
         return new LongInterval(value, value);
       }
@@ -814,11 +881,6 @@ public class Value {
     //    : "During WIDENING, " + newType + " < " + typeLattice
     //    + " at " + (isPhi() ? asPhi().printPhi() : definition.toString());
     typeLattice = newType;
-    // TODO(b/72693244): if type analysis can't figure out precise info, we need imprecise info
-    // from the original input bytecode?
-    if (!type.isPreciseType() && typeLattice.isPreciseType()) {
-      type = ValueType.fromTypeLattice(typeLattice);
-    }
   }
 
   public void narrowing(AppInfo appInfo, TypeLatticeElement newType) {
@@ -829,11 +891,6 @@ public class Value {
     //    : "During NARROWING, " + typeLattice + " < " + newType
     //    + " at " + (isPhi() ? asPhi().printPhi() : definition.toString());
     typeLattice = newType;
-    // TODO(b/72693244): if type analysis can't figure out precise info, we need imprecise info
-    // from the original input bytecode?
-    if (!type.isPreciseType() && typeLattice.isPreciseType()) {
-      type = ValueType.fromTypeLattice(typeLattice);
-    }
   }
 
   public TypeLatticeElement getTypeLattice() {

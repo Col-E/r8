@@ -532,7 +532,6 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     if (normalExits.get(0).exit().asReturn().isReturnVoid()) {
       newReturn = new Return();
     } else {
-      ValueType returnType = null;
       boolean same = true;
       List<Value> operands = new ArrayList<>(normalExits.size());
       for (BasicBlock exitBlock : normalExits) {
@@ -540,8 +539,6 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
         Value retValue = exit.returnValue();
         operands.add(retValue);
         same = same && retValue == operands.get(0);
-        assert returnType == null || returnType == exit.getReturnType();
-        returnType = exit.getReturnType();
       }
       Value value;
       if (same) {
@@ -551,14 +548,14 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
             new Phi(
                 code.valueNumberGenerator.next(),
                 newExitBlock,
-                returnType.toTypeLattice(),
+                TypeLatticeElement.BOTTOM,
                 null,
                 RegisterReadType.NORMAL);
         phi.addOperands(operands);
         new TypeAnalysis(appInfo, code.method).widening(ImmutableSet.of(phi));
         value = phi;
       }
-      newReturn = new Return(value, returnType);
+      newReturn = new Return(value);
     }
     // The newly constructed return will be eliminated as part of inlining so we set position none.
     newReturn.setPosition(Position.none());

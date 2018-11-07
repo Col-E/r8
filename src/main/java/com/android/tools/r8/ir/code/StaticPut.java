@@ -34,18 +34,22 @@ public class StaticPut extends FieldInstruction {
   }
 
   @Override
+  Value getFieldInOrOutValue() {
+    return inValue();
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int src = builder.allocatedRegister(inValue(), getNumber());
-    switch (type) {
+    DexField field = getField();
+    switch (getType()) {
       case INT:
       case FLOAT:
-      case INT_OR_FLOAT:
         instruction = new Sput(src, field);
         break;
       case LONG:
       case DOUBLE:
-      case LONG_OR_DOUBLE:
         instruction = new SputWide(src, field);
         break;
       case OBJECT:
@@ -63,8 +67,11 @@ public class StaticPut extends FieldInstruction {
       case SHORT:
         instruction = new SputShort(src, field);
         break;
+      case INT_OR_FLOAT:
+      case LONG_OR_DOUBLE:
+        throw new Unreachable("Unexpected imprecise type: " + getType());
       default:
-        throw new Unreachable("Unexpected type " + type);
+        throw new Unreachable("Unexpected type: " + getType());
     }
     builder.add(this, instruction);
   }
@@ -92,18 +99,18 @@ public class StaticPut extends FieldInstruction {
       return false;
     }
     StaticPut o = other.asStaticPut();
-    return o.field == field && o.type == type;
+    return o.getField() == getField() && o.getType() == getType();
   }
 
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forStaticPut(field, invocationContext);
+    return inliningConstraints.forStaticPut(getField(), invocationContext);
   }
 
   @Override
   public String toString() {
-    return super.toString() + "; field: " + field.toSourceString();
+    return super.toString() + "; field: " + getField().toSourceString();
   }
 
   @Override
@@ -123,11 +130,12 @@ public class StaticPut extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfFieldInstruction(Opcodes.PUTSTATIC, field, builder.resolveField(field)));
+    builder.add(
+        new CfFieldInstruction(Opcodes.PUTSTATIC, getField(), builder.resolveField(getField())));
   }
 
   @Override
   public boolean triggersInitializationOfClass(DexType klass) {
-    return field.clazz == klass;
+    return getField().clazz == klass;
   }
 }

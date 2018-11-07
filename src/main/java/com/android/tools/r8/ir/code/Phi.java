@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.EdgeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -51,11 +52,6 @@ public class Phi extends Value {
     this.block = block;
     this.readType = readType;
     block.addPhi(this);
-    // TODO(b/72693244): this is to avoid losing ValueType for Phi.
-    // The underlying issue is conversion between ValueType and TypeLatticeElement.
-    if (!typeLattice.isPreciseType()) {
-      this.typeLattice = TypeLatticeElement.BOTTOM;
-    }
   }
 
   @Override
@@ -81,23 +77,28 @@ public class Phi extends Value {
       throwUndefinedValueError();
     }
 
+    ValueType readConstraint = TypeConstraintResolver.constraintForType(typeLattice);
     List<Value> operands = new ArrayList<>(block.getPredecessors().size());
     for (BasicBlock pred : block.getPredecessors()) {
       EdgeType edgeType = pred.getEdgeType(block);
-      Value operand = builder.readRegister(register, type, pred, edgeType, readType);
+      Value operand = builder.readRegister(register, readConstraint, pred, edgeType, readType);
       operands.add(operand);
     }
 
     if (readType != RegisterReadType.NORMAL) {
       for (Value operand : operands) {
-        if (type.meet(operand.outType()) == null) {
+        ValueType constraint = TypeConstraintResolver.constraintForType(operand.getTypeLattice());
+        if (constrainedType(constraint) == null) {
           // If the phi has been requested from instructions and from local info, throw out locals
           // and retry compilation.
           if (readType == RegisterReadType.NORMAL_AND_DEBUG) {
             throw new InvalidDebugInfoException(
                 "Type information in locals-table is inconsistent with instructions."
-                    + " Value of type " + operand.outType()
-                    + " cannot be used as local of type " + type + ".");
+                    + " Value of type "
+                    + operand.getTypeLattice()
+                    + " cannot be used as local of type "
+                    + typeLattice
+                    + ".");
           }
           // Otherwise only local info requested the phi and we replace with an uninitialized value.
           assert readType == RegisterReadType.DEBUG;
@@ -120,7 +121,7 @@ public class Phi extends Value {
     }
 
     for (Value operand : operands) {
-      builder.constrainType(operand, type);
+      builder.constrainType(operand, readConstraint);
       appendOperand(operand);
     }
     removeTrivialPhi();
@@ -307,7 +308,7 @@ public class Phi extends Value {
     }
     builder.append(" <- phi");
     StringUtils.append(builder, ListUtils.map(operands, Value::toString));
-    builder.append(" : ").append(type);
+    builder.append(" : ").append(getTypeLattice());
     return builder.toString();
   }
 

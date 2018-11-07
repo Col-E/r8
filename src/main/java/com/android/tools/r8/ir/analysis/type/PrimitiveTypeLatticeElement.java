@@ -95,37 +95,4 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
     assert t2.isSingle();
     return TypeLatticeElement.TOP;
   }
-
-  public static TypeLatticeElement meet(TypeLatticeElement t1, TypeLatticeElement t2) {
-    assert !t1.isReference() && !t2.isReference();
-    // TODO(b/72693244): propagate constraints backward, e.g.,
-    //   vz <- add vx(1, INT) vy(0, INT_OR_FLOAT_OR_NULL)
-    if (t1 == t2) {
-      return t1;
-    }
-    if (t1.isTop()) {
-      return t2;
-    }
-    if (t2.isTop()) {
-      return t1;
-    }
-    if (t1.isPreciseType()) {
-      if (t1.isSingle() && t2.isSingle()) {
-        return t1;
-      }
-      if (t1.isWide() && t2.isWide()) {
-        return t1;
-      }
-    }
-    if (t2.isPreciseType()) {
-      if (t2.isSingle() && t1.isSingle()) {
-        return t2;
-      }
-      if (t2.isWide() && t1.isWide()) {
-        return t2;
-      }
-    }
-    return TypeLatticeElement.BOTTOM;
-  }
-
 }

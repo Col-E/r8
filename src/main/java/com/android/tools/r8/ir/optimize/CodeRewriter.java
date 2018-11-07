@@ -1346,7 +1346,7 @@ public class CodeRewriter {
                 if (argumentIndex != -1 && checkArgumentType(invoke, target.method,
                     argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
-                  assert invoke.outType().verifyCompatible(argument.outType());
+                  assert invoke.outValue().verifyCompatible(argument.outType());
                   invoke.outValue().replaceUsers(argument);
                   invoke.setOutValue(null);
                 }
@@ -1892,7 +1892,8 @@ public class CodeRewriter {
         TypeLatticeElement.fromDexType(instanceOf.type(), inType.isNullable(), appInfo);
 
     InstanceOfResult result = InstanceOfResult.UNKNOWN;
-    if (inType.isNull()) {
+    if (inType.isDefinitelyNull()) {
+      // TODO(b/119194613): This is not hit in all cases even if inValue is the null constant.
       result = InstanceOfResult.FALSE;
     } else if (inType.lessThanOrEqual(instanceOfType, appInfo) && !inType.isNullable()) {
       result = InstanceOfResult.TRUE;

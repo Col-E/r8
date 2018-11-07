@@ -36,18 +36,22 @@ public class StaticGet extends FieldInstruction {
   }
 
   @Override
+  Value getFieldInOrOutValue() {
+    return dest();
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int dest = builder.allocatedRegister(dest(), getNumber());
-    switch (type) {
+    DexField field = getField();
+    switch (getType()) {
       case INT:
       case FLOAT:
-      case INT_OR_FLOAT:
         instruction = new Sget(dest, field);
         break;
       case LONG:
       case DOUBLE:
-      case LONG_OR_DOUBLE:
         instruction = new SgetWide(dest, field);
         break;
       case OBJECT:
@@ -65,8 +69,11 @@ public class StaticGet extends FieldInstruction {
       case SHORT:
         instruction = new SgetShort(dest, field);
         break;
+      case INT_OR_FLOAT:
+      case LONG_OR_DOUBLE:
+        throw new Unreachable("Unexpected imprecise type: " + getType());
       default:
-        throw new Unreachable("Unexpected type " + type);
+        throw new Unreachable("Unexpected type: " + getType());
     }
     builder.add(this, instruction);
   }
@@ -93,18 +100,18 @@ public class StaticGet extends FieldInstruction {
       return false;
     }
     StaticGet o = other.asStaticGet();
-    return o.field == field && o.type == type;
+    return o.getField() == getField() && o.getType() == getType();
   }
 
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forStaticGet(field, invocationContext);
+    return inliningConstraints.forStaticGet(getField(), invocationContext);
   }
 
   @Override
   public String toString() {
-    return super.toString() + "; field: " + field.toSourceString();
+    return super.toString() + "; field: " + getField().toSourceString();
   }
 
   @Override
@@ -124,21 +131,22 @@ public class StaticGet extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfFieldInstruction(Opcodes.GETSTATIC, field, builder.resolveField(field)));
+    builder.add(
+        new CfFieldInstruction(Opcodes.GETSTATIC, getField(), builder.resolveField(getField())));
   }
 
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return field.type;
+    return getField().type;
   }
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(field.type, true, appInfo);
+    return TypeLatticeElement.fromDexType(getField().type, true, appInfo);
   }
 
   @Override
   public boolean triggersInitializationOfClass(DexType klass) {
-    return field.clazz == klass;
+    return getField().clazz == klass;
   }
 }

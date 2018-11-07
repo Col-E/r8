@@ -8,8 +8,8 @@ import java.util.List;
 
 public abstract class FieldInstruction extends Instruction {
 
-  protected final MemberType type;
-  protected final DexField field;
+  private MemberType type;
+  private final DexField field;
 
   protected FieldInstruction(MemberType type, DexField field, Value dest, Value value) {
     super(dest, value);
@@ -35,6 +35,8 @@ public abstract class FieldInstruction extends Instruction {
     return field;
   }
 
+  abstract Value getFieldInOrOutValue();
+
   @Override
   public boolean isFieldInstruction() {
     return true;
@@ -49,5 +51,15 @@ public abstract class FieldInstruction extends Instruction {
   public boolean hasInvariantOutType() {
     // TODO(jsjeon): what if the target field is known to be non-null?
     return true;
+  }
+
+  @Override
+  public boolean constrainType() {
+    if (!type.isPrecise()) {
+      type =
+          MemberType.constrainedType(
+              type, ValueType.fromTypeLattice(getFieldInOrOutValue().getTypeLattice()));
+    }
+    return type != null;
   }
 }

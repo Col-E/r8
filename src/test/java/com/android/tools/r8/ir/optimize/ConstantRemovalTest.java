@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.LinkedList;
 import org.junit.Test;
@@ -125,7 +126,9 @@ public class ConstantRemovalTest {
     blocks.add(block);
 
     InternalOptions options = new InternalOptions();
-    IRCode code = new IRCode(options, null, blocks, new ValueNumberGenerator(), false, false);
+    IRCode code =
+        new IRCode(
+            options, null, blocks, new ValueNumberGenerator(), false, false, Origin.unknown());
     PeepholeOptimizer.optimize(code,
         new MockLinearScanRegisterAllocator(code, options));
 
