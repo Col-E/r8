@@ -436,7 +436,7 @@ public abstract class TypeLatticeElement {
    * subtype of Throwable.
    */
   public boolean isDefinitelyNull() {
-    return isNull() || !isNullable();
+    return nullElement().isDefinitelyNull();
   }
 
   public boolean isReferenceInstance() {
