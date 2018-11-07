@@ -166,7 +166,7 @@ public class ArrayGet extends Instruction {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value) {
+  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return array() == value;
   }
 }

@@ -6,7 +6,9 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -75,7 +77,30 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value) {
-    return exception() == value;
+  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
+    if (exception() == value) {
+      // throw value
+      return true;
+    }
+    TypeLatticeElement exceptionType = exception().getTypeLattice();
+    if (exceptionType.isConstantNull()) {
+      // throw null
+      return true;
+    }
+    if (exceptionType.isDefinitelyNull()) {
+      // throw value, where value is null (if the throw instruction type checks, then the static
+      // type of `value` must be a subtype of Throwable)
+      return true;
+    }
+    Value aliasedValue = exception().getAliasedValue();
+    if (!aliasedValue.isPhi()) {
+      Instruction definition = aliasedValue.getDefinition();
+      if (definition.isNewInstance()
+          && definition.asNewInstance().clazz == dexItemFactory.npeType) {
+        // throw new NullPointerException()
+        return true;
+      }
+    }
+    return false;
   }
 }

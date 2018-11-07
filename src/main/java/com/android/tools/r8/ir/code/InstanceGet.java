@@ -18,6 +18,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -145,7 +146,7 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value) {
+  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return object() == value;
   }
 }

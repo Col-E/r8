@@ -111,6 +111,8 @@ public class DexItemFactory {
   public final DexString boxedShortDescriptor = createString("Ljava/lang/Short;");
   public final DexString boxedNumberDescriptor = createString("Ljava/lang/Number;");
 
+  public final DexString initMethodName = createString("<init>");
+
   public final DexString unboxBooleanMethodName = createString("booleanValue");
   public final DexString unboxByteMethodName = createString("byteValue");
   public final DexString unboxCharMethodName = createString("charValue");
@@ -227,6 +229,7 @@ public class DexItemFactory {
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final ClassMethods classMethods = new ClassMethods();
   public final EnumMethods enumMethods = new EnumMethods();
+  public final NullPointerExceptionMethods npeMethods = new NullPointerExceptionMethods();
   public final PrimitiveTypesBoxedTypeFields primitiveTypesBoxedTypeFields =
       new PrimitiveTypesBoxedTypeFields();
   public final AtomicFieldUpdaterMethods atomicFieldUpdaterMethods =
@@ -429,6 +432,15 @@ public class DexItemFactory {
               valueOfMethodName,
               enumDescriptor,
               new DexString[] {classDescriptor, stringDescriptor});
+    }
+  }
+
+  public class NullPointerExceptionMethods {
+
+    public final DexMethod init;
+
+    private NullPointerExceptionMethods() {
+      init = createMethod(npeDescriptor, initMethodName, voidDescriptor, DexString.EMPTY_ARRAY);
     }
   }
 

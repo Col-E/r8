@@ -16,6 +16,7 @@ import com.android.tools.r8.code.IputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -134,7 +135,7 @@ public class InstancePut extends FieldInstruction {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value) {
+  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return object() == value;
   }
 }

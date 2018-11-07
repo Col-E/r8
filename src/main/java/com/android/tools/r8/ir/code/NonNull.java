@@ -48,6 +48,16 @@ public class NonNull extends Instruction {
   }
 
   @Override
+  public boolean isIntroducingAnAlias() {
+    return true;
+  }
+
+  @Override
+  public Value getAliasForOutValue() {
+    return src();
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     throw new Unreachable(ERROR_MESSAGE);
   }

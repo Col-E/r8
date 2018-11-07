@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
@@ -1153,6 +1154,17 @@ public abstract class Instruction {
     return false;
   }
 
+  /** Returns true if the out-value is an alias of an in-value. */
+  public boolean isIntroducingAnAlias() {
+    return false;
+  }
+
+  /** Returns the in-value that is an alias for the out-value. */
+  public Value getAliasForOutValue() {
+    assert isIntroducingAnAlias();
+    return null;
+  }
+
   /**
    * Returns the inlining constraint for this method when used in the context of the given type.
    *
@@ -1208,10 +1220,11 @@ public abstract class Instruction {
    * given value is null at runtime execution.
    *
    * @param value the value representing an object that may be null at runtime execution.
-   * @return true if the instruction throws NullPointerException if value is null at runtime,
-   * false otherwise.
+   * @param dexItemFactory where pre-defined descriptors are retrieved
+   * @return true if the instruction throws NullPointerException if value is null at runtime, false
+   *     otherwise.
    */
-  public boolean throwsNpeIfValueIsNull(Value value) {
+  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return false;
   }
 

@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -155,6 +156,41 @@ public class Value {
 
   public FixedRegisterValue asFixedRegisterValue() {
     return null;
+  }
+
+  public Instruction getDefinition() {
+    assert !isPhi();
+    return definition;
+  }
+
+  /**
+   * If this value is defined by an instruction that defines an alias of another value, such as the
+   * NonNull instruction, then the incoming value to the NonNull instruction is returned (if the
+   * incoming value is not itself defined by an instruction that introduces an alias).
+   *
+   * <p>If a phi value is found, then that phi value is returned.
+   *
+   * <p>This method is useful to find the "true" definition of a value inside the current method.
+   */
+  public Value getAliasedValue() {
+    Set<Value> visited = Sets.newIdentityHashSet();
+    Value lastAliasedValue;
+    Value aliasedValue = this;
+    do {
+      lastAliasedValue = aliasedValue;
+      if (aliasedValue.isPhi()) {
+        return aliasedValue;
+      }
+      Instruction definitionOfAliasedValue = aliasedValue.definition;
+      if (definitionOfAliasedValue.isIntroducingAnAlias()) {
+        aliasedValue = definitionOfAliasedValue.getAliasForOutValue();
+
+        // There shouldn't be a cycle.
+        assert visited.add(aliasedValue);
+      }
+    } while (aliasedValue != lastAliasedValue);
+    assert aliasedValue.isPhi() || !aliasedValue.definition.isNonNull();
+    return aliasedValue;
   }
 
   public int getNumber() {

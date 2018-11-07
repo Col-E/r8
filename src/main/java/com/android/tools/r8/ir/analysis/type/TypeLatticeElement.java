@@ -410,8 +410,33 @@ public abstract class TypeLatticeElement {
         || isBottom();
   }
 
+  /**
+   * Should use {@link #isConstantNull()} or {@link #isDefinitelyNull()} instead.
+   */
+  @Deprecated
   public boolean isNull() {
     return false;
+  }
+
+  /**
+   * Determines if this type only includes null values that are defined by a const-number
+   * instruction in the same enclosing method.
+   *
+   * These null values can be assigned to any type.
+   */
+  public boolean isConstantNull() {
+    return isNull();
+  }
+
+  /**
+   * Determines if this type only includes null values.
+   *
+   * These null values cannot be assigned to any type. For example, it is a type error to "throw v"
+   * where the value `v` satisfies isDefinitelyNull(), because the static type of `v` may not be a
+   * subtype of Throwable.
+   */
+  public boolean isDefinitelyNull() {
+    return isNull() || !isNullable();
   }
 
   public boolean isReferenceInstance() {

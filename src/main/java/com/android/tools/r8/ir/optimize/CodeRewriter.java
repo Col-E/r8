@@ -120,12 +120,12 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -1124,44 +1124,50 @@ public class CodeRewriter {
     Wrapper<DexMethod> throwParamIsNullException =
         MethodSignatureEquivalence.get()
             .wrap(factory.kotlin.intrinsics.throwParameterIsNullException);
-    return alwaysTriggerExpectedEffectBeforeAnythingElse(code, instr -> {
-      BasicBlock currentBlock = instr.getBlock();
-      // If the code explicitly checks the nullability of receiver, we should visit the next block
-      // that corresponds to the null receiver where NPE semantic could be preserved.
-      if (!currentBlock.hasCatchHandlers() && isNullCheck(instr, receiver)) {
-        return InstructionEffect.CONDITIONAL_EFFECT;
-      }
-      // Kotlin specific way of throwing NPE: throwParameterIsNullException.
-      // Similarly, combined with the above CONDITIONAL_EFFECT, the code checks on NPE on receiver.
-      if (instr.isInvokeStatic()) {
-        DexMethod method = instr.asInvokeStatic().getInvokedMethod();
-        if (MethodSignatureEquivalence.get().wrap(method).equals(throwParamIsNullException)) {
-          // We found a NPE (or similar exception) throwing code.
-          // Combined with the above CONDITIONAL_EFFECT, the code checks NPE on receiver.
-          for (BasicBlock predecessor : currentBlock.getPredecessors()) {
-            Instruction last =
-                predecessor.listIterator(predecessor.getInstructions().size()).previous();
-            if (isNullCheck(last, receiver)) {
-              return InstructionEffect.DESIRED_EFFECT;
+    return alwaysTriggerExpectedEffectBeforeAnythingElse(
+        code,
+        (instr, it) -> {
+          BasicBlock currentBlock = instr.getBlock();
+          // If the code explicitly checks the nullability of receiver, we should visit the next
+          // block that corresponds to the null receiver where NPE semantic could be preserved.
+          if (!currentBlock.hasCatchHandlers() && isNullCheck(instr, receiver)) {
+            return InstructionEffect.CONDITIONAL_EFFECT;
+          }
+          // Kotlin specific way of throwing NPE: throwParameterIsNullException.
+          // Similarly, combined with the above CONDITIONAL_EFFECT, the code checks on NPE on
+          // receiver.
+          if (instr.isInvokeStatic()) {
+            DexMethod method = instr.asInvokeStatic().getInvokedMethod();
+            if (MethodSignatureEquivalence.get().wrap(method).equals(throwParamIsNullException)) {
+              // We found a NPE (or similar exception) throwing code.
+              // Combined with the above CONDITIONAL_EFFECT, the code checks NPE on receiver.
+              for (BasicBlock predecessor : currentBlock.getPredecessors()) {
+                Instruction last =
+                    predecessor.listIterator(predecessor.getInstructions().size()).previous();
+                if (isNullCheck(last, receiver)) {
+                  return InstructionEffect.DESIRED_EFFECT;
+                }
+              }
             }
           }
-        }
-      }
-      if (instr.throwsNpeIfValueIsNull(receiver)) {
-        // In order to preserve NPE semantic, the exception must not be caught by any handler.
-        // Therefore, we must ignore this instruction if it is covered by a catch handler.
-        // Note: this is a conservative approach where we consider that any catch handler could
-        // catch the exception, even if it cannot catch a NullPointerException.
-        if (!currentBlock.hasCatchHandlers()) {
-          // We found a NPE check on receiver.
-          return InstructionEffect.DESIRED_EFFECT;
-        }
-      } else if (instructionHasSideEffects(instr)) {
-        // We found a side effect before a NPE check.
-        return InstructionEffect.OTHER_EFFECT;
-      }
-      return InstructionEffect.NO_EFFECT;
-    });
+          if (isInstantiationOfNullPointerException(instr, it, factory)) {
+            it.next(); // Skip call to NullPointerException.<init>.
+            return InstructionEffect.NO_EFFECT;
+          } else if (instr.throwsNpeIfValueIsNull(receiver, factory)) {
+            // In order to preserve NPE semantic, the exception must not be caught by any handler.
+            // Therefore, we must ignore this instruction if it is covered by a catch handler.
+            // Note: this is a conservative approach where we consider that any catch handler could
+            // catch the exception, even if it cannot catch a NullPointerException.
+            if (!currentBlock.hasCatchHandlers()) {
+              // We found a NPE check on receiver.
+              return InstructionEffect.DESIRED_EFFECT;
+            }
+          } else if (instructionHasSideEffects(instr)) {
+            // We found a side effect before a NPE check.
+            return InstructionEffect.OTHER_EFFECT;
+          }
+          return InstructionEffect.NO_EFFECT;
+        });
   }
 
   private static boolean isNullCheck(Instruction instr, Value receiver) {
@@ -1177,39 +1183,60 @@ public class CodeRewriter {
   }
 
   /**
+   * Returns true if the given instruction is {@code v <- new-instance NullPointerException},
+   * and the next instruction is {@code invoke-direct v, NullPointerException.<init>()}.
+   */
+  private static boolean isInstantiationOfNullPointerException(
+      Instruction instruction, InstructionListIterator it, DexItemFactory dexItemFactory) {
+    if (!instruction.isNewInstance()
+        || instruction.asNewInstance().clazz != dexItemFactory.npeType) {
+      return false;
+    }
+    Instruction next = it.peekNext();
+    if (next == null
+        || !next.isInvokeDirect()
+        || next.asInvokeDirect().getInvokedMethod() != dexItemFactory.npeMethods.init) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Returns true if the given code unconditionally triggers class initialization before any other
    * side effecting instruction.
    *
    * Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
   private static boolean triggersClassInitializationBeforeSideEffect(IRCode code, DexType klass) {
-    return alwaysTriggerExpectedEffectBeforeAnythingElse(code, instruction -> {
-      if (instruction.triggersInitializationOfClass(klass)) {
-        // In order to preserve class initialization semantic, the exception must not be caught by
-        // any handler. Therefore, we must ignore this instruction if it is covered by a catch
-        // handler.
-        // Note: this is a conservative approach where we consider that any catch handler could
-        // catch the exception, even if it cannot catch an ExceptionInInitializerError.
-        if (!instruction.getBlock().hasCatchHandlers()) {
-          // We found an instruction that preserves initialization of the class.
-          return InstructionEffect.DESIRED_EFFECT;
-        }
-      } else if (instructionHasSideEffects(instruction)) {
-        // We found a side effect before class initialization.
-        return InstructionEffect.OTHER_EFFECT;
-      }
-      return InstructionEffect.NO_EFFECT;
-    });
+    return alwaysTriggerExpectedEffectBeforeAnythingElse(
+        code,
+        (instruction, it) -> {
+          if (instruction.triggersInitializationOfClass(klass)) {
+            // In order to preserve class initialization semantic, the exception must not be caught
+            // by any handler. Therefore, we must ignore this instruction if it is covered by a
+            // catch handler.
+            // Note: this is a conservative approach where we consider that any catch handler could
+            // catch the exception, even if it cannot catch an ExceptionInInitializerError.
+            if (!instruction.getBlock().hasCatchHandlers()) {
+              // We found an instruction that preserves initialization of the class.
+              return InstructionEffect.DESIRED_EFFECT;
+            }
+          } else if (instructionHasSideEffects(instruction)) {
+            // We found a side effect before class initialization.
+            return InstructionEffect.OTHER_EFFECT;
+          }
+          return InstructionEffect.NO_EFFECT;
+        });
   }
 
   /**
    * Returns true if the given code unconditionally triggers an expected effect before anything
    * else, false otherwise.
    *
-   * Note: we do not track phis so we may return false negative. This is a conservative approach.
+   * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
   private static boolean alwaysTriggerExpectedEffectBeforeAnythingElse(
-      IRCode code, Function<Instruction, InstructionEffect> function) {
+      IRCode code, BiFunction<Instruction, InstructionListIterator, InstructionEffect> function) {
     final int color = code.reserveMarkingColor();
     try {
       ArrayDeque<BasicBlock> worklist = new ArrayDeque<>();
@@ -1222,9 +1249,9 @@ public class CodeRewriter {
         assert currentBlock.isMarked(color);
 
         InstructionEffect result = InstructionEffect.NO_EFFECT;
-        Iterator<Instruction> it = currentBlock.listIterator();
+        InstructionListIterator it = currentBlock.listIterator();
         while (result == InstructionEffect.NO_EFFECT && it.hasNext()) {
-          result = function.apply(it.next());
+          result = function.apply(it.next(), it);
         }
         if (result == InstructionEffect.OTHER_EFFECT) {
           // We found an instruction that is causing an unexpected side effect.

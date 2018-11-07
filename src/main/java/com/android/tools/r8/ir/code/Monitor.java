@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.code.MonitorEnter;
 import com.android.tools.r8.code.MonitorExit;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -125,7 +126,7 @@ public class Monitor extends Instruction {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value) {
+  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return object() == value;
   }
 }
