@@ -26,17 +26,24 @@ def run(args, build=True):
 
 def main():
   build = True
+  help = True
   args = []
   for arg in sys.argv[1:]:
     if arg in ("--build", "--no-build"):
       build = arg == "--build"
-    elif arg in ("-help", "--help"):
-      print "asmifier.py [--no-build] [-debug] <classfile>*"
-      print "  --no-build  -- Don't run R8 dependencies."
-      print "  -debug      -- Include local variable information in output."
-      return
+    elif arg == "--no-debug":
+      args.append("-debug")
+    elif arg in ("-help", "--help", "-debug"):
+      help = True
+      break
     else:
+      help = False
       args.append(arg)
+  if help:
+    print "asmifier.py [--no-build] [--no-debug] <classfile>*"
+    print "  --no-build    Don't run R8 dependencies."
+    print "  --no-debug    Don't include local variable information in output."
+    return
   try:
     run(args, build)
   except subprocess.CalledProcessError as e:
