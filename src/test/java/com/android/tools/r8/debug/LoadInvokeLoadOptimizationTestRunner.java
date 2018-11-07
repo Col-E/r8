@@ -34,7 +34,7 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
       parameters.add(
           "R8/" + backend,
           temp ->
-              testForR8(temp, Backend.CF)
+              testForR8(temp, backend)
                   .addProgramClasses(CLASS)
                   .setMode(CompilationMode.DEBUG)
                   .debugConfig());
