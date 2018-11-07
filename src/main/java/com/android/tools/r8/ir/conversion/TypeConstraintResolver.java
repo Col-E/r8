@@ -4,6 +4,8 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
@@ -11,6 +13,9 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,22 +30,77 @@ import java.util.Map;
  * there type is constrained to be the same. This happens in two places:
  *
  * <ul>
- *   <li>For phis, the out value and all operand values must have the same type
+ *   <li>For phis, the out value and all operand values must have the same type.
  *   <li>For if-{eq,ne} instructions, the input values must have the same type.
  * </ul>
  *
- * <p>All other constraints on types have been computed duing IR construction where every call to
+ * <p>All other constraints on types have been computed during IR construction where every call to
  * readRegister(ValueType) will constrain the type of the SSA value that the read resolves to.
  */
 public class TypeConstraintResolver {
 
   private final Map<Value, Value> unificationParents = new HashMap<>();
 
-  public void resolve(IRCode code, IRBuilder builder) {
+  public static ValueType constraintForType(TypeLatticeElement type) {
+    if (type.isTop()) {
+      return ValueType.INT_OR_FLOAT_OR_NULL;
+    }
+    if (type.isBottom() || type.isReference()) {
+      return ValueType.OBJECT;
+    }
+    if (type.isInt()) {
+      return ValueType.INT;
+    }
+    if (type.isFloat()) {
+      return ValueType.FLOAT;
+    }
+    if (type.isLong()) {
+      return ValueType.LONG;
+    }
+    if (type.isDouble()) {
+      return ValueType.DOUBLE;
+    }
+    if (type.isSingle()) {
+      return ValueType.INT_OR_FLOAT;
+    }
+    if (type.isWide()) {
+      return ValueType.LONG_OR_DOUBLE;
+    }
+    throw new Unreachable("Invalid type lattice: " + type);
+  }
+
+  public static TypeLatticeElement typeForConstraint(ValueType constraint) {
+    switch (constraint) {
+      case INT_OR_FLOAT_OR_NULL:
+        return TypeLatticeElement.TOP;
+      case OBJECT:
+        // If the constraint is object the concrete lattice type will need to be computed.
+        // We mark the object type as bottom for now, with the implication that it is of type
+        // reference but that it should not contribute to the computation of its join
+        // (in potentially self-referencing phis).
+        return TypeLatticeElement.BOTTOM;
+      case INT:
+        return TypeLatticeElement.INT;
+      case FLOAT:
+        return TypeLatticeElement.FLOAT;
+      case INT_OR_FLOAT:
+        return TypeLatticeElement.SINGLE;
+      case LONG:
+        return TypeLatticeElement.LONG;
+      case DOUBLE:
+        return TypeLatticeElement.DOUBLE;
+      case LONG_OR_DOUBLE:
+        return TypeLatticeElement.WIDE;
+      default:
+        throw new Unreachable("Unexpected constraint type: " + constraint);
+    }
+  }
+
+  public void resolve(IRCode code, IRBuilder builder, Reporter reporter) {
     List<Value> impreciseValues = new ArrayList<>();
     for (BasicBlock block : code.blocks) {
       for (Phi phi : block.getPhis()) {
-        if (!phi.outType().isPreciseType()) {
+        if (!phi.getTypeLattice().isPreciseType()) {
           impreciseValues.add(phi);
         }
         for (Value value : phi.getOperands()) {
@@ -48,7 +108,8 @@ public class TypeConstraintResolver {
         }
       }
       for (Instruction instruction : block.getInstructions()) {
-        if (instruction.outValue() != null && !instruction.outType().isPreciseType()) {
+        if (instruction.outValue() != null
+            && !instruction.outValue().getTypeLattice().isPreciseType()) {
           impreciseValues.add(instruction.outValue());
         }
 
@@ -60,13 +121,20 @@ public class TypeConstraintResolver {
             merge(ifInstruction.inValues().get(0), ifInstruction.inValues().get(1));
           }
         }
-
-        // TODO(zerny): Once we have detailed value types we must join the array element-type with
-        // the value/dest for array-put/get instructions.
       }
     }
     for (Value value : impreciseValues) {
-      builder.constrainType(value, getPreciseType(value));
+      builder.constrainType(value, getCanonicalTypeConstraint(value));
+      if (!value.getTypeLattice().isPreciseType()) {
+        throw reporter.fatalError(
+            new StringDiagnostic(
+                "Cannot determine precise type for value: "
+                    + value
+                    + ", its imprecise type is: "
+                    + value.getTypeLattice(),
+                code.origin,
+                new MethodPosition(code.method.method)));
+      }
     }
   }
 
@@ -74,19 +142,28 @@ public class TypeConstraintResolver {
     link(canonical(value1), canonical(value2));
   }
 
-  private ValueType getPreciseType(Value value) {
-    ValueType type = canonical(value).outType();
-    return type != ValueType.INT_OR_FLOAT_OR_NULL ? type : ValueType.INT_OR_FLOAT;
+  private ValueType getCanonicalTypeConstraint(Value value) {
+    ValueType type = constraintForType(canonical(value).getTypeLattice());
+    switch (type) {
+      case INT_OR_FLOAT:
+      case INT_OR_FLOAT_OR_NULL:
+        return ValueType.INT;
+      case LONG_OR_DOUBLE:
+        return ValueType.LONG;
+      default:
+        return type;
+    }
   }
 
+  // Link two values as having the same type.
   private void link(Value canonical1, Value canonical2) {
     if (canonical1 == canonical2) {
       return;
     }
-    ValueType type1 = canonical1.outType();
-    ValueType type2 = canonical2.outType();
+    TypeLatticeElement type1 = canonical1.getTypeLattice();
+    TypeLatticeElement type2 = canonical2.getTypeLattice();
     if (type1.isPreciseType() && type2.isPreciseType()) {
-      if (type1 != type2) {
+      if (type1 != type2 && constraintForType(type1) != constraintForType(type2)) {
         throw new CompilationError(
             "Cannot unify types for values "
                 + canonical1
@@ -119,4 +196,5 @@ public class TypeConstraintResolver {
     }
     return value;
   }
+
 }

@@ -28,7 +28,7 @@ import java.util.Arrays;
 
 public class ArrayGet extends Instruction {
 
-  private final MemberType type;
+  private MemberType type;
 
   public ArrayGet(MemberType type, Value dest, Value array, Value index) {
     super(dest, Arrays.asList(array, index));
@@ -47,6 +47,10 @@ public class ArrayGet extends Instruction {
     return inValues.get(1);
   }
 
+  public MemberType getMemberType() {
+    return type;
+  }
+
   @Override
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
@@ -56,12 +60,10 @@ public class ArrayGet extends Instruction {
     switch (type) {
       case INT:
       case FLOAT:
-      case INT_OR_FLOAT:
         instruction = new Aget(dest, array, index);
         break;
       case LONG:
       case DOUBLE:
-      case LONG_OR_DOUBLE:
         assert builder.getOptions().canUseSameArrayAndResultRegisterInArrayGetWide()
             || dest != array;
         instruction = new AgetWide(dest, array, index);
@@ -81,6 +83,9 @@ public class ArrayGet extends Instruction {
       case SHORT:
         instruction = new AgetShort(dest, array, index);
         break;
+      case INT_OR_FLOAT:
+      case LONG_OR_DOUBLE:
+        throw new Unreachable("Unexpected imprecise type: " + type);
       default:
         throw new Unreachable("Unexpected type " + type);
     }
@@ -140,7 +145,7 @@ public class ArrayGet extends Instruction {
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
     // This method is not called for ArrayGet on primitive array.
-    assert this.outValue.type.isObject();
+    assert this.outValue.getTypeLattice().isReference();
     DexType arrayType = helper.getDexType(array());
     if (arrayType == DexItemFactory.nullValueType) {
       // JVM 8 §4.10.1.9.aaload: Array component type of null is null.
@@ -162,11 +167,44 @@ public class ArrayGet extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return array().getTypeLattice().arrayGet(appInfo);
+    switch (getMemberType()) {
+      case OBJECT:
+        // If the out-type of the array is bottom (the input array must be definitely null), then
+        // the instruction cannot return. For now we return NULL as the type to ensure we have a
+        // type consistent witness for the out-value type. We could consider returning bottom in
+        // this case as the value is indeed empty, i.e., the instruction will always fail.
+        TypeLatticeElement outType = array().getTypeLattice().arrayGet(appInfo);
+        return outType.isBottom() ? TypeLatticeElement.NULL : outType;
+      case BOOLEAN:
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+        return TypeLatticeElement.INT;
+      case FLOAT:
+        return TypeLatticeElement.FLOAT;
+      case LONG:
+        return TypeLatticeElement.LONG;
+      case DOUBLE:
+        return TypeLatticeElement.DOUBLE;
+      case INT_OR_FLOAT:
+      case LONG_OR_DOUBLE:
+        throw new Unreachable("Unexpected imprecise type: " + getMemberType());
+      default:
+        throw new Unreachable("Unexpected member type: " + getMemberType());
+    }
   }
 
   @Override
   public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return array() == value;
+  }
+
+  @Override
+  public boolean constrainType() {
+    if (!type.isPrecise()) {
+      type = MemberType.constrainedType(type, ValueType.fromTypeLattice(dest().getTypeLattice()));
+    }
+    return type != null;
   }
 }

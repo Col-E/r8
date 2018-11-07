@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -101,13 +102,16 @@ public class IRCode {
 
   public final InternalOptions options;
 
+  public final Origin origin;
+
   public IRCode(
       InternalOptions options,
       DexEncodedMethod method,
       LinkedList<BasicBlock> blocks,
       ValueNumberGenerator valueNumberGenerator,
       boolean hasDebugPositions,
-      boolean hasConstString) {
+      boolean hasConstString,
+      Origin origin) {
     assert options != null;
     this.options = options;
     this.method = method;
@@ -115,6 +119,8 @@ public class IRCode {
     this.valueNumberGenerator = valueNumberGenerator;
     this.hasDebugPositions = hasDebugPositions;
     this.hasConstString = hasConstString;
+    this.origin = origin;
+    // TODO(zerny): Remove or update this property now that all instructions have positions.
     allThrowingInstructionsHavePositions = computeAllThrowingInstructionsHavePositions();
   }
 
@@ -456,7 +462,7 @@ public class IRCode {
     assert consistentDefUseChains();
     assert validThrowingInstructions();
     assert noCriticalEdges();
-    assert noBottomOrTopTypeLatticeLeft();
+    assert verifyNoImpreciseTypes();
     return true;
   }
 
@@ -660,31 +666,24 @@ public class IRCode {
     return true;
   }
 
-  private boolean noBottomOrTopTypeLatticeLeft() {
-    return verifySSATypeLattice(v -> {
-      TypeLatticeElement lattice = v.getTypeLattice();
-      if (v.definition != null) {
-        if (v.definition.isConstNumber()) {
-          return !lattice.isTop();
-        }
-        if (v.definition.isArrayGet()
-            && !v.definition.asArrayGet().array().getTypeLattice().isArrayType()) {
-          return !lattice.isTop();
-        }
-      }
-      if (v.isPhi()) {
-        if (lattice.isTop()) {
-          boolean foundNull = false;
-          boolean foundPrimitive = false;
-          for (Value operand : v.asPhi().getOperands()) {
-            foundNull |= operand.getTypeLattice().isNull();
-            foundPrimitive |= operand.getTypeLattice().isPrimitive();
+  public boolean verifyNoImpreciseTypes() {
+    return verifySSATypeLattice(
+        v -> {
+          assert v.getTypeLattice().isPreciseType();
+          if (v.definition != null) {
+            assert !v.definition.isArrayGet()
+                || v.definition.asArrayGet().getMemberType().isPrecise();
+            assert !v.definition.isArrayPut()
+                || v.definition.asArrayPut().getMemberType().isPrecise();
+            assert !v.definition.isFieldInstruction()
+                || v.definition.asFieldInstruction().getType().isPrecise();
           }
-          return foundNull && foundPrimitive;
-        }
-      }
-      return !lattice.isBottom() && !lattice.isTop();
-    });
+          return true;
+        });
+  }
+
+  public boolean verifyNoBottomTypes() {
+    return verifySSATypeLattice(v -> !v.getTypeLattice().isBottom());
   }
 
   private boolean verifySSATypeLattice(Predicate<Value> tester) {

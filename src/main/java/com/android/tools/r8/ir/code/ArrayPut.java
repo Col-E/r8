@@ -31,13 +31,13 @@ public class ArrayPut extends Instruction {
   private static final int INDEX_INDEX = 1;
   private static final int VALUE_INDEX = 2;
 
-  private final MemberType type;
+  private MemberType type;
 
   public ArrayPut(MemberType type, Value array, Value index, Value value) {
     super(null, Arrays.asList(array, index, value));
     assert type != null;
-    assert array.type.isObject();
-    assert index.type.isSingle();
+    assert array.verifyCompatible(ValueType.OBJECT);
+    assert index.verifyCompatible(ValueType.INT);
     this.type = type;
   }
 
@@ -53,6 +53,10 @@ public class ArrayPut extends Instruction {
     return inValues.get(VALUE_INDEX);
   }
 
+  public MemberType getMemberType() {
+    return type;
+  }
+
   @Override
   public void buildDex(DexBuilder builder) {
     int value = builder.allocatedRegister(value(), getNumber());
@@ -62,12 +66,10 @@ public class ArrayPut extends Instruction {
     switch (type) {
       case INT:
       case FLOAT:
-      case INT_OR_FLOAT:
         instruction = new Aput(value, array, index);
         break;
       case LONG:
       case DOUBLE:
-      case LONG_OR_DOUBLE:
         instruction = new AputWide(value, array, index);
         break;
       case OBJECT:
@@ -85,8 +87,11 @@ public class ArrayPut extends Instruction {
       case SHORT:
         instruction = new AputShort(value, array, index);
         break;
+      case INT_OR_FLOAT:
+      case LONG_OR_DOUBLE:
+        throw new Unreachable("Unexpected imprecise type: " + type);
       default:
-        throw new Unreachable("Unexpected type " + type);
+        throw new Unreachable("Unexpected type: " + type);
     }
     builder.add(this, instruction);
   }
@@ -173,5 +178,13 @@ public class ArrayPut extends Instruction {
   @Override
   public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return array() == value;
+  }
+
+  @Override
+  public boolean constrainType() {
+    if (!type.isPrecise()) {
+      type = MemberType.constrainedType(type, ValueType.fromTypeLattice(value().getTypeLattice()));
+    }
+    return type != null;
   }
 }

@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -69,7 +70,14 @@ public class TrivialGotoEliminationTest {
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
     IRCode code =
-        new IRCode(new InternalOptions(), null, blocks, new ValueNumberGenerator(), false, false);
+        new IRCode(
+            new InternalOptions(),
+            null,
+            blocks,
+            new ValueNumberGenerator(),
+            false,
+            false,
+            Origin.unknown());
     CodeRewriter.collapsTrivialGotos(null, code);
     assertTrue(code.blocks.get(0).isTrivialGoto());
     assertTrue(blocks.contains(block0));
@@ -143,7 +151,14 @@ public class TrivialGotoEliminationTest {
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
     IRCode code =
-        new IRCode(new InternalOptions(), null, blocks, new ValueNumberGenerator(), false, false);
+        new IRCode(
+            new InternalOptions(),
+            null,
+            blocks,
+            new ValueNumberGenerator(),
+            false,
+            false,
+            Origin.unknown());
     CodeRewriter.collapsTrivialGotos(null, code);
     assertTrue(block0.getInstructions().get(1).isIf());
     assertEquals(block1, block0.getInstructions().get(1).asIf().fallthroughBlock());

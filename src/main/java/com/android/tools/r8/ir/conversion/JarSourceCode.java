@@ -281,7 +281,7 @@ public class JarSourceCode implements SourceCode {
     state.beginTransactionSynthetic();
 
     // Record types for arguments.
-    Int2ReferenceMap<TypeLatticeElement> argumentLocals = recordArgumentTypes(builder);
+    Int2ReferenceMap<Type> argumentLocals = recordArgumentTypes(builder);
     IntSet initializedLocals = new IntOpenHashSet(node.localVariables.size());
     initializedLocals.addAll(argumentLocals.keySet());
     // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
@@ -372,7 +372,7 @@ public class JarSourceCode implements SourceCode {
       builder.addThisArgument(slot.register);
     }
     for (Type type : parameterTypes) {
-      TypeLatticeElement typeLattice = typeLattice(type);
+      TypeLatticeElement typeLattice = builder.getTypeLattice(application.getType(type), true);
       Slot slot = state.readLocal(argumentRegister, type);
       if (type == Type.BOOLEAN_TYPE) {
         builder.addBooleanNonThisArgument(slot.register);
@@ -383,22 +383,25 @@ public class JarSourceCode implements SourceCode {
     }
   }
 
-  private Int2ReferenceMap<TypeLatticeElement> recordArgumentTypes(IRBuilder builder) {
-    Int2ReferenceMap<TypeLatticeElement> initializedLocals =
+  private Int2ReferenceMap<Type> recordArgumentTypes(IRBuilder builder) {
+    Int2ReferenceMap<Type> initializedLocals =
         new Int2ReferenceOpenHashMap<>(node.localVariables.size());
     int argumentRegister = 0;
     if (!isStatic()) {
       Type thisType = application.getAsmType(clazz.descriptor.toString());
       int register = state.writeLocal(argumentRegister++, thisType);
-      initializedLocals.put(register, typeLattice(thisType));
+      initializedLocals.put(register, thisType);
     }
     for (Type type : parameterTypes) {
-      TypeLatticeElement typeLattice = typeLattice(type);
       int register = state.writeLocal(argumentRegister, type);
-      argumentRegister += typeLattice.requiredRegisters();
-      initializedLocals.put(register, typeLattice);
+      argumentRegister += isWide(type) ? 2 : 1;
+      initializedLocals.put(register, type);
     }
     return initializedLocals;
+  }
+
+  private boolean isWide(Type type) {
+    return type.getSort() == Type.DOUBLE || type.getSort() == Type.LONG;
   }
 
   private void computeBlockEntryJarStates(IRBuilder builder) {
@@ -932,10 +935,6 @@ public class JarSourceCode implements SourceCode {
       default:
         throw new Unreachable("Invalid type in valueType: " + type);
     }
-  }
-
-  private static TypeLatticeElement typeLattice(Type type) {
-    return valueType(type).toTypeLattice();
   }
 
   private static MemberType memberType(Type type) {

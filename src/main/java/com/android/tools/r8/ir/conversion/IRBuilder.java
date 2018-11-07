@@ -93,9 +93,11 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.StringDiagnostic;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -166,6 +168,10 @@ public class IRBuilder {
 
   public AppInfo getAppInfo() {
     return appInfo;
+  }
+
+  public TypeLatticeElement getTypeLattice(DexType type, boolean nullable) {
+    return TypeLatticeElement.fromDexType(type, nullable, appInfo);
   }
 
   // SSA construction uses a worklist of basic blocks reachable from the entry and their
@@ -398,8 +404,11 @@ public class IRBuilder {
 
   private int nextBlockNumber = 0;
 
-  // Flag indicating if the instructions define values with imprecise types.
-  private boolean hasImpreciseInstructionOutValueTypes = false;
+  // Flag indicating if any instructions have imprecise internal types (eg, int|float member types)
+  private List<Instruction> impreciseInstructions = null;
+
+  // Flag indicating if any values have imprecise types.
+  private boolean hasImpreciseValues = false;
 
   // Flag indicating if a const string is ever loaded.
   private boolean hasConstString = false;
@@ -570,8 +579,15 @@ public class IRBuilder {
     joinPredecessorsWithIdenticalPhis();
 
     // Package up the IR code.
-    IRCode ir = new IRCode(
-        options, method, blocks, valueNumberGenerator, hasDebugPositions, hasConstString);
+    IRCode ir =
+        new IRCode(
+            options,
+            method,
+            blocks,
+            valueNumberGenerator,
+            hasDebugPositions,
+            hasConstString,
+            origin);
 
     // Verify critical edges are split so we have a place to insert phi moves if necessary.
     assert ir.verifySplitCriticalEdges();
@@ -583,13 +599,30 @@ public class IRBuilder {
     ir.removeAllTrivialPhis();
     ir.removeUnreachableBlocks();
 
-    if (hasImpreciseTypes()) {
+    // Constrain all values to precise types.
+    if (hasImpreciseValues) {
       TypeConstraintResolver resolver = new TypeConstraintResolver();
-      resolver.resolve(ir, this);
+      resolver.resolve(ir, this, options.reporter);
     }
+
+    // Constrain instructions to precise types (internally these will use the value types).
+    if (impreciseInstructions != null) {
+      for (Instruction instruction : impreciseInstructions) {
+        if (!instruction.constrainType()) {
+          throw options.reporter.fatalError(
+              new StringDiagnostic(
+                  "Cannot determine precise type for instruction: " + instruction,
+                  origin,
+                  new MethodPosition(method.method)));
+        }
+      }
+    }
+
+    assert ir.verifyNoImpreciseTypes();
 
     new TypeAnalysis(appInfo, context).widening(method, ir);
 
+    assert ir.verifyNoBottomTypes();
     assert ir.isConsistentSSA();
 
     // Clear the code so we don't build multiple times.
@@ -602,19 +635,11 @@ public class IRBuilder {
     value.constrainType(constraint, method.method, origin, options.reporter);
   }
 
-  private boolean hasImpreciseTypes() {
-    if (hasImpreciseInstructionOutValueTypes) {
-      return true;
+  private void addImpreciseInstruction(Instruction instruction) {
+    if (impreciseInstructions == null) {
+      impreciseInstructions = new ArrayList<>();
     }
-    // TODO(zerny): Consider keeping track of the imprecise phi types during phi construction.
-    for (BasicBlock block : blocks) {
-      for (Phi phi : block.getPhis()) {
-        if (!phi.outType().isPreciseType()) {
-          return true;
-        }
-      }
-    }
-    return false;
+    impreciseInstructions.add(instruction);
   }
 
   private boolean insertDebugPositions() {
@@ -925,12 +950,12 @@ public class IRBuilder {
     Value in2 = readRegister(index, ValueType.INT);
     TypeLatticeElement typeLattice = fromMemberType(type);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
-    if (typeLattice.isBottom()) {
-      constrainType(out, ValueType.OBJECT);
-    }
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     ArrayGet instruction = new ArrayGet(type, out, in1, in2);
     assert instruction.instructionTypeCanThrow();
+    if (!type.isPrecise()) {
+      addImpreciseInstruction(instruction);
+    }
     add(instruction);
   }
 
@@ -947,6 +972,9 @@ public class IRBuilder {
     Value inArray = readRegister(array, ValueType.OBJECT);
     Value inIndex = readRegister(index, ValueType.INT);
     ArrayPut instruction = new ArrayPut(type, inArray, inIndex, inValue);
+    if (!type.isPrecise()) {
+      addImpreciseInstruction(instruction);
+    }
     add(instruction);
   }
 
@@ -1196,6 +1224,9 @@ public class IRBuilder {
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     InstanceGet instruction = new InstanceGet(type, out, in, field);
     assert instruction.instructionTypeCanThrow();
+    if (!type.isPrecise()) {
+      addImpreciseInstruction(instruction);
+    }
     addInstruction(instruction);
   }
 
@@ -1212,6 +1243,9 @@ public class IRBuilder {
     Value objectValue = readRegister(object, ValueType.OBJECT);
     Value valueValue = readRegister(value, ValueType.fromMemberType(type));
     InstancePut instruction = new InstancePut(type, field, objectValue, valueValue);
+    if (!type.isPrecise()) {
+      addImpreciseInstruction(instruction);
+    }
     add(instruction);
   }
 
@@ -1525,9 +1559,8 @@ public class IRBuilder {
 
   public void addReturn(ValueType type, int value) {
     ValueType returnType = ValueType.fromDexType(method.method.proto.returnType);
-    assert returnType.verifyCompatible(type);
     Value in = readRegister(value, returnType);
-    addReturn(new Return(in, returnType));
+    addReturn(new Return(in));
   }
 
   public void addReturn() {
@@ -1548,13 +1581,21 @@ public class IRBuilder {
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     StaticGet instruction = new StaticGet(type, out, field);
     assert instruction.instructionTypeCanThrow();
+    if (!type.isPrecise()) {
+      addImpreciseInstruction(instruction);
+    }
     addInstruction(instruction);
   }
 
   public void addStaticPut(int value, DexField field) {
     MemberType type = MemberType.fromDexType(field.type);
     Value in = readRegister(value, ValueType.fromMemberType(type));
-    add(new StaticPut(type, in, field));
+    StaticPut instruction = new StaticPut(type, in, field);
+    assert instruction.instructionTypeCanThrow();
+    if (!type.isPrecise()) {
+      addImpreciseInstruction(instruction);
+    }
+    add(instruction);
   }
 
   public void addSub(NumericType type, int dest, int left, int right) {
@@ -1876,9 +1917,10 @@ public class IRBuilder {
         // different types (eg, int in one part of the CFG and float in a disjoint part).
         value = getUninitializedDebugLocalValue(register, type);
       } else {
+        hasImpreciseValues |= !type.isPreciseType();
         DebugLocalInfo local = getIncomingLocalAtBlock(register, block);
-        Phi phi = new Phi(
-            valueNumberGenerator.next(), block, type.toTypeLattice(), local, readType);
+        TypeLatticeElement phiType = TypeConstraintResolver.typeForConstraint(type);
+        Phi phi = new Phi(valueNumberGenerator.next(), block, phiType, local, readType);
         if (!block.isSealed()) {
           block.addIncompletePhi(register, phi, readingEdge);
           value = phi;
@@ -1930,7 +1972,11 @@ public class IRBuilder {
     // Create a new SSA value for the uninitialized local value.
     // Note that the uninitialized local value must not itself have local information, so that it
     // does not contribute to the visible/live-range of the local variable.
-    Value value = new Value(valueNumberGenerator.next(), type.toTypeLattice(), null);
+    Value value =
+        new Value(
+            valueNumberGenerator.next(),
+            type == ValueType.OBJECT ? TypeLatticeElement.NULL : type.toPrimitiveTypeLattice(),
+            null);
     values.add(value);
     return value;
   }
@@ -2069,7 +2115,7 @@ public class IRBuilder {
   }
 
   private void addInstruction(Instruction ir, Position position) {
-    hasImpreciseInstructionOutValueTypes |= ir.outValue() != null && !ir.outType().isPreciseType();
+    hasImpreciseValues |= ir.outValue() != null && !ir.outValue().getTypeLattice().isPreciseType();
     ir.setPosition(position);
     attachLocalValues(ir);
     currentBlock.add(ir);

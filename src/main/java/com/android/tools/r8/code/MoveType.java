@@ -43,19 +43,6 @@ public enum  MoveType {
     throw new Unreachable("Unexpected type lattice: " + typeLattice);
   }
 
-  public TypeLatticeElement toTypeLattice() {
-    switch (this) {
-      case SINGLE:
-        return TypeLatticeElement.SINGLE;
-      case WIDE:
-        return TypeLatticeElement.WIDE;
-      case OBJECT:
-        return TypeLatticeElement.REFERENCE;
-      default:
-        throw new Unreachable("Unexpected move type: " + this);
-    }
-  }
-
   public int requiredRegisters() {
     return this == WIDE ? 2 : 1;
   }

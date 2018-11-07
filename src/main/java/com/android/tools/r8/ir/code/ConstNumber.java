@@ -16,7 +16,6 @@ import com.android.tools.r8.code.ConstWide16;
 import com.android.tools.r8.code.ConstWide32;
 import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
@@ -201,7 +200,7 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public String toString() {
-    return super.toString() + " " + value + " (" + outType() + ")";
+    return super.toString() + " " + value + " (" + outValue().getTypeLattice() + ")";
   }
 
   @Override
@@ -263,27 +262,7 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    // TODO(b/72693244): IR builder should know the type and assign a proper type lattice.
-    switch (outType()) {
-      case OBJECT:
-        assert isZero();
-        return TypeLatticeElement.NULL;
-      case INT:
-        return TypeLatticeElement.INT;
-      case FLOAT:
-        return TypeLatticeElement.FLOAT;
-      case LONG:
-        return TypeLatticeElement.LONG;
-      case DOUBLE:
-        return TypeLatticeElement.DOUBLE;
-      case INT_OR_FLOAT:
-        return TypeLatticeElement.SINGLE;
-      case LONG_OR_DOUBLE:
-        return TypeLatticeElement.WIDE;
-      case INT_OR_FLOAT_OR_NULL:
-        return TypeLatticeElement.BOTTOM;
-      default:
-        throw new Unreachable("Invalid value type '" + outType() + "'");
-    }
+    assert outValue().getTypeLattice().isPreciseType();
+    return outValue().getTypeLattice();
   }
 }

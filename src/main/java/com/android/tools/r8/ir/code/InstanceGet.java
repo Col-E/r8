@@ -43,19 +43,23 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
+  Value getFieldInOrOutValue() {
+    return dest();
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     int destRegister = builder.allocatedRegister(dest(), getNumber());
     int objectRegister = builder.allocatedRegister(object(), getNumber());
     com.android.tools.r8.code.Instruction instruction;
-    switch (type) {
+    DexField field = getField();
+    switch (getType()) {
       case INT:
       case FLOAT:
-      case INT_OR_FLOAT:
         instruction = new Iget(destRegister, objectRegister, field);
         break;
       case LONG:
       case DOUBLE:
-      case LONG_OR_DOUBLE:
         instruction = new IgetWide(destRegister, objectRegister, field);
         break;
       case OBJECT:
@@ -73,8 +77,11 @@ public class InstanceGet extends FieldInstruction {
       case SHORT:
         instruction = new IgetShort(destRegister, objectRegister, field);
         break;
+      case INT_OR_FLOAT:
+      case LONG_OR_DOUBLE:
+        throw new Unreachable("Unexpected imprecise type: " + getType());
       default:
-        throw new Unreachable("Unexpected type " + type);
+        throw new Unreachable("Unexpected type: " + getType());
     }
     builder.add(this, instruction);
   }
@@ -100,13 +107,13 @@ public class InstanceGet extends FieldInstruction {
       return false;
     }
     InstanceGet o = other.asInstanceGet();
-    return o.field == field && o.type == type;
+    return o.getField() == getField() && o.getType() == getType();
   }
 
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInstanceGet(field, invocationContext);
+    return inliningConstraints.forInstanceGet(getField(), invocationContext);
   }
 
   @Override
@@ -121,17 +128,17 @@ public class InstanceGet extends FieldInstruction {
 
   @Override
   public String toString() {
-    return super.toString() + "; field: " + field.toSourceString();
+    return super.toString() + "; field: " + getField().toSourceString();
   }
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(field.type, true, appInfo);
+    return TypeLatticeElement.fromDexType(getField().type, true, appInfo);
   }
 
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return field.type;
+    return getField().type;
   }
 
   @Override
@@ -142,7 +149,8 @@ public class InstanceGet extends FieldInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfFieldInstruction(Opcodes.GETFIELD, field, builder.resolveField(field)));
+    builder.add(
+        new CfFieldInstruction(Opcodes.GETFIELD, getField(), builder.resolveField(getField())));
   }
 
   @Override

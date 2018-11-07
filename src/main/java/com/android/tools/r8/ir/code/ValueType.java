@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
 public enum ValueType {
@@ -39,73 +40,6 @@ public enum ValueType {
     return this != ValueType.INT_OR_FLOAT
         && this != ValueType.LONG_OR_DOUBLE
         && this != ValueType.INT_OR_FLOAT_OR_NULL;
-  }
-
-  public ValueType meet(ValueType other) {
-    if (this == other) {
-      return this;
-    }
-    if (other == INT_OR_FLOAT_OR_NULL) {
-      return other.meet(this);
-    }
-    if (isPreciseType() && other.isPreciseType()) {
-      // Precise types must be identical, hitting the first check above.
-      return null;
-    }
-    switch (this) {
-      case OBJECT:
-        {
-          if (other.isObject()) {
-            return this;
-          }
-          break;
-        }
-      case INT:
-      case FLOAT:
-        {
-          if (other.isSingle()) {
-            return this;
-          }
-          break;
-        }
-      case LONG:
-      case DOUBLE:
-        {
-          if (other.isWide()) {
-            return this;
-          }
-          break;
-        }
-      case INT_OR_FLOAT_OR_NULL:
-        {
-          if (other.isObjectOrSingle()) {
-            return other;
-          }
-          break;
-        }
-      case INT_OR_FLOAT:
-        {
-          if (other.isSingle()) {
-            return other;
-          }
-          break;
-        }
-      case LONG_OR_DOUBLE:
-        {
-          if (other.isWide()) {
-            return other;
-          }
-          break;
-        }
-      default:
-        throw new Unreachable("Unexpected value-type in meet: " + this);
-    }
-    return null;
-  }
-
-  public boolean verifyCompatible(ValueType other) {
-    assert meet(other) != null;
-    return true;
   }
 
   public int requiredRegisters() {
@@ -184,9 +118,6 @@ public enum ValueType {
   }
 
   public static ValueType fromTypeLattice(TypeLatticeElement typeLatticeElement) {
-    if (typeLatticeElement.isBottom()) {
-      return INT_OR_FLOAT_OR_NULL;
-    }
     if (typeLatticeElement.isReference()) {
       return OBJECT;
     }
@@ -202,35 +133,21 @@ public enum ValueType {
     if (typeLatticeElement.isDouble()) {
       return DOUBLE;
     }
-    if (typeLatticeElement.isSingle()) {
-      return INT_OR_FLOAT;
-    }
-    if (typeLatticeElement.isWide()) {
-      return LONG_OR_DOUBLE;
-    }
-    throw new Unreachable("Invalid type lattice '" + typeLatticeElement + "'");
+    throw new Unreachable("Unexpected conversion of imprecise type: " + typeLatticeElement);
   }
 
-  public TypeLatticeElement toTypeLattice() {
+  public PrimitiveTypeLatticeElement toPrimitiveTypeLattice() {
     switch (this) {
-      case OBJECT:
-        return TypeLatticeElement.REFERENCE;
       case INT:
         return TypeLatticeElement.INT;
       case FLOAT:
         return TypeLatticeElement.FLOAT;
-      case INT_OR_FLOAT:
-        return TypeLatticeElement.SINGLE;
       case LONG:
         return TypeLatticeElement.LONG;
       case DOUBLE:
         return TypeLatticeElement.DOUBLE;
-      case LONG_OR_DOUBLE:
-        return TypeLatticeElement.WIDE;
-      case INT_OR_FLOAT_OR_NULL:
-        return TypeLatticeElement.BOTTOM;
       default:
-        throw new Unreachable("Invalid value type '" + this + "'");
+        throw new Unreachable("Unexpected type in conversion to primitive: " + this);
     }
   }
 }
