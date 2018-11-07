@@ -9,7 +9,6 @@ import utils.Utils
 
 ext {
     androidSupportVersion = '25.4.0'
-    apacheCommonsVersion = '1.12'
     asmVersion = '6.2.1'
     autoValueVersion = '1.5'
     espressoVersion = '3.0.0'
@@ -107,14 +106,6 @@ sourceSets {
             srcDirs = [
                 'src/test/java',
                 'build/generated/test/java',
-            ]
-        }
-    }
-    bsPatch {
-        java {
-            srcDirs = [
-                'src/bspatch/java',
-                'src/main/java'
             ]
         }
     }
@@ -236,7 +227,6 @@ dependencies {
     testCompile files('third_party/jasmin/jasmin-2.4.jar')
     testCompile files('third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar')
     testCompile files('third_party/ddmlib/ddmlib.jar')
-    bsPatchCompile "org.apache.commons:commons-compress:$apacheCommonsVersion"
     jctfCommonCompile "junit:junit:$junitVersion"
     jctfTestsCompile "junit:junit:$junitVersion"
     jctfTestsCompile sourceSets.jctfCommon.output
@@ -254,8 +244,6 @@ dependencies {
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     apt "com.google.auto.value:auto-value:$autoValueVersion"
 }
-
-configurations.bsPatchCompile.extendsFrom configurations.compile
 
 licenseTools {
     licensesYaml = file('LIBRARY-LICENSE')
@@ -494,7 +482,6 @@ static configureRelocations(ShadowJar task) {
     task.relocate('com.google.gson', 'com.android.tools.r8.com.google.gson')
     task.relocate('com.google.thirdparty', 'com.android.tools.r8.com.google.thirdparty')
     task.relocate('joptsimple', 'com.android.tools.r8.joptsimple')
-    task.relocate('org.apache.commons', 'com.android.tools.r8.org.apache.commons')
     task.relocate('org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm')
     task.relocate('it.unimi.dsi.fastutil', 'com.android.tools.r8.it.unimi.dsi.fastutil')
     task.relocate('kotlin', 'com.android.tools.r8.jetbrains.kotlin')
@@ -583,22 +570,6 @@ task CompatProguard(type: ShadowJar) {
     baseName 'compatproguard'
     manifest {
         attributes 'Main-Class': 'com.android.tools.r8.compatproguard.CompatProguard'
-    }
-}
-
-task bspatch(type: Jar) {
-    from sourceSets.bsPatch.output
-    baseName 'bspatch'
-    manifest {
-        attributes 'Main-Class': 'com.android.tools.r8.dex.BSPatch'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps bspatch
-    if (!project.hasProperty('exclude_deps')) {
-        // Also include dependencies
-        from {
-            configurations.bsPatchCompile.collect { it.isDirectory() ? it : zipTree(it) }
-        }
     }
 }
 
