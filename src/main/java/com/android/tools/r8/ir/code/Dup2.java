@@ -22,19 +22,21 @@ public class Dup2 extends Instruction {
       StackValue destTopMinusTwo,
       StackValue destTopMinusOne,
       StackValue destTop,
-      StackValue srcBottom,
-      StackValue srcTop) {
+      Value srcBottom,
+      Value srcTop) {
     this(
         new StackValues(destTowMinusThree, destTopMinusTwo, destTopMinusOne, destTop),
         srcBottom,
         srcTop);
   }
 
-  private Dup2(StackValues dest, StackValue srcBottom, StackValue srcTop) {
+  private Dup2(StackValues dest, Value srcBottom, Value srcTop) {
     super(dest, ImmutableList.of(srcBottom, srcTop));
     assert !srcBottom.getTypeLattice().isWide();
     assert !srcTop.getTypeLattice().isWide();
     assert dest.getStackValues().length == 4;
+    assert srcBottom.isValueOnStack() && !(srcBottom instanceof StackValues);
+    assert srcTop.isValueOnStack() && !(srcTop instanceof StackValues);
   }
 
   @Override
