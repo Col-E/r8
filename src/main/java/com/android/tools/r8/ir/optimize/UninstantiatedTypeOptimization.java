@@ -313,7 +313,6 @@ public class UninstantiatedTypeOptimization {
       DexClass clazz = appView.appInfo().definitionFor(type);
       return clazz != null
           && clazz.isProgramClass()
-          && !clazz.accessFlags.isAnnotation()
           && !appView.appInfo().isInstantiatedDirectlyOrIndirectly(type);
     }
     return false;

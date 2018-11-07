@@ -35,52 +35,63 @@ public class AnnotationRemover {
    * Used to filter annotations on classes, methods and fields.
    */
   private boolean filterAnnotations(DexAnnotation annotation) {
+    return shouldKeepAnnotation(
+        annotation, isAnnotationTypeLive(annotation), appInfo.dexItemFactory, options);
+  }
+
+  public static boolean shouldKeepAnnotation(
+      DexAnnotation annotation,
+      boolean isAnnotationTypeLive,
+      DexItemFactory dexItemFactory,
+      InternalOptions options) {
+    ProguardKeepAttributes config = options.proguardConfiguration.getKeepAttributes();
     switch (annotation.visibility) {
       case DexAnnotation.VISIBILITY_SYSTEM:
-        DexItemFactory factory = appInfo.dexItemFactory;
         // InnerClass and EnclosingMember are represented in class attributes, not annotations.
-        assert !DexAnnotation.isInnerClassAnnotation(annotation, factory);
-        assert !DexAnnotation.isMemberClassesAnnotation(annotation, factory);
-        assert !DexAnnotation.isEnclosingMethodAnnotation(annotation, factory);
-        assert !DexAnnotation.isEnclosingClassAnnotation(annotation, factory);
-        if (keep.exceptions && DexAnnotation.isThrowingAnnotation(annotation, factory)) {
+        assert !DexAnnotation.isInnerClassAnnotation(annotation, dexItemFactory);
+        assert !DexAnnotation.isMemberClassesAnnotation(annotation, dexItemFactory);
+        assert !DexAnnotation.isEnclosingMethodAnnotation(annotation, dexItemFactory);
+        assert !DexAnnotation.isEnclosingClassAnnotation(annotation, dexItemFactory);
+        if (config.exceptions && DexAnnotation.isThrowingAnnotation(annotation, dexItemFactory)) {
           return true;
         }
-        if (keep.signature && DexAnnotation.isSignatureAnnotation(annotation, factory)) {
+        if (config.signature && DexAnnotation.isSignatureAnnotation(annotation, dexItemFactory)) {
           return true;
         }
-        if (keep.sourceDebugExtension
-            && DexAnnotation.isSourceDebugExtension(annotation, factory)) {
+        if (config.sourceDebugExtension
+            && DexAnnotation.isSourceDebugExtension(annotation, dexItemFactory)) {
           return true;
         }
         if (options.canUseParameterNameAnnotations()
-            && DexAnnotation.isParameterNameAnnotation(annotation, factory)) {
+            && DexAnnotation.isParameterNameAnnotation(annotation, dexItemFactory)) {
           return true;
         }
-        if (DexAnnotation.isAnnotationDefaultAnnotation(annotation, factory)) {
+        if (DexAnnotation.isAnnotationDefaultAnnotation(annotation, dexItemFactory)) {
           // These have to be kept if the corresponding annotation class is kept to retain default
           // values.
           return true;
         }
         return false;
+
       case DexAnnotation.VISIBILITY_RUNTIME:
-        if (!keep.runtimeVisibleAnnotations) {
+        if (!config.runtimeVisibleAnnotations) {
           return false;
         }
-        break;
+        return isAnnotationTypeLive;
+
       case DexAnnotation.VISIBILITY_BUILD:
-        if (DexAnnotation.isSynthesizedClassMapAnnotation(annotation, appInfo.dexItemFactory)) {
+        if (DexAnnotation.isSynthesizedClassMapAnnotation(annotation, dexItemFactory)) {
           // TODO(sgjesse) When should these be removed?
           return true;
         }
-        if (!keep.runtimeInvisibleAnnotations) {
+        if (!config.runtimeInvisibleAnnotations) {
           return false;
         }
-        break;
+        return isAnnotationTypeLive;
+
       default:
         throw new Unreachable("Unexpected annotation visibility.");
     }
-    return isAnnotationTypeLive(annotation);
   }
 
   private boolean isAnnotationTypeLive(DexAnnotation annotation) {
