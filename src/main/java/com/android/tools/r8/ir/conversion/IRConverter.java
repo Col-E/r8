@@ -184,7 +184,7 @@ public class IRConverter {
         this.identifierNameStringMarker = null;
       }
       this.devirtualizer =
-          options.enableDevirtualization ? new Devirtualizer(appInfoWithLiveness) : null;
+          options.enableDevirtualization ? new Devirtualizer(appViewWithLiveness) : null;
       this.uninstantiatedTypeOptimization =
           options.enableUninstantiatedTypeOptimization
               ? new UninstantiatedTypeOptimization(appViewWithLiveness, options)
