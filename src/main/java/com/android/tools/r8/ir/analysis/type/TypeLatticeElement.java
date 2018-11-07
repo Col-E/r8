@@ -430,10 +430,6 @@ public abstract class TypeLatticeElement {
     return nullElement().isDefinitelyNull();
   }
 
-  public boolean isReferenceInstance() {
-    return false;
-  }
-
   public int requiredRegisters() {
     assert !isBottom() && !isTop();
     return isWide() ? 2 : 1;
