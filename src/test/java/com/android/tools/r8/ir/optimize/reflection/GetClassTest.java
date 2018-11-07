@@ -28,7 +28,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-class GetClassTestMain {
+class GetClassTestMain implements Callable<Class<?>> {
   static class Base {}
   static class Sub extends Base {}
   static class EffectivelyFinal {}
@@ -45,6 +45,13 @@ class GetClassTestMain {
   static Class<?> getMainClass(GetClassTestMain instance) {
     // Nullable argument. Should not be rewritten to const-class to preserve NPE.
     return instance.getClass();
+  }
+
+  @NeverInline
+  @Override
+  public Class<?> call() {
+    // Non-null `this` pointer.
+    return getClass();
   }
 
   public static void main(String[] args) {
@@ -77,6 +84,7 @@ class GetClassTestMain {
     try {
       // To not be recognized as un-instantiated class.
       GetClassTestMain instance = new GetClassTestMain();
+      System.out.println(instance.call());
       System.out.println(getMainClass(instance));
 
       System.out.println(getMainClass(null));
@@ -124,6 +132,7 @@ public class GetClassTest extends TestBase {
         "class [Lcom.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Sub;",
         "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$EffectivelyFinal",
         "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain",
+        "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain",
         "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Reflection",
         "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Reflection"
     );
@@ -165,7 +174,9 @@ public class GetClassTest extends TestBase {
   private void test(
       TestRunResult result,
       int expectedGetClassCount,
-      int expectedConstClassCount) throws Exception {
+      int expectedConstClassCount,
+      int expectedGetClassCountForCall,
+      int expectedConstClassCountForCall) throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(main);
     MethodSubject mainMethod = mainClass.mainMethod();
@@ -176,8 +187,15 @@ public class GetClassTest extends TestBase {
     MethodSubject getMainClass = mainClass.method(
         "java.lang.Class", "getMainClass", ImmutableList.of(main.getCanonicalName()));
     assertThat(getMainClass, isPresent());
+    // Because of nullable argument, getClass() should remain.
     assertEquals(1, countGetClass(getMainClass));
     assertEquals(0, countConstClass(getMainClass));
+
+    MethodSubject call = mainClass.method("java.lang.Class", "call", ImmutableList.of());
+    assertThat(call, isPresent());
+    // Because of local, only R8 release mode can rewrite getClass() to const-class.
+    assertEquals(expectedGetClassCountForCall, countGetClass(call));
+    assertEquals(expectedConstClassCountForCall, countConstClass(call));
   }
 
     @Test
@@ -186,21 +204,21 @@ public class GetClassTest extends TestBase {
       return;
     }
 
-    // D8 release.
-    TestRunResult result = testForD8()
-        .release()
-        .addProgramClasses(classes)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
-    test(result, 6, 0);
-
     // D8 debug.
-    result = testForD8()
+    TestRunResult result = testForD8()
         .debug()
         .addProgramClasses(classes)
         .run(main)
         .assertSuccessWithOutput(javaOutput);
-    test(result, 6, 0);
+    test(result, 6, 0, 1, 0);
+
+    // D8 release.
+    result = testForD8()
+        .release()
+        .addProgramClasses(classes)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
+    test(result, 6, 0, 1, 0);
   }
 
   @Test
@@ -214,7 +232,7 @@ public class GetClassTest extends TestBase {
         .addKeepMainRule(main)
         .addKeepRules("-dontobfuscate")
         .run(main);
-    test(result, 5, 1);
+    test(result, 5, 1, 1, 0);
 
     // R8 release, no minification.
     result = testForR8(backend)
@@ -225,7 +243,7 @@ public class GetClassTest extends TestBase {
         .addKeepRules("-dontobfuscate")
         .run(main)
         .assertSuccessWithOutput(javaOutput);
-    test(result, 0, 7);
+    test(result, 0, 7, 0, 1);
 
     // R8 release, minification.
     result = testForR8(backend)
@@ -235,7 +253,7 @@ public class GetClassTest extends TestBase {
         .addKeepMainRule(main)
         // We are not checking output because it can't be matched due to minification. Just run.
         .run(main);
-    test(result, 0, 7);
+    test(result, 0, 7, 0, 1);
   }
 
 }
