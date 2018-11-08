@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestBase.R8Mode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -22,8 +23,10 @@ public class R8TestBuilder
     super(state, builder, backend);
   }
 
-  public static R8TestBuilder create(TestState state, Backend backend) {
-    return new R8TestBuilder(state, R8Command.builder(), backend);
+  public static R8TestBuilder create(TestState state, Backend backend, R8Mode mode) {
+    R8Command.Builder builder =
+        mode == R8Mode.Full ? R8Command.builder() : new CompatProguardCommandBuilder();
+    return new R8TestBuilder(state, builder, backend);
   }
 
   private boolean enableInliningAnnotations = false;
