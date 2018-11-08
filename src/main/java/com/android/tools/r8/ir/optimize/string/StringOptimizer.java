@@ -79,7 +79,12 @@ public class StringOptimizer {
         } else if (inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType()
                 .equals(appInfo.dexItemFactory.stringType)) {
-          removeOrReplaceByDebugLocalWrite(invoke, it, in, invoke.outValue());
+          Value out = invoke.outValue();
+          if (out != null) {
+            removeOrReplaceByDebugLocalWrite(invoke, it, in, out);
+          } else {
+            it.removeOrReplaceByDebugLocalRead();
+          }
         }
       } else if (instr.isInvokeVirtual()) {
         InvokeVirtual invoke = instr.asInvokeVirtual();
@@ -94,7 +99,12 @@ public class StringOptimizer {
             && inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType()
                 .equals(appInfo.dexItemFactory.stringType)) {
-          removeOrReplaceByDebugLocalWrite(invoke, it, in, invoke.outValue());
+          Value out = invoke.outValue();
+          if (out != null) {
+            removeOrReplaceByDebugLocalWrite(invoke, it, in, out);
+          } else {
+            it.removeOrReplaceByDebugLocalRead();
+          }
         }
       }
     }
