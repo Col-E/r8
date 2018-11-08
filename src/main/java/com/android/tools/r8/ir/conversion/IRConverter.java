@@ -946,9 +946,13 @@ public class IRConverter {
       codeRewriter.rewriteGetClass(code);
     }
 
-    ConstantCanonicalizer.canonicalize(code);
-    codeRewriter.useDedicatedConstantForLitInstruction(code);
-    codeRewriter.shortenLiveRanges(code);
+    // TODO(mkroghj) Test if shorten live ranges is worth it.
+    if (!options.isGeneratingClassFiles()) {
+      ConstantCanonicalizer.canonicalize(code);
+      codeRewriter.useDedicatedConstantForLitInstruction(code);
+      codeRewriter.shortenLiveRanges(code);
+    }
+
     codeRewriter.identifyReturnsArgument(method, code, feedback);
     if (options.enableInlining && inliner != null) {
       codeRewriter.identifyInvokeSemanticsForInlining(method, code, feedback);
