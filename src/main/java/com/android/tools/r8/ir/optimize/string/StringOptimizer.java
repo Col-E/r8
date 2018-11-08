@@ -53,34 +53,49 @@ public class StringOptimizer {
 
   // String#valueOf(null) -> "null"
   // String#valueOf(String s) -> s
-  public void removeValueOfIfTrivial(IRCode code, AppInfo appInfo) {
+  // str.toString() -> str
+  public void removeTrivialConversions(IRCode code, AppInfo appInfo) {
     InstructionIterator it = code.instructionIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
-      if (!instr.isInvokeStatic()) {
-        continue;
-      }
-      InvokeStatic invoke = instr.asInvokeStatic();
-      DexMethod invokedMethod = invoke.getInvokedMethod();
-      if (invokedMethod != appInfo.dexItemFactory.stringMethods.valueOf) {
-        continue;
-      }
-      assert invoke.inValues().size() == 1;
-      Value in = invoke.inValues().get(0);
-      if (in.hasLocalInfo()) {
-        continue;
-      }
-      TypeLatticeElement inType = in.getTypeLattice();
-      if (inType.isNull()) {
-        Value nullStringValue =
-            code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
-        ConstString nullString =
-            new ConstString(nullStringValue, appInfo.dexItemFactory.createString("null"));
-        it.replaceCurrentInstruction(nullString);
-      } else if (inType.isClassType()
-          && inType.asClassTypeLatticeElement().getClassType()
-              .equals(appInfo.dexItemFactory.stringType)) {
-        removeOrReplaceByDebugLocalWrite(invoke, it, in, invoke.outValue());
+      if (instr.isInvokeStatic()) {
+        InvokeStatic invoke = instr.asInvokeStatic();
+        DexMethod invokedMethod = invoke.getInvokedMethod();
+        if (invokedMethod != appInfo.dexItemFactory.stringMethods.valueOf) {
+          continue;
+        }
+        assert invoke.inValues().size() == 1;
+        Value in = invoke.inValues().get(0);
+        if (in.hasLocalInfo()) {
+          continue;
+        }
+        TypeLatticeElement inType = in.getTypeLattice();
+        if (inType.isNull()) {
+          Value nullStringValue =
+              code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
+          ConstString nullString =
+              new ConstString(nullStringValue, appInfo.dexItemFactory.createString("null"));
+          it.replaceCurrentInstruction(nullString);
+        } else if (inType.isClassType()
+            && inType.asClassTypeLatticeElement().getClassType()
+                .equals(appInfo.dexItemFactory.stringType)) {
+          removeOrReplaceByDebugLocalWrite(invoke, it, in, invoke.outValue());
+        }
+      } else if (instr.isInvokeVirtual()) {
+        InvokeVirtual invoke = instr.asInvokeVirtual();
+        DexMethod invokedMethod = invoke.getInvokedMethod();
+        if (invokedMethod != appInfo.dexItemFactory.stringMethods.toString) {
+          continue;
+        }
+        assert invoke.inValues().size() == 1;
+        Value in = invoke.getReceiver();
+        TypeLatticeElement inType = in.getTypeLattice();
+        if (inType.nullElement().isDefinitelyNotNull()
+            && inType.isClassType()
+            && inType.asClassTypeLatticeElement().getClassType()
+                .equals(appInfo.dexItemFactory.stringType)) {
+          removeOrReplaceByDebugLocalWrite(invoke, it, in, invoke.outValue());
+        }
       }
     }
     assert code.isConsistentSSA();
