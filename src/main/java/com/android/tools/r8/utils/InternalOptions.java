@@ -152,6 +152,10 @@ public class InternalOptions {
     return marker;
   }
 
+  public boolean hasConsumer() {
+    return programConsumer != null;
+  }
+
   public boolean isGeneratingDex() {
     return isGeneratingDexIndexed() || isGeneratingDexFilePerClassFile();
   }
@@ -482,63 +486,68 @@ public class InternalOptions {
     public boolean suppressExperimentalCfBackendWarning = false;
   }
 
+  private boolean hasMinApi(AndroidApiLevel level) {
+    assert isGeneratingDex();
+    return minApiLevel >= level.getLevel();
+  }
+
   public boolean canUseInvokePolymorphicOnVarHandle() {
-    return hasMinApi(AndroidApiLevel.P);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.P);
   }
 
   public boolean canUseInvokePolymorphic() {
-    return hasMinApi(AndroidApiLevel.O);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.O);
   }
 
   public boolean canUseConstantMethodHandle() {
-    return hasMinApi(AndroidApiLevel.P);
-  }
-
-  private boolean hasMinApi(AndroidApiLevel level) {
-    return isGeneratingClassFiles() || minApiLevel >= level.getLevel();
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.P);
   }
 
   public boolean canUseConstantMethodType() {
-    return hasMinApi(AndroidApiLevel.P);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.P);
   }
 
   public boolean canUseInvokeCustom() {
-    return hasMinApi(AndroidApiLevel.O);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.O);
   }
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
-    return hasMinApi(AndroidApiLevel.N);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
   }
 
   public boolean canLeaveStaticInterfaceMethodInvokes() {
-    return hasMinApi(AndroidApiLevel.L);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.L);
   }
 
   public boolean canUseTwrCloseResourceMethod() {
-    return hasMinApi(AndroidApiLevel.K);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
   }
 
   public boolean canUsePrivateInterfaceMethods() {
-    return hasMinApi(AndroidApiLevel.N);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
   }
 
   public boolean canUseMultidex() {
+    assert isGeneratingDex();
     return intermediate || hasMinApi(AndroidApiLevel.L);
   }
 
   public boolean canUseLongCompareAndObjectsNonNull() {
-    return hasMinApi(AndroidApiLevel.K);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
   }
 
   public boolean canUseSuppressedExceptions() {
-    return hasMinApi(AndroidApiLevel.K);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
   }
 
   // APIs for accessing parameter names annotations are not available before Android O, thus does
   // not emit them to avoid wasting space in Dex files because runtimes before Android O will ignore
   // them.
   public boolean canUseParameterNameAnnotations() {
-    return hasMinApi(AndroidApiLevel.O);
+    if (!hasConsumer()) {
+      return false;
+    }
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.O);
   }
 
   // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for
@@ -550,6 +559,7 @@ public class InternalOptions {
   //
   // https://android.googlesource.com/platform/dalvik/+/ics-mr0/vm/mterp/out/InterpAsm-x86-atom.S#25106
   public boolean canUseFilledNewArrayOfObjects() {
+    assert isGeneratingDex();
     return hasMinApi(AndroidApiLevel.K);
   }
 
@@ -558,6 +568,7 @@ public class InternalOptions {
   // and the first register of the result could lead to the wrong exception
   // being thrown on out of bounds.
   public boolean canUseSameArrayAndResultRegisterInArrayGetWide() {
+    assert isGeneratingDex();
     return minApiLevel > AndroidApiLevel.O_MR1.getLevel();
   }
 
@@ -575,7 +586,7 @@ public class InternalOptions {
   //
   // See b/69364976 and b/77996377.
   public boolean canHaveBoundsCheckEliminationBug() {
-    return minApiLevel < AndroidApiLevel.M.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.M.getLevel();
   }
 
   // MediaTek JIT compilers for KitKat phones did not implement the not
@@ -584,14 +595,14 @@ public class InternalOptions {
   // we can only use not instructions if we are targeting Art-based
   // phones.
   public boolean canUseNotInstruction() {
-    return hasMinApi(AndroidApiLevel.L);
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.L);
   }
 
   // Art before M has a verifier bug where the type of the contents of the receiver register is
   // assumed to not change. If the receiver register is reused for something else the verifier
   // will fail and the code will not run.
   public boolean canHaveThisTypeVerifierBug() {
-    return minApiLevel < AndroidApiLevel.M.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.M.getLevel();
   }
 
   // Art crashes if we do dead reference elimination of the receiver in release mode and Art
@@ -606,7 +617,7 @@ public class InternalOptions {
   // The dalvik jit had a bug where the long operations add, sub, or, xor and and would write
   // the first part of the result long before reading the second part of the input longs.
   public boolean canHaveOverlappingLongRegisterBug() {
-    return minApiLevel < AndroidApiLevel.L.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.L.getLevel();
   }
 
   // Some dalvik versions found in the wild perform invalid JIT compilation of cmp-long
@@ -639,7 +650,7 @@ public class InternalOptions {
   //
   // See b/75408029.
   public boolean canHaveCmpLongBug() {
-    return minApiLevel < AndroidApiLevel.L.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.L.getLevel();
   }
 
   // Some Lollipop VMs crash if there is a const instruction between a cmp and an if instruction.
@@ -689,7 +700,7 @@ public class InternalOptions {
   //
   // This issue has only been observed on a Verizon Ellipsis 8 tablet. See b/76115465.
   public boolean canHaveMul2AddrBug() {
-    return minApiLevel < AndroidApiLevel.M.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.M.getLevel();
   }
 
   // Some Marshmallow VMs create an incorrect doubly-linked list of instructions. When the VM
@@ -698,7 +709,7 @@ public class InternalOptions {
   //
   // See b/77842465.
   public boolean canHaveDex2OatLinkedListBug() {
-    return minApiLevel < AndroidApiLevel.N.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.N.getLevel();
   }
 
   // dex2oat on Marshmallow VMs does aggressive inlining which can eat up all the memory on
@@ -706,7 +717,7 @@ public class InternalOptions {
   //
   // See b/111960171
   public boolean canHaveDex2OatInliningIssue() {
-    return minApiLevel < AndroidApiLevel.N.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.N.getLevel();
   }
 
   // Art 7.0.0 and later Art JIT may perform an invalid optimization if a string new-instance does
@@ -714,7 +725,7 @@ public class InternalOptions {
   //
   // See b/78493232 and b/80118070.
   public boolean canHaveArtStringNewInitBug() {
-    return minApiLevel < AndroidApiLevel.Q.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.Q.getLevel();
   }
 
   // Dalvik tracing JIT may perform invalid optimizations when int/float values are converted to
@@ -722,7 +733,7 @@ public class InternalOptions {
   //
   // See b/77496850.
   public boolean canHaveNumberConversionRegisterAllocationBug() {
-    return minApiLevel < AndroidApiLevel.L.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.L.getLevel();
   }
 
   // Some Lollipop mediatek VMs have a peculiar bug where the inliner crashes if there is a
@@ -735,7 +746,7 @@ public class InternalOptions {
   //
   // See b/68378480.
   public boolean canHaveForwardingInitInliningBug() {
-    return minApiLevel < AndroidApiLevel.M.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.M.getLevel();
   }
 
   // Some Lollipop x86_64 VMs have a bug causing a segfault if an exception handler directly targets
