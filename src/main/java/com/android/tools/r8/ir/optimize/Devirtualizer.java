@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
@@ -28,12 +29,16 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Rewrites all invoke-interface instructions that have a unique target on a class into
+ * invoke-virtual with the corresponding unique target.
+ */
 public class Devirtualizer {
 
-  private final AppInfoWithLiveness appInfo;
+  private final AppView<? extends AppInfoWithLiveness> appView;
 
-  public Devirtualizer(AppInfoWithLiveness appInfo) {
-    this.appInfo = appInfo;
+  public Devirtualizer(AppView<? extends AppInfoWithLiveness> appView) {
+    this.appView = appView;
   }
 
   public void devirtualizeInvokeInterface(IRCode code, DexType invocationContext) {
@@ -41,6 +46,7 @@ public class Devirtualizer {
     Map<InvokeInterface, InvokeVirtual> devirtualizedCall = new IdentityHashMap<>();
     DominatorTree dominatorTree = new DominatorTree(code);
     Map<Value, Map<DexType, Value>> castedReceiverCache = new IdentityHashMap<>();
+    Set<CheckCast> newCheckCastInstructions = Sets.newIdentityHashSet();
 
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
@@ -65,9 +71,32 @@ public class Devirtualizer {
           if (origin.isInvokeInterface()
               && devirtualizedCall.containsKey(origin.asInvokeInterface())) {
             InvokeVirtual devirtualizedInvoke = devirtualizedCall.get(origin.asInvokeInterface());
-            if (dominatorTree.dominatedBy(block, devirtualizedInvoke.getBlock())) {
-              nonNull.src().replaceSelectiveUsers(
-                  devirtualizedInvoke.getReceiver(), ImmutableSet.of(nonNull), ImmutableMap.of());
+
+            // Extract the newly added check-cast instruction, if any.
+            CheckCast newCheckCast = null;
+            Value newReceiver = devirtualizedInvoke.getReceiver();
+            if (!newReceiver.isPhi() && newReceiver.definition.isCheckCast()) {
+              CheckCast definition = newReceiver.definition.asCheckCast();
+              if (newCheckCastInstructions.contains(definition)) {
+                newCheckCast = definition;
+              }
+            }
+
+            if (newCheckCast != null) {
+              // If this non-null instruction is dominated by the check-cast instruction, then
+              // replace the in-value to the non-null instruction, since this gives us more precise
+              // type information in the rest of the method. This should only be done, though, if
+              // the out-value of the cast instruction is a more precise type than the in-value,
+              // otherwise we could introduce type errors.
+              Value oldReceiver = newCheckCast.object();
+              TypeLatticeElement oldReceiverType = oldReceiver.getTypeLattice();
+              TypeLatticeElement newReceiverType = newReceiver.getTypeLattice();
+              if (newReceiverType.lessThanOrEqual(oldReceiverType, appView.appInfo())
+                  && dominatorTree.dominatedBy(block, devirtualizedInvoke.getBlock())) {
+                assert nonNull.src() == oldReceiver;
+                oldReceiver.replaceSelectiveUsers(
+                    newReceiver, ImmutableSet.of(nonNull), ImmutableMap.of());
+              }
             }
           }
         }
@@ -76,19 +105,19 @@ public class Devirtualizer {
           continue;
         }
         InvokeInterface invoke = current.asInvokeInterface();
-        DexEncodedMethod target = invoke.lookupSingleTarget(appInfo, invocationContext);
+        DexEncodedMethod target = invoke.lookupSingleTarget(appView.appInfo(), invocationContext);
         if (target == null) {
           continue;
         }
         DexType holderType = target.method.getHolder();
-        DexClass holderClass = appInfo.definitionFor(holderType);
+        DexClass holderClass = appView.appInfo().definitionFor(holderType);
         // Make sure we are not landing on another interface, e.g., interface's default method.
         if (holderClass == null || holderClass.isInterface()) {
           continue;
         }
         // Due to the potential downcast below, make sure the new target holder is visible.
         ConstraintWithTarget visibility =
-            ConstraintWithTarget.classIsVisible(invocationContext, holderType, appInfo);
+            ConstraintWithTarget.classIsVisible(invocationContext, holderType, appView.appInfo());
         if (visibility == ConstraintWithTarget.NEVER) {
           continue;
         }
@@ -112,11 +141,12 @@ public class Devirtualizer {
           Value receiver = invoke.getReceiver();
           TypeLatticeElement receiverTypeLattice = receiver.getTypeLattice();
           TypeLatticeElement castTypeLattice =
-              TypeLatticeElement.fromDexType(holderType, receiverTypeLattice.isNullable(), appInfo);
+              TypeLatticeElement.fromDexType(
+                  holderType, receiverTypeLattice.isNullable(), appView.appInfo());
           // Avoid adding trivial cast and up-cast.
           // We should not use strictlyLessThan(castType, receiverType), which detects downcast,
           // due to side-casts, e.g., A (unused) < I, B < I, and cast from A to B.
-          if (!receiverTypeLattice.lessThanOrEqual(castTypeLattice, appInfo)) {
+          if (!receiverTypeLattice.lessThanOrEqual(castTypeLattice, appView.appInfo())) {
             Value newReceiver = null;
             // If this value is ever downcast'ed to the same holder type before, and that casted
             // value is safely accessible, i.e., the current line is dominated by that cast, use it.
@@ -137,7 +167,7 @@ public class Devirtualizer {
 
             // No cached, we need a new downcast'ed receiver.
             if (newReceiver == null) {
-              newReceiver = code.createValue(receiverTypeLattice);
+              newReceiver = code.createValue(castTypeLattice);
               // Cache the new receiver with a narrower type to avoid redundant checkcast.
               if (!receiver.hasLocalInfo()) {
                 // TODO(b/118125038): Add a test for this.
@@ -146,6 +176,7 @@ public class Devirtualizer {
               }
               CheckCast checkCast = new CheckCast(newReceiver, receiver, holderType);
               checkCast.setPosition(invoke.getPosition());
+              newCheckCastInstructions.add(checkCast);
 
               // We need to add this checkcast *before* the devirtualized invoke-virtual.
               assert it.peekPrevious() == devirtualizedInvoke;
@@ -188,9 +219,8 @@ public class Devirtualizer {
       }
     }
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView.appInfo(), code.method).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }
-
 }
