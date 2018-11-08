@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
@@ -213,29 +212,28 @@ public class UninstantiatedTypeOptimization {
       }
     }
 
-    if (invoke.getType() == Type.DIRECT || invoke.getType() == Type.STATIC) {
-      DexEncodedMethod target = appView.appInfo().definitionFor(invoke.getInvokedMethod());
-      if (target == null) {
-        return;
-      }
+    DexEncodedMethod target =
+        invoke.lookupSingleTarget(appView.appInfo(), code.method.method.holder);
+    if (target == null) {
+      return;
+    }
 
-      BitSet nonNullParamHints = target.getOptimizationInfo().getNonNullParamHints();
-      if (nonNullParamHints != null) {
-        int argumentIndex = target.isStatic() ? 0 : 1;
-        int nonNullParamHintIndex = 0;
-        while (argumentIndex < invoke.arguments().size()) {
-          Value argument = invoke.arguments().get(argumentIndex);
-          if (isAlwaysNull(argument) && nonNullParamHints.get(nonNullParamHintIndex)) {
-            replaceCurrentInstructionWithThrowNull(
-                invoke, blockIterator, instructionIterator, code, blocksToBeRemoved);
-            ++numberOfInvokesWithNullArgument;
-            return;
-          }
-          argumentIndex++;
-          nonNullParamHintIndex++;
+    BitSet nonNullParamHints = target.getOptimizationInfo().getNonNullParamHints();
+    if (nonNullParamHints != null) {
+      int argumentIndex = target.isStatic() ? 0 : 1;
+      int nonNullParamHintIndex = 0;
+      while (argumentIndex < invoke.arguments().size()) {
+        Value argument = invoke.arguments().get(argumentIndex);
+        if (isAlwaysNull(argument) && nonNullParamHints.get(nonNullParamHintIndex)) {
+          replaceCurrentInstructionWithThrowNull(
+              invoke, blockIterator, instructionIterator, code, blocksToBeRemoved);
+          ++numberOfInvokesWithNullArgument;
+          return;
         }
-        assert argumentIndex == nonNullParamHintIndex + (target.isStatic() ? 0 : 1);
+        argumentIndex++;
+        nonNullParamHintIndex++;
       }
+      assert argumentIndex == nonNullParamHintIndex + (target.isStatic() ? 0 : 1);
     }
   }
 

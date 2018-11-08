@@ -24,6 +24,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public MethodSubject uniqueMethodWithName(String name) {
+    return new AbsentMethodSubject();
+  }
+
+  @Override
   public void forAllFields(Consumer<FoundFieldSubject> inspection) {}
 
   @Override

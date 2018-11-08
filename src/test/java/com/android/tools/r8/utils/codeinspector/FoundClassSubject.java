@@ -95,6 +95,18 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public MethodSubject uniqueMethodWithName(String name) {
+    MethodSubject methodSubject = null;
+    for (FoundMethodSubject candidate : allMethods()) {
+      if (candidate.getOriginalName().equals(name)) {
+        assert methodSubject == null;
+        methodSubject = candidate;
+      }
+    }
+    return methodSubject != null ? methodSubject : new AbsentMethodSubject();
+  }
+
+  @Override
   public void forAllFields(Consumer<FoundFieldSubject> inspection) {
     CodeInspector.forAll(
         dexClass.staticFields(),
