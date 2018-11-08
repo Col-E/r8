@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
@@ -22,8 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
 import java.util.concurrent.Callable;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -110,9 +109,27 @@ class GetClassTestMain implements Callable<Class<?>> {
 @RunWith(Parameterized.class)
 public class GetClassTest extends TestBase {
   private final Backend backend;
-  private List<Class<?>> classes;
-  private static String javaOutput;
-  private static Class<?> main;
+  private static final List<Class<?>> CLASSES = ImmutableList.of(
+      ForceInline.class,
+      NeverInline.class,
+      GetClassTestMain.class,
+      GetClassTestMain.Base.class,
+      GetClassTestMain.Sub.class,
+      GetClassTestMain.EffectivelyFinal.class,
+      GetClassTestMain.Reflection.class
+  );
+  private static final String JAVA_OUTPUT = StringUtils.lines(
+      "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Base",
+      "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Base",
+      "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Sub",
+      "class [Lcom.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Sub;",
+      "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$EffectivelyFinal",
+      "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain",
+      "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain",
+      "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Reflection",
+      "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Reflection"
+  );
+  private static final Class<?> MAIN = GetClassTestMain.class;
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
@@ -123,33 +140,10 @@ public class GetClassTest extends TestBase {
     this.backend = backend;
   }
 
-  @BeforeClass
-  public static void buildExpectedJavaOutput() {
-    javaOutput = StringUtils.lines(
-        "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Base",
-        "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Base",
-        "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Sub",
-        "class [Lcom.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Sub;",
-        "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$EffectivelyFinal",
-        "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain",
-        "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain",
-        "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Reflection",
-        "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Reflection"
-    );
-    main = GetClassTestMain.class;
-  }
-
-  @Before
-  public void setUp() throws Exception {
-    classes = ImmutableList.of(
-        NeverInline.class,
-        ForceInline.class,
-        GetClassTestMain.class,
-        GetClassTestMain.Base.class,
-        GetClassTestMain.Sub.class,
-        GetClassTestMain.EffectivelyFinal.class,
-        GetClassTestMain.Reflection.class);
-    testForJvm().addTestClasspath().run(main).assertSuccessWithOutput(javaOutput);
+  @Test
+  public void testJVMoutput() throws Exception {
+    assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
+    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private static boolean isGetClass(DexMethod method) {
@@ -178,16 +172,16 @@ public class GetClassTest extends TestBase {
       int expectedGetClassCountForCall,
       int expectedConstClassCountForCall) throws Exception {
     CodeInspector codeInspector = result.inspector();
-    ClassSubject mainClass = codeInspector.clazz(main);
+    ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
     assertEquals(expectedGetClassCount, countGetClass(mainMethod));
     assertEquals(expectedConstClassCount, countConstClass(mainMethod));
 
     MethodSubject getMainClass = mainClass.method(
-        "java.lang.Class", "getMainClass", ImmutableList.of(main.getCanonicalName()));
+        "java.lang.Class", "getMainClass", ImmutableList.of(MAIN.getCanonicalName()));
     assertThat(getMainClass, isPresent());
-    // Because of nullable argument, getClass() should remain.
+    // Because of nullable argument, getClass() should reMAIN.
     assertEquals(1, countGetClass(getMainClass));
     assertEquals(0, countConstClass(getMainClass));
 
@@ -200,24 +194,22 @@ public class GetClassTest extends TestBase {
 
     @Test
   public void testD8() throws Exception {
-    if (backend == Backend.CF) {
-      return;
-    }
+    assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
 
     // D8 debug.
     TestRunResult result = testForD8()
         .debug()
-        .addProgramClasses(classes)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+        .addProgramClasses(CLASSES)
+        .run(MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 6, 0, 1, 0);
 
     // D8 release.
     result = testForD8()
         .release()
-        .addProgramClasses(classes)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+        .addProgramClasses(CLASSES)
+        .run(MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 6, 0, 1, 0);
   }
 
@@ -226,33 +218,33 @@ public class GetClassTest extends TestBase {
     // R8 debug, no minification.
     TestRunResult result = testForR8(backend)
         .debug()
-        .addProgramClasses(classes)
+        .addProgramClasses(CLASSES)
         .enableProguardTestOptions()
         .enableInliningAnnotations()
-        .addKeepMainRule(main)
+        .addKeepMainRule(MAIN)
         .addKeepRules("-dontobfuscate")
-        .run(main);
+        .run(MAIN);
     test(result, 5, 1, 1, 0);
 
     // R8 release, no minification.
     result = testForR8(backend)
-        .addProgramClasses(classes)
+        .addProgramClasses(CLASSES)
         .enableProguardTestOptions()
         .enableInliningAnnotations()
-        .addKeepMainRule(main)
+        .addKeepMainRule(MAIN)
         .addKeepRules("-dontobfuscate")
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+        .run(MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0, 7, 0, 1);
 
     // R8 release, minification.
     result = testForR8(backend)
-        .addProgramClasses(classes)
+        .addProgramClasses(CLASSES)
         .enableProguardTestOptions()
         .enableInliningAnnotations()
-        .addKeepMainRule(main)
+        .addKeepMainRule(MAIN)
         // We are not checking output because it can't be matched due to minification. Just run.
-        .run(main);
+        .run(MAIN);
     test(result, 0, 7, 0, 1);
   }
 

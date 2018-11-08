@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.string;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
@@ -21,8 +22,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -79,9 +78,23 @@ class StringLengthTestMain {
 @RunWith(Parameterized.class)
 public class StringLengthTest extends TestBase {
   private final Backend backend;
-  private List<Class<?>> classes;
-  private static String javaOutput;
-  private static Class<?> main;
+  private static final List<Class<?>> CLASSES = ImmutableList.of(
+      ForceInline.class,
+      NeverInline.class,
+      StringLengthTestMain.class
+  );
+  private static final String JAVA_OUTPUT = StringUtils.lines(
+      "4",
+      "6",
+      "Shared",
+      "14",
+      "Another_shared",
+      "2",
+      "1",
+      "𐀀", // Different output in Windows.
+      "3"
+  );
+  private static final Class<?> MAIN = StringLengthTestMain.class;
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
@@ -92,27 +105,11 @@ public class StringLengthTest extends TestBase {
     this.backend = backend;
   }
 
-  @BeforeClass
-  public static void buildExpectedJavaOutput() {
-    javaOutput = StringUtils.lines(
-        "4",
-        "6",
-        "Shared",
-        "14",
-        "Another_shared",
-        "2",
-        "1",
-        "𐀀", // Different output in Windows.
-        "3"
-    );
-    main = StringLengthTestMain.class;
-  }
-
-  @Before
-  public void setUp() throws Exception {
-    classes = ImmutableList.of(ForceInline.class, NeverInline.class, StringLengthTestMain.class);
+  @Test
+  public void testJVMoutput() throws Exception {
+    assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
     if (!ToolHelper.isWindows()) {
-      testForJvm().addTestClasspath().run(main).assertSuccessWithOutput(javaOutput);
+      testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
     }
   }
 
@@ -141,7 +138,7 @@ public class StringLengthTest extends TestBase {
       TestRunResult result, int expectedStringLengthCount, int expectedConstNumberCount)
       throws Exception {
     CodeInspector codeInspector = result.inspector();
-    ClassSubject mainClass = codeInspector.clazz(main);
+    ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
     long count = countStringLength(mainMethod);
@@ -152,25 +149,23 @@ public class StringLengthTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    if (backend == Backend.CF) {
-      return;
-    }
+    assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
 
     TestRunResult result = testForD8()
         .release()
-        .addProgramClasses(classes)
-        .run(main);
+        .addProgramClasses(CLASSES)
+        .run(MAIN);
     if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(javaOutput);
+      result.assertSuccessWithOutput(JAVA_OUTPUT);
     }
     test(result, 1, 4);
 
     result = testForD8()
         .debug()
-        .addProgramClasses(classes)
-        .run(main);
+        .addProgramClasses(CLASSES)
+        .run(MAIN);
     if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(javaOutput);
+      result.assertSuccessWithOutput(JAVA_OUTPUT);
     }
     test(result, 6, 0);
   }
@@ -178,13 +173,13 @@ public class StringLengthTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
+        .addProgramClasses(CLASSES)
         .enableProguardTestOptions()
         .enableInliningAnnotations()
-        .addKeepMainRule(main)
-        .run(main);
+        .addKeepMainRule(MAIN)
+        .run(MAIN);
     if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(javaOutput);
+      result.assertSuccessWithOutput(JAVA_OUTPUT);
     }
     // TODO we could remove const counting if it needs to be changed too frequently, since
     // the string length count is what we're interested in.
