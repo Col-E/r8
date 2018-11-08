@@ -16,6 +16,7 @@ import sys
 
 import gradle
 
+import dex2oat
 import utils
 
 REPLAY_SCRIPT_DIR = join(utils.REPO_ROOT, 'third_party',
@@ -44,7 +45,7 @@ def Main():
       for x in os.walk(OUT_DIR)))
 
   for dex_file in dex_files:
-      utils.verify_with_dex2oat(dex_file)
+      dex2oat.run(dex_file)
 
 
 if __name__ == '__main__':
