@@ -14,42 +14,52 @@ import java.util.ListIterator;
 
 public class BasicBlockMuncher {
 
-  private final List<BasicBlockPeephole> nonDestructivePeepholes =
-      ImmutableList.of(new MoveLoadUpPeephole());
+  private static List<BasicBlockPeephole> nonDestructivePeepholes() {
+    return ImmutableList.of(new MoveLoadUpPeephole(), new StoreLoadPeephole());
+  }
 
-  // The StoreLoadPeephole is non-destructive but we would like it to run in a fix-point with the
-  // other peepholes to allow for more matches.
-  private final List<BasicBlockPeephole> destructivePeepholes =
-      ImmutableList.of(
-          new StoreSequenceLoadPeephole(),
-          new StoreLoadPeephole(),
-          new LoadLoadDupPeephole(),
-          new DupDupDupPeephole());
+  // The StoreLoadPeephole and StoreSequenceLoadPeephole are non-destructive but we would like it
+  // to run in a fix-point with the other peepholes to allow for more matches.
+  private static List<BasicBlockPeephole> destructivePeepholes() {
+    return ImmutableList.of(
+        new StoreSequenceLoadPeephole(),
+        new StoreLoadPeephole(),
+        new LoadLoadDupPeephole(),
+        new DupDupDupPeephole());
 
-  private final List<List<BasicBlockPeephole>> allPeepholes =
-      ImmutableList.of(nonDestructivePeepholes, destructivePeepholes);
+  }
 
-  public void optimize(IRCode code) {
+  public static void optimize(IRCode code) {
+    runPeepholes(code, nonDestructivePeepholes());
+    runPeepholes(code, destructivePeepholes());
+  }
+
+  private static void runPeepholes(IRCode code, List<BasicBlockPeephole> peepholes) {
     ListIterator<BasicBlock> blocksIterator = code.blocks.listIterator(code.blocks.size());
     while (blocksIterator.hasPrevious()) {
       BasicBlock currentBlock = blocksIterator.previous();
-      for (List<BasicBlockPeephole> peepholes : allPeepholes) {
-        InstructionListIterator it =
-            new LinearFlowInstructionIterator(currentBlock, currentBlock.getInstructions().size());
-        boolean matched = false;
-        while (matched || it.hasPrevious()) {
-          if (!it.hasPrevious()) {
-            matched = false;
+      InstructionListIterator it =
+          new LinearFlowInstructionIterator(currentBlock, currentBlock.getInstructions().size());
+      boolean matched = false;
+      while (matched || it.hasPrevious()) {
+        if (!it.hasPrevious()) {
+          matched = false;
+          it =
+              new LinearFlowInstructionIterator(
+                  currentBlock, currentBlock.getInstructions().size());
+        }
+        for (BasicBlockPeephole peepHole : peepholes) {
+          boolean localMatch = peepHole.match(it);
+          if (localMatch && peepHole.resetAfterMatch()) {
             it =
                 new LinearFlowInstructionIterator(
                     currentBlock, currentBlock.getInstructions().size());
+          } else {
+            matched |= localMatch;
           }
-          for (BasicBlockPeephole peepHole : peepholes) {
-            matched |= peepHole.match(it);
-          }
-          if (it.hasPrevious()) {
-            it.previous();
-          }
+        }
+        if (it.hasPrevious()) {
+          it.previous();
         }
       }
     }

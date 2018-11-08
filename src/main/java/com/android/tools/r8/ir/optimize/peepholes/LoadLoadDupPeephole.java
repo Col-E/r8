@@ -64,4 +64,10 @@ public class LoadLoadDupPeephole implements BasicBlockPeephole {
     it.replaceCurrentInstruction(new Dup(newFirstLoadOut, newLastLoadOut, src));
     return true;
   }
+
+  @Override
+  public boolean resetAfterMatch() {
+    return false;
+  }
+
 }

@@ -94,7 +94,13 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
     newLoad.setPosition(insertPosition.getPosition());
     it.add(newLoad);
 
-    PeepholeHelper.resetPrevious(it, moves);
+    // Do not reset the instruction pointer because the iterator should reset.
     return true;
   }
+
+  @Override
+  public boolean resetAfterMatch() {
+    return true;
+  }
+
 }
