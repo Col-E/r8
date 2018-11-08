@@ -84,17 +84,6 @@ apply plugin: 'com.cookpad.android.licensetools'
 apply plugin: 'net.ltgt.errorprone-base'
 apply plugin: "net.ltgt.apt"
 
-// Ensure importing into IntelliJ IDEA use the same output directories as Gradle. In tests we
-// use the output path for tests (ultimately through ToolHelper.getClassPathForTests()) and
-// therefore these paths need to be the same. See https://youtrack.jetbrains.com/issue/IDEA-175172
-// for context.
-idea {
-    module {
-        outputDir file('build/classes/main')
-        testOutputDir file('build/classes/test')
-    }
-}
-
 if (project.hasProperty('with_code_coverage')) {
     apply plugin: 'jacoco'
 }
@@ -139,7 +128,7 @@ sourceSets {
     }
     examples {
         java {
-            srcDirs = ['src/test/examples']
+            srcDirs = ['src/test/examples', 'build/generated/source/apt/examples']
         }
         output.resourcesDir = 'build/classes/examples'
     }
@@ -195,6 +184,24 @@ sourceSets {
             srcDirs = ['src/test/kotlinR8TestResources']
         }
         output.resourcesDir = 'build/classes/kotlinR8TestResources'
+    }
+}
+
+// Ensure importing into IntelliJ IDEA use the same output directories as Gradle. In tests we
+// use the output path for tests (ultimately through ToolHelper.getClassPathForTests()) and
+// therefore these paths need to be the same. See https://youtrack.jetbrains.com/issue/IDEA-175172
+// for context.
+idea {
+    sourceSets.all { SourceSet sources ->
+        module {
+            if (sources.name == "main") {
+                sourceDirs += sources.java.srcDirs
+                outputDir sources.output.classesDir
+            } else {
+                testSourceDirs += sources.java.srcDirs
+                testOutputDir sources.output.classesDir
+            }
+        }
     }
 }
 
