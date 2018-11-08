@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
@@ -22,8 +23,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -74,9 +73,21 @@ class StringValueOfTestMain {
 @RunWith(Parameterized.class)
 public class StringValueOfTest extends TestBase {
   private final Backend backend;
-  private List<Class<?>> classes;
-  private static String javaOutput;
-  private static Class<?> main;
+  private static final List<Class<?>> CLASSES = ImmutableList.of(
+      ForceInline.class,
+      NeverInline.class,
+      StringValueOfTestMain.class,
+      StringValueOfTestMain.Itf.class,
+      StringValueOfTestMain.Foo.class
+  );
+  private static final String JAVA_OUTPUT = StringUtils.lines(
+      "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
+      "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
+      "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
+      "null",
+      "null"
+  );
+  private static final Class<?> MAIN = StringValueOfTestMain.class;
 
   private static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
 
@@ -89,27 +100,11 @@ public class StringValueOfTest extends TestBase {
     this.backend = backend;
   }
 
-  @BeforeClass
-  public static void buildExpectedJavaOutput() {
-    javaOutput = StringUtils.lines(
-        "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
-        "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
-        "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
-        "null",
-        "null"
-    );
-    main = StringValueOfTestMain.class;
-  }
 
-  @Before
-  public void setUp() throws Exception {
-    classes = ImmutableList.of(
-        ForceInline.class,
-        NeverInline.class,
-        StringValueOfTestMain.class,
-        StringValueOfTestMain.Itf.class,
-        StringValueOfTestMain.Foo.class);
-    testForJvm().addTestClasspath().run(main).assertSuccessWithOutput(javaOutput);
+  @Test
+  public void testJVMoutput() throws Exception {
+    assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
+    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private static boolean isStringValueOf(DexMethod method) {
@@ -144,7 +139,7 @@ public class StringValueOfTest extends TestBase {
       int expectedNullStringCount)
       throws Exception {
     CodeInspector codeInspector = result.inspector();
-    ClassSubject mainClass = codeInspector.clazz(main);
+    ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
     long count = countStringValueOf(mainMethod);
@@ -157,35 +152,33 @@ public class StringValueOfTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    if (backend == Backend.CF) {
-      return;
-    }
+    assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
 
     TestRunResult result = testForD8()
         .release()
-        .addProgramClasses(classes)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+        .addProgramClasses(CLASSES)
+        .run(MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1, 1, 1);
 
     result = testForD8()
         .debug()
-        .addProgramClasses(classes)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+        .addProgramClasses(CLASSES)
+        .run(MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 3, 1, 0);
   }
 
   @Test
   public void testR8() throws Exception {
     TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
+        .addProgramClasses(CLASSES)
         .enableProguardTestOptions()
         .enableInliningAnnotations()
-        .addKeepMainRule(main)
+        .addKeepMainRule(MAIN)
         .addKeepRules("-dontobfuscate")
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+        .run(MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1, 1, 1);
   }
 }
