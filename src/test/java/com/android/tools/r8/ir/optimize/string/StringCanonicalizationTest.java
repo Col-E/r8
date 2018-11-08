@@ -18,7 +18,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -123,7 +122,12 @@ class MessageLoader {
 @RunWith(Parameterized.class)
 public class StringCanonicalizationTest extends TestBase {
   private final Backend backend;
-  List<Class<?>> classes;
+  private static final List<Class<?>> CLASSES = ImmutableList.of(
+      NeverInline.class,
+      MessageLoader.class,
+      MessageLoader.StaticInternString.class,
+      MessageLoader.StaticInternString2.class
+  );
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
@@ -134,14 +138,6 @@ public class StringCanonicalizationTest extends TestBase {
     this.backend = backend;
   }
 
-  @Before
-  public void setUp() {
-    classes = ImmutableList.of(
-        NeverInline.class, MessageLoader.class,
-        MessageLoader.StaticInternString.class,
-        MessageLoader.StaticInternString2.class);
-  }
-
   private void test(
       TestCompileResult result,
       int expectedConstStringCount0,
@@ -149,8 +145,6 @@ public class StringCanonicalizationTest extends TestBase {
       int expectedConstStringCount2,
       int expectedInternCount,
       int expectedStringOpsCount) throws Exception {
-    // CF should not canonicalize strings or lower them. See (r8g/30163) and (r8g/30320).
-    assumeTrue(backend == Backend.DEX);
     String main = MessageLoader.class.getCanonicalName();
     String javaOutput = runOnJava(MessageLoader.class);
     String vmOutput = runOnVM(result.app, main, backend);
@@ -180,36 +174,31 @@ public class StringCanonicalizationTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    if (backend == Backend.CF) {
-      return;
-    }
+    assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
     TestCompileResult result = testForD8()
         .release()
-        .addProgramClasses(classes)
+        .addProgramClasses(CLASSES)
         .compile();
     test(result, 1, 1, 1, 1, 1);
 
     result = testForD8()
         .debug()
-        .addProgramClasses(classes)
+        .addProgramClasses(CLASSES)
         .compile();
     test(result, 2, 1, 1, 1, 1);
   }
 
   @Test
   public void testR8() throws Exception {
+    // CF should not canonicalize strings or lower them. See (r8g/30163) and (r8g/30320).
+    assumeTrue(backend == Backend.DEX);
     TestCompileResult result = testForR8(backend)
-        .addProgramClasses(classes)
+        .addProgramClasses(CLASSES)
         .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(MessageLoader.class)
         .compile();
-    if (backend == Backend.DEX) {
-      test(result, 1, 1, 1, 1, 1);
-    } else {
-      // TODO(b/118235919): improve CF backend
-      test(result, 8, 8, 1, 1, 2);
-    }
+    test(result, 1, 1, 1, 1, 1);
   }
 
 }
