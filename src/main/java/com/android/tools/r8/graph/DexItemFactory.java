@@ -122,6 +122,7 @@ public class DexItemFactory {
 
   public final DexString lengthMethodName = createString("length");
   public final DexString valueOfMethodName = createString("valueOf");
+  public final DexString toStringMethodName = createString("toString");
 
   public final DexString getClassMethodName = createString("getClass");
   public final DexString finalizeMethodName = createString("finalize");
@@ -528,12 +529,15 @@ public class DexItemFactory {
   public class StringMethods {
     public final DexMethod length;
     public final DexMethod valueOf;
+    public final DexMethod toString;
 
     private StringMethods() {
       length = createMethod(
           stringDescriptor, lengthMethodName, intDescriptor, DexString.EMPTY_ARRAY);
       valueOf = createMethod(
           stringDescriptor, valueOfMethodName, stringDescriptor, new DexString[]{objectDescriptor});
+      toString = createMethod(
+          stringDescriptor, toStringMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
     }
   }
 
