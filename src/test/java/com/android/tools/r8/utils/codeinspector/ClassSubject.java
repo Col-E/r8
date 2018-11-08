@@ -37,6 +37,8 @@ public abstract class ClassSubject extends Subject {
 
   public abstract MethodSubject method(String returnType, String name, List<String> parameters);
 
+  public abstract MethodSubject uniqueMethodWithName(String name);
+
   public MethodSubject mainMethod() {
     return method("void", "main", ImmutableList.of("java.lang.String[]"));
   }

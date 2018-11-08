@@ -79,7 +79,6 @@ public class Throw extends JumpInstruction {
   @Override
   public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     if (exception() == value) {
-      // throw value
       return true;
     }
     TypeLatticeElement exceptionType = exception().getTypeLattice();
