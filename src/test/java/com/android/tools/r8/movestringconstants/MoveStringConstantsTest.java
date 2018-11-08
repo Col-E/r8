@@ -5,6 +5,7 @@
 package com.android.tools.r8.movestringconstants;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
@@ -87,6 +88,11 @@ public class MoveStringConstantsTest extends TestBase {
         backend == Backend.DEX
             ? InstructionSubject::isIfEqz
             : insn -> ((CfInstructionSubject) insn).isIfNull();
+
+    // CF should not canonicalize strings or lower them. This test ensures that strings are moved
+    // down and make assertions based on throwing branches, which we do not care about in CF.
+    // See (r8g/30163) and (r8g/30320).
+    assumeTrue(backend == Backend.DEX);
     validateSequence(
         methodThrowToBeInlined.iterateInstructions(),
         // 'if' with "foo#1" is flipped.

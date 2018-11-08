@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.string;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -148,6 +149,8 @@ public class StringCanonicalizationTest extends TestBase {
       int expectedConstStringCount2,
       int expectedInternCount,
       int expectedStringOpsCount) throws Exception {
+    // CF should not canonicalize strings or lower them. See (r8g/30163) and (r8g/30320).
+    assumeTrue(backend == Backend.DEX);
     String main = MessageLoader.class.getCanonicalName();
     String javaOutput = runOnJava(MessageLoader.class);
     String vmOutput = runOnVM(result.app, main, backend);
