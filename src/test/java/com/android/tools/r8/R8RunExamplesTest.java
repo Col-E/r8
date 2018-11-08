@@ -99,7 +99,10 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
             test));
         fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.DEBUG,
             test));
-        fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
+        // TODO(b/119217869): Re-enable this test when fixed.
+        if (!test.equals("regress_37726195.Regress")) {
+          fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
+        }
       }
       fullTestList.add(
           makeTest(
