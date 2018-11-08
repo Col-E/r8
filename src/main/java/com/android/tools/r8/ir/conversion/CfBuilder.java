@@ -151,12 +151,11 @@ public class CfBuilder {
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, typeVerificationHelper, appInfo);
     loadStoreHelper.insertLoadsAndStores();
     // Run optimizations on phis and basic blocks in a fixpoint.
-    BasicBlockMuncher muncher = new BasicBlockMuncher();
     PhiOptimizations phiOptimizations = new PhiOptimizations();
     boolean reachedFixpoint = false;
     phiOptimizations.optimize(code);
     while (!reachedFixpoint) {
-      muncher.optimize(code);
+      BasicBlockMuncher.optimize(code);
       reachedFixpoint = !phiOptimizations.optimize(code);
     }
     registerAllocator = new CfRegisterAllocator(code, options, typeVerificationHelper);

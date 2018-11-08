@@ -48,4 +48,10 @@ public class StoreLoadPeephole implements BasicBlockPeephole {
     PeepholeHelper.resetNext(it, 1);
     return true;
   }
+
+  @Override
+  public boolean resetAfterMatch() {
+    return false;
+  }
+
 }

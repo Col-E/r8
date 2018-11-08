@@ -126,4 +126,9 @@ public class StoreSequenceLoadPeephole implements BasicBlockPeephole {
     PeepholeHelper.resetNext(it, 2);
     return true;
   }
+
+  @Override
+  public boolean resetAfterMatch() {
+    return false;
+  }
 }

@@ -78,4 +78,9 @@ public class DupDupDupPeephole implements BasicBlockPeephole {
     PeepholeHelper.resetPrevious(it, 1);
     return true;
   }
+
+  @Override
+  public boolean resetAfterMatch() {
+    return false;
+  }
 }

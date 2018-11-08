@@ -8,4 +8,5 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 
 public interface BasicBlockPeephole {
   boolean match(InstructionListIterator it);
+  boolean resetAfterMatch();
 }
