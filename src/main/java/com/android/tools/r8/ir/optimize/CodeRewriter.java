@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.Binop;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -3226,7 +3227,9 @@ public class CodeRewriter {
   private Value addConstString(IRCode code, InstructionListIterator iterator, String s) {
     TypeLatticeElement typeLattice = TypeLatticeElement.stringClassType(appInfo);
     Value value = code.createValue(typeLattice);
-    iterator.add(new ConstString(value, dexItemFactory.createString(s)));
+    ThrowingInfo throwingInfo =
+        options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
+    iterator.add(new ConstString(value, dexItemFactory.createString(s), throwingInfo));
     return value;
   }
 
@@ -3265,13 +3268,10 @@ public class CodeRewriter {
         new StaticGet(MemberType.OBJECT, out,
             dexItemFactory.createField(javaLangSystemType, javaIoPrintStreamType, "out")));
 
-    Value value = code.createValue(TypeLatticeElement.stringClassType(appInfo));
-    iterator.add(new ConstString(value, dexItemFactory.createString("INVOKE ")));
+    Value value = addConstString(code, iterator, "INVOKE ");
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
 
-    value = code.createValue(TypeLatticeElement.stringClassType(appInfo));
-    iterator.add(
-        new ConstString(value, dexItemFactory.createString(method.method.qualifiedName())));
+    value = addConstString(code, iterator, method.method.qualifiedName());
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
 
     Value openParenthesis = addConstString(code, iterator, "(");

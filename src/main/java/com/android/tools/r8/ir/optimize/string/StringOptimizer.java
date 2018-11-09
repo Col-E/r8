@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
@@ -73,8 +74,10 @@ public class StringOptimizer {
         if (inType.isNull()) {
           Value nullStringValue =
               code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
+          ThrowingInfo throwingInfo =
+              code.options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
           ConstString nullString =
-              new ConstString(nullStringValue, appInfo.dexItemFactory.createString("null"));
+              new ConstString(nullStringValue, appInfo.dexItemFactory.createString("null"), throwingInfo);
           it.replaceCurrentInstruction(nullString);
         } else if (inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType()

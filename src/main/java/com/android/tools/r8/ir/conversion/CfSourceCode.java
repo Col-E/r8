@@ -245,10 +245,20 @@ public class CfSourceCode implements SourceCode {
   @Override
   public void clear() {}
 
+  // Utility method that treats constant strings as not throwing in the case of having CF output.
+  // This is the only instruction that differ in throwing between DEX and CF. If we find more
+  // consider rewriting CfInstruction.canThrow to take in options.
+  private boolean canThrowHelper(IRBuilder builder, CfInstruction instruction) {
+    if (builder.isGeneratingClassFiles() && instruction.isConstString()) {
+      return false;
+    }
+    return instruction.canThrow();
+  }
+
   @Override
   public int traceInstruction(int instructionIndex, IRBuilder builder) {
     CfInstruction instruction = code.getInstructions().get(instructionIndex);
-    if (instruction.canThrow()) {
+    if (canThrowHelper(builder, instruction)) {
       TryHandlerList tryHandlers = getTryHandlers(instructionIndex);
       if (!tryHandlers.isEmpty()) {
         // Ensure the block starts at the start of the try-range (don't enqueue, not a target).
@@ -420,7 +430,7 @@ public class CfSourceCode implements SourceCode {
     assert currentBlockInfo != null;
     setLocalVariableLists();
 
-    if (instruction.canThrow()) {
+    if (canThrowHelper(builder, instruction)) {
       Snapshot exceptionTransfer =
           state.getSnapshot().exceptionTransfer(builder.getFactory().throwableType);
       for (int target : currentBlockInfo.exceptionalSuccessors) {

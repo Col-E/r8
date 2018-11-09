@@ -1062,9 +1062,9 @@ public class IRBuilder {
 
   public void addConstString(int dest, DexString string) {
     TypeLatticeElement typeLattice = TypeLatticeElement.stringClassType(appInfo);
-    Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
-    ConstString instruction = new ConstString(out, string);
-    add(instruction);
+    ThrowingInfo throwingInfo =
+        options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
+    add(new ConstString(writeRegister(dest, typeLattice, throwingInfo), string, throwingInfo));
   }
 
   public void addDexItemBasedConstString(int dest, DexReference item) {

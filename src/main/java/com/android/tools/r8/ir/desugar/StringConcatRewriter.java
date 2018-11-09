@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -438,7 +439,9 @@ public class StringConcatRewriter {
       @Override
       Value getOrCreateValue() {
         Value value = code.createValue(TypeLatticeElement.stringClassType(appInfo));
-        appendInstruction(new ConstString(value, factory.createString(str)));
+        ThrowingInfo throwingInfo =
+            code.options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
+        appendInstruction(new ConstString(value, factory.createString(str), throwingInfo));
         return value;
       }
     }

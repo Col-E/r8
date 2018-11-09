@@ -130,7 +130,7 @@ public class NeverReturnsNormallyTest extends TestBase {
     } else {
       // Inlined code from throwToBeInlined.
       assertTrue(insn.isConstString(JumboStringMode.ALLOW));
-      insn = nextInstruction(instructions);
+      insn = nextInstructionSkippingCfPositionAndLabel(instructions);
       assertTrue(insn.isInvoke());
       assertTrue(((InvokeInstructionSubject) insn)
           .invokedMethod().name.toString().equals("throwNpe"));

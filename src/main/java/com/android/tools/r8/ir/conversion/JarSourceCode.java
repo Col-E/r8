@@ -724,7 +724,9 @@ public class JarSourceCode implements SourceCode {
       case Opcodes.LDC: {
         // const-class and const-string* may throw in dex.
         LdcInsnNode ldc = (LdcInsnNode) insn;
-        return ldc.cst instanceof String || ldc.cst instanceof Type || ldc.cst instanceof Handle;
+          return (ldc.cst instanceof String && !application.options.isGeneratingClassFiles())
+              || ldc.cst instanceof Type
+              || ldc.cst instanceof Handle;
       }
       default:
         return false;

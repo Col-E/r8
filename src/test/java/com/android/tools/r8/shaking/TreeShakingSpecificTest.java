@@ -137,14 +137,9 @@ public class TreeShakingSpecificTest {
         Stream.of(new String(Files.readAllBytes(outputmapping), StandardCharsets.UTF_8).split("\n"))
             .filter(line -> !line.startsWith("#"))
             .collect(Collectors.joining("\n"));
-    // For the CF backend we treat ConstString/LDC as a (potentially always) throwing instruction,
-    // as opposed to the DEX backend where it's throwing only if its string is ill-formed.
-    // When ConstString is throwing we preserve its position which makes it show up in the
-    // the output Proguard map. That's why the reference CF map is different from the DEX one.
-    String mapping_ref = backend == Backend.CF ? "print-mapping-cf.ref" : "print-mapping.ref";
     String refMapping =
         new String(
-            Files.readAllBytes(Paths.get(EXAMPLES_DIR, "shaking1", mapping_ref)),
+            Files.readAllBytes(Paths.get(EXAMPLES_DIR, "shaking1", "print-mapping.ref")),
             StandardCharsets.UTF_8);
     Assert.assertEquals(sorted(refMapping), sorted(actualMapping));
   }

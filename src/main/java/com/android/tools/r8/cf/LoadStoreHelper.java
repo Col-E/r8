@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -238,7 +239,8 @@ public class LoadStoreHelper {
       if (constant.isConstNumber()) {
         return new ConstNumber(stackValue, constant.asConstNumber().getRawValue());
       } else if (constant.isConstString()) {
-        return new ConstString(stackValue, constant.asConstString().getValue());
+        return new ConstString(
+            stackValue, constant.asConstString().getValue(), ThrowingInfo.NO_THROW);
       } else if (constant.isDexItemBasedConstString()) {
         return new DexItemBasedConstString(
             stackValue, constant.asDexItemBasedConstString().getItem());

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.InternalOptions;
@@ -19,11 +20,13 @@ import java.io.UTFDataFormatException;
 public class ConstString extends ConstInstruction {
 
   private final DexString value;
+  private final ThrowingInfo throwingInfo;
 
-  public ConstString(Value dest, DexString value) {
+  public ConstString(Value dest, DexString value, ThrowingInfo throwingInfo) {
     super(dest);
     dest.markNeverNull();
     this.value = value;
+    this.throwingInfo = throwingInfo;
   }
 
   public static ConstString copyOf(IRCode code, ConstString original) {
@@ -35,7 +38,7 @@ public class ConstString extends ConstInstruction {
   }
 
   public static ConstString copyOf(Value newValue, ConstString original) {
-    return new ConstString(newValue, original.getValue());
+    return new ConstString(newValue, original.getValue(), original.throwingInfo);
   }
 
   public Value dest() {
@@ -75,7 +78,7 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public boolean instructionTypeCanThrow() {
-    return true;
+    return throwingInfo == ThrowingInfo.CAN_THROW;
   }
 
   @Override

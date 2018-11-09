@@ -14,7 +14,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.codeinspector.CfInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -84,10 +83,6 @@ public class MoveStringConstantsTest extends TestBase {
             "java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String"));
     assertTrue(methodThrowToBeInlined.isPresent());
     assert (backend == Backend.DEX || backend == Backend.CF);
-    Predicate<InstructionSubject> nullCheck =
-        backend == Backend.DEX
-            ? InstructionSubject::isIfEqz
-            : insn -> ((CfInstructionSubject) insn).isIfNull();
 
     // CF should not canonicalize strings or lower them. This test ensures that strings are moved
     // down and make assertions based on throwing branches, which we do not care about in CF.
@@ -96,7 +91,7 @@ public class MoveStringConstantsTest extends TestBase {
     validateSequence(
         methodThrowToBeInlined.iterateInstructions(),
         // 'if' with "foo#1" is flipped.
-        nullCheck,
+        InstructionSubject::isIfEqz,
 
         // 'if' with "foo#2" is removed along with the constant.
 
@@ -108,12 +103,12 @@ public class MoveStringConstantsTest extends TestBase {
         // 'if's with "foo#4" and "foo#5" are flipped, but their throwing branches
         // are not moved to the end of the code (area for improvement?).
         insn -> insn.isConstString("StringConstants::foo#4", JumboStringMode.DISALLOW),
-        nullCheck, // Flipped if
+        InstructionSubject::isIfEqz, // Flipped if
         InstructionSubject::isGoto, // Jump around throwing branch.
         InstructionSubject::isInvokeStatic, // Throwing branch.
         InstructionSubject::isThrow,
         insn -> insn.isConstString("StringConstants::foo#5", JumboStringMode.DISALLOW),
-        nullCheck, // Flipped if
+        InstructionSubject::isIfEqz, // Flipped if
         InstructionSubject::isReturnVoid, // Final return statement.
         InstructionSubject::isInvokeStatic, // Throwing branch.
         InstructionSubject::isThrow,
