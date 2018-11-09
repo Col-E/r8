@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -73,12 +74,16 @@ public class MemberValuePropagation {
     Instruction replacement = null;
     TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
     if (rule != null && rule.hasReturnValue() && rule.getReturnValue().isSingleValue()) {
-      Value value = code.createValue(typeLattice, instruction.getLocalInfo());
-      assert !typeLattice.isReference() || rule.getReturnValue().isNull();
-      replacement = new ConstNumber(value, rule.getReturnValue().getSingleValue());
+      if (typeLattice.isReference()) {
+        assert rule.getReturnValue().isNull();
+        replacement = code.createConstNull();
+      } else {
+        Value value = code.createValue(typeLattice, instruction.getLocalInfo());
+        replacement = new ConstNumber(value, rule.getReturnValue().getSingleValue());
+      }
     }
-    if (replacement == null &&
-        rule != null && rule.hasReturnValue() && rule.getReturnValue().isField()) {
+    if (replacement == null && rule != null
+        && rule.hasReturnValue() && rule.getReturnValue().isField()) {
       DexField field = rule.getReturnValue().getField();
       assert TypeLatticeElement.fromDexType(field.type, true, appInfo) == typeLattice;
       DexEncodedField staticField = appInfo.lookupStaticTarget(field.clazz, field);
@@ -86,9 +91,22 @@ public class MemberValuePropagation {
         Value value = code.createValue(typeLattice, instruction.getLocalInfo());
         replacement = staticField.getStaticValue().asConstInstruction(false, value);
       } else {
-        throw new CompilationError(field.clazz.toSourceString() + "." + field.name.toString() +
-            " used in assumevalues rule does not exist.");
+        throw new CompilationError(field.clazz.toSourceString() + "." + field.name.toString()
+            + " used in assumevalues rule does not exist.");
       }
+    }
+    return replacement;
+  }
+
+  private static ConstNumber constantReplacementFromMethod(
+      IRCode code, long constant, TypeLatticeElement typeLattice, DebugLocalInfo debugLocalInfo) {
+    ConstNumber replacement;
+    if (typeLattice.isReference()) {
+      assert constant == 0;
+      replacement = code.createConstNull();
+    } else {
+      Value returnedValue = code.createValue(typeLattice, debugLocalInfo);
+      replacement = new ConstNumber(returnedValue, constant);
     }
     return replacement;
   }
@@ -169,15 +187,14 @@ public class MemberValuePropagation {
             }
             if (target.getOptimizationInfo().returnsConstant()) {
               long constant = target.getOptimizationInfo().getReturnedConstant();
-              Value value = code.createValue(
-                  invoke.outValue().getTypeLattice(), invoke.getLocalInfo());
-              Instruction knownConstReturn = new ConstNumber(value, constant);
-              affectedValues.add(value);
-              invoke.outValue().replaceUsers(value);
+              ConstNumber replacement = constantReplacementFromMethod(
+                  code, constant, invoke.outValue().getTypeLattice(), invoke.getLocalInfo());
+              affectedValues.add(replacement.outValue());
+              invoke.outValue().replaceUsers(replacement.outValue());
               invoke.setOutValue(null);
-              knownConstReturn.setPosition(invoke.getPosition());
-              invoke.moveDebugValues(knownConstReturn);
-              iterator.add(knownConstReturn);
+              replacement.setPosition(invoke.getPosition());
+              invoke.moveDebugValues(replacement);
+              iterator.add(replacement);
             }
           }
         }

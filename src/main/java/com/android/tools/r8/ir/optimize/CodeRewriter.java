@@ -1893,7 +1893,6 @@ public class CodeRewriter {
 
     InstanceOfResult result = InstanceOfResult.UNKNOWN;
     if (inType.isDefinitelyNull()) {
-      // TODO(b/119194613): This is not hit in all cases even if inValue is the null constant.
       result = InstanceOfResult.FALSE;
     } else if (inType.lessThanOrEqual(instanceOfType, appInfo) && !inType.isNullable()) {
       result = InstanceOfResult.TRUE;
