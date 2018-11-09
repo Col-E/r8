@@ -53,6 +53,10 @@ abstract class KeepReason {
 
   public abstract void print(ReasonFormatter formatter);
 
+  public boolean isDueToKeepRule() {
+    return false;
+  }
+
   public boolean isDueToProguardCompatibility() {
     return false;
   }
@@ -71,6 +75,11 @@ abstract class KeepReason {
 
     private DueToKeepRule(ProguardKeepRule keepRule) {
       this.keepRule = keepRule;
+    }
+
+    @Override
+    public boolean isDueToKeepRule() {
+      return true;
     }
 
     @Override
