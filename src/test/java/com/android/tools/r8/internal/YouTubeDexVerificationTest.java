@@ -4,20 +4,17 @@
 package com.android.tools.r8.internal;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import org.junit.Test;
 
 public class YouTubeDexVerificationTest extends YouTubeCompilationBase {
 
   @Test
   public void buildDebugFromDex() throws Exception {
-    runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.DEBUG, BASE + APK, null, BASE + APK);
+    runR8AndCheckVerification(CompilationMode.DEBUG, APK);
   }
 
   @Test
   public void buildReleaseFromDex() throws Exception {
-    runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.RELEASE, BASE + APK, null, BASE + APK);
+    runR8AndCheckVerification(CompilationMode.RELEASE, APK);
   }
 }

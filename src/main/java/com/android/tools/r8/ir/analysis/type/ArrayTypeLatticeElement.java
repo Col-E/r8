@@ -55,6 +55,11 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
+  public boolean isBasedOnMissingClass(AppInfo appInfo) {
+    return getArrayBaseType(appInfo.dexItemFactory).isMissingOrHasMissingSuperType(appInfo);
+  }
+
+  @Override
   public boolean isArrayType() {
     return true;
   }

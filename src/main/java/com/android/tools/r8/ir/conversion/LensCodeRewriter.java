@@ -65,6 +65,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LensCodeRewriter {
 
   private final AppInfoWithSubtyping appInfo;
+  private final AppView<? extends AppInfoWithSubtyping> appView;
   private final GraphLense graphLense;
   private final VerticallyMergedClasses verticallyMergedClasses;
   private final InternalOptions options;
@@ -74,6 +75,7 @@ public class LensCodeRewriter {
   public LensCodeRewriter(
       AppView<? extends AppInfoWithSubtyping> appView, InternalOptions options) {
     this.appInfo = appView.appInfo();
+    this.appView = appView;
     this.graphLense = appView.graphLense();
     this.verticallyMergedClasses = appView.verticallyMergedClasses();
     this.options = options;
@@ -321,7 +323,6 @@ public class LensCodeRewriter {
       new TypeAnalysis(appInfo, method).widening(newSSAValues);
     }
     assert code.isConsistentSSA();
-    assert code.verifyTypes(appInfo, graphLense);
   }
 
   // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of

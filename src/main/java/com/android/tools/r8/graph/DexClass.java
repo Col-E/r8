@@ -423,6 +423,18 @@ public abstract class DexClass extends DexDefinition {
     return null;
   }
 
+  public boolean hasMissingSuperType(AppInfo appInfo) {
+    if (superType != null && superType.isMissingOrHasMissingSuperType(appInfo)) {
+      return true;
+    }
+    for (DexType interfaceType : interfaces.values) {
+      if (interfaceType.isMissingOrHasMissingSuperType(appInfo)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public boolean isSerializable(AppInfo appInfo) {
     return type.isSerializable(appInfo);
   }

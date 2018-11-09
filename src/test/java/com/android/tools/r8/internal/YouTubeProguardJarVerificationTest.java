@@ -4,20 +4,17 @@
 package com.android.tools.r8.internal;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import org.junit.Test;
 
 public class YouTubeProguardJarVerificationTest extends YouTubeCompilationBase {
 
   @Test
   public void buildDebugFromProguardJar() throws Exception {
-    runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.DEBUG, BASE + APK, null, BASE + PG_JAR);
+    runR8AndCheckVerification(CompilationMode.DEBUG, PG_JAR);
   }
 
   @Test
   public void buildReleaseFromProguardJar() throws Exception {
-    runAndCheckVerification(
-        CompilerUnderTest.R8, CompilationMode.RELEASE, BASE + APK, null, BASE + PG_JAR);
+    runR8AndCheckVerification(CompilationMode.RELEASE, PG_JAR);
   }
 }

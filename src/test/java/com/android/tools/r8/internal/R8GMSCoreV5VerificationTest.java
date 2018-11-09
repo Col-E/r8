@@ -9,6 +9,7 @@ import org.junit.Test;
 public class R8GMSCoreV5VerificationTest extends GMSCoreCompilationTestBase {
   @Test
   public void verify() throws Exception {
-    runR8AndCheckVerification(CompilationMode.RELEASE, GMSCORE_V5_DIR);
+    runR8AndCheckVerification(
+        CompilationMode.RELEASE, GMSCORE_V5_DIR, options -> options.testing.allowTypeErrors = true);
   }
 }

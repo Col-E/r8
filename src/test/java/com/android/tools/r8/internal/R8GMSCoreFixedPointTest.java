@@ -7,6 +7,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.InternalOptions;
 import java.nio.file.Paths;
 import org.junit.Test;
 
@@ -23,7 +24,7 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
                 .setMode(CompilationMode.DEBUG)
                 .setMinApiLevel(AndroidApiLevel.L.getLevel())
                 .build(),
-            options -> options.ignoreMissingClasses = true);
+            this::configure);
 
     // Second compilation.
     // Add option --skip-outline-opt for second compilation. The second compilation can find
@@ -36,8 +37,13 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
                 .setMode(CompilationMode.DEBUG)
                 .setMinApiLevel(AndroidApiLevel.L.getLevel())
                 .build(),
-            options -> options.ignoreMissingClasses = true);
+            this::configure);
 
     assertIdenticalApplicationsUpToCode(app1, app2, false);
+  }
+
+  private void configure(InternalOptions options) {
+    options.ignoreMissingClasses = true;
+    options.testing.allowTypeErrors = true;
   }
 }

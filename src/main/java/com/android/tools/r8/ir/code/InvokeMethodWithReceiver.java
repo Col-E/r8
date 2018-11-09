@@ -45,6 +45,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
   @Override
   public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
+    assert super.verifyTypes(appInfo, graphLense);
+
     TypeLatticeElement receiverType = getReceiver().getTypeLattice();
     assert receiverType.isPreciseType();
     return true;

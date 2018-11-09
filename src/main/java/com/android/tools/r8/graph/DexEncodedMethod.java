@@ -532,13 +532,16 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         null);
   }
 
+  public DexCode buildEmptyThrowingDexCode() {
+    Instruction insn[] = {new Const(0, 0), new Throw(0)};
+    return generateCodeFromTemplate(1, 0, insn);
+  }
+
   public DexEncodedMethod toEmptyThrowingMethodDex() {
     checkIfObsolete();
     assert !shouldNotHaveCode();
     Builder builder = builder(this);
-    Instruction insn[] = {new Const(0, 0), new Throw(0)};
-    DexCode emptyThrowingCode = generateCodeFromTemplate(1, 0, insn);
-    builder.setCode(emptyThrowingCode);
+    builder.setCode(buildEmptyThrowingDexCode());
     // Note that we are not marking this instance obsolete, since this util is only used by
     // TreePruner while keeping non-live yet targeted, empty method. Such method can be retrieved
     // again only during the 2nd round of tree sharking, and seeing an obsolete empty body v.s.
@@ -547,22 +550,24 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return builder.build();
   }
 
+  public CfCode buildEmptyThrowingCfCode() {
+    CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
+    return new CfCode(
+        method,
+        1,
+        method.proto.parameters.size() + 1,
+        Arrays.asList(insn),
+        Collections.emptyList(),
+        Collections.emptyList());
+  }
+
   public DexEncodedMethod toEmptyThrowingMethodCf() {
     checkIfObsolete();
     assert !shouldNotHaveCode();
     Builder builder = builder(this);
-    CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
-    CfCode emptyThrowingCode =
-        new CfCode(
-            method,
-            1,
-            method.proto.parameters.size() + 1,
-            Arrays.asList(insn),
-            Collections.emptyList(),
-            Collections.emptyList());
-    builder.setCode(emptyThrowingCode);
+    builder.setCode(buildEmptyThrowingCfCode());
     // Note that we are not marking this instance obsolete:
-    //   refer to Dex-backend version of this method above.
+    // refer to Dex-backend version of this method above.
     return builder.build();
   }
 
