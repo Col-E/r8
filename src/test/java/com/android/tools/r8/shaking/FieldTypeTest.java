@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
@@ -127,18 +128,18 @@ public class FieldTypeTest extends TestBase {
             // removed.
             options -> {
               options.enableInlining = false;
-              options.testing.allowBrokenTypeHierarchy = true;
+              options.testing.allowTypeErrors = true;
             });
 
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
-    assertEquals(0, artResult.exitCode);
-    assertThat(artResult.stdout, containsString(impl2.name));
-    assertEquals(-1, artResult.stderr.indexOf("DoFieldPut"));
+    assertNotEquals(0, artResult.exitCode);
+    assertThat(artResult.stderr, containsString("java.lang.NullPointerException"));
+    assertThat(artResult.stderr, not(containsString("DoFieldPut")));
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject itf1Subject = inspector.clazz(itf1.name);
-    assertThat(itf1Subject, isPresent());
+    assertThat(itf1Subject, not(isPresent()));
   }
 
   @Test

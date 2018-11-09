@@ -177,8 +177,7 @@ public class UninstantiatedTypeOptimization {
             TypeLatticeElement.fromDexType(fieldType, true, appView.appInfo());
         if (!value.getTypeLattice().lessThanOrEqual(fieldLatticeType, appView.appInfo())) {
           // Broken type hierarchy. See FieldTypeTest#test_brokenTypeHierarchy.
-          // TODO(christofferqa): Enable assert.
-          // assert options.testing.allowBrokenTypeHierarchy;
+          assert options.testing.allowTypeErrors;
           return;
         }
 

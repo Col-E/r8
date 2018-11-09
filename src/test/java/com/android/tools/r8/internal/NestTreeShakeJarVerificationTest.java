@@ -20,7 +20,7 @@ public class NestTreeShakeJarVerificationTest extends NestCompilationBase {
             CompilationMode.RELEASE,
             null,
             ImmutableList.of(BASE + PG_CONF, BASE + PG_CONF_NO_OPT),
-            null,
+            options -> options.testing.allowTypeErrors = true,
             ImmutableList.of(BASE + DEPLOY_JAR));
   }
 }

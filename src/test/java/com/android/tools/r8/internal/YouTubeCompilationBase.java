@@ -3,6 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
+import com.google.common.collect.ImmutableList;
+
 public abstract class YouTubeCompilationBase extends CompilationTestBase {
   static final String BASE = "third_party/youtube/youtube.android_12.17/";
   static final String APK = "YouTubeRelease_unsigned.apk";
@@ -10,4 +14,14 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
   static final String PG_JAR = "YouTubeRelease_proguard.jar";
   static final String PG_MAP = "YouTubeRelease_proguard.map";
   static final String PG_CONF = "YouTubeRelease_proguard.config";
+
+  public void runR8AndCheckVerification(CompilationMode mode, String input) throws Exception {
+    runAndCheckVerification(
+        CompilerUnderTest.R8,
+        mode,
+        BASE + APK,
+        null,
+        options -> options.testing.allowTypeErrors = true,
+        ImmutableList.of(BASE + input));
+  }
 }

@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
@@ -121,6 +122,7 @@ public class IRConverter {
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
   private final StringOptimizer stringOptimizer;
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
+  private final TypeChecker typeChecker;
 
   final DeadCodeRemover deadCodeRemover;
 
@@ -189,6 +191,7 @@ public class IRConverter {
           options.enableUninstantiatedTypeOptimization
               ? new UninstantiatedTypeOptimization(appViewWithLiveness, options)
               : null;
+      this.typeChecker = new TypeChecker(appView);
     } else {
       this.nonNullTracker = null;
       this.inliner = null;
@@ -198,6 +201,7 @@ public class IRConverter {
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
       this.uninstantiatedTypeOptimization = null;
+      this.typeChecker = null;
     }
     this.classInliner =
         (options.enableClassInlining && options.enableInlining && inliner != null)
@@ -816,6 +820,25 @@ public class IRConverter {
       }
     }
 
+    if (typeChecker != null && !typeChecker.check(code)) {
+      assert enableWholeProgramOptimizations;
+      assert options.testing.allowTypeErrors;
+      StringDiagnostic warning =
+          new StringDiagnostic(
+              "The method `"
+                  + method.toSourceString()
+                  + "` does not type check and will be assumed to be unreachable.");
+      options.reporter.warning(warning);
+      finalizeEmptyThrowingCode(method, feedback);
+      return;
+    }
+
+    // This is the first point in time where we can assert that the types are sound. If this
+    // assert fails, then the types that we have inferred are unsound, or the method does not type
+    // check. In the latter case, the type checker should be extended to detect the issue such that
+    // we will return with finalizeEmptyThrowingCode() above.
+    assert code.verifyTypes(appInfo, appView, graphLense());
+
     if (classStaticizer != null) {
       classStaticizer.fixupMethodCode(method, code);
       assert code.isConsistentSSA();
@@ -851,14 +874,14 @@ public class IRConverter {
       stringOptimizer.removeTrivialConversions(code, appInfo);
     }
     if (devirtualizer != null) {
-      assert code.verifyTypes(appInfo, graphLense());
+      assert code.verifyTypes(appInfo, appView, graphLense());
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
     }
     if (uninstantiatedTypeOptimization != null) {
       uninstantiatedTypeOptimization.rewrite(method, code);
     }
 
-    assert code.verifyTypes(appInfo, graphLense());
+    assert code.verifyTypes(appInfo, appView, graphLense());
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
         code, enableWholeProgramOptimizations);
 
@@ -905,7 +928,7 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
-    assert code.verifyTypes(appInfo, graphLense());
+    assert code.verifyTypes(appInfo, appView, graphLense());
 
     if (classInliner != null) {
       // Class inliner should work before lambda merger, so if it inlines the
@@ -1069,6 +1092,16 @@ public class IRConverter {
       assert options.isGeneratingDex();
       finalizeToDex(method, code, feedback);
     }
+  }
+
+  private void finalizeEmptyThrowingCode(DexEncodedMethod method, OptimizationFeedback feedback) {
+    assert options.isGeneratingClassFiles() || options.isGeneratingDex();
+    Code emptyThrowingCode =
+        options.isGeneratingClassFiles()
+            ? method.buildEmptyThrowingCfCode()
+            : method.buildEmptyThrowingDexCode();
+    method.setCode(emptyThrowingCode);
+    feedback.markProcessed(method, ConstraintWithTarget.ALWAYS);
   }
 
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {

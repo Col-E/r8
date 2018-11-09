@@ -185,6 +185,11 @@ public class JasminBuilder {
       return addMethod("public static", name, argumentTypes, returnType, lines);
     }
 
+    public MethodBuilder staticMethodBuilder(
+        String name, List<String> argumentTypes, String returnType) {
+      return new MethodBuilder(name, argumentTypes, returnType, this).setPublic().setStatic();
+    }
+
     public MethodSignature addPackagePrivateStaticMethod(
         String name,
         List<String> argumentTypes,
@@ -233,6 +238,10 @@ public class JasminBuilder {
       fields.add(
           ".field " + flags + " " + name + " " + type + (value != null ? (" = " + value) : ""));
       return new FieldSignature(name, type);
+    }
+
+    public FieldSignature addStaticField(String name, String type) {
+      return addStaticField(name, type, null);
     }
 
     public FieldSignature addStaticField(String name, String type, String value) {
@@ -305,6 +314,94 @@ public class JasminBuilder {
           "  aload_0",
           "  invokenonvirtual " + superName + "/<init>()V",
           "  return");
+    }
+  }
+
+  public class MethodBuilder {
+
+    private final String name;
+    private final List<String> argumentTypes;
+    private final String returnType;
+
+    private final ClassBuilder parent;
+
+    private List<String> instructions = new ArrayList<>();
+    private int localsLimit = -1;
+    private int stackLimit = -1;
+
+    private boolean isPublic = false;
+    private boolean isStatic = false;
+
+    public MethodBuilder(
+        String name, List<String> argumentTypes, String returnType, ClassBuilder parent) {
+      this.name = name;
+      this.argumentTypes = argumentTypes;
+      this.returnType = returnType;
+      this.parent = parent;
+    }
+
+    public MethodBuilder setPublic() {
+      isPublic = true;
+      return this;
+    }
+
+    public MethodBuilder setStatic() {
+      isStatic = true;
+      return this;
+    }
+
+    public MethodBuilder setCode(String... lines) {
+      assert Arrays.stream(lines).noneMatch(line -> line.contains(".limit"));
+      instructions.addAll(Arrays.asList(lines));
+      return this;
+    }
+
+    public MethodBuilder setLocalsLimit(int localsLimit) {
+      assert this.localsLimit < 0;
+      this.localsLimit = localsLimit;
+      return this;
+    }
+
+    public MethodBuilder setStackLimit(int stackLimit) {
+      assert this.stackLimit < 0;
+      this.stackLimit = stackLimit;
+      return this;
+    }
+
+    public void build() {
+      if (localsLimit < 0 || stackLimit < 0) {
+        inferConservativeLimits();
+      }
+      StringBuilder builder = new StringBuilder();
+      builder.append(".method ");
+      if (isPublic) {
+        builder.append("public ");
+      }
+      if (isStatic) {
+        builder.append("static ");
+      }
+      builder
+          .append(name)
+          .append(StringUtils.join(argumentTypes, "", BraceType.PARENS))
+          .append(returnType)
+          .append(System.lineSeparator());
+      builder.append(".limit locals ").append(localsLimit).append(System.lineSeparator());
+      builder.append(".limit stack ").append(stackLimit).append(System.lineSeparator());
+      for (String line : instructions) {
+        builder.append(line).append(System.lineSeparator());
+      }
+      builder.append(".end method").append(System.lineSeparator());
+      parent.methods.add(builder.toString());
+    }
+
+    private void inferConservativeLimits() {
+      int conservativeLimit = instructions.size() + argumentTypes.size();
+      if (localsLimit < 0) {
+        setLocalsLimit(conservativeLimit);
+      }
+      if (stackLimit < 0) {
+        setStackLimit(conservativeLimit);
+      }
     }
   }
 
@@ -405,6 +502,10 @@ public class JasminBuilder {
     for (ClassBuilder clazz : classes) {
       consumer.accept(ByteDataView.of(compile(clazz)), clazz.getDescriptor(), handler);
     }
+  }
+
+  public void writeJar(Path output) throws Exception {
+    writeJar(output, null);
   }
 
   public void writeJar(Path output, DiagnosticsHandler handler) throws Exception {

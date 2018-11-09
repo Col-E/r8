@@ -6,10 +6,12 @@ package com.android.tools.r8.internal;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
+import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 public abstract class GMSCoreCompilationTestBase extends CompilationTestBase {
   public static final String GMSCORE_V4_DIR = "third_party/gmscore/v4/";
@@ -32,16 +34,28 @@ public abstract class GMSCoreCompilationTestBase extends CompilationTestBase {
   static final String REFERENCE_APK = "noshrink_x86_GmsCore_prod_alldpi_release_unsigned.apk";
 
   public void runR8AndCheckVerification(CompilationMode mode, String version)
-      throws ProguardRuleParserException, ExecutionException, IOException,
-      CompilationFailedException {
-    runAndCheckVerification(CompilerUnderTest.R8, mode, version);
+      throws ExecutionException, IOException, CompilationFailedException {
+    runR8AndCheckVerification(mode, version, null);
   }
 
-  public void runAndCheckVerification(
-      CompilerUnderTest compiler, CompilationMode mode, String version)
-      throws ExecutionException, IOException, ProguardRuleParserException,
-      CompilationFailedException {
+  public void runR8AndCheckVerification(
+      CompilationMode mode, String version, Consumer<InternalOptions> optionsConsumer)
+      throws ExecutionException, IOException, CompilationFailedException {
+    runAndCheckVerification(CompilerUnderTest.R8, mode, version, optionsConsumer);
+  }
+
+  private void runAndCheckVerification(
+      CompilerUnderTest compiler,
+      CompilationMode mode,
+      String version,
+      Consumer<InternalOptions> optionsConsumer)
+      throws ExecutionException, IOException, CompilationFailedException {
     runAndCheckVerification(
-        compiler, mode, version + GMSCORE_APK, null, Paths.get(version, GMSCORE_APK).toString());
+        compiler,
+        mode,
+        version + GMSCORE_APK,
+        null,
+        optionsConsumer,
+        ImmutableList.of(Paths.get(version, GMSCORE_APK).toString()));
   }
 }

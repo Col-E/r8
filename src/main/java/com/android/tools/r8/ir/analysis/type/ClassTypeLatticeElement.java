@@ -77,6 +77,12 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
+  public boolean isBasedOnMissingClass(AppInfo appInfo) {
+    return getClassType().isMissingOrHasMissingSuperType(appInfo)
+        || getInterfaces().stream().anyMatch(type -> type.isMissingOrHasMissingSuperType(appInfo));
+  }
+
+  @Override
   public boolean isClassType() {
     return true;
   }
@@ -102,5 +108,4 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     // The interfaces of a type do not contribute to its hashCode as they are lazily computed.
     return (isNullable() ? 1 : -1) * type.hashCode();
   }
-
 }

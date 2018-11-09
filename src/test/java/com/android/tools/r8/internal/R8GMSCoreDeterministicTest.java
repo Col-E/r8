@@ -45,6 +45,8 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
               // Store the generated Proguard map.
               options.proguardMapConsumer =
                   (proguardMap, handler) -> result.proguardMap = proguardMap;
+              // Allow type errors (methods that do not type check are assumed to be unreachable).
+              options.testing.allowTypeErrors = true;
             });
     return result;
   }

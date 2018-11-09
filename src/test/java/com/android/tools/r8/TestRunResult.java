@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.invokesuper.Consumer;
@@ -14,6 +15,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.concurrent.ExecutionException;
+import org.hamcrest.Matcher;
 
 public class TestRunResult {
   protected final AndroidApp app;
@@ -34,9 +36,22 @@ public class TestRunResult {
     return this;
   }
 
+  public TestRunResult assertFailureWithOutput(String expected) {
+    assertFailure();
+    assertEquals(errorMessage("Run stdout incorrect.", expected), expected, result.stdout);
+    return this;
+  }
+
+  public TestRunResult assertFailureWithErrorThatMatches(Matcher<String> matcher) {
+    assertFailure();
+    assertThat(
+        errorMessage("Run stderr incorrect.", matcher.toString()), result.stderr, matcher);
+    return this;
+  }
+
   public TestRunResult assertSuccessWithOutput(String expected) {
     assertSuccess();
-    assertEquals(errorMessage("Run std output incorrect."), expected, result.stdout);
+    assertEquals(errorMessage("Run stdout incorrect.", expected), expected, result.stdout);
     return this;
   }
 
@@ -55,7 +70,19 @@ public class TestRunResult {
   }
 
   private String errorMessage(String message) {
+    return errorMessage(message, null);
+  }
+
+  private String errorMessage(String message, String expected) {
     StringBuilder builder = new StringBuilder(message).append('\n');
+    if (expected != null) {
+      if (expected.contains(System.lineSeparator())) {
+        builder.append("EXPECTED:").append(System.lineSeparator()).append(expected);
+      } else {
+        builder.append("EXPECTED: ").append(expected);
+      }
+      builder.append(System.lineSeparator());
+    }
     appendInfo(builder);
     return builder.toString();
   }

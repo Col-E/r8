@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import static com.google.common.collect.Lists.cartesianProduct;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.objectweb.asm.Opcodes.ASM6;
@@ -49,7 +50,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.jar.JarOutputStream;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -391,6 +394,23 @@ public class TestBase {
       enclosing = clazz.getEnclosingClass();
     }
     return String.join(".", parts);
+  }
+
+  protected static List<Object[]> buildParameters(Object... arraysOrIterables) {
+    Function<Object, List<Object>> arrayOrIterableToList =
+        arrayOrIterable -> {
+          if (arrayOrIterable.getClass().isArray()) {
+            Object[] array = (Object[]) arrayOrIterable;
+            return Arrays.asList(array);
+          } else {
+            assert arrayOrIterable instanceof Iterable<?>;
+            Iterable<?> iterable = (Iterable) arrayOrIterable;
+            return ImmutableList.builder().addAll(iterable).build();
+          }
+        };
+    List<List<Object>> lists =
+        Arrays.stream(arraysOrIterables).map(arrayOrIterableToList).collect(Collectors.toList());
+    return cartesianProduct(lists).stream().map(List::toArray).collect(Collectors.toList());
   }
 
   /** Compile an application with D8. */

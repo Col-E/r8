@@ -43,9 +43,13 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T addKeepMainRule(Class<?> mainClass) {
+    return addKeepMainRule(mainClass.getTypeName());
+  }
+
+  public T addKeepMainRule(String mainClass) {
     return addKeepRules(
         StringUtils.joinLines(
-            "-keep class " + mainClass.getTypeName() + " {",
+            "-keep class " + mainClass + " {",
             "  public static void main(java.lang.String[]);",
             "}"));
   }

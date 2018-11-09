@@ -94,6 +94,11 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     setLevel(INTERFACE_LEVEL);
   }
 
+  public boolean isMissingOrHasMissingSuperType(AppInfo appInfo) {
+    DexClass clazz = appInfo.definitionFor(this);
+    return clazz == null || clazz.hasMissingSuperType(appInfo);
+  }
+
   public boolean isInterface() {
     assert hierarchyLevel != UNKNOWN_LEVEL : "Program class missing: " + this;
     assert isClassType();

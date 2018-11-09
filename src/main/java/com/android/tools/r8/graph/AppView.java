@@ -32,6 +32,12 @@ public class AppView<T extends AppInfo> {
     return dexItemFactory;
   }
 
+  // TODO(b/114469298): If we at some point replace all occurences of AppInfo with AppView,
+  // then this method should return false when we are running with D8.
+  public boolean enableWholeProgramOptimizations() {
+    return true;
+  }
+
   public GraphLense graphLense() {
     return graphLense;
   }

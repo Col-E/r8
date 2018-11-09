@@ -321,6 +321,15 @@ public abstract class TypeLatticeElement {
   }
 
   /**
+   * Determines if this type is based on a missing class, directly or indirectly.
+   *
+   * @return {@code} true if this type is based on a missing class.
+   */
+  public boolean isBasedOnMissingClass(AppInfo appInfo) {
+    return false;
+  }
+
+  /**
    * Represents a type that can be everything.
    *
    * @return {@code true} if the corresponding {@link Value} could be any kinds.
