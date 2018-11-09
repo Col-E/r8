@@ -18,6 +18,7 @@ import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
@@ -265,4 +266,14 @@ public class ConstNumber extends ConstInstruction {
     assert outValue().getTypeLattice().isPreciseType();
     return outValue().getTypeLattice();
   }
+
+  @Override
+  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
+    assert super.verifyTypes(appInfo, graphLense);
+    assert !isZero()
+        || outValue().getTypeLattice().isPrimitive()
+        || outValue().getTypeLattice().isConstantNull();
+    return true;
+  }
+
 }
