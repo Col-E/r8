@@ -128,7 +128,7 @@ sourceSets {
     }
     examples {
         java {
-            srcDirs = ['src/test/examples', 'build/generated/source/apt/examples']
+            srcDirs = ['src/test/examples']
         }
         output.resourcesDir = 'build/classes/examples'
     }
