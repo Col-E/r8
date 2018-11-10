@@ -48,14 +48,16 @@ public class DeadCodeRemover {
   public void run(IRCode code) {
     removeUnneededCatchHandlers(code);
     Queue<BasicBlock> worklist = new LinkedList<>();
-    worklist.addAll(code.blocks);
-    for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
-      removeDeadInstructions(worklist, code, block, options);
-      removeDeadPhis(worklist, block, options);
-    }
     // We may encounter unneeded catch handlers again, e.g., if a dead instruction (due to
     // const-string canonicalization for example) is the only throwing instruction in a block.
-    removeUnneededCatchHandlers(code);
+    // Removing unneeded catch handlers can lead to more dead instructions.
+    do {
+      worklist.addAll(code.blocks);
+      for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
+        removeDeadInstructions(worklist, code, block, options);
+        removeDeadPhis(worklist, block, options);
+      }
+    } while (removeUnneededCatchHandlers(code));
     assert code.isConsistentSSA();
     codeRewriter.rewriteMoveResult(code);
   }
@@ -127,7 +129,7 @@ public class DeadCodeRemover {
     }
   }
 
-  private void removeUnneededCatchHandlers(IRCode code) {
+  private boolean removeUnneededCatchHandlers(IRCode code) {
     boolean mayHaveIntroducedUnreachableBlocks = false;
     for (BasicBlock block : code.blocks) {
       if (block.hasCatchHandlers()) {
@@ -154,6 +156,7 @@ public class DeadCodeRemover {
       code.removeUnreachableBlocks();
     }
     assert code.isConsistentGraph();
+    return mayHaveIntroducedUnreachableBlocks;
   }
 
   /**
