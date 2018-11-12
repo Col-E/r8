@@ -1074,7 +1074,8 @@ public class Enqueuer {
 
   private void markVirtualMethodAsLive(DexEncodedMethod method, KeepReason reason) {
     assert method != null;
-    assert !method.accessFlags.isAbstract();
+    // Only explicit keep rules should make abstract methods live.
+    assert !method.accessFlags.isAbstract() || reason.isDueToKeepRule();
     if (!liveMethods.contains(method)) {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Adding virtual method `%s` to live set.", method.method);
@@ -1410,10 +1411,16 @@ public class Enqueuer {
       return;
     }
     if (target.isVirtualMethod()) {
-      // A virtual method. Mark it as reachable so that subclasses, if instantiated, keep
-      // their overrides. However, we don't mark it live, as a keep rule might not imply that
-      // the corresponding class is live.
-      markVirtualMethodAsReachable(target.method, holder.accessFlags.isInterface(), reason);
+      // A virtual method.
+      if (reason.isDueToKeepRule()) {
+        // Always mark methods kept due to keep rules live.
+        markVirtualMethodAsLive(target, reason);
+      } else {
+        // Mark it as reachable so that subclasses, if instantiated, keep their overrides.
+        // However, we don't mark it live, as a keep rule might not imply that the corresponding
+        // class is live.
+        markVirtualMethodAsReachable(target.method, holder.accessFlags.isInterface(), reason);
+      }
       // Reachability for default methods is based on live subtypes in general. For keep rules,
       // we need special handling as we essentially might have live subtypes that are outside of
       // our reach. Do this here, as we still know that this is due to a keep rule.

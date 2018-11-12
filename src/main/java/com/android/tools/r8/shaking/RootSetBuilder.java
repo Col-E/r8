@@ -435,12 +435,17 @@ public class RootSetBuilder {
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
-    Set<Wrapper<DexMethod>> methodsMarked = new HashSet<>();
-    Arrays.stream(clazz.directMethods()).forEach(method -> {
-      DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-      markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
-    });
+    Set<Wrapper<DexMethod>> methodsMarked =
+        options.forceProguardCompatibility ? null : new HashSet<>();
+    DexClass startingClass = clazz;
     while (clazz != null) {
+      // In compat mode traverse all direct methods in the hierarchy.
+      if (clazz == startingClass || options.forceProguardCompatibility) {
+        Arrays.stream(clazz.directMethods()).forEach(method -> {
+          DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+          markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
+        });
+      }
       Arrays.stream(clazz.virtualMethods()).forEach(method -> {
         DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
         markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
@@ -736,8 +741,9 @@ public class RootSetBuilder {
       Set<Wrapper<DexMethod>> methodsMarked,
       ProguardConfigurationRule context,
       DexDefinition precondition) {
-    if ((methodsMarked != null)
+    if (methodsMarked != null
         && methodsMarked.contains(MethodSignatureEquivalence.get().wrap(method.method))) {
+      // Ignore, method is overridden in sub class.
       return;
     }
     for (ProguardMemberRule rule : rules) {
