@@ -1154,7 +1154,8 @@ public class IRConverter {
     deadCodeRemover.run(code);
     materializeInstructionBeforeLongOperationsWorkaround(code);
     workaroundForwardingInitializerBug(code);
-    LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(code, options);
+    LinearScanRegisterAllocator registerAllocator =
+        new LinearScanRegisterAllocator(appInfo, code, options);
     registerAllocator.allocateRegisters(options.debug);
     if (options.canHaveExceptionTargetingLoopHeaderBug()) {
       codeRewriter.workaroundExceptionTargetingLoopHeaderBug(code);

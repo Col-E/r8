@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.ir.regalloc;
 
-import com.android.tools.r8.code.MoveType;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -22,6 +23,7 @@ import java.util.Set;
  * A set of spill moves and functionality to schedule and insert them in the code.
  */
 class SpillMoveSet {
+
   // Spill and restore moves on entry.
   private final Map<Integer, Set<SpillMove>> instructionToInMoves = new HashMap<>();
   // Spill and restore moves on exit.
@@ -32,14 +34,18 @@ class SpillMoveSet {
   private final IRCode code;
   // The register allocator generating moves.
   private final LinearScanRegisterAllocator allocator;
+  // Reference to the object type.
+  private final TypeLatticeElement objectType;
   // Mapping from instruction numbers to the block that start with that instruction if any.
   private final Map<Integer, BasicBlock> blockStartMap = new HashMap<>();
   // The number of temporary registers used for parallel moves when scheduling the moves.
   private int usedTempRegisters = 0;
 
-  public SpillMoveSet(LinearScanRegisterAllocator allocator, IRCode code) {
+  public SpillMoveSet(LinearScanRegisterAllocator allocator, IRCode code, AppInfo appInfo) {
     this.allocator = allocator;
     this.code = code;
+    this.objectType =
+        TypeLatticeElement.fromDexType(appInfo.dexItemFactory.objectType, true, appInfo);
     for (BasicBlock block : code.blocks) {
       blockStartMap.put(block.entry().getNumber(), block);
     }
@@ -191,13 +197,13 @@ class SpillMoveSet {
     return usedTempRegisters;
   }
 
-  private MoveType moveTypeForIntervals(LiveIntervals to, LiveIntervals from) {
-    MoveType toType = to.getMoveType();
-    MoveType fromType = from.getMoveType();
-    if (toType == MoveType.OBJECT || fromType == MoveType.OBJECT) {
-      assert fromType == MoveType.OBJECT || fromType == MoveType.SINGLE;
-      assert toType == MoveType.OBJECT || toType == MoveType.SINGLE;
-      return MoveType.OBJECT;
+  private TypeLatticeElement moveTypeForIntervals(LiveIntervals to, LiveIntervals from) {
+    TypeLatticeElement toType = to.getValue().getTypeLattice();
+    TypeLatticeElement fromType = from.getValue().getTypeLattice();
+    if (toType.isReference() || fromType.isReference()) {
+      assert fromType.isReference() || fromType.isSingle();
+      assert toType.isReference() || toType.isSingle();
+      return objectType;
     }
     assert toType == fromType;
     return toType;
@@ -355,7 +361,7 @@ class SpillMoveSet {
         // avoid a bug where the index variable could end up being uninitialized.
         if (code.options.canHaveBoundsCheckEliminationBug()
             && move.from.getValue().isConstNumber()
-            && move.type == MoveType.SINGLE
+            && move.type.isSingle()
             && allocator.unadjustedRealRegisterFromAllocated(move.to.getRegister()) < 256) {
           scheduler.addMove(
               new RegisterMove(move.to.getRegister(), move.type, move.from.getValue().definition));

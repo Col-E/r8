@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
-import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -114,7 +114,7 @@ public class RegisterMoveScheduler {
     return usedTempRegisters;
   }
 
-  private List<RegisterMove> findMovesWithSrc(int src, MoveType type) {
+  private List<RegisterMove> findMovesWithSrc(int src, TypeLatticeElement type) {
     List<RegisterMove> result = new ArrayList<>();
     assert src != LiveIntervals.NO_REGISTER;
     for (RegisterMove move : moveSet) {
@@ -124,9 +124,9 @@ public class RegisterMoveScheduler {
       int moveSrc = valueMap.get(move.src);
       if (moveSrc == src) {
         result.add(move);
-      } else if (move.type == MoveType.WIDE && (moveSrc + 1) == src) {
+      } else if (move.type.isWide() && (moveSrc + 1) == src) {
         result.add(move);
-      } else if (type == MoveType.WIDE && (moveSrc - 1) == src) {
+      } else if (type.isWide() && (moveSrc - 1) == src) {
         result.add(move);
       }
     }
@@ -184,7 +184,7 @@ public class RegisterMoveScheduler {
       instruction.setPosition(position);
       insertAt.add(instruction);
       valueMap.put(moveWithSrc.src, tempRegister + usedTempRegisters);
-      usedTempRegisters += moveWithSrc.type == MoveType.WIDE ? 2 : 1;
+      usedTempRegisters += moveWithSrc.type.requiredRegisters();
     }
   }
 
@@ -194,7 +194,7 @@ public class RegisterMoveScheduler {
     // Pick a non-wide move to unblock if possible.
     while (iterator.hasNext()) {
       move = iterator.next();
-      if (move.type != MoveType.WIDE) {
+      if (!move.type.isWide()) {
         break;
       }
     }

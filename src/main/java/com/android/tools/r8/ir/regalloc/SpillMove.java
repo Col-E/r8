@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.regalloc;
 
-import com.android.tools.r8.code.MoveType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
 /**
  * A SpillMove represents either a phi move that transfers an SSA value to the SSA phi value or
@@ -12,11 +12,11 @@ import com.android.tools.r8.code.MoveType;
  * of spilling.
  */
 class SpillMove {
-  MoveType type;
+  final TypeLatticeElement type;
   LiveIntervals from;
-  LiveIntervals to;
+  final LiveIntervals to;
 
-  public SpillMove(MoveType type, LiveIntervals to, LiveIntervals from) {
+  public SpillMove(TypeLatticeElement type, LiveIntervals to, LiveIntervals from) {
     this.type = type;
     this.to = to;
     this.from = from;

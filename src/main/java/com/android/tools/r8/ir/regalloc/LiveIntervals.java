@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.regalloc;
 import static com.android.tools.r8.dex.Constants.U16BIT_MAX;
 import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
-import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
@@ -77,10 +76,6 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
 
   public ValueType getType() {
     return value.outType();
-  }
-
-  public MoveType getMoveType() {
-    return MoveType.fromValueType(getType());
   }
 
   public int requiredRegisters() {

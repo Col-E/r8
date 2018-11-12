@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
 import com.android.tools.r8.cf.FixedLocalValue;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
@@ -118,6 +119,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
+  // App info to be able to create types.
+  private final AppInfo appInfo;
   // The code for which to allocate registers.
   private final IRCode code;
   // Number of registers used for arguments.
@@ -179,7 +182,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return numberOfArgumentRegisters;
   }
 
-  public LinearScanRegisterAllocator(IRCode code, InternalOptions options) {
+  public LinearScanRegisterAllocator(AppInfo appInfo, IRCode code, InternalOptions options) {
+    this.appInfo = appInfo;
     this.code = code;
     this.options = options;
     int argumentRegisters = 0;
@@ -2320,7 +2324,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private void insertMoves() {
     computeRematerializableBits();
 
-    SpillMoveSet spillMoves = new SpillMoveSet(this, code);
+    SpillMoveSet spillMoves = new SpillMoveSet(this, code, appInfo);
     for (LiveIntervals intervals : liveIntervals) {
       if (intervals.hasSplits()) {
         LiveIntervals current = intervals;
