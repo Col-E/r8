@@ -74,13 +74,8 @@ public class MemberValuePropagation {
     Instruction replacement = null;
     TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
     if (rule != null && rule.hasReturnValue() && rule.getReturnValue().isSingleValue()) {
-      if (typeLattice.isReference()) {
-        assert rule.getReturnValue().isNull();
-        replacement = code.createConstNull();
-      } else {
-        Value value = code.createValue(typeLattice, instruction.getLocalInfo());
-        replacement = new ConstNumber(value, rule.getReturnValue().getSingleValue());
-      }
+      replacement = createConstNumberReplacement(
+          code, rule.getReturnValue().getSingleValue(), typeLattice, instruction.getLocalInfo());
     }
     if (replacement == null && rule != null
         && rule.hasReturnValue() && rule.getReturnValue().isField()) {
@@ -98,7 +93,7 @@ public class MemberValuePropagation {
     return replacement;
   }
 
-  private static ConstNumber constantReplacementFromMethod(
+  private static ConstNumber createConstNumberReplacement(
       IRCode code, long constant, TypeLatticeElement typeLattice, DebugLocalInfo debugLocalInfo) {
     ConstNumber replacement;
     if (typeLattice.isReference()) {
@@ -187,7 +182,7 @@ public class MemberValuePropagation {
             }
             if (target.getOptimizationInfo().returnsConstant()) {
               long constant = target.getOptimizationInfo().getReturnedConstant();
-              ConstNumber replacement = constantReplacementFromMethod(
+              ConstNumber replacement = createConstNumberReplacement(
                   code, constant, invoke.outValue().getTypeLattice(), invoke.getLocalInfo());
               affectedValues.add(replacement.outValue());
               invoke.outValue().replaceUsers(replacement.outValue());
