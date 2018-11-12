@@ -120,7 +120,13 @@ public class DexItemFactory {
   public final DexString unboxFloatMethodName = createString("floatValue");
   public final DexString unboxDoubleMethodName = createString("doubleValue");
 
+  public final DexString isEmptyMethodName = createString("isEmpty");
   public final DexString lengthMethodName = createString("length");
+
+  public final DexString containsMethodName = createString("contains");
+  public final DexString startsWithMethodName = createString("startsWith");
+  public final DexString endsWithMethodName = createString("endsWith");
+
   public final DexString valueOfMethodName = createString("valueOf");
   public final DexString toStringMethodName = createString("toString");
 
@@ -141,6 +147,7 @@ public class DexItemFactory {
   public final DexString invokeMethodName = createString("invoke");
   public final DexString invokeExactMethodName = createString("invokeExact");
 
+  public final DexString charSequenceDescriptor = createString("Ljava/lang/CharSequence;");
   public final DexString stringDescriptor = createString("Ljava/lang/String;");
   public final DexString stringArrayDescriptor = createString("[Ljava/lang/String;");
   public final DexString objectDescriptor = createString("Ljava/lang/Object;");
@@ -199,6 +206,7 @@ public class DexItemFactory {
   public final DexType boxedShortType = createType(boxedShortDescriptor);
   public final DexType boxedNumberType = createType(boxedNumberDescriptor);
 
+  public final DexType charSequenceType = createType(charSequenceDescriptor);
   public final DexType stringType = createType(stringDescriptor);
   public final DexType stringArrayType = createType(stringArrayDescriptor);
   public final DexType objectType = createType(objectDescriptor);
@@ -541,13 +549,31 @@ public class DexItemFactory {
   }
 
   public class StringMethods {
+    public final DexMethod isEmpty;
     public final DexMethod length;
+
+    public final DexMethod contains;
+    public final DexMethod startsWith;
+    public final DexMethod endsWith;
+
     public final DexMethod valueOf;
     public final DexMethod toString;
 
     private StringMethods() {
+      isEmpty = createMethod(
+          stringDescriptor, isEmptyMethodName, booleanDescriptor, DexString.EMPTY_ARRAY);
       length = createMethod(
           stringDescriptor, lengthMethodName, intDescriptor, DexString.EMPTY_ARRAY);
+
+      DexString[] needsOneCharSequence = new DexString[]{charSequenceDescriptor};
+      contains = createMethod(
+          stringDescriptor, containsMethodName, booleanDescriptor, needsOneCharSequence);
+      DexString[] needsOneString = new DexString[]{stringDescriptor};
+      startsWith = createMethod(
+          stringDescriptor, startsWithMethodName, booleanDescriptor, needsOneString);
+      endsWith = createMethod(
+          stringDescriptor, endsWithMethodName, booleanDescriptor, needsOneString);
+
       valueOf = createMethod(
           stringDescriptor, valueOfMethodName, stringDescriptor, new DexString[]{objectDescriptor});
       toString = createMethod(
@@ -573,9 +599,7 @@ public class DexItemFactory {
 
     private StringBuildingMethods(DexType receiver) {
       DexType sbufType = createType(createString("Ljava/lang/StringBuffer;"));
-      DexType charSequenceType = createType(createString("Ljava/lang/CharSequence;"));
       DexString append = createString("append");
-      DexString toStringMethodName = createString("toString");
 
       appendBoolean = createMethod(receiver, createProto(receiver, booleanType), append);
       appendChar = createMethod(receiver, createProto(receiver, charType), append);

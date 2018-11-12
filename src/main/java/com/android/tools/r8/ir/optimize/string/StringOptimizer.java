@@ -26,6 +26,8 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Strings;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class StringOptimizer {
 
@@ -36,9 +38,12 @@ public class StringOptimizer {
         ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
   }
 
-  // Find String#length() with a constant string and compute the length of it at compile time.
-  public void computeConstStringLength(IRCode code, DexItemFactory factory) {
-    // TODO(jsjeon): is it worth having an indicator of String#length()?
+  // int String#length()
+  // boolean String#isEmpty()
+  // boolean String#startsWith(str)
+  // boolean String#endsWith(str)
+  // boolean String#contains(str)
+  public void computeTrivialOperationsOnConstString(IRCode code, DexItemFactory factory) {
     if (!code.hasConstString) {
       return;
     }
@@ -50,20 +55,50 @@ public class StringOptimizer {
       }
       InvokeVirtual invoke = instr.asInvokeVirtual();
       DexMethod invokedMethod = invoke.getInvokedMethod();
-      if (invokedMethod != factory.stringMethods.length) {
+      Function<String, Integer> operatorWithNoArg = null;
+      BiFunction<String, String, Integer> operatorWithString = null;
+      if (invokedMethod == factory.stringMethods.length) {
+        operatorWithNoArg = String::length;
+      } else if (invokedMethod == factory.stringMethods.isEmpty) {
+        operatorWithNoArg = rcv -> rcv.isEmpty() ? 1 : 0;
+      } else if (invokedMethod == factory.stringMethods.contains) {
+        operatorWithString = (rcv, arg) -> rcv.contains(arg) ? 1 : 0;
+      } else if (invokedMethod == factory.stringMethods.startsWith) {
+        operatorWithString = (rcv, arg) -> rcv.startsWith(arg) ? 1 : 0;
+      } else if (invokedMethod == factory.stringMethods.endsWith) {
+        operatorWithString = (rcv, arg) -> rcv.endsWith(arg) ? 1 : 0;
+      }
+      if (operatorWithNoArg == null && operatorWithString == null) {
         continue;
       }
-      assert invoke.inValues().size() == 1;
-      Value in = invoke.getReceiver().getAliasedValue();
-      if (in.definition == null
-          || !in.definition.isConstString()
-          || !in.isConstant()) {
+      Value rcv = invoke.getReceiver().getAliasedValue();
+      if (rcv.definition == null
+          || !rcv.definition.isConstString()
+          || !rcv.isConstant()) {
         continue;
       }
-      ConstString constString = in.definition.asConstString();
-      int length = constString.getValue().toString().length();
-      ConstNumber constNumber = code.createIntConstant(length);
-      it.replaceCurrentInstruction(constNumber);
+      if (operatorWithNoArg != null) {
+        assert invoke.inValues().size() == 1;
+        ConstString rcvString = rcv.definition.asConstString();
+        int v = operatorWithNoArg.apply(rcvString.getValue().toString());
+        ConstNumber constNumber = code.createIntConstant(v);
+        it.replaceCurrentInstruction(constNumber);
+      } else {
+        assert operatorWithString != null;
+        assert invoke.inValues().size() == 2;
+        Value arg = invoke.inValues().get(1).getAliasedValue();
+        if (arg.definition == null
+            || !arg.definition.isConstString()
+            || !arg.isConstant()) {
+          continue;
+        }
+        ConstString rcvString = rcv.definition.asConstString();
+        ConstString argString = arg.definition.asConstString();
+        int v = operatorWithString.apply(
+            rcvString.getValue().toString(), argString.getValue().toString());
+        ConstNumber constNumber = code.createIntConstant(v);
+        it.replaceCurrentInstruction(constNumber);
+      }
     }
   }
 

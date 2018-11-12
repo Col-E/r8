@@ -181,7 +181,7 @@ public class GetClassTest extends TestBase {
     MethodSubject getMainClass = mainClass.method(
         "java.lang.Class", "getMainClass", ImmutableList.of(MAIN.getCanonicalName()));
     assertThat(getMainClass, isPresent());
-    // Because of nullable argument, getClass() should reMAIN.
+    // Because of nullable argument, getClass() should remain.
     assertEquals(1, countGetClass(getMainClass));
     assertEquals(0, countConstClass(getMainClass));
 

@@ -127,16 +127,15 @@ public class TypeLatticeTest extends TestBase {
 
   @Test
   public void joinBottomIsUnit() {
-    DexType charSequence = factory.createType("Ljava/lang/CharSequence;");
     assertEquals(
-        element(charSequence),
-        join(element(factory.stringType), element(charSequence), bottom()));
+        element(factory.charSequenceType),
+        join(element(factory.stringType), element(factory.charSequenceType), bottom()));
     assertEquals(
-        element(charSequence),
-        join(bottom(), element(factory.stringType), element(charSequence)));
+        element(factory.charSequenceType),
+        join(bottom(), element(factory.stringType), element(factory.charSequenceType)));
     assertEquals(
-        element(charSequence),
-        join(element(factory.stringType), bottom(), element(charSequence)));
+        element(factory.charSequenceType),
+        join(element(factory.stringType), bottom(), element(factory.charSequenceType)));
   }
 
   @Test
@@ -154,10 +153,9 @@ public class TypeLatticeTest extends TestBase {
 
   @Test
   public void joinClassTypes() {
-    DexType charSequence = factory.createType("Ljava/lang/CharSequence;");
     assertEquals(
-        element(charSequence),
-        join(element(factory.stringType), element(charSequence)));
+        element(factory.charSequenceType),
+        join(element(factory.stringType), element(factory.charSequenceType)));
   }
 
   @Test
@@ -281,27 +279,25 @@ public class TypeLatticeTest extends TestBase {
             element(pType),
             element(type)));
 
-    DexType charSequence = factory.createType("Ljava/lang/CharSequence;");
     assertEquals(
-        element(charSequence),
+        element(factory.charSequenceType),
         join(
             element(factory.stringBuilderType),
-            element(charSequence)));
+            element(factory.charSequenceType)));
     assertEquals(
-        element(charSequence),
+        element(factory.charSequenceType),
         join(
-            element(charSequence),
+            element(factory.charSequenceType),
             element(factory.stringBufferType)));
   }
 
   @Test
   public void joinInterfaceArrayAndImplementerArray() {
-    DexType charSequence = factory.createType("Ljava/lang/CharSequence;");
     assertEquals(
         // TODO(b/119181813): This should be array(1, charSequence)
         array(1, factory.objectType),
         join(
-            array(1, charSequence),
+            array(1, factory.charSequenceType),
             array(1, factory.stringType)));
   }
 
