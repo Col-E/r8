@@ -946,7 +946,10 @@ public class Enqueuer {
   private void transitionDefaultMethodsForInstantiatedClass(DexType iface, DexType instantiatedType,
       ScopedDexMethodSet seen) {
     DexClass clazz = appInfo.definitionFor(iface);
-    assert clazz != null : "Missing class " + iface.toSourceString();
+    if (clazz == null) {
+      reportMissingClass(iface);
+      return;
+    }
     assert clazz.accessFlags.isInterface();
     SetWithReason<DexEncodedMethod> reachableMethods = reachableVirtualMethods.get(iface);
     if (reachableMethods != null) {
