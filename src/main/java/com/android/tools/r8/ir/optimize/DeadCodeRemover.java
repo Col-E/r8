@@ -54,8 +54,8 @@ public class DeadCodeRemover {
     do {
       worklist.addAll(code.blocks);
       for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
-        removeDeadInstructions(worklist, code, block, options);
-        removeDeadPhis(worklist, block, options);
+        removeDeadInstructions(worklist, code, block, appInfo);
+        removeDeadPhis(worklist, block, appInfo);
       }
     } while (removeUnneededCatchHandlers(code));
     assert code.isConsistentSSA();
@@ -86,11 +86,11 @@ public class DeadCodeRemover {
   }
 
   private static void removeDeadPhis(
-      Queue<BasicBlock> worklist, BasicBlock block, InternalOptions options) {
+      Queue<BasicBlock> worklist, BasicBlock block, AppInfo appInfo) {
     Iterator<Phi> phiIt = block.getPhis().iterator();
     while (phiIt.hasNext()) {
       Phi phi = phiIt.next();
-      if (phi.isDead(options)) {
+      if (phi.isDead(appInfo)) {
         phiIt.remove();
         for (Value operand : phi.getOperands()) {
           operand.removePhiUser(phi);
@@ -101,7 +101,7 @@ public class DeadCodeRemover {
   }
 
   private static void removeDeadInstructions(
-      Queue<BasicBlock> worklist, IRCode code, BasicBlock block, InternalOptions options) {
+      Queue<BasicBlock> worklist, IRCode code, BasicBlock block, AppInfo appInfo) {
     InstructionListIterator iterator = block.listIterator(block.getInstructions().size());
     while (iterator.hasPrevious()) {
       Instruction current = iterator.previous();
@@ -111,14 +111,14 @@ public class DeadCodeRemover {
           && !current.outValue().isUsed()) {
         current.setOutValue(null);
       }
-      if (!current.canBeDeadCode(code, options)) {
+      if (!current.canBeDeadCode(appInfo, code)) {
         continue;
       }
       Value outValue = current.outValue();
       // Instructions with no out value cannot be dead code by the current definition
       // (unused out value). They typically side-effect input values or deals with control-flow.
       assert outValue != null;
-      if (!outValue.isDead(options)) {
+      if (!outValue.isDead(appInfo)) {
         continue;
       }
       updateWorklist(worklist, current);

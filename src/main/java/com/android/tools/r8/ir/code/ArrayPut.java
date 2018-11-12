@@ -14,6 +14,7 @@ import com.android.tools.r8.code.AputShort;
 import com.android.tools.r8.code.AputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -21,7 +22,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
 
 public class ArrayPut extends Instruction {
@@ -126,7 +126,7 @@ public class ArrayPut extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
     // ArrayPut has side-effects on input values.
     return false;
   }

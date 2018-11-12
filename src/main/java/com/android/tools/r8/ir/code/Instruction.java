@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.CfgPrinter;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableSet;
@@ -510,7 +509,7 @@ public abstract class Instruction {
   }
 
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */
-  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
     return !instructionInstanceCanThrow();
   }
 

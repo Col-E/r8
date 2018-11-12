@@ -8,9 +8,9 @@ import com.android.tools.r8.code.Const16;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.utils.InternalOptions;
 
 public class AlwaysMaterializingDefinition extends ConstInstruction {
 
@@ -19,7 +19,7 @@ public class AlwaysMaterializingDefinition extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
     // This instruction may never be considered dead as it must remain.
     return false;
   }

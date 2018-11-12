@@ -12,7 +12,6 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -833,12 +832,12 @@ public class Value {
     }
   }
 
-  public boolean isDead(InternalOptions options) {
+  public boolean isDead(AppInfo appInfo) {
     // Totally unused values are trivially dead.
-    return !isUsed() || isDead(options, new HashSet<>());
+    return !isUsed() || isDead(appInfo, new HashSet<>());
   }
 
-  protected boolean isDead(InternalOptions options, Set<Value> active) {
+  protected boolean isDead(AppInfo appInfo, Set<Value> active) {
     // If the value has debug users we cannot eliminate it since it represents a value in a local
     // variable that should be visible in the debugger.
     if (numberOfDebugUsers() != 0) {
@@ -848,19 +847,19 @@ public class Value {
     // currently active values.
     active.add(this);
     for (Instruction instruction : uniqueUsers()) {
-      if (!instruction.canBeDeadCode(null, options)) {
+      if (!instruction.canBeDeadCode(appInfo, null)) {
         return false;
       }
       Value outValue = instruction.outValue();
       // Instructions with no out value cannot be dead code by the current definition
       // (unused out value). They typically side-effect input values or deals with control-flow.
       assert outValue != null;
-      if (!active.contains(outValue) && !outValue.isDead(options, active)) {
+      if (!active.contains(outValue) && !outValue.isDead(appInfo, active)) {
         return false;
       }
     }
     for (Phi phi : uniquePhiUsers()) {
-      if (!active.contains(phi) && !phi.isDead(options, active)) {
+      if (!active.contains(phi) && !phi.isDead(appInfo, active)) {
         return false;
       }
     }

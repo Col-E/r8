@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -63,8 +62,8 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
-    return !options.debug && options.isGeneratingDex();
+  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
+    return !code.options.debug && code.options.isGeneratingDex();
   }
 
   @Override

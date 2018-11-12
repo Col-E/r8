@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.utils.InternalOptions;
 
 public class DexItemBasedConstString extends ConstInstruction {
 
@@ -88,7 +87,7 @@ public class DexItemBasedConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
     // No side-effect, such as throwing an exception, in CF.
     return true;
   }

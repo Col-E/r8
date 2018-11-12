@@ -9,13 +9,13 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.utils.InternalOptions;
 
 public class ConstClass extends ConstInstruction {
 
@@ -86,13 +86,12 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(IRCode code, InternalOptions options) {
+  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
     // A const-class instruction can be dead code only if the resulting program is known to contain
     // the class mentioned.
-    // The simple conservative check is for the holder of the method.
-    // TODO(sgjesse): It might be beneficial to check for program classes in the super hierarchy or
-    // interfaces implemented.
-    return code.method.method.holder == clazz;
+    DexType baseType = clazz.toBaseType(appInfo.dexItemFactory);
+    DexClass holder = appInfo.definitionFor(baseType);
+    return holder != null && holder.isProgramClass();
   }
 
   @Override
