@@ -878,7 +878,8 @@ public class IRConverter {
       // TODO(jsjeon): Consider merging these into one single optimize().
       stringOptimizer.computeTrivialOperationsOnConstString(code, appInfo.dexItemFactory);
       // Reflection optimization 2. get*Name() with const-class -> const-string
-      stringOptimizer.rewriteClassGetName(code, appInfo);
+      // TODO(b/118536394): Failed on 5.1.1 and 6.0.1
+      // stringOptimizer.rewriteClassGetName(code, appInfo);
       // Reflection optimization 3. String#valueOf(const-string) -> no op.
       // TODO(b/119399513): Leads to test failures.
       // stringOptimizer.removeTrivialConversions(code, appInfo);

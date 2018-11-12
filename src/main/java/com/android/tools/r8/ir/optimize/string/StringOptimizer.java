@@ -160,14 +160,16 @@ public class StringOptimizer {
           name = Strings.repeat("[", arrayDepth) + "L" + name + ";";
         }
       } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getTypeName) {
-        if (code.options.enableMinification) {
-          // TODO(b/118536394): Add support minification and pinning.
-          continue;
-        }
-        name = getClassNameFromDescriptor(baseType.toDescriptorString());
-        if (arrayDepth > 0) {
-          name = name + Strings.repeat("[]", arrayDepth);
-        }
+        // TODO(b/119426668): desugar Type#getTypeName
+        continue;
+        // if (code.options.enableMinification) {
+        //   // TODO(b/118536394): Add support minification and pinning.
+        //   continue;
+        // }
+        // name = getClassNameFromDescriptor(baseType.toDescriptorString());
+        // if (arrayDepth > 0) {
+        //   name = name + Strings.repeat("[]", arrayDepth);
+        // }
       } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getCanonicalName) {
         // TODO(b/118536394): always returns "null"?
         if (holder.isLocalClass() || holder.isAnonymousClass()) {
