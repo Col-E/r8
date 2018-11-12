@@ -871,7 +871,8 @@ public class IRConverter {
     if (!options.debug) {
       // TODO(jsjeon): Consider merging these into one single optimize().
       stringOptimizer.computeConstStringLength(code, appInfo.dexItemFactory);
-      stringOptimizer.removeTrivialConversions(code, appInfo);
+      // TODO(b/119399513): Leads to test failures.
+      // stringOptimizer.removeTrivialConversions(code, appInfo);
     }
     if (devirtualizer != null) {
       assert code.verifyTypes(appInfo, appView, graphLense());
