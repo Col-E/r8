@@ -12,6 +12,7 @@ public class TestMainArrayType {
   }
 
   public static void main(String[] args) {
-    System.out.println(MentionedClass[].class.getCanonicalName());
+    Class<?> clazz = args.length == 8 ? MentionedClass[].class : Object.class;
+    System.out.println(clazz.getCanonicalName());
   }
 }

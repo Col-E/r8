@@ -486,6 +486,25 @@ public abstract class DexClass extends DexDefinition {
     innerClasses.removeIf(predicate::test);
   }
 
+  public InnerClassAttribute getInnerClassAttributeForThisClass() {
+    for (InnerClassAttribute innerClassAttribute : getInnerClasses()) {
+      if (type == innerClassAttribute.getInner()) {
+        return innerClassAttribute;
+      }
+    }
+    return null;
+  }
+
+  public boolean isLocalClass() {
+    InnerClassAttribute innerClass = getInnerClassAttributeForThisClass();
+    return innerClass != null && innerClass.isNamed() && getEnclosingMethod() != null;
+  }
+
+  public boolean isAnonymousClass() {
+    InnerClassAttribute innerClass = getInnerClassAttributeForThisClass();
+    return innerClass != null && innerClass.isAnonymous() && getEnclosingMethod() != null;
+  }
+
   /** Returns kotlin class info if the class is synthesized by kotlin compiler. */
   public abstract KotlinInfo getKotlinInfo();
 

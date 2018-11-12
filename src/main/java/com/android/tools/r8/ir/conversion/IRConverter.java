@@ -167,7 +167,7 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
             : null;
-    this.stringOptimizer = new StringOptimizer();
+    this.stringOptimizer = new StringOptimizer(options);
     this.enableWholeProgramOptimizations = appView != null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
@@ -868,12 +868,23 @@ public class IRConverter {
       assert !options.debug;
       inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
     }
+
+    if (appInfo.hasLiveness()) {
+      // Reflection optimization 1. getClass() -> const-class
+      codeRewriter.rewriteGetClass(code);
+    }
+
     if (!options.debug) {
       // TODO(jsjeon): Consider merging these into one single optimize().
       stringOptimizer.computeConstStringLength(code, appInfo.dexItemFactory);
+      // Reflection optimization 2. get*Name() with const-class -> const-string
+      stringOptimizer.rewriteClassGetName(code, appInfo);
+      // Reflection optimization 3. String#valueOf(const-string) -> no op.
       // TODO(b/119399513): Leads to test failures.
       // stringOptimizer.removeTrivialConversions(code, appInfo);
+      assert code.isConsistentSSA();
     }
+
     if (devirtualizer != null) {
       assert code.verifyTypes(appInfo, appView, graphLense());
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
@@ -905,6 +916,7 @@ public class IRConverter {
       nonNullTracker.cleanupNonNull(code);
       assert code.isConsistentSSA();
     }
+
     if (!options.debug) {
       codeRewriter.collectClassInitializerDefaults(method, code);
     }
@@ -964,10 +976,6 @@ public class IRConverter {
     if (options.outline.enabled) {
       outlineHandler.accept(code, method);
       assert code.isConsistentSSA();
-    }
-
-    if (appInfo.hasLiveness()) {
-      codeRewriter.rewriteGetClass(code);
     }
 
     // TODO(mkroghj) Test if shorten live ranges is worth it.

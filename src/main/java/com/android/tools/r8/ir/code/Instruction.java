@@ -1165,6 +1165,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isCreatingInstanceOrArray() {
+    return isNewInstance()
+        || isNewArrayEmpty()
+        || isNewArrayFilledData()
+        || isInvokeNewArray()
+        || isInvokeMultiNewArray();
+  }
+
   /**
    * Returns the inlining constraint for this method when used in the context of the given type.
    *

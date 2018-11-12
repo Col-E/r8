@@ -18,6 +18,7 @@ public class DescriptorUtils {
 
   public static final char DESCRIPTOR_PACKAGE_SEPARATOR = '/';
   public static final char JAVA_PACKAGE_SEPARATOR = '.';
+  public static final char INNER_CLASS_SEPARATOR = '$';
   private static final Map<String, String> typeNameToLetterMap =
       ImmutableMap.<String, String>builder()
           .put("void", "V")
@@ -218,6 +219,17 @@ public class DescriptorUtils {
         .replace(DESCRIPTOR_PACKAGE_SEPARATOR, JAVA_PACKAGE_SEPARATOR);
   }
 
+   /**
+   * Get canonical class name from its descriptor.
+   *
+   * @param classDescriptor a class descriptor i.e. "La/b/C$D;"
+   * @return canonical class name i.e. "a.b.C.D"
+   */
+  public static String getCanonicalNameFromDescriptor(String classDescriptor) {
+    return getClassNameFromDescriptor(classDescriptor)
+        .replace(INNER_CLASS_SEPARATOR, JAVA_PACKAGE_SEPARATOR);
+  }
+
   /**
    * Get package java name from a class descriptor.
    *
@@ -274,11 +286,14 @@ public class DescriptorUtils {
   /**
    * Get class name from its binary name.
    *
-   * @param classBinaryName a class binary name i.e. "java/lang/Object"
-   * @return class name i.e. "Object"
+   * @param classBinaryName a class binary name i.e. "java/lang/Object" or "a/b/C$Inner"
+   * @return class name i.e. "Object" or "Inner"
    */
   public static String getSimpleClassNameFromBinaryName(String classBinaryName) {
-    int simpleNameIndex = classBinaryName.lastIndexOf(DESCRIPTOR_PACKAGE_SEPARATOR);
+    int simpleNameIndex = classBinaryName.lastIndexOf(INNER_CLASS_SEPARATOR);
+    if (simpleNameIndex < 0) {
+      simpleNameIndex = classBinaryName.lastIndexOf(DESCRIPTOR_PACKAGE_SEPARATOR);
+    }
     return (simpleNameIndex < 0) ? classBinaryName : classBinaryName.substring(simpleNameIndex + 1);
   }
 

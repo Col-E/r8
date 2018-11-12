@@ -217,24 +217,14 @@ public class FoundClassSubject extends ClassSubject {
     return naming != null && !getFinalDescriptor().equals(getOriginalDescriptor());
   }
 
-  private InnerClassAttribute getInnerClassAttribute() {
-    for (InnerClassAttribute innerClassAttribute : dexClass.getInnerClasses()) {
-      if (dexClass.type == innerClassAttribute.getInner()) {
-        return innerClassAttribute;
-      }
-    }
-    return null;
-  }
-
   @Override
   public boolean isLocalClass() {
-    InnerClassAttribute innerClass = getInnerClassAttribute();
-    return innerClass != null && innerClass.isNamed() && dexClass.getEnclosingMethod() != null;
+    return dexClass.isLocalClass();
   }
 
   @Override
   public boolean isMemberClass() {
-    InnerClassAttribute innerClass = getInnerClassAttribute();
+    InnerClassAttribute innerClass = dexClass.getInnerClassAttributeForThisClass();
     return innerClass != null
         && innerClass.getOuter() != null
         && innerClass.isNamed()
@@ -243,8 +233,7 @@ public class FoundClassSubject extends ClassSubject {
 
   @Override
   public boolean isAnonymousClass() {
-    InnerClassAttribute innerClass = getInnerClassAttribute();
-    return innerClass != null && innerClass.isAnonymous() && dexClass.getEnclosingMethod() != null;
+    return dexClass.isAnonymousClass();
   }
 
   @Override

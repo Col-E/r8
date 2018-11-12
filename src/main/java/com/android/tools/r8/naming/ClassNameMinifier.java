@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR;
+import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 import static com.android.tools.r8.utils.DescriptorUtils.getClassBinaryNameFromDescriptor;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
 import static com.android.tools.r8.utils.DescriptorUtils.getPackageBinaryNameFromJavaType;
@@ -425,7 +427,7 @@ class ClassNameMinifier {
         renaming.put(outer, renamed);
       }
       String binaryName = getClassBinaryNameFromDescriptor(renamed.toString());
-      state = new Namespace(binaryName, "$");
+      state = new Namespace(binaryName, INNER_CLASS_SEPARATOR);
       states.put(prefix, state);
     }
     return state;
@@ -458,10 +460,10 @@ class ClassNameMinifier {
     private final Iterator<String> classDictionaryIterator;
 
     Namespace(String packageName) {
-      this(packageName, "/");
+      this(packageName, DESCRIPTOR_PACKAGE_SEPARATOR);
     }
 
-    Namespace(String packageName, String separator) {
+    Namespace(String packageName, char separator) {
       this.packageName = packageName;
       this.packagePrefix = ("L" + packageName
           // L or La/b/ (or La/b/C$)

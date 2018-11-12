@@ -18,7 +18,7 @@ public class TestMain {
   }
 
   public static void main(String[] args) {
-    System.out.println(MentionedClass.class.getCanonicalName());
-    System.out.println(MentionedClassWithAnnotation.class.getCanonicalName());
+    Class<?> clazz = args.length == 8 ? MentionedClass.class : MentionedClassWithAnnotation.class;
+    System.out.println(clazz.getCanonicalName());
   }
 }

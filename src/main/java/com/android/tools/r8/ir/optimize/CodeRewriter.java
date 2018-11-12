@@ -1759,7 +1759,7 @@ public class CodeRewriter {
       // Only consider effectively final class. Exception: new Base().getClass().
       if (!baseType.hasSubtypes()
           || !appInfo.withLiveness().isInstantiatedIndirectly(baseType)
-          || (!in.isPhi() && in.definition.isNewInstance())) {
+          || (!in.isPhi() && in.definition.isCreatingInstanceOrArray())) {
         // Make sure the target (base) type is visible.
         ConstraintWithTarget constraints =
             ConstraintWithTarget.classIsVisible(code.method.method.getHolder(), baseType, appInfo);

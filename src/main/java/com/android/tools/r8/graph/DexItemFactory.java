@@ -130,7 +130,9 @@ public class DexItemFactory {
   public final DexString desiredAssertionStatusMethodName = createString("desiredAssertionStatus");
   public final DexString forNameMethodName = createString("forName");
   public final DexString getNameName = createString("getName");
+  public final DexString getCanonicalNameName = createString("getCanonicalName");
   public final DexString getSimpleNameName = createString("getSimpleName");
+  public final DexString getTypeNameName = createString("getTypeName");
   public final DexString getFieldName = createString("getField");
   public final DexString getDeclaredFieldName = createString("getDeclaredField");
   public final DexString getMethodName = createString("getMethod");
@@ -389,12 +391,15 @@ public class DexItemFactory {
     public final DexMethod desiredAssertionStatus;
     public final DexMethod forName;
     public final DexMethod getName;
+    public final DexMethod getCanonicalName;
     public final DexMethod getSimpleName;
+    public final DexMethod getTypeName;
     public final DexMethod getField;
     public final DexMethod getDeclaredField;
     public final DexMethod getMethod;
     public final DexMethod getDeclaredMethod;
     private final Set<DexMethod> getMembers;
+    private final Set<DexMethod> getNames;
 
     private ClassMethods() {
       desiredAssertionStatus = createMethod(classDescriptor,
@@ -402,8 +407,12 @@ public class DexItemFactory {
       forName = createMethod(classDescriptor,
           forNameMethodName, classDescriptor, new DexString[]{stringDescriptor});
       getName = createMethod(classDescriptor, getNameName, stringDescriptor, DexString.EMPTY_ARRAY);
-      getSimpleName = createMethod(classDescriptor,
-          getSimpleNameName, stringDescriptor, DexString.EMPTY_ARRAY);
+      getCanonicalName = createMethod(
+          classDescriptor, getCanonicalNameName, stringDescriptor, DexString.EMPTY_ARRAY);
+      getSimpleName = createMethod(
+          classDescriptor, getSimpleNameName, stringDescriptor, DexString.EMPTY_ARRAY);
+      getTypeName = createMethod(
+          classDescriptor, getTypeNameName, stringDescriptor, DexString.EMPTY_ARRAY);
       getField = createMethod(classDescriptor, getFieldName, fieldDescriptor,
           new DexString[]{stringDescriptor});
       getDeclaredField = createMethod(classDescriptor, getDeclaredFieldName, fieldDescriptor,
@@ -413,10 +422,15 @@ public class DexItemFactory {
       getDeclaredMethod = createMethod(classDescriptor, getDeclaredMethodName, methodDescriptor,
           new DexString[]{stringDescriptor, classArrayDescriptor});
       getMembers = ImmutableSet.of(getField, getDeclaredField, getMethod, getDeclaredMethod);
+      getNames = ImmutableSet.of(getName, getCanonicalName, getSimpleName, getTypeName);
     }
 
     public boolean isReflectiveMemberLookup(DexMethod method) {
       return getMembers.contains(method);
+    }
+
+    public boolean isReflectiveNameLookup(DexMethod method) {
+      return getNames.contains(method);
     }
   }
 
