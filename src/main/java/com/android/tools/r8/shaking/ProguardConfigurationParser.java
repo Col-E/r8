@@ -222,7 +222,7 @@ public class ProguardConfigurationParser {
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
-          configurationBuilder.setRenameSourceFileAttribute(acceptString());
+          configurationBuilder.setRenameSourceFileAttribute(acceptQuotedOrUnquotedString());
         } else {
           configurationBuilder.setRenameSourceFileAttribute("");
         }
@@ -1328,6 +1328,15 @@ public class ProguardConfigurationParser {
 
     private String acceptString() {
       return acceptString(c -> !Character.isWhitespace(c));
+    }
+
+    private String acceptQuotedOrUnquotedString() throws ProguardRuleParserException {
+      final char quote = acceptQuoteIfPresent();
+      String result = acceptString(c -> !Character.isWhitespace(c) && c != quote);
+      if (isQuote(quote)) {
+        expectClosingQuote(quote);
+      }
+      return result == null ? "" : result;
     }
 
     private Integer acceptInteger() {

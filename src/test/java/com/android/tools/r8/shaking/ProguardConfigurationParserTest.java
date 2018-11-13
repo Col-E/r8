@@ -144,6 +144,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   private List<String> whiteSpace =
       ImmutableList.of("", " ", "   ", "\t", " \t", " \t", " \t ", " \t\t \t ");
   private List<String> lineSeparators = ImmutableList.of("\n", "\r\n");
+  private List<Character> quotes = ImmutableList.of('"', '\'');
 
   @Before
   public void reset() {
@@ -1177,6 +1178,48 @@ public class ProguardConfigurationParserTest extends TestBase {
       assertEquals("", config.getRenameSourceFileAttribute());
       assertTrue(config.getKeepAttributes().sourceFile);
       assertFalse(config.getKeepAttributes().sourceDir);
+    }
+  }
+
+  @Test
+  public void testRenameSourceFileAttribute_qouted() throws Exception {
+    for (String lineSeparator : lineSeparators) {
+      for (Character quote : quotes) {
+        reset();
+        Path proguardConfig = writeTextToTempFile(lineSeparator,
+            ImmutableList.of(
+                "-renamesourcefileattribute " + quote + "PG" + quote,
+                "-keepattributes SourceFile"));
+        ProguardConfigurationParser parser =
+            new ProguardConfigurationParser(new DexItemFactory(), reporter);
+        parser.parse(proguardConfig);
+        verifyParserEndsCleanly();
+        ProguardConfiguration config = parser.getConfigRawForTesting();
+        assertEquals("PG", config.getRenameSourceFileAttribute());
+        assertTrue(config.getKeepAttributes().sourceFile);
+        assertFalse(config.getKeepAttributes().sourceDir);
+      }
+    }
+  }
+
+  @Test
+  public void testRenameSourceFileAttribute_qouted_empty() throws Exception {
+    for (String lineSeparator : lineSeparators) {
+      for (Character quote : quotes) {
+        reset();
+        Path proguardConfig = writeTextToTempFile(lineSeparator,
+            ImmutableList.of(
+                "-renamesourcefileattribute " + quote + quote,
+                "-keepattributes SourceFile"));
+        ProguardConfigurationParser parser =
+            new ProguardConfigurationParser(new DexItemFactory(), reporter);
+        parser.parse(proguardConfig);
+        verifyParserEndsCleanly();
+        ProguardConfiguration config = parser.getConfigRawForTesting();
+        assertEquals("", config.getRenameSourceFileAttribute());
+        assertTrue(config.getKeepAttributes().sourceFile);
+        assertFalse(config.getKeepAttributes().sourceDir);
+      }
     }
   }
 
