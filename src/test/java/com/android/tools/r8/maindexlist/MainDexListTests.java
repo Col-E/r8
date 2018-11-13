@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.maindexlist;
 
+import static com.android.tools.r8.resolution.SingleTargetLookupTest.appInfo;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -26,6 +27,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -675,6 +677,7 @@ public class MainDexListTests extends TestBase {
     options.minApiLevel = minApi;
     options.intermediate = intermediate;
     DexItemFactory factory = options.itemFactory;
+    AppInfo appInfo = new AppInfo(DexApplication.builder(factory, timing).build());
     DexApplication.Builder builder = DexApplication.builder(factory, timing);
     for (String clazz : classes) {
       DexString desc = factory.createString(DescriptorUtils.javaTypeToDescriptor(clazz));
@@ -702,7 +705,7 @@ public class MainDexListTests extends TestBase {
                 code);
         IRCode ir =
             code.buildIR(method, null, GraphLense.getIdentityLense(), options, Origin.unknown());
-        RegisterAllocator allocator = new LinearScanRegisterAllocator(ir, options);
+        RegisterAllocator allocator = new LinearScanRegisterAllocator(appInfo, ir, options);
         method.setCode(ir, allocator, options);
         directMethods[i] = method;
       }

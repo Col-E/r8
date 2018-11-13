@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.code.MoveResult;
 import com.android.tools.r8.code.MoveResultObject;
 import com.android.tools.r8.code.MoveResultWide;
-import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -162,21 +161,17 @@ public abstract class Invoke extends Instruction {
   protected void addInvokeAndMoveResult(
       com.android.tools.r8.code.Instruction instruction, DexBuilder builder) {
     if (outValue != null && outValue.needsRegister()) {
-      MoveType moveType = MoveType.fromValueType(outType());
+      TypeLatticeElement moveType = outValue.getTypeLattice();
       int register = builder.allocatedRegister(outValue, getNumber());
       com.android.tools.r8.code.Instruction moveResult;
-      switch (moveType) {
-        case SINGLE:
-          moveResult = new MoveResult(register);
-          break;
-        case WIDE:
-          moveResult = new MoveResultWide(register);
-          break;
-        case OBJECT:
-          moveResult = new MoveResultObject(register);
-          break;
-        default:
-          throw new Unreachable("Unexpected result type " + outType());
+      if (moveType.isSingle()) {
+        moveResult = new MoveResult(register);
+      } else if (moveType.isWide()) {
+        moveResult = new MoveResultWide(register);
+      } else if (moveType.isReference()) {
+        moveResult = new MoveResultObject(register);
+      } else {
+        throw new Unreachable("Unexpected result type " + outType());
       }
       builder.add(this, instruction, moveResult);
     } else {

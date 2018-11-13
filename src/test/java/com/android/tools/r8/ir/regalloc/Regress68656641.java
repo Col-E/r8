@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
@@ -20,8 +22,8 @@ import org.junit.Test;
 public class Regress68656641 extends SmaliTestBase {
 
   private static class MyRegisterAllocator extends LinearScanRegisterAllocator {
-    public MyRegisterAllocator(IRCode code, InternalOptions options) {
-      super(code, options);
+    public MyRegisterAllocator(AppInfo appInfo, IRCode code, InternalOptions options) {
+      super(appInfo, code, options);
     }
 
     public void addInactiveIntervals(LiveIntervals intervals) {
@@ -57,8 +59,9 @@ public class Regress68656641 extends SmaliTestBase {
   @Test
   public void splitOverlappingInactiveIntervalWithNoNextUse() throws Exception {
     InternalOptions options = new InternalOptions();
+    AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
     IRCode code = simpleCode(options);
-    MyRegisterAllocator allocator = new MyRegisterAllocator(code, options);
+    MyRegisterAllocator allocator = new MyRegisterAllocator(appInfo, code, options);
     // Setup live an inactive live interval with ranges [0, 10[ and [20, 30[ with only
     // uses in the first interval and which is linked to another interval.
     LiveIntervals inactiveIntervals =

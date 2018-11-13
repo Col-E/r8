@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
-import com.android.tools.r8.code.MoveType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Instruction;
 import java.util.Map;
 import java.util.Set;
@@ -11,28 +11,29 @@ import java.util.Set;
 // Register moves used by the spilling register allocator. These are used both for spill and
 // for phi moves and they are moves between actual registers represented by their register number.
 public class RegisterMove implements Comparable<RegisterMove> {
-  MoveType type;
-  int dst;
-  int src;
-  Instruction definition;
 
-  public RegisterMove(int dst, int src, MoveType type) {
+  final TypeLatticeElement type;
+  final int dst;
+  final int src;
+  final Instruction definition;
+
+  public RegisterMove(int dst, int src, TypeLatticeElement type) {
     this.dst = dst;
     this.src = src;
+    this.definition = null;
     this.type = type;
   }
 
-  public RegisterMove(int dst, MoveType type, Instruction definition) {
+  public RegisterMove(int dst, TypeLatticeElement type, Instruction definition) {
+    assert definition.isOutConstant() || definition.isArgument();
     this.dst = dst;
     this.src = LiveIntervals.NO_REGISTER;
-    this.type = type;
-    assert definition.isOutConstant() || definition.isArgument();
     this.definition = definition;
+    this.type = type;
   }
 
-
   private boolean writes(int register) {
-    if (type == MoveType.WIDE && (dst + 1) == register) {
+    if (type.isWide() && (dst + 1) == register) {
       return true;
     }
     return dst == register;
@@ -47,7 +48,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
         if (writes(valueMap.get(move.src))) {
           return true;
         }
-        if (move.type == MoveType.WIDE) {
+        if (move.type.isWide()) {
           if (writes(valueMap.get(move.src) + 1)) {
             return true;
           }
@@ -81,9 +82,14 @@ public class RegisterMove implements Comparable<RegisterMove> {
     if (dstDiff != 0) {
       return dstDiff;
     }
-    int typeDiff = o.type.ordinal() - type.ordinal();
-    if (typeDiff != 0) {
-      return typeDiff;
+    if (type.isPrimitive() != o.type.isPrimitive()) {
+      return Boolean.compare(type.isPrimitive(), o.type.isPrimitive());
+    }
+    if (type.isWide() != o.type.isWide()) {
+      return Boolean.compare(type.isWide(), o.type.isWide());
+    }
+    if (type.isReference() != o.type.isReference()) {
+      return Boolean.compare(type.isReference(), o.type.isReference());
     }
     if (definition == null) {
       if (o.definition != null) {

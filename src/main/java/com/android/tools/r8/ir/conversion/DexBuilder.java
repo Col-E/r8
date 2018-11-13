@@ -27,7 +27,6 @@ import com.android.tools.r8.code.MoveFrom16;
 import com.android.tools.r8.code.MoveObject;
 import com.android.tools.r8.code.MoveObject16;
 import com.android.tools.r8.code.MoveObjectFrom16;
-import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.code.MoveWide;
 import com.android.tools.r8.code.MoveWide16;
 import com.android.tools.r8.code.MoveWideFrom16;
@@ -43,6 +42,7 @@ import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -1240,58 +1240,46 @@ public class DexBuilder {
     @Override
     public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
       Move move = getMove();
-      MoveType moveType = MoveType.fromTypeLattice(move.outValue().getTypeLattice());
+      TypeLatticeElement moveType = move.outValue().getTypeLattice();
       int src = builder.argumentOrAllocateRegister(move.src(), move.getNumber());
       int dest = builder.allocatedRegister(move.dest(), move.getNumber());
-      Instruction instruction = null;
+      Instruction instruction;
       switch (size) {
         case 1:
           if (src == dest) {
             instruction = new Nop();
             break;
           }
-          switch (moveType) {
-            case SINGLE:
-              instruction = new com.android.tools.r8.code.Move(dest, src);
-              break;
-            case WIDE:
-              instruction = new MoveWide(dest, src);
-              break;
-            case OBJECT:
-              instruction = new MoveObject(dest, src);
-              break;
-            default:
-              throw new Unreachable("Unexpected type: " + move.outType());
+          if (moveType.isSingle()) {
+            instruction = new com.android.tools.r8.code.Move(dest, src);
+          } else if (moveType.isWide()) {
+            instruction = new MoveWide(dest, src);
+          } else if (moveType.isReference()) {
+            instruction = new MoveObject(dest, src);
+          } else {
+            throw new Unreachable("Unexpected type: " + move.outType());
           }
           break;
         case 2:
-          switch (moveType) {
-            case SINGLE:
-              instruction = new MoveFrom16(dest, src);
-              break;
-            case WIDE:
-              instruction = new MoveWideFrom16(dest, src);
-              break;
-            case OBJECT:
-              instruction = new MoveObjectFrom16(dest, src);
-              break;
-            default:
-              throw new Unreachable("Unexpected type: " + move.outType());
+          if (moveType.isSingle()) {
+            instruction = new MoveFrom16(dest, src);
+          } else if (moveType.isWide()) {
+            instruction = new MoveWideFrom16(dest, src);
+          } else if (moveType.isReference()) {
+            instruction = new MoveObjectFrom16(dest, src);
+          } else {
+            throw new Unreachable("Unexpected type: " + move.outType());
           }
           break;
         case 3:
-          switch (moveType) {
-            case SINGLE:
-              instruction = new Move16(dest, src);
-              break;
-            case WIDE:
-              instruction = new MoveWide16(dest, src);
-              break;
-            case OBJECT:
-              instruction = new MoveObject16(dest, src);
-              break;
-            default:
-              throw new Unreachable("Unexpected type: " + move.outType());
+          if (moveType.isSingle()) {
+            instruction = new Move16(dest, src);
+          } else if (moveType.isWide()) {
+            instruction = new MoveWide16(dest, src);
+          } else if (moveType.isReference()) {
+            instruction = new MoveObject16(dest, src);
+          } else {
+            throw new Unreachable("Unexpected type: " + move.outType());
           }
           break;
         default:

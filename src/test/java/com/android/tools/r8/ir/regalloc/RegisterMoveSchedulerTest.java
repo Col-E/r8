@@ -5,16 +5,18 @@ package com.android.tools.r8.ir.regalloc;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.code.MoveType;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -118,8 +120,8 @@ public class RegisterMoveSchedulerTest {
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(0, 1, MoveType.SINGLE));
-    scheduler.addMove(new RegisterMove(1, 0, MoveType.SINGLE));
+    scheduler.addMove(new RegisterMove(0, 1, TypeLatticeElement.SINGLE));
+    scheduler.addMove(new RegisterMove(1, 0, TypeLatticeElement.SINGLE));
     scheduler.schedule();
     assertEquals(3, moves.size());
     Move tempMove = moves.get(0);
@@ -143,8 +145,8 @@ public class RegisterMoveSchedulerTest {
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(0, 2, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(2, 0, MoveType.WIDE));
+    scheduler.addMove(new RegisterMove(0, 2, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(2, 0, TypeLatticeElement.WIDE));
     scheduler.schedule();
     assertEquals(3, moves.size());
     Move tempMove = moves.get(0);
@@ -168,8 +170,8 @@ public class RegisterMoveSchedulerTest {
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(1, 0, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(0, 1, MoveType.SINGLE));
+    scheduler.addMove(new RegisterMove(1, 0, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(0, 1, TypeLatticeElement.SINGLE));
     scheduler.schedule();
     assertEquals(3, moves.size());
     Move tempMove = moves.get(0).asMove();
@@ -193,8 +195,8 @@ public class RegisterMoveSchedulerTest {
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(0, 1, MoveType.SINGLE));
-    scheduler.addMove(new RegisterMove(1, 0, MoveType.WIDE));
+    scheduler.addMove(new RegisterMove(0, 1, TypeLatticeElement.SINGLE));
+    scheduler.addMove(new RegisterMove(1, 0, TypeLatticeElement.WIDE));
     scheduler.schedule();
     assertEquals(3, moves.size());
     Move tempMove = moves.get(0).asMove();
@@ -218,8 +220,8 @@ public class RegisterMoveSchedulerTest {
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(0, 1, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(2, 3, MoveType.WIDE));
+    scheduler.addMove(new RegisterMove(0, 1, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(2, 3, TypeLatticeElement.WIDE));
     scheduler.schedule();
     assertEquals(2, moves.size());
     Move firstMove = moves.get(0).asMove();
@@ -237,8 +239,8 @@ public class RegisterMoveSchedulerTest {
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(2, 1, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(0, 3, MoveType.WIDE));
+    scheduler.addMove(new RegisterMove(2, 1, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(0, 3, TypeLatticeElement.WIDE));
     scheduler.schedule();
     assertEquals(3, moves.size());
     Move firstMove = moves.get(0).asMove();
@@ -260,9 +262,9 @@ public class RegisterMoveSchedulerTest {
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(2, 0, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(0, 2, MoveType.SINGLE));
-    scheduler.addMove(new RegisterMove(1, 3, MoveType.SINGLE));
+    scheduler.addMove(new RegisterMove(2, 0, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(0, 2, TypeLatticeElement.SINGLE));
+    scheduler.addMove(new RegisterMove(1, 3, TypeLatticeElement.SINGLE));
     scheduler.schedule();
     assertEquals(4, moves.size());
     Move firstMove = moves.get(0).asMove();
@@ -284,8 +286,8 @@ public class RegisterMoveSchedulerTest {
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(0, 2, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(3, 0, MoveType.SINGLE));
+    scheduler.addMove(new RegisterMove(0, 2, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(3, 0, TypeLatticeElement.SINGLE));
     scheduler.schedule();
     assertEquals(3, moves.size());
     Move firstMove = moves.get(0).asMove();
@@ -307,10 +309,10 @@ public class RegisterMoveSchedulerTest {
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(14, 11, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(16, 13, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(10, 17, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(12, 19, MoveType.WIDE));
+    scheduler.addMove(new RegisterMove(14, 11, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(16, 13, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(10, 17, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(12, 19, TypeLatticeElement.WIDE));
     scheduler.schedule();
     // In order to resolve these moves, we need to use two temporary register pairs.
     assertEquals(6, moves.size());
@@ -323,13 +325,17 @@ public class RegisterMoveSchedulerTest {
 
   @Test
   public void multipleLiveTempRegisters() {
+    InternalOptions options = new InternalOptions();
+    AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
+    TypeLatticeElement objectType =
+        TypeLatticeElement.fromDexType(options.itemFactory.objectType, true, appInfo);
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);
-    scheduler.addMove(new RegisterMove(26, 22, MoveType.SINGLE));
-    scheduler.addMove(new RegisterMove(29, 24, MoveType.WIDE));
-    scheduler.addMove(new RegisterMove(28, 26, MoveType.OBJECT));
-    scheduler.addMove(new RegisterMove(23, 28, MoveType.WIDE));
+    scheduler.addMove(new RegisterMove(26, 22, TypeLatticeElement.SINGLE));
+    scheduler.addMove(new RegisterMove(29, 24, TypeLatticeElement.WIDE));
+    scheduler.addMove(new RegisterMove(28, 26, objectType));
+    scheduler.addMove(new RegisterMove(23, 28, TypeLatticeElement.WIDE));
     scheduler.schedule();
     // For this example we need recursive unblocking.
     assertEquals(6, moves.size());
