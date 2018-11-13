@@ -226,13 +226,14 @@ public class StringOptimizer {
           continue;
         }
         TypeLatticeElement inType = in.getTypeLattice();
-        if (inType.isNull()) {
+        if (inType.isConstantNull()) {
           Value nullStringValue =
               code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
           ConstString nullString = new ConstString(
               nullStringValue, appInfo.dexItemFactory.createString("null"), throwingInfo);
           it.replaceCurrentInstruction(nullString);
-        } else if (inType.isClassType()
+        } else if (inType.nullElement().isDefinitelyNotNull()
+            && inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType()
                 .equals(appInfo.dexItemFactory.stringType)) {
           Value out = invoke.outValue();

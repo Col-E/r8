@@ -881,8 +881,7 @@ public class IRConverter {
       // TODO(b/118536394): Failed on 5.1.1 and 6.0.1
       // stringOptimizer.rewriteClassGetName(code, appInfo);
       // Reflection optimization 3. String#valueOf(const-string) -> no op.
-      // TODO(b/119399513): Leads to test failures.
-      // stringOptimizer.removeTrivialConversions(code, appInfo);
+      stringOptimizer.removeTrivialConversions(code, appInfo);
       assert code.isConsistentSSA();
     }
 

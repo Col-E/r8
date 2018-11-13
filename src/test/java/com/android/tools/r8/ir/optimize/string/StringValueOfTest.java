@@ -23,7 +23,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,6 +45,7 @@ class StringValueOfTestMain {
       return String.valueOf(getClass().getName());
     }
 
+    @NeverInline
     @Override
     public String toString() {
       return getter();
@@ -54,11 +54,19 @@ class StringValueOfTestMain {
 
   public static void main(String[] args) {
     Foo foo = new Foo();
-    // valueOf inside getter() can be removed (if inlined).
+    // TODO(b/118536394): valueOf in getter() can be removed if combined with name reflection
+    // optimization, which will replace it with (definitely non-null) const-string.
     System.out.println(foo.getter());
     // Trivial, it's String.
-    System.out.println(String.valueOf(foo.toString()));
-    // But it's not. Outputs are same, though.
+    String str = foo.toString();
+    // TODO(b/119449728): But, it's still nullable.
+    // valueOf can be removed if the nullability of its return value is modeled.
+    System.out.println(String.valueOf(str));
+    if (str != null) {
+      // With an explicit check, it's non-null String.
+      System.out.println(String.valueOf(str));
+    }
+    // The instance itself is not of String type. Outputs are same, though.
     System.out.println(String.valueOf(foo));
 
     // Simply const-string "null"
@@ -85,12 +93,14 @@ public class StringValueOfTest extends TestBase {
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
+      "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
       "null",
       "null"
   );
   private static final Class<?> MAIN = StringValueOfTestMain.class;
 
   private static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
+  private static final String STRING_TYPE = "java.lang.String";
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
@@ -149,30 +159,33 @@ public class StringValueOfTest extends TestBase {
     assertEquals(expectedNullCount, count);
     count = countNullStringNumber(mainMethod);
     assertEquals(expectedNullStringCount, count);
+
+    MethodSubject hideNPE = mainClass.method(STRING_TYPE, "hideNPE", ImmutableList.of(STRING_TYPE));
+    assertThat(hideNPE, isPresent());
+    // Due to the nullable argument, valueOf should remain.
+    assertEquals(1, countStringValueOf(hideNPE));
   }
 
   @Test
-  @Ignore("b/119399513")
   public void testD8() throws Exception {
     assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
 
     TestRunResult result = testForD8()
-        .release()
-        .addProgramClasses(CLASSES)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 1, 1, 1);
-
-    result = testForD8()
         .debug()
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 3, 1, 0);
+    test(result, 4, 1, 0);
+
+    result = testForD8()
+        .release()
+        .addProgramClasses(CLASSES)
+        .run(MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, 3, 1, 1);
   }
 
   @Test
-  @Ignore("b/119399513")
   public void testR8() throws Exception {
     TestRunResult result = testForR8(backend)
         .addProgramClasses(CLASSES)
@@ -182,6 +195,6 @@ public class StringValueOfTest extends TestBase {
         .addKeepRules("-dontobfuscate")
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 1, 1, 1);
+    test(result, 3, 1, 1);
   }
 }
