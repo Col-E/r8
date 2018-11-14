@@ -272,7 +272,7 @@ public class Phi extends Value {
       return;
     }
     // Ensure that the value that replaces this phi is constrained to the type of this phi.
-    if (builder != null && typeLattice.isPreciseType()) {
+    if (builder != null && typeLattice.isPreciseType() && !typeLattice.isBottom()) {
       builder.constrainType(same, ValueType.fromTypeLattice(typeLattice));
     }
     // Removing this phi, so get rid of it as a phi user from all of the operands to avoid
