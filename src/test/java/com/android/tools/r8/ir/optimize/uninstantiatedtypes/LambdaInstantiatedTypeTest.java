@@ -11,8 +11,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.util.Arrays;
-import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,8 +26,8 @@ public class LambdaInstantiatedTypeTest extends TestBase {
   private final Backend backend;
 
   @Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public LambdaInstantiatedTypeTest(Backend backend) {

@@ -13,8 +13,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
-import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,8 +22,8 @@ public class Regress71604169Test extends TestBase {
   private Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public Regress71604169Test(Backend backend) {

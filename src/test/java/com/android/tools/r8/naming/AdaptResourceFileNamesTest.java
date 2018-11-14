@@ -33,8 +33,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +49,8 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
   private Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public AdaptResourceFileNamesTest(Backend backend) {

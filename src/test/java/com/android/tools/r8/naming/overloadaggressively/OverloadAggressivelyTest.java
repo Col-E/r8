@@ -21,8 +21,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,8 +32,8 @@ public class OverloadAggressivelyTest extends TestBase {
   private Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public OverloadAggressivelyTest(Backend backend) {

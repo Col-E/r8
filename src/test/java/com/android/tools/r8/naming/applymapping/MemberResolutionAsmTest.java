@@ -24,8 +24,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,8 +34,8 @@ public class MemberResolutionAsmTest extends AsmTestBase {
   private final Backend backend;
 
   @Parameterized.Parameters(name = "backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public MemberResolutionAsmTest(Backend backend) {

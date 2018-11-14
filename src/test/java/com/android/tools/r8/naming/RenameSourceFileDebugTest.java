@@ -8,7 +8,6 @@ import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISS
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
@@ -17,8 +16,6 @@ import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.BeforeClass;
@@ -75,8 +72,8 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
   private Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public RenameSourceFileDebugTest(Backend backend) {

@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import inlining.NeverInline;
-import java.util.Arrays;
-import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -18,8 +16,8 @@ public class CatchHandlerRemovalTest extends TestBase {
   private final Backend backend;
 
   @Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public CatchHandlerRemovalTest(Backend backend) {

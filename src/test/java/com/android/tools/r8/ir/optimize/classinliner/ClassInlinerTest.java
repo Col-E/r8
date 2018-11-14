@@ -50,8 +50,6 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
@@ -67,8 +65,8 @@ public class ClassInlinerTest extends TestBase {
   private Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public ClassInlinerTest(Backend backend) {

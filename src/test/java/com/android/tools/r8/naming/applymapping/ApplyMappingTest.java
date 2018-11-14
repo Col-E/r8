@@ -32,8 +32,6 @@ import com.android.tools.r8.utils.codeinspector.NewInstanceInstructionSubject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
@@ -64,8 +62,8 @@ public class ApplyMappingTest extends TestBase {
   private Backend backend;
 
   @Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public ApplyMappingTest(Backend backend) {

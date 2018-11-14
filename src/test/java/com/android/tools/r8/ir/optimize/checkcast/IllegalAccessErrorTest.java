@@ -10,8 +10,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,8 +24,8 @@ public class IllegalAccessErrorTest extends AsmTestBase {
   private final Backend backend;
 
   @Parameterized.Parameters(name = "backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
 

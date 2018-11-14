@@ -15,8 +15,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -165,8 +163,8 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
       ImmutableList.of(L1.class, L2_1.class, L2_2.class, L3_1.class, L3_2.class);
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public ConstructorRelaxationTest(Backend backend) {

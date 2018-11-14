@@ -31,8 +31,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
-import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -66,11 +64,11 @@ public class MinifierClassSignatureTest extends TestBase {
   String outerSignature = "<T:Ljava/lang/Object;>Ljava/lang/Object;";
   String extendsInnerSignature = "LOuter<TT;>.Inner;";
   String extendsInnerInnerSignature = "LOuter<TT;>.Inner.InnerInner;";
-  Backend backend;
+  private Backend backend;
 
   @Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public MinifierClassSignatureTest(Backend backend) {

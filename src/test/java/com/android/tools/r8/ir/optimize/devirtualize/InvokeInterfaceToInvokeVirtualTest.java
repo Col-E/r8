@@ -23,8 +23,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,8 +34,8 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
   private Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public InvokeInterfaceToInvokeVirtualTest(Backend backend) {

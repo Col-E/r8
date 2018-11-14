@@ -36,8 +36,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,11 +64,11 @@ public class MinifierMethodSignatureTest extends TestBase {
   private String parameterizedReturnSignature = "()LMethods<TX;>.Inner;";
   private String parameterizedArgumentsSignature = "(TX;LMethods<TX;>.Inner;)V";
   private String parametrizedThrowsSignature = "()V^TX;";
-  Backend backend;
+  private Backend backend;
 
   @Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public MinifierMethodSignatureTest(Backend backend) {

@@ -33,8 +33,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,8 +64,8 @@ public class MinifierFieldSignatureTest extends TestBase {
   private Backend backend;
 
   @Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public MinifierFieldSignatureTest(Backend backend) {

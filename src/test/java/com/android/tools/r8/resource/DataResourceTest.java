@@ -19,8 +19,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,8 +32,8 @@ public class DataResourceTest {
   private TestBase.Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<TestBase.Backend> data() {
-    return Arrays.asList(TestBase.Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public DataResourceTest(TestBase.Backend backend) {

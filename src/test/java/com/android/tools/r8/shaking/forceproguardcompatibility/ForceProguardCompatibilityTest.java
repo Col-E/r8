@@ -45,8 +45,6 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,8 +56,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
   private Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public ForceProguardCompatibilityTest(Backend backend) {

@@ -28,7 +28,7 @@ public class KeepAttributesTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static Backend[] parameters() {
-    return new Backend[] { Backend.CF, Backend.DEX};
+    return Backend.values();
   }
 
   private final Backend backend;

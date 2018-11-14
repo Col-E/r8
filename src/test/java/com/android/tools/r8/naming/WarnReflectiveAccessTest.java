@@ -25,8 +25,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,7 +61,7 @@ class WarnReflectiveAccessTestMain {
 public class WarnReflectiveAccessTest extends TestBase {
 
   // See "Method foo" in WarnReflectiveAccessTestMain.main().
-  private static int LINE_NUMBER_OF_MARKED_LINE = 57;
+  private static int LINE_NUMBER_OF_MARKED_LINE = 55;
 
   private KeepingDiagnosticHandler handler;
   private Reporter reporter;
@@ -71,8 +69,8 @@ public class WarnReflectiveAccessTest extends TestBase {
   private Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public WarnReflectiveAccessTest(Backend backend) {
