@@ -4,11 +4,14 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
+import static org.junit.Assert.fail;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -16,6 +19,7 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import org.junit.Before;
 
 public class TypeAnalysisTestBase extends TestBase {
@@ -51,5 +55,23 @@ public class TypeAnalysisTestBase extends TestBase {
             .getMethod()
             .buildIR(appInfo, GraphLense.getIdentityLense(), options, Origin.unknown());
     irInspector.accept(code);
+  }
+
+  public static <T extends Instruction> T getMatchingInstruction(
+      IRCode code, Predicate<Instruction> predicate) {
+    Instruction result = null;
+    Iterable<Instruction> instructions = code::instructionIterator;
+    for (Instruction instruction : instructions) {
+      if (predicate.test(instruction)) {
+        if (result != null) {
+          fail();
+        }
+        result = instruction;
+      }
+    }
+    if (result == null) {
+      fail();
+    }
+    return (T) result;
   }
 }

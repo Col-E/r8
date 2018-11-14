@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.analysis.type;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.FLOAT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.ir.code.ArrayGet;
@@ -17,7 +16,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -97,24 +95,6 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
         assertEquals(FLOAT, constNumberInstruction.outValue().getTypeLattice());
       }
     };
-  }
-
-  private static <T extends Instruction> T getMatchingInstruction(
-      IRCode code, Predicate<Instruction> predicate) {
-    Instruction result = null;
-    Iterable<Instruction> instructions = code::instructionIterator;
-    for (Instruction instruction : instructions) {
-      if (predicate.test(instruction)) {
-        if (result != null) {
-          fail();
-        }
-        result = instruction;
-      }
-    }
-    if (result == null) {
-      fail();
-    }
-    return (T) result;
   }
 
   static class TestClass {
