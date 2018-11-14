@@ -124,7 +124,7 @@ public class Phi extends Value {
       builder.constrainType(operand, readConstraint);
       appendOperand(operand);
     }
-    removeTrivialPhi();
+    removeTrivialPhi(builder);
     recomputeNeverNull();
   }
 
@@ -247,6 +247,10 @@ public class Phi extends Value {
   }
 
   public void removeTrivialPhi() {
+    removeTrivialPhi(null);
+  }
+
+  public void removeTrivialPhi(IRBuilder builder) {
     Value same = null;
     for (Value op : operands) {
       if (op == same || op == this) {
@@ -266,6 +270,10 @@ public class Phi extends Value {
       // of the form v1 = phi(v1, v1) in dead blocks. If we encounter that case we just
       // leave the phi in there and check at the end that there are no trivial phis.
       return;
+    }
+    // Ensure that the value that replaces this phi is constrained to the type of this phi.
+    if (builder != null && typeLattice.isPreciseType()) {
+      builder.constrainType(same, ValueType.fromTypeLattice(typeLattice));
     }
     // Removing this phi, so get rid of it as a phi user from all of the operands to avoid
     // recursively getting back here with the same phi. If the phi has itself as an operand
@@ -292,7 +300,7 @@ public class Phi extends Value {
       replaceUsers(same);
       // Try to simplify phi users that might now have become trivial.
       for (Phi user : phiUsersToSimplify) {
-        user.removeTrivialPhi();
+        user.removeTrivialPhi(builder);
       }
     }
     // Get rid of the phi itself.

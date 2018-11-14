@@ -596,7 +596,7 @@ public class IRBuilder {
       block.deduplicatePhis();
     }
 
-    ir.removeAllTrivialPhis();
+    ir.removeAllTrivialPhis(this);
     ir.removeUnreachableBlocks();
 
     // Constrain all values to precise types.

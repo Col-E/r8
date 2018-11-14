@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
@@ -836,10 +837,14 @@ public class IRCode {
   }
 
   public void removeAllTrivialPhis() {
+    removeAllTrivialPhis(null);
+  }
+
+  public void removeAllTrivialPhis(IRBuilder builder) {
     for (BasicBlock block : blocks) {
       List<Phi> phis = new ArrayList<>(block.getPhis());
       for (Phi phi : phis) {
-        phi.removeTrivialPhi();
+        phi.removeTrivialPhi(builder);
       }
     }
   }

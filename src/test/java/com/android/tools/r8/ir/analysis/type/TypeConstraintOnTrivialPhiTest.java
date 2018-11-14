@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.function.Consumer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TypeConstraintOnTrivialPhiTest extends TypeAnalysisTestBase {
@@ -88,7 +87,6 @@ public class TypeConstraintOnTrivialPhiTest extends TypeAnalysisTestBase {
   }
 
   @Test
-  @Ignore("b/119401913")
   public void testFloatConstraintOnTrivialPhi() throws Exception {
     buildAndCheckIR("floatConstraintOnTrivialPhiTest", testInspector(FLOAT));
   }
@@ -99,7 +97,6 @@ public class TypeConstraintOnTrivialPhiTest extends TypeAnalysisTestBase {
   }
 
   @Test
-  @Ignore("b/119401913")
   public void testDoubleConstraintOnTrivialPhi() throws Exception {
     buildAndCheckIR("doubleConstraintOnTrivialPhiTest", testInspector(DOUBLE));
   }
