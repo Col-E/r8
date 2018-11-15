@@ -26,6 +26,8 @@ public class TypeAnalysis {
     NARROWING,  // updating with more specific info, e.g., passing the return value of the inlinee.
   }
 
+  private final boolean mayHaveImpreciseTypes;
+
   private Mode mode = Mode.UNSET;
 
   private final AppInfo appInfo;
@@ -33,9 +35,15 @@ public class TypeAnalysis {
 
   private final Deque<Value> worklist = new ArrayDeque<>();
 
-  public TypeAnalysis(AppInfo appInfo, DexEncodedMethod encodedMethod) {
+  public TypeAnalysis(
+      AppInfo appInfo, DexEncodedMethod encodedMethod, boolean mayHaveImpreciseTypes) {
     this.appInfo = appInfo;
     this.context = encodedMethod;
+    this.mayHaveImpreciseTypes = mayHaveImpreciseTypes;
+  }
+
+  public TypeAnalysis(AppInfo appInfo, DexEncodedMethod encodedMethod) {
+    this(appInfo, encodedMethod, false);
   }
 
   private void analyze() {
@@ -107,11 +115,13 @@ public class TypeAnalysis {
   }
 
   private void analyzeValue(Value value) {
+    TypeLatticeElement previous = value.getTypeLattice();
     TypeLatticeElement derived =
         value.isPhi()
             ? value.asPhi().computePhiType(appInfo)
             : value.definition.evaluate(appInfo);
-    assert derived.isPreciseType();
+    assert mayHaveImpreciseTypes || derived.isPreciseType();
+    assert !previous.isPreciseType() || derived.isPreciseType();
     updateTypeOfValue(value, derived);
   }
 

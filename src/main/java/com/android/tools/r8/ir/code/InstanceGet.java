@@ -29,8 +29,8 @@ import org.objectweb.asm.Opcodes;
 
 public class InstanceGet extends FieldInstruction {
 
-  public InstanceGet(MemberType type, Value dest, Value object, DexField field) {
-    super(type, field, dest, object);
+  public InstanceGet(Value dest, Value object, DexField field) {
+    super(field, dest, object);
   }
 
   public Value dest() {
@@ -40,11 +40,6 @@ public class InstanceGet extends FieldInstruction {
   public Value object() {
     assert inValues.size() == 1;
     return inValues.get(0);
-  }
-
-  @Override
-  Value getFieldInOrOutValue() {
-    return dest();
   }
 
   @Override

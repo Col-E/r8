@@ -465,7 +465,7 @@ public class IRCode {
     assert consistentDefUseChains();
     assert validThrowingInstructions();
     assert noCriticalEdges();
-    assert verifyNoImpreciseTypes();
+    assert verifyNoImpreciseOrBottomTypes();
     return true;
   }
 
@@ -675,24 +675,17 @@ public class IRCode {
     return true;
   }
 
-  public boolean verifyNoImpreciseTypes() {
+  public boolean verifyNoImpreciseOrBottomTypes() {
     return verifySSATypeLattice(
         v -> {
           assert v.getTypeLattice().isPreciseType();
-          if (v.definition != null) {
-            assert !v.definition.isArrayGet()
-                || v.definition.asArrayGet().getMemberType().isPrecise();
-            assert !v.definition.isArrayPut()
-                || v.definition.asArrayPut().getMemberType().isPrecise();
-            assert !v.definition.isFieldInstruction()
-                || v.definition.asFieldInstruction().getType().isPrecise();
-          }
+          // For now we assume no bottom types on IR values. We may want to reconsider this for
+          // representing unreachable code.
+          assert !v.getTypeLattice().isBottom();
+          assert !(v.definition instanceof ImpreciseMemberTypeInstruction)
+              || ((ImpreciseMemberTypeInstruction) v.definition).getMemberType().isPrecise();
           return true;
         });
-  }
-
-  public boolean verifyNoBottomTypes() {
-    return verifySSATypeLattice(v -> !v.getTypeLattice().isBottom());
   }
 
   private boolean verifySSATypeLattice(Predicate<Value> tester) {

@@ -27,8 +27,8 @@ import org.objectweb.asm.Opcodes;
 
 public class InstancePut extends FieldInstruction {
 
-  public InstancePut(MemberType type, DexField field, Value object, Value value) {
-    super(type, field, null, Arrays.asList(object, value));
+  public InstancePut(DexField field, Value object, Value value) {
+    super(field, null, Arrays.asList(object, value));
     assert object().verifyCompatible(ValueType.OBJECT);
     assert value().verifyCompatible(ValueType.fromDexType(field.type));
   }
@@ -39,11 +39,6 @@ public class InstancePut extends FieldInstruction {
 
   public Value value() {
     return inValues.get(1);
-  }
-
-  @Override
-  Value getFieldInOrOutValue() {
-    return value();
   }
 
   @Override

@@ -157,13 +157,11 @@ public class IdentifierNameStringMarker {
           }
           if (instruction.isStaticPut()) {
             StaticPut staticPut = instruction.asStaticPut();
-            iterator.replaceCurrentInstruction(
-                new StaticPut(staticPut.getType(), newIn, field));
+            iterator.replaceCurrentInstruction(new StaticPut(newIn, field));
           } else {
             assert instruction.isInstancePut();
             InstancePut instancePut = instruction.asInstancePut();
-            iterator.replaceCurrentInstruction(
-                new InstancePut(instancePut.getType(), field, instancePut.object(), newIn));
+            iterator.replaceCurrentInstruction(new InstancePut(field, instancePut.object(), newIn));
           }
           encodedMethod.markUseIdentifierNameString();
         } else if (instruction.isInvokeMethod()) {

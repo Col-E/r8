@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexField;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class FieldInstruction extends Instruction {
@@ -11,20 +12,15 @@ public abstract class FieldInstruction extends Instruction {
   private MemberType type;
   private final DexField field;
 
-  protected FieldInstruction(MemberType type, DexField field, Value dest, Value value) {
-    super(dest, value);
-    assert type != null;
-    assert field != null;
-    this.type = type;
-    this.field = field;
+  protected FieldInstruction(DexField field, Value dest, Value value) {
+    this(field, dest, Collections.singletonList(value));
   }
 
-  protected FieldInstruction(MemberType type, DexField field, Value dest, List<Value> inValues) {
+  protected FieldInstruction(DexField field, Value dest, List<Value> inValues) {
     super(dest, inValues);
-    assert type != null;
     assert field != null;
-    this.type = type;
     this.field = field;
+    this.type = MemberType.fromDexType(field.type);
   }
 
   public MemberType getType() {
@@ -34,8 +30,6 @@ public abstract class FieldInstruction extends Instruction {
   public DexField getField() {
     return field;
   }
-
-  abstract Value getFieldInOrOutValue();
 
   @Override
   public boolean isFieldInstruction() {
@@ -51,15 +45,5 @@ public abstract class FieldInstruction extends Instruction {
   public boolean hasInvariantOutType() {
     // TODO(jsjeon): what if the target field is known to be non-null?
     return true;
-  }
-
-  @Override
-  public boolean constrainType() {
-    if (!type.isPrecise()) {
-      type =
-          MemberType.constrainedType(
-              type, ValueType.fromTypeLattice(getFieldInOrOutValue().getTypeLattice()));
-    }
-    return type != null;
   }
 }

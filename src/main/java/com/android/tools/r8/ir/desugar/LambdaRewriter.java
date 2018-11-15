@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
@@ -291,7 +290,7 @@ public class LambdaRewriter {
     // reading the value of INSTANCE field created for singleton lambda class.
     if (lambdaClass.isStateless()) {
       instructions.replaceCurrentInstruction(
-          new StaticGet(MemberType.OBJECT, lambdaInstanceValue, lambdaClass.instanceField));
+          new StaticGet(lambdaInstanceValue, lambdaClass.instanceField));
       // Note that since we replace one throwing operation with another we don't need
       // to have any special handling for catch handlers.
       return;

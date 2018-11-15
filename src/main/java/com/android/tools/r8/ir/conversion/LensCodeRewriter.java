@@ -212,7 +212,6 @@ public class LensCodeRewriter {
           if (actualField != field) {
             InstanceGet newInstanceGet =
                 new InstanceGet(
-                    instanceGet.getType(),
                     makeOutValue(instanceGet, code, newSSAValues),
                     instanceGet.object(),
                     actualField);
@@ -224,8 +223,7 @@ public class LensCodeRewriter {
           DexField actualField = graphLense.lookupField(field);
           if (actualField != field) {
             InstancePut newInstancePut =
-                new InstancePut(
-                    instancePut.getType(), actualField, instancePut.object(), instancePut.value());
+                new InstancePut(actualField, instancePut.object(), instancePut.value());
             iterator.replaceCurrentInstruction(newInstancePut);
           }
         } else if (current.isStaticGet()) {
@@ -234,8 +232,7 @@ public class LensCodeRewriter {
           DexField actualField = graphLense.lookupField(field);
           if (actualField != field) {
             StaticGet newStaticGet =
-                new StaticGet(
-                    staticGet.getType(), makeOutValue(staticGet, code, newSSAValues), actualField);
+                new StaticGet(makeOutValue(staticGet, code, newSSAValues), actualField);
             iterator.replaceCurrentInstruction(newStaticGet);
           }
         } else if (current.isStaticPut()) {
@@ -243,8 +240,7 @@ public class LensCodeRewriter {
           DexField field = staticPut.getField();
           DexField actualField = graphLense.lookupField(field);
           if (actualField != field) {
-            StaticPut newStaticPut =
-                new StaticPut(staticPut.getType(), staticPut.inValue(), actualField);
+            StaticPut newStaticPut = new StaticPut(staticPut.inValue(), actualField);
             iterator.replaceCurrentInstruction(newStaticPut);
           }
         } else if (current.isCheckCast()) {

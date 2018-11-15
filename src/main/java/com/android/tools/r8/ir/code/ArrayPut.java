@@ -19,12 +19,13 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.Arrays;
 
-public class ArrayPut extends Instruction {
+public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruction {
 
   // Input values are ordered according to the stack order of the Java bytecode astore.
   private static final int ARRAY_INDEX = 0;
@@ -53,6 +54,7 @@ public class ArrayPut extends Instruction {
     return inValues.get(VALUE_INDEX);
   }
 
+  @Override
   public MemberType getMemberType() {
     return type;
   }
@@ -181,10 +183,7 @@ public class ArrayPut extends Instruction {
   }
 
   @Override
-  public boolean constrainType() {
-    if (!type.isPrecise()) {
-      type = MemberType.constrainedType(type, ValueType.fromTypeLattice(value().getTypeLattice()));
-    }
-    return type != null;
+  public void constrainType(TypeConstraintResolver constraintResolver) {
+    constraintResolver.constrainArrayMemberType(type, value(), array(), t -> type = t);
   }
 }

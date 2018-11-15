@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
@@ -305,7 +304,6 @@ final class StaticizingProcessor {
           assert outValue != null;
           it.replaceCurrentInstruction(
               new StaticGet(
-                  MemberType.fromDexType(field.type),
                   code.createValue(
                       TypeLatticeElement.fromDexType(field.type, true, classStaticizer.appInfo),
                       outValue.getLocalInfo()),
@@ -320,9 +318,7 @@ final class StaticizingProcessor {
         StaticPut staticPut = instruction.asStaticPut();
         DexField field = mapFieldIfMoved(staticPut.getField());
         if (field != staticPut.getField()) {
-          it.replaceCurrentInstruction(
-              new StaticPut(MemberType.fromDexType(field.type), staticPut.inValue(), field)
-          );
+          it.replaceCurrentInstruction(new StaticPut(staticPut.inValue(), field));
         }
         continue;
       }

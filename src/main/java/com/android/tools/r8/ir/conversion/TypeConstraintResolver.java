@@ -5,21 +5,31 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.ImpreciseMemberTypeInstruction;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Type constraint resolver that ensures that all SSA values have a "precise" type, ie, every value
@@ -39,7 +49,14 @@ import java.util.Map;
  */
 public class TypeConstraintResolver {
 
+  private final IRBuilder builder;
+  private final Reporter reporter;
   private final Map<Value, Value> unificationParents = new HashMap<>();
+
+  public TypeConstraintResolver(IRBuilder builder, Reporter reporter) {
+    this.builder = builder;
+    this.reporter = reporter;
+  }
 
   public static ValueType constraintForType(TypeLatticeElement type) {
     if (type.isTop()) {
@@ -96,7 +113,23 @@ public class TypeConstraintResolver {
     }
   }
 
-  public void resolve(IRCode code, IRBuilder builder, Reporter reporter) {
+  public void resolve(
+      List<ImpreciseMemberTypeInstruction> impreciseInstructions,
+      IRCode code,
+      AppInfo appInfo,
+      DexEncodedMethod method,
+      DexEncodedMethod context) {
+    // Round one will resolve at least all object vs single types.
+    List<Value> remainingImpreciseValues = resolveRoundOne(code);
+    // Round two will resolve any remaining single and wide types. These can depend on the types
+    // of array instructions, thus we need to complete the type fixed point prior to resolving.
+    new TypeAnalysis(appInfo, context, true).widening(method, code);
+    // Round two resolves any remaining imprecision and finally selects a final precise type for
+    // any unconstrained imprecise type.
+    resolveRoundTwo(code, impreciseInstructions, remainingImpreciseValues);
+  }
+
+  private List<Value> resolveRoundOne(IRCode code) {
     List<Value> impreciseValues = new ArrayList<>();
     for (BasicBlock block : code.blocks) {
       for (Phi phi : block.getPhis()) {
@@ -123,36 +156,111 @@ public class TypeConstraintResolver {
         }
       }
     }
-    for (Value value : impreciseValues) {
-      builder.constrainType(value, getCanonicalTypeConstraint(value));
-      if (!value.getTypeLattice().isPreciseType()) {
-        throw reporter.fatalError(
-            new StringDiagnostic(
-                "Cannot determine precise type for value: "
-                    + value
-                    + ", its imprecise type is: "
-                    + value.getTypeLattice(),
-                code.origin,
-                new MethodPosition(code.method.method)));
+    return constrainValues(false, impreciseValues);
+  }
+
+  private void resolveRoundTwo(
+      IRCode code,
+      List<ImpreciseMemberTypeInstruction> impreciseInstructions,
+      List<Value> remainingImpreciseValues) {
+    if (impreciseInstructions != null) {
+      for (ImpreciseMemberTypeInstruction impreciseInstruction : impreciseInstructions) {
+        impreciseInstruction.constrainType(this);
       }
     }
+    ArrayList<Value> stillImprecise = constrainValues(true, remainingImpreciseValues);
+    if (!stillImprecise.isEmpty()) {
+      throw reporter.fatalError(
+          new StringDiagnostic(
+              "Cannot determine precise type for value: "
+                  + stillImprecise.get(0)
+                  + ", its imprecise type is: "
+                  + stillImprecise.get(0).getTypeLattice(),
+              code.origin,
+              new MethodPosition(code.method.method)));
+    }
+  }
+
+  private ArrayList<Value> constrainValues(boolean finished, List<Value> impreciseValues) {
+    ArrayList<Value> stillImprecise = new ArrayList<>(impreciseValues.size());
+    for (Value value : impreciseValues) {
+      builder.constrainType(value, getCanonicalTypeConstraint(value, finished));
+      if (!value.getTypeLattice().isPreciseType()) {
+        stillImprecise.add(value);
+      }
+    }
+    return stillImprecise;
+  }
+
+  public void constrainArrayMemberType(
+      MemberType type, Value value, Value array, Consumer<MemberType> setter) {
+    assert !type.isPrecise();
+    Value canonical = canonical(value);
+    ValueType constraint;
+    if (array.getTypeLattice().isArrayType()) {
+      // If the array type is known it uniquely defines the actual member type.
+      ArrayTypeLatticeElement arrayType = array.getTypeLattice().asArrayTypeLatticeElement();
+      constraint = ValueType.fromDexType(arrayType.getArrayElementType(builder.getFactory()));
+    } else {
+      // If not, e.g., the array input is null, the canonical value determines the final type.
+      constraint = getCanonicalTypeConstraint(canonical, true);
+    }
+    // Constrain the canonical value by the final and precise type constraint and set the member.
+    // A refinement of the value type will then be propagated in constrainValues of "round two".
+    builder.constrainType(canonical, constraint);
+    setter.accept(MemberType.constrainedType(type, constraint));
   }
 
   private void merge(Value value1, Value value2) {
     link(canonical(value1), canonical(value2));
   }
 
-  private ValueType getCanonicalTypeConstraint(Value value) {
+  private ValueType getCanonicalTypeConstraint(Value value, boolean finished) {
     ValueType type = constraintForType(canonical(value).getTypeLattice());
     switch (type) {
-      case INT_OR_FLOAT:
       case INT_OR_FLOAT_OR_NULL:
-        return ValueType.INT;
+        // There is never a second round for resolving object vs single.
+        assert !finished;
+        return ValueType.INT_OR_FLOAT;
+      case INT_OR_FLOAT:
+        assert !finished || verifyNoConstrainedUses(value);
+        return finished ? ValueType.INT : type;
       case LONG_OR_DOUBLE:
-        return ValueType.LONG;
+        assert !finished || verifyNoConstrainedUses(value);
+        return finished ? ValueType.LONG : type;
       default:
         return type;
     }
+  }
+
+  private static boolean verifyNoConstrainedUses(Value value) {
+    return verifyNoConstrainedUses(value, ImmutableSet.of());
+  }
+
+  private static boolean verifyNoConstrainedUses(Value value, Set<Value> assumeNoConstrainedUses) {
+    for (Instruction user : value.uniqueUsers()) {
+      if (user.isIf()) {
+        If ifInstruction = user.asIf();
+        if (ifInstruction.isZeroTest()) {
+          continue;
+        }
+        Value other = ifInstruction.inValues().get(1 - ifInstruction.inValues().indexOf(value));
+        if (assumeNoConstrainedUses.contains(other)) {
+          continue;
+        }
+        assert verifyNoConstrainedUses(
+            other,
+            ImmutableSet.<Value>builder().addAll(assumeNoConstrainedUses).add(value).build());
+      } else if (user.isArrayPut()) {
+        ArrayPut put = user.asArrayPut();
+        assert value == put.value();
+        assert !put.getMemberType().isPrecise();
+        assert put.array().getTypeLattice().isDefinitelyNull();
+      } else {
+        assert false;
+      }
+    }
+    return true;
   }
 
   // Link two values as having the same type.
@@ -196,5 +304,4 @@ public class TypeConstraintResolver {
     }
     return value;
   }
-
 }

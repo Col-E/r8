@@ -553,13 +553,6 @@ public abstract class R8RunArtTestsTest {
   // Tests where the output of R8 fails when run with Art.
   private static final Multimap<String, TestCondition> failingRunWithArt =
       new ImmutableListMultimap.Builder<String, TestCondition>()
-          // TODO(b/119217869): Re-enable this test once fixed.
-          .put(
-              "614-checker-dump-constant-location",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.R8_COMPILER,
-                  TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
           // The growth limit test fails after processing by R8 because R8 will eliminate an
           // "unneeded" const store. The following reflective call to the VM's GC will then see the
           // large array as still live and the subsequent allocations will fail to reach the desired

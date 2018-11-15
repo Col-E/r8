@@ -148,9 +148,11 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
     // We need to insert remapped values and in case the capture field
     // of type Object optionally cast to expected field.
-    InstanceGet newInstanceGet = new InstanceGet(instanceGet.getType(),
-        createValueForType(context, fieldType), instanceGet.object(),
-        mapCaptureField(context.factory, field.clazz, field));
+    InstanceGet newInstanceGet =
+        new InstanceGet(
+            createValueForType(context, fieldType),
+            instanceGet.object(),
+            mapCaptureField(context.factory, field.clazz, field));
     context.instructions().replaceCurrentInstruction(newInstanceGet);
 
     if (fieldType.isPrimitiveType() || fieldType == context.factory.objectType) {
@@ -185,7 +187,6 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
   public void patch(CodeProcessor context, StaticGet staticGet) {
     context.instructions().replaceCurrentInstruction(
         new StaticGet(
-            staticGet.getType(),
             context.code.createValue(
                 TypeLatticeElement.fromDexType(staticGet.getField().type, true, context.appInfo)),
             mapSingletonInstanceField(context.factory, staticGet.getField())));

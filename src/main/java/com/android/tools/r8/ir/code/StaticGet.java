@@ -27,17 +27,12 @@ import org.objectweb.asm.Opcodes;
 
 public class StaticGet extends FieldInstruction {
 
-  public StaticGet(MemberType type, Value dest, DexField field) {
-    super(type, field, dest, (Value) null);
+  public StaticGet(Value dest, DexField field) {
+    super(field, dest, (Value) null);
   }
 
   public Value dest() {
     return outValue;
-  }
-
-  @Override
-  Value getFieldInOrOutValue() {
-    return dest();
   }
 
   @Override

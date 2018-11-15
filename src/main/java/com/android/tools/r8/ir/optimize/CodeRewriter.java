@@ -69,7 +69,6 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -3264,8 +3263,8 @@ public class CodeRewriter {
     DexMethod printLn = dexItemFactory.createMethod(javaIoPrintStreamType, proto, "println");
 
     iterator.add(
-        new StaticGet(MemberType.OBJECT, out,
-            dexItemFactory.createField(javaLangSystemType, javaIoPrintStreamType, "out")));
+        new StaticGet(
+            out, dexItemFactory.createField(javaLangSystemType, javaIoPrintStreamType, "out")));
 
     Value value = addConstString(code, iterator, "INVOKE ");
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));

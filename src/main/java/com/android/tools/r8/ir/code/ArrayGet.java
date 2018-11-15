@@ -14,6 +14,7 @@ import com.android.tools.r8.code.AgetObject;
 import com.android.tools.r8.code.AgetShort;
 import com.android.tools.r8.code.AgetWide;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -21,12 +22,13 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.Arrays;
 
-public class ArrayGet extends Instruction {
+public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruction {
 
   private MemberType type;
 
@@ -47,6 +49,7 @@ public class ArrayGet extends Instruction {
     return inValues.get(1);
   }
 
+  @Override
   public MemberType getMemberType() {
     return type;
   }
@@ -188,11 +191,21 @@ public class ArrayGet extends Instruction {
       case DOUBLE:
         return TypeLatticeElement.DOUBLE;
       case INT_OR_FLOAT:
+        return checkConstraint(dest(), ValueType.INT_OR_FLOAT);
       case LONG_OR_DOUBLE:
-        throw new Unreachable("Unexpected imprecise type: " + getMemberType());
+        return checkConstraint(dest(), ValueType.LONG_OR_DOUBLE);
       default:
         throw new Unreachable("Unexpected member type: " + getMemberType());
     }
+  }
+
+  private static TypeLatticeElement checkConstraint(Value value, ValueType constraint) {
+    TypeLatticeElement latticeElement = value.constrainedType(constraint);
+    if (latticeElement != null) {
+      return latticeElement;
+    }
+    throw new CompilationError(
+        "Failure to constrain value: " + value + " by constraint: " + constraint);
   }
 
   @Override
@@ -201,10 +214,7 @@ public class ArrayGet extends Instruction {
   }
 
   @Override
-  public boolean constrainType() {
-    if (!type.isPrecise()) {
-      type = MemberType.constrainedType(type, ValueType.fromTypeLattice(dest().getTypeLattice()));
-    }
-    return type != null;
+  public void constrainType(TypeConstraintResolver constraintResolver) {
+    constraintResolver.constrainArrayMemberType(type, dest(), array(), t -> type = t);
   }
 }

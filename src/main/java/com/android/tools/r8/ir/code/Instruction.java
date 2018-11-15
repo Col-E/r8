@@ -1253,8 +1253,4 @@ public abstract class Instruction {
     assert !instructionTypeCanThrow() || getPosition().isSome() || getPosition().isSyntheticNone();
     return true;
   }
-
-  public boolean constrainType() {
-    return true;
-  }
 }

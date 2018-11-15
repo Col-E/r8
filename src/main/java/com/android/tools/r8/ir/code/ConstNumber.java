@@ -263,7 +263,6 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    assert outValue().getTypeLattice().isPreciseType();
     return outValue().getTypeLattice();
   }
 

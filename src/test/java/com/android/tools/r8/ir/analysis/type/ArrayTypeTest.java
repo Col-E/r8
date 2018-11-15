@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import java.util.function.Consumer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ArrayTypeTest extends TypeAnalysisTestBase {
@@ -26,13 +25,11 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
   }
 
   @Test
-  @Ignore("b/119401913")
   public void testArray() throws Exception {
     buildAndCheckIR("arrayTest", arrayTestInspector(appInfo));
   }
 
   @Test
-  @Ignore("b/119401913")
   public void testNestedArray() throws Exception {
     buildAndCheckIR("nestedArrayTest", nestedArrayTestInspector(appInfo));
   }

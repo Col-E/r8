@@ -53,6 +53,7 @@ import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.ImpreciseMemberTypeInstruction;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -93,11 +94,9 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
-import com.android.tools.r8.utils.StringDiagnostic;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -405,7 +404,7 @@ public class IRBuilder {
   private int nextBlockNumber = 0;
 
   // Flag indicating if any instructions have imprecise internal types (eg, int|float member types)
-  private List<Instruction> impreciseInstructions = null;
+  private List<ImpreciseMemberTypeInstruction> impreciseInstructions = null;
 
   // Flag indicating if any values have imprecise types.
   private boolean hasImpreciseValues = false;
@@ -599,30 +598,16 @@ public class IRBuilder {
     ir.removeAllTrivialPhis(this);
     ir.removeUnreachableBlocks();
 
-    // Constrain all values to precise types.
-    if (hasImpreciseValues) {
-      TypeConstraintResolver resolver = new TypeConstraintResolver();
-      resolver.resolve(ir, this, options.reporter);
+    // Compute precise types for all values.
+    if (hasImpreciseValues || impreciseInstructions != null) {
+      // In DEX we may need to constrain all values and instructions to precise types.
+      assert source instanceof DexSourceCode;
+      new TypeConstraintResolver(this, options.reporter)
+          .resolve(impreciseInstructions, ir, appInfo, method, context);
+    } else {
+      new TypeAnalysis(appInfo, context).widening(method, ir);
     }
 
-    // Constrain instructions to precise types (internally these will use the value types).
-    if (impreciseInstructions != null) {
-      for (Instruction instruction : impreciseInstructions) {
-        if (!instruction.constrainType()) {
-          throw options.reporter.fatalError(
-              new StringDiagnostic(
-                  "Cannot determine precise type for instruction: " + instruction,
-                  origin,
-                  new MethodPosition(method.method)));
-        }
-      }
-    }
-
-    assert ir.verifyNoImpreciseTypes();
-
-    new TypeAnalysis(appInfo, context).widening(method, ir);
-
-    assert ir.verifyNoBottomTypes();
     assert ir.isConsistentSSA();
 
     // Clear the code so we don't build multiple times.
@@ -635,7 +620,7 @@ public class IRBuilder {
     value.constrainType(constraint, method.method, origin, options.reporter);
   }
 
-  private void addImpreciseInstruction(Instruction instruction) {
+  private void addImpreciseInstruction(ImpreciseMemberTypeInstruction instruction) {
     if (impreciseInstructions == null) {
       impreciseInstructions = new ArrayList<>();
     }
@@ -1217,16 +1202,12 @@ public class IRBuilder {
   }
 
   public void addInstanceGet(int dest, int object, DexField field) {
-    MemberType type = MemberType.fromDexType(field.type);
     Value in = readRegister(object, ValueType.OBJECT);
     Value out = writeRegister(
         dest, TypeLatticeElement.fromDexType(field.type, true, appInfo), ThrowingInfo.CAN_THROW);
-    out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
-    InstanceGet instruction = new InstanceGet(type, out, in, field);
+    out.setKnownToBeBoolean(field.type == getFactory().booleanType);
+    InstanceGet instruction = new InstanceGet(out, in, field);
     assert instruction.instructionTypeCanThrow();
-    if (!type.isPrecise()) {
-      addImpreciseInstruction(instruction);
-    }
     addInstruction(instruction);
   }
 
@@ -1239,13 +1220,9 @@ public class IRBuilder {
   }
 
   public void addInstancePut(int value, int object, DexField field) {
-    MemberType type = MemberType.fromDexType(field.type);
     Value objectValue = readRegister(object, ValueType.OBJECT);
-    Value valueValue = readRegister(value, ValueType.fromMemberType(type));
-    InstancePut instruction = new InstancePut(type, field, objectValue, valueValue);
-    if (!type.isPrecise()) {
-      addImpreciseInstruction(instruction);
-    }
+    Value valueValue = readRegister(value, ValueType.fromDexType(field.type));
+    InstancePut instruction = new InstancePut(field, objectValue, valueValue);
     add(instruction);
   }
 
@@ -1575,26 +1552,18 @@ public class IRBuilder {
   }
 
   public void addStaticGet(int dest, DexField field) {
-    MemberType type = MemberType.fromDexType(field.type);
     Value out = writeRegister(
         dest, TypeLatticeElement.fromDexType(field.type, true, appInfo), ThrowingInfo.CAN_THROW);
-    out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
-    StaticGet instruction = new StaticGet(type, out, field);
+    out.setKnownToBeBoolean(field.type == getFactory().booleanType);
+    StaticGet instruction = new StaticGet(out, field);
     assert instruction.instructionTypeCanThrow();
-    if (!type.isPrecise()) {
-      addImpreciseInstruction(instruction);
-    }
     addInstruction(instruction);
   }
 
   public void addStaticPut(int value, DexField field) {
-    MemberType type = MemberType.fromDexType(field.type);
-    Value in = readRegister(value, ValueType.fromMemberType(type));
-    StaticPut instruction = new StaticPut(type, in, field);
+    Value in = readRegister(value, ValueType.fromDexType(field.type));
+    StaticPut instruction = new StaticPut(in, field);
     assert instruction.instructionTypeCanThrow();
-    if (!type.isPrecise()) {
-      addImpreciseInstruction(instruction);
-    }
     add(instruction);
   }
 

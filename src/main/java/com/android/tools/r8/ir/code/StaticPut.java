@@ -24,18 +24,13 @@ import org.objectweb.asm.Opcodes;
 
 public class StaticPut extends FieldInstruction {
 
-  public StaticPut(MemberType type, Value source, DexField field) {
-    super(type, field, null, source);
+  public StaticPut(Value source, DexField field) {
+    super(field, null, source);
   }
 
   public Value inValue() {
     assert inValues.size() == 1;
     return inValues.get(0);
-  }
-
-  @Override
-  Value getFieldInOrOutValue() {
-    return inValue();
   }
 
   @Override
