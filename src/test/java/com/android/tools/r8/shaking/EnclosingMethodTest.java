@@ -11,7 +11,6 @@ import com.android.tools.r8.ToolHelper;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -74,7 +73,6 @@ public class EnclosingMethodTest extends TestBase {
     testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
-  @Ignore("b/119471127")
   @Test
   public void testR8() throws Exception {
     R8TestBuilder builder = testForR8(backend)
