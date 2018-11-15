@@ -6,6 +6,7 @@ package com.android.tools.r8.compatproguard;
 
 import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.Version;
@@ -32,6 +33,7 @@ import java.util.List;
 public class CompatProguard {
   public static class CompatProguardOptions {
     public final String output;
+    CompilationMode mode;
     public final int minApi;
     public final boolean forceProguardCompatibility;
     public final boolean includeDataResources;
@@ -46,6 +48,7 @@ public class CompatProguard {
     CompatProguardOptions(
         List<String> proguardConfig,
         String output,
+        CompilationMode mode,
         int minApi,
         boolean multiDex,
         boolean forceProguardCompatibility,
@@ -54,6 +57,7 @@ public class CompatProguard {
         boolean printHelpAndExit,
         boolean disableVerticalClassMerging) {
       this.output = output;
+      this.mode = mode;
       this.minApi = minApi;
       this.forceProguardCompatibility = forceProguardCompatibility;
       this.includeDataResources = includeDataResources;
@@ -66,6 +70,7 @@ public class CompatProguard {
 
     public static CompatProguardOptions parse(String[] args) {
       String output = null;
+      CompilationMode mode = null;
       int minApi = 1;
       boolean forceProguardCompatibility = false;
       boolean includeDataResources = true;
@@ -87,6 +92,16 @@ public class CompatProguard {
           if (arg.charAt(0) == '-') {
             if (arg.equals("-h") || arg.equals("--help")) {
               printHelpAndExit = true;
+            } else if (arg.equals("--debug")) {
+              if (mode == CompilationMode.RELEASE) {
+                throw new CompilationError("Cannot compile in both --debug and --release mode.");
+              }
+              mode = CompilationMode.DEBUG;
+            } else if (arg.equals("--release")) {
+              if (mode == CompilationMode.DEBUG) {
+                throw new CompilationError("Cannot compile in both --debug and --release mode.");
+              }
+              mode = CompilationMode.RELEASE;
             } else if (arg.equals("--min-api")) {
               minApi = Integer.valueOf(args[++i]);
             } else if (arg.equals("--force-proguard-compatibility")) {
@@ -132,6 +147,7 @@ public class CompatProguard {
       return new CompatProguardOptions(
           builder.build(),
           output,
+          mode,
           minApi,
           multiDex,
           forceProguardCompatibility,
@@ -143,6 +159,8 @@ public class CompatProguard {
 
     public static void print() {
       System.out.println("-h/--help            : print this help message");
+      System.out.println("--release            : compile without debugging information (default).");
+      System.out.println("--debug              : compile with debugging information.");
       System.out.println("--min-api n          : specify the targeted min android api level");
       System.out.println("--main-dex-list list : specify main dex list for multi-dexing");
       System.out.println("--minimal-main-dex   : ignored (provided for compatibility)");
@@ -160,9 +178,9 @@ public class CompatProguard {
 
   private static void printHelp() {
     printVersion();
-    System.out.println("");
+    System.out.println();
     System.out.println("compatproguard [options] --output <dir> <proguard-config>*");
-    System.out.println("");
+    System.out.println();
     System.out.println("Where options are:");
     CompatProguardOptions.print();
   }
@@ -171,7 +189,7 @@ public class CompatProguard {
     // Run R8 passing all the options from the command line as a Proguard configuration.
     CompatProguardOptions options = CompatProguardOptions.parse(args);
     if (options.printHelpAndExit || options.output == null) {
-      System.out.println("");
+      System.out.println();
       printHelp();
       return;
     }
@@ -182,6 +200,9 @@ public class CompatProguard {
         .setOutput(Paths.get(options.output), OutputMode.DexIndexed, options.includeDataResources)
         .addProguardConfiguration(options.proguardConfig, CommandLineOrigin.INSTANCE)
         .setMinApiLevel(options.minApi);
+    if (options.mode != null) {
+      builder.setMode(options.mode);
+    }
     if (options.mainDexList != null) {
       builder.addMainDexListFiles(Paths.get(options.mainDexList));
     }
