@@ -20,10 +20,12 @@ THIRD_PARTY = os.path.join(REPO_ROOT, 'third_party')
 MEMORY_USE_TMP_FILE = 'memory_use.tmp'
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 BUILD = os.path.join(REPO_ROOT, 'build')
+BUILD_DEPS_DIR = os.path.join(BUILD, 'deps')
+BUILD_MAIN_DIR = os.path.join(BUILD, 'classes', 'main')
+BUILD_TEST_DIR = os.path.join(BUILD, 'classes', 'test')
 LIBS = os.path.join(BUILD, 'libs')
 GENERATED_LICENSE_DIR = os.path.join(BUILD, 'generatedLicense')
 SRC_ROOT = os.path.join(REPO_ROOT, 'src', 'main', 'java')
-
 
 D8 = 'd8'
 R8 = 'r8'

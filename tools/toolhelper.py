@@ -2,6 +2,7 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import glob
 import gradle
 import os
 import subprocess
@@ -27,6 +28,29 @@ def run(tool, args, build=None, debug=True,
   lib, args = extract_lib_from_args(args)
   if lib:
     cmd.extend(["--lib", lib])
+  cmd.extend(args)
+  utils.PrintCmd(cmd)
+  return subprocess.call(cmd)
+
+def run_in_tests(tool, args, build=None, debug=True, extra_args=None):
+  if build is None:
+    build, args = extract_build_from_args(args)
+  if build:
+    gradle.RunGradle([
+      'copyMavenDeps',
+      'compileTestJava',
+    ])
+  cmd = []
+  cmd.append('java')
+  if extra_args:
+    cmd.extend(extra_args)
+  if debug:
+    cmd.append('-ea')
+  cmd.extend(['-cp', ':'.join([
+    utils.BUILD_MAIN_DIR,
+    utils.BUILD_TEST_DIR,
+  ] + glob.glob('%s/*.jar' % utils.BUILD_DEPS_DIR))])
+  cmd.extend([tool])
   cmd.extend(args)
   utils.PrintCmd(cmd)
   return subprocess.call(cmd)
