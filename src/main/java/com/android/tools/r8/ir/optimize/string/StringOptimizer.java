@@ -171,30 +171,33 @@ public class StringOptimizer {
         //   name = name + Strings.repeat("[]", arrayDepth);
         // }
       } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getCanonicalName) {
-        // TODO(b/118536394): always returns "null"?
+        // Always returns null if the target type is local or anonymous class.
         if (holder.isLocalClass() || holder.isAnonymousClass()) {
-          continue;
-        }
-        if (code.options.enableMinification) {
-          // TODO(b/118536394): Add support minification and pinning.
-          continue;
-        }
-        name = getCanonicalNameFromDescriptor(baseType.toDescriptorString());
-        if (arrayDepth > 0) {
-          name = name + Strings.repeat("[]", arrayDepth);
+          ConstNumber constNull = code.createConstNull();
+          it.replaceCurrentInstruction(constNull);
+        } else {
+          if (code.options.enableMinification) {
+            // TODO(b/118536394): Add support minification and pinning.
+            continue;
+          }
+          name = getCanonicalNameFromDescriptor(baseType.toDescriptorString());
+          if (arrayDepth > 0) {
+            name = name + Strings.repeat("[]", arrayDepth);
+          }
         }
       } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getSimpleName) {
-        // TODO(b/118536394): always returns ""?
+        // Always returns an empty string if the target type is local or anonymous class.
         if (holder.isLocalClass() || holder.isAnonymousClass()) {
-          continue;
-        }
-        if (code.options.enableMinification) {
-          // TODO(b/118536394): Add support minification and pinning.
-          continue;
-        }
-        name = getSimpleClassNameFromDescriptor(baseType.toDescriptorString());
-        if (arrayDepth > 0) {
-          name = name + Strings.repeat("[]", arrayDepth);
+          name = "";
+        } else {
+          if (code.options.enableMinification) {
+            // TODO(b/118536394): Add support minification and pinning.
+            continue;
+          }
+          name = getSimpleClassNameFromDescriptor(baseType.toDescriptorString());
+          if (arrayDepth > 0) {
+            name = name + Strings.repeat("[]", arrayDepth);
+          }
         }
       }
       if (name != null) {

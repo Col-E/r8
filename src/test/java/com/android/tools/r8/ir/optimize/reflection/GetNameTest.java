@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.nio.file.Path;
 import java.util.Collection;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -93,7 +92,8 @@ class GetName0Main {
       // System.out.println(test.getTypeName());
       String name = test.getCanonicalName();
       System.out.println(name == null ? "-Returned-null-" : name);
-      System.out.println(test.getSimpleName());
+      name = test.getSimpleName();
+      System.out.println(name.isEmpty() ? "-Returned-empty-" : name);
     }
 
     {
@@ -103,7 +103,8 @@ class GetName0Main {
       // System.out.println(test.getTypeName());
       String name = test.getCanonicalName();
       System.out.println(name == null ? "-Returned-null-" : name);
-      System.out.println(test.getSimpleName());
+      name = test.getSimpleName();
+      System.out.println(name.isEmpty() ? "-Returned-empty-" : name);
     }
   }
 }
@@ -149,7 +150,7 @@ public class GetNameTest extends TestBase {
       // getCanonicalName, anonymous
       "-Returned-null-",
       // getSimpleName, anonymous
-      "",
+      "-Returned-empty-",
       // getName, local
       "com.android.tools.r8.ir.optimize.reflection.GetName0Class$2",
       // getTypeName, local
@@ -158,7 +159,7 @@ public class GetNameTest extends TestBase {
       // getCanonicalName, local
       "-Returned-null-",
       // getSimpleName, local
-      ""
+      "-Returned-empty-"
   );
   private static final Class<?> MAIN = GetName0Main.class;
 
@@ -220,7 +221,6 @@ public class GetNameTest extends TestBase {
     assertEquals(expectedCount, count);
   }
 
-  @Ignore("b/118536394")
   @Test
   public void testD8() throws Exception {
     assumeTrue("Only run D8 for Dex backend)",
@@ -242,7 +242,6 @@ public class GetNameTest extends TestBase {
     test(result, 9);
   }
 
-  @Ignore("b/118536394")
   @Test
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
@@ -258,15 +257,13 @@ public class GetNameTest extends TestBase {
     }
     TestRunResult result = builder.run(MAIN);
     if (enableMinification) {
-      test(result, 15);
+      test(result, 11);
     } else {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
-      // canonicalName and simpleName of anonymous or local classes.
-      test(result, 4);
+      test(result, 0);
     }
   }
 
-  @Ignore("b/118536394")
   @Test
   public void testR8_shallow_pinning() throws Exception {
     // Shallow pinning the test class.
@@ -286,11 +283,10 @@ public class GetNameTest extends TestBase {
       if (backend == Backend.CF) {
         return;
       }
-      test(result, 15);
+      test(result, 11);
     } else {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
-      // canonicalName and simpleName of anonymous or local classes.
-      test(result, 4);
+      test(result, 0);
     }
   }
 
