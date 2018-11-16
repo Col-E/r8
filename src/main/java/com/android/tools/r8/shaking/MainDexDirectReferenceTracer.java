@@ -35,13 +35,11 @@ public class MainDexDirectReferenceTracer {
     this.consumer = consumer;
   }
 
-  public void run(Set<DexType> baseClasses) {
-    for (DexType type : baseClasses) {
+  public void run(Set<DexType> roots) {
+    for (DexType type : roots) {
       DexClass clazz = appInfo.definitionFor(type);
-      if (clazz == null) {
-        // Happens for library classes.
-        continue;
-      }
+      // Should only happen for library classes, which are filtered out.
+      assert clazz != null;
       consumer.accept(type);
       // Super and interfaces are live, no need to add them.
       traceAnnotationsDirectDependencies(clazz.annotations);

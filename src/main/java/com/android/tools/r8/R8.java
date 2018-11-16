@@ -39,6 +39,7 @@ import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -442,9 +443,12 @@ public class R8 {
         // LiveTypes is the tracing result.
         Set<DexType> mainDexBaseClasses = new HashSet<>(mainDexAppInfo.liveTypes);
         // Calculate the automatic main dex list according to legacy multidex constraints.
-        Set<DexType> mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
+        MainDexClasses mainDexClasses =
+            new MainDexListBuilder(mainDexBaseClasses, application).run();
         if (!mainDexRootSet.checkDiscarded.isEmpty()) {
-          new DiscardedChecker(mainDexRootSet, mainDexClasses, appView.appInfo(), options).run();
+          new DiscardedChecker(
+                  mainDexRootSet, mainDexClasses.getClasses(), appView.appInfo(), options)
+              .run();
         }
         if (!mainDexRootSet.reasonAsked.isEmpty()) {
           // If the main dex rules have -whyareyoukeeping rules build an application
@@ -455,7 +459,7 @@ public class R8 {
           reasonPrinter.run(mainDexApplication);
         }
         // Add automatic main dex classes to an eventual manual list of classes.
-        application = application.builder().addToMainDexList(mainDexClasses).build();
+        application = application.builder().addToMainDexList(mainDexClasses.getClasses()).build();
       }
 
       appView.setAppInfo(new AppInfoWithSubtyping(application));
