@@ -1170,10 +1170,10 @@ public class IRConverter {
     }
     printMethod(code, "After register allocation (non-SSA)");
     for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
-      CodeRewriter.collapsTrivialGotos(method, code);
+      CodeRewriter.collapseTrivialGotos(method, code);
       PeepholeOptimizer.optimize(code, registerAllocator);
     }
-    CodeRewriter.collapsTrivialGotos(method, code);
+    CodeRewriter.collapseTrivialGotos(method, code);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Final (non-SSA) flow graph for %s:\n%s",
           method.toSourceString(), code);

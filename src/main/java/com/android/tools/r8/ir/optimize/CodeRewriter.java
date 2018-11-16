@@ -188,7 +188,7 @@ public class CodeRewriter {
     return false;
   }
 
-  private static void collapsTrivialGoto(
+  private static void collapseTrivialGoto(
       IRCode code, BasicBlock block, BasicBlock nextBlock, List<BasicBlock> blocksToRemove) {
 
     // This is the base case for GOTO loops.
@@ -234,7 +234,7 @@ public class CodeRewriter {
     }
   }
 
-  private static void collapsIfTrueTarget(BasicBlock block) {
+  private static void collapseIfTrueTarget(BasicBlock block) {
     If insn = block.exit().asIf();
     BasicBlock target = insn.getTrueTarget();
     BasicBlock newTarget = target.endOfGotoChain();
@@ -258,7 +258,7 @@ public class CodeRewriter {
     }
   }
 
-  private static void collapsNonFallthroughSwitchTargets(BasicBlock block) {
+  private static void collapseNonFallthroughSwitchTargets(BasicBlock block) {
     Switch insn = block.exit().asSwitch();
     BasicBlock fallthroughBlock = insn.fallthroughBlock();
     Set<BasicBlock> replacedBlocks = new HashSet<>();
@@ -704,7 +704,7 @@ public class CodeRewriter {
    * Does not rewrite fallthrough targets as that would require block reordering and the
    * transformation only makes sense after SSA destruction where there are no phis.
    */
-  public static void collapsTrivialGotos(DexEncodedMethod method, IRCode code) {
+  public static void collapseTrivialGotos(DexEncodedMethod method, IRCode code) {
     assert code.isConsistentGraph();
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     // Rewrite all non-fallthrough targets to the end of trivial goto chains and remove
@@ -717,13 +717,13 @@ public class CodeRewriter {
     do {
       nextBlock = iterator.hasNext() ? iterator.next() : null;
       if (block.isTrivialGoto()) {
-        collapsTrivialGoto(code, block, nextBlock, blocksToRemove);
+        collapseTrivialGoto(code, block, nextBlock, blocksToRemove);
       }
       if (block.exit().isIf()) {
-        collapsIfTrueTarget(block);
+        collapseIfTrueTarget(block);
       }
       if (block.exit().isSwitch()) {
-        collapsNonFallthroughSwitchTargets(block);
+        collapseNonFallthroughSwitchTargets(block);
       }
       block = nextBlock;
     } while (nextBlock != null);
@@ -736,7 +736,7 @@ public class CodeRewriter {
       do {
         nextBlock = iterator.hasNext() ? iterator.next() : null;
         if (block.isTrivialGoto()) {
-          collapsTrivialGoto(code, block, nextBlock, blocksToRemove);
+          collapseTrivialGoto(code, block, nextBlock, blocksToRemove);
         }
         block = nextBlock;
       } while (block != null);
