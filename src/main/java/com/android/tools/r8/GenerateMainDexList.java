@@ -7,10 +7,10 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
@@ -24,7 +24,6 @@ import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -50,13 +49,14 @@ public class GenerateMainDexList {
       Enqueuer enqueuer = new Enqueuer(appView, options, true);
       AppInfoWithLiveness mainDexAppInfo = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
       // LiveTypes is the result.
-      Set<DexType> mainDexClasses =
+      MainDexClasses mainDexClasses =
           new MainDexListBuilder(new HashSet<>(mainDexAppInfo.liveTypes), application).run();
 
-      List<String> result = mainDexClasses.stream()
-          .map(c -> c.toSourceString().replace('.', '/') + ".class")
-          .sorted()
-          .collect(Collectors.toList());
+      List<String> result =
+          mainDexClasses.getClasses().stream()
+              .map(c -> c.toSourceString().replace('.', '/') + ".class")
+              .sorted()
+              .collect(Collectors.toList());
 
       if (options.mainDexListConsumer != null) {
         options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
