@@ -283,7 +283,7 @@ public class BasicBlock {
           for (int i = instruction.inValues().size() - 1; i >= 0; i--) {
             Value value = instruction.inValues().get(i);
             if (value instanceof StackValue) {
-              if (value.definition.isLoad()) {
+              if (value.definition.isLoad() && value.definition.getBlock() == this) {
                 assert hasLinearFlow(this, value.definition.getBlock());
                 value.definition.getBlock().removeInstruction(value.definition);
               } else {
