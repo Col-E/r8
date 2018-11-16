@@ -61,6 +61,6 @@ public class CfReturn extends CfInstruction {
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     Slot pop = state.pop();
-    builder.addReturn(pop.type, pop.register);
+    builder.addReturn(pop.register);
   }
 }

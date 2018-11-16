@@ -91,6 +91,7 @@ import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
@@ -616,7 +617,7 @@ public class IRBuilder {
     return ir;
   }
 
-  public void constrainType(Value value, ValueType constraint) {
+  public void constrainType(Value value, ValueTypeConstraint constraint) {
     value.constrainType(constraint, method.method, origin, options.reporter);
   }
 
@@ -931,8 +932,8 @@ public class IRBuilder {
   }
 
   public void addArrayGet(MemberType type, int dest, int array, int index) {
-    Value in1 = readRegister(array, ValueType.OBJECT);
-    Value in2 = readRegister(index, ValueType.INT);
+    Value in1 = readRegister(array, ValueTypeConstraint.OBJECT);
+    Value in2 = readRegister(index, ValueTypeConstraint.INT);
     TypeLatticeElement typeLattice = fromMemberType(type);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
@@ -945,7 +946,7 @@ public class IRBuilder {
   }
 
   public void addArrayLength(int dest, int array) {
-    Value in = readRegister(array, ValueType.OBJECT);
+    Value in = readRegister(array, ValueTypeConstraint.OBJECT);
     Value out = writeRegister(dest, INT, ThrowingInfo.CAN_THROW);
     ArrayLength instruction = new ArrayLength(out, in);
     assert instruction.instructionTypeCanThrow();
@@ -953,9 +954,9 @@ public class IRBuilder {
   }
 
   public void addArrayPut(MemberType type, int value, int array, int index) {
-    Value inValue = readRegister(value, ValueType.fromMemberType(type));
-    Value inArray = readRegister(array, ValueType.OBJECT);
-    Value inIndex = readRegister(index, ValueType.INT);
+    Value inValue = readRegister(value, ValueTypeConstraint.fromMemberType(type));
+    Value inArray = readRegister(array, ValueTypeConstraint.OBJECT);
+    Value inIndex = readRegister(index, ValueTypeConstraint.INT);
     ArrayPut instruction = new ArrayPut(type, inArray, inIndex, inValue);
     if (!type.isPrecise()) {
       addImpreciseInstruction(instruction);
@@ -964,7 +965,7 @@ public class IRBuilder {
   }
 
   public void addCheckCast(int value, DexType type) {
-    Value in = readRegister(value, ValueType.OBJECT);
+    Value in = readRegister(value, ValueTypeConstraint.OBJECT);
     TypeLatticeElement castTypeLattice =
         TypeLatticeElement.fromDexType(type, in.getTypeLattice().isNullable(), appInfo);
     Value out = writeRegister(value, castTypeLattice, ThrowingInfo.CAN_THROW);
@@ -1083,14 +1084,18 @@ public class IRBuilder {
   }
 
   public Monitor addMonitor(Monitor.Type type, int monitor) {
-    Value in = readRegister(monitor, ValueType.OBJECT);
+    Value in = readRegister(monitor, ValueTypeConstraint.OBJECT);
     Monitor monitorEnter = new Monitor(type, in);
     add(monitorEnter);
     return monitorEnter;
   }
 
-  public void addMove(ValueType type, int dest, int src) {
-    Value in = readRegister(src, type);
+  public void addMove(ValueType valueType, int dest, int src) {
+    addMove(ValueTypeConstraint.fromValueType(valueType), dest, src);
+  }
+
+  public void addMove(ValueTypeConstraint constraint, int dest, int src) {
+    Value in = readRegister(src, constraint);
     if (options.debug) {
       // If the move is writing to a different local we must construct a new value.
       DebugLocalInfo destLocal = getOutgoingLocal(dest);
@@ -1180,12 +1185,28 @@ public class IRBuilder {
 
   public void addIf(If.Type type, ValueType operandType, int value1, int value2,
       int trueTargetOffset, int falseTargetOffset) {
+    addIf(
+        type,
+        ValueTypeConstraint.fromValueType(operandType),
+        value1,
+        value2,
+        trueTargetOffset,
+        falseTargetOffset);
+  }
+
+  public void addIf(
+      If.Type type,
+      ValueTypeConstraint operandConstraint,
+      int value1,
+      int value2,
+      int trueTargetOffset,
+      int falseTargetOffset) {
     if (trueTargetOffset == falseTargetOffset) {
       addTrivialIf(trueTargetOffset, falseTargetOffset);
     } else {
       List<Value> values = new ArrayList<>(2);
-      values.add(readRegister(value1, operandType));
-      values.add(readRegister(value2, operandType));
+      values.add(readRegister(value1, operandConstraint));
+      values.add(readRegister(value2, operandConstraint));
       If instruction = new If(type, values);
       addNonTrivialIf(instruction, trueTargetOffset, falseTargetOffset);
     }
@@ -1193,16 +1214,30 @@ public class IRBuilder {
 
   public void addIfZero(
       If.Type type, ValueType operandType, int value, int trueTargetOffset, int falseTargetOffset) {
+    addIfZero(
+        type,
+        ValueTypeConstraint.fromValueType(operandType),
+        value,
+        trueTargetOffset,
+        falseTargetOffset);
+  }
+
+  public void addIfZero(
+      If.Type type,
+      ValueTypeConstraint operandConstraint,
+      int value,
+      int trueTargetOffset,
+      int falseTargetOffset) {
     if (trueTargetOffset == falseTargetOffset) {
       addTrivialIf(trueTargetOffset, falseTargetOffset);
     } else {
-      If instruction = new If(type, readRegister(value, operandType));
+      If instruction = new If(type, readRegister(value, operandConstraint));
       addNonTrivialIf(instruction, trueTargetOffset, falseTargetOffset);
     }
   }
 
   public void addInstanceGet(int dest, int object, DexField field) {
-    Value in = readRegister(object, ValueType.OBJECT);
+    Value in = readRegister(object, ValueTypeConstraint.OBJECT);
     Value out = writeRegister(
         dest, TypeLatticeElement.fromDexType(field.type, true, appInfo), ThrowingInfo.CAN_THROW);
     out.setKnownToBeBoolean(field.type == getFactory().booleanType);
@@ -1212,7 +1247,7 @@ public class IRBuilder {
   }
 
   public void addInstanceOf(int dest, int value, DexType type) {
-    Value in = readRegister(value, ValueType.OBJECT);
+    Value in = readRegister(value, ValueTypeConstraint.OBJECT);
     Value out = writeRegister(dest, INT, ThrowingInfo.CAN_THROW);
     InstanceOf instruction = new InstanceOf(out, in, type);
     assert instruction.instructionTypeCanThrow();
@@ -1220,8 +1255,8 @@ public class IRBuilder {
   }
 
   public void addInstancePut(int value, int object, DexField field) {
-    Value objectValue = readRegister(object, ValueType.OBJECT);
-    Value valueValue = readRegister(value, ValueType.fromDexType(field.type));
+    Value objectValue = readRegister(object, ValueTypeConstraint.OBJECT);
+    Value valueValue = readRegister(value, ValueTypeConstraint.fromDexType(field.type));
     InstancePut instruction = new InstancePut(field, objectValue, valueValue);
     add(instruction);
   }
@@ -1264,7 +1299,7 @@ public class IRBuilder {
   }
 
   public void addInvoke(
-      Invoke.Type type,
+      Type type,
       DexItem item,
       DexProto callSiteProto,
       List<ValueType> types,
@@ -1273,7 +1308,7 @@ public class IRBuilder {
   }
 
   public void addInvoke(
-      Invoke.Type type,
+      Type type,
       DexItem item,
       DexProto callSiteProto,
       List<ValueType> types,
@@ -1282,7 +1317,8 @@ public class IRBuilder {
     assert types.size() == registers.size();
     List<Value> arguments = new ArrayList<>(types.size());
     for (int i = 0; i < types.size(); i++) {
-      arguments.add(readRegister(registers.get(i), types.get(i)));
+      arguments.add(
+          readRegister(registers.get(i), ValueTypeConstraint.fromValueType(types.get(i))));
     }
     addInvoke(type, item, callSiteProto, arguments, itf);
   }
@@ -1294,16 +1330,16 @@ public class IRBuilder {
     List<Value> arguments = new ArrayList<>(argumentRegisterCount);
 
     if (!bootstrapMethod.isStaticHandle()) {
-      arguments.add(readRegister(argumentRegisters[registerIndex], ValueType.OBJECT));
-      registerIndex += ValueType.OBJECT.requiredRegisters();
+      arguments.add(readRegister(argumentRegisters[registerIndex], ValueTypeConstraint.OBJECT));
+      registerIndex += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
 
     String shorty = callSite.methodProto.shorty.toString();
 
     for (int i = 1; i < shorty.length(); i++) {
-      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
-      arguments.add(readRegister(argumentRegisters[registerIndex], valueType));
-      registerIndex += valueType.requiredRegisters();
+      ValueTypeConstraint constraint = ValueTypeConstraint.fromTypeDescriptorChar(shorty.charAt(i));
+      arguments.add(readRegister(argumentRegisters[registerIndex], constraint));
+      registerIndex += constraint.requiredRegisters();
     }
 
     add(new InvokeCustom(callSite, null, arguments));
@@ -1316,16 +1352,16 @@ public class IRBuilder {
 
     int register = firstArgumentRegister;
     if (!bootstrapMethod.isStaticHandle()) {
-      arguments.add(readRegister(register, ValueType.OBJECT));
-      register += ValueType.OBJECT.requiredRegisters();
+      arguments.add(readRegister(register, ValueTypeConstraint.OBJECT));
+      register += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
 
     String shorty = callSite.methodProto.shorty.toString();
 
     for (int i = 1; i < shorty.length(); i++) {
-      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
-      arguments.add(readRegister(register, valueType));
-      register += valueType.requiredRegisters();
+      ValueTypeConstraint constraint = ValueTypeConstraint.fromTypeDescriptorChar(shorty.charAt(i));
+      arguments.add(readRegister(register, constraint));
+      register += constraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
     add(new InvokeCustom(callSite, null, arguments));
@@ -1336,7 +1372,8 @@ public class IRBuilder {
     assert types.size() == registers.size();
     List<Value> arguments = new ArrayList<>(types.size());
     for (int i = 0; i < types.size(); i++) {
-      arguments.add(readRegister(registers.get(i), types.get(i)));
+      arguments.add(
+          readRegister(registers.get(i), ValueTypeConstraint.fromValueType(types.get(i))));
     }
     add(new InvokeCustom(callSite, null, arguments));
   }
@@ -1352,8 +1389,8 @@ public class IRBuilder {
     List<Value> arguments = new ArrayList<>(argumentRegisterCount);
     int registerIndex = 0;
     if (type != Invoke.Type.STATIC) {
-      arguments.add(readRegister(argumentRegisters[registerIndex], ValueType.OBJECT));
-      registerIndex += ValueType.OBJECT.requiredRegisters();
+      arguments.add(readRegister(argumentRegisters[registerIndex], ValueTypeConstraint.OBJECT));
+      registerIndex += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
     DexString methodShorty;
     if (type == Invoke.Type.POLYMORPHIC) {
@@ -1365,9 +1402,9 @@ public class IRBuilder {
     }
     String shorty = methodShorty.toString();
     for (int i = 1; i < methodShorty.size; i++) {
-      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
-      arguments.add(readRegister(argumentRegisters[registerIndex], valueType));
-      registerIndex += valueType.requiredRegisters();
+      ValueTypeConstraint constraint = ValueTypeConstraint.fromTypeDescriptorChar(shorty.charAt(i));
+      arguments.add(readRegister(argumentRegisters[registerIndex], constraint));
+      registerIndex += constraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(registerIndex, argumentRegisterCount);
     addInvoke(type, method, callSiteProto, arguments);
@@ -1377,16 +1414,17 @@ public class IRBuilder {
     String descriptor = type.descriptor.toString();
     assert descriptor.charAt(0) == '[';
     assert descriptor.length() >= 2;
-    ValueType valueType = ValueType.fromTypeDescriptorChar(descriptor.charAt(1));
-    List<Value> arguments = new ArrayList<>(argumentCount / valueType.requiredRegisters());
+    ValueTypeConstraint constraint =
+        ValueTypeConstraint.fromTypeDescriptorChar(descriptor.charAt(1));
+    List<Value> arguments = new ArrayList<>(argumentCount / constraint.requiredRegisters());
     int registerIndex = 0;
     while (registerIndex < argumentCount) {
-      arguments.add(readRegister(argumentRegisters[registerIndex], valueType));
-      if (valueType.isWide()) {
+      arguments.add(readRegister(argumentRegisters[registerIndex], constraint));
+      if (constraint.isWide()) {
         assert registerIndex < argumentCount - 1;
         assert argumentRegisters[registerIndex] == argumentRegisters[registerIndex + 1] + 1;
       }
-      registerIndex += valueType.requiredRegisters();
+      registerIndex += constraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(registerIndex, argumentCount);
     addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments);
@@ -1396,7 +1434,7 @@ public class IRBuilder {
     assert isGeneratingClassFiles();
     List<Value> arguments = new ArrayList<>(dimensions.length);
     for (int dimension : dimensions) {
-      arguments.add(readRegister(dimension, ValueType.INT));
+      arguments.add(readRegister(dimension, ValueTypeConstraint.INT));
     }
     addInvoke(Invoke.Type.MULTI_NEW_ARRAY, type, null, arguments);
     addMoveResult(dest);
@@ -1413,8 +1451,8 @@ public class IRBuilder {
     List<Value> arguments = new ArrayList<>(argumentCount);
     int register = firstArgumentRegister;
     if (type != Invoke.Type.STATIC) {
-      arguments.add(readRegister(register, ValueType.OBJECT));
-      register += ValueType.OBJECT.requiredRegisters();
+      arguments.add(readRegister(register, ValueTypeConstraint.OBJECT));
+      register += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
     DexString methodShorty;
     if (type == Invoke.Type.POLYMORPHIC) {
@@ -1426,9 +1464,10 @@ public class IRBuilder {
     }
     String shorty = methodShorty.toString();
     for (int i = 1; i < methodShorty.size; i++) {
-      ValueType valueType = ValueType.fromTypeDescriptorChar(shorty.charAt(i));
-      arguments.add(readRegister(register, valueType));
-      register += valueType.requiredRegisters();
+      ValueTypeConstraint valueTypeConstraint =
+          ValueTypeConstraint.fromTypeDescriptorChar(shorty.charAt(i));
+      arguments.add(readRegister(register, valueTypeConstraint));
+      register += valueTypeConstraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
     addInvoke(type, method, callSiteProto, arguments);
@@ -1438,12 +1477,13 @@ public class IRBuilder {
     String descriptor = type.descriptor.toString();
     assert descriptor.charAt(0) == '[';
     assert descriptor.length() >= 2;
-    ValueType valueType = ValueType.fromTypeDescriptorChar(descriptor.charAt(1));
-    List<Value> arguments = new ArrayList<>(argumentCount / valueType.requiredRegisters());
+    ValueTypeConstraint constraint =
+        ValueTypeConstraint.fromTypeDescriptorChar(descriptor.charAt(1));
+    List<Value> arguments = new ArrayList<>(argumentCount / constraint.requiredRegisters());
     int register = firstArgumentRegister;
     while (register < firstArgumentRegister + argumentCount) {
-      arguments.add(readRegister(register, valueType));
-      register += valueType.requiredRegisters();
+      arguments.add(readRegister(register, constraint));
+      register += constraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
     addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments);
@@ -1462,7 +1502,7 @@ public class IRBuilder {
     assert currentBlock.getPredecessors().stream().allMatch(b -> b.entry().isMoveException());
     // Always do the readRegister to guarantee consistent behaviour when running with/without
     // assertions, see: b/115943916
-    Value value = readRegister(dest, ValueType.OBJECT);
+    Value value = readRegister(dest, ValueTypeConstraint.OBJECT);
     assert verifyValueIsMoveException(value);
   }
 
@@ -1505,7 +1545,7 @@ public class IRBuilder {
     if (options.canUseNotInstruction()) {
       instruction = new Not(type, out, in);
     } else {
-      Value minusOne = readLiteral(ValueType.fromNumericType(type), -1);
+      Value minusOne = readLiteral(ValueTypeConstraint.fromNumericType(type), -1);
       instruction = new Xor(type, out, in, minusOne);
     }
     assert !instruction.instructionTypeCanThrow();
@@ -1514,7 +1554,7 @@ public class IRBuilder {
 
   public void addNewArrayEmpty(int dest, int size, DexType type) {
     assert type.isArrayType();
-    Value in = readRegister(size, ValueType.INT);
+    Value in = readRegister(size, ValueTypeConstraint.INT);
     TypeLatticeElement arrayTypeLattice = TypeLatticeElement.fromDexType(type, false, appInfo);
     Value out = writeRegister(dest, arrayTypeLattice, ThrowingInfo.CAN_THROW);
     NewArrayEmpty instruction = new NewArrayEmpty(out, in, type);
@@ -1523,7 +1563,9 @@ public class IRBuilder {
   }
 
   public void addNewArrayFilledData(int arrayRef, int elementWidth, long size, short[] data) {
-    add(new NewArrayFilledData(readRegister(arrayRef, ValueType.OBJECT), elementWidth, size, data));
+    add(
+        new NewArrayFilledData(
+            readRegister(arrayRef, ValueTypeConstraint.OBJECT), elementWidth, size, data));
   }
 
   public void addNewInstance(int dest, DexType type) {
@@ -1534,8 +1576,9 @@ public class IRBuilder {
     addInstruction(instruction);
   }
 
-  public void addReturn(ValueType type, int value) {
-    ValueType returnType = ValueType.fromDexType(method.method.proto.returnType);
+  public void addReturn(int value) {
+    ValueTypeConstraint returnType =
+        ValueTypeConstraint.fromDexType(method.method.proto.returnType);
     Value in = readRegister(value, returnType);
     addReturn(new Return(in));
   }
@@ -1561,7 +1604,7 @@ public class IRBuilder {
   }
 
   public void addStaticPut(int value, DexField field) {
-    Value in = readRegister(value, ValueType.fromDexType(field.type));
+    Value in = readRegister(value, ValueTypeConstraint.fromDexType(field.type));
     StaticPut instruction = new StaticPut(in, field);
     assert instruction.instructionTypeCanThrow();
     add(instruction);
@@ -1598,7 +1641,7 @@ public class IRBuilder {
       return;
     }
 
-    Value switchValue = readRegister(value, ValueType.INT);
+    Value switchValue = readRegister(value, ValueTypeConstraint.INT);
 
     // Find the keys not targeting the fallthrough.
     IntList nonFallthroughKeys = new IntArrayList(numberOfTargets);
@@ -1678,7 +1721,7 @@ public class IRBuilder {
   }
 
   public void addThrow(int value) {
-    Value in = readRegister(value, ValueType.OBJECT);
+    Value in = readRegister(value, ValueTypeConstraint.OBJECT);
     // The only successors to a throw instruction are exceptional, so we directly add it (ensuring
     // the exceptional edges which are split-edge by construction) and then we close the block which
     // cannot have any additional edges that need splitting.
@@ -1709,7 +1752,7 @@ public class IRBuilder {
   public void addShl(NumericType type, int dest, int left, int right) {
     assert isIntegerType(type);
     Value in1 = readNumericRegister(left, type);
-    Value in2 = readRegister(right, ValueType.INT);
+    Value in2 = readRegister(right, ValueTypeConstraint.INT);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Shl instruction = new Shl(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1729,7 +1772,7 @@ public class IRBuilder {
   public void addShr(NumericType type, int dest, int left, int right) {
     assert isIntegerType(type);
     Value in1 = readNumericRegister(left, type);
-    Value in2 = readRegister(right, ValueType.INT);
+    Value in2 = readRegister(right, ValueTypeConstraint.INT);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Shr instruction = new Shr(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1749,7 +1792,7 @@ public class IRBuilder {
   public void addUshr(NumericType type, int dest, int left, int right) {
     assert isIntegerType(type);
     Value in1 = readNumericRegister(left, type);
-    Value in2 = readRegister(right, ValueType.INT);
+    Value in2 = readRegister(right, ValueTypeConstraint.INT);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Ushr instruction = new Ushr(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
@@ -1809,10 +1852,11 @@ public class IRBuilder {
 
   // Value abstraction methods.
 
-  public Value readRegister(int register, ValueType type) {
+  public Value readRegister(int register, ValueTypeConstraint constraint) {
     DebugLocalInfo local = getIncomingLocal(register);
-    Value value = readRegister(
-        register, type, currentBlock, EdgeType.NON_EDGE, RegisterReadType.NORMAL);
+    Value value =
+        readRegister(
+            register, constraint, currentBlock, EdgeType.NON_EDGE, RegisterReadType.NORMAL);
     // Check that any information about a current-local is consistent with the read.
     if (local != null && value.getLocalInfo() != local && !value.isUninitializedLocal()) {
       throw new InvalidDebugInfoException(
@@ -1826,21 +1870,20 @@ public class IRBuilder {
     assert !value.hasLocalInfo()
         || value.getDebugLocalEnds() != null
         || source.verifyLocalInScope(value.getLocalInfo());
-    constrainType(value, type);
+    constrainType(value, constraint);
     value.markNonDebugLocalRead();
     return value;
   }
 
   private Value readRegisterForDebugLocal(int register, DebugLocalInfo local) {
     assert options.debug;
-    // TODO(b/111251032): Here we lookup a value with type based on debug info. That's just wrong!
-    ValueType type = ValueType.fromDexType(local.type);
+    ValueTypeConstraint type = ValueTypeConstraint.fromDexType(local.type);
     return readRegister(register, type, currentBlock, EdgeType.NON_EDGE, RegisterReadType.DEBUG);
   }
 
   public Value readRegister(
       int register,
-      ValueType type,
+      ValueTypeConstraint constraint,
       BasicBlock block,
       EdgeType readingEdge,
       RegisterReadType readType) {
@@ -1848,14 +1891,14 @@ public class IRBuilder {
     Value value = block.readCurrentDefinition(register, readingEdge);
     return value != null
         ? value
-        : readRegisterRecursive(register, block, readingEdge, type, readType);
+        : readRegisterRecursive(register, block, readingEdge, constraint, readType);
   }
 
   private Value readRegisterRecursive(
       int register,
       BasicBlock block,
       EdgeType readingEdge,
-      ValueType type,
+      ValueTypeConstraint constraint,
       RegisterReadType readType) {
     Value value = null;
     // Iterate back along the predecessor chain as long as there is a single sealed predecessor.
@@ -1884,11 +1927,11 @@ public class IRBuilder {
         // This value must *not* be added to the entry blocks current definitions since
         // uninitialized debug-locals may be referenced at the same register/local-index yet be of
         // different types (eg, int in one part of the CFG and float in a disjoint part).
-        value = getUninitializedDebugLocalValue(register, type);
+        value = getUninitializedDebugLocalValue(register, constraint);
       } else {
-        hasImpreciseValues |= !type.isPreciseType();
         DebugLocalInfo local = getIncomingLocalAtBlock(register, block);
-        TypeLatticeElement phiType = TypeConstraintResolver.typeForConstraint(type);
+        TypeLatticeElement phiType = TypeConstraintResolver.typeForConstraint(constraint);
+        hasImpreciseValues |= !phiType.isPreciseType();
         Phi phi = new Phi(valueNumberGenerator.next(), block, phiType, local, readType);
         if (!block.isSealed()) {
           block.addIncompletePhi(register, phi, readingEdge);
@@ -1923,14 +1966,20 @@ public class IRBuilder {
     return null;
   }
 
-  private Value getUninitializedDebugLocalValue(int register, ValueType type) {
+  private Value getUninitializedDebugLocalValue(int register, ValueTypeConstraint typeConstraint) {
+    // A debug initiated value must have a precise type constraint.
+    assert typeConstraint.isPrecise();
+    TypeLatticeElement type =
+        typeConstraint == ValueTypeConstraint.OBJECT
+            ? TypeLatticeElement.NULL
+            : typeConstraint.toPrimitiveTypeLattice();
     if (uninitializedDebugLocalValues == null) {
       uninitializedDebugLocalValues = new Int2ReferenceOpenHashMap<>();
     }
     List<Value> values = uninitializedDebugLocalValues.get(register);
     if (values != null) {
       for (Value value : values) {
-        if (value.outType() == type) {
+        if (value.getTypeLattice() == type) {
           return value;
         }
       }
@@ -1941,36 +1990,32 @@ public class IRBuilder {
     // Create a new SSA value for the uninitialized local value.
     // Note that the uninitialized local value must not itself have local information, so that it
     // does not contribute to the visible/live-range of the local variable.
-    Value value =
-        new Value(
-            valueNumberGenerator.next(),
-            type == ValueType.OBJECT ? TypeLatticeElement.NULL : type.toPrimitiveTypeLattice(),
-            null);
+    Value value = new Value(valueNumberGenerator.next(), type, null);
     values.add(value);
     return value;
   }
 
-  public Value readNumericRegister(int register, NumericType type) {
-    return readRegister(register, ValueType.fromNumericType(type));
+  private Value readNumericRegister(int register, NumericType type) {
+    return readRegister(register, ValueTypeConstraint.fromNumericType(type));
   }
 
-  public Value readLiteral(ValueType type, long constant) {
-    if (type == ValueType.INT) {
+  private Value readLiteral(ValueTypeConstraint constraint, long constant) {
+    if (constraint == ValueTypeConstraint.INT) {
       return readIntLiteral(constant);
     } else {
-      assert type == ValueType.LONG;
+      assert constraint == ValueTypeConstraint.LONG;
       return readLongLiteral(constant);
     }
   }
 
-  public Value readLongLiteral(long constant) {
+  private Value readLongLiteral(long constant) {
     Value value = new Value(valueNumberGenerator.next(), LONG, null);
     ConstNumber number = new ConstNumber(value, constant);
     add(number);
     return number.outValue();
   }
 
-  public Value readIntLiteral(long constant) {
+  private Value readIntLiteral(long constant) {
     Value value = new Value(valueNumberGenerator.next(), INT, null);
     ConstNumber number = new ConstNumber(value, constant);
     add(number);

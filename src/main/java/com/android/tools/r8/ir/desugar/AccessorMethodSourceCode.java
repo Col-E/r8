@@ -117,12 +117,12 @@ final class AccessorMethodSourceCode extends SynthesizedLambdaSourceCode {
       add(IRBuilder::addReturn);
     } else if (delegatingToConstructor()) {
       // Return newly created instance
-      add(builder -> builder.addReturn(ValueType.OBJECT, argRegisters.get(0)));
+      add(builder -> builder.addReturn(argRegisters.get(0)));
     } else {
       ValueType valueType = ValueType.fromDexType(proto.returnType);
       int tempValue = nextRegister(valueType);
       add(builder -> builder.addMoveResult(tempValue));
-      add(builder -> builder.addReturn(valueType, tempValue));
+      add(builder -> builder.addReturn(tempValue));
     }
   }
 }

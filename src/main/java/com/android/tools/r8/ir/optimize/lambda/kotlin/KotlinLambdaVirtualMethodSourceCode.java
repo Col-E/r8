@@ -99,7 +99,7 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
       // Handle return value if needed.
       if (returnsValue) {
         add(builder -> builder.addMoveResult(retRegister));
-        add(builder -> builder.addReturn(retValueType, retRegister), endsBlock);
+        add(builder -> builder.addReturn(retRegister), endsBlock);
       } else {
         add(IRBuilder::addReturn, endsBlock);
       }

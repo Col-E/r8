@@ -116,7 +116,7 @@ public class UninstantiatedTypeOptimization {
       // Unable to rewrite instruction if the receiver is defined from "const-number 0", since this
       // would lead to an IncompatibleClassChangeError (see MemberResolutionTest#lookupStaticField-
       // WithFieldGetFromNullReferenceDirectly).
-      if (!receiver.getTypeLattice().isNull()) {
+      if (!receiver.getTypeLattice().isDefinitelyNull()) {
         replaceCurrentInstructionWithThrowNull(
             instruction, blockIterator, instructionIterator, code, blocksToBeRemoved);
         ++numberOfInstanceGetOrInstancePutWithNullReceiver;
@@ -296,7 +296,7 @@ public class UninstantiatedTypeOptimization {
       return false;
     }
     TypeLatticeElement typeLatticeElement = value.getTypeLattice();
-    if (typeLatticeElement.isNull()) {
+    if (typeLatticeElement.isDefinitelyNull()) {
       return true;
     }
     if (typeLatticeElement.isClassType()) {

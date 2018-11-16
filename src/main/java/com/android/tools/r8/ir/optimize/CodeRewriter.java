@@ -1859,7 +1859,7 @@ public class CodeRewriter {
     // c = ...        // Even though we know c is of type A,
     // a' = (B) c;    // (this could be removed, since chained below.)
     // a'' = (A) a';  // this should remain for runtime verification.
-    assert !inTypeLattice.isNull();
+    assert !inTypeLattice.isDefinitelyNull();
     assert outTypeLattice.asNullable().equals(castTypeLattice.asNullable());
     return false;
   }

@@ -53,10 +53,6 @@ public class ConstNumber extends ConstInstruction {
     return new ConstNumber(newValue, original.getRawValue());
   }
 
-  private boolean preciseTypeUnknown() {
-    return !outType().isPreciseType();
-  }
-
   public Value dest() {
     return outValue;
   }
@@ -67,26 +63,22 @@ public class ConstNumber extends ConstInstruction {
 
   public int getIntValue() {
     assert outType() == ValueType.INT
-        || outType() == ValueType.INT_OR_FLOAT
-        || outType() == ValueType.INT_OR_FLOAT_OR_NULL
         || outType() == ValueType.OBJECT; // Used for is-null conditionals.
     return (int) value;
   }
 
   public long getLongValue() {
-    assert outType() == ValueType.LONG || outType() == ValueType.LONG_OR_DOUBLE;
+    assert outType() == ValueType.LONG;
     return value;
   }
 
   public float getFloatValue() {
-    assert outType() == ValueType.FLOAT
-        || outType() == ValueType.INT_OR_FLOAT
-        || outType() == ValueType.INT_OR_FLOAT_OR_NULL;
+    assert outType() == ValueType.FLOAT;
     return Float.intBitsToFloat((int) value);
   }
 
   public double getDoubleValue() {
-    assert outType() == ValueType.DOUBLE || outType() == ValueType.LONG_OR_DOUBLE;
+    assert outType() == ValueType.DOUBLE;
     return Double.longBitsToDouble(value);
   }
 
@@ -122,7 +114,7 @@ public class ConstNumber extends ConstInstruction {
     }
 
     int register = builder.allocatedRegister(dest(), getNumber());
-    if (outType().isObjectOrSingle()) {
+    if (outType().isObject() || outType().isSingle()) {
       assert NumberUtils.is32Bit(value);
       if ((register & 0xf) == register && NumberUtils.is4Bit(value)) {
         builder.add(this, new Const4(register, (int) value));
@@ -209,7 +201,7 @@ public class ConstNumber extends ConstInstruction {
     if (other == this) {
       return true;
     }
-    if (!other.isConstNumber() || preciseTypeUnknown()) {
+    if (!other.isConstNumber()) {
       return false;
     }
     ConstNumber o = other.asConstNumber();

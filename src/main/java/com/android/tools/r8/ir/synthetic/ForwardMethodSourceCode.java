@@ -122,7 +122,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       if (this.proto.returnType != target.proto.returnType) {
         add(builder -> builder.addCheckCast(tempValue, this.proto.returnType));
       }
-      add(builder -> builder.addReturn(valueType, tempValue));
+      add(builder -> builder.addReturn(tempValue));
     }
   }
 }

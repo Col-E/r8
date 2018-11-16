@@ -83,7 +83,7 @@ public class B111893131 extends TestBase {
       options.enableMinification = false;
     });
     ProcessResult result = runOnArtRaw(app, TestClass.class);
-    assertEquals(0, result.exitCode);
+    assertEquals(result.toString(), 0, result.exitCode);
     assertEquals(javaResult, result.stdout);
 
     CodeInspector inspector = new CodeInspector(app);

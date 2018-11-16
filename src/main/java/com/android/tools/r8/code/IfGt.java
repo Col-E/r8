@@ -4,7 +4,7 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.ir.code.If.Type;
-import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.code.ValueTypeConstraint;
 
 public class IfGt extends Format22t {
 
@@ -41,7 +41,7 @@ public class IfGt extends Format22t {
   }
 
   @Override
-  public ValueType getOperandType() {
-    return ValueType.INT;
+  public ValueTypeConstraint getOperandTypeConstraint() {
+    return ValueTypeConstraint.INT;
   }
 }

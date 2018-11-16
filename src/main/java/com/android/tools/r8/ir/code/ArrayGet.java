@@ -191,15 +191,15 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
       case DOUBLE:
         return TypeLatticeElement.DOUBLE;
       case INT_OR_FLOAT:
-        return checkConstraint(dest(), ValueType.INT_OR_FLOAT);
+        return checkConstraint(dest(), ValueTypeConstraint.INT_OR_FLOAT);
       case LONG_OR_DOUBLE:
-        return checkConstraint(dest(), ValueType.LONG_OR_DOUBLE);
+        return checkConstraint(dest(), ValueTypeConstraint.LONG_OR_DOUBLE);
       default:
         throw new Unreachable("Unexpected member type: " + getMemberType());
     }
   }
 
-  private static TypeLatticeElement checkConstraint(Value value, ValueType constraint) {
+  private static TypeLatticeElement checkConstraint(Value value, ValueTypeConstraint constraint) {
     TypeLatticeElement latticeElement = value.constrainedType(constraint);
     if (latticeElement != null) {
       return latticeElement;

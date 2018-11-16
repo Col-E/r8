@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.SourceCode;
@@ -60,7 +61,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -199,22 +199,18 @@ public class Outliner {
 
   private static class BinOpOutlineInstruction extends OutlineInstruction {
 
-    private final ValueType valueType;
     private final NumericType numericType;
 
     private BinOpOutlineInstruction(
         OutlineInstructionType type,
-        ValueType valueType,
         NumericType numericType) {
       super(type);
-      this.valueType = valueType;
       this.numericType = numericType;
     }
 
     static BinOpOutlineInstruction fromInstruction(Binop instruction) {
       return new BinOpOutlineInstruction(
           OutlineInstructionType.fromInstruction(instruction),
-          instruction.outType(),
           instruction.getNumericType());
     }
 
@@ -229,9 +225,7 @@ public class Outliner {
         return false;
       }
       BinOpOutlineInstruction o = (BinOpOutlineInstruction) other;
-      boolean equal = o.type.equals(type) && o.numericType.equals(numericType);
-      assert !equal || valueType.equals(o.valueType);
-      return equal;
+      return o.type.equals(type) && o.numericType.equals(numericType);
     }
 
     @Override
@@ -277,7 +271,8 @@ public class Outliner {
         if (register == OutlineInstruction.OUTLINE_TEMP) {
           register = outline.argumentCount();
         }
-        inValues.add(builder.readRegister(register, valueType));
+        inValues.add(
+            builder.readRegister(register, ValueTypeConstraint.fromNumericType(numericType)));
       }
       TypeLatticeElement latticeElement = TypeLatticeElement.fromNumericType(numericType);
       Value outValue =
@@ -375,8 +370,8 @@ public class Outliner {
     private final DexMethod method;
     private final Invoke.Type invokeType;
     private final boolean hasOutValue;
-    private final ValueType[] inputTypes;
     private final DexProto proto;
+    private final boolean hasReceiver;
 
     private InvokeOutlineInstruction(
         DexMethod method,
@@ -385,10 +380,11 @@ public class Outliner {
         ValueType[] inputTypes,
         DexProto proto) {
       super(OutlineInstructionType.INVOKE);
+      hasReceiver = inputTypes.length != method.proto.parameters.values.length;
+      assert !hasReceiver || inputTypes[0].isObject();
       this.method = method;
       this.invokeType = type;
       this.hasOutValue = hasOutValue;
-      this.inputTypes = inputTypes;
       this.proto = proto;
     }
 
@@ -412,7 +408,6 @@ public class Outliner {
           + method.hashCode() * 13
           + invokeType.hashCode()
           + Boolean.hashCode(hasOutValue)
-          + Arrays.hashCode(inputTypes)
           + Objects.hashCode(proto);
     }
 
@@ -425,7 +420,6 @@ public class Outliner {
       return method == o.method
           && invokeType == o.invokeType
           && hasOutValue == o.hasOutValue
-          && Arrays.equals(inputTypes, o.inputTypes)
           && Objects.equals(proto, o.proto);
     }
 
@@ -453,7 +447,6 @@ public class Outliner {
           return result;
         }
       }
-      assert Arrays.equals(inputTypes, o.inputTypes);
       assert this.equals(other);
       return 0;
     }
@@ -475,7 +468,16 @@ public class Outliner {
 
     @Override
     public int numberOfInputs() {
-      return inputTypes.length;
+      return (hasReceiver ? 1 : 0) + method.proto.parameters.values.length;
+    }
+
+    private ValueTypeConstraint getArgumentConstraint(int index) {
+      if (hasReceiver) {
+        return index == 0
+            ? ValueTypeConstraint.OBJECT
+            : ValueTypeConstraint.fromDexType(method.proto.parameters.values[index - 1]);
+      }
+      return ValueTypeConstraint.fromDexType(method.proto.parameters.values[index]);
     }
 
     @Override
@@ -486,7 +488,7 @@ public class Outliner {
         if (register == OutlineInstruction.OUTLINE_TEMP) {
           register = outline.argumentCount();
         }
-        inValues.add(builder.readRegister(register, inputTypes[i]));
+        inValues.add(builder.readRegister(register, getArgumentConstraint(i)));
       }
       Value outValue = null;
       if (hasOutValue) {
@@ -1423,7 +1425,7 @@ public class Outliner {
         if (outline.returnType == dexItemFactory.voidType) {
           builder.addReturn();
         } else {
-          builder.addReturn(ValueType.fromDexType(outline.returnType), outline.argumentCount());
+          builder.addReturn(outline.argumentCount());
         }
         return;
       }

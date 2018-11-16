@@ -32,7 +32,7 @@ import java.util.Set;
 public class Value {
 
   public void constrainType(
-      ValueType constraint, DexMethod method, Origin origin, Reporter reporter) {
+      ValueTypeConstraint constraint, DexMethod method, Origin origin, Reporter reporter) {
     TypeLatticeElement constrainedType = constrainedType(constraint);
     if (constrainedType == null) {
       throw reporter.fatalError(
@@ -50,8 +50,8 @@ public class Value {
     }
   }
 
-  public TypeLatticeElement constrainedType(ValueType constraint) {
-    if (constraint == ValueType.INT_OR_FLOAT_OR_NULL && !typeLattice.isWide()) {
+  public TypeLatticeElement constrainedType(ValueTypeConstraint constraint) {
+    if (constraint == ValueTypeConstraint.INT_OR_FLOAT_OR_OBJECT && !typeLattice.isWide()) {
       return typeLattice;
     }
     switch (constraint) {
@@ -115,7 +115,11 @@ public class Value {
     return null;
   }
 
-  public boolean verifyCompatible(ValueType constraint) {
+  public boolean verifyCompatible(ValueType valueType) {
+    return verifyCompatible(ValueTypeConstraint.fromValueType(valueType));
+  }
+
+  public boolean verifyCompatible(ValueTypeConstraint constraint) {
     assert constrainedType(constraint) != null;
     return true;
   }

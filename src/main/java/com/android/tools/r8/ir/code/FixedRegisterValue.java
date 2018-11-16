@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
 // Value that has a fixed register allocated. These are used for inserting spill, restore, and phi
@@ -28,7 +29,6 @@ public class FixedRegisterValue extends Value {
         if (type.isFloat()) {
           return ValueType.FLOAT;
         }
-        return ValueType.INT_OR_FLOAT;
       } else {
         assert type.isWide();
         if (type.isDouble()) {
@@ -37,12 +37,12 @@ public class FixedRegisterValue extends Value {
         if (type.isLong()) {
           return ValueType.LONG;
         }
-        return ValueType.LONG_OR_DOUBLE;
       }
     } else {
       assert type.isReference();
       return ValueType.OBJECT;
     }
+    throw new Unreachable("Unexpected imprecise type: " + type);
   }
 
   public int getRegister() {

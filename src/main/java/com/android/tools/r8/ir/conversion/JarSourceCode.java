@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.ir.conversion.JarState.Local;
 import com.android.tools.r8.ir.conversion.JarState.LocalChangeAtOffset;
@@ -2288,27 +2289,27 @@ public class JarSourceCode implements SourceCode {
       }
       case Opcodes.IRETURN: {
         Slot value = state.pop(Type.INT_TYPE);
-        addReturn(insn, ValueType.INT, value.register, builder);
+        addReturn(insn, ValueTypeConstraint.INT, value.register, builder);
         break;
       }
       case Opcodes.LRETURN: {
         Slot value = state.pop(Type.LONG_TYPE);
-        addReturn(insn, ValueType.LONG, value.register, builder);
+        addReturn(insn, ValueTypeConstraint.LONG, value.register, builder);
         break;
       }
       case Opcodes.FRETURN: {
         Slot value = state.pop(Type.FLOAT_TYPE);
-        addReturn(insn, ValueType.FLOAT, value.register, builder);
+        addReturn(insn, ValueTypeConstraint.FLOAT, value.register, builder);
         break;
       }
       case Opcodes.DRETURN: {
         Slot value = state.pop(Type.DOUBLE_TYPE);
-        addReturn(insn, ValueType.DOUBLE, value.register, builder);
+        addReturn(insn, ValueTypeConstraint.DOUBLE, value.register, builder);
         break;
       }
       case Opcodes.ARETURN: {
         Slot obj = state.pop(JarState.REFERENCE_TYPE);
-        addReturn(insn, ValueType.OBJECT, obj.register, builder);
+        addReturn(insn, ValueTypeConstraint.OBJECT, obj.register, builder);
         break;
       }
       case Opcodes.RETURN: {
@@ -2378,13 +2379,14 @@ public class JarSourceCode implements SourceCode {
     builder.addThrow(register);
   }
 
-  private void addReturn(InsnNode insn, ValueType type, int register, IRBuilder builder) {
+  private void addReturn(
+      InsnNode insn, ValueTypeConstraint constraint, int register, IRBuilder builder) {
     processLocalVariablesAtExit(insn, builder);
-    if (type == null) {
+    if (constraint == null) {
       assert register == -1;
       builder.addReturn();
     } else {
-      builder.addReturn(type, register);
+      builder.addReturn(register);
     }
   }
 
@@ -2718,15 +2720,16 @@ public class JarSourceCode implements SourceCode {
       assert targets.length == 2;
       if (opcode <= Opcodes.IFLE) {
         Slot value = state.pop(Type.INT_TYPE);
-        builder.addIfZero(ifType(opcode), ValueType.INT, value.register, targets[0], targets[1]);
+        builder.addIfZero(
+            ifType(opcode), ValueTypeConstraint.INT, value.register, targets[0], targets[1]);
       } else {
-        ValueType valueType;
+        ValueTypeConstraint valueType;
         Type expectedType;
         if (opcode < Opcodes.IF_ACMPEQ) {
-          valueType = ValueType.INT;
+          valueType = ValueTypeConstraint.INT;
           expectedType = Type.INT_TYPE;
         } else {
-          valueType = ValueType.OBJECT;
+          valueType = ValueTypeConstraint.OBJECT;
           expectedType = JarState.REFERENCE_TYPE;
         }
         Slot value2 = state.pop(expectedType);
@@ -2745,7 +2748,8 @@ public class JarSourceCode implements SourceCode {
         case Opcodes.IFNONNULL: {
           Slot value = state.pop(JarState.REFERENCE_TYPE);
           If.Type type = opcode == Opcodes.IFNULL ? If.Type.EQ : If.Type.NE;
-          builder.addIfZero(type, ValueType.OBJECT, value.register, targets[0], targets[1]);
+            builder.addIfZero(
+                type, ValueTypeConstraint.OBJECT, value.register, targets[0], targets[1]);
           break;
         }
         case Opcodes.JSR: {

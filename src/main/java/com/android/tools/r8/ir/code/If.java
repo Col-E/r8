@@ -10,6 +10,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -57,6 +58,12 @@ public class If extends JumpInstruction {
           throw new Unreachable("Unknown if condition type.");
       }
     }
+  }
+
+  private static boolean verifyTypeCompatible(TypeLatticeElement valueType, If.Type ifType) {
+    return valueType.isInt()
+        || (valueType.isFloat() && (ifType == Type.EQ || ifType == Type.NE))
+        || (valueType.isReference() && (ifType == Type.EQ || ifType == Type.NE));
   }
 
   private Type type;
@@ -166,16 +173,14 @@ public class If extends JumpInstruction {
 
   public BasicBlock targetFromCondition(ConstNumber value) {
     assert isZeroTest();
-    assert value.outType() == ValueType.INT
-        || (value.outType().isObjectOrSingle() && (type == Type.EQ || type == Type.NE));
+    assert verifyTypeCompatible(value.outValue().getTypeLattice(), type);
     return targetFromCondition(Long.signum(value.getRawValue()));
   }
 
   public BasicBlock targetFromCondition(ConstNumber left, ConstNumber right) {
     assert !isZeroTest();
     assert left.outType() == right.outType();
-    assert left.outType() == ValueType.INT
-        || (left.outType().isObjectOrSingle() && (type == Type.EQ || type == Type.NE));
+    assert verifyTypeCompatible(left.outValue().getTypeLattice(), type);
     return targetFromCondition(Long.signum(left.getRawValue() - right.getRawValue()));
   }
 

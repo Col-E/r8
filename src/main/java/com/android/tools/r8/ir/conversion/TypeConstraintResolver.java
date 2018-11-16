@@ -19,7 +19,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -42,10 +42,13 @@ import java.util.function.Consumer;
  * <ul>
  *   <li>For phis, the out value and all operand values must have the same type.
  *   <li>For if-{eq,ne} instructions, the input values must have the same type.
+ *   <li>For array-{get,put} instructions, the array value must have member type compatible with the
+ *       type of output/input value.
  * </ul>
  *
  * <p>All other constraints on types have been computed during IR construction where every call to
- * readRegister(ValueType) will constrain the type of the SSA value that the read resolves to.
+ * readRegister(ValueTypeConstraint) will constrain the type of the SSA value that the read resolves
+ * to.
  */
 public class TypeConstraintResolver {
 
@@ -58,37 +61,14 @@ public class TypeConstraintResolver {
     this.reporter = reporter;
   }
 
-  public static ValueType constraintForType(TypeLatticeElement type) {
-    if (type.isTop()) {
-      return ValueType.INT_OR_FLOAT_OR_NULL;
-    }
-    if (type.isBottom() || type.isReference()) {
-      return ValueType.OBJECT;
-    }
-    if (type.isInt()) {
-      return ValueType.INT;
-    }
-    if (type.isFloat()) {
-      return ValueType.FLOAT;
-    }
-    if (type.isLong()) {
-      return ValueType.LONG;
-    }
-    if (type.isDouble()) {
-      return ValueType.DOUBLE;
-    }
-    if (type.isSingle()) {
-      return ValueType.INT_OR_FLOAT;
-    }
-    if (type.isWide()) {
-      return ValueType.LONG_OR_DOUBLE;
-    }
-    throw new Unreachable("Invalid type lattice: " + type);
+  public static ValueTypeConstraint constraintForType(TypeLatticeElement type) {
+    // During constraint resolution the type bottom denotes references of not-yet-computed types.
+    return type.isBottom() ? ValueTypeConstraint.OBJECT : ValueTypeConstraint.fromTypeLattice(type);
   }
 
-  public static TypeLatticeElement typeForConstraint(ValueType constraint) {
+  public static TypeLatticeElement typeForConstraint(ValueTypeConstraint constraint) {
     switch (constraint) {
-      case INT_OR_FLOAT_OR_NULL:
+      case INT_OR_FLOAT_OR_OBJECT:
         return TypeLatticeElement.TOP;
       case OBJECT:
         // If the constraint is object the concrete lattice type will need to be computed.
@@ -196,11 +176,12 @@ public class TypeConstraintResolver {
       MemberType type, Value value, Value array, Consumer<MemberType> setter) {
     assert !type.isPrecise();
     Value canonical = canonical(value);
-    ValueType constraint;
+    ValueTypeConstraint constraint;
     if (array.getTypeLattice().isArrayType()) {
       // If the array type is known it uniquely defines the actual member type.
       ArrayTypeLatticeElement arrayType = array.getTypeLattice().asArrayTypeLatticeElement();
-      constraint = ValueType.fromDexType(arrayType.getArrayElementType(builder.getFactory()));
+      constraint =
+          ValueTypeConstraint.fromDexType(arrayType.getArrayElementType(builder.getFactory()));
     } else {
       // If not, e.g., the array input is null, the canonical value determines the final type.
       constraint = getCanonicalTypeConstraint(canonical, true);
@@ -215,19 +196,19 @@ public class TypeConstraintResolver {
     link(canonical(value1), canonical(value2));
   }
 
-  private ValueType getCanonicalTypeConstraint(Value value, boolean finished) {
-    ValueType type = constraintForType(canonical(value).getTypeLattice());
+  private ValueTypeConstraint getCanonicalTypeConstraint(Value value, boolean finished) {
+    ValueTypeConstraint type = constraintForType(canonical(value).getTypeLattice());
     switch (type) {
-      case INT_OR_FLOAT_OR_NULL:
+      case INT_OR_FLOAT_OR_OBJECT:
         // There is never a second round for resolving object vs single.
         assert !finished;
-        return ValueType.INT_OR_FLOAT;
+        return ValueTypeConstraint.INT_OR_FLOAT;
       case INT_OR_FLOAT:
         assert !finished || verifyNoConstrainedUses(value);
-        return finished ? ValueType.INT : type;
+        return finished ? ValueTypeConstraint.INT : type;
       case LONG_OR_DOUBLE:
         assert !finished || verifyNoConstrainedUses(value);
-        return finished ? ValueType.LONG : type;
+        return finished ? ValueTypeConstraint.LONG : type;
       default:
         return type;
     }

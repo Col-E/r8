@@ -1,4 +1,4 @@
-// Copyright (c) 2016, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -10,70 +10,97 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
-public enum ValueType {
+public enum ValueTypeConstraint {
   OBJECT,
   INT,
   FLOAT,
+  INT_OR_FLOAT,
+  INT_OR_FLOAT_OR_OBJECT,
   LONG,
-  DOUBLE;
+  DOUBLE,
+  LONG_OR_DOUBLE;
 
   public boolean isObject() {
     return this == OBJECT;
   }
 
   public boolean isSingle() {
-    return this == INT || this == FLOAT;
+    return this == INT || this == FLOAT || this == INT_OR_FLOAT;
   }
 
   public boolean isWide() {
-    return this == LONG || this == DOUBLE;
+    return this == LONG || this == DOUBLE || this == LONG_OR_DOUBLE;
+  }
+
+  public boolean isPrecise() {
+    return this != ValueTypeConstraint.INT_OR_FLOAT
+        && this != ValueTypeConstraint.LONG_OR_DOUBLE
+        && this != ValueTypeConstraint.INT_OR_FLOAT_OR_OBJECT;
   }
 
   public int requiredRegisters() {
     return isWide() ? 2 : 1;
   }
 
-  public static ValueType fromMemberType(MemberType type) {
+  public static ValueTypeConstraint fromValueType(ValueType type) {
+    switch (type) {
+      case OBJECT:
+        return OBJECT;
+      case INT:
+        return INT;
+      case FLOAT:
+        return FLOAT;
+      case LONG:
+        return LONG;
+      case DOUBLE:
+        return DOUBLE;
+      default:
+        throw new Unreachable("Unexpected value type: " + type);
+    }
+  }
+
+  public static ValueTypeConstraint fromMemberType(MemberType type) {
     switch (type) {
       case BOOLEAN:
       case BYTE:
       case CHAR:
       case SHORT:
       case INT:
-        return ValueType.INT;
+        return ValueTypeConstraint.INT;
       case FLOAT:
-        return ValueType.FLOAT;
-      case LONG:
-        return ValueType.LONG;
-      case DOUBLE:
-        return ValueType.DOUBLE;
-      case OBJECT:
-        return ValueType.OBJECT;
+        return ValueTypeConstraint.FLOAT;
       case INT_OR_FLOAT:
+        return ValueTypeConstraint.INT_OR_FLOAT;
+      case LONG:
+        return ValueTypeConstraint.LONG;
+      case DOUBLE:
+        return ValueTypeConstraint.DOUBLE;
       case LONG_OR_DOUBLE:
-        throw new Unreachable("Unexpected imprecise type: " + type);
+        return ValueTypeConstraint.LONG_OR_DOUBLE;
+      case OBJECT:
+        return ValueTypeConstraint.OBJECT;
       default:
         throw new Unreachable("Unexpected member type: " + type);
     }
   }
 
-  public static ValueType fromTypeDescriptorChar(char descriptor) {
+  public static ValueTypeConstraint fromTypeDescriptorChar(char descriptor) {
     switch (descriptor) {
       case 'L':
       case '[':
-        return ValueType.OBJECT;
+        return ValueTypeConstraint.OBJECT;
       case 'Z':
       case 'B':
       case 'S':
       case 'C':
       case 'I':
-        return ValueType.INT;
+        return ValueTypeConstraint.INT;
       case 'F':
-        return ValueType.FLOAT;
+        return ValueTypeConstraint.FLOAT;
       case 'J':
-        return ValueType.LONG;
+        return ValueTypeConstraint.LONG;
       case 'D':
-        return ValueType.DOUBLE;
+        return ValueTypeConstraint.DOUBLE;
       case 'V':
         throw new InternalCompilerError("No value type for void type.");
       default:
@@ -81,29 +108,29 @@ public enum ValueType {
     }
   }
 
-  public static ValueType fromDexType(DexType type) {
+  public static ValueTypeConstraint fromDexType(DexType type) {
     return fromTypeDescriptorChar((char) type.descriptor.content[0]);
   }
 
-  public static ValueType fromNumericType(NumericType type) {
+  public static ValueTypeConstraint fromNumericType(NumericType type) {
     switch (type) {
       case BYTE:
       case CHAR:
       case SHORT:
       case INT:
-        return ValueType.INT;
+        return ValueTypeConstraint.INT;
       case FLOAT:
-        return ValueType.FLOAT;
+        return ValueTypeConstraint.FLOAT;
       case LONG:
-        return ValueType.LONG;
+        return ValueTypeConstraint.LONG;
       case DOUBLE:
-        return ValueType.DOUBLE;
+        return ValueTypeConstraint.DOUBLE;
       default:
         throw new Unreachable("Invalid numeric type '" + type + "'");
     }
   }
 
-  public static ValueType fromTypeLattice(TypeLatticeElement typeLatticeElement) {
+  public static ValueTypeConstraint fromTypeLattice(TypeLatticeElement typeLatticeElement) {
     if (typeLatticeElement.isReference()) {
       return OBJECT;
     }
@@ -119,7 +146,16 @@ public enum ValueType {
     if (typeLatticeElement.isDouble()) {
       return DOUBLE;
     }
-    throw new Unreachable("Unexpected conversion of imprecise type: " + typeLatticeElement);
+    if (typeLatticeElement.isSingle()) {
+      return INT_OR_FLOAT;
+    }
+    if (typeLatticeElement.isWide()) {
+      return LONG_OR_DOUBLE;
+    }
+    if (typeLatticeElement.isTop()) {
+      return INT_OR_FLOAT_OR_OBJECT;
+    }
+    throw new Unreachable("Unexpected conversion of type: " + typeLatticeElement);
   }
 
   public PrimitiveTypeLatticeElement toPrimitiveTypeLattice() {

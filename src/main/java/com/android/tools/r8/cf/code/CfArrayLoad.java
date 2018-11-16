@@ -20,6 +20,7 @@ public class CfArrayLoad extends CfInstruction {
   private final MemberType type;
 
   public CfArrayLoad(MemberType type) {
+    assert type.isPrecise();
     this.type = type;
   }
 

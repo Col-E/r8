@@ -77,7 +77,7 @@ public class Phi extends Value {
       throwUndefinedValueError();
     }
 
-    ValueType readConstraint = TypeConstraintResolver.constraintForType(typeLattice);
+    ValueTypeConstraint readConstraint = TypeConstraintResolver.constraintForType(typeLattice);
     List<Value> operands = new ArrayList<>(block.getPredecessors().size());
     for (BasicBlock pred : block.getPredecessors()) {
       EdgeType edgeType = pred.getEdgeType(block);
@@ -87,7 +87,8 @@ public class Phi extends Value {
 
     if (readType != RegisterReadType.NORMAL) {
       for (Value operand : operands) {
-        ValueType constraint = TypeConstraintResolver.constraintForType(operand.getTypeLattice());
+        ValueTypeConstraint constraint =
+            TypeConstraintResolver.constraintForType(operand.getTypeLattice());
         if (constrainedType(constraint) == null) {
           // If the phi has been requested from instructions and from local info, throw out locals
           // and retry compilation.
@@ -273,7 +274,7 @@ public class Phi extends Value {
     }
     // Ensure that the value that replaces this phi is constrained to the type of this phi.
     if (builder != null && typeLattice.isPreciseType() && !typeLattice.isBottom()) {
-      builder.constrainType(same, ValueType.fromTypeLattice(typeLattice));
+      builder.constrainType(same, ValueTypeConstraint.fromTypeLattice(typeLattice));
     }
     // Removing this phi, so get rid of it as a phi user from all of the operands to avoid
     // recursively getting back here with the same phi. If the phi has itself as an operand

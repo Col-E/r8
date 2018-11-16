@@ -25,7 +25,7 @@ public enum MemberType {
     return this != INT_OR_FLOAT && this != LONG_OR_DOUBLE;
   }
 
-  public static MemberType constrainedType(MemberType type, ValueType constraint) {
+  public static MemberType constrainedType(MemberType type, ValueTypeConstraint constraint) {
     switch (constraint) {
       case OBJECT:
         if (type == OBJECT) {
@@ -47,7 +47,7 @@ public enum MemberType {
           return type;
         }
         break;
-      case INT_OR_FLOAT_OR_NULL:
+      case INT_OR_FLOAT_OR_OBJECT:
         if (type == INT || type == FLOAT || type == OBJECT || type == INT_OR_FLOAT) {
           return type;
         }

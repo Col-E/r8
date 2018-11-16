@@ -4,7 +4,7 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.ir.code.If.Type;
-import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.code.ValueTypeConstraint;
 
 public class IfLez extends Format21t {
 
@@ -41,7 +41,7 @@ public class IfLez extends Format21t {
   }
 
   @Override
-  protected ValueType getOperandType() {
-    return ValueType.INT;
+  protected ValueTypeConstraint getOperandTypeConstraint() {
+    return ValueTypeConstraint.INT;
   }
 }

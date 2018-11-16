@@ -269,8 +269,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
       int instanceRegister = argRegisters.get(0);
       int adjustedValue = prepareReturnValue(instanceRegister,
           erasedReturnType, enforcedReturnType, methodToCall.holder);
-      add(builder -> builder.addReturn(
-          ValueType.fromDexType(erasedReturnType), adjustedValue));
+      add(builder -> builder.addReturn(adjustedValue));
     } else {
       ValueType implValueType = ValueType.fromDexType(implReturnType);
       int tempValue = nextRegister(implValueType);
@@ -278,7 +277,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
       int adjustedValue = prepareReturnValue(tempValue,
           erasedReturnType, enforcedReturnType, methodToCall.proto.returnType);
       ValueType adjustedValueType = ValueType.fromDexType(erasedReturnType);
-      add(builder -> builder.addReturn(adjustedValueType, adjustedValue));
+      add(builder -> builder.addReturn(adjustedValue));
     }
   }
 
