@@ -20,6 +20,16 @@ public class Pop extends Instruction {
   }
 
   @Override
+  protected void addInValue(Value value) {
+    if (value.hasUsersInfo()) {
+      super.addInValue(value);
+    } else {
+      // Overriding IR addInValue since userinfo is cleared.
+      inValues.add(value);
+    }
+  }
+
+  @Override
   public boolean isPop() {
     return true;
   }

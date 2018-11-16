@@ -27,20 +27,25 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Inc;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.JumpInstruction;
+import com.android.tools.r8.ir.code.Load;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
+import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
@@ -69,6 +74,7 @@ public class CfBuilder {
 
   private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
   private static final int SUFFIX_SHARING_OVERHEAD = 30;
+  private static final int IINC_PATTERN_SIZE = 4;
 
   private final DexItemFactory factory;
   private final DexEncodedMethod method;
@@ -167,6 +173,8 @@ public class CfBuilder {
       PeepholeOptimizer.removeIdenticalPredecessorBlocks(code, registerAllocator);
       PeepholeOptimizer.shareIdenticalBlockSuffix(code, registerAllocator, SUFFIX_SHARING_OVERHEAD);
     }
+
+    rewriteIincPatterns();
 
     CodeRewriter.collapseTrivialGotos(method, code);
     DexBuilder.removeRedundantDebugPositions(code);
@@ -371,6 +379,84 @@ public class CfBuilder {
       }
     }
     return false;
+  }
+
+  private void rewriteIincPatterns() {
+    for (BasicBlock block : code.blocks) {
+      if (block.getInstructions().size() < IINC_PATTERN_SIZE) {
+        continue;
+      }
+      int earliestAddInstrIdx = 2;
+      int latestAddInstrIdx = block.getInstructions().size() - 3;
+      ListIterator<Instruction> it = block.getInstructions().listIterator();
+      int instrIdx = -1;
+      while (it.hasNext()) {
+        ++instrIdx;
+        Instruction current = it.next();
+        if (instrIdx < earliestAddInstrIdx || latestAddInstrIdx < instrIdx || !current.isAdd()) {
+          continue;
+        }
+        it.previous();
+        it.previous();
+        it.previous();
+        Instruction instruction0 = it.next();
+        Instruction instruction1 = it.next();
+        Add instruction2 = it.next().asAdd();
+        Store instruction3 = it.next().asStore();
+
+        // Set bail-out position after Add.
+        it.previous();
+
+        if (instruction3 == null) {
+          continue;
+        }
+        Load load;
+        ConstNumber constNumber;
+
+        if (instruction0.isLoad()) {
+          load = instruction0.asLoad();
+          constNumber = instruction1.asConstNumber();
+        } else {
+          constNumber = instruction0.asConstNumber();
+          load = instruction1.asLoad();
+        }
+
+        if (load == null
+            || constNumber == null
+            || constNumber.outValue().getTypeLattice() != TypeLatticeElement.INT) {
+          continue;
+        }
+
+        int increment = constNumber.getIntValue();
+        if (increment < Byte.MIN_VALUE || Byte.MAX_VALUE < increment) {
+          continue;
+        }
+
+        int register = getLocalRegister(load.inValues().get(0));
+        if (register != getLocalRegister(instruction3.outValue())) {
+          continue;
+        }
+        Position position = instruction2.getPosition();
+        if (position != instruction0.getPosition()
+            || position != instruction1.getPosition()
+            || position != instruction3.getPosition()) {
+          continue;
+        }
+        it.previous();
+        it.previous();
+        it.previous();
+        it.remove();
+        it.next();
+        it.remove();
+        it.next();
+        it.remove();
+        it.next();
+        Inc inc = new Inc(instruction3.outValue(), load.inValues().get(0), increment);
+        inc.setPosition(position);
+        inc.setBlock(block);
+        it.set(inc);
+      }
+    }
   }
 
   private void buildCfInstructions(

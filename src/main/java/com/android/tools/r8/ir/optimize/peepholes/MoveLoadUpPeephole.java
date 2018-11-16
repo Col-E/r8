@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.ir.optimize.peepholes;
 
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Load;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Value;
 
@@ -68,7 +70,7 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
     stackHeight = 0;
     insertPosition = null;
     Match match = layout.test(it);
-    if (match == null || insertPosition == null) {
+    if (match == null || insertPosition == null || isPotentionalIncInstruction(it)) {
       return false;
     }
     Load oldLoad = firstLoad.get(match).asLoad();
@@ -83,10 +85,8 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
 
     // Find the place to insert a new load.
     Instruction current = it.previous();
-    int moves = 1;
     while (current != insertPosition) {
       current = it.previous();
-      moves++;
     }
 
     // Insert directly above the other load.
@@ -96,6 +96,33 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
 
     // Do not reset the instruction pointer because the iterator should reset.
     return true;
+  }
+
+  private static boolean isPotentionalIncInstruction(InstructionListIterator it) {
+    it.previous();
+    Load load = it.next().asLoad();
+    if (!it.hasNext()) {
+      return false;
+    }
+    Position position = load.getPosition();
+    Instruction current = it.next();
+    if (position != current.getPosition()
+        || !current.isConstNumber()
+        || current.outValue().getTypeLattice() != TypeLatticeElement.INT
+        || current.asConstNumber().getIntValue() < -128
+        || current.asConstNumber().getIntValue() > 127
+        || !it.hasNext()) {
+      PeepholeHelper.resetNext(it, 2);
+      return false;
+    }
+    current = it.next();
+    if (position != current.getPosition() || !current.isAdd() || !it.hasNext()) {
+      PeepholeHelper.resetNext(it, 3);
+      return false;
+    }
+    current = it.next();
+    PeepholeHelper.resetNext(it, 4);
+    return position == current.getPosition() && current.isStore();
   }
 
   @Override

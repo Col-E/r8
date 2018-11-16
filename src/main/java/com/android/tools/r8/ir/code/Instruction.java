@@ -86,10 +86,7 @@ public abstract class Instruction {
   protected void addInValue(Value value) {
     if (value != null) {
       inValues.add(value);
-      // TODO(mathiasr): We insert Pop instructions in BasicBlock.replaceSuccessor() after clearing
-      // user info. If we change the CF-specific IR to avoid having StackValues as in/out-values,
-      // we can remove this 'if'.
-      assert value.hasUsersInfo() || isPop();
+      assert value.hasUsersInfo();
       if (value.hasUsersInfo()) {
         value.addUser(this);
       }
