@@ -186,15 +186,20 @@ public class StringOptimizer {
           }
         }
       } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getSimpleName) {
-        // Always returns an empty string if the target type is local or anonymous class.
-        if (holder.isLocalClass() || holder.isAnonymousClass()) {
+        // Always returns an empty string if the target type is an anonymous class.
+        if (holder.isAnonymousClass()) {
           name = "";
         } else {
           if (code.options.enableMinification) {
             // TODO(b/118536394): Add support minification and pinning.
             continue;
           }
-          name = getSimpleClassNameFromDescriptor(baseType.toDescriptorString());
+          // Refer to jctf.r8.lang.Class.getSimpleName.Class_getSimpleName_A0(1|3)
+          if (holder.isMemberClass() || holder.isLocalClass()) {
+            name = holder.getInnerClassAttributeForThisClass().getInnerName().toString();
+          } else {
+            name = getSimpleClassNameFromDescriptor(baseType.toDescriptorString());
+          }
           if (arrayDepth > 0) {
             name = name + Strings.repeat("[]", arrayDepth);
           }

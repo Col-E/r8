@@ -224,11 +224,7 @@ public class FoundClassSubject extends ClassSubject {
 
   @Override
   public boolean isMemberClass() {
-    InnerClassAttribute innerClass = dexClass.getInnerClassAttributeForThisClass();
-    return innerClass != null
-        && innerClass.getOuter() != null
-        && innerClass.isNamed()
-        && dexClass.getEnclosingMethod() == null;
+    return dexClass.isMemberClass();
   }
 
   @Override
