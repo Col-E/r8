@@ -248,7 +248,7 @@ final class InterfaceProcessor {
                   callerPosition ->
                       new ForwardMethodSourceCode(
                           null, newMethod, null, origMethod, Type.STATIC, callerPosition)));
-      newEncodedMethod.markNeverInline();
+      newEncodedMethod.getMutableOptimizationInfo().markNeverInline();
       dispatchMethods.add(newEncodedMethod);
     }
 

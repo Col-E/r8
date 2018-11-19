@@ -485,7 +485,7 @@ public class IRConverter {
     // Ideally, we should outline eagerly when threshold for a template has been reached.
 
     // Process the application identifying outlining candidates.
-    OptimizationFeedback directFeedback = new OptimizationFeedbackDirect();
+    OptimizationFeedbackDelayed feedback = new OptimizationFeedbackDelayed();
     {
       timing.begin("Build call graph");
       CallGraph callGraph = CallGraph.build(application, appView.withLiveness(), options, timing);
@@ -495,9 +495,9 @@ public class IRConverter {
           outliner == null ? Outliner::noProcessing : outliner.identifyCandidateMethods();
       callGraph.forEachMethod(
           (method, isProcessedConcurrently) -> {
-            processMethod(
-                method, directFeedback, isProcessedConcurrently, callGraph, outlineHandler);
+            processMethod(method, feedback, isProcessedConcurrently, callGraph, outlineHandler);
           },
+          feedback::updateVisibleOptimizationInfo,
           executorService);
       timing.end();
     }
@@ -508,14 +508,14 @@ public class IRConverter {
 
     // TODO(b/112831361): Implement support for staticizeClasses in CF backend.
     if (!options.isGeneratingClassFiles()) {
-      staticizeClasses(directFeedback, executorService);
+      staticizeClasses(feedback, executorService);
     }
 
     // Second inlining pass for dealing with double inline callers.
     if (inliner != null) {
       // Use direct feedback still, since methods after inlining may
       // change their status or other properties.
-      inliner.processDoubleInlineCallers(this, directFeedback);
+      inliner.processDoubleInlineCallers(this, feedback);
     }
 
     synthesizeLambdaClasses(builder, executorService);
@@ -523,7 +523,7 @@ public class IRConverter {
     synthesizeTwrCloseResourceUtilityClass(builder);
 
     handleSynthesizedClassMapping(builder);
-    finalizeLambdaMerging(application, directFeedback, builder, executorService);
+    finalizeLambdaMerging(application, feedback, builder, executorService);
 
     if (outliner != null) {
       timing.begin("IR conversion phase 2");

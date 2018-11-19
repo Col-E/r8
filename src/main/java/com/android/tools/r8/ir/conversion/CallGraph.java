@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -449,12 +450,13 @@ public class CallGraph extends CallSiteInformation {
 
   /**
    * Applies the given method to all leaf nodes of the graph.
-   * <p>
-   * As second parameter, a predicate that can be used to decide whether another method is
+   *
+   * <p>As second parameter, a predicate that can be used to decide whether another method is
    * processed at the same time is passed. This can be used to avoid races in concurrent processing.
    */
   public <E extends Exception> void forEachMethod(
       ThrowingBiConsumer<DexEncodedMethod, Predicate<DexEncodedMethod>, E> consumer,
+      Consumer<Collection<DexEncodedMethod>> waveDone,
       ExecutorService executorService)
       throws ExecutionException {
     while (!isEmpty()) {
@@ -468,6 +470,7 @@ public class CallGraph extends CallSiteInformation {
         }));
       }
       ThreadUtils.awaitFutures(futures);
+      waveDone.accept(methods);
     }
   }
 

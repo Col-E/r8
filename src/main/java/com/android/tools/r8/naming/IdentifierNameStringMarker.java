@@ -163,7 +163,7 @@ public class IdentifierNameStringMarker {
             InstancePut instancePut = instruction.asInstancePut();
             iterator.replaceCurrentInstruction(new InstancePut(field, instancePut.object(), newIn));
           }
-          encodedMethod.markUseIdentifierNameString();
+          encodedMethod.getMutableOptimizationInfo().markUseIdentifierNameString();
         } else if (instruction.isInvokeMethod()) {
           InvokeMethod invoke = instruction.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
@@ -278,7 +278,7 @@ public class IdentifierNameStringMarker {
                     invokedMethod.proto,
                     invoke.outValue(),
                     newIns));
-            encodedMethod.markUseIdentifierNameString();
+            encodedMethod.getMutableOptimizationInfo().markUseIdentifierNameString();
           }
         }
       }

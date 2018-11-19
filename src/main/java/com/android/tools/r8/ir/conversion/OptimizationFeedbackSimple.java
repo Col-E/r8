@@ -62,7 +62,7 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
 
   @Override
   public void setInitializerEnablingJavaAssertions(DexEncodedMethod method) {
-    method.setInitializerEnablingJavaAssertions();
+    method.getMutableOptimizationInfo().setInitializerEnablingJavaAssertions();
   }
 
   @Override

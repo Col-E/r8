@@ -176,7 +176,7 @@ public class MemberValuePropagation {
         // return value.
         if (!invokeReplaced && invoke.outValue() != null) {
           DexEncodedMethod target = invoke.lookupSingleTarget(appInfo, callingContext);
-          if (target != null && !isProcessedConcurrently.test(target)) {
+          if (target != null) {
             if (target.getOptimizationInfo().neverReturnsNull() && invoke.outValue().canBeNull()) {
               invoke.outValue().markNeverNull();
             }

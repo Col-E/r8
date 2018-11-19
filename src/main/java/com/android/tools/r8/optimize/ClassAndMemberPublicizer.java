@@ -140,7 +140,7 @@ public final class ClassAndMemberPublicizer {
       // Although the current method became public, it surely has the single virtual target.
       encodedMethod.method.setSingleVirtualMethodCache(
           encodedMethod.method.getHolder(), encodedMethod);
-      encodedMethod.markPublicized();
+      encodedMethod.getMutableOptimizationInfo().markPublicized();
       return true;
     }
 
