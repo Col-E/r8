@@ -7,7 +7,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -102,9 +101,9 @@ public interface StringConsumer {
     public void accept(String string, DiagnosticsHandler handler) {
       super.accept(string, handler);
       try {
-        File parent = outputPath.getParent().toFile();
-        if (!parent.exists()) {
-          parent.mkdirs();
+        Path parent = outputPath.getParent();
+        if (parent != null && !parent.toFile().exists()) {
+          Files.createDirectories(parent);
         }
         Files.write(outputPath, string.getBytes(encoding));
       } catch (IOException e) {

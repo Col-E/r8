@@ -15,6 +15,7 @@ import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -95,8 +96,10 @@ public class GenerateMainDexListCommandTest {
     addAndroidJarsToCommandLine(args);
     addInputJarsToCommandLine(args);
     addMainDexRuleToCommandLine(args);
-    assertEquals(0, ToolHelper.forkGenerateMainDexList(
-        working, args, "--main-dex-list-output", mainDexListOutput).exitCode);
+    ProcessResult result =
+        ToolHelper.forkGenerateMainDexList(
+            working, args, "--main-dex-list-output", mainDexListOutput);
+    assertEquals(result.stderr, 0, result.exitCode);
     assertTrue(Files.exists(output));
     assertTrue(Files.size(output) > 0);
   }
