@@ -4,21 +4,71 @@
 
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.ByteDataView;
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.invokespecial.Main;
+import com.android.tools.r8.graph.invokespecial.TestClass;
 import com.android.tools.r8.graph.invokespecial.TestClassDump;
-import org.junit.Ignore;
+import com.android.tools.r8.utils.StringUtils;
+import java.nio.file.Path;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class InvokeSpecialTest extends AsmTestBase {
 
-  @Ignore("b/110175213")
+  @ClassRule
+  public static TemporaryFolder tempFolder = ToolHelper.getTemporaryFolderForTest();
+
+  private static Path inputJar;
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    inputJar = tempFolder.getRoot().toPath().resolve("input.jar");
+    ClassFileConsumer consumer = new ClassFileConsumer.ArchiveConsumer(inputJar);
+    consumer.accept(
+        ByteDataView.of(ToolHelper.getClassAsBytes(Main.class)),
+        javaTypeToDescriptor(Main.class.getTypeName()),
+        null);
+    consumer.accept(
+        ByteDataView.of(TestClassDump.dump()),
+        javaTypeToDescriptor(TestClass.class.getTypeName()),
+        null);
+    consumer.finished(null);
+  }
+
   @Test
-  public void testInvokeSpecial() throws Exception {
-    ensureSameOutput(
-        Main.class.getCanonicalName(),
-        ToolHelper.getClassAsBytes(Main.class),
-        TestClassDump.dump());
+  public void testExpectedBehavior() throws Exception {
+    testForJvm()
+        .addProgramClasses(Main.class, TestClass.class)
+        .run(Main.class)
+        .assertSuccessWithOutput(StringUtils.lines("true", "false"));
+  }
+
+  @Test
+  public void testD8Behavior() throws Exception {
+    // TODO(b/110175213): Should succeed with output "true\nfalse\n".
+    testForD8()
+        .addProgramFiles(inputJar)
+        .run(Main.class)
+        .assertFailureWithErrorThatMatches(
+            containsString(
+                "was expected to be of type direct but instead was found to be of type virtual"));
+  }
+
+  @Test
+  public void testDXBehavior() throws Exception {
+    testForDX()
+        .addProgramFiles(inputJar)
+        .run(Main.class)
+        .assertFailureWithErrorThatMatches(
+            containsString(
+                "was expected to be of type direct but instead was found to be of type virtual"));
   }
 }
