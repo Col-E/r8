@@ -107,7 +107,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
         // LambdaGroupVirtualMethodSourceCode relies on.
         for (DexEncodedMethod implMethod : implMethods) {
           if (implMethod != null) {
-            implMethod.markForceInline();
+            implMethod.getMutableOptimizationInfo().markForceInline();
           }
         }
 

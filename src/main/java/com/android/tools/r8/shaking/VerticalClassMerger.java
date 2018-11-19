@@ -1127,8 +1127,8 @@ public class VerticalClassMerger {
       if (method.getOptimizationInfo().isPublicized()) {
         // The bridge is now the public method serving the role of the original method, and should
         // reflect that this method was publicized.
-        bridge.markPublicized();
-        method.unsetPublicized();
+        bridge.getMutableOptimizationInfo().markPublicized();
+        method.getMutableOptimizationInfo().unsetPublicized();
       }
       return bridge;
     }
@@ -1229,7 +1229,7 @@ public class VerticalClassMerger {
       } while (!availableMethodSignatures.test(newSignature));
 
       DexEncodedMethod result = method.toTypeSubstitutedMethod(newSignature);
-      result.markForceInline();
+      result.getMutableOptimizationInfo().markForceInline();
       deferredRenamings.map(method.method, result.method);
       deferredRenamings.recordMove(method.method, result.method);
       // Renamed constructors turn into ordinary private functions. They can be private, as

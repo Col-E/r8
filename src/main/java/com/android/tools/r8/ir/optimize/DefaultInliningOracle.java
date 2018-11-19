@@ -159,6 +159,11 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
       return false;
     }
 
+    // We should never even try to inline something that is processed concurrently. It can lead
+    // to non-deterministic behaviour as the inlining IR could be built from either original output
+    // or optimized code. Right now this happens for the class class staticizer, as it just
+    // processes all relevant methods in parallel with the full optimization pipeline enabled.
+    // TODO(sgjesse): Add this assert "assert !isProcessedConcurrently.test(candidate);"
     if (reason != Reason.FORCE && isProcessedConcurrently.test(candidate)) {
       if (info != null) {
         info.exclude(invoke, "is processed in parallel");

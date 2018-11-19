@@ -102,7 +102,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   // TODO(b/111080693): towards finer-grained inlining constraints,
   //   we need to maintain a set of states with (potentially different) contexts.
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
-  private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
+  private OptimizationInfo optimizationInfo = DefaultOptimizationInfoImpl.DEFAULT_INSTANCE;
   private int classFileVersion = -1;
 
   // This flag indicates the current instance is no longer up-to-date as another instance was
@@ -809,27 +809,146 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
   }
 
-  public static class OptimizationInfo {
-    public enum InlinePreference {
-      NeverInline, ForceInline, Default
+  public static class DefaultOptimizationInfoImpl implements OptimizationInfo {
+    public static final OptimizationInfo DEFAULT_INSTANCE = new DefaultOptimizationInfoImpl();
+
+    public static int UNKNOWN_RETURNED_ARGUMENT = -1;
+    public static boolean UNKNOWN_NEVER_RETURNS_NULL = false;
+    public static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
+    public static boolean UNKNOWN_RETURNS_CONSTANT = false;
+    public static int UNKNOWN_RETURNED_CONSTANT = -1;
+    public static boolean NOT_PUBLICZED = false;
+    public static boolean DOES_NOT_USE_IDNETIFIER_NAME_STRING = false;
+    public static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
+    public static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
+    public static ClassInlinerEligibility UNKNOWN_CLASS_INLINER_ELIGIBILITY = null;
+    public static TrivialInitializer UNKNOWN_TRIVIAL_INITIALIZER = null;
+    public static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
+    public static ParameterUsagesInfo UNKNOWN_PARAMETER_USAGE_INFO = null;
+    public static BitSet NO_NULL_PARAMETER_HINTS = null;
+
+    private DefaultOptimizationInfoImpl() {}
+
+    @Override
+    public TrivialInitializer getTrivialInitializerInfo() {
+      return UNKNOWN_TRIVIAL_INITIALIZER;
     }
 
-    private int returnedArgument = -1;
-    private boolean neverReturnsNull = false;
-    private boolean neverReturnsNormally = false;
-    private boolean returnsConstant = false;
-    private long returnedConstant = 0;
-    private boolean publicized = false;
+    @Override
+    public ParameterUsage getParameterUsages(int parameter) {
+      assert UNKNOWN_PARAMETER_USAGE_INFO == null;
+      return null;
+    }
+
+    @Override
+    public BitSet getNonNullParamHints() {
+      return NO_NULL_PARAMETER_HINTS;
+    }
+
+    @Override
+    public boolean returnsArgument() {
+      return false;
+    }
+
+    @Override
+    public int getReturnedArgument() {
+      assert returnsArgument();
+      return UNKNOWN_RETURNED_ARGUMENT;
+    }
+
+    @Override
+    public boolean neverReturnsNull() {
+      return UNKNOWN_NEVER_RETURNS_NULL;
+    }
+
+    @Override
+    public boolean neverReturnsNormally() {
+      return UNKNOWN_NEVER_RETURNS_NORMALLY;
+    }
+
+    @Override
+    public boolean returnsConstant() {
+      return UNKNOWN_RETURNS_CONSTANT;
+    }
+
+    @Override
+    public ClassInlinerEligibility getClassInlinerEligibility() {
+      return UNKNOWN_CLASS_INLINER_ELIGIBILITY;
+    }
+
+    @Override
+    public long getReturnedConstant() {
+      assert returnsConstant();
+      return 0;
+    }
+
+    @Override
+    public boolean isPublicized() {
+      return NOT_PUBLICZED;
+    }
+
+    @Override
+    public boolean isInitializerEnablingJavaAssertions() {
+      return UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
+    }
+
+    @Override
+    public boolean useIdentifierNameString() {
+      return DOES_NOT_USE_IDNETIFIER_NAME_STRING;
+    }
+
+    @Override
+    public boolean forceInline() {
+      return false;
+    }
+
+    @Override
+    public boolean neverInline() {
+      return false;
+    }
+
+    @Override
+    public boolean checksNullReceiverBeforeAnySideEffect() {
+      return UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
+    }
+
+    @Override
+    public boolean triggersClassInitBeforeAnySideEffect() {
+      return UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
+    }
+
+    @Override
+    public UpdatableOptimizationInfo mutableCopy() {
+      return new OptimizationInfoImpl();
+    }
+  }
+
+  public static class OptimizationInfoImpl implements UpdatableOptimizationInfo {
+
+    private int returnedArgument = DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_ARGUMENT;
+    private boolean neverReturnsNull = DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NULL;
+    private boolean neverReturnsNormally =
+        DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NORMALLY;
+    private boolean returnsConstant = DefaultOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
+    private long returnedConstant = DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT;
+    private boolean publicized = DefaultOptimizationInfoImpl.NOT_PUBLICZED;
     private InlinePreference inlining = InlinePreference.Default;
-    private boolean useIdentifierNameString = false;
-    private boolean checksNullReceiverBeforeAnySideEffect = false;
-    private boolean triggersClassInitBeforeAnySideEffect = false;
+    private boolean useIdentifierNameString =
+        DefaultOptimizationInfoImpl.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
+    private boolean checksNullReceiverBeforeAnySideEffect =
+        DefaultOptimizationInfoImpl.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
+    private boolean triggersClassInitBeforeAnySideEffect =
+        DefaultOptimizationInfoImpl.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
     // Stores information about instance methods and constructors for
     // class inliner, null value indicates that the method is not eligible.
-    private ClassInlinerEligibility classInlinerEligibility = null;
-    private TrivialInitializer trivialInitializerInfo = null;
-    private boolean initializerEnablingJavaAssertions = false;
-    private ParameterUsagesInfo parametersUsages = null;
+    private ClassInlinerEligibility classInlinerEligibility =
+        DefaultOptimizationInfoImpl.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
+    private TrivialInitializer trivialInitializerInfo =
+        DefaultOptimizationInfoImpl.UNKNOWN_TRIVIAL_INITIALIZER;
+    private boolean initializerEnablingJavaAssertions =
+        DefaultOptimizationInfoImpl.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
+    private ParameterUsagesInfo parametersUsages =
+        DefaultOptimizationInfoImpl.UNKNOWN_PARAMETER_USAGE_INFO;
     // Stores information about nullability hint per parameter. If set, that means, the method
     // somehow (e.g., null check, such as arg != null, or using checkParameterIsNotNull) ensures
     // the corresponding parameter is not null, or throws NPE before any other side effects.
@@ -837,261 +956,215 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // not null when the method returns normally. Maybe nonNullParamOnNormalExit in the future.
     private BitSet nonNullParamHints = null;
 
-    private OptimizationInfo() {
-      // Intentionally left empty.
+    private OptimizationInfoImpl() {
+      // Intentionally left empty, just use the default values.
     }
 
-    private OptimizationInfo(OptimizationInfo template) {
+    private OptimizationInfoImpl(OptimizationInfoImpl template) {
       returnedArgument = template.returnedArgument;
       neverReturnsNull = template.neverReturnsNull;
+      neverReturnsNormally = template.neverReturnsNormally;
       returnsConstant = template.returnsConstant;
       returnedConstant = template.returnedConstant;
       publicized = template.publicized;
       inlining = template.inlining;
       useIdentifierNameString = template.useIdentifierNameString;
       checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
+      triggersClassInitBeforeAnySideEffect = template.triggersClassInitBeforeAnySideEffect;
+      classInlinerEligibility = template.classInlinerEligibility;
       trivialInitializerInfo = template.trivialInitializerInfo;
+      initializerEnablingJavaAssertions = template.initializerEnablingJavaAssertions;
+      parametersUsages = template.parametersUsages;
+      nonNullParamHints = template.nonNullParamHints;
     }
 
-    public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
-      this.parametersUsages = parametersUsages;
+    @Override
+    public TrivialInitializer getTrivialInitializerInfo() {
+      return trivialInitializerInfo;
     }
 
+    @Override
     public ParameterUsage getParameterUsages(int parameter) {
       return parametersUsages == null ? null : parametersUsages.getParameterUsage(parameter);
     }
 
+    @Override
     public BitSet getNonNullParamHints() {
       return nonNullParamHints;
     }
 
-    public void setNonNullParamHints(BitSet hints) {
-      this.nonNullParamHints = hints;
-    }
-
+    @Override
     public boolean returnsArgument() {
       return returnedArgument != -1;
     }
 
+    @Override
     public int getReturnedArgument() {
       assert returnsArgument();
       return returnedArgument;
     }
 
+    @Override
     public boolean neverReturnsNull() {
       return neverReturnsNull;
     }
 
+    @Override
     public boolean neverReturnsNormally() {
       return neverReturnsNormally;
     }
 
+    @Override
     public boolean returnsConstant() {
       return returnsConstant;
     }
 
-    private void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
-      this.classInlinerEligibility = eligibility;
-    }
-
+    @Override
     public ClassInlinerEligibility getClassInlinerEligibility() {
-      return this.classInlinerEligibility;
+      return classInlinerEligibility;
     }
 
-    private void setTrivialInitializer(TrivialInitializer info) {
-      this.trivialInitializerInfo = info;
-    }
-
-    public TrivialInitializer getTrivialInitializerInfo() {
-      return this.trivialInitializerInfo;
-    }
-
-    private void setInitializerEnablingJavaAssertions() {
-      this.initializerEnablingJavaAssertions = true;
-    }
-
-    public boolean isInitializerEnablingJavaAssertions() {
-      return initializerEnablingJavaAssertions;
-    }
-
+    @Override
     public long getReturnedConstant() {
       assert returnsConstant();
       return returnedConstant;
     }
 
+    @Override
     public boolean isPublicized() {
       return publicized;
     }
 
-    public boolean forceInline() {
-      return inlining == InlinePreference.ForceInline;
+    @Override
+    public boolean isInitializerEnablingJavaAssertions() {
+      return initializerEnablingJavaAssertions;
     }
 
-    public boolean neverInline() {
-      return inlining == InlinePreference.NeverInline;
-    }
-
+    @Override
     public boolean useIdentifierNameString() {
       return useIdentifierNameString;
     }
 
+    @Override
+    public boolean forceInline() {
+      return inlining == InlinePreference.ForceInline;
+    }
+
+    @Override
+    public boolean neverInline() {
+      return inlining == InlinePreference.NeverInline;
+    }
+
+    @Override
     public boolean checksNullReceiverBeforeAnySideEffect() {
       return checksNullReceiverBeforeAnySideEffect;
     }
 
+    @Override
     public boolean triggersClassInitBeforeAnySideEffect() {
       return triggersClassInitBeforeAnySideEffect;
     }
 
-    private void markReturnsArgument(int argument) {
+    @Override
+    public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
+      this.parametersUsages = parametersUsages;
+    }
+
+    @Override
+    public void setNonNullParamHints(BitSet hints) {
+      this.nonNullParamHints = hints;
+    }
+
+    @Override
+    public void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
+      this.classInlinerEligibility = eligibility;
+    }
+
+    @Override
+    public void setTrivialInitializer(TrivialInitializer info) {
+      this.trivialInitializerInfo = info;
+    }
+
+    @Override
+    public void setInitializerEnablingJavaAssertions() {
+      this.initializerEnablingJavaAssertions = true;
+    }
+
+    @Override
+    public void markReturnsArgument(int argument) {
       assert argument >= 0;
       assert returnedArgument == -1 || returnedArgument == argument;
       returnedArgument = argument;
     }
 
-    private void markNeverReturnsNull() {
+    @Override
+    public void markNeverReturnsNull() {
       neverReturnsNull = true;
     }
 
-    private void markNeverReturnsNormally() {
+    @Override
+    public void markNeverReturnsNormally() {
       neverReturnsNormally = true;
     }
 
-    private void markReturnsConstant(long value) {
+    @Override
+    public void markReturnsConstant(long value) {
       assert !returnsConstant || returnedConstant == value;
       returnsConstant = true;
       returnedConstant = value;
     }
 
-    private void markForceInline() {
+    @Override
+    public void markForceInline() {
       // For concurrent scenarios we should allow the flag to be already set
       assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
       inlining = InlinePreference.ForceInline;
     }
 
-    private void unsetForceInline() {
+    @Override
+    public void unsetForceInline() {
       // For concurrent scenarios we should allow the flag to be already unset
       assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
       inlining = InlinePreference.Default;
     }
 
-    private void markNeverInline() {
+    @Override
+    public void markNeverInline() {
       // For concurrent scenarios we should allow the flag to be already set
       assert inlining == InlinePreference.Default || inlining == InlinePreference.NeverInline;
       inlining = InlinePreference.NeverInline;
     }
 
-    private void markPublicized() {
+    @Override
+    public void markPublicized() {
       publicized = true;
     }
 
-    private void unsetPublicized() {
+    @Override
+    public void unsetPublicized() {
       publicized = false;
     }
 
-    private void markUseIdentifierNameString() {
+    @Override
+    public void markUseIdentifierNameString() {
       useIdentifierNameString = true;
     }
 
-    public OptimizationInfo copy() {
-      return new OptimizationInfo(this);
-    }
-
-    private void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
+    @Override
+    public void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
       checksNullReceiverBeforeAnySideEffect = mark;
     }
 
-    private void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
+    @Override
+    public void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
       triggersClassInitBeforeAnySideEffect = mark;
-    }
-  }
-
-  private static class DefaultOptimizationInfo extends OptimizationInfo {
-
-    static final OptimizationInfo DEFAULT = new DefaultOptimizationInfo();
-
-    private DefaultOptimizationInfo() {
     }
 
     @Override
-    public OptimizationInfo copy() {
-      return this;
+    public UpdatableOptimizationInfo mutableCopy() {
+      assert this != DefaultOptimizationInfoImpl.DEFAULT_INSTANCE;
+      return new OptimizationInfoImpl(this);
     }
-  }
-
-  synchronized private OptimizationInfo ensureMutableOI() {
-    if (optimizationInfo == DefaultOptimizationInfo.DEFAULT) {
-      optimizationInfo = new OptimizationInfo();
-    }
-    return optimizationInfo;
-  }
-
-  synchronized public void markReturnsArgument(int argument) {
-    ensureMutableOI().markReturnsArgument(argument);
-  }
-
-  synchronized public void markNeverReturnsNull() {
-    ensureMutableOI().markNeverReturnsNull();
-  }
-
-  synchronized public void markNeverReturnsNormally() {
-    ensureMutableOI().markNeverReturnsNormally();
-  }
-
-  synchronized public void markReturnsConstant(long value) {
-    ensureMutableOI().markReturnsConstant(value);
-  }
-
-  synchronized public void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
-    ensureMutableOI().setClassInlinerEligibility(eligibility);
-  }
-
-  synchronized public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
-    ensureMutableOI().setParameterUsages(parametersUsages);
-  }
-
-  synchronized public void setNonNullParamHints(BitSet hints) {
-    ensureMutableOI().setNonNullParamHints(hints);
-  }
-
-  synchronized public void setTrivialInitializer(TrivialInitializer info) {
-    ensureMutableOI().setTrivialInitializer(info);
-  }
-
-  synchronized public void setInitializerEnablingJavaAssertions() {
-    ensureMutableOI().setInitializerEnablingJavaAssertions();
-  }
-
-  synchronized public void markForceInline() {
-    ensureMutableOI().markForceInline();
-  }
-
-  synchronized public void markNeverInline() {
-    ensureMutableOI().markNeverInline();
-  }
-
-  public synchronized void unsetForceInline() {
-    ensureMutableOI().unsetForceInline();
-  }
-
-  synchronized public void markPublicized() {
-    ensureMutableOI().markPublicized();
-  }
-
-  synchronized public void unsetPublicized() {
-    ensureMutableOI().unsetPublicized();
-  }
-
-  synchronized public void markUseIdentifierNameString() {
-    ensureMutableOI().markUseIdentifierNameString();
-  }
-
-  synchronized public void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
-    ensureMutableOI().markCheckNullReceiverBeforeAnySideEffect(mark);
-  }
-
-  synchronized public void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
-    ensureMutableOI().markTriggerClassInitBeforeAnySideEffect(mark);
   }
 
   public OptimizationInfo getOptimizationInfo() {
@@ -1099,11 +1172,24 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return optimizationInfo;
   }
 
+  public synchronized UpdatableOptimizationInfo getMutableOptimizationInfo() {
+    checkIfObsolete();
+    if (optimizationInfo == DefaultOptimizationInfoImpl.DEFAULT_INSTANCE) {
+      optimizationInfo = optimizationInfo.mutableCopy();
+    }
+    return (UpdatableOptimizationInfo) optimizationInfo;
+  }
+
+  public void setOptimizationInfo(UpdatableOptimizationInfo info) {
+    checkIfObsolete();
+    optimizationInfo = info;
+  }
+
   public void copyMetadataFromInlinee(DexEncodedMethod inlinee) {
     checkIfObsolete();
     // Record that the current method uses identifier name string if the inlinee did so.
     if (inlinee.getOptimizationInfo().useIdentifierNameString()) {
-      markUseIdentifierNameString();
+      getMutableOptimizationInfo().markUseIdentifierNameString();
     }
     if (inlinee.classFileVersion > classFileVersion) {
       upgradeClassFileVersion(inlinee.getClassFileVersion());
@@ -1121,8 +1207,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private final DexAnnotationSet annotations;
     private final ParameterAnnotationsList parameterAnnotations;
     private Code code;
-    private CompilationState compilationState = CompilationState.NOT_PROCESSED;
-    private OptimizationInfo optimizationInfo = DefaultOptimizationInfo.DEFAULT;
+    private CompilationState compilationState;
+    private OptimizationInfo optimizationInfo;
     private final int classFileVersion;
 
     private Builder(DexEncodedMethod from) {
@@ -1133,7 +1219,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       parameterAnnotations = from.parameterAnnotationsList;
       code = from.code;
       compilationState = from.compilationState;
-      optimizationInfo = from.optimizationInfo.copy();
+      optimizationInfo = from.optimizationInfo.mutableCopy();
       classFileVersion = from.classFileVersion;
     }
 

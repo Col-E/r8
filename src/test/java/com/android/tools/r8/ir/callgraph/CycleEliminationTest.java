@@ -169,9 +169,9 @@ public class CycleEliminationTest extends TestBase {
 
       for (Node node : configuration.nodes) {
         if (configuration.forceInline.contains(node)) {
-          node.method.markForceInline();
+          node.method.getMutableOptimizationInfo().markForceInline();
         } else {
-          node.method.unsetForceInline();
+          node.method.getMutableOptimizationInfo().unsetForceInline();
         }
       }
 
@@ -208,7 +208,7 @@ public class CycleEliminationTest extends TestBase {
 
   private Node createForceInlinedNode(String methodName) {
     Node node = createNode(methodName);
-    node.method.markForceInline();
+    node.method.getMutableOptimizationInfo().markForceInline();
     return node;
   }
 }
