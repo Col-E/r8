@@ -11,6 +11,7 @@ import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.invokespecial.Main;
 import com.android.tools.r8.graph.invokespecial.TestClass;
 import com.android.tools.r8.graph.invokespecial.TestClassDump;
@@ -57,9 +58,7 @@ public class InvokeSpecialTest extends AsmTestBase {
     testForD8()
         .addProgramFiles(inputJar)
         .run(Main.class)
-        .assertFailureWithErrorThatMatches(
-            containsString(
-                "was expected to be of type direct but instead was found to be of type virtual"));
+        .assertFailureWithErrorThatMatches(containsString(getExpectedOutput()));
   }
 
   @Test
@@ -67,8 +66,13 @@ public class InvokeSpecialTest extends AsmTestBase {
     testForDX()
         .addProgramFiles(inputJar)
         .run(Main.class)
-        .assertFailureWithErrorThatMatches(
-            containsString(
-                "was expected to be of type direct but instead was found to be of type virtual"));
+        .assertFailureWithErrorThatMatches(containsString(getExpectedOutput()));
+  }
+
+  private static String getExpectedOutput() {
+    if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
+      return "VFY: unable to resolve direct method";
+    }
+    return "was expected to be of type direct but instead was found to be of type virtual";
   }
 }
