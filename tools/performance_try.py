@@ -13,7 +13,7 @@ DART = os.path.join(utils.THIRD_PARTY, 'dart-sdk', 'bin', 'dart')
 
 def Main():
   args = sys.argv[1:]
-  if len(args) != 1:
+  if len(args) != 1 or '--help' in args:
     print('Performance tracking takes exactly one argument, the name for display')
     return 1
   subprocess.check_call([DART, SCRIPT, args[0]])
