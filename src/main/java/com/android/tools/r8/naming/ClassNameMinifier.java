@@ -127,7 +127,6 @@ class ClassNameMinifier {
     timing.begin("rename-classes");
     for (DexClass clazz : classes) {
       if (!renaming.containsKey(clazz.type)) {
-        clazz.annotations = clazz.annotations.keepIf(this::isNotKotlinMetadata);
         DexString renamed = computeName(clazz.type);
         renaming.put(clazz.type, renamed);
       }
@@ -598,9 +597,5 @@ class ClassNameMinifier {
       return "";
     }
     return packagePrefix.substring(0, i);
-  }
-
-  private boolean isNotKotlinMetadata(DexAnnotation annotation) {
-    return annotation.annotation.type != appInfo.dexItemFactory.kotlin.metadata.kotlinMetadataType;
   }
 }

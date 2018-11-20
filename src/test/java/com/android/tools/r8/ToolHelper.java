@@ -98,7 +98,6 @@ public class ToolHelper {
 
   public static final String JAVA_8_RUNTIME = "third_party/openjdk/openjdk-rt-1.8/rt.jar";
   public static final String KT_RUNTIME = "third_party/kotlin/kotlinc/lib/kotlin-runtime.jar";
-  public static final String KT_REFLECT = "third_party/kotlin/kotlinc/lib/kotlin-reflect.jar";
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 
@@ -580,12 +579,6 @@ public class ToolHelper {
   public static Path getKotlinRuntimeJar() {
     Path path = Paths.get(KT_RUNTIME);
     assert Files.exists(path) : "Expected kotlin runtime jar";
-    return path;
-  }
-
-  public static Path getKotlinReflectJar() {
-    Path path = Paths.get(KT_REFLECT);
-    assert Files.exists(path) : "Expected kotlin reflect jar";
     return path;
   }
 
