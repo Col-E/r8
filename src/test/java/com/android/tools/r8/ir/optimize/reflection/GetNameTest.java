@@ -10,21 +10,16 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 class GetName0Class {
   static class InnerClass {
@@ -109,10 +104,7 @@ class GetName0Main {
   }
 }
 
-@RunWith(Parameterized.class)
-public class GetNameTest extends TestBase {
-  private final Backend backend;
-  private final boolean enableMinification;
+public class GetNameTest extends GetNameTestBase {
   private Collection<Path> classPaths;
   private static final String JAVA_OUTPUT = StringUtils.lines(
       // getName
@@ -163,22 +155,8 @@ public class GetNameTest extends TestBase {
   );
   private static final Class<?> MAIN = GetName0Main.class;
 
-  private static final String CLASS_DESCRIPTOR = "Ljava/lang/Class;";
-  private static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
-
-  @Parameterized.Parameters(name = "Backend: {0} minification: {1}")
-  public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
-    for (Backend backend : Backend.values()) {
-      builder.add(new Object[]{backend, Boolean.TRUE});
-      builder.add(new Object[]{backend, Boolean.FALSE});
-    }
-    return builder.build();
-  }
-
   public GetNameTest(Backend backend, boolean enableMinification) throws Exception {
-    this.backend = backend;
-    this.enableMinification = enableMinification;
+    super(backend, enableMinification);
 
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
     builder.addAll(ToolHelper.getClassFilesForTestDirectory(
@@ -193,23 +171,6 @@ public class GetNameTest extends TestBase {
     assumeTrue("Only run JVM reference once (for CF backend)",
         backend == Backend.CF && !enableMinification);
     testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
-  }
-
-  private static boolean isNameReflection(DexMethod method) {
-    return method.getHolder().toDescriptorString().equals(CLASS_DESCRIPTOR)
-        && method.getArity() == 0
-        && method.proto.returnType.toDescriptorString().equals(STRING_DESCRIPTOR)
-        && method.name.toString().startsWith("get")
-        && method.name.toString().endsWith("Name");
-  }
-
-  private long countGetName(MethodSubject method) {
-    return Streams.stream(method.iterateInstructions(instructionSubject -> {
-      if (instructionSubject.isInvoke()) {
-        return isNameReflection(instructionSubject.getMethod());
-      }
-      return false;
-    })).count();
   }
 
   private void test(TestRunResult result, int expectedCount) throws Exception {
@@ -257,6 +218,7 @@ public class GetNameTest extends TestBase {
     }
     TestRunResult result = builder.run(MAIN);
     if (enableMinification) {
+      // TODO(b/118536394): Check even renamed names.
       test(result, 11);
     } else {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
@@ -283,6 +245,7 @@ public class GetNameTest extends TestBase {
       if (backend == Backend.CF) {
         return;
       }
+      // TODO(b/118536394): Check even renamed names.
       test(result, 11);
     } else {
       result.assertSuccessWithOutput(JAVA_OUTPUT);

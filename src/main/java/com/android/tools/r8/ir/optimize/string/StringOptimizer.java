@@ -194,7 +194,6 @@ public class StringOptimizer {
             // TODO(b/118536394): Add support minification and pinning.
             continue;
           }
-          // Refer to jctf.r8.lang.Class.getSimpleName.Class_getSimpleName_A0(1|3)
           if (holder.isMemberClass() || holder.isLocalClass()) {
             name = holder.getInnerClassAttributeForThisClass().getInnerName().toString();
           } else {
