@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
+import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -342,13 +343,14 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public void ensureMethodProcessed(DexEncodedMethod target, IRCode inlinee) {
+  public void ensureMethodProcessed(
+      DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback) {
     if (!target.isProcessed()) {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
       }
       inliner.performInlining(
-          target, inlinee, isProcessedConcurrently, callSiteInformation);
+          target, inlinee, isProcessedConcurrently, callSiteInformation, feedback);
     }
   }
 

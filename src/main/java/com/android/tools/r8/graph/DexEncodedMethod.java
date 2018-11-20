@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -1185,11 +1186,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     optimizationInfo = info;
   }
 
-  public void copyMetadataFromInlinee(DexEncodedMethod inlinee) {
+  public void copyMetadataFromInlinee(DexEncodedMethod inlinee, OptimizationFeedback feedback) {
     checkIfObsolete();
     // Record that the current method uses identifier name string if the inlinee did so.
     if (inlinee.getOptimizationInfo().useIdentifierNameString()) {
-      getMutableOptimizationInfo().markUseIdentifierNameString();
+      feedback.markUseIdentifierNameString(this);
     }
     if (inlinee.classFileVersion > classFileVersion) {
       upgradeClassFileVersion(inlinee.getClassFileVersion());
