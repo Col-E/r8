@@ -46,7 +46,8 @@ public class ConstantCanonicalizer {
                 // Constants with local info must not be canonicalized and must be filtered.
                 assert a == null || !a.outValue().hasLocalInfo();
                 assert b == null || !b.outValue().hasLocalInfo();
-                return a != null && b != null && a.identicalNonValueNonPositionParts(b);
+                return a == b
+                    || (a != null && b != null && a.identicalNonValueNonPositionParts(b));
               }
             });
 

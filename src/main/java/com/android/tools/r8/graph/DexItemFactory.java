@@ -23,6 +23,8 @@ import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.google.common.base.Strings;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
@@ -343,6 +345,27 @@ public class DexItemFactory {
 
   public synchronized void clearSubtypeInformation() {
     types.values().forEach(DexType::clearSubtypeInformation);
+  }
+
+  public final BiMap<DexType, DexType> primitiveToBoxed = HashBiMap.create(
+      ImmutableMap.<DexType, DexType>builder()
+          .put(booleanType, boxedBooleanType)
+          .put(byteType, boxedByteType)
+          .put(charType, boxedCharType)
+          .put(shortType, boxedShortType)
+          .put(intType, boxedIntType)
+          .put(longType, boxedLongType)
+          .put(floatType, boxedFloatType)
+          .put(doubleType, boxedDoubleType)
+          .build());
+
+  public DexType getBoxedForPrimitiveType(DexType primitive) {
+    assert primitive.isPrimitiveType();
+    return primitiveToBoxed.get(primitive);
+  }
+
+  public DexType getPrimitiveFromBoxed(DexType boxedPrimitive) {
+    return primitiveToBoxed.inverse().get(boxedPrimitive);
   }
 
   public class LongMethods {

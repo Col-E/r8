@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.NumericType;
@@ -55,53 +54,20 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
   }
 
   private DexType getPrimitiveFromBoxed(DexType boxedPrimitive) {
-    DexString descriptor = boxedPrimitive.descriptor;
-    DexItemFactory factory = factory();
-    if (descriptor == factory.boxedBooleanDescriptor) {
-      return factory.booleanType;
-    }
-    if (descriptor == factory.boxedByteDescriptor) {
-      return factory.byteType;
-    }
-    if (descriptor == factory.boxedCharDescriptor) {
-      return factory.charType;
-    }
-    if (descriptor == factory.boxedShortDescriptor) {
-      return factory.shortType;
-    }
-    if (descriptor == factory.boxedIntDescriptor) {
-      return factory.intType;
-    }
-    if (descriptor == factory.boxedLongDescriptor) {
-      return factory.longType;
-    }
-    if (descriptor == factory.boxedFloatDescriptor) {
-      return factory.floatType;
-    }
-    if (descriptor == factory.boxedDoubleDescriptor) {
-      return factory.doubleType;
-    }
-    return null;
+    return factory().getPrimitiveFromBoxed(boxedPrimitive);
   }
 
   private DexType getBoxedForPrimitiveType(DexType primitive) {
     switch (primitive.descriptor.content[0]) {
       case 'Z':  // byte
-        return factory().boxedBooleanType;
       case 'B':  // byte
-        return factory().boxedByteType;
       case 'S':  // short
-        return factory().boxedShortType;
       case 'C':  // char
-        return factory().boxedCharType;
       case 'I':  // int
-        return factory().boxedIntType;
       case 'J':  // long
-        return factory().boxedLongType;
       case 'F':  // float
-        return factory().boxedFloatType;
       case 'D':  // double
-        return factory().boxedDoubleType;
+        return factory().getBoxedForPrimitiveType(primitive);
       default:
         throw new Unreachable("Invalid primitive type descriptor: " + primitive);
     }

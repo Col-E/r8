@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.Devirtualizer;
+import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MemberValuePropagation;
@@ -123,6 +124,7 @@ public class IRConverter {
   private final StringOptimizer stringOptimizer;
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
+  private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
 
   final DeadCodeRemover deadCodeRemover;
 
@@ -213,6 +215,8 @@ public class IRConverter {
     this.deadCodeRemover =
         new DeadCodeRemover(
             appInfo, codeRewriter, graphLense(), options, enableWholeProgramOptimizations);
+    this.idempotentFunctionCallCanonicalizer =
+        new IdempotentFunctionCallCanonicalizer(appInfo.dexItemFactory);
   }
 
   public GraphLense graphLense() {
@@ -983,6 +987,7 @@ public class IRConverter {
       codeRewriter.useDedicatedConstantForLitInstruction(code);
       codeRewriter.shortenLiveRanges(code);
     }
+    idempotentFunctionCallCanonicalizer.canonicalize(code);
 
     codeRewriter.identifyReturnsArgument(method, code, feedback);
     if (options.enableInlining && inliner != null) {
