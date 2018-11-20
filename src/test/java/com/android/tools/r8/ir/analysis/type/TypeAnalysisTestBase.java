@@ -57,6 +57,7 @@ public class TypeAnalysisTestBase extends TestBase {
     irInspector.accept(code);
   }
 
+  @SuppressWarnings("unchecked")
   public static <T extends Instruction> T getMatchingInstruction(
       IRCode code, Predicate<Instruction> predicate) {
     Instruction result = null;
