@@ -392,20 +392,18 @@ public abstract class GraphLense {
 
     @Override
     public DexField getRenamedFieldSignature(DexField originalField) {
-      DexField renamedField =
-          originalFieldSignatures != null
-              ? originalFieldSignatures.inverse().getOrDefault(originalField, originalField)
-              : originalField;
-      return previousLense.getRenamedFieldSignature(renamedField);
+      DexField renamedField = previousLense.getRenamedFieldSignature(originalField);
+      return originalFieldSignatures != null
+          ? originalFieldSignatures.inverse().getOrDefault(renamedField, renamedField)
+          : renamedField;
     }
 
     @Override
     public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
-      DexMethod renamedMethod =
-          originalMethodSignatures != null
-              ? originalMethodSignatures.inverse().getOrDefault(originalMethod, originalMethod)
-              : originalMethod;
-      return previousLense.getRenamedMethodSignature(renamedMethod);
+      DexMethod renamedMethod = previousLense.getRenamedMethodSignature(originalMethod);
+      return originalMethodSignatures != null
+          ? originalMethodSignatures.inverse().getOrDefault(renamedMethod, renamedMethod)
+          : renamedMethod;
     }
 
     @Override
