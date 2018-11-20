@@ -2498,11 +2498,29 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       Set<Value> live = new HashSet<>();
       List<BasicBlock> successors = block.getSuccessors();
       Set<Value> phiOperands = new HashSet<>();
+      Set<Value> exceptionalPhiOperands = new HashSet<>();
+      Set<Value> liveAtThrowingInstruction = new HashSet<>();
+      Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
       for (BasicBlock successor : successors) {
-        live.addAll(liveAtEntrySets.get(successor).liveValues);
+        // Values live at entry to a block that is an exceptional successor are only live
+        // until the throwing instruction in this block. They are live until the end of
+        // the block only if they are used in normal flow as well.
+        // TODO(b/119771771): This makes the bootstrap test fail for the CF backend with what
+        // looks like inconsistent stack maps. It is safe to not do this, but we should
+        // double check if that is what we want.
+        boolean isExceptionalSuccessor = exceptionalSuccessors.contains(successor);
+        if (isExceptionalSuccessor && options.isGeneratingDex()) {
+          liveAtThrowingInstruction.addAll(liveAtEntrySets.get(successor).liveValues);
+        } else {
+          live.addAll(liveAtEntrySets.get(successor).liveValues);
+        }
         for (Phi phi : successor.getPhis()) {
           live.remove(phi);
-          phiOperands.add(phi.getOperand(successor.getPredecessors().indexOf(block)));
+          if (isExceptionalSuccessor && options.isGeneratingDex()) {
+            exceptionalPhiOperands.add(phi.getOperand(successor.getPhis().indexOf(block)));
+          } else {
+            phiOperands.add(phi.getOperand(successor.getPredecessors().indexOf(block)));
+          }
         }
       }
       live.addAll(phiOperands);
@@ -2571,6 +2589,37 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             }
           }
         }
+        // Deal with values that are live on the exceptional edge only. Care must be taken
+        // to correctly deal with check-cast instructions. Check-cast can throw an exception
+        // so values (other than the in value in the check cast) live on the exceptional edge
+        // need to have their live range extended across the check-cast. This is because a
+        // 'r1 <- check-cast r0' maps to 'move r1, r0; check-cast r1' and when that
+        // happens r1 could be clobbered on the exceptional edge if r1 initially contained
+        // a value that is used in the exceptional code.
+        if (instruction.instructionTypeCanThrow()) {
+          for (Value use : liveAtThrowingInstruction) {
+            if (use.needsRegister() && !live.contains(use)) {
+              live.add(use);
+              addLiveRange(
+                  use,
+                  block,
+                  getLiveRangeEndOnExceptionalFlow(instruction, use),
+                  liveIntervals,
+                  options);
+            }
+          }
+          for (Value operand : exceptionalPhiOperands) {
+            if (!live.contains(operand)) {
+              live.add(operand);
+              addLiveRange(
+                  operand,
+                  block,
+                  getLiveRangeEndOnExceptionalFlow(instruction, operand),
+                  liveIntervals,
+                  options);
+            }
+          }
+        }
         if (options.debug) {
           int number = instruction.getNumber();
           for (Value use : instruction.getDebugValues()) {
@@ -2583,6 +2632,14 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         }
       }
     }
+  }
+
+  private static int getLiveRangeEndOnExceptionalFlow(Instruction instruction, Value value) {
+    int end = instruction.getNumber();
+    if (instruction.isCheckCast() && value != instruction.asCheckCast().object()) {
+      end += INSTRUCTION_NUMBER_DELTA;
+    }
+    return end;
   }
 
   private static boolean unconstrainedForCf(int constraint, InternalOptions options) {
