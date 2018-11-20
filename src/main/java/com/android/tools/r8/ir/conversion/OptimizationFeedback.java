@@ -17,6 +17,7 @@ public interface OptimizationFeedback {
   void methodNeverReturnsNull(DexEncodedMethod method);
   void methodNeverReturnsNormally(DexEncodedMethod method);
   void markProcessed(DexEncodedMethod method, ConstraintWithTarget state);
+  void markUseIdentifierNameString(DexEncodedMethod method);
   void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
   void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibility eligibility);
