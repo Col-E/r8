@@ -137,7 +137,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
     test(result, 0);
   }
 
-    @Test
+  @Test
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
     R8TestBuilder builder = testForR8(backend)
