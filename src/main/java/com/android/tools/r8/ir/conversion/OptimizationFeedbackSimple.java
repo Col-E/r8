@@ -40,6 +40,11 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   }
 
   @Override
+  public void markUseIdentifierNameString(DexEncodedMethod method) {
+    // Ignored.
+  }
+
+  @Override
   public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {
     // Ignored.
   }

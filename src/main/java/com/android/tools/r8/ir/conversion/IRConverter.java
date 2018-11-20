@@ -869,6 +869,12 @@ public class IRConverter {
       inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
     }
 
+    // Either marked by IdentifierNameStringMarker or propagated from inlinee.
+    // Then, make it visible to IdentifierMinifier.
+    if (method.getOptimizationInfo().useIdentifierNameString()) {
+      feedback.markUseIdentifierNameString(method);
+    }
+
     if (appInfo.hasLiveness()) {
       // Reflection optimization 1. getClass() -> const-class
       codeRewriter.rewriteGetClass(code);
