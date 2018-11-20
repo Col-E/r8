@@ -339,7 +339,7 @@ public abstract class ProguardClassSpecification {
     builder.append(' ');
     classNames.writeTo(builder);
     if (hasInheritanceClassName()) {
-      builder.append(inheritanceIsExtends ? "extends" : "implements");
+      builder.append(' ').append(inheritanceIsExtends ? "extends" : "implements");
       StringUtils.appendNonEmpty(builder, "@", inheritanceAnnotation, null);
       builder.append(' ');
       builder.append(inheritanceClassName);
