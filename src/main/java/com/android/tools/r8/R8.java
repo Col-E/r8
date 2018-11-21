@@ -253,6 +253,9 @@ public class R8 {
       DexApplication application =
           new ApplicationReader(inputApp, options, timing).read(executorService).toDirect();
 
+      // Now that the dex-application is fully loaded, close any internal archive providers.
+      inputApp.closeInternalArchiveProviders();
+
       AppView<AppInfoWithSubtyping> appView =
           new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
       RootSet rootSet;

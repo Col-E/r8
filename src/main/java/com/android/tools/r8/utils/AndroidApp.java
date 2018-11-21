@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
-import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DataDirectoryResource;
@@ -56,9 +55,18 @@ public class AndroidApp {
   private final ImmutableList<ClassFileResourceProvider> classpathResourceProviders;
   private final ImmutableList<ClassFileResourceProvider> libraryResourceProviders;
 
+  // List of internally added archive providers for which we must close their resources.
+  private final ImmutableList<InternalArchiveClassFileProvider> archiveProvidersToClose;
+
   private final StringResource proguardMapOutputData;
   private final List<StringResource> mainDexListResources;
   private final List<String> mainDexClasses;
+
+  public void closeInternalArchiveProviders() throws IOException {
+    for (InternalArchiveClassFileProvider provider : archiveProvidersToClose) {
+      provider.close();
+    }
+  }
 
   @Override
   public String toString() {
@@ -118,6 +126,7 @@ public class AndroidApp {
       ImmutableMap<Resource, String> programResourcesMainDescriptor,
       ImmutableList<ClassFileResourceProvider> classpathResourceProviders,
       ImmutableList<ClassFileResourceProvider> libraryResourceProviders,
+      ImmutableList<InternalArchiveClassFileProvider> archiveProvidersToClose,
       StringResource proguardMapOutputData,
       List<StringResource> mainDexListResources,
       List<String> mainDexClasses) {
@@ -125,9 +134,20 @@ public class AndroidApp {
     this.programResourcesMainDescriptor = programResourcesMainDescriptor;
     this.classpathResourceProviders = classpathResourceProviders;
     this.libraryResourceProviders = libraryResourceProviders;
+    this.archiveProvidersToClose = archiveProvidersToClose;
     this.proguardMapOutputData = proguardMapOutputData;
     this.mainDexListResources = mainDexListResources;
     this.mainDexClasses = mainDexClasses;
+    assert verifyInternalProvidersInCloseSet(classpathResourceProviders, archiveProvidersToClose);
+    assert verifyInternalProvidersInCloseSet(libraryResourceProviders, archiveProvidersToClose);
+  }
+
+  private static boolean verifyInternalProvidersInCloseSet(
+      ImmutableList<ClassFileResourceProvider> providers,
+      ImmutableList<InternalArchiveClassFileProvider> providersToClose) {
+    return providers.stream()
+        .allMatch(
+            p -> !(p instanceof InternalArchiveClassFileProvider) || providersToClose.contains(p));
   }
 
   static Reporter defaultReporter() {
@@ -327,6 +347,8 @@ public class AndroidApp {
     private final Map<ProgramResource, String> programResourcesMainDescriptor = new HashMap<>();
     private final List<ClassFileResourceProvider> classpathResourceProviders = new ArrayList<>();
     private final List<ClassFileResourceProvider> libraryResourceProviders = new ArrayList<>();
+    private final List<InternalArchiveClassFileProvider> archiveProvidersToClose =
+        new ArrayList<>();
     private List<StringResource> mainDexListResources = new ArrayList<>();
     private List<String> mainDexListClasses = new ArrayList<>();
     private boolean ignoreDexInArchive = false;
@@ -347,6 +369,7 @@ public class AndroidApp {
       programResourceProviders.addAll(app.programResourceProviders);
       classpathResourceProviders.addAll(app.classpathResourceProviders);
       libraryResourceProviders.addAll(app.libraryResourceProviders);
+      archiveProvidersToClose.addAll(app.archiveProvidersToClose);
       mainDexListResources = app.mainDexListResources;
       mainDexListClasses = app.mainDexClasses;
     }
@@ -436,7 +459,9 @@ public class AndroidApp {
       for (FilteredClassPath archive : filteredArchives) {
         assert isArchive(archive.getPath());
         try {
-          libraryResourceProviders.add(new FilteredArchiveClassFileProvider(archive));
+          FilteredArchiveClassFileProvider provider = new FilteredArchiveClassFileProvider(archive);
+          archiveProvidersToClose.add(provider);
+          libraryResourceProviders.add(provider);
         } catch (IOException e) {
           reporter.error(new ExceptionDiagnostic(e, new PathOrigin(archive.getPath())));
         }
@@ -625,6 +650,7 @@ public class AndroidApp {
           ImmutableMap.copyOf(programResourcesMainDescriptor),
           ImmutableList.copyOf(classpathResourceProviders),
           ImmutableList.copyOf(libraryResourceProviders),
+          ImmutableList.copyOf(archiveProvidersToClose),
           proguardMapOutputData,
           mainDexListResources,
           mainDexListClasses);
@@ -673,7 +699,9 @@ public class AndroidApp {
       }
       if (isArchive(file)) {
         try {
-          providerList.add(new ArchiveClassFileProvider(file));
+          InternalArchiveClassFileProvider provider = new InternalArchiveClassFileProvider(file);
+          archiveProvidersToClose.add(provider);
+          providerList.add(provider);
         } catch (IOException e) {
           reporter.error(new ExceptionDiagnostic(e, new PathOrigin(file)));
         }

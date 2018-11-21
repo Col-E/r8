@@ -176,6 +176,9 @@ public final class D8 {
       AppInfo appInfo = new AppInfo(app);
       app = optimize(app, appInfo, options, timing, executor);
 
+      // Close any internal archive providers now the application is fully processed.
+      inputApp.closeInternalArchiveProviders();
+
       // If a method filter is present don't produce output since the application is likely partial.
       if (options.hasMethodsFilter()) {
         System.out.println("Finished compilation with method filter: ");
