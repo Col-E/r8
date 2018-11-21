@@ -51,6 +51,11 @@ public abstract class SyntheticSourceCode implements SourceCode {
   private final Position position;
 
   protected SyntheticSourceCode(DexType receiver, DexMethod method, Position callerPosition) {
+    this(receiver, method, callerPosition, method);
+  }
+
+  protected SyntheticSourceCode(
+      DexType receiver, DexMethod method, Position callerPosition, DexMethod originalMethod) {
     assert method != null;
     this.receiver = receiver;
     this.method = method;
@@ -67,7 +72,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
       this.paramRegisters[i] = nextRegister(ValueType.fromDexType(params[i]));
     }
 
-    position = Position.synthetic(0, method, callerPosition);
+    position = Position.synthetic(0, originalMethod, callerPosition);
   }
 
   protected final void add(Consumer<IRBuilder> constructor) {

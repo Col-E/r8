@@ -120,6 +120,7 @@ final class ClassProcessor {
                 new ForwardMethodSourceCode(
                     clazz.type,
                     newMethod,
+                    newMethod,
                     null /* static method */,
                     rewriter.defaultAsMethodOfCompanionClass(method),
                     Invoke.Type.STATIC,

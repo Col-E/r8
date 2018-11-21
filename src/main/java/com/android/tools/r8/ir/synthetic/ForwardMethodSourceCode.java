@@ -27,22 +27,32 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   public ForwardMethodSourceCode(
       DexType receiver,
       DexMethod method,
+      DexMethod originalMethod,
       DexType targetReceiver,
       DexMethod target,
       Type invokeType,
       Position callerPosition) {
-    this(receiver, method, targetReceiver, target, invokeType, callerPosition, false);
+    this(
+        receiver,
+        method,
+        originalMethod,
+        targetReceiver,
+        target,
+        invokeType,
+        callerPosition,
+        false);
   }
 
   public ForwardMethodSourceCode(
       DexType receiver,
       DexMethod method,
+      DexMethod originalMethod,
       DexType targetReceiver,
       DexMethod target,
       Type invokeType,
       Position callerPosition,
       boolean castResult) {
-    super(receiver, method, callerPosition);
+    super(receiver, method, callerPosition, originalMethod);
     assert (targetReceiver == null) == (invokeType == Invoke.Type.STATIC);
 
     this.target = target;
