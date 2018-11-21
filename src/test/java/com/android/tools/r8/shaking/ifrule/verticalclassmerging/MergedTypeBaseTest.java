@@ -5,18 +5,14 @@
 package com.android.tools.r8.shaking.ifrule.verticalclassmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
@@ -42,7 +38,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
   static class Unused {}
 
   final Backend backend;
-  final List<Class> classes;
+  final List<Class<?>> classes;
   final boolean enableVerticalClassMerging;
 
   public MergedTypeBaseTest(Backend backend, boolean enableVerticalClassMerging) {
@@ -54,7 +50,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
     this.backend = backend;
     this.enableVerticalClassMerging = enableVerticalClassMerging;
     this.classes =
-        ImmutableList.<Class>builder()
+        ImmutableList.<Class<?>>builder()
             .add(A.class, B.class, C.class, I.class, J.class, K.class, Unused.class, getTestClass())
             .addAll(additionalClasses)
             .build();
@@ -95,17 +91,18 @@ public abstract class MergedTypeBaseTest extends TestBase {
     String expected = getExpectedStdout();
     assertEquals(expected, runOnJava(getTestClass()));
 
-    String config =
-        StringUtils.joinLines(
-            "-keep class " + getTestClass().getTypeName() + " {",
-            "  public static void main(java.lang.String[]);",
-            "}",
+    testForR8(backend)
+        .addProgramClasses(classes)
+        .addKeepMainRule(getTestClass())
+        .addKeepRules(
             getConditionForProguardIfRule(),
             "-keep class " + Unused.class.getTypeName(),
-            getAdditionalKeepRules());
-    AndroidApp output = compileWithR8(readClasses(classes), config, this::configure, backend);
-    assertEquals(expected, runOnVM(output, getTestClass(), backend));
-    inspect(new CodeInspector(output));
+            getAdditionalKeepRules())
+        .addOptionsModification(this::configure)
+        .enableClassInliningAnnotations()
+        .run(getTestClass())
+        .assertSuccessWithOutput(expected)
+        .inspect(this::inspect);
   }
 
   private void configure(InternalOptions options) {
@@ -115,8 +112,5 @@ public abstract class MergedTypeBaseTest extends TestBase {
     // To ensure that the handling of extends and implements rules work as intended,
     // and that we don't end up keeping `Unused` only because one of the two implementations work.
     options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong = false;
-
-    // TODO(b/110148109): Allow ordinary method inlining when -if rules work with inlining.
-    options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
   }
 }

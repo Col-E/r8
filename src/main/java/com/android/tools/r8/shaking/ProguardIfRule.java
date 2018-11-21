@@ -87,6 +87,52 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
         subsequentRule.materialize());
   }
 
+  /**
+   * Consider the following rule, which requests that class Y should be kept if the method X.m() is
+   * in the final output.
+   *
+   * <pre>
+   * -if class X {
+   *   public void m();
+   * }
+   * -keep class Y
+   * </pre>
+   *
+   * When the {@link Enqueuer} finds that the method X.m() is reachable, it applies the subsequent
+   * keep rule of the -if rule. Thus, Y will be marked as pinned, which guarantees, for example,
+   * that it will not be merged into another class by the vertical class merger.
+   *
+   * <p>However, when the {@link Enqueuer} runs for the second time, it is important that X.m() has
+   * not been inlined into another method Z.z(), because that would mean that Z.z() now relies on
+   * the presence of Y, meanwhile Y will not be kept because X.m() is no longer present.
+   *
+   * <p>Therefore, each time the subsequent rule of an -if rule is applied, we also apply a
+   * -neverinline rule for the condition of the -if rule.
+   */
+  protected InlineRule neverInlineRuleForCondition() {
+    if (getMemberRules() == null || getMemberRules().isEmpty()) {
+      return null;
+    }
+    return new InlineRule(
+        Origin.unknown(),
+        Position.UNKNOWN,
+        null,
+        getClassAnnotation() == null ? null : getClassAnnotation().materialize(),
+        getClassAccessFlags(),
+        getNegatedClassAccessFlags(),
+        getClassTypeNegated(),
+        getClassType(),
+        getClassNames().materialize(),
+        getInheritanceAnnotation() == null ? null : getInheritanceAnnotation().materialize(),
+        getInheritanceClassName() == null ? null : getInheritanceClassName().materialize(),
+        getInheritanceIsExtends(),
+        getMemberRules().stream()
+            .filter(rule -> rule.getRuleType().includesMethods())
+            .map(ProguardMemberRule::materialize)
+            .collect(Collectors.toList()),
+        InlineRule.Type.NEVER);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof ProguardIfRule)) {

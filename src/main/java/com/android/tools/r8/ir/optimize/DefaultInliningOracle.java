@@ -97,6 +97,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
     if (target.getOptimizationInfo().forceInline()
         || (inliner.appView.appInfo().hasLiveness()
             && inliner.appView.withLiveness().appInfo().forceInline.contains(target.method))) {
+      assert !appView.appInfo().neverInline.contains(target.method);
       return Reason.FORCE;
     }
     if (inliner.appView.appInfo().hasLiveness()

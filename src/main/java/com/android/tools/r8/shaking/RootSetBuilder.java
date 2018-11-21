@@ -264,55 +264,15 @@ public class RootSetBuilder {
         ifRules);
   }
 
-  ConsequentRootSet runForIfRules(
-      ExecutorService executorService,
-      Set<DexType> liveTypes,
+  IfRuleEvaluator getIfRuleEvaluator(
       Set<DexEncodedMethod> liveMethods,
-      Set<DexEncodedField> liveFields) throws ExecutionException {
-    application.timing.begin("Find consequent items for -if rules...");
-    try {
-      if (rules != null) {
-        IfRuleEvaluator evaluator =
-            new IfRuleEvaluator(liveTypes, liveMethods, liveFields, executorService);
-        for (ProguardConfigurationRule rule : rules) {
-          assert rule instanceof ProguardIfRule;
-          ProguardIfRule ifRule = (ProguardIfRule) rule;
-          // Depending on which types that trigger the -if rule, the application of the subsequent
-          // -keep rule may vary (due to back references). So, we need to try all pairs of -if rule
-          // and live types.
-          for (DexType type : liveTypes) {
-            DexClass clazz = appView.appInfo().definitionFor(type);
-            if (clazz == null) {
-              continue;
-            }
-
-            // Check if the class matches the if-rule.
-            evaluator.evaluateIfRule(ifRule, clazz, clazz);
-
-            // Check if one of the types that have been merged into `clazz` satisfies the if-rule.
-            if (options.enableVerticalClassMerging && appView.verticallyMergedClasses() != null) {
-              for (DexType sourceType : appView.verticallyMergedClasses().getSourcesFor(type)) {
-                // Note that, although `sourceType` has been merged into `type`, the dex class for
-                // `sourceType` is still available until the second round of tree shaking. This way
-                // we can still retrieve the access flags of `sourceType`.
-                DexClass sourceClass = appView.appInfo().definitionFor(sourceType);
-                assert sourceClass != null;
-                evaluator.evaluateIfRule(ifRule, sourceClass, clazz);
-              }
-            }
-          }
-        }
-        ThreadUtils.awaitFutures(evaluator.futures);
-      }
-    } finally {
-      application.timing.end();
-    }
-    return new ConsequentRootSet(noShrinking, noOptimization, noObfuscation, dependentNoShrinking);
+      Set<DexEncodedField> liveFields,
+      ExecutorService executorService) {
+    return new IfRuleEvaluator(liveMethods, liveFields, executorService);
   }
 
-  private class IfRuleEvaluator {
+  class IfRuleEvaluator {
 
-    private final Set<DexType> liveTypes;
     private final Set<DexEncodedMethod> liveMethods;
     private final Set<DexEncodedField> liveFields;
     private final ExecutorService executorService;
@@ -320,14 +280,54 @@ public class RootSetBuilder {
     private final List<Future<?>> futures = new ArrayList<>();
 
     public IfRuleEvaluator(
-        Set<DexType> liveTypes,
         Set<DexEncodedMethod> liveMethods,
         Set<DexEncodedField> liveFields,
         ExecutorService executorService) {
-      this.liveTypes = liveTypes;
       this.liveMethods = liveMethods;
       this.liveFields = liveFields;
       this.executorService = executorService;
+    }
+
+    public ConsequentRootSet run(Set<DexType> liveTypes) throws ExecutionException {
+      application.timing.begin("Find consequent items for -if rules...");
+      try {
+        if (rules != null) {
+          for (ProguardConfigurationRule rule : rules) {
+            assert rule instanceof ProguardIfRule;
+            ProguardIfRule ifRule = (ProguardIfRule) rule;
+            // Depending on which types that trigger the -if rule, the application of the subsequent
+            // -keep rule may vary (due to back references). So, we need to try all pairs of -if
+            // rule and live types.
+            for (DexType type : liveTypes) {
+              DexClass clazz = appView.appInfo().definitionFor(type);
+              if (clazz == null) {
+                continue;
+              }
+
+              // Check if the class matches the if-rule.
+              evaluateIfRule(ifRule, clazz, clazz);
+
+              // Check if one of the types that have been merged into `clazz` satisfies the if-rule.
+              if (options.enableVerticalClassMerging && appView.verticallyMergedClasses() != null) {
+                for (DexType sourceType : appView.verticallyMergedClasses().getSourcesFor(type)) {
+                  // Note that, although `sourceType` has been merged into `type`, the dex class for
+                  // `sourceType` is still available until the second round of tree shaking. This
+                  // way
+                  // we can still retrieve the access flags of `sourceType`.
+                  DexClass sourceClass = appView.appInfo().definitionFor(sourceType);
+                  assert sourceClass != null;
+                  evaluateIfRule(ifRule, sourceClass, clazz);
+                }
+              }
+            }
+          }
+          ThreadUtils.awaitFutures(futures);
+        }
+      } finally {
+        application.timing.end();
+      }
+      return new ConsequentRootSet(
+          neverInline, noShrinking, noOptimization, noObfuscation, dependentNoShrinking);
     }
 
     /**
@@ -412,6 +412,16 @@ public class RootSetBuilder {
 
     private void materializeIfRule(ProguardIfRule rule) {
       ProguardIfRule materializedRule = rule.materialize();
+
+      // If the condition of the -if rule has any members, then we need to keep these members to
+      // ensure that the subsequent rule will be applied again in the second round of tree
+      // shaking.
+      InlineRule neverInlineRuleForCondition = materializedRule.neverInlineRuleForCondition();
+      if (neverInlineRuleForCondition != null) {
+        runPerRule(executorService, futures, neverInlineRuleForCondition, materializedRule);
+      }
+
+      // Keep whatever is required by the -if rule.
       runPerRule(executorService, futures, materializedRule.subsequentRule, materializedRule);
     }
   }
@@ -946,7 +956,7 @@ public class RootSetBuilder {
       this.checkDiscarded = Collections.unmodifiableSet(checkDiscarded);
       this.alwaysInline = Collections.unmodifiableSet(alwaysInline);
       this.forceInline = Collections.unmodifiableSet(forceInline);
-      this.neverInline = Collections.unmodifiableSet(neverInline);
+      this.neverInline = neverInline;
       this.neverClassInline = Collections.unmodifiableSet(neverClassInline);
       this.neverMerge = Collections.unmodifiableSet(neverMerge);
       this.noSideEffects = Collections.unmodifiableMap(noSideEffects);
@@ -999,16 +1009,19 @@ public class RootSetBuilder {
 
   // A partial RootSet that becomes live due to the enabled -if rule.
   static class ConsequentRootSet {
+    final Set<DexMethod> neverInline;
     final Map<DexDefinition, ProguardKeepRule> noShrinking;
     final Set<DexDefinition> noOptimization;
     final Set<DexDefinition> noObfuscation;
     final Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking;
 
     private ConsequentRootSet(
+        Set<DexMethod> neverInline,
         Map<DexDefinition, ProguardKeepRule> noShrinking,
         Set<DexDefinition> noOptimization,
         Set<DexDefinition> noObfuscation,
         Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking) {
+      this.neverInline = Collections.unmodifiableSet(neverInline);
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
       this.noOptimization = Collections.unmodifiableSet(noOptimization);
       this.noObfuscation = Collections.unmodifiableSet(noObfuscation);

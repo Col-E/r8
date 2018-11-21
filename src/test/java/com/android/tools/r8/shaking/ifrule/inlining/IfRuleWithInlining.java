@@ -48,18 +48,17 @@ class Main {
 
 @RunWith(Parameterized.class)
 public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
-  private final static List<Class> CLASSES = ImmutableList.of(
-      A.class, D.class, Main.class);
+  private static final List<Class> CLASSES = ImmutableList.of(A.class, D.class, Main.class);
 
   private final Shrinker shrinker;
-  private final boolean inlineMethod;
+  private final boolean neverInlineMethod;
 
-  public IfRuleWithInlining(Shrinker shrinker, boolean inlineMethod) {
+  public IfRuleWithInlining(Shrinker shrinker, boolean neverInlineMethod) {
     this.shrinker = shrinker;
-    this.inlineMethod = inlineMethod;
+    this.neverInlineMethod = neverInlineMethod;
   }
 
-  @Parameters(name = "shrinker: {0} inlineMethod: {1}")
+  @Parameters(name = "shrinker: {0} neverInlineMethod: {1}")
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as triggering inlining in Proguard is out of our control.
     return ImmutableList.of(
@@ -73,10 +72,9 @@ public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazzA = inspector.clazz(A.class);
     assertThat(clazzA, isPresent());
-    // A.a might be inlined.
-    assertEquals(!inlineMethod, clazzA.method("int", "a", ImmutableList.of()).isPresent());
-    // TODO(110148109): class D should be present - inlining or not.
-    assertEquals(!inlineMethod, inspector.clazz(D.class).isPresent());
+    // A.a should not be inlined.
+    assertThat(clazzA.method("int", "a", ImmutableList.of()), isPresent());
+    assertThat(inspector.clazz(D.class), isPresent());
     ProcessResult result;
     if (shrinker == Shrinker.R8) {
       result = runOnArtRaw(app, Main.class.getName());
@@ -87,22 +85,18 @@ public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
       result = ToolHelper.runJava(file, Main.class.getName());
     }
     assertEquals(0, result.exitCode);
-    // TODO(110148109): Output should be the same - inlining or not.
-    assertEquals(!inlineMethod ? "1" : "2", result.stdout);
+    assertEquals("1", result.stdout);
   }
 
   @Test
   public void testMergedClassMethodInIfRule() throws Exception {
-    List<String> config = ImmutableList.of(
-        "-keep class **.Main { public static void main(java.lang.String[]); }",
-        inlineMethod
-            ? "-forceinline class **.A { int a(); }"
-            : "-neverinline class **.A { int a(); }",
-        "-if class **.A { static int a(); }",
-        "-keep class **.D",
-        "-dontobfuscate"
-    );
-
+    List<String> config =
+        ImmutableList.of(
+            "-keep class **.Main { public static void main(java.lang.String[]); }",
+            neverInlineMethod ? "-neverinline class **.A { int a(); }" : "",
+            "-if class **.A { static int a(); }",
+            "-keep class **.D",
+            "-dontobfuscate");
     check(runShrinker(shrinker, CLASSES, config));
   }
 }
