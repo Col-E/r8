@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import java.util.ListIterator;
 
@@ -27,7 +28,8 @@ interface InliningStrategy {
   /** Inform the strategy that the inlinee has been inlined. */
   void markInlined(InlineeWithReason inlinee);
 
-  void ensureMethodProcessed(DexEncodedMethod target, IRCode inlinee);
+  void ensureMethodProcessed(
+      DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback);
 
   boolean isValidTarget(InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee);
 
