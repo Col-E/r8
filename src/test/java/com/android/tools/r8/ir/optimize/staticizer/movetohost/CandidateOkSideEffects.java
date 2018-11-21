@@ -4,16 +4,16 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.movetohost;
 
+import com.android.tools.r8.NeverInline;
+
 public class CandidateOkSideEffects {
+  @NeverInline
   public String foo() {
-    synchronized ("") {
-      return bar("CandidateOkSideEffects::foo()");
-    }
+    return bar("CandidateOkSideEffects::foo()");
   }
 
+  @NeverInline
   public String bar(String other) {
-    synchronized ("") {
-      return "CandidateOkSideEffects::bar(" + other + ")";
-    }
+    return "CandidateOkSideEffects::bar(" + other + ")";
   }
 }

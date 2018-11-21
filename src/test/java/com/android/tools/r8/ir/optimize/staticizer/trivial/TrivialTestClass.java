@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.trivial;
 
+import com.android.tools.r8.NeverInline;
+
 public class TrivialTestClass {
   private static int ID = 0;
 
@@ -14,27 +16,47 @@ public class TrivialTestClass {
   public static void main(String[] args) {
     TrivialTestClass test = new TrivialTestClass();
     test.testSimple();
+    test.testSimpleWithPhi(args.length);
     test.testSimpleWithSideEffects();
     test.testSimpleWithParams();
     test.testSimpleWithGetter();
   }
 
-  private synchronized void testSimple() {
+  @NeverInline
+  private void testSimple() {
     System.out.println(Simple.INSTANCE.foo());
     System.out.println(Simple.INSTANCE.bar(next()));
   }
 
-  private synchronized void testSimpleWithSideEffects() {
+  @NeverInline
+  private void testSimpleWithPhi(int arg) {
+    switch (arg) {
+      case 0:
+        System.out.println(SimpleWithPhi.foo() + " " + true);
+        break;
+      case 2:
+        System.out.println(SimpleWithPhi.foo() + " " + false);
+        break;
+      default:
+        System.out.println(SimpleWithPhi.bar(next()));
+        break;
+    }
+  }
+
+  @NeverInline
+  private void testSimpleWithSideEffects() {
     System.out.println(SimpleWithSideEffects.INSTANCE.foo());
     System.out.println(SimpleWithSideEffects.INSTANCE.bar(next()));
   }
 
-  private synchronized void testSimpleWithParams() {
+  @NeverInline
+  private void testSimpleWithParams() {
     System.out.println(SimpleWithParams.INSTANCE.foo());
     System.out.println(SimpleWithParams.INSTANCE.bar(next()));
   }
 
-  private synchronized void testSimpleWithGetter() {
+  @NeverInline
+  private void testSimpleWithGetter() {
     System.out.println(SimpleWithGetter.getInstance().foo());
     System.out.println(SimpleWithGetter.getInstance().bar(next()));
   }

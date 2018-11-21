@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.trivial;
 
+import com.android.tools.r8.NeverInline;
+
 public class SimpleWithSideEffects {
   static SimpleWithSideEffects INSTANCE = new SimpleWithSideEffects();
 
@@ -11,15 +13,13 @@ public class SimpleWithSideEffects {
     System.out.println("SimpleWithSideEffects::<clinit>()");
   }
 
+  @NeverInline
   String foo() {
-    synchronized ("") {
-      return bar("SimpleWithSideEffects::foo()");
-    }
+    return bar("SimpleWithSideEffects::foo()");
   }
 
+  @NeverInline
   String bar(String other) {
-    synchronized ("") {
-      return "SimpleWithSideEffects::bar(" + other + ")";
-    }
+    return "SimpleWithSideEffects::bar(" + other + ")";
   }
 }

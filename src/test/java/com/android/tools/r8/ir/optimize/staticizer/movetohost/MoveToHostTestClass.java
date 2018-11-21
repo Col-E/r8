@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.movetohost;
 
+import com.android.tools.r8.NeverInline;
+
 public class MoveToHostTestClass {
   private static int ID = 0;
 
@@ -19,24 +21,28 @@ public class MoveToHostTestClass {
     test.testConflictField();
   }
 
-  private synchronized void testOk() {
+  @NeverInline
+  private void testOk() {
     System.out.println(HostOk.INSTANCE.foo());
     System.out.println(HostOk.INSTANCE.bar(next()));
     HostOk.INSTANCE.blah(next());
   }
 
-  private synchronized void testOkSideEffects() {
+  @NeverInline
+  private void testOkSideEffects() {
     System.out.println(HostOkSideEffects.INSTANCE.foo());
     System.out.println(HostOkSideEffects.INSTANCE.bar(next()));
   }
 
-  private synchronized void testConflictMethod() {
+  @NeverInline
+  private void testConflictMethod() {
     System.out.println(new HostConflictMethod().bar(next()));
     System.out.println(HostConflictMethod.INSTANCE.foo());
     System.out.println(HostConflictMethod.INSTANCE.bar(next()));
   }
 
-  private synchronized void testConflictField() {
+  @NeverInline
+  private void testConflictField() {
     System.out.println(new HostConflictField().field);
     System.out.println(CandidateConflictField.field);
     System.out.println(HostConflictField.INSTANCE.foo());

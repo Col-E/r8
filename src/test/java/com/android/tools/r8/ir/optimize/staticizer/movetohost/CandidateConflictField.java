@@ -4,18 +4,18 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.movetohost;
 
+import com.android.tools.r8.NeverInline;
+
 public class CandidateConflictField {
   public static String field;
 
+  @NeverInline
   public String foo() {
-    synchronized ("") {
-      return bar("CandidateConflictMethod::foo()");
-    }
+    return bar("CandidateConflictMethod::foo()");
   }
 
+  @NeverInline
   public String bar(String other) {
-    synchronized ("") {
-      return "CandidateConflictMethod::bar(" + other + ")";
-    }
+    return "CandidateConflictMethod::bar(" + other + ")";
   }
 }

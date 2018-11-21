@@ -4,21 +4,21 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.trivial;
 
+import com.android.tools.r8.NeverInline;
+
 public class SimpleWithParams {
   static SimpleWithParams INSTANCE = new SimpleWithParams(123);
 
   SimpleWithParams(int i) {
   }
 
+  @NeverInline
   String foo() {
-    synchronized ("") {
-      return bar("SimpleWithParams::foo()");
-    }
+    return bar("SimpleWithParams::foo()");
   }
 
+  @NeverInline
   String bar(String other) {
-    synchronized ("") {
-      return "SimpleWithParams::bar(" + other + ")";
-    }
+    return "SimpleWithParams::bar(" + other + ")";
   }
 }

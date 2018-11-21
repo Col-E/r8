@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.trivial;
 
+import com.android.tools.r8.NeverInline;
+
 public class SimpleWithGetter {
   private static SimpleWithGetter INSTANCE = new SimpleWithGetter();
 
@@ -11,15 +13,13 @@ public class SimpleWithGetter {
     return INSTANCE;
   }
 
+  @NeverInline
   String foo() {
-    synchronized ("") {
-      return bar("Simple::foo()");
-    }
+    return bar("Simple::foo()");
   }
 
+  @NeverInline
   String bar(String other) {
-    synchronized ("") {
-      return "Simple::bar(" + other + ")";
-    }
+    return "Simple::bar(" + other + ")";
   }
 }

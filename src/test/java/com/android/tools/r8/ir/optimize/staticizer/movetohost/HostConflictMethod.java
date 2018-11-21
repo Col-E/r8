@@ -4,12 +4,13 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.movetohost;
 
+import com.android.tools.r8.NeverInline;
+
 public class HostConflictMethod {
   static CandidateConflictMethod INSTANCE = new CandidateConflictMethod();
 
+  @NeverInline
   public String bar(String other) {
-    synchronized ("") {
-      return "HostConflictMethod::bar(" + other + ")";
-    }
+    return "HostConflictMethod::bar(" + other + ")";
   }
 }
