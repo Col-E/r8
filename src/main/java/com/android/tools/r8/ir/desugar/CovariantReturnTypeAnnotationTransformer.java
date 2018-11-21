@@ -170,6 +170,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
                     new ForwardMethodSourceCode(
                         clazz.type,
                         newMethod,
+                        newMethod,
                         method.method.holder,
                         method.method,
                         Invoke.Type.VIRTUAL,

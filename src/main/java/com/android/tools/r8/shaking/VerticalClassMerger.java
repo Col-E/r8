@@ -60,6 +60,7 @@ import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -613,7 +614,26 @@ public class VerticalClassMerger {
     assert result.assertDefinitionNotModified(appInfo.noSideEffects.keySet());
     // TODO(christofferqa): Enable this assert.
     // assert result.assertNotModified(appInfo.pinnedItems);
+    assert verifyGraphLense(graphLense);
     return result;
+  }
+
+  private boolean verifyGraphLense(GraphLense graphLense) {
+    for (DexProgramClass clazz : appInfo.classes()) {
+      for (DexEncodedMethod encodedMethod : clazz.methods()) {
+        DexMethod method = encodedMethod.method;
+        DexMethod originalMethod = graphLense.getOriginalMethodSignature(method);
+
+        // Must be able to map back.
+        assert method == graphLense.getRenamedMethodSignature(originalMethod);
+
+        // Verify that all types are up-to-date. After vertical class merging, there should be no
+        // more references to types that have been merged into another type.
+        assert !mergedClasses.containsKey(method.proto.returnType);
+        assert Arrays.stream(method.proto.parameters.values).noneMatch(mergedClasses::containsKey);
+      }
+    }
+    return true;
   }
 
   private GraphLense mergeClasses(GraphLense graphLense) {
@@ -900,6 +920,7 @@ public class VerticalClassMerger {
           // it turns out that the method is never used, it will be removed by the final round
           // of tree shaking.
           shadowedBy = buildBridgeMethod(virtualMethod, resultingDirectMethod);
+          deferredRenamings.recordCreationOfBridgeMethod(virtualMethod.method, shadowedBy.method);
           add(virtualMethods, shadowedBy, MethodSignatureEquivalence.get());
         }
 
@@ -1109,6 +1130,7 @@ public class VerticalClassMerger {
       SynthesizedBridgeCode code =
           new SynthesizedBridgeCode(
               newMethod,
+              graphLense.getOriginalMethodSignature(method.method),
               invocationTarget.method,
               invocationTarget.isPrivateMethod() ? DIRECT : STATIC);
 
@@ -1393,7 +1415,7 @@ public class VerticalClassMerger {
         DexMethod newMethod = application.dexItemFactory.createMethod(newHolder, newProto,
             method.name);
         if (newMethod != encodedMethod.method) {
-          lense.map(encodedMethod.method, newMethod);
+          lense.move(encodedMethod.method, newMethod);
           methods[i] = encodedMethod.toTypeSubstitutedMethod(newMethod);
         }
       }
@@ -1411,7 +1433,7 @@ public class VerticalClassMerger {
         DexType newHolder = fixupType(field.clazz);
         DexField newField = application.dexItemFactory.createField(newHolder, newType, field.name);
         if (newField != encodedField.field) {
-          lense.map(encodedField.field, newField);
+          lense.move(encodedField.field, newField);
           fields[i] = encodedField.toTypeSubstitutedField(newField);
         }
       }
@@ -1801,11 +1823,14 @@ public class VerticalClassMerger {
   protected static class SynthesizedBridgeCode extends AbstractSynthesizedCode {
 
     private DexMethod method;
+    private DexMethod originalMethod;
     private DexMethod invocationTarget;
     private Type type;
 
-    public SynthesizedBridgeCode(DexMethod method, DexMethod invocationTarget, Type type) {
+    public SynthesizedBridgeCode(
+        DexMethod method, DexMethod originalMethod, DexMethod invocationTarget, Type type) {
       this.method = method;
+      this.originalMethod = originalMethod;
       this.invocationTarget = invocationTarget;
       this.type = type;
     }
@@ -1832,6 +1857,7 @@ public class VerticalClassMerger {
           new ForwardMethodSourceCode(
               method.holder,
               method,
+              originalMethod,
               type == DIRECT ? method.holder : null,
               invocationTarget,
               type,

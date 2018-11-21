@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -84,12 +85,14 @@ public abstract class GraphLense {
 
   public static class Builder {
 
-    protected Builder() {
-    }
+    protected Builder() {}
 
     protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
     protected final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
     protected final Map<DexField, DexField> fieldMap = new IdentityHashMap<>();
+
+    private final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
+    private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
     public void map(DexType from, DexType to) {
       typeMap.put(from, to);
@@ -103,6 +106,16 @@ public abstract class GraphLense {
       fieldMap.put(from, to);
     }
 
+    public void move(DexMethod from, DexMethod to) {
+      map(from, to);
+      originalMethodSignatures.put(to, from);
+    }
+
+    public void move(DexField from, DexField to) {
+      fieldMap.put(from, to);
+      originalFieldSignatures.put(to, from);
+    }
+
     public GraphLense build(DexItemFactory dexItemFactory) {
       return build(dexItemFactory, new IdentityGraphLense());
     }
@@ -112,7 +125,13 @@ public abstract class GraphLense {
         return previousLense;
       }
       return new NestedGraphLense(
-          typeMap, methodMap, fieldMap, null, null, previousLense, dexItemFactory);
+          typeMap,
+          methodMap,
+          fieldMap,
+          originalFieldSignatures,
+          originalMethodSignatures,
+          previousLense,
+          dexItemFactory);
     }
 
   }

@@ -669,6 +669,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
                   new ForwardMethodSourceCode(
                       accessFlags.isStatic() ? null : holder.type,
                       newMethod,
+                      newMethod,
                       accessFlags.isStatic() ? null : method.holder,
                       method,
                       type,
