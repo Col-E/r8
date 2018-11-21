@@ -44,6 +44,7 @@ import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
+import com.android.tools.r8.shaking.RootSetBuilder.IfRuleEvaluator;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -1349,9 +1350,12 @@ public class Enqueuer {
         if (numOfLiveItemsAfterProcessing > numOfLiveItems) {
           RootSetBuilder consequentSetBuilder =
               new RootSetBuilder(appView, rootSet.ifRules, options);
-          ConsequentRootSet consequentRootSet = consequentSetBuilder.runForIfRules(
-              executorService, liveTypes, liveMethods.getItems(), liveFields.getItems());
+          IfRuleEvaluator ifRuleEvaluator =
+              consequentSetBuilder.getIfRuleEvaluator(
+                  liveMethods.getItems(), liveFields.getItems(), executorService);
+          ConsequentRootSet consequentRootSet = ifRuleEvaluator.run(liveTypes);
           enqueueRootItems(consequentRootSet.noShrinking);
+          rootSet.neverInline.addAll(consequentRootSet.neverInline);
           rootSet.noOptimization.addAll(consequentRootSet.noOptimization);
           rootSet.noObfuscation.addAll(consequentRootSet.noObfuscation);
           rootSet.addDependentItems(consequentRootSet.dependentNoShrinking);

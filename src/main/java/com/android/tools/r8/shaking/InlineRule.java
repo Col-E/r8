@@ -42,7 +42,7 @@ public class InlineRule extends ProguardConfigurationRule {
 
   private final Type type;
 
-  private InlineRule(
+  protected InlineRule(
       Origin origin,
       Position position,
       String source,

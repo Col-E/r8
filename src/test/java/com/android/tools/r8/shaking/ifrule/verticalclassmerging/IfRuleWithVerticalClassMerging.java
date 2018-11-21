@@ -8,14 +8,13 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
@@ -23,6 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+@NeverClassInline
 class A {
   int x = 1;
   int a() throws ClassNotFoundException {
@@ -34,6 +34,7 @@ class A {
   }
 }
 
+@NeverClassInline
 class B extends A {
   int y = 2;
   int b() {
@@ -41,6 +42,7 @@ class B extends A {
   }
 }
 
+@NeverClassInline
 class C extends B {
   int z = 3;
   int c() {
@@ -48,8 +50,8 @@ class C extends B {
   }
 }
 
-class D {
-}
+@NeverClassInline
+class D {}
 
 class Main {
   public static void main(String[] args) throws ClassNotFoundException {
@@ -61,7 +63,7 @@ class Main {
 @RunWith(Parameterized.class)
 public class IfRuleWithVerticalClassMerging extends TestBase {
 
-  private static final List<Class> CLASSES =
+  private static final List<Class<?>> CLASSES =
       ImmutableList.of(A.class, B.class, C.class, D.class, Main.class);
 
   private final Backend backend;
@@ -84,35 +86,15 @@ public class IfRuleWithVerticalClassMerging extends TestBase {
 
   private void configure(InternalOptions options) {
     options.enableVerticalClassMerging = enableVerticalClassMerging;
-
-    // TODO(b/110148109): Allow ordinary method inlining when -if rules work with inlining.
-    options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-  }
-
-  private void check(AndroidApp app) throws Exception {
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazzA = inspector.clazz(A.class);
-    assertEquals(!enableVerticalClassMerging, clazzA.isPresent());
-    ClassSubject clazzB = inspector.clazz(B.class);
-    assertThat(clazzB, isPresent());
-    ClassSubject clazzD = inspector.clazz(D.class);
-    assertThat(clazzD, isPresent());
-    assertEquals("123456", runOnVM(app, Main.class, backend));
   }
 
   @Test
   public void testMergedClassInIfRule() throws Exception {
     // Class C is kept, meaning that it will not be touched.
     // Class A will be merged into class B.
-    String config =
-        String.join(
-            System.lineSeparator(),
-            "-keep class **.Main { public static void main(java.lang.String[]); }",
-            "-keep class **.C",
-            "-if class **.A",
-            "-keep class **.D",
-            "-dontobfuscate");
-    check(compileWithR8(readClasses(CLASSES), config, this::configure, backend));
+    runTestWithProguardConfig(
+        StringUtils.lines(
+            "-keep class **.C", "-if class **.A", "-keep class **.D", "-dontobfuscate"));
   }
 
   @Test
@@ -120,15 +102,9 @@ public class IfRuleWithVerticalClassMerging extends TestBase {
     // Class C is kept, meaning that it will not be touched.
     // Class A will be merged into class B.
     // Main.main access A.x, so that field exists satisfying the if rule.
-    String config =
-        String.join(
-            System.lineSeparator(),
-            "-keep class **.Main { public static void main(java.lang.String[]); }",
-            "-keep class **.C",
-            "-if class **.A { int x; }",
-            "-keep class **.D",
-            "-dontobfuscate");
-    check(compileWithR8(readClasses(CLASSES), config, this::configure, backend));
+    runTestWithProguardConfig(
+        StringUtils.lines(
+            "-keep class **.C", "-if class **.A { int x; }", "-keep class **.D", "-dontobfuscate"));
   }
 
   @Test
@@ -136,14 +112,31 @@ public class IfRuleWithVerticalClassMerging extends TestBase {
     // Class C is kept, meaning that it will not be touched.
     // Class A will be merged into class B.
     // Main.main access A.a(), that method exists satisfying the if rule.
-    String config =
-        String.join(
-            System.lineSeparator(),
-            "-keep class **.Main { public static void main(java.lang.String[]); }",
+    runTestWithProguardConfig(
+        StringUtils.lines(
             "-keep class **.C",
             "-if class **.A { int a(); }",
             "-keep class **.D",
-            "-dontobfuscate");
-    check(compileWithR8(readClasses(CLASSES), config, this::configure, backend));
+            "-dontobfuscate"));
+  }
+
+  private void runTestWithProguardConfig(String config) throws Exception {
+    CodeInspector inspector =
+        testForR8(backend)
+            .addProgramClasses(CLASSES)
+            .addKeepMainRule(Main.class)
+            .addKeepRules(config)
+            .enableClassInliningAnnotations()
+            .addOptionsModification(this::configure)
+            .run(Main.class)
+            .assertSuccessWithOutput("123456")
+            .inspector();
+
+    ClassSubject clazzA = inspector.clazz(A.class);
+    assertEquals(!enableVerticalClassMerging, clazzA.isPresent());
+    ClassSubject clazzB = inspector.clazz(B.class);
+    assertThat(clazzB, isPresent());
+    ClassSubject clazzD = inspector.clazz(D.class);
+    assertThat(clazzD, isPresent());
   }
 }

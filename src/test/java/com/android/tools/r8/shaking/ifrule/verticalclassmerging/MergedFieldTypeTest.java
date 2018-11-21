@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -55,6 +56,7 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
       }
     }
 
+    @NeverClassInline
     static class TestClass extends SuperTestClass {
 
       private A field = null;
