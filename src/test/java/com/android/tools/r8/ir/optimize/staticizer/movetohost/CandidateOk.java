@@ -4,22 +4,21 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.movetohost;
 
+import com.android.tools.r8.NeverInline;
+
 public class CandidateOk {
+  @NeverInline
   public String foo() {
-    synchronized ("") {
-      return bar("CandidateOk::foo()");
-    }
+    return bar("CandidateOk::foo()");
   }
 
+  @NeverInline
   public String bar(String other) {
-    synchronized ("") {
-      return "CandidateOk::bar(" + other + ")";
-    }
+    return "CandidateOk::bar(" + other + ")";
   }
 
+  @NeverInline
   public void blah(String other) {
-    synchronized ("") {
-      System.out.println("CandidateOk::blah(" + other + ")");
-    }
+    System.out.println("CandidateOk::blah(" + other + ")");
   }
 }

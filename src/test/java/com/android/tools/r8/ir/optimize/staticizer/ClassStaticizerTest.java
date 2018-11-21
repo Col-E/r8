@@ -9,9 +9,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.ForceInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
@@ -36,13 +41,16 @@ import com.android.tools.r8.ir.optimize.staticizer.movetohost.MoveToHostTestClas
 import com.android.tools.r8.ir.optimize.staticizer.trivial.Simple;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithGetter;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithParams;
+import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithPhi;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithSideEffects;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.TrivialTestClass;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import java.nio.file.Path;
@@ -50,26 +58,49 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class ClassStaticizerTest extends TestBase {
+  private Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Backend[] data() {
+    return Backend.values();
+  }
+
+  public ClassStaticizerTest(Backend backend) {
+    this.backend = backend;
+  }
+
   @Test
   public void testTrivial() throws Exception {
-    byte[][] classes = {
-        ToolHelper.getClassAsBytes(TrivialTestClass.class),
-        ToolHelper.getClassAsBytes(Simple.class),
-        ToolHelper.getClassAsBytes(SimpleWithSideEffects.class),
-        ToolHelper.getClassAsBytes(SimpleWithParams.class),
-        ToolHelper.getClassAsBytes(SimpleWithGetter.class),
+    assumeTrue("b/112831361", backend == Backend.DEX);
+    Class<?> main = TrivialTestClass.class;
+    Class<?>[] classes = {
+        NeverInline.class,
+        TrivialTestClass.class,
+        Simple.class,
+        SimpleWithSideEffects.class,
+        SimpleWithParams.class,
+        SimpleWithGetter.class,
+        SimpleWithPhi.class,
+        SimpleWithPhi.Companion.class
     };
-    AndroidApp app = runR8(buildAndroidApp(classes), TrivialTestClass.class);
+    String javaOutput = runOnJava(main);
+    TestRunResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .enableProguardTestOptions()
+        .enableInliningAnnotations()
+        .addKeepMainRule(main)
+        .addKeepRules("-dontobfuscate", "-allowaccessmodification")
+        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+        .addOptionsModification(this::configure)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
 
-    String javaOutput = runOnJava(TrivialTestClass.class);
-    String artOutput = runOnArt(app, TrivialTestClass.class);
-    assertEquals(javaOutput, artOutput);
-
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz(TrivialTestClass.class);
+    CodeInspector inspector = result.inspector();
+    ClassSubject clazz = inspector.clazz(main);
 
     assertEquals(
         Lists.newArrayList(
@@ -79,6 +110,16 @@ public class ClassStaticizerTest extends TestBase {
         references(clazz, "testSimple", "void"));
 
     assertTrue(instanceMethods(inspector.clazz(Simple.class)).isEmpty());
+
+    assertEquals(
+        Lists.newArrayList(
+            "STATIC: String trivial.SimpleWithPhi.bar(String)",
+            "STATIC: String trivial.SimpleWithPhi.foo()",
+            "STATIC: String trivial.SimpleWithPhi.foo()",
+            "STATIC: String trivial.TrivialTestClass.next()"),
+        references(clazz, "testSimpleWithPhi", "void", "int"));
+
+    assertTrue(instanceMethods(inspector.clazz(SimpleWithPhi.class)).isEmpty());
 
     assertEquals(
         Lists.newArrayList(
@@ -115,25 +156,33 @@ public class ClassStaticizerTest extends TestBase {
 
   @Test
   public void testMoveToHost() throws Exception {
-    byte[][] classes = {
-        ToolHelper.getClassAsBytes(MoveToHostTestClass.class),
-        ToolHelper.getClassAsBytes(HostOk.class),
-        ToolHelper.getClassAsBytes(CandidateOk.class),
-        ToolHelper.getClassAsBytes(HostOkSideEffects.class),
-        ToolHelper.getClassAsBytes(CandidateOkSideEffects.class),
-        ToolHelper.getClassAsBytes(HostConflictMethod.class),
-        ToolHelper.getClassAsBytes(CandidateConflictMethod.class),
-        ToolHelper.getClassAsBytes(HostConflictField.class),
-        ToolHelper.getClassAsBytes(CandidateConflictField.class),
+    assumeTrue("b/112831361", backend == Backend.DEX);
+    Class<?> main = MoveToHostTestClass.class;
+    Class<?>[] classes = {
+        NeverInline.class,
+        MoveToHostTestClass.class,
+        HostOk.class,
+        CandidateOk.class,
+        HostOkSideEffects.class,
+        CandidateOkSideEffects.class,
+        HostConflictMethod.class,
+        CandidateConflictMethod.class,
+        HostConflictField.class,
+        CandidateConflictField.class
     };
-    AndroidApp app = runR8(buildAndroidApp(classes), MoveToHostTestClass.class);
+    String javaOutput = runOnJava(main);
+    TestRunResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .enableProguardTestOptions()
+        .enableInliningAnnotations()
+        .addKeepMainRule(main)
+        .addKeepRules("-dontobfuscate", "-allowaccessmodification")
+        .addOptionsModification(this::configure)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
 
-    String javaOutput = runOnJava(MoveToHostTestClass.class);
-    String artOutput = runOnArt(app, MoveToHostTestClass.class);
-    assertEquals(javaOutput, artOutput);
-
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz(MoveToHostTestClass.class);
+    CodeInspector inspector = result.inspector();
+    ClassSubject clazz = inspector.clazz(main);
 
     assertEquals(
         Lists.newArrayList(
@@ -230,40 +279,6 @@ public class ClassStaticizerTest extends TestBase {
 
   private boolean isTypeOfInterest(DexType type) {
     return type.toSourceString().startsWith("com.android.tools.r8.ir.optimize.staticizer");
-  }
-
-  private AndroidApp runR8(AndroidApp app, Class mainClass) throws Exception {
-    AndroidApp compiled =
-        compileWithR8(app, getProguardConfig(mainClass.getCanonicalName()), this::configure);
-
-    // Materialize file for execution.
-    Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
-    compiled.writeToZip(generatedDexFile, OutputMode.DexIndexed);
-
-    // Run with ART.
-    String artOutput = ToolHelper.runArtNoVerificationErrors(
-        generatedDexFile.toString(), mainClass.getCanonicalName());
-
-    // Compare with Java.
-    ProcessResult javaResult = ToolHelper.runJava(
-        ToolHelper.getClassPathForTests(), mainClass.getCanonicalName());
-
-    if (javaResult.exitCode != 0) {
-      System.out.println(javaResult.stdout);
-      System.err.println(javaResult.stderr);
-      fail("JVM failed for: " + mainClass);
-    }
-    assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
-
-    return compiled;
-  }
-
-  private String getProguardConfig(String main) {
-    return keepMainProguardConfiguration(main)
-        + System.lineSeparator()
-        + "-dontobfuscate"
-        + System.lineSeparator()
-        + "-allowaccessmodification";
   }
 
   private void configure(InternalOptions options) {
