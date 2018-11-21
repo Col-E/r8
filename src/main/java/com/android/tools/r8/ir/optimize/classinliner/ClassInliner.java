@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -190,7 +189,7 @@ public final class ClassInliner {
     }
   }
 
-  private boolean isClassEligible(AppInfo appInfo, DexClass clazz) {
+  private boolean isClassEligible(AppInfoWithLiveness appInfo, DexClass clazz) {
     Boolean eligible = knownClasses.get(clazz);
     if (eligible == null) {
       Boolean computed = computeClassEligible(appInfo, clazz);
@@ -205,9 +204,12 @@ public final class ClassInliner {
   //   - is not an abstract class or interface
   //   - does not declare finalizer
   //   - does not trigger any static initializers except for its own
-  private boolean computeClassEligible(AppInfo appInfo, DexClass clazz) {
-    if (clazz == null || clazz.isLibraryClass() ||
-        clazz.accessFlags.isAbstract() || clazz.accessFlags.isInterface()) {
+  private boolean computeClassEligible(AppInfoWithLiveness appInfo, DexClass clazz) {
+    if (clazz == null
+        || clazz.isLibraryClass()
+        || clazz.accessFlags.isAbstract()
+        || clazz.accessFlags.isInterface()
+        || appInfo.neverClassInline.contains(clazz.type)) {
       return false;
     }
 

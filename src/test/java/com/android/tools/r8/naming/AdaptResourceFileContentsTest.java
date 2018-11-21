@@ -168,7 +168,8 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
         getProguardConfig(enableAdaptResourceFileContents, adaptResourceFileContentsPathFilter),
         "-neverinline class com.android.tools.r8.naming.AdaptResourceFileContentsTestClass$B {",
         "  public void method();",
-        "}");
+        "}",
+        "-neverclassinline class com.android.tools.r8.naming.AdaptResourceFileContentsTestClass$B");
   }
 
   @Test
@@ -324,13 +325,7 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
         .addDataResources(getDataResources())
         .enableProguardTestOptions()
         .addKeepRules(proguardConfig)
-        .addOptionsModification(
-            o -> {
-              // TODO(christofferqa): Class inliner should respect -neverinline.
-              o.enableClassInlining = false;
-              o.enableVerticalClassMerging = true;
-              o.dataResourceConsumer = dataResourceConsumer;
-            })
+        .addOptionsModification(o -> o.dataResourceConsumer = dataResourceConsumer)
         .compile();
   }
 

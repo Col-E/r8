@@ -30,6 +30,7 @@ public class R8TestBuilder
   }
 
   private boolean enableInliningAnnotations = false;
+  private boolean enableClassInliningAnnotations = false;
   private boolean enableMergeAnnotations = false;
 
   @Override
@@ -41,7 +42,7 @@ public class R8TestBuilder
   R8TestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
-    if (enableInliningAnnotations || enableMergeAnnotations) {
+    if (enableInliningAnnotations || enableClassInliningAnnotations || enableMergeAnnotations) {
       ToolHelper.allowTestProguardOptions(builder);
     }
     StringBuilder proguardMapBuilder = new StringBuilder();
@@ -67,6 +68,14 @@ public class R8TestBuilder
       addKeepRules(
           "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
           "-neverinline class * { @com.android.tools.r8.NeverInline *; }");
+    }
+    return self();
+  }
+
+  public R8TestBuilder enableClassInliningAnnotations() {
+    if (!enableClassInliningAnnotations) {
+      enableClassInliningAnnotations = true;
+      addKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *");
     }
     return self();
   }

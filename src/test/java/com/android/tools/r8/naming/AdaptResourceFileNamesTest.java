@@ -27,6 +27,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.KeepingDiagnosticHandler;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.File;
@@ -93,15 +94,15 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
 
   private static String getProguardConfigWithNeverInline(
       boolean enableAdaptResourceFileNames, String adaptResourceFileNamesPathFilter) {
-    return String.join(
-        System.lineSeparator(),
+    return StringUtils.lines(
         getProguardConfig(enableAdaptResourceFileNames, adaptResourceFileNamesPathFilter),
         "-neverinline class " + adaptresourcefilenames.A.class.getName() + " {",
         "  public void method();",
         "}",
         "-neverinline class " + adaptresourcefilenames.B.Inner.class.getName() + " {",
         "  public void method();",
-        "}");
+        "}",
+        "-neverclassinline class *");
   }
 
   @Test
@@ -262,9 +263,6 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
     return ToolHelper.runR8(
         command,
         options -> {
-          // TODO(christofferqa): Class inliner should respect -neverinline.
-          options.enableClassInlining = false;
-          options.enableVerticalClassMerging = true;
           options.dataResourceConsumer = dataResourceConsumer;
           options.proguardMapConsumer = proguardMapConsumer;
           options.testing.suppressExperimentalCfBackendWarning = true;

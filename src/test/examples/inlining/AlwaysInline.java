@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package inlining;
 
-public @interface AlwaysInline {
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
 
-}
+@Target({ElementType.METHOD})
+public @interface AlwaysInline {}

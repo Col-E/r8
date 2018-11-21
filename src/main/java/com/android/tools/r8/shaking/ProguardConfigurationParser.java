@@ -16,7 +16,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
-import com.android.tools.r8.shaking.InlineRule.Type;
 import com.android.tools.r8.shaking.ProguardConfiguration.Builder;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.ClassOrType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
@@ -353,16 +352,19 @@ public class ProguardConfigurationParser {
       } else if (acceptString("packageobfuscationdictionary")) {
         configurationBuilder.setPackageObfuscationDictionary(parseFileName(false));
       } else if (acceptString("alwaysinline")) {
-        InlineRule rule = parseInlineRule(Type.ALWAYS, optionStart);
+        InlineRule rule = parseInlineRule(InlineRule.Type.ALWAYS, optionStart);
         configurationBuilder.addRule(rule);
       } else if (allowTestOptions && acceptString("forceinline")) {
-        InlineRule rule = parseInlineRule(Type.FORCE, optionStart);
+        InlineRule rule = parseInlineRule(InlineRule.Type.FORCE, optionStart);
         configurationBuilder.addRule(rule);
         // Insert a matching -checkdiscard rule to ensure force inlining happens.
         ProguardCheckDiscardRule ruled = rule.asProguardCheckDiscardRule();
         configurationBuilder.addRule(ruled);
       } else if (allowTestOptions && acceptString("neverinline")) {
-        InlineRule rule = parseInlineRule(Type.NEVER, optionStart);
+        InlineRule rule = parseInlineRule(InlineRule.Type.NEVER, optionStart);
+        configurationBuilder.addRule(rule);
+      } else if (allowTestOptions && acceptString("neverclassinline")) {
+        ClassInlineRule rule = parseClassInlineRule(ClassInlineRule.Type.NEVER, optionStart);
         configurationBuilder.addRule(rule);
       } else if (allowTestOptions && acceptString("nevermerge")) {
         ClassMergingRule rule = parseClassMergingRule(ClassMergingRule.Type.NEVER, optionStart);
@@ -590,6 +592,17 @@ public class ProguardConfigurationParser {
       ProguardCheckDiscardRule.Builder keepRuleBuilder = ProguardCheckDiscardRule.builder()
           .setOrigin(origin)
           .setStart(start);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
+    }
+
+    private ClassInlineRule parseClassInlineRule(ClassInlineRule.Type type, Position start)
+        throws ProguardRuleParserException {
+      ClassInlineRule.Builder keepRuleBuilder =
+          ClassInlineRule.builder().setOrigin(origin).setStart(start).setType(type);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));

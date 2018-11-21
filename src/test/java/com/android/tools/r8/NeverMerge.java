@@ -3,4 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
+
+@Target({ElementType.TYPE})
 public @interface NeverMerge {}
