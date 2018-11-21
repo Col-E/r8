@@ -5,8 +5,8 @@ package com.android.tools.r8.ir.optimize.reflection;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.Collection;
 import org.junit.runner.RunWith;
@@ -22,12 +22,7 @@ public abstract class GetNameTestBase extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0} minification: {1}")
   public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
-    for (Backend backend : Backend.values()) {
-      builder.add(new Object[]{backend, Boolean.TRUE});
-      builder.add(new Object[]{backend, Boolean.FALSE});
-    }
-    return builder.build();
+    return buildParameters(Backend.values(), BooleanUtils.values());
   }
 
   GetNameTestBase(Backend backend, boolean enableMinification) {

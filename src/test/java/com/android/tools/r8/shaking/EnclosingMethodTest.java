@@ -8,6 +8,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -48,12 +49,7 @@ public class EnclosingMethodTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0} minification: {1}")
   public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
-    for (Backend backend : Backend.values()) {
-      builder.add(new Object[]{backend, Boolean.TRUE});
-      builder.add(new Object[]{backend, Boolean.FALSE});
-    }
-    return builder.build();
+    return buildParameters(Backend.values(), BooleanUtils.values());
   }
 
   public EnclosingMethodTest(Backend backend, boolean enableMinification) throws Exception {

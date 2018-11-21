@@ -13,6 +13,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -61,11 +62,8 @@ public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
   @Parameters(name = "shrinker: {0} neverInlineMethod: {1}")
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as triggering inlining in Proguard is out of our control.
-    return ImmutableList.of(
-        new Object[] {Shrinker.R8, true},
-        new Object[] {Shrinker.R8, false},
-        new Object[] {Shrinker.R8_CF, true},
-        new Object[] {Shrinker.R8_CF, false});
+    return buildParameters(
+        ImmutableList.of(Shrinker.R8, Shrinker.R8_CF), BooleanUtils.values());
   }
 
   private void check(AndroidApp app) throws Exception {

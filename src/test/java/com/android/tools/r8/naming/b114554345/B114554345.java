@@ -9,9 +9,6 @@ import static junit.framework.TestCase.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -22,13 +19,9 @@ public class B114554345 extends TestBase {
 
   private final Backend backend;
 
-  @Parameters(name = "mode:{0}")
-  public static Collection<Object[]> data() {
-    List<Object[]> parameters = new ArrayList<>();
-    for (Backend backend : Backend.values()) {
-      parameters.add(new Object[] {backend});
-    }
-    return parameters;
+  @Parameters(name = "backend: {0}")
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public B114554345(Backend backend) {

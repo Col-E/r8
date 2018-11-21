@@ -47,13 +47,7 @@ public class MetadataStripTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0} target: {1}")
   public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
-    for (Backend backend : Backend.values()) {
-      for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-        builder.add(new Object[]{backend, targetVersion});
-      }
-    }
-    return builder.build();
+    return buildParameters(Backend.values(), KotlinTargetVersion.values());
   }
 
   public MetadataStripTest(Backend backend, KotlinTargetVersion targetVersion) {

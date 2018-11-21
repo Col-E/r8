@@ -7,7 +7,7 @@ import static com.android.tools.r8.ToolHelper.DEFAULT_PROGUARD_MAP_FILE;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.TestBase.MinifyMode;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -44,17 +44,13 @@ import org.junit.rules.TemporaryFolder;
  * that calls {@link TreeShakingTest::runTest}, passing in the path to your keep rule file and
  * lambdas to determine if the right bits of the application are kept or discarded.
  */
-public abstract class TreeShakingTest {
+public abstract class TreeShakingTest extends TestBase {
 
   private Path proguardMap;
   private Path out;
 
   protected enum Frontend {
     DEX, JAR
-  }
-
-  protected enum Backend {
-    DEX, CF
   }
 
   private final String name;

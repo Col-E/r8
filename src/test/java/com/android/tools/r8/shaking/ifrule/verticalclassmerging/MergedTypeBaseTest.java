@@ -10,6 +10,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -59,11 +60,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
   @Parameters(name = "Backend: {0}, vertical class merging: {1}")
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as Proguard does not merge A into B.
-    return ImmutableList.of(
-        new Object[] {Backend.DEX, true},
-        new Object[] {Backend.DEX, false},
-        new Object[] {Backend.CF, true},
-        new Object[] {Backend.CF, false});
+    return buildParameters(Backend.values(), BooleanUtils.values());
   }
 
   public abstract Class<?> getTestClass();

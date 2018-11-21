@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -45,15 +46,7 @@ public class NonVirtualOverrideTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}, class inlining: {1}, vertical class merging: {2}")
   public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> builder = ImmutableList.builder();
-    for (Backend backend : Backend.values()) {
-      for (boolean enableClassInlining : ImmutableList.of(true, false)) {
-        for (boolean enableVerticalClassMerging : ImmutableList.of(true, false)) {
-          builder.add(new Object[] {backend, enableClassInlining, enableVerticalClassMerging});
-        }
-      }
-    }
-    return builder.build();
+    return buildParameters(Backend.values(), BooleanUtils.values(), BooleanUtils.values());
   }
 
   public NonVirtualOverrideTest(

@@ -19,6 +19,7 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,11 +45,7 @@ public class B116282409 extends JasminTestBase {
 
   @Parameters(name = "Backend: {0}, vertical class merging: {1}")
   public static Collection<Object[]> data() {
-    return ImmutableList.of(
-        new Object[] {Backend.CF, false},
-        new Object[] {Backend.CF, true},
-        new Object[] {Backend.DEX, false},
-        new Object[] {Backend.DEX, true});
+    return buildParameters(Backend.values(), BooleanUtils.values());
   }
 
   public B116282409(Backend backend, boolean enableVerticalClassMerging) {

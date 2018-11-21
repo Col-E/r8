@@ -7,28 +7,18 @@ package com.android.tools.r8.kotlin;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
-import org.junit.runners.Parameterized.Parameters;
 
 public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
-  @Parameters(name = "allowAccessModification: {0} target: {1}")
-  public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      builder.add(new Object[]{Boolean.TRUE, targetVersion});
-    }
-    return builder.build();
-  }
 
   @Test
   public void testCompanionAndRegularObjects() throws Exception {
+    assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_staticizer.MainKt";
 
     // Without class staticizer.

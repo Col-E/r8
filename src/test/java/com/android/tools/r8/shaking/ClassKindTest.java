@@ -33,7 +33,7 @@ public class ClassKindTest extends TestBase {
   }
 
   @Parameters(name = "{0}")
-  public static Collection<Object[]> paramters() {
+  public static Collection<Object[]> parameters() {
     return ImmutableList.copyOf(new Object[][]{
         {"-keep interface *", ImmutableList.of(Interface.class)},
         {"-keep class *", CLASSES_TO_INCLUDE},

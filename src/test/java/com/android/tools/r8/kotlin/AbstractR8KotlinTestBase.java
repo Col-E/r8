@@ -22,6 +22,7 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -59,12 +60,7 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
 
   @Parameters(name = "allowAccessModification: {0} target: {1}")
   public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      builder.add(new Object[]{Boolean.TRUE, targetVersion});
-      builder.add(new Object[]{Boolean.FALSE, targetVersion});
-    }
-    return builder.build();
+    return buildParameters(BooleanUtils.values(), KotlinTargetVersion.values());
   }
 
   protected void addExtraClasspath(Path path) {

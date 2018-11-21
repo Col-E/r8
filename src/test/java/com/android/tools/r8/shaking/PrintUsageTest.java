@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.PrintUsageTest.PrintUsageInspector.ClassSubject;
 import com.android.tools.r8.utils.ListUtils;
@@ -39,12 +40,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class PrintUsageTest {
-
-  private enum Backend {
-    CF,
-    DEX
-  }
+public class PrintUsageTest extends TestBase {
 
   private static final String PRINT_USAGE_FILE_SUFFIX = "-print-usage.txt";
 

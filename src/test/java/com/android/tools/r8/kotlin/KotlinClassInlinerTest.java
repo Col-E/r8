@@ -8,8 +8,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.graph.DexClass;
@@ -20,28 +20,17 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
-import org.junit.runners.Parameterized.Parameters;
 
 public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
-  @Parameters(name = "allowAccessModification: {0} target: {1}")
-  public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> builder = new ImmutableList.Builder<>();
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      builder.add(new Object[]{Boolean.TRUE, targetVersion});
-    }
-    return builder.build();
-  }
 
   private static boolean isLambda(DexClass clazz) {
     return !clazz.type.getPackageDescriptor().startsWith("kotlin") &&
@@ -67,6 +56,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testJStyleLambdas() throws Exception {
+    assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_inliner_lambda_j_style.MainKt";
     runTest("class_inliner_lambda_j_style", mainClassName, false, (app) -> {
       CodeInspector inspector = new CodeInspector(app);
@@ -112,6 +102,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testKStyleLambdas() throws Exception {
+    assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_inliner_lambda_k_style.MainKt";
     runTest("class_inliner_lambda_k_style", mainClassName, false, (app) -> {
       CodeInspector inspector = new CodeInspector(app);
@@ -186,6 +177,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testDataClass() throws Exception {
+    assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_inliner_data_class.MainKt";
     runTest("class_inliner_data_class", mainClassName, true, (app) -> {
       CodeInspector inspector = new CodeInspector(app);

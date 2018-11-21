@@ -21,9 +21,9 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -50,13 +50,7 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}, Minify: {1}")
   public static Collection<Object[]> data() {
-    List<Object[]> result = new ArrayList<>();
-    for (Backend backend : Backend.values()) {
-      for (boolean minify : new boolean[] {false, true}) {
-        result.add(new Object[] {backend, minify});
-      }
-    }
-    return result;
+    return buildParameters(Backend.values(), BooleanUtils.values());
   }
 
   public KeepDirectoriesTest(Backend backend, boolean minify) {

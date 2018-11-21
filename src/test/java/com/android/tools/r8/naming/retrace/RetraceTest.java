@@ -22,7 +22,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -39,13 +38,7 @@ public class RetraceTest extends TestBase {
 
   @Parameters(name = "Backend: {0}, mode: {1}")
   public static Collection<Object[]> data() {
-    List<Object[]> parameters = new ArrayList<>();
-    for (Backend backend : Backend.values()) {
-      for (CompilationMode mode : CompilationMode.values()) {
-        parameters.add(new Object[] {backend, mode});
-      }
-    }
-    return parameters;
+    return buildParameters(Backend.values(), CompilationMode.values());
   }
 
   public RetraceTest(Backend backend, CompilationMode mode) {

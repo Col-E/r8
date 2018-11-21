@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -27,7 +28,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -49,15 +49,11 @@ public class R8InliningTest extends TestBase {
 
   @Parameters(name = "{0}, backend={1}, minification={2}, allowaccessmodification={3}")
   public static Collection<Object[]> data() {
-    List<Object[]> configs = new ArrayList<>();
-    for (Backend backend : Backend.values()) {
-      for (boolean minification : new Boolean[] {false, true}) {
-        for (boolean allowaccessmodification : new Boolean[] {false, true}) {
-          configs.add(new Object[] {"Inlining", backend, minification, allowaccessmodification});
-        }
-      }
-    }
-    return configs;
+    return buildParameters(
+        ImmutableList.of("Inlining"),
+        Backend.values(),
+        BooleanUtils.values(),
+        BooleanUtils.values());
   }
 
   private final String name;

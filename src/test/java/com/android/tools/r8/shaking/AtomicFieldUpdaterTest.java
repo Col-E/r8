@@ -15,9 +15,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,13 +26,9 @@ public class AtomicFieldUpdaterTest extends TestBase {
 
   private final Backend backend;
 
-  @Parameters(name = "mode:{0}")
-  public static Collection<Object[]> data() {
-    List<Object[]> parameters = new ArrayList<>();
-    for (Backend backend : Backend.values()) {
-      parameters.add(new Object[] {backend});
-    }
-    return parameters;
+  @Parameters(name = "backend: {0}")
+  public static Backend[] data() {
+    return Backend.values();
   }
 
   public AtomicFieldUpdaterTest(Backend backend) {
