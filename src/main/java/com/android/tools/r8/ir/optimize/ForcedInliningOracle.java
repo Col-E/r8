@@ -12,7 +12,6 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -65,8 +64,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public void ensureMethodProcessed(
-      DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback) {
+  public void ensureMethodProcessed(DexEncodedMethod target, IRCode inlinee) {
     // Do nothing. If the method is not yet processed, we still should
     // be able to build IR for inlining, though.
   }

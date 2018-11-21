@@ -32,7 +32,6 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -84,8 +83,7 @@ public class IdentifierNameStringMarker {
     }
   }
 
-  public void decoupleIdentifierNameStringsInMethod(
-      DexEncodedMethod encodedMethod, IRCode code, OptimizationFeedback feedback) {
+  public void decoupleIdentifierNameStringsInMethod(DexEncodedMethod encodedMethod, IRCode code) {
     if (!code.hasConstString) {
       return;
     }
@@ -165,7 +163,7 @@ public class IdentifierNameStringMarker {
             InstancePut instancePut = instruction.asInstancePut();
             iterator.replaceCurrentInstruction(new InstancePut(field, instancePut.object(), newIn));
           }
-          feedback.markUseIdentifierNameString(encodedMethod);
+          encodedMethod.getMutableOptimizationInfo().markUseIdentifierNameString();
         } else if (instruction.isInvokeMethod()) {
           InvokeMethod invoke = instruction.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
@@ -280,7 +278,7 @@ public class IdentifierNameStringMarker {
                     invokedMethod.proto,
                     invoke.outValue(),
                     newIns));
-            feedback.markUseIdentifierNameString(encodedMethod);
+            encodedMethod.getMutableOptimizationInfo().markUseIdentifierNameString();
           }
         }
       }

@@ -543,19 +543,17 @@ public class Inliner {
   public void performForcedInlining(
       DexEncodedMethod method,
       IRCode code,
-      Map<InvokeMethod, InliningInfo> invokesToInline,
-      OptimizationFeedback feedback) {
+      Map<InvokeMethod, InliningInfo> invokesToInline) {
 
     ForcedInliningOracle oracle = new ForcedInliningOracle(method, invokesToInline);
-    performInliningImpl(oracle, oracle, method, code, feedback);
+    performInliningImpl(oracle, oracle, method, code);
   }
 
   public void performInlining(
       DexEncodedMethod method,
       IRCode code,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
-      CallSiteInformation callSiteInformation,
-      OptimizationFeedback feedback) {
+      CallSiteInformation callSiteInformation) {
 
     DefaultInliningOracle oracle =
         createDefaultOracle(
@@ -566,7 +564,7 @@ public class Inliner {
             options.inliningInstructionLimit,
             options.inliningInstructionAllowance - numberOfInstructions(code));
 
-    performInliningImpl(oracle, oracle, method, code, feedback);
+    performInliningImpl(oracle, oracle, method, code);
   }
 
   public DefaultInliningOracle createDefaultOracle(
@@ -590,11 +588,7 @@ public class Inliner {
   }
 
   private void performInliningImpl(
-      InliningStrategy strategy,
-      InliningOracle oracle,
-      DexEncodedMethod context,
-      IRCode code,
-      OptimizationFeedback feedback) {
+      InliningStrategy strategy, InliningOracle oracle, DexEncodedMethod context, IRCode code) {
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
@@ -631,7 +625,7 @@ public class Inliner {
 
               // If this code did not go through the full pipeline, apply inlining to make sure
               // that force inline targets get processed.
-              strategy.ensureMethodProcessed(target, inlinee.code, feedback);
+              strategy.ensureMethodProcessed(target, inlinee.code);
 
               // Make sure constructor inlining is legal.
               assert !target.isClassInitializer();
@@ -653,7 +647,7 @@ public class Inliner {
                 context.accessFlags.unsetBridge();
               }
 
-              context.copyMetadataFromInlinee(target, feedback);
+              context.copyMetadataFromInlinee(target);
               code.copyMetadataFromInlinee(inlinee.code);
             }
           }

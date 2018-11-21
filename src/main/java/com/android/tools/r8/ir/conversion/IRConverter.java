@@ -849,7 +849,7 @@ public class IRConverter {
     }
 
     if (identifierNameStringMarker != null) {
-      identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(method, code, feedback);
+      identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(method, code);
       assert code.isConsistentSSA();
     }
 
@@ -870,7 +870,13 @@ public class IRConverter {
     if (options.enableInlining && inliner != null) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       assert !options.debug;
-      inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation, feedback);
+      inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
+    }
+
+    // Either marked by IdentifierNameStringMarker or propagated from inlinee.
+    // Then, make it visible to IdentifierMinifier.
+    if (method.getOptimizationInfo().useIdentifierNameString()) {
+      feedback.markUseIdentifierNameString(method);
     }
 
     if (appInfo.hasLiveness()) {
@@ -951,12 +957,8 @@ public class IRConverter {
       // lambda, it does not get collected by merger.
       assert options.enableInlining && inliner != null;
       classInliner.processMethodCode(
-          appInfo.withLiveness(),
-          codeRewriter,
-          method,
-          code,
-          isProcessedConcurrently,
-          methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline, feedback),
+          appInfo.withLiveness(), codeRewriter, method, code, isProcessedConcurrently,
+          methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline),
           Suppliers.memoize(() -> inliner.createDefaultOracle(
               method, code,
               isProcessedConcurrently, callSiteInformation,
