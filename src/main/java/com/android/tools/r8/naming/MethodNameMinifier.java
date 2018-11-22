@@ -264,7 +264,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
           // Don't report errors, as the set of call sites is a conservative estimate, and can
           // refer to interfaces which has been removed.
           Set<DexEncodedMethod> implementedMethods =
-              appInfo.lookupLambdaImplementedMethods(callSite, null);
+              appInfo.lookupLambdaImplementedMethods(callSite);
           if (implementedMethods.isEmpty()) {
             return;
           }
