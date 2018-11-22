@@ -30,7 +30,10 @@ class StringContentCheckTestMain {
   static boolean argCouldBeNull(String arg) {
     return "CONST".contains(arg)
         && "prefix".startsWith(arg)
-        && "suffix".endsWith(arg);
+        && "suffix".endsWith(arg)
+        && "CONST".equals(arg)
+        && "CONST".equalsIgnoreCase(arg)
+        && "CONST".contentEquals(arg);
   }
 
   public static void main(String[] args) {
@@ -39,6 +42,10 @@ class StringContentCheckTestMain {
       System.out.println(s1.contains("CONST"));
       System.out.println(s1.startsWith("prefix"));
       System.out.println(s1.endsWith("suffix"));
+      System.out.println(s1.equals("prefix-CONST-suffix"));
+      System.out.println(s1.equalsIgnoreCase("PREFIX-const-SUFFIX"));
+      System.out.println(s1.contentEquals("prefix-CONST-suffix"));
+      System.out.println(s1.contentEquals(new StringBuffer("prefix-CONST-suffix")));
     }
 
     {
@@ -47,6 +54,10 @@ class StringContentCheckTestMain {
       System.out.println(s2.contains("CONST"));
       System.out.println(s2.startsWith("prefix"));
       System.out.println(s2.endsWith("suffix"));
+      System.out.println(s2.equals("prefix-CONST-suffix"));
+      System.out.println(s2.equalsIgnoreCase("pre-con-suf"));
+      System.out.println(s2.contentEquals("prefix-CONST-suffix"));
+      System.out.println(s2.contentEquals(new StringBuffer("prefix-CONST-suffix")));
     }
 
     {
@@ -75,11 +86,27 @@ public class StringContentCheckTest extends TestBase {
       "true",
       // s1, endsWith
       "true",
+      // s1, equals
+      "true",
+      // s1, equalsIgnoreCase
+      "true",
+      // s1, contentEquals(CharSequence)
+      "true",
+      // s1, contentEquals(StringBuffer)
+      "true",
       // s2, contains
       "false",
       // s2, startsWith
       "false",
       // s2, endsWith
+      "false",
+      // s2, equals
+      "false",
+      // s2, equalsIgnoreCase
+      "false",
+      // s2, contentEquals(CharSequence)
+      "false",
+      // s2, contentEquals(StringBuffer)
       "false",
       // argCouldBeNull
       "false"
@@ -107,7 +134,10 @@ public class StringContentCheckTest extends TestBase {
         && method.proto.returnType.isBooleanType()
         && (method.name.toString().equals("contains")
             || method.name.toString().equals("startsWith")
-            || method.name.toString().equals("endsWith"));
+            || method.name.toString().equals("endsWith")
+            || method.name.toString().equals("equals")
+            || method.name.toString().equals("equalsIgnoreCase")
+            || method.name.toString().equals("contentEquals"));
   }
 
   private long countStringContentChecker(MethodSubject method) {
@@ -131,7 +161,7 @@ public class StringContentCheckTest extends TestBase {
         "boolean", "argCouldBeNull", ImmutableList.of("java.lang.String"));
     assertThat(argCouldBeNull, isPresent());
     // Because of nullable argument, all checkers should remain.
-    assertEquals(3, countStringContentChecker(argCouldBeNull));
+    assertEquals(6, countStringContentChecker(argCouldBeNull));
   }
 
   @Test
@@ -143,14 +173,14 @@ public class StringContentCheckTest extends TestBase {
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 6);
+    test(result, 14);
 
     result = testForD8()
         .release()
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 3);
+    test(result, 8);
   }
 
   @Test
@@ -162,6 +192,6 @@ public class StringContentCheckTest extends TestBase {
         .addKeepMainRule(MAIN)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 3);
+    test(result, 8);
   }
 }
