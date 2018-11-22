@@ -9,7 +9,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
 
 public interface RegisterAllocator {
-  void allocateRegisters(boolean debug);
+  void allocateRegisters();
   int registersUsed();
   int getRegisterForValue(Value value, int instructionNumber);
   int getArgumentOrAllocateRegisterForValue(Value value, int instructionNumber);

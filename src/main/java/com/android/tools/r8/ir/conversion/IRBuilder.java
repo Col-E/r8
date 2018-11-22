@@ -458,7 +458,7 @@ public class IRBuilder {
   }
 
   public boolean isDebugMode() {
-    return options.debug;
+    return options.debug || method.getOptimizationInfo().isReachabilitySensitive();
   }
 
   public Int2ReferenceSortedMap<BlockInfo> getCFG() {
@@ -630,7 +630,7 @@ public class IRBuilder {
 
   private boolean insertDebugPositions() {
     boolean hasDebugPositions = false;
-    if (!options.debug) {
+    if (!isDebugMode()) {
       return hasDebugPositions;
     }
     for (BasicBlock block : blocks) {
@@ -847,7 +847,7 @@ public class IRBuilder {
 
   public void addDebugLocalStart(int register, DebugLocalInfo local) {
     assert local != null;
-    if (!options.debug) {
+    if (!isDebugMode()) {
       return;
     }
     // If the local was not introduced by the previous instruction, start it here.
@@ -867,7 +867,7 @@ public class IRBuilder {
 
   public void addDebugLocalEnd(int register, DebugLocalInfo local) {
     assert local != null;
-    if (!options.debug) {
+    if (!isDebugMode()) {
       return;
     }
     Value value = readRegisterForDebugLocal(register, local);
@@ -877,7 +877,7 @@ public class IRBuilder {
   }
 
   public void addDebugPosition(Position position) {
-    if (options.debug) {
+    if (isDebugMode()) {
       assert previousLocalValue == null;
       assert source.getCurrentPosition().equals(position);
       if (!debugLocalEnds.isEmpty()) {
@@ -1096,7 +1096,7 @@ public class IRBuilder {
 
   public void addMove(ValueTypeConstraint constraint, int dest, int src) {
     Value in = readRegister(src, constraint);
-    if (options.debug) {
+    if (isDebugMode()) {
       // If the move is writing to a different local we must construct a new value.
       DebugLocalInfo destLocal = getOutgoingLocal(dest);
       if (destLocal != null && destLocal != in.getLocalInfo()) {
@@ -1876,7 +1876,7 @@ public class IRBuilder {
   }
 
   private Value readRegisterForDebugLocal(int register, DebugLocalInfo local) {
-    assert options.debug;
+    assert isDebugMode();
     ValueTypeConstraint type = ValueTypeConstraint.fromDexType(local.type);
     return readRegister(register, type, currentBlock, EdgeType.NON_EDGE, RegisterReadType.DEBUG);
   }
@@ -1959,7 +1959,7 @@ public class IRBuilder {
   }
 
   private DebugLocalInfo getIncomingLocalAtBlock(int register, BasicBlock block) {
-    if (options.debug) {
+    if (isDebugMode()) {
       int blockOffset = offsets.getInt(block);
       return source.getIncomingLocalAtBlock(register, blockOffset);
     }
@@ -2055,11 +2055,11 @@ public class IRBuilder {
   }
 
   private DebugLocalInfo getIncomingLocal(int register) {
-    return options.debug ? source.getIncomingLocal(register) : null;
+    return isDebugMode() ? source.getIncomingLocal(register) : null;
   }
 
   private DebugLocalInfo getOutgoingLocal(int register) {
-    return options.debug ? source.getOutgoingLocal(register) : null;
+    return isDebugMode() ? source.getOutgoingLocal(register) : null;
   }
 
   private void checkRegister(int register) {
@@ -2161,7 +2161,7 @@ public class IRBuilder {
   }
 
   private void attachLocalValues(Instruction ir) {
-    if (!options.debug) {
+    if (!isDebugMode()) {
       assert previousLocalValue == null;
       assert debugLocalEnds.isEmpty();
       return;

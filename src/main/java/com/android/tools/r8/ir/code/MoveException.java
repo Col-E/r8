@@ -63,7 +63,8 @@ public class MoveException extends Instruction {
 
   @Override
   public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
-    return !code.options.debug && code.options.isGeneratingDex();
+    return !(code.options.debug || code.method.getOptimizationInfo().isReachabilitySensitive())
+        && code.options.isGeneratingDex();
   }
 
   @Override

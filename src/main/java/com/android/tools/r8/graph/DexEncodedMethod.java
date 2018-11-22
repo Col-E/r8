@@ -847,6 +847,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
+    public boolean isReachabilitySensitive() {
+      return false;
+    }
+
+    @Override
     public boolean returnsArgument() {
       return false;
     }
@@ -956,6 +961,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // TODO(b/71500340): We call this *hint* because it does not 100% guarantee that a parameter is
     // not null when the method returns normally. Maybe nonNullParamOnNormalExit in the future.
     private BitSet nonNullParamHints = null;
+    private boolean reachabilitySensitive = false;
 
     private OptimizationInfoImpl() {
       // Intentionally left empty, just use the default values.
@@ -977,6 +983,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       initializerEnablingJavaAssertions = template.initializerEnablingJavaAssertions;
       parametersUsages = template.parametersUsages;
       nonNullParamHints = template.nonNullParamHints;
+      reachabilitySensitive = template.reachabilitySensitive;
     }
 
     @Override
@@ -992,6 +999,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     @Override
     public BitSet getNonNullParamHints() {
       return nonNullParamHints;
+    }
+
+    @Override
+    public boolean isReachabilitySensitive() {
+      return reachabilitySensitive;
     }
 
     @Override
@@ -1074,6 +1086,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     @Override
     public void setNonNullParamHints(BitSet hints) {
       this.nonNullParamHints = hints;
+    }
+
+    @Override
+    public void setReachabilitySensitive(boolean reachabilitySensitive) {
+      this.reachabilitySensitive = reachabilitySensitive;
     }
 
     @Override

@@ -128,6 +128,7 @@ public class ConstantRemovalTest {
     blocks.add(block);
 
     InternalOptions options = new InternalOptions();
+    options.debug = true;
     AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
     IRCode code =
         new IRCode(

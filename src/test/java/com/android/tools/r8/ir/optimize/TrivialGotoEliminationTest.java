@@ -69,9 +69,11 @@ public class TrivialGotoEliminationTest {
     // Check that the goto in block0 remains. There was a bug in the trivial goto elimination
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
+    InternalOptions options = new InternalOptions();
+    options.debug = true;
     IRCode code =
         new IRCode(
-            new InternalOptions(),
+            options,
             null,
             blocks,
             new ValueNumberGenerator(),
@@ -150,9 +152,11 @@ public class TrivialGotoEliminationTest {
     // Check that the goto in block0 remains. There was a bug in the trivial goto elimination
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
+    InternalOptions options = new InternalOptions();
+    options.debug = true;
     IRCode code =
         new IRCode(
-            new InternalOptions(),
+            options,
             null,
             blocks,
             new ValueNumberGenerator(),

@@ -122,11 +122,10 @@ public class JarCode extends Code {
       Origin origin) {
     assert getOwner() == encodedMethod;
     triggerDelayedParsingIfNeccessary();
-    return options.debug
+    return options.debug || encodedMethod.getOptimizationInfo().isReachabilitySensitive()
         ? internalBuildWithLocals(
             encodedMethod, encodedMethod, appInfo, graphLense, options, null, null)
-        : internalBuild(
-            encodedMethod, encodedMethod, appInfo, graphLense, options, null, null);
+        : internalBuild(encodedMethod, encodedMethod, appInfo, graphLense, options, null, null);
   }
 
   @Override
@@ -142,7 +141,7 @@ public class JarCode extends Code {
     assert getOwner() == encodedMethod;
     assert generator != null;
     triggerDelayedParsingIfNeccessary();
-    return options.debug
+    return options.debug || encodedMethod.getOptimizationInfo().isReachabilitySensitive()
         ? internalBuildWithLocals(
             context, encodedMethod, appInfo, graphLense, options, generator, callerPosition)
         : internalBuild(
@@ -176,7 +175,9 @@ public class JarCode extends Code {
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition) {
-    if (!options.debug || !options.proguardConfiguration.getKeepAttributes().localVariableTable) {
+    if (!(encodedMethod.getOptimizationInfo().isReachabilitySensitive()
+        || (options.debug
+            && options.proguardConfiguration.getKeepAttributes().localVariableTable))) {
       node.localVariables.clear();
     }
 

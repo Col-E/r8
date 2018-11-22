@@ -31,6 +31,8 @@ public interface UpdatableOptimizationInfo extends OptimizationInfo {
 
   void setNonNullParamHints(BitSet hints);
 
+  void setReachabilitySensitive(boolean reachabilitySensitive);
+
   void markUseIdentifierNameString();
 
   void markForceInline();

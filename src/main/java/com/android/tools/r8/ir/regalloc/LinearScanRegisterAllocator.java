@@ -199,7 +199,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
    * Perform register allocation for the IRCode.
    */
   @Override
-  public void allocateRegisters(boolean debug) {
+  public void allocateRegisters() {
     // There are no linked values prior to register allocation.
     assert noLinkedValues();
     assert code.isConsistentSSA();
@@ -216,7 +216,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       Log.debug(this.getClass(), toString());
     }
     assert registersUsed() == 0 || unusedRegisters != null;
-    if (debug) {
+    // Even if the method is reachability sensitive, we do not compute debug information after
+    // register allocation. We just treat the method as being in debug mode in order to keep
+    // locals alive for their entire live range. In release mode the liveness is all that matters
+    // and we do not actually want locals information in the output.
+    if (options.debug) {
       computeDebugInfo(blocks);
     }
     clearUserInfo();
@@ -1612,9 +1616,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // Set all free positions for possible registers to max integer.
     RegisterPositions freePositions = new RegisterPositions(registerConstraint + 1);
 
-    if (options.debug && !code.method.accessFlags.isStatic()) {
-      // If we are generating debug information, we pin the this value register since the
-      // debugger expects to always be able to find it in the input register.
+    if ((options.debug || code.method.getOptimizationInfo().isReachabilitySensitive())
+        && !code.method.accessFlags.isStatic()) {
+      // If we are generating debug information or if the method is reachability sensitive,
+      // we pin the this value register. The debugger expects to always be able to find it in
+      // the input register.
       assert numberOfArgumentRegisters > 0;
       assert firstArgumentValue != null && firstArgumentValue.requiredRegisters() == 1;
       freePositions.set(0, 0);
@@ -2620,7 +2626,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             }
           }
         }
-        if (options.debug) {
+        if (options.debug || code.method.getOptimizationInfo().isReachabilitySensitive()) {
+          // In debug mode, or if the method is reachability sensitive, extend the live range
+          // to cover the full scope of a local variable (encoded as debug values).
           int number = instruction.getNumber();
           for (Value use : instruction.getDebugValues()) {
             assert use.needsRegister();
