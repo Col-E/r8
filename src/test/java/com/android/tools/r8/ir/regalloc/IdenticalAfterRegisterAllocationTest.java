@@ -21,7 +21,7 @@ public class IdenticalAfterRegisterAllocationTest {
 
   private static class MockRegisterAllocator implements RegisterAllocator {
     @Override
-    public void allocateRegisters(boolean debug) {
+    public void allocateRegisters() {
     }
 
     @Override

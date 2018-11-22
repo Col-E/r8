@@ -635,7 +635,9 @@ public class IRCode {
   private boolean consistentBlockInstructions() {
     boolean argumentsAllowed = true;
     for (BasicBlock block : blocks) {
-      block.consistentBlockInstructions(argumentsAllowed, options.debug);
+      block.consistentBlockInstructions(
+          argumentsAllowed,
+          options.debug || method.getOptimizationInfo().isReachabilitySensitive());
       argumentsAllowed = false;
     }
     return true;

@@ -21,6 +21,8 @@ public interface OptimizationInfo {
 
   BitSet getNonNullParamHints();
 
+  boolean isReachabilitySensitive();
+
   boolean returnsArgument();
 
   int getReturnedArgument();

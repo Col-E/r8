@@ -382,4 +382,44 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     assert classFileVersion != -1;
     return classFileVersion;
   }
+
+  /**
+   * Is the class reachability sensitive.
+   *
+   * <p>A class is reachability sensitive if the
+   * dalvik.annotation.optimization.ReachabilitySensitive annotation is on any field or method. When
+   * that is the case, dead reference elimination is disabled and locals are kept alive for their
+   * entire scope.
+   */
+  public boolean hasReachabilitySensitiveAnnotation(DexItemFactory factory) {
+    for (DexEncodedMethod directMethod : directMethods) {
+      for (DexAnnotation annotation : directMethod.annotations.annotations) {
+        if (annotation.annotation.type == factory.annotationReachabilitySensitive) {
+          return true;
+        }
+      }
+    }
+    for (DexEncodedMethod virtualMethod : virtualMethods) {
+      for (DexAnnotation annotation : virtualMethod.annotations.annotations) {
+        if (annotation.annotation.type == factory.annotationReachabilitySensitive) {
+          return true;
+        }
+      }
+    }
+    for (DexEncodedField staticField : staticFields) {
+      for (DexAnnotation annotation : staticField.annotations.annotations) {
+        if (annotation.annotation.type == factory.annotationReachabilitySensitive) {
+          return true;
+        }
+      }
+    }
+    for (DexEncodedField instanceField : instanceFields) {
+      for (DexAnnotation annotation : instanceField.annotations.annotations) {
+        if (annotation.annotation.type == factory.annotationReachabilitySensitive) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }

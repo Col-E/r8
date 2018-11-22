@@ -145,15 +145,14 @@ public class CfRegisterAllocator implements RegisterAllocator {
   }
 
   @Override
-  public void allocateRegisters(boolean debug) {
-    assert options.debug == debug;
-    allocateRegisters();
-  }
-
   public void allocateRegisters() {
     computeNeedsRegister();
     ImmutableList<BasicBlock> blocks = computeLivenessInformation();
     performLinearScan();
+    // Even if the method is reachability sensitive, we do not compute debug information after
+    // register allocation. We just treat the method as being in debug mode in order to keep
+    // locals alive for their entire live range. In release mode the liveness is all that matters
+    // and we do not actually want locals information in the output.
     if (options.debug) {
       LinearScanRegisterAllocator.computeDebugInfo(blocks, liveIntervals, this, liveAtEntrySets);
     }

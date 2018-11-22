@@ -438,18 +438,22 @@ public class IRConverter {
   }
 
   private void convertMethodsToDex(DexProgramClass clazz) {
+    boolean isReachabilitySensitive = clazz.hasReachabilitySensitiveAnnotation(options.itemFactory);
     // When converting all methods on a class always convert <clinit> first.
     for (DexEncodedMethod method : clazz.directMethods()) {
       if (method.isClassInitializer()) {
+        method.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
         convertMethodToDex(method);
         break;
       }
     }
-    clazz.forEachMethod(method -> {
-      if (!method.isClassInitializer()) {
-        convertMethodToDex(method);
-      }
-    });
+    clazz.forEachMethod(
+        method -> {
+          if (!method.isClassInitializer()) {
+            method.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
+            convertMethodToDex(method);
+          }
+        });
   }
 
   private void convertMethodToDex(DexEncodedMethod method) {
@@ -478,6 +482,7 @@ public class IRConverter {
 
   public DexApplication optimize(DexApplication application, ExecutorService executorService)
       throws ExecutionException {
+    computeReachabilitySensitivity(application);
     removeLambdaDeserializationMethods();
     collectLambdaMergingCandidates(application);
     collectStaticizerCandidates(application);
@@ -564,6 +569,14 @@ public class IRConverter {
     }
 
     return builder.build();
+  }
+
+  private void computeReachabilitySensitivity(DexApplication application) {
+    application.classes().forEach(c -> {
+      if (c.hasReachabilitySensitiveAnnotation(options.itemFactory)) {
+        c.methods().forEach(m -> m.getMutableOptimizationInfo().setReachabilitySensitive(true));
+      }
+    });
   }
 
   private void forEachSelectedOutliningMethod(
@@ -812,7 +825,9 @@ public class IRConverter {
       CodeRewriter.ensureDirectStringNewToInit(code);
     }
 
-    if (options.debug) {
+    boolean isDebugMode = options.debug || method.getOptimizationInfo().isReachabilitySensitive();
+
+    if (isDebugMode) {
       codeRewriter.simplifyDebugLocals(code);
     }
 
@@ -867,9 +882,8 @@ public class IRConverter {
       nonNullTracker.addNonNull(code);
       assert code.isConsistentSSA();
     }
-    if (options.enableInlining && inliner != null) {
+    if (!isDebugMode && options.enableInlining && inliner != null) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
-      assert !options.debug;
       inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
     }
 
@@ -884,7 +898,7 @@ public class IRConverter {
       codeRewriter.rewriteGetClass(code);
     }
 
-    if (!options.debug) {
+    if (!isDebugMode) {
       // TODO(jsjeon): Consider merging these into one single optimize().
       stringOptimizer.computeTrivialOperationsOnConstString(code, appInfo.dexItemFactory);
       // Reflection optimization 2. get*Name() with const-class -> const-string
@@ -926,7 +940,7 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
-    if (!options.debug) {
+    if (!isDebugMode) {
       codeRewriter.collectClassInitializerDefaults(method, code);
     }
     if (Log.ENABLED) {
@@ -1175,7 +1189,7 @@ public class IRConverter {
     workaroundForwardingInitializerBug(code);
     LinearScanRegisterAllocator registerAllocator =
         new LinearScanRegisterAllocator(appInfo, code, options);
-    registerAllocator.allocateRegisters(options.debug);
+    registerAllocator.allocateRegisters();
     if (options.canHaveExceptionTargetingLoopHeaderBug()) {
       codeRewriter.workaroundExceptionTargetingLoopHeaderBug(code);
     }

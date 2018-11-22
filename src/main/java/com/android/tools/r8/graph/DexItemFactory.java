@@ -272,6 +272,8 @@ public class DexItemFactory {
       createType("Ldalvik/annotation/codegen/CovariantReturnType;");
   public final DexType annotationCovariantReturnTypes =
       createType("Ldalvik/annotation/codegen/CovariantReturnType$CovariantReturnTypes;");
+  public final DexType annotationReachabilitySensitive =
+      createType("Ldalvik/annotation/optimization/ReachabilitySensitive;");
 
   private static final String METAFACTORY_METHOD_NAME = "metafactory";
   private static final String METAFACTORY_ALT_METHOD_NAME = "altMetafactory";
