@@ -554,9 +554,22 @@ public class Enqueuer {
     public void registerCallSite(DexCallSite callSite) {
       callSites.add(callSite);
       super.registerCallSite(callSite);
-      for (DexEncodedMethod method :
-          appInfo.lookupLambdaImplementedMethods(callSite, options.reporter)) {
-        markLambdaInstantiated(method.method.holder, currentMethod);
+
+      List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
+      if (directInterfaces != null) {
+        for (DexType lambdaInstantiatedInterface : directInterfaces) {
+          markLambdaInstantiated(lambdaInstantiatedInterface, currentMethod);
+        }
+      } else {
+        if (!appInfo.isStringConcat(callSite.bootstrapMethod)) {
+          if (options.reporter != null) {
+            Diagnostic message =
+                new StringDiagnostic(
+                    "Unknown bootstrap method " + callSite.bootstrapMethod,
+                    appInfo.originFor(currentMethod.method.holder));
+            options.reporter.warning(message);
+          }
+        }
       }
 
       LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo);
@@ -600,7 +613,6 @@ public class Enqueuer {
       // and implement all lambda interfaces.
 
       ScopedDexMethodSet seen = new ScopedDexMethodSet();
-      List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
       if (directInterfaces == null) {
         return;
       }
@@ -1059,7 +1071,31 @@ public class Enqueuer {
   }
 
   private void markLambdaInstantiated(DexType itf, DexEncodedMethod method) {
-    instantiatedLambdas.add(itf, KeepReason.instantiatedIn(method));
+    DexClass clazz = appInfo.definitionFor(itf);
+    if (clazz == null) {
+      if (options.reporter != null) {
+        StringDiagnostic message =
+            new StringDiagnostic(
+                "Lambda expression implements missing interface `" + itf.toSourceString() + "`",
+                appInfo.originFor(method.method.holder));
+        options.reporter.warning(message);
+      }
+      return;
+    }
+    if (!clazz.isInterface()) {
+      if (options.reporter != null) {
+        StringDiagnostic message =
+            new StringDiagnostic(
+                "Lambda expression expected to implement an interface, but found "
+                    + "`" + itf.toSourceString() + "`",
+                appInfo.originFor(method.method.holder));
+        options.reporter.warning(message);
+      }
+      return;
+    }
+    if (clazz.isProgramClass()) {
+      instantiatedLambdas.add(itf, KeepReason.instantiatedIn(method));
+    }
   }
 
   private void markDirectStaticOrConstructorMethodAsLive(
@@ -2431,6 +2467,9 @@ public class Enqueuer {
               : Iterables.concat(
                   ImmutableList.of(refinedReceiverType), subtypes(refinedReceiverType));
       for (DexType type : subTypesToExplore) {
+        if (instantiatedLambdas.contains(type)) {
+          return null;
+        }
         if (pinnedItems.contains(type)) {
           // For kept classes we cannot ensure a single target.
           return null;

@@ -3,16 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -243,32 +242,19 @@ public class AppInfoWithSubtyping extends AppInfo {
    * <p>The returned set of methods all have {@code callSite.methodName} as the method name.
    *
    * @param callSite Call site to resolve.
-   * @param reporter Reporter used when an unknown metafactory is encountered.
    * @return Methods implemented by the lambda expression that created the {@code callSite}.
    */
-  public Set<DexEncodedMethod> lookupLambdaImplementedMethods(
-      DexCallSite callSite, Reporter reporter) {
+  public Set<DexEncodedMethod> lookupLambdaImplementedMethods(DexCallSite callSite) {
     List<DexType> callSiteInterfaces = LambdaDescriptor.getInterfaces(callSite, this);
-    if (callSiteInterfaces == null) {
-      if (!isStringConcat(callSite.bootstrapMethod)) {
-        if (reporter != null) {
-          Diagnostic message =
-              new StringDiagnostic("Unknown bootstrap method " + callSite.bootstrapMethod);
-          reporter.warning(message);
-        }
-      }
+    if (callSiteInterfaces == null || callSiteInterfaces.isEmpty()) {
       return Collections.emptySet();
     }
     Set<DexEncodedMethod> result = new HashSet<>();
-    for (DexType iface : callSiteInterfaces) {
+    Deque<DexType> worklist = new ArrayDeque<>(callSiteInterfaces);
+    Set<DexType> visited = Sets.newIdentityHashSet();
+    while (!worklist.isEmpty()) {
+      DexType iface = worklist.removeFirst();
       if (iface.isUnknown()) {
-        if (reporter != null) {
-          StringDiagnostic message =
-              new StringDiagnostic(
-                  "Lambda expression implements missing library interface "
-                      + iface.toSourceString());
-          reporter.warning(message);
-        }
         // Skip this interface. If the lambda only implements missing library interfaces and not any
         // program interfaces, then minification and tree shaking are not interested in this
         // DexCallSite anyway, so skipping this interface is harmless. On the other hand, if
@@ -279,21 +265,26 @@ public class AppInfoWithSubtyping extends AppInfo {
         // anyway.
         continue;
       }
+      if (!visited.add(iface)) {
+        // Already visited previously. May happen due to "diamond shapes" in the interface
+        // hierarchy.
+        continue;
+      }
       assert iface.isInterface();
       DexClass clazz = definitionFor(iface);
       if (clazz != null) {
-        clazz.forEachMethod(
-            method -> {
-              if (method.method.name == callSite.methodName && method.accessFlags.isAbstract()) {
-                result.add(method);
-              }
-            });
+        for (DexEncodedMethod method : clazz.virtualMethods()) {
+          if (method.method.name == callSite.methodName && method.accessFlags.isAbstract()) {
+            result.add(method);
+          }
+        }
+        Collections.addAll(worklist, clazz.interfaces.values);
       }
     }
     return result;
   }
 
-  private boolean isStringConcat(DexMethodHandle bootstrapMethod) {
+  public boolean isStringConcat(DexMethodHandle bootstrapMethod) {
     return bootstrapMethod.type.isInvokeStatic()
         && (bootstrapMethod.asMethod() == dexItemFactory.stringConcatWithConstantsMethod
             || bootstrapMethod.asMethod() == dexItemFactory.stringConcatMethod);
