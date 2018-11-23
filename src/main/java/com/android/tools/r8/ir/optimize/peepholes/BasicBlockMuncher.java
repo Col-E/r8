@@ -25,8 +25,8 @@ public class BasicBlockMuncher {
         new StoreSequenceLoadPeephole(),
         new StoreLoadPeephole(),
         new LoadLoadDupPeephole(),
-        new DupDupDupPeephole());
-
+        new DupDupDupPeephole(),
+        new StoreLoadToDupStorePeephole());
   }
 
   public static void optimize(IRCode code) {
