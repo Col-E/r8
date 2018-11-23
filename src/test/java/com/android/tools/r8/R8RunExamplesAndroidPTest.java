@@ -39,6 +39,10 @@ public class R8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<R8Command
               ImmutableList.of(
                   "invokecustom-with-shrinking"
               ))
+          .put(DexVm.Version.V8_1_0,
+              ImmutableList.of(
+                  "invokecustom-with-shrinking"
+              ))
           .put(DexVm.Version.DEFAULT,
               ImmutableList.of(
               ))

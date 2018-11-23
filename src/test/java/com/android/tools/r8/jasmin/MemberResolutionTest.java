@@ -11,6 +11,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
+import com.android.tools.r8.VmTestRunner.IgnoreForVmVersions;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.utils.ThrowingBiFunction;
@@ -468,6 +469,8 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  // TODO(119938529): Triage.
+  @IgnoreForVmVersions(Version.V8_1_0)
   public void testRebindVirtualCallToStatic() throws Exception {
     // Library classes.
     JasminBuilder libraryBuilder = new JasminBuilder();
@@ -501,6 +504,8 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  // TODO(119938529): Triage.
+  @IgnoreForVmVersions(Version.V8_1_0)
   public void testRebindVirtualCallToPackagePrivateStatic() throws Exception {
     // Library classes.
     JasminBuilder libraryBuilder = new JasminBuilder();
@@ -536,6 +541,8 @@ public class MemberResolutionTest extends JasminTestBase {
   }
 
   @Test
+  // TODO(119938529): Triage.
+  @IgnoreForVmVersions(Version.V8_1_0)
   public void testRebindVirtualCallToStaticInPackagePrivateClass() throws Exception {
     // Library classes.
     JasminBuilder libraryBuilder = new JasminBuilder();

@@ -15,6 +15,7 @@ TEST_PACKAGE = 'org.apache.harmony.jpda.tests.jdwp'
 
 VERSIONS = [
   'default',
+  '8.1.0',
   '7.0.0',
   '6.0.1',
   '5.1.1',

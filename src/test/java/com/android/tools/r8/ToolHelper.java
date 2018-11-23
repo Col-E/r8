@@ -124,6 +124,8 @@ public class ToolHelper {
     ART_6_0_1_HOST(Version.V6_0_1, Kind.HOST),
     ART_7_0_0_TARGET(Version.V7_0_0, Kind.TARGET),
     ART_7_0_0_HOST(Version.V7_0_0, Kind.HOST),
+    ART_8_1_0_TARGET(Version.V8_1_0, Kind.TARGET),
+    ART_8_1_0_HOST(Version.V8_1_0, Kind.HOST),
     ART_DEFAULT(Version.DEFAULT, Kind.HOST);
 
     private static final ImmutableMap<String, DexVm> SHORT_NAME_MAP =
@@ -137,6 +139,7 @@ public class ToolHelper {
       V5_1_1("5.1.1"),
       V6_0_1("6.0.1"),
       V7_0_0("7.0.0"),
+      V8_1_0("8.1.0"),
       DEFAULT("default");
 
       Version(String shortName) {
@@ -413,6 +416,7 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_DIRS =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "art")
+          .put(DexVm.ART_8_1_0_HOST, "art-8.1.0")
           .put(DexVm.ART_7_0_0_HOST, "art-7.0.0")
           .put(DexVm.ART_6_0_1_HOST, "art-6.0.1")
           .put(DexVm.ART_5_1_1_HOST, "art-5.1.1")
@@ -421,6 +425,7 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_BINARY_VERSIONS =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "bin/art")
+          .put(DexVm.ART_8_1_0_HOST, "bin/art")
           .put(DexVm.ART_7_0_0_HOST, "bin/art")
           .put(DexVm.ART_6_0_1_HOST, "bin/art")
           .put(DexVm.ART_5_1_1_HOST, "bin/art")
@@ -430,6 +435,7 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_BINARY_VERSIONS_X64 =
       ImmutableMap.of(
           DexVm.ART_DEFAULT, "bin/art",
+          DexVm.ART_8_1_0_HOST, "bin/art",
           DexVm.ART_7_0_0_HOST, "bin/art",
           DexVm.ART_6_0_1_HOST, "bin/art");
 
@@ -451,12 +457,28 @@ public class ToolHelper {
     ImmutableMap.Builder<DexVm, List<String>> builder = ImmutableMap.builder();
     builder
         .put(DexVm.ART_DEFAULT, ART_BOOT_LIBS)
+        .put(DexVm.ART_8_1_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_7_0_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_6_0_1_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_5_1_1_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_4_4_4_HOST, DALVIK_BOOT_LIBS)
         .put(DexVm.ART_4_0_4_HOST, DALVIK_BOOT_LIBS);
     BOOT_LIBS = builder.build();
+  }
+
+  private static final Map<DexVm, String> PRODUCT;
+
+  static {
+    ImmutableMap.Builder<DexVm, String> builder = ImmutableMap.builder();
+    builder
+        .put(DexVm.ART_DEFAULT, "angler")
+        .put(DexVm.ART_8_1_0_HOST, "marlin")
+        .put(DexVm.ART_7_0_0_HOST, "angler")
+        .put(DexVm.ART_6_0_1_HOST, "angler")
+        .put(DexVm.ART_5_1_1_HOST, "<missing>")
+        .put(DexVm.ART_4_4_4_HOST, "<missing>")
+        .put(DexVm.ART_4_0_4_HOST, "<missing>");
+    PRODUCT = builder.build();
   }
 
   private static final Path DX = getDxExecutablePath();
@@ -478,12 +500,12 @@ public class ToolHelper {
     return getDexVmPath(vm).resolve("bin").resolve("dex2oat");
   }
 
-  private static Path getAnglerPath(DexVm vm) {
-    return getDexVmPath(vm).resolve("product").resolve("angler");
+  private static Path getProductPath(DexVm vm) {
+    return getDexVmPath(vm).resolve("product").resolve(PRODUCT.get(vm));
   }
 
-  private static Path getAnglerBootImagePath(DexVm vm) {
-    return getAnglerPath(vm).resolve("system").resolve("framework").resolve("boot.art");
+  private static Path getProductBootImagePath(DexVm vm) {
+    return getProductPath(vm).resolve("system").resolve("framework").resolve("boot.art");
   }
 
   public static byte[] getClassAsBytes(Class clazz) throws IOException {
@@ -694,6 +716,8 @@ public class ToolHelper {
   public static AndroidApiLevel getMinApiLevelForDexVm(DexVm dexVm) {
     switch (dexVm.version) {
       case DEFAULT:
+        return AndroidApiLevel.O;
+      case V8_1_0:
         return AndroidApiLevel.O;
       case V7_0_0:
         return AndroidApiLevel.N;
@@ -1431,10 +1455,10 @@ public class ToolHelper {
     assert ByteStreams.toByteArray(Files.newInputStream(file)).length > 0;
     List<String> command = new ArrayList<>();
     command.add(getDex2OatPath(vm).toString());
-    command.add("--android-root=" + getAnglerPath(vm));
+    command.add("--android-root=" + getProductPath(vm));
     command.add("--runtime-arg");
     command.add("-Xnorelocate");
-    command.add("--boot-image=" + getAnglerBootImagePath(vm));
+    command.add("--boot-image=" + getProductBootImagePath(vm));
     command.add("--dex-file=" + file.toAbsolutePath());
     command.add("--oat-file=" + outFile.toAbsolutePath());
     command.add("--instruction-set=arm64");

@@ -18,7 +18,7 @@ import notify
 import upload_to_x20
 
 
-ALL_ART_VMS = ["default", "7.0.0", "6.0.1", "5.1.1", "4.4.4", "4.0.4"]
+ALL_ART_VMS = ["default", "8.1.0", "7.0.0", "6.0.1", "5.1.1", "4.4.4", "4.0.4"]
 BUCKET = 'r8-test-results'
 
 def ParseOptions():
