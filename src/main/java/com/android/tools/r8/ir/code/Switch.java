@@ -284,11 +284,28 @@ public class Switch extends JumpInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
+    CfLabel fallthroughLabel = builder.getLabel(fallthroughBlock());
     List<CfLabel> labels = new ArrayList<>(numberOfKeys());
     List<BasicBlock> successors = getBlock().getSuccessors();
-    for (int index : targetBlockIndices) {
-      labels.add(builder.getLabel(successors.get(index)));
+    if (emitPacked()) {
+      int min = keys[0];
+      int max = keys[keys.length - 1];
+      int index = 0;
+      for (long i = min; i <= max; i++) {
+        if (i == keys[index]) {
+          labels.add(builder.getLabel(successors.get(targetBlockIndices[index])));
+          index++;
+        } else {
+          labels.add(fallthroughLabel);
+        }
+      }
+      assert index == targetBlockIndices.length;
+      builder.add(new CfSwitch(Kind.TABLE, fallthroughLabel, new int[] { min }, labels));
+    } else {
+      for (int index : targetBlockIndices) {
+        labels.add(builder.getLabel(successors.get(index)));
+      }
+      builder.add(new CfSwitch(Kind.LOOKUP, fallthroughLabel, this.keys, labels));
     }
-    builder.add(new CfSwitch(Kind.LOOKUP, builder.getLabel(fallthroughBlock()), keys, labels));
   }
 }
