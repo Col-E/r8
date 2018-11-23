@@ -61,7 +61,7 @@ public class CfSwitch extends CfInstruction {
         break;
       case TABLE: {
         int min = keys[0];
-        int max = min + labels.length - 1;
+        int max = min + targets.size() - 1;
         visitor.visitTableSwitchInsn(min, max, defaultTarget.getLabel(), labels);
       }
     }

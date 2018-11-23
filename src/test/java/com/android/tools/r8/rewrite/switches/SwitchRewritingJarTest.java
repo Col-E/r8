@@ -196,11 +196,6 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     if (SwitchRewritingTest.twoCaseWillUsePackedSwitch(key1, key2)) {
       int expectedPackedSwitchCount = 1;
       int expectedSparseSwitchCount = 0;
-      // TODO(b/113648554) Implement packed (table) switch support in the CF backend.
-      if (backend == Backend.CF) {
-        expectedSparseSwitchCount += expectedPackedSwitchCount;
-        expectedPackedSwitchCount = 0;
-      }
       assertEquals(new Statistics(0, expectedPackedSwitchCount, expectedSparseSwitchCount), stat);
     } else {
       assertEquals(new Statistics(2, 0, 0), stat);
@@ -287,12 +282,6 @@ public class SwitchRewritingJarTest extends JasminTestBase {
       expectedSparseSwitchCount = 1;
     }
 
-    // TODO(b/113648554) Implement packed (table) switch support in the CF backend.
-    if (backend == Backend.CF) {
-      expectedSparseSwitchCount += expectedPackedSwitchCount;
-      expectedPackedSwitchCount = 0;
-    }
-
     assertEquals(new Statistics(0, expectedPackedSwitchCount, expectedSparseSwitchCount), stat);
   }
 
@@ -363,12 +352,6 @@ public class SwitchRewritingJarTest extends JasminTestBase {
                 .clazz("Test")
                 .method("int", "test", ImmutableList.of("int"))
                 .iterateInstructions());
-
-    // TODO(b/113648554) Implement packed (table) switch support in the CF backend.
-    if (backend == Backend.CF) {
-      expectedSparseSwitches += expectedPackedSwitches;
-      expectedPackedSwitches = 0;
-    }
 
     assertEquals(new Statistics(expectedIfs, expectedPackedSwitches, expectedSparseSwitches), stat);
 
