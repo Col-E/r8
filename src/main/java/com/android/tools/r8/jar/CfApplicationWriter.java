@@ -172,7 +172,7 @@ public class CfApplicationWriter {
   }
 
   private int getClassFileVersion(DexProgramClass clazz) {
-    int version = clazz.hasClassFileVersion() ? 50 : clazz.getInitialClassFileVersion();
+    int version = clazz.hasClassFileVersion() ? clazz.getInitialClassFileVersion() : 50;
     for (DexEncodedMethod method : clazz.directMethods()) {
       version = Math.max(version, method.getClassFileVersion());
     }
