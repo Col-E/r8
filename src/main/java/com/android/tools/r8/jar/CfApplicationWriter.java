@@ -150,10 +150,10 @@ public class CfApplicationWriter {
       writeField(field, writer);
     }
     for (DexEncodedMethod method : clazz.directMethods()) {
-      writeMethod(method, writer, defaults);
+      writeMethod(method, writer, defaults, version);
     }
     for (DexEncodedMethod method : clazz.virtualMethods()) {
-      writeMethod(method, writer, defaults);
+      writeMethod(method, writer, defaults, version);
     }
     writer.visitEnd();
 
@@ -172,7 +172,7 @@ public class CfApplicationWriter {
   }
 
   private int getClassFileVersion(DexProgramClass clazz) {
-    int version = clazz.getClassFileVersion();
+    int version = clazz.getInitialClassFileVersion();
     for (DexEncodedMethod method : clazz.directMethods()) {
       version = Math.max(version, method.getClassFileVersion());
     }
@@ -258,7 +258,10 @@ public class CfApplicationWriter {
   }
 
   private void writeMethod(
-      DexEncodedMethod method, ClassWriter writer, ImmutableMap<DexString, DexValue> defaults) {
+      DexEncodedMethod method,
+      ClassWriter writer,
+      ImmutableMap<DexString, DexValue> defaults,
+      int classFileVersion) {
     int access = method.accessFlags.getAsCfAccessFlags();
     String name = namingLens.lookupName(method.method).toString();
     String desc = method.descriptor(namingLens);
@@ -275,7 +278,7 @@ public class CfApplicationWriter {
     writeAnnotations(visitor::visitAnnotation, method.annotations.annotations);
     writeParameterAnnotations(visitor, method.parameterAnnotationsList);
     if (!method.shouldNotHaveCode()) {
-      writeCode(method.getCode(), visitor);
+      writeCode(method.getCode(), visitor, options, classFileVersion);
     }
     visitor.visitEnd();
   }
@@ -371,13 +374,14 @@ public class CfApplicationWriter {
     }
   }
 
-  private void writeCode(Code code, MethodVisitor visitor) {
+  private void writeCode(
+      Code code, MethodVisitor visitor, InternalOptions options, int classFileVersion) {
     if (code.isJarCode()) {
       assert namingLens.isIdentityLens();
       code.asJarCode().writeTo(visitor);
     } else {
       assert code.isCfCode();
-      code.asCfCode().write(visitor, namingLens);
+      code.asCfCode().write(visitor, namingLens, options, classFileVersion);
     }
   }
 

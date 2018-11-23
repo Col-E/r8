@@ -320,7 +320,7 @@ public class JarClassFileReader {
               application.getFactory().getSkipNameValidationForTesting());
       if (clazz.isProgramClass()) {
         context.owner = clazz.asProgramClass();
-        clazz.asProgramClass().setClassFileVersion(version);
+        clazz.asProgramClass().setInitialClassFileVersion(version);
       }
       classConsumer.accept(clazz);
     }

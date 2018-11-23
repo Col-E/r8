@@ -408,7 +408,7 @@ public class ApplicationWriter {
             if (enclosingMethod == null
                 && (innerClass.getOuter() == null || innerClass.isAnonymous())) {
               options.warningMissingEnclosingMember(
-                  clazz.type, clazz.origin, clazz.getClassFileVersion());
+                  clazz.type, clazz.origin, clazz.getInitialClassFileVersion());
             } else {
               annotations.add(
                   DexAnnotation.createInnerClassAnnotation(

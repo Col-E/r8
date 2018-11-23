@@ -30,6 +30,7 @@ public class ProguardKeepAttributes {
   public static final String RUNTIME_INVISIBLE_TYPE_ANNOTATIONS =
       "RuntimeInvisibleTypeAnnotations";
   public static final String ANNOTATION_DEFAULT = "AnnotationDefault";
+  public static final String STACK_MAP_TABLE = "StackMapTable";
 
   public static final List<String> KEEP_ALL = ImmutableList.of("*");
 
@@ -50,6 +51,7 @@ public class ProguardKeepAttributes {
   public boolean runtimeVisibleTypeAnnotations = false;
   public boolean runtimeInvisibleTypeAnnotations = false;
   public boolean annotationDefault = false;
+  public boolean stackMapTable = false;
 
   private ProguardKeepAttributes() {
   }
@@ -132,6 +134,7 @@ public class ProguardKeepAttributes {
     runtimeInvisibleTypeAnnotations = update(runtimeInvisibleTypeAnnotations,
         RUNTIME_INVISIBLE_TYPE_ANNOTATIONS, patterns);
     annotationDefault = update(annotationDefault, ANNOTATION_DEFAULT, patterns);
+    stackMapTable = update(stackMapTable, STACK_MAP_TABLE, patterns);
   }
 
   public void ensureValid(
@@ -191,7 +194,8 @@ public class ProguardKeepAttributes {
         && this.runtimeInvisibleParameterAnnotations == other.runtimeInvisibleParameterAnnotations
         && this.runtimeVisibleTypeAnnotations == other.runtimeVisibleTypeAnnotations
         && this.runtimeInvisibleTypeAnnotations == other.runtimeInvisibleTypeAnnotations
-        && this.annotationDefault == other.annotationDefault;
+        && this.annotationDefault == other.annotationDefault
+        && this.stackMapTable == other.stackMapTable;
   }
 
   @Override
@@ -209,7 +213,8 @@ public class ProguardKeepAttributes {
         + (this.runtimeInvisibleParameterAnnotations ? 1 << 10 : 0)
         + (this.runtimeVisibleTypeAnnotations ? 1 << 11 : 0)
         + (this.runtimeInvisibleTypeAnnotations ? 1 << 12 : 0)
-        + (this.annotationDefault ? 1 << 13 : 0);
+        + (this.annotationDefault ? 1 << 13 : 0)
+        + (this.stackMapTable ? 1 << 14 : 0);
   }
 
   public boolean isEmpty() {
@@ -226,7 +231,8 @@ public class ProguardKeepAttributes {
         && !runtimeInvisibleParameterAnnotations
         && !runtimeVisibleTypeAnnotations
         && !runtimeInvisibleTypeAnnotations
-        && !annotationDefault;
+        && !annotationDefault
+        && !stackMapTable;
   }
 
   public StringBuilder append(StringBuilder builder) {
@@ -272,6 +278,9 @@ public class ProguardKeepAttributes {
     }
     if (annotationDefault) {
       attributes.add(ANNOTATION_DEFAULT);
+    }
+    if (stackMapTable) {
+      attributes.add(STACK_MAP_TABLE);
     }
 
     if (attributes.size() > 0) {
