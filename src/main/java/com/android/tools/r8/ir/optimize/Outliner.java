@@ -71,7 +71,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import org.objectweb.asm.Opcodes;
 
 /**
  * Support class for implementing outlining (i.e. extracting common code patterns as methods).
@@ -1301,10 +1300,6 @@ public class Outliner {
             direct,
             DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
             options.itemFactory.getSkipNameValidationForTesting());
-    if (options.isGeneratingClassFiles()) {
-      // All program classes must have a class-file version. Use Java 6.
-      clazz.setClassFileVersion(Opcodes.V1_6);
-    }
     return clazz;
   }
 

@@ -26,7 +26,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   private final ProgramResource.Kind originKind;
   private DexEncodedArray staticValues = SENTINEL_NOT_YET_COMPUTED;
   private final Collection<DexProgramClass> synthesizedFrom;
-  private int classFileVersion = -1;
+  private int initialClassFileVersion = -1;
   private KotlinInfo kotlinInfo = null;
 
   public DexProgramClass(
@@ -369,18 +369,18 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     return this;
   }
 
-  public void setClassFileVersion(int classFileVersion) {
-    assert classFileVersion >= 0;
-    this.classFileVersion = classFileVersion;
+  public void setInitialClassFileVersion(int initialClassFileVersion) {
+    assert this.initialClassFileVersion == -1 && initialClassFileVersion > 0;
+    this.initialClassFileVersion = initialClassFileVersion;
   }
 
   public boolean hasClassFileVersion() {
-    return classFileVersion >= 0;
+    return initialClassFileVersion > -1;
   }
 
-  public int getClassFileVersion() {
-    assert classFileVersion != -1;
-    return classFileVersion;
+  public int getInitialClassFileVersion() {
+    assert initialClassFileVersion > -1;
+    return initialClassFileVersion;
   }
 
   /**

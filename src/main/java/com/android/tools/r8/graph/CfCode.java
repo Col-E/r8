@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfPosition;
@@ -150,8 +151,15 @@ public class CfCode extends Code {
     return this;
   }
 
-  public void write(MethodVisitor visitor, NamingLens namingLens) {
+  public void write(
+      MethodVisitor visitor, NamingLens namingLens, InternalOptions options, int classFileVersion) {
     for (CfInstruction instruction : instructions) {
+      if (instruction instanceof CfFrame
+          && (classFileVersion <= 49
+              || (classFileVersion == 50
+                  && !options.proguardConfiguration.getKeepAttributes().stackMapTable))) {
+        continue;
+      }
       instruction.write(visitor, namingLens);
     }
     visitor.visitEnd();
