@@ -201,6 +201,10 @@ public abstract class RunExamplesJava9Test
             // Dex version not supported
             "varhandle"
         ))
+        .put(DexVm.Version.V8_1_0, ImmutableList.of(
+            // Dex version not supported
+            "varhandle"
+        ))
         .put(DexVm.Version.DEFAULT, ImmutableList.of(
             // TODO(mikaelpeltier): Update runtime when the support will be ready
             "varhandle"

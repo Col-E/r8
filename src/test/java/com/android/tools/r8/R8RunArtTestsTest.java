@@ -96,7 +96,8 @@ public abstract class R8RunArtTestsTest {
       DexVm.Version.V4_4_4,
       DexVm.Version.V5_1_1,
       DexVm.Version.V6_0_1,
-      DexVm.Version.V7_0_0);
+      DexVm.Version.V7_0_0,
+      DexVm.Version.V8_1_0);
 
   // Input jar for jctf tests.
   private static final String JCTF_COMMON_JAR = "build/libs/jctfCommon.jar";
@@ -439,7 +440,6 @@ public abstract class R8RunArtTestsTest {
       "149-suspend-all-stress",
       "154-gc-loop",
       "155-java-set-resolved-type",
-      "156-register-dex-file-multi-loader",
       "157-void-class",
       "158-app-image-class-table",
       "466-get-live-vreg",
@@ -454,93 +454,127 @@ public abstract class R8RunArtTestsTest {
       "629-vdex-speed",
       "1337-gc-coverage",
 
-      // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
-      "008-exceptions",
-
-      // Fails due to non-matching Exception messages.
-      "201-built-in-except-detail-messages",
-
       // Fails on non-R8/D8 run
       "031-class-attributes"
   );
 
-  private static Map<DexVm.Version, List<String>> expectedToFailRunWithArtVersion = ImmutableMap.of(
-      DexVm.Version.V7_0_0, ImmutableList.of(
-          // Generally fails on non-R8/D8 running.
-          "412-new-array",
-          "610-arraycopy",
-          "625-checker-licm-regressions"
-      ),
-      DexVm.Version.V6_0_1, ImmutableList.of(
-          // Generally fails on non-R8/D8 running.
-          "004-checker-UnsafeTest18",
-          "005-annotations",
-          "008-exceptions",
-          "082-inline-execute",
-          "099-vmdebug",
-          "412-new-array",
-          "530-checker-lse2",
-          "550-new-instance-clinit",
-          "580-checker-round",
-          "594-invoke-super",
-          "625-checker-licm-regressions",
-          "626-const-class-linking"
-      ),
-      DexVm.Version.V5_1_1, ImmutableList.of(
-          // Generally fails on non R8/D8 running.
-          "004-checker-UnsafeTest18",
-          "004-NativeAllocations",
-          "005-annotations",
-          "008-exceptions",
-          "082-inline-execute",
-          "099-vmdebug",
-          "143-string-value",
-          "530-checker-lse2",
-          "536-checker-intrinsic-optimization",
-          "552-invoke-non-existent-super",
-          "580-checker-round",
-          "580-checker-string-fact-intrinsics",
-          "594-invoke-super",
-          "605-new-string-from-bytes",
-          "626-const-class-linking"
-      ),
-      DexVm.Version.V4_4_4, ImmutableList.of(
-          // Generally fails on non R8/D8 running.
-          "004-checker-UnsafeTest18",
-          "004-NativeAllocations",
-          "005-annotations",
-          "008-exceptions",
-          "082-inline-execute",
-          "099-vmdebug",
-          "143-string-value",
-          "530-checker-lse2",
-          "536-checker-intrinsic-optimization",
-          "552-invoke-non-existent-super",
-          "580-checker-round",
-          "580-checker-string-fact-intrinsics",
-          "594-invoke-super",
-          "605-new-string-from-bytes",
-          "626-const-class-linking"
-      ),
-      DexVm.Version.V4_0_4, ImmutableList.of(
-          // Generally fails on non R8/D8 running.
-          "004-checker-UnsafeTest18",
-          "004-NativeAllocations",
-          "005-annotations",
-          "008-exceptions",
-          "082-inline-execute",
-          "099-vmdebug",
-          "143-string-value",
-          "530-checker-lse2",
-          "536-checker-intrinsic-optimization",
-          "552-invoke-non-existent-super",
-          "580-checker-round",
-          "580-checker-string-fact-intrinsics",
-          "594-invoke-super",
-          "605-new-string-from-bytes",
-          "626-const-class-linking"
-      )
-  );
+  private static Map<DexVm.Version, List<String>> expectedToFailRunWithArtVersion;
+
+  static {
+    ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
+    builder
+        .put(DexVm.Version.V8_1_0, ImmutableList.of(
+            // TODO(119938529): Triage.
+            "709-checker-varhandles",
+            "454-get-vreg",
+            "457-regs"
+        ))
+        .put(DexVm.Version.V7_0_0, ImmutableList.of(
+            // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
+            "008-exceptions",
+
+            // Fails due to non-matching Exception messages.
+            "201-built-in-except-detail-messages",
+
+            // Generally fails on non-R8/D8 running.
+            "412-new-array",
+            "610-arraycopy",
+            "625-checker-licm-regressions"))
+        .put(DexVm.Version.V6_0_1, ImmutableList.of(
+            // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
+            "008-exceptions",
+
+            // Fails due to non-matching Exception messages.
+            "201-built-in-except-detail-messages",
+
+            // Generally fails on non-R8/D8 running.
+            "004-checker-UnsafeTest18",
+            "005-annotations",
+            "008-exceptions",
+            "082-inline-execute",
+            "099-vmdebug",
+            "156-register-dex-file-multi-loader",
+            "412-new-array",
+            "530-checker-lse2",
+            "550-new-instance-clinit",
+            "580-checker-round",
+            "594-invoke-super",
+            "625-checker-licm-regressions",
+            "626-const-class-linking"))
+        .put(DexVm.Version.V5_1_1, ImmutableList.of(
+            // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
+            "008-exceptions",
+
+            // Fails due to non-matching Exception messages.
+            "201-built-in-except-detail-messages",
+
+            // Generally fails on non R8/D8 running.
+            "004-checker-UnsafeTest18",
+            "004-NativeAllocations",
+            "005-annotations",
+            "008-exceptions",
+            "082-inline-execute",
+            "099-vmdebug",
+            "143-string-value",
+            "156-register-dex-file-multi-loader",
+            "530-checker-lse2",
+            "536-checker-intrinsic-optimization",
+            "552-invoke-non-existent-super",
+            "580-checker-round",
+            "580-checker-string-fact-intrinsics",
+            "594-invoke-super",
+            "605-new-string-from-bytes",
+            "626-const-class-linking"))
+        .put(DexVm.Version.V4_4_4, ImmutableList.of(
+            // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
+            "008-exceptions",
+
+            // Fails due to non-matching Exception messages.
+            "201-built-in-except-detail-messages",
+
+            // Generally fails on non R8/D8 running.
+            "004-checker-UnsafeTest18",
+            "004-NativeAllocations",
+            "005-annotations",
+            "008-exceptions",
+            "082-inline-execute",
+            "099-vmdebug",
+            "143-string-value",
+            "156-register-dex-file-multi-loader",
+            "530-checker-lse2",
+            "536-checker-intrinsic-optimization",
+            "552-invoke-non-existent-super",
+            "580-checker-round",
+            "580-checker-string-fact-intrinsics",
+            "594-invoke-super",
+            "605-new-string-from-bytes",
+            "626-const-class-linking"))
+        .put(DexVm.Version.V4_0_4, ImmutableList.of(
+            // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
+            "008-exceptions",
+
+            // Fails due to non-matching Exception messages.
+            "201-built-in-except-detail-messages",
+
+            // Generally fails on non R8/D8 running.
+            "004-checker-UnsafeTest18",
+            "004-NativeAllocations",
+            "005-annotations",
+            "008-exceptions",
+            "082-inline-execute",
+            "099-vmdebug",
+            "143-string-value",
+            "156-register-dex-file-multi-loader",
+            "530-checker-lse2",
+            "536-checker-intrinsic-optimization",
+            "552-invoke-non-existent-super",
+            "580-checker-round",
+            "580-checker-string-fact-intrinsics",
+            "594-invoke-super",
+            "605-new-string-from-bytes",
+            "626-const-class-linking"));
+    expectedToFailRunWithArtVersion = builder.build();
+  }
 
   // Tests where the R8/D8 output runs in Art but the original does not.
   private static Multimap<String, TestCondition> failingRunWithArtOriginalOnly =
@@ -616,7 +650,11 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.D8_COMPILER,
                   TestCondition
-                      .runtimes(DexVm.Version.V7_0_0, DexVm.Version.V6_0_1, DexVm.Version.V5_1_1)))
+                      .runtimes(
+                          DexVm.Version.V8_1_0,
+                          DexVm.Version.V7_0_0,
+                          DexVm.Version.V6_0_1,
+                          DexVm.Version.V5_1_1)))
           // lib64 libarttest.so: wrong ELF class ELFCLASS64.
           .put("543-env-long-ref",
               TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))

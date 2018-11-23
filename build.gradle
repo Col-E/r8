@@ -296,6 +296,7 @@ def cloudDependencies = [
                 "linux/art-5.1.1",
                 "linux/art-6.0.1",
                 "linux/art-7.0.0",
+                "linux/art-8.1.0",
                 "linux/dalvik",
                 "linux/dalvik-4.0.4",
                 "${osString}/dx",
