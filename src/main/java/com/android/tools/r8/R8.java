@@ -237,12 +237,6 @@ public class R8 {
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
-    // TODO(b/65390962): Remove this warning once the CF backend is complete.
-    if (options.isGeneratingClassFiles() && !options.testing.suppressExperimentalCfBackendWarning) {
-      options.reporter.warning(new StringDiagnostic(
-          "R8 support for generating Java classfiles is incomplete and experimental. "
-              + "Even if R8 appears to succeed, the generated output is likely incorrect."));
-    }
     try {
       AndroidApiLevel oLevel = AndroidApiLevel.O;
       if (options.minApiLevel >= oLevel.getLevel()

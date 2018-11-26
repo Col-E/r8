@@ -325,10 +325,7 @@ public class MinifierClassSignatureTest extends TestBase {
                     .setProgramConsumer(emptyConsumer(backend))
                     .addLibraryFiles(runtimeJar(backend))
                     .setProguardMapConsumer(StringConsumer.emptyConsumer())
-                    .build(),
-                options -> {
-                  options.testing.suppressExperimentalCfBackendWarning = true;
-                }));
+                    .build()));
     // All classes are kept, and renamed.
     assertThat(inspector.clazz("Simple"), isRenamed());
     assertThat(inspector.clazz("Base"), isRenamed());

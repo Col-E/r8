@@ -123,7 +123,6 @@ public class WarnReflectiveAccessTest extends TestBase {
         o -> {
           o.enableInlining = false;
           o.forceProguardCompatibility = forceProguardCompatibility;
-          o.testing.suppressExperimentalCfBackendWarning = true;
         });
   }
 

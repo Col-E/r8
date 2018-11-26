@@ -483,7 +483,6 @@ public class InternalOptions {
     public boolean forceJumboStringProcessing = false;
     public boolean nondeterministicCycleElimination = false;
     public Set<Inliner.Reason> validInliningReasons = null;
-    public boolean suppressExperimentalCfBackendWarning = false;
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {

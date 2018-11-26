@@ -265,7 +265,6 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
         options -> {
           options.dataResourceConsumer = dataResourceConsumer;
           options.proguardMapConsumer = proguardMapConsumer;
-          options.testing.suppressExperimentalCfBackendWarning = true;
         });
   }
 
