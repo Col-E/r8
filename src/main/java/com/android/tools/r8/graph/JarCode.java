@@ -52,8 +52,8 @@ public class JarCode extends Code {
   private final Origin origin;
   private MethodNode node;
   protected ReparseContext context;
+
   protected final JarApplicationReader application;
-  private boolean reachabilitySensitive = false;
 
   public JarCode(
       DexMethod method, Origin origin, ReparseContext context, JarApplicationReader application) {
@@ -62,13 +62,6 @@ public class JarCode extends Code {
     this.context = context;
     this.application = application;
     context.codeList.add(this);
-  }
-
-  public void markReachabilitySensitive() {
-    // We need to mark before we have reparsed so that the method code is reparsed
-    // including debug information.
-    assert context != null;
-    this.reachabilitySensitive = true;
   }
 
   public MethodNode getNode() {
@@ -278,16 +271,9 @@ public class JarCode extends Code {
   private void parseCode(ReparseContext context, boolean useJsrInliner) {
     // If the keep attributes do not specify keeping LocalVariableTable, LocalVariableTypeTable or
     // LineNumberTable, then we can skip parsing all the debug related attributes during code read.
-    // If the method is reachability sensitive we have to include debug information in order
-    // to get locals information which we need to extend the live ranges of locals for their
-    // entire scope.
     int parsingOptions = ClassReader.SKIP_FRAMES;
     ProguardKeepAttributes keep = application.options.proguardConfiguration.getKeepAttributes();
-
-    if (!keep.localVariableTable
-        && !keep.localVariableTypeTable
-        && !keep.lineNumberTable
-        && !reachabilitySensitive) {
+    if (!keep.localVariableTable && !keep.localVariableTypeTable && !keep.lineNumberTable) {
       parsingOptions |= ClassReader.SKIP_DEBUG;
     }
     SecondVisitor classVisitor = new SecondVisitor(createCodeLocator(context), useJsrInliner);
