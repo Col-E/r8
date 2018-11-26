@@ -1161,11 +1161,9 @@ public class IRConverter {
   }
 
   private void markProcessed(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    // After all the optimizations have take place, we compute whether method should be inlined.
+    // After all the optimizations have take place, we compute whether method should be inlinedex.
     ConstraintWithTarget state;
-    if (!options.enableInlining
-        || inliner == null
-        || method.getOptimizationInfo().isReachabilitySensitive()) {
+    if (!options.enableInlining || inliner == null) {
       state = ConstraintWithTarget.NEVER;
     } else {
       state = inliner.computeInliningConstraint(code, method);
