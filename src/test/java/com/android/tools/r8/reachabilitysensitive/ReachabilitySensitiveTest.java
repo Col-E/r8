@@ -10,7 +10,6 @@ import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.code.AddIntLit8;
 import com.android.tools.r8.code.Const4;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 class TestClass {
@@ -124,7 +122,8 @@ public class ReachabilitySensitiveTest extends TestBase {
   private void checkNoLocals(DexCode code) {
     // Even if we preserve live range of locals, we do not output locals information
     // as this is a release build.
-    assertTrue(Arrays.stream(code.getDebugInfo().events)
+    assertTrue((code.getDebugInfo() == null) ||
+        Arrays.stream(code.getDebugInfo().events)
             .allMatch(event -> !(event instanceof StartLocal)));
   }
 
@@ -171,10 +170,10 @@ public class ReachabilitySensitiveTest extends TestBase {
         .addKeepRules(keepRules)
         // Keep the annotation class.
         .addKeepRules("-keep class dalvik.annotation.optimization.ReachabilitySensitive")
-        // Keep the annotation and debug information which is needed for debug mode to actually
-        // keep things alive.
-        .addKeepRules("-keepattributes *Annotations*,LineNumberTable," +
-            "LocalVariableTable,LocalVariableTypeTable")
+        // Keep the annotation so R8 can find it and honor it. It also needs to be available
+        // at runtime so that the Art runtime can honor it as well, so if it is not kept we
+        // do not have to honor it as the runtime will not know to do so in any case.
+        .addKeepRules("-keepattributes RuntimeVisibleAnnotations")
         .compile()
         .inspector();
   }
