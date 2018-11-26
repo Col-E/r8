@@ -40,7 +40,7 @@ public class JctfTestSpecifications {
           .put("math.BigInteger.ConstructorLjava_lang_String.BigInteger_Constructor_A02", any())
           .put(
               "lang.StringBuffer.insertILjava_lang_Object.StringBuffer_insert_A01",
-              match(runtimes(Runtime.ART_DEFAULT, Runtime.JAVA)))
+              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V8_1_0, Runtime.JAVA)))
           .put("lang.StringBuffer.serialization.StringBuffer_serialization_A01", anyDexVm())
           .put(
               "lang.CloneNotSupportedException.serialization.CloneNotSupportedException_serialization_A01",
@@ -50,10 +50,14 @@ public class JctfTestSpecifications {
               anyDexVm())
           .put(
               "lang.StrictMath.roundF.StrictMath_round_A01",
-              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V7_0_0, Runtime.JAVA)))
+              match(
+                  runtimes(
+                      Runtime.ART_DEFAULT, Runtime.ART_V8_1_0, Runtime.ART_V7_0_0, Runtime.JAVA)))
           .put(
               "lang.StrictMath.roundD.StrictMath_round_A01",
-              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V7_0_0, Runtime.JAVA)))
+              match(
+                  runtimes(
+                      Runtime.ART_DEFAULT, Runtime.ART_V8_1_0, Runtime.ART_V7_0_0, Runtime.JAVA)))
           .put("lang.StrictMath.atan2DD.StrictMath_atan2_A01", any())
           .put("lang.Thread.stop.Thread_stop_A05", any())
           .put("lang.Thread.resume.Thread_resume_A02", anyDexVm())
@@ -63,7 +67,12 @@ public class JctfTestSpecifications {
           .put("lang.Thread.stop.Thread_stop_A04", any())
           .put(
               "lang.Thread.ConstructorLjava_lang_ThreadGroupLjava_lang_RunnableLjava_lang_StringJ.Thread_Constructor_A01",
-              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V7_0_0, Runtime.ART_V6_0_1)))
+              match(
+                  runtimes(
+                      Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
+                      Runtime.ART_V7_0_0,
+                      Runtime.ART_V6_0_1)))
           .put(
               "lang.Thread.getUncaughtExceptionHandler.Thread_getUncaughtExceptionHandler_A01",
               anyDexVm())
@@ -190,7 +199,7 @@ public class JctfTestSpecifications {
               anyDexVm())
           .put(
               "lang.ClassLoader.defineClassLjava_lang_StringLjava_nio_ByteBufferLjava_security_ProtectionDomain.ClassLoader_defineClass_A07",
-              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V7_0_0)))
+              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V8_1_0, Runtime.ART_V7_0_0)))
           .put(
               "lang.ClassLoader.defineClassLjava_lang_StringLjava_nio_ByteBufferLjava_security_ProtectionDomain.ClassLoader_defineClass_A04",
               anyDexVm())
@@ -412,6 +421,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -421,6 +431,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -430,6 +441,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -439,6 +451,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -452,6 +465,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -461,6 +475,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -494,6 +509,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -504,6 +520,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -513,6 +530,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -522,6 +540,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -531,6 +550,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -540,6 +560,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -549,6 +570,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -558,6 +580,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -567,6 +590,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -595,6 +619,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
                       Runtime.ART_V5_1_1,
@@ -605,7 +630,7 @@ public class JctfTestSpecifications {
           .put("lang.ref.WeakReference.get.WeakReference_get_A01", any())
           .put(
               "lang.StackTraceElement.toString.StackTraceElement_toString_A01",
-              match(runtimes(Runtime.ART_DEFAULT)))
+              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V8_1_0)))
           .put(
               "lang.NullPointerException.serialization.NullPointerException_serialization_A01",
               anyDexVm())
@@ -661,7 +686,7 @@ public class JctfTestSpecifications {
               match(artRuntimesFromAndJava(Runtime.ART_V5_1_1)))
           .put(
               "lang.annotation.IncompleteAnnotationException.ConstructorLjava_lang_ClassLjava_lang_String.IncompleteAnnotationException_Constructor_A01",
-              match(runtimes(Runtime.ART_DEFAULT, Runtime.JAVA)))
+              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V8_1_0, Runtime.JAVA)))
           .put(
               "lang.InterruptedException.serialization.InterruptedException_serialization_A01",
               anyDexVm())
@@ -749,6 +774,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V4_4_4,
                       Runtime.ART_V4_0_4,
@@ -788,6 +814,7 @@ public class JctfTestSpecifications {
               match(
                   runtimes(
                       Runtime.ART_DEFAULT,
+                      Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V4_4_4,
                       Runtime.ART_V4_0_4)))
@@ -1140,7 +1167,7 @@ public class JctfTestSpecifications {
               anyDexVm())
           .put(
               "lang.reflect.Proxy.h.Proxy_h_A01",
-              match(runtimes(Runtime.ART_DEFAULT, Runtime.JAVA)))
+              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V8_1_0, Runtime.JAVA)))
           .put("lang.reflect.Proxy.serialization.Proxy_serialization_A02", any())
           .put(
               "lang.reflect.GenericSignatureFormatError.serialization.GenericSignatureFormatError_serialization_A01",
@@ -1150,7 +1177,7 @@ public class JctfTestSpecifications {
               anyDexVm())
           .put(
               "lang.reflect.Proxy.ConstructorLjava_lang_reflect_InvocationHandler.Proxy_Constructor_A01",
-              match(runtimes(Runtime.ART_DEFAULT, Runtime.JAVA)))
+              match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V8_1_0, Runtime.JAVA)))
           .put(
               "lang.reflect.Proxy.newProxyInstanceLjava_lang_ClassLoader_Ljava_lang_ClassLjava_lang_reflect_InvocationHandler.Proxy_newProxyInstance_A01",
               anyDexVm())
@@ -1667,14 +1694,14 @@ public class JctfTestSpecifications {
               match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
-              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(and(runtimes(Runtime.ART_V8_1_0), artRuntimesUpTo(Runtime.ART_V4_4_4))))
           .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01", anyDexVm())
           .put(
               "lang.ref.WeakReference.enqueue.WeakReference_enqueue_A01",
               match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.ref.SoftReference.isEnqueued.SoftReference_isEnqueued_A01",
-              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(and(runtimes(Runtime.ART_V8_1_0), artRuntimesUpTo(Runtime.ART_V4_4_4))))
           .put(
               "lang.ref.SoftReference.enqueue.SoftReference_enqueue_A01",
               match(artRuntimesUpTo(Runtime.ART_V4_4_4)))

@@ -477,6 +477,7 @@ public abstract class R8RunArtTestsTest {
             "201-built-in-except-detail-messages",
 
             // Generally fails on non-R8/D8 running.
+            "156-register-dex-file-multi-loader",
             "412-new-array",
             "610-arraycopy",
             "625-checker-licm-regressions"))
