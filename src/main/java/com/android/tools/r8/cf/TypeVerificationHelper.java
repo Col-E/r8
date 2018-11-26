@@ -10,17 +10,21 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
+import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -221,6 +225,7 @@ public class TypeVerificationHelper {
   public Map<Value, TypeInfo> computeVerificationTypes() {
     computingVerificationTypes = true;
     types = new HashMap<>();
+    List<ConstNumber> nullsUsedInPhis = new ArrayList<>();
     Set<Value> worklist = new HashSet<>();
     {
       InstructionIterator it = code.instructionIterator();
@@ -261,6 +266,12 @@ public class TypeVerificationHelper {
           } else if (instruction.outType().isObject()) {
             Value outValue = instruction.outValue();
             if (instruction.hasInvariantOutType()) {
+              if (instruction.isConstNumber()) {
+                assert instruction.asConstNumber().isZero();
+                if (outValue.numberOfAllUsers() == outValue.numberOfPhiUsers()) {
+                  nullsUsedInPhis.add(instruction.asConstNumber());
+                }
+              }
               DexType type = instruction.computeVerificationType(this);
               types.put(outValue, createInitializedType(type));
               addUsers(outValue, worklist);
@@ -284,6 +295,20 @@ public class TypeVerificationHelper {
       }
     }
     computingVerificationTypes = false;
+    for (ConstNumber instruction : nullsUsedInPhis) {
+      TypeInfo refinedType = null;
+      for (Phi phi : instruction.outValue().uniquePhiUsers()) {
+        if (refinedType == null) {
+          refinedType = types.get(phi);
+        } else if (refinedType.getDexType() != types.get(phi).getDexType()) {
+          refinedType = null;
+          break;
+        }
+      }
+      if (refinedType != null) {
+        types.put(instruction.outValue(), refinedType);
+      }
+    }
     return types;
   }
 
