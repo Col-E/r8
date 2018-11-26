@@ -346,10 +346,12 @@ public class CfBuilder {
       previousFallthrough = fallthrough;
     } while (block != null);
     // TODO(mkroghj) Move computation of stack-height to CF instructions.
-    CfLabel endLabel = ensureLabel();
-    for (LocalVariableInfo info : openLocalVariables.values()) {
-      info.setEnd(endLabel);
-      localVariablesTable.add(info);
+    if (!openLocalVariables.isEmpty()) {
+      CfLabel endLabel = ensureLabel();
+      for (LocalVariableInfo info : openLocalVariables.values()) {
+        info.setEnd(endLabel);
+        localVariablesTable.add(info);
+      }
     }
     return new CfCode(
         method.method,
