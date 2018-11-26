@@ -109,11 +109,11 @@ public class CfConstNumber extends CfInstruction {
     }
   }
 
-  private static boolean isNegativeZeroDouble(double value) {
+  public static boolean isNegativeZeroDouble(double value) {
     return Double.doubleToLongBits(value) == Double.doubleToLongBits(-0.0);
   }
 
-  private static boolean isNegativeZeroFloat(float value) {
+  public static boolean isNegativeZeroFloat(float value) {
     return Float.floatToIntBits(value) == Float.floatToIntBits(-0.0f);
   }
 

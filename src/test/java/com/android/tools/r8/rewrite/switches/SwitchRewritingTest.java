@@ -30,11 +30,6 @@ import org.junit.Test;
 
 public class SwitchRewritingTest extends SmaliTestBase {
 
-  static boolean twoCaseWillUsePackedSwitch(int key1, int key2) {
-    assert key1 != key2;
-    return Math.abs((long) key1 - (long) key2) == 1;
-  }
-
   private boolean some16BitConst(Instruction instruction) {
     return instruction instanceof Const4
         || instruction instanceof ConstHigh16
@@ -110,74 +105,6 @@ public class SwitchRewritingTest extends SmaliTestBase {
       runSingleCaseDexTest(packed, 1);
       runSingleCaseDexTest(packed, Integer.MAX_VALUE);
     }
-  }
-
-  private void runTwoCaseSparseToPackedOrIfsDexTest(int key1, int key2)
-      throws CompilationFailedException {
-    SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
-
-    MethodSignature signature = builder.addStaticMethod(
-        "int",
-        DEFAULT_METHOD_NAME,
-        ImmutableList.of("int"),
-        0,
-        "    sparse-switch p0, :sparse_switch_data",
-        "    const/4 v0, 0x5",
-        "    goto :return",
-        "  :case_1",
-        "    const/4 v0, 0x3",
-        "    goto :return",
-        "  :case_2",
-        "    const/4 v0, 0x4",
-        "  :return",
-        "    return v0",
-        "  :sparse_switch_data",
-        "  .sparse-switch",
-        "    " + key1 + " -> :case_1",
-        "    " + key2 + " -> :case_2",
-        "  .end sparse-switch");
-
-    builder.addMainMethod(
-        2,
-        "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
-        "    const/4             v1, 0",
-        "    invoke-static       { v1 }, LTest;->method(I)I",
-        "    move-result         v1",
-        "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(I)V",
-        "    return-void"
-    );
-
-    AndroidApp originalApplication = buildApplication(builder);
-    AndroidApp processedApplication = processApplication(originalApplication);
-    DexEncodedMethod method = getMethod(processedApplication, signature);
-    DexCode code = method.getCode().asDexCode();
-    if (twoCaseWillUsePackedSwitch(key1, key2)) {
-      assertTrue(code.instructions[0] instanceof PackedSwitch);
-    } else {
-      if (key1 == 0) {
-        // Const instruction may be before if.
-        assertTrue(code.instructions[0] instanceof IfEqz || code.instructions[1] instanceof IfEqz);
-      } else {
-        // Const instruction before if.
-        assertTrue(code.instructions[1] instanceof IfEq);
-      }
-    }
-  }
-
-  @Test
-  public void twoCaseSparseToPackedOrIfsDex() throws CompilationFailedException {
-    for (int delta = 1; delta <= 3; delta++) {
-      runTwoCaseSparseToPackedOrIfsDexTest(0, delta);
-      runTwoCaseSparseToPackedOrIfsDexTest(-delta, 0);
-      runTwoCaseSparseToPackedOrIfsDexTest(Integer.MIN_VALUE, Integer.MIN_VALUE + delta);
-      runTwoCaseSparseToPackedOrIfsDexTest(Integer.MAX_VALUE - delta, Integer.MAX_VALUE);
-    }
-    runTwoCaseSparseToPackedOrIfsDexTest(-1, 1);
-    runTwoCaseSparseToPackedOrIfsDexTest(-2, 1);
-    runTwoCaseSparseToPackedOrIfsDexTest(-1, 2);
-    runTwoCaseSparseToPackedOrIfsDexTest(Integer.MIN_VALUE, Integer.MAX_VALUE);
-    runTwoCaseSparseToPackedOrIfsDexTest(Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
-    runTwoCaseSparseToPackedOrIfsDexTest(Integer.MIN_VALUE, Integer.MAX_VALUE - 1);
   }
 
   private void runLargerSwitchDexTest(int firstKey, int keyStep, int totalKeys,

@@ -81,6 +81,7 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
@@ -88,6 +89,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence;
@@ -108,13 +110,13 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -124,6 +126,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -526,6 +529,198 @@ public class CodeRewriter {
     newBlocks.forEach(blocksIterator::add);
   }
 
+  private static class Interval {
+
+    private final IntList keys = new IntArrayList();
+
+    public Interval(IntList... allKeys) {
+      assert allKeys.length > 0;
+      for (IntList keys : allKeys) {
+        assert keys.size() > 0;
+        this.keys.addAll(keys);
+      }
+    }
+
+    public int getMin() {
+      return keys.getInt(0);
+    }
+
+    public int getMax() {
+      return keys.getInt(keys.size() - 1);
+    }
+
+    public void addInterval(Interval other) {
+      assert getMax() < other.getMin();
+      keys.addAll(other.keys);
+    }
+
+    public long packedSavings(InternalOutputMode mode) {
+      long packedTargets = (long) getMax() - (long) getMin() + 1;
+      if (!Switch.canBePacked(mode, packedTargets)) {
+        return Long.MIN_VALUE + 1;
+      }
+      long sparseCost = Switch.baseSparseSize(mode) + Switch.sparsePayloadSize(mode, keys.size());
+      long packedCost = Switch.basePackedSize(mode) + Switch.packedPayloadSize(mode, packedTargets);
+      return sparseCost - packedCost;
+    }
+
+    public long estimatedSize(InternalOutputMode mode) {
+      return Switch.estimatedSize(mode, keys.toIntArray());
+    }
+  }
+
+  private Interval combineOrAddInterval(
+      List<Interval> intervals, Interval previous, Interval current) {
+    // As a first iteration, we only combine intervals if their packed size is less than their
+    // sparse counterpart. In CF we will have to add a load and a jump which add to the
+    // stack map table (1 is the size of a same entry).
+    InternalOutputMode mode = options.getInternalOutputMode();
+    int penalty = mode.isGeneratingClassFiles() ? 3 + 1 : 0;
+    if (previous == null) {
+      intervals.add(current);
+      return current;
+    }
+    Interval combined = new Interval(previous.keys, current.keys);
+    long packedSavings = combined.packedSavings(mode);
+    if (packedSavings <= 0
+        || packedSavings < previous.estimatedSize(mode) + current.estimatedSize(mode) - penalty) {
+      intervals.add(current);
+      return current;
+    } else {
+      intervals.set(intervals.size() - 1, combined);
+      return combined;
+    }
+  }
+
+  private void tryAddToBiggestSavings(
+      Set<Interval> biggestPackedSet,
+      PriorityQueue<Interval> intervals,
+      Interval toAdd,
+      int maximumNumberOfSwitches) {
+    assert !biggestPackedSet.contains(toAdd);
+    long savings = toAdd.packedSavings(options.getInternalOutputMode());
+    if (savings <= 0) {
+      return;
+    }
+    if (intervals.size() < maximumNumberOfSwitches) {
+      intervals.add(toAdd);
+      biggestPackedSet.add(toAdd);
+    } else if (savings > intervals.peek().packedSavings(options.getInternalOutputMode())) {
+      intervals.add(toAdd);
+      biggestPackedSet.add(toAdd);
+      biggestPackedSet.remove(intervals.poll());
+    }
+  }
+
+  private int sizeForKeysWrittenAsIfs(ValueType type, Collection<Integer> keys) {
+    int ifsSize = If.estimatedSize(options.getInternalOutputMode()) * keys.size();
+    // In Cf we also require a load as well (and a stack map entry)
+    if (options.getInternalOutputMode().isGeneratingClassFiles()) {
+      ifsSize += keys.size() * (3 + 1);
+    }
+    for (int k : keys) {
+      if (k != 0) {
+        ifsSize += ConstNumber.estimatedSize(options.getInternalOutputMode(), type, k);
+      }
+    }
+    return ifsSize;
+  }
+
+  private int codeUnitMargin() {
+    return options.getInternalOutputMode().isGeneratingClassFiles() ? 3 : 1;
+  }
+
+  private int findIfsForCandidates(List<Interval> newSwitches, Switch theSwitch, IntList outliers) {
+    Set<Interval> switchesToRemove = new HashSet<>();
+    InternalOutputMode mode = options.getInternalOutputMode();
+    int outliersAsIfSize = 0;
+    // The candidateForIfs is either an index to a switch that can be eliminated totally or a sparse
+    // where removing a key may produce a greater saving. It is only if keys are small in the packed
+    // switch that removing the keys makes sense (size wise).
+    for (Interval candidate : newSwitches) {
+      int maxIfBudget = 10;
+      long switchSize = candidate.estimatedSize(mode);
+      int sizeOfAllKeysAsIf = sizeForKeysWrittenAsIfs(theSwitch.value().outType(), candidate.keys);
+      if (candidate.keys.size() <= maxIfBudget
+          && sizeOfAllKeysAsIf < switchSize - codeUnitMargin()) {
+        outliersAsIfSize += sizeOfAllKeysAsIf;
+        switchesToRemove.add(candidate);
+        outliers.addAll(candidate.keys);
+        continue;
+      }
+      // One could do something clever here, but we use a simple algorithm that use the fact that
+      // all keys are sorted in ascending order and that the smallest absolute value will give the
+      // best saving.
+      IntList candidateKeys = candidate.keys;
+      int smallestPosition = -1;
+      long smallest = Long.MAX_VALUE;
+      for (int i = 0; i < candidateKeys.size(); i++) {
+        long current = Math.abs((long) candidateKeys.getInt(i));
+        if (current < smallest) {
+          smallestPosition = i;
+          smallest = current;
+        }
+      }
+      // Add as many keys forward and backward as we have budget and we decrease in size.
+      IntList ifKeys = new IntArrayList();
+      ifKeys.add(candidateKeys.getInt(smallestPosition));
+      long previousSavings = 0;
+      long currentSavings =
+          switchSize
+              - sizeForKeysWrittenAsIfs(theSwitch.value().outType(), ifKeys)
+              - Switch.estimatedSparseSize(mode, candidateKeys.size() - ifKeys.size());
+      int minIndex = smallestPosition - 1;
+      int maxIndex = smallestPosition + 1;
+      while (ifKeys.size() < maxIfBudget && currentSavings > previousSavings) {
+        if (minIndex >= 0 && maxIndex < candidateKeys.size()) {
+          long valMin = Math.abs((long) candidateKeys.getInt(minIndex));
+          int valMax = Math.abs(candidateKeys.getInt(maxIndex));
+          if (valMax <= valMin) {
+            ifKeys.add(candidateKeys.getInt(maxIndex++));
+          } else {
+            ifKeys.add(candidateKeys.getInt(minIndex--));
+          }
+        } else if (minIndex >= 0) {
+          ifKeys.add(candidateKeys.getInt(minIndex--));
+        } else if (maxIndex < candidateKeys.size()) {
+          ifKeys.add(candidateKeys.getInt(maxIndex++));
+        } else {
+          // No more elements to add as if's.
+          break;
+        }
+        previousSavings = currentSavings;
+        currentSavings =
+            switchSize
+                - sizeForKeysWrittenAsIfs(theSwitch.value().outType(), ifKeys)
+                - Switch.estimatedSparseSize(mode, candidateKeys.size() - ifKeys.size());
+      }
+      if (previousSavings >= currentSavings) {
+        // Remove the last added key since it did not contribute to savings.
+        int lastKey = ifKeys.getInt(ifKeys.size() - 1);
+        ifKeys.removeInt(ifKeys.size() - 1);
+        if (lastKey == candidateKeys.getInt(minIndex + 1)) {
+          minIndex++;
+        } else {
+          maxIndex--;
+        }
+      }
+      // Adjust pointers into the candidate keys.
+      minIndex++;
+      maxIndex--;
+      if (ifKeys.size() > 0) {
+        int ifsSize = sizeForKeysWrittenAsIfs(theSwitch.value().outType(), ifKeys);
+        long newSwitchSize = Switch.estimatedSparseSize(mode, candidateKeys.size() - ifKeys.size());
+        if (newSwitchSize + ifsSize + codeUnitMargin() < switchSize) {
+          candidateKeys.removeElements(minIndex, maxIndex);
+          outliers.addAll(ifKeys);
+          outliersAsIfSize += ifsSize;
+        }
+      }
+    }
+    newSwitches.removeAll(switchesToRemove);
+    return outliersAsIfSize;
+  }
+
   public void rewriteSwitch(IRCode code) {
     ListIterator<BasicBlock> blocksIterator = code.listIterator();
     while (blocksIterator.hasNext()) {
@@ -555,75 +750,91 @@ public class CodeRewriter {
               iterator.replaceCurrentInstruction(theIf);
             }
           } else {
-            // Split keys into outliers and sequences.
-            List<IntList> sequences = new ArrayList<>();
-            IntList outliers = new IntArrayList();
+            // If there are more than 1 key, we use the following algorithm to find keys to combine.
+            // First, scan through the keys forward and combine each packed interval with the
+            // previous interval if it gives a net saving.
+            // Secondly, go through all created intervals and combine the ones without a saving into
+            // a single interval and keep a max number of packed switches.
+            // Finally, go through all intervals and check if the switch or part of the switch
+            // should be transformed to ifs.
 
-            IntList current = new IntArrayList();
+            // Phase 1: Combine packed intervals.
+            InternalOutputMode mode = options.getInternalOutputMode();
             int[] keys = theSwitch.getKeys();
+            int maxNumberOfIfsOrSwitches = 10;
+            PriorityQueue<Interval> biggestPackedSavings =
+                new PriorityQueue<>(
+                    (x, y) -> Long.compare(y.packedSavings(mode), x.packedSavings(mode)));
+            Set<Interval> biggestPackedSet = new HashSet<>();
+            List<Interval> intervals = new ArrayList<>();
             int previousKey = keys[0];
-            current.add(previousKey);
+            IntList currentKeys = new IntArrayList();
+            currentKeys.add(previousKey);
+            Interval previousInterval = null;
             for (int i = 1; i < keys.length; i++) {
-              assert current.size() > 0;
-              assert current.getInt(current.size() - 1) == previousKey;
               int key = keys[i];
               if (((long) key - (long) previousKey) > 1) {
-                if (current.size() == 1) {
-                  outliers.add(previousKey);
-                } else {
-                  sequences.add(current);
+                Interval current = new Interval(currentKeys);
+                Interval added = combineOrAddInterval(intervals, previousInterval, current);
+                if (added != current && biggestPackedSet.contains(previousInterval)) {
+                  biggestPackedSet.remove(previousInterval);
+                  biggestPackedSavings.remove(previousInterval);
                 }
-                current = new IntArrayList();
+                tryAddToBiggestSavings(
+                    biggestPackedSet, biggestPackedSavings, added, maxNumberOfIfsOrSwitches);
+                previousInterval = added;
+                currentKeys = new IntArrayList();
               }
-              current.add(key);
+              currentKeys.add(key);
               previousKey = key;
             }
-            if (current.size() == 1) {
-              outliers.add(previousKey);
-            } else {
-              sequences.add(current);
+            Interval current = new Interval(currentKeys);
+            Interval added = combineOrAddInterval(intervals, previousInterval, current);
+            if (added != current && biggestPackedSet.contains(previousInterval)) {
+              biggestPackedSet.remove(previousInterval);
+              biggestPackedSavings.remove(previousInterval);
+            }
+            tryAddToBiggestSavings(
+                biggestPackedSet, biggestPackedSavings, added, maxNumberOfIfsOrSwitches);
+
+            // Phase 2: combine sparse intervals into a single bin.
+            // Check if we should save a space for a sparse switch, if so, remove the switch with
+            // the smallest savings.
+            if (biggestPackedSet.size() == maxNumberOfIfsOrSwitches
+                && maxNumberOfIfsOrSwitches < intervals.size()) {
+              biggestPackedSet.remove(biggestPackedSavings.poll());
+            }
+            Interval sparse = null;
+            List<Interval> newSwitches = new ArrayList<>(maxNumberOfIfsOrSwitches);
+            for (int i = 0; i < intervals.size(); i++) {
+              Interval interval = intervals.get(i);
+              if (biggestPackedSet.contains(interval)) {
+                newSwitches.add(interval);
+              } else if (sparse == null) {
+                sparse = interval;
+                newSwitches.add(sparse);
+              } else {
+                sparse.addInterval(interval);
+              }
             }
 
-            // Get the existing dex size for the payload and switch.
-            int currentSize = Switch.payloadSize(keys) + Switch.estimatedDexSize();
+            // Phase 3: at this point we are guaranteed to have the biggest saving switches
+            // in newIntervals, potentially with a switch combining the remaining intervals.
+            // Now we check to see if we can create any if's to reduce size.
+            IntList outliers = new IntArrayList();
+            int outliersAsIfSize = findIfsForCandidates(newSwitches, theSwitch, outliers);
 
-            // Never replace with more than 10 if/switch instructions.
-            if (outliers.size() + sequences.size() <= 10) {
-              // Calculate estimated size for splitting into ifs and switches.
-              long rewrittenSize = 0;
-              for (Integer outlier : outliers) {
-                if (outlier != 0) {
-                  rewrittenSize += ConstNumber.estimatedDexSize(
-                      theSwitch.value().outType(), outlier);
-                }
-                rewrittenSize += If.estimatedDexSize();
-              }
-              for (List<Integer> sequence : sequences) {
-                rewrittenSize += Switch.payloadSize(sequence);
-              }
-              rewrittenSize += Switch.estimatedDexSize() * sequences.size();
+            long newSwitchesSize = 0;
+            List<IntList> newSwitchSequences = new ArrayList<>(newSwitches.size());
+            for (Interval interval : newSwitches) {
+              newSwitchesSize += interval.estimatedSize(mode);
+              newSwitchSequences.add(interval.keys);
+            }
 
-              if (rewrittenSize < currentSize) {
-                convertSwitchToSwitchAndIfs(
-                    code, blocksIterator, block, iterator, theSwitch, sequences, outliers);
-              }
-            } else if (outliers.size() > 1) {
-              // Calculate estimated size for splitting into switches (packed for the sequences
-              // and sparse for the outliers).
-              long rewrittenSize = 0;
-              for (List<Integer> sequence : sequences) {
-                rewrittenSize += Switch.payloadSize(sequence);
-              }
-              rewrittenSize += Switch.payloadSize(outliers);
-              rewrittenSize += Switch.estimatedDexSize() * (sequences.size() + 1);
-
-              if (rewrittenSize < currentSize) {
-                // Create a copy to not modify sequences.
-                List<IntList> seqs = new ArrayList<>(sequences);
-                seqs.add(outliers);
-                convertSwitchToSwitchAndIfs(
-                    code, blocksIterator, block, iterator, theSwitch, seqs, IntLists.EMPTY_LIST);
-              }
+            long currentSize = Switch.estimatedSize(mode, theSwitch.getKeys());
+            if (newSwitchesSize + outliersAsIfSize + codeUnitMargin() < currentSize) {
+              convertSwitchToSwitchAndIfs(
+                  code, blocksIterator, block, iterator, theSwitch, newSwitchSequences, outliers);
             }
           }
         }
