@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.TestBase.Backend.DEX;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestConfig;
@@ -97,5 +98,18 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
     app.writeToZip(out, OutputMode.DexIndexed);
     ProcessResult result = ToolHelper.runArtRaw(out.toString(), mainClass);
     return createRunResult(app, result);
+  }
+
+  public TestRunResult runDex2Oat() throws IOException {
+    return runDex2Oat(ToolHelper.getDexVm());
+  }
+
+  public TestRunResult runDex2Oat(DexVm vm) throws IOException {
+    assert getBackend() == DEX;
+    Path tmp = state.getNewTempFolder();
+    Path jarFile = tmp.resolve("out.jar");
+    Path oatFile = tmp.resolve("out.oat");
+    app.writeToZip(jarFile, OutputMode.DexIndexed);
+    return new TestRunResult(app, ToolHelper.runDex2OatRaw(jarFile, oatFile, vm));
   }
 }

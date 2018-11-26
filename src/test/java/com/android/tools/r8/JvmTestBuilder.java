@@ -147,6 +147,12 @@ public class JvmTestBuilder extends TestBuilder<JvmTestBuilder> {
         "No support for adding paths directly (we need to compute the descriptor)");
   }
 
+  @Override
+  public JvmTestBuilder addProgramClassFileData(Collection<byte[]> files) {
+    throw new Unimplemented(
+        "No support for adding classfile data directly (we need to compute the descriptor)");
+  }
+
   public JvmTestBuilder addClasspath(Path... paths) {
     return addClasspath(Arrays.asList(paths));
   }

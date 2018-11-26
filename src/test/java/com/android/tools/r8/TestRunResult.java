@@ -26,6 +26,14 @@ public class TestRunResult {
     this.result = result;
   }
 
+  public String getStdOut() {
+    return result.stdout;
+  }
+
+  public String getStdErr() {
+    return result.stderr;
+  }
+
   public TestRunResult assertSuccess() {
     assertEquals(errorMessage("Expected run to succeed."), 0, result.exitCode);
     return this;

@@ -5,8 +5,10 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.google.common.collect.Streams;
 import java.util.Iterator;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public abstract class MethodSubject extends MemberSubject {
 
@@ -40,4 +42,8 @@ public abstract class MethodSubject extends MemberSubject {
   public abstract LineNumberTable getLineNumberTable();
 
   public abstract boolean hasLocalVariableTable();
+
+  public Stream<InstructionSubject> streamInstructions() {
+    return Streams.stream(iterateInstructions());
+  }
 }
