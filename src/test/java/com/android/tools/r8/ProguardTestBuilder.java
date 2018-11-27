@@ -184,12 +184,6 @@ public class ProguardTestBuilder
   }
 
   @Override
-  public ProguardTestBuilder addProgramClassFileData(Collection<byte[]> classes) {
-    throw new Unimplemented(
-        "No support for adding classfile data directly (we need to compute the descriptor)");
-  }
-
-  @Override
   public ProguardTestBuilder addKeepRules(Collection<String> rules) {
     config.addAll(rules);
     return self();
