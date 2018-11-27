@@ -61,6 +61,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOutputMode;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
@@ -626,7 +627,7 @@ public class DexBuilder {
     int fallthroughTarget =
         getInfo(fallthroughTargetInstruction).getOffset() - getInfo(ir).getOffset();
 
-    return ir.buildPayload(targets, fallthroughTarget);
+    return ir.buildPayload(targets, fallthroughTarget, InternalOutputMode.DexIndexed);
   }
 
   // Helpers for computing the try items and handlers.

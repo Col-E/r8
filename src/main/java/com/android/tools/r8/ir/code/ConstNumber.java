@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.NumberUtils;
 import java.util.function.Function;
 
@@ -153,8 +154,46 @@ public class ConstNumber extends ConstInstruction {
     }
   }
 
-  // Estimated size of the resulting dex instruction in code units.
-  public static int estimatedDexSize(ValueType type, long value) {
+  // Estimated size of the resulting instructions in code units (bytes in CF, 16-bit in Dex).
+  public static int estimatedSize(InternalOutputMode mode, ValueType type, long value) {
+    return mode.isGeneratingDex() ? estimatedDexSize(type, value) : estimatedCfSize(type, value);
+  }
+
+  private static int estimatedCfSize(ValueType type, long value) {
+    switch (type) {
+      case INT:
+        if (-1 <= value && value <= 5) {
+          return 1;
+        } else if (Byte.MIN_VALUE <= value && value <= Byte.MAX_VALUE) {
+          return 2;
+        } else {
+          return 3;
+        }
+      case LONG:
+        if (value == 0 || value == 1) {
+          return 1;
+        } else {
+          return 3;
+        }
+      case FLOAT:
+        if (value == 0 || value == 1 || value == 2) {
+          return CfConstNumber.isNegativeZeroFloat((float) value) ? 2 : 1;
+        } else {
+          return 3;
+        }
+      case DOUBLE:
+        if (value == 0 || value == 1) {
+          return CfConstNumber.isNegativeZeroDouble((double) value) ? 2 : 1;
+        } else {
+          return 3;
+        }
+      case OBJECT:
+        return 1;
+    }
+    throw new UnsupportedOperationException("Not a constant number");
+  }
+
+  private static int estimatedDexSize(ValueType type, long value) {
     if (type.isSingle()) {
       assert NumberUtils.is32Bit(value);
       if (NumberUtils.is4Bit(value)) {

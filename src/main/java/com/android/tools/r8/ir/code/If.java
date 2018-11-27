@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.InternalOutputMode;
 import java.util.List;
 
 public class If extends JumpInstruction {
@@ -126,9 +127,14 @@ public class If extends JumpInstruction {
     builder.addIf(this);
   }
 
-  // Estimated size of the resulting dex instruction in code units.
-  public static int estimatedDexSize() {
-    return 2;
+  // Estimated size of the resulting instructions in code units (bytes in CF, 16-bit in Dex).
+  public static int estimatedSize(InternalOutputMode mode) {
+    if (mode.isGeneratingClassFiles()) {
+      // op + branch1 + branch2
+      return 3;
+    } else {
+      return 2;
+    }
   }
 
   @Override

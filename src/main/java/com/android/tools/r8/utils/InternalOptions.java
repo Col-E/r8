@@ -156,6 +156,18 @@ public class InternalOptions {
     return programConsumer != null;
   }
 
+  public InternalOutputMode getInternalOutputMode() {
+    assert hasConsumer();
+    if (isGeneratingDexIndexed()) {
+      return InternalOutputMode.DexIndexed;
+    } else if (isGeneratingDexFilePerClassFile()) {
+      return InternalOutputMode.DexFilePerClassFile;
+    } else if (isGeneratingClassFiles()) {
+      return InternalOutputMode.ClassFile;
+    }
+    throw new UnsupportedOperationException("Cannot find internal output mode.");
+  }
+
   public boolean isGeneratingDex() {
     return isGeneratingDexIndexed() || isGeneratingDexFilePerClassFile();
   }

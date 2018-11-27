@@ -17,7 +17,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
-import com.google.common.primitives.Ints;
+import com.android.tools.r8.utils.InternalOutputMode;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
@@ -62,75 +62,109 @@ public class Switch extends JumpInstruction {
     return ((long) keys[keys.length - 1]) - ((long) keys[0]) + 1;
   }
 
-  public static boolean canBePacked(int keys[]) {
+  public static boolean canBePacked(InternalOutputMode mode, int keys[]) {
     // The size of a switch payload is stored in an ushort in the Dex file.
-    return numberOfTargetsIfPacked(keys) <= Constants.U16BIT_MAX;
+    return canBePacked(mode, numberOfTargetsIfPacked(keys));
   }
 
-  // Number of targets if this switch is emitted as a packed switch.
-  public static int numberOfTargetsForPacked(int keys[]) {
-    assert canBePacked(keys);
-    return (int) numberOfTargetsIfPacked(keys);
+  public static boolean canBePacked(InternalOutputMode mode, long numberOfTargets) {
+    // The size of a switch payload is stored in an ushort in the Dex file.
+    return numberOfTargets
+        <= (mode.isGeneratingClassFiles() ? Constants.U32BIT_MAX : Constants.U16BIT_MAX);
   }
 
-  // Size of the switch payload if emitted as packed (in code units).
-  // This size can not exceed Constants.U16BIT_MAX * 2 + 4 and can be contained in an integer.
-  private static int packedPayloadSize(int keys[]) {
-    return (numberOfTargetsForPacked(keys) * 2) + 4;
+  // Estimated size of the resulting dex instruction in code units (bytes in CF, 16-bit in Dex).
+  public static long estimatedSize(InternalOutputMode mode, int[] keys) {
+    long sparseSize = sparsePayloadSize(mode, keys) + baseSparseSize(mode);
+    long packedSize = Long.MAX_VALUE;
+    if (canBePacked(mode, keys)) {
+      long packedPayloadSize = packedPayloadSize(mode, keys);
+      packedSize = packedPayloadSize + basePackedSize(mode);
+      if (packedSize < packedPayloadSize) {
+        packedSize = Integer.MAX_VALUE;
+      }
+    }
+    return Math.min(sparseSize, packedSize);
   }
 
-  // Size of the switch payload if emitted as sparse (in code units).
-  // This size can not exceed Constants.U16BIT_MAX * 4 + 2 and can be contained in an integer.
-  private static int sparsePayloadSize(int keys[]) {
-    return (keys.length * 4) + 2;
+  public static long estimatedSparseSize(InternalOutputMode mode, long keys) {
+    return sparsePayloadSize(mode, keys) + baseSparseSize(mode);
   }
 
-  /**
-   * Size of the switch payload instruction for the given keys. This will be the payload
-   * size for the smallest encoding of the provided keys.
-   *
-   * @param keys the switch keys
-   * @return Size of the switch payload instruction in code units
-   */
-  public static int payloadSize(List<Integer> keys) {
-    return payloadSize(Ints.toArray(keys));
-  }
-
-  /**
-   * Size of the switch payload instruction for the given keys.
-   *
-   * @see #payloadSize(List)
-   */
-  public static int payloadSize(int keys[]) {
-    int sparse = sparsePayloadSize(keys);
-    if (canBePacked(keys)) {
-      return Math.min(sparse, packedPayloadSize(keys));
+  // Estimated size of the packed/table instructions in code units excluding the payload (bytes in
+  // CF, 16-bit in Dex).
+  public static int basePackedSize(InternalOutputMode mode) {
+    if (mode.isGeneratingClassFiles()) {
+      // Table switch: opcode + padding + default + high + low.
+      return 1 + 3 + 4 + 4 + 4;
     } else {
-      return sparse;
+      return 3;
     }
   }
 
-  private boolean canBePacked() {
-    return canBePacked(keys);
+  // Estimated size of the sparse/lookup instructions in code units excluding the payload (bytes in
+  // CF, 16-bit in Dex).
+  public static int baseSparseSize(InternalOutputMode mode) {
+    if (mode.isGeneratingClassFiles()) {
+      // Lookup switch: opcode + padding + default + number of keys.
+      return 1 + 3 + 4 + 4;
+    } else {
+      return 3;
+    }
   }
 
-  // Number of targets if this switch is emitted as a packed switch.
-  private int numberOfTargetsForPacked() {
-    return numberOfTargetsForPacked(keys);
+  // Size of the switch payload if emitted as packed in code units (bytes in CF, 16-bit in Dex).
+  public static long packedPayloadSize(InternalOutputMode mode, long numberOfTargets) {
+    if (mode.isGeneratingClassFiles()) {
+      assert numberOfTargets <= Constants.U32BIT_MAX;
+      return numberOfTargets * 4;
+    } else {
+      // This size can not exceed Constants.U16BIT_MAX * 2 + 4 and can be contained in an 32-bit
+      // integer.
+      return (numberOfTargets * 2) + 4;
+    }
   }
 
-  // Size of the switch payload if emitted as packed (in code units).
-  private int packedPayloadSize() {
-    return packedPayloadSize(keys);
+  // Size of the switch payload if emitted as packed in code units (bytes in CF, 16-bit in Dex).
+  public static long packedPayloadSize(InternalOutputMode mode, int keys[]) {
+    assert canBePacked(mode, keys);
+    long numberOfTargets = numberOfTargetsIfPacked(keys);
+    return packedPayloadSize(mode, numberOfTargets);
   }
 
-  // Size of the switch payload if emitted as sparse (in code units).
-  private int sparsePayloadSize() {
-    return sparsePayloadSize(keys);
+  // Size of the switch payload if emitted as sparse in code units (bytes in CF, 16-bit in Dex).
+  public static long sparsePayloadSize(InternalOutputMode mode, int[] keys) {
+    return sparsePayloadSize(mode, keys.length);
   }
 
-  private boolean emitPacked() {
-    return canBePacked() && packedPayloadSize() <= sparsePayloadSize();
+  // Size of the switch payload if emitted as sparse in code units (bytes in CF, 16-bit in Dex).
+  public static long sparsePayloadSize(InternalOutputMode mode, long keys) {
+    if (mode.isGeneratingClassFiles()) {
+      // Lookup-switch has a 32-bit int key and 32-bit int value for each offset, 8 bytes per entry.
+      return keys * 8;
+    } else {
+      // This size can not exceed Constants.U16BIT_MAX * 4 and can be contained in a
+      // 32-bit integer.
+      return keys * 4 + 2;
+    }
+  }
+
+  private boolean canBePacked(InternalOutputMode mode) {
+    return canBePacked(mode, keys);
+  }
+
+  // Size of the switch payload if emitted as packed in code units (bytes in CF, 16-bit in Dex).
+  private long packedPayloadSize(InternalOutputMode mode) {
+    return packedPayloadSize(mode, keys);
+  }
+
+  // Size of the switch payload if emitted as sparse in code units (bytes in CF, 16-bit in Dex).
+  private long sparsePayloadSize(InternalOutputMode mode) {
+    return sparsePayloadSize(mode, keys);
+  }
+
+  private boolean emitPacked(InternalOutputMode mode) {
+    return canBePacked(mode) && packedPayloadSize(mode) <= sparsePayloadSize(mode);
   }
 
   public int getFirstKey() {
@@ -155,17 +189,13 @@ public class Switch extends JumpInstruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int value = builder.allocatedRegister(value(), getNumber());
-    if (emitPacked()) {
+    if (emitPacked(InternalOutputMode.DexIndexed)) {
       builder.addSwitch(this, new PackedSwitch(value));
     } else {
       builder.addSwitch(this, new SparseSwitch(value));
     }
   }
 
-  // Estimated size of the resulting dex instruction in code units (excluding the payload).
-  public static int estimatedDexSize() {
-    return 3;
-  }
 
   public int numberOfKeys() {
     return keys.length;
@@ -213,10 +243,11 @@ public class Switch extends JumpInstruction {
     getBlock().getSuccessors().set(fallthroughBlockIndex, block);
   }
 
-  public Nop buildPayload(int[] targets, int fallthroughTarget) {
+  public Nop buildPayload(int[] targets, int fallthroughTarget, InternalOutputMode mode) {
     assert keys.length == targets.length;
-    if (emitPacked()) {
-      int targetsCount = numberOfTargetsForPacked();
+    assert mode.isGeneratingDex();
+    if (emitPacked(mode)) {
+      int targetsCount = (int) numberOfTargetsIfPacked(keys);
       if (targets.length == targetsCount) {
         // All targets are already present.
         return new PackedSwitchPayload(getFirstKey(), targets);
@@ -287,7 +318,7 @@ public class Switch extends JumpInstruction {
     CfLabel fallthroughLabel = builder.getLabel(fallthroughBlock());
     List<CfLabel> labels = new ArrayList<>(numberOfKeys());
     List<BasicBlock> successors = getBlock().getSuccessors();
-    if (emitPacked()) {
+    if (emitPacked(InternalOutputMode.ClassFile)) {
       int min = keys[0];
       int max = keys[keys.length - 1];
       int index = 0;
