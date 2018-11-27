@@ -762,7 +762,9 @@ public class Value {
    * Returns whether this value is known to never be <code>null</code>.
    */
   public boolean isNeverNull() {
-    return neverNull || (definition != null && definition.isNonNull());
+    return neverNull
+        || (definition != null && definition.isNonNull())
+        || (typeLattice.isReference() && typeLattice.nullElement().isDefinitelyNotNull());
   }
 
   public boolean canBeNull() {

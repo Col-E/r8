@@ -178,7 +178,12 @@ public class MemberValuePropagation {
           DexEncodedMethod target = invoke.lookupSingleTarget(appInfo, callingContext);
           if (target != null) {
             if (target.getOptimizationInfo().neverReturnsNull() && invoke.outValue().canBeNull()) {
-              invoke.outValue().markNeverNull();
+              Value knownToBeNonNullValue = invoke.outValue();
+              knownToBeNonNullValue.markNeverNull();
+              TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
+              assert typeLattice.isNullable() && typeLattice.isReference();
+              knownToBeNonNullValue.narrowing(appInfo, typeLattice.asNonNullable());
+              affectedValues.addAll(knownToBeNonNullValue.affectedValues());
             }
             if (target.getOptimizationInfo().returnsConstant()) {
               long constant = target.getOptimizationInfo().getReturnedConstant();

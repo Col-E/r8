@@ -7,6 +7,7 @@ import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNR
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -34,9 +35,11 @@ import java.util.function.Predicate;
 public class NonNullTracker {
 
   private final AppInfo appInfo;
+  private final Set<DexMethod> libraryMethodsReturningNonNull;
 
-  public NonNullTracker(AppInfo appInfo) {
+  public NonNullTracker(AppInfo appInfo, Set<DexMethod> libraryMethodsReturningNonNull) {
     this.appInfo = appInfo;
+    this.libraryMethodsReturningNonNull = libraryMethodsReturningNonNull;
   }
 
   @VisibleForTesting
@@ -76,102 +79,48 @@ public class NonNullTracker {
   public void addNonNullInPart(
       IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
+    Set<Value> knownToBeNonNullValues = Sets.newIdentityHashSet();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (!blockTester.test(block)) {
         continue;
       }
-      // Add non-null after instructions that implicitly indicate receiver/array is not null.
+      // Add non-null after
+      // 1) invocations that call non-overridable library methods that are known to return non null.
+      // 2) instructions that implicitly indicate receiver/array is not null.
+      // TODO(b/71500340): We can add non-null IRs for known-to-be-non-null parameters here.
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
-        if (!throwsOnNullInput(current)) {
-          continue;
-        }
-        Value knownToBeNonNullValue = getNonNullInput(current);
-        TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-        // Avoid adding redundant non-null instruction.
-        if (knownToBeNonNullValue.isNeverNull() || !isNonNullCandidate(typeLattice)) {
+        if (current.isInvokeMethod()
+            && libraryMethodsReturningNonNull.contains(
+                current.asInvokeMethod().getInvokedMethod())) {
+          Value knownToBeNonNullValue = current.outValue();
+          // Avoid adding redundant non-null instruction.
           // Otherwise, we will have something like:
           // non_null_rcv <- non-null(rcv)
           // ...
           // another_rcv <- non-null(non_null_rcv)
-          continue;
-        }
-        // First, if the current block has catch handler, split into two blocks, e.g.,
-        //
-        // ...x
-        // invoke(rcv, ...)
-        // ...y
-        //
-        //   ~>
-        //
-        // ...x
-        // invoke(rcv, ...)
-        // goto A
-        //
-        // A: ...y // blockWithNonNullInstruction
-        boolean split = block.hasCatchHandlers();
-        BasicBlock blockWithNonNullInstruction =
-            split ? iterator.split(code, blockIterator) : block;
-
-        // Find all users of the original value that are dominated by either the current block
-        // or the new split-off block. Since NPE can be explicitly caught, nullness should be
-        // propagated through dominance.
-        Set<Instruction> users = knownToBeNonNullValue.uniqueUsers();
-        Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
-        Map<Phi, IntList> dominatedPhiUsersWithPositions = new IdentityHashMap<>();
-        DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-        Set<BasicBlock> dominatedBlocks = Sets.newIdentityHashSet();
-        for (BasicBlock dominatee : dominatorTree.dominatedBlocks(blockWithNonNullInstruction)) {
-          dominatedBlocks.add(dominatee);
-          InstructionListIterator dominateeIterator = dominatee.listIterator();
-          if (dominatee == blockWithNonNullInstruction && !split) {
-            // In the block where the non null instruction will be inserted, skip instructions up
-            // to and including the insertion point.
-            dominateeIterator.nextUntil(instruction -> instruction == current);
-          }
-          while (dominateeIterator.hasNext()) {
-            Instruction potentialUser = dominateeIterator.next();
-            if (users.contains(potentialUser)) {
-              dominatedUsers.add(potentialUser);
-            }
+          if (knownToBeNonNullValue != null && isNonNullCandidate(knownToBeNonNullValue)) {
+            knownToBeNonNullValues.add(knownToBeNonNullValue);
           }
         }
-        for (Phi user : knownToBeNonNullValue.uniquePhiUsers()) {
-          IntList dominatedPredecessorIndexes =
-              findDominatedPredecessorIndexesInPhi(user, knownToBeNonNullValue, dominatedBlocks);
-          if (!dominatedPredecessorIndexes.isEmpty()) {
-            dominatedPhiUsersWithPositions.put(user, dominatedPredecessorIndexes);
+        if (throwsOnNullInput(current)) {
+          Value knownToBeNonNullValue = getNonNullInput(current);
+          if (isNonNullCandidate(knownToBeNonNullValue)) {
+            knownToBeNonNullValues.add(knownToBeNonNullValue);
           }
         }
-
-        // Only insert non-null instruction if it is ever used.
-        if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
-          // Add non-null fake IR, e.g.,
-          // ...x
-          // invoke(rcv, ...)
-          // goto A
-          // ...
-          // A: non_null_rcv <- non-null(rcv)
-          // ...y
-          Value nonNullValue = code.createValue(
-              typeLattice.asNonNullable(), knownToBeNonNullValue.getLocalInfo());
-          affectedValues.addAll(knownToBeNonNullValue.affectedValues());
-          NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
-          nonNull.setPosition(current.getPosition());
-          if (blockWithNonNullInstruction != block) {
-            // If we split, add non-null IR on top of the new split block.
-            blockWithNonNullInstruction.listIterator().add(nonNull);
-          } else {
-            // Otherwise, just add it to the current block at the position of the iterator.
-            iterator.add(nonNull);
-          }
-
-          // Replace all users of the original value that are dominated by either the current
-          // block or the new split-off block.
-          knownToBeNonNullValue.replaceSelectiveUsers(
-              nonNullValue, dominatedUsers, dominatedPhiUsersWithPositions);
+        if (!knownToBeNonNullValues.isEmpty()) {
+          addNonNullForValues(
+              code,
+              blockIterator,
+              block,
+              iterator,
+              current,
+              knownToBeNonNullValues,
+              affectedValues);
+          knownToBeNonNullValues.clear();
         }
       }
 
@@ -200,9 +149,8 @@ public class NonNullTracker {
         // ...
         If theIf = block.exit().asIf();
         Value knownToBeNonNullValue = theIf.inValues().get(0);
-        TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-        // Avoid adding redundant non-null instruction (or non-null of non-object types).
-        if (!knownToBeNonNullValue.isNeverNull() && isNonNullCandidate(typeLattice)) {
+        // Avoid adding redundant non-null instruction.
+        if (isNonNullCandidate(knownToBeNonNullValue)) {
           BasicBlock target = theIf.targetFromNonNullObject();
           // Ignore uncommon empty blocks.
           if (!target.isEmpty()) {
@@ -228,6 +176,7 @@ public class NonNullTracker {
               }
               // Avoid adding a non-null for the value without meaningful users.
               if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
+                TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
                 Value nonNullValue = code.createValue(
                     typeLattice.asNonNullable(), knownToBeNonNullValue.getLocalInfo());
                 affectedValues.addAll(knownToBeNonNullValue.affectedValues());
@@ -246,6 +195,93 @@ public class NonNullTracker {
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
+    }
+  }
+
+  private void addNonNullForValues(
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      BasicBlock block,
+      InstructionListIterator iterator,
+      Instruction current,
+      Set<Value> knownToBeNonNullValues,
+      Set<Value> affectedValues) {
+    // First, if the current block has catch handler, split into two blocks, e.g.,
+    //
+    // ...x
+    // invoke(rcv, ...)
+    // ...y
+    //
+    //   ~>
+    //
+    // ...x
+    // invoke(rcv, ...)
+    // goto A
+    //
+    // A: ...y // blockWithNonNullInstruction
+    boolean split = block.hasCatchHandlers();
+    BasicBlock blockWithNonNullInstruction = split ? iterator.split(code, blockIterator) : block;
+    DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
+
+    for (Value knownToBeNonNullValue : knownToBeNonNullValues) {
+      // Find all users of the original value that are dominated by either the current block
+      // or the new split-off block. Since NPE can be explicitly caught, nullness should be
+      // propagated through dominance.
+      Set<Instruction> users = knownToBeNonNullValue.uniqueUsers();
+      Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
+      Map<Phi, IntList> dominatedPhiUsersWithPositions = new IdentityHashMap<>();
+      Set<BasicBlock> dominatedBlocks = Sets.newIdentityHashSet();
+      for (BasicBlock dominatee : dominatorTree.dominatedBlocks(blockWithNonNullInstruction)) {
+        dominatedBlocks.add(dominatee);
+        InstructionListIterator dominateeIterator = dominatee.listIterator();
+        if (dominatee == blockWithNonNullInstruction && !split) {
+          // In the block where the non null instruction will be inserted, skip instructions up to
+          // and including the insertion point.
+          dominateeIterator.nextUntil(instruction -> instruction == current);
+        }
+        while (dominateeIterator.hasNext()) {
+          Instruction potentialUser = dominateeIterator.next();
+          if (users.contains(potentialUser)) {
+            dominatedUsers.add(potentialUser);
+          }
+        }
+      }
+      for (Phi user : knownToBeNonNullValue.uniquePhiUsers()) {
+        IntList dominatedPredecessorIndexes =
+            findDominatedPredecessorIndexesInPhi(user, knownToBeNonNullValue, dominatedBlocks);
+        if (!dominatedPredecessorIndexes.isEmpty()) {
+          dominatedPhiUsersWithPositions.put(user, dominatedPredecessorIndexes);
+        }
+      }
+
+      // Only insert non-null instruction if it is ever used.
+      if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
+        // Add non-null fake IR, e.g.,
+        // ...x
+        // invoke(rcv, ...)
+        // goto A
+        // ...
+        // A: non_null_rcv <- non-null(rcv)
+        // ...y
+        TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
+        Value nonNullValue =
+            code.createValue(typeLattice.asNonNullable(), knownToBeNonNullValue.getLocalInfo());
+        affectedValues.addAll(knownToBeNonNullValue.affectedValues());
+        NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
+        nonNull.setPosition(current.getPosition());
+        if (blockWithNonNullInstruction != block) {
+          // If we split, add non-null IR on top of the new split block.
+          blockWithNonNullInstruction.listIterator().add(nonNull);
+        } else {
+          // Otherwise, just add it to the current block at the position of the iterator.
+          iterator.add(nonNull);
+        }
+
+        // Replace all users of the original value that are dominated by either the current block
+        // or the new split-off block.
+        knownToBeNonNullValue.replaceSelectiveUsers(
+            nonNullValue, dominatedUsers, dominatedPhiUsersWithPositions);
+      }
     }
   }
 
@@ -274,10 +310,13 @@ public class NonNullTracker {
     return predecessorIndexes;
   }
 
-  private boolean isNonNullCandidate(TypeLatticeElement typeLattice) {
+  private boolean isNonNullCandidate(Value knownToBeNonNullValue) {
+    TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
     return
+        // redundant
+        !knownToBeNonNullValue.isNeverNull()
         // v <- non-null NULL ?!
-        !typeLattice.isNull()
+        && !typeLattice.isConstantNull()
         // v <- non-null known-to-be-non-null // redundant
         && typeLattice.isNullable()
         // e.g., v <- non-null INT ?!

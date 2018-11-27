@@ -12,7 +12,10 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.ir.optimize.classinliner.builders.BuildersTestClass;
@@ -38,6 +41,7 @@ import com.android.tools.r8.ir.optimize.classinliner.trivial.TrivialTestClass;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -46,9 +50,9 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldAccessInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.NewInstanceInstructionSubject;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
@@ -73,39 +77,35 @@ public class ClassInlinerTest extends TestBase {
     this.backend = backend;
   }
 
-  private String run(AndroidApp app, Class mainClass) throws IOException {
-    if (backend == Backend.DEX) {
-      return runOnArt(app, mainClass);
-    } else {
-      assert backend == Backend.CF;
-      return runOnJava(app, mainClass);
-    }
-  }
-
   @Test
   public void testTrivial() throws Exception {
-    byte[][] classes = {
-        ToolHelper.getClassAsBytes(TrivialTestClass.class),
-        ToolHelper.getClassAsBytes(TrivialTestClass.Inner.class),
-        ToolHelper.getClassAsBytes(ReferencedFields.class),
-        ToolHelper.getClassAsBytes(EmptyClass.class),
-        ToolHelper.getClassAsBytes(EmptyClassWithInitializer.class),
-        ToolHelper.getClassAsBytes(Iface1.class),
-        ToolHelper.getClassAsBytes(Iface1Impl.class),
-        ToolHelper.getClassAsBytes(Iface2.class),
-        ToolHelper.getClassAsBytes(Iface2Impl.class),
-        ToolHelper.getClassAsBytes(CycleReferenceAB.class),
-        ToolHelper.getClassAsBytes(CycleReferenceBA.class),
-        ToolHelper.getClassAsBytes(ClassWithFinal.class)
+    Class<?> main = TrivialTestClass.class;
+    Class<?>[] classes = {
+        TrivialTestClass.class,
+        TrivialTestClass.Inner.class,
+        ReferencedFields.class,
+        EmptyClass.class,
+        EmptyClassWithInitializer.class,
+        Iface1.class,
+        Iface1Impl.class,
+        Iface2.class,
+        Iface2Impl.class,
+        CycleReferenceAB.class,
+        CycleReferenceBA.class,
+        ClassWithFinal.class
     };
-    AndroidApp app = runR8(buildAndroidApp(classes), TrivialTestClass.class);
+    String javaOutput = runOnJava(main);
+    TestRunResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .addKeepMainRule(main)
+        .addKeepRules(
+            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
+        .addOptionsModification(this::configure)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
 
-    String javaOutput = runOnJava(TrivialTestClass.class);
-    String output = run(app, TrivialTestClass.class);
-    assertEquals(javaOutput, output);
-
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz(TrivialTestClass.class);
+    CodeInspector inspector = result.inspector();
+    ClassSubject clazz = inspector.clazz(main);
 
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
@@ -162,28 +162,44 @@ public class ClassInlinerTest extends TestBase {
 
   @Test
   public void testBuilders() throws Exception {
-    byte[][] classes = {
-        ToolHelper.getClassAsBytes(BuildersTestClass.class),
-        ToolHelper.getClassAsBytes(BuildersTestClass.Pos.class),
-        ToolHelper.getClassAsBytes(Tuple.class),
-        ToolHelper.getClassAsBytes(Pair.class),
-        ToolHelper.getClassAsBytes(PairBuilder.class),
-        ToolHelper.getClassAsBytes(ControlFlow.class),
+    Class<?> main = BuildersTestClass.class;
+    Class<?>[] classes = {
+        NeverInline.class,
+        BuildersTestClass.class,
+        BuildersTestClass.Pos.class,
+        Tuple.class,
+        Pair.class,
+        PairBuilder.class,
+        ControlFlow.class,
     };
-    AndroidApp app = runR8(buildAndroidApp(classes), BuildersTestClass.class);
+    String javaOutput = runOnJava(main);
+    TestRunResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .enableProguardTestOptions()
+        .enableInliningAnnotations()
+        .addKeepMainRule(main)
+        .addKeepRules(
+            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
+        .addOptionsModification(this::configure)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
 
-    String javaOutput = runOnJava(BuildersTestClass.class);
-    String output = run(app, BuildersTestClass.class);
-    assertEquals(javaOutput, output);
+    CodeInspector inspector = result.inspector();
+    ClassSubject clazz = inspector.clazz(main);
 
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz(BuildersTestClass.class);
-
-    assertEquals(
-        Sets.newHashSet(
-            "com.android.tools.r8.ir.optimize.classinliner.builders.Pair",
-            "java.lang.StringBuilder"),
-        collectTypes(clazz, "testSimpleBuilder", "void"));
+    for (int i = 1; i <= 3; i++) {
+      Set<String> expected =
+          Sets.newHashSet(
+              "com.android.tools.r8.ir.optimize.classinliner.builders.Pair",
+              "java.lang.StringBuilder");
+      if (backend == Backend.CF && i < 3) {
+        // const-string canonicalization is disabled in CF, which helps ClassInliner identify
+        // PairBuilder as candidate. Concatenated builder calls in test #3 bother that again.
+        expected.add("com.android.tools.r8.ir.optimize.classinliner.builders.PairBuilder");
+      }
+      assertEquals(expected,
+          collectTypes(clazz, "testSimpleBuilder" + i, "void"));
+    }
 
     // Note that Pair created instances were also inlined in the following method since
     // we use 'System.out.println(pX.toString())', if we used 'System.out.println(pX)'
@@ -193,7 +209,9 @@ public class ClassInlinerTest extends TestBase {
         Collections.singleton("java.lang.StringBuilder"),
         collectTypes(clazz, "testSimpleBuilderWithMultipleBuilds", "void"));
 
-    assertFalse(inspector.clazz(PairBuilder.class).isPresent());
+    if (backend == Backend.DEX) {
+      assertFalse(inspector.clazz(PairBuilder.class).isPresent());
+    }
 
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
@@ -242,7 +260,6 @@ public class ClassInlinerTest extends TestBase {
         runOnJavaRaw(mainClass.name, builder.buildClasses().toArray(new byte[2][]));
     assertThat(javaResult.stderr, containsString("IncompatibleClassChangeError"));
 
-    assert backend == Backend.DEX || backend == Backend.CF;
     // Check that the code fails with an IncompatibleClassChangeError with ART.
     ProcessResult result =
         backend == Backend.DEX
@@ -253,19 +270,24 @@ public class ClassInlinerTest extends TestBase {
 
   @Test
   public void testCodeSample() throws Exception {
-    byte[][] classes = {
-        ToolHelper.getClassAsBytes(C.class),
-        ToolHelper.getClassAsBytes(C.L.class),
-        ToolHelper.getClassAsBytes(C.F.class),
-        ToolHelper.getClassAsBytes(CodeTestClass.class)
+    Class<?> main = CodeTestClass.class;
+    Class<?>[] classes = {
+        C.class,
+        C.L.class,
+        C.F.class,
+        CodeTestClass.class
     };
-    AndroidApp app = runR8(buildAndroidApp(classes), CodeTestClass.class);
+    String javaOutput = runOnJava(main);
+    TestRunResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .addKeepMainRule(main)
+        .addKeepRules(
+            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
+        .addOptionsModification(this::configure)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
 
-    String javaOutput = runOnJava(CodeTestClass.class);
-    String output = run(app, CodeTestClass.class);
-    assertEquals(javaOutput, output);
-
-    CodeInspector inspector = new CodeInspector(app);
+    CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(C.class);
 
     assertEquals(
@@ -287,22 +309,26 @@ public class ClassInlinerTest extends TestBase {
   @Test
   public void testInvalidatedRoot() throws Exception {
     String prefix = "com.android.tools.r8.ir.optimize.classinliner.invalidroot.";
-
-    byte[][] classes = {
-        ToolHelper.getClassAsBytes(InvalidRootsTestClass.class),
-        ToolHelper.getClassAsBytes(InvalidRootsTestClass.A.class),
-        ToolHelper.getClassAsBytes(InvalidRootsTestClass.B.class),
-        ToolHelper.getClassAsBytes(InvalidRootsTestClass.NeverReturnsNormally.class),
-        ToolHelper.getClassAsBytes(InvalidRootsTestClass.InitNeverReturnsNormally.class)
+    Class<?> main = InvalidRootsTestClass.class;
+    Class<?>[] classes = {
+        InvalidRootsTestClass.class,
+        InvalidRootsTestClass.A.class,
+        InvalidRootsTestClass.B.class,
+        InvalidRootsTestClass.NeverReturnsNormally.class,
+        InvalidRootsTestClass.InitNeverReturnsNormally.class
     };
-    AndroidApp app = runR8(buildAndroidApp(classes), InvalidRootsTestClass.class);
+    String javaOutput = runOnJava(main);
+    TestRunResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .addKeepMainRule(main)
+        .addKeepRules(
+            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
+        .addOptionsModification(this::configure)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
 
-    String javaOutput = runOnJava(InvalidRootsTestClass.class);
-    String output = run(app, InvalidRootsTestClass.class);
-    assertEquals(javaOutput, output);
-
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz(InvalidRootsTestClass.class);
+    CodeInspector inspector = result.inspector();
+    ClassSubject clazz = inspector.clazz(main);
 
     assertEquals(
         Sets.newHashSet(prefix + "InvalidRootsTestClass$NeverReturnsNormally"),
@@ -331,20 +357,25 @@ public class ClassInlinerTest extends TestBase {
 
   @Test
   public void testDesugaredLambdas() throws Exception {
-    Assume.assumeFalse(backend == Backend.CF); // No desugaring with CF backend.
-    byte[][] classes = {
-        ToolHelper.getClassAsBytes(LambdasTestClass.class),
-        ToolHelper.getClassAsBytes(LambdasTestClass.Iface.class),
-        ToolHelper.getClassAsBytes(LambdasTestClass.IfaceUtil.class),
+    Assume.assumeFalse("No desugaring with CF backend", backend == Backend.CF);
+    Class<?> main = LambdasTestClass.class;
+    Class<?>[] classes = {
+        LambdasTestClass.class,
+        LambdasTestClass.Iface.class,
+        LambdasTestClass.IfaceUtil.class
     };
-    AndroidApp app = runR8(buildAndroidApp(classes), LambdasTestClass.class);
+    String javaOutput = runOnJava(main);
+    TestRunResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .addKeepMainRule(main)
+        .addKeepRules(
+            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
+        .addOptionsModification(this::configure)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
 
-    String javaOutput = runOnJava(LambdasTestClass.class);
-    String output = run(app, LambdasTestClass.class);
-    assertEquals(javaOutput, output);
-
-    CodeInspector inspector = new CodeInspector(app);
-    ClassSubject clazz = inspector.clazz(LambdasTestClass.class);
+    CodeInspector inspector = result.inspector();
+    ClassSubject clazz = inspector.clazz(main);
 
     assertEquals(
         Sets.newHashSet(
@@ -389,42 +420,6 @@ public class ClassInlinerTest extends TestBase {
         .map(is -> (FieldAccessInstructionSubject) is)
         .filter(fais -> fais.holder().is(fais.type()))
         .map(fais -> fais.holder().toString());
-  }
-
-  private AndroidApp runR8(AndroidApp app, Class mainClass) throws Exception {
-    AndroidApp compiled =
-        compileWithR8(
-            app, getProguardConfig(mainClass.getCanonicalName()), this::configure, backend);
-
-    // Materialize file for execution.
-    Path generatedFile = temp.getRoot().toPath().resolve("classes.jar");
-    compiled.writeToZip(generatedFile, outputMode(backend));
-
-    assert backend == Backend.DEX || backend == Backend.CF;
-
-    String output =
-        backend == Backend.DEX
-            ? ToolHelper.runArtNoVerificationErrors(
-                generatedFile.toString(), mainClass.getCanonicalName())
-            : ToolHelper.runJava(generatedFile, mainClass.getCanonicalName()).stdout;
-
-    // Compare with Java.
-    ToolHelper.ProcessResult javaResult = ToolHelper.runJava(
-        ToolHelper.getClassPathForTests(), mainClass.getCanonicalName());
-
-    if (javaResult.exitCode != 0) {
-      System.out.println(javaResult.stdout);
-      System.err.println(javaResult.stderr);
-      fail("JVM on original program failed for: " + mainClass);
-    }
-    assertEquals(
-        backend == Backend.DEX
-            ? "JVM and ART output differ."
-            : "Output of original and processed program differ on JVM.",
-        javaResult.stdout,
-        output);
-
-    return compiled;
   }
 
   private String getProguardConfig(String main) {

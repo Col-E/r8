@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterNullCheck;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableSet;
 import java.util.function.Consumer;
 import org.junit.Test;
 
@@ -41,7 +42,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
         foo.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     checkCountOfNonNull(irCode, 0);
 
-    NonNullTracker nonNullTracker = new NonNullTracker(appInfo);
+    NonNullTracker nonNullTracker = new NonNullTracker(appInfo, ImmutableSet.of());
 
     nonNullTracker.addNonNull(irCode);
     assertTrue(irCode.isConsistentSSA());

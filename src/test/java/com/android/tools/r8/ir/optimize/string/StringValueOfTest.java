@@ -54,13 +54,9 @@ class StringValueOfTestMain {
 
   public static void main(String[] args) {
     Foo foo = new Foo();
-    // TODO(b/118536394): valueOf in getter() can be removed if combined with name reflection
-    // optimization, which will replace it with (definitely non-null) const-string.
     System.out.println(foo.getter());
     // Trivial, it's String.
     String str = foo.toString();
-    // TODO(b/119449728): But, it's still nullable.
-    // valueOf can be removed if the nullability of its return value is modeled.
     System.out.println(String.valueOf(str));
     if (str != null) {
       // With an explicit check, it's non-null String.
@@ -195,6 +191,6 @@ public class StringValueOfTest extends TestBase {
         .addKeepRules("-dontobfuscate")
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 3, 1, 1);
+    test(result, 1, 1, 1);
   }
 }

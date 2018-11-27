@@ -134,6 +134,6 @@ public class InstanceOfRemovalTest extends TestBase {
         inspector.clazz(TestClass.class).method("void", "bar", ImmutableList.of());
     Iterator<InstructionSubject> barInstructionIterator =
         barMethodSubject.iterateInstructions(InstructionSubject::isInstanceOf);
-    assertEquals(6, Streams.stream(barInstructionIterator).count());
+    assertEquals(4, Streams.stream(barInstructionIterator).count());
   }
 }
