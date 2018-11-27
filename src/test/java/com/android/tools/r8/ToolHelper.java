@@ -1438,42 +1438,39 @@ public class ToolHelper {
   }
 
   public static void runDex2Oat(Path file, Path outFile) throws IOException {
-    runDex2Oat(file, outFile, getDexVm());
-  }
-
-  public static void runDex2Oat(Path file, Path outFile, DexVm vm) throws IOException {
-    ProcessResult result = runDex2OatRaw(file, outFile, vm);
-    if (result.exitCode != 0) {
-      fail("dex2oat failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
-    }
-    if (result.stderr != null && result.stderr.contains("Verification error")) {
-      fail("Verification error: \n" + result.stderr);
-    }
-  }
-
-  public static ProcessResult runDex2OatRaw(Path file, Path outFile, DexVm vm) throws IOException {
-    Assume.assumeTrue(ToolHelper.isDex2OatSupported());
+    DexVm vm = getDexVm();
     if (vm.isOlderThanOrEqual(DexVm.ART_5_1_1_HOST)) {
       // TODO(b/79191363): Support running dex2oat for past android versions.
       // Run default dex2oat for tests on old runtimes.
       vm = DexVm.ART_DEFAULT;
     }
+    runDex2Oat(file, outFile, vm);
+  }
+
+  public static void runDex2Oat(Path file, Path outFile, DexVm vm) throws IOException {
+    Assume.assumeTrue(ToolHelper.isDex2OatSupported());
     // TODO(jmhenaff): find a way to run this on windows (push dex and run on device/emulator?)
     Assume.assumeTrue(!ToolHelper.isWindows());
     assert Files.exists(file);
     assert ByteStreams.toByteArray(Files.newInputStream(file)).length > 0;
     List<String> command = new ArrayList<>();
     command.add(getDex2OatPath(vm).toString());
-    command.add("--android-root=" + getProductPath(vm) + "/system");
+    command.add("--android-root=" + getProductPath(vm));
     command.add("--runtime-arg");
     command.add("-Xnorelocate");
+    command.add("--boot-image=" + getProductBootImagePath(vm));
     command.add("--dex-file=" + file.toAbsolutePath());
     command.add("--oat-file=" + outFile.toAbsolutePath());
-    // TODO(zerny): Create a proper interface for invoking dex2oat. Hardcoding arm64 here is a hack!
     command.add("--instruction-set=arm64");
     ProcessBuilder builder = new ProcessBuilder(command);
     builder.environment().put("LD_LIBRARY_PATH", getDexVmLibPath(vm).toString());
-    return runProcess(builder);
+    ProcessResult result = runProcess(builder);
+    if (result.exitCode != 0) {
+      fail("dex2oat failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
+    }
+    if (result.stderr.contains("Verification error")) {
+      fail("Verification error: \n" + result.stderr);
+    }
   }
 
   public static ProcessResult runProguardRaw(
