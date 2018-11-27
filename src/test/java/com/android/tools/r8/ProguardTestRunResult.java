@@ -12,13 +12,18 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-public class ProguardTestRunResult extends TestRunResult {
+public class ProguardTestRunResult extends TestRunResult<ProguardTestRunResult> {
 
   private final String proguardMap;
 
   public ProguardTestRunResult(AndroidApp app, ProcessResult result, String proguardMap) {
     super(app, result);
     this.proguardMap = proguardMap;
+  }
+
+  @Override
+  protected ProguardTestRunResult self() {
+    return this;
   }
 
   @Override

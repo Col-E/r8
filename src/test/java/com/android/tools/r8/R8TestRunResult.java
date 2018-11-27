@@ -12,7 +12,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-public class R8TestRunResult extends TestRunResult {
+public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
 
   private final String proguardMap;
 
@@ -22,10 +22,19 @@ public class R8TestRunResult extends TestRunResult {
   }
 
   @Override
+  protected R8TestRunResult self() {
+    return this;
+  }
+
+  @Override
   public CodeInspector inspector() throws IOException, ExecutionException {
     // See comment in base class.
     assertSuccess();
     assertNotNull(app);
     return new CodeInspector(app, proguardMap);
+  }
+
+  public String proguardMap() {
+    return proguardMap;
   }
 }

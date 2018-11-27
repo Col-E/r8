@@ -22,7 +22,7 @@ public abstract class TestCompilerBuilder<
         CR extends TestCompileResult<RR>,
         RR extends TestRunResult,
         T extends TestCompilerBuilder<C, B, CR, RR, T>>
-    extends TestBuilder<T> {
+    extends TestBuilder<RR, T> {
 
   public static final Consumer<InternalOptions> DEFAULT_OPTIONS =
       new Consumer<InternalOptions>() {
@@ -71,7 +71,7 @@ public abstract class TestCompilerBuilder<
   }
 
   @Override
-  public TestRunResult run(String mainClass) throws IOException, CompilationFailedException {
+  public RR run(String mainClass) throws IOException, CompilationFailedException {
     return compile().run(mainClass);
   }
 

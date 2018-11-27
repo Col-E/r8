@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-public class JvmTestBuilder extends TestBuilder<JvmTestBuilder> {
+public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder> {
 
   private static class ClassFileResource implements ProgramResource {
 
@@ -107,9 +107,9 @@ public class JvmTestBuilder extends TestBuilder<JvmTestBuilder> {
   }
 
   @Override
-  public TestRunResult run(String mainClass) throws IOException {
+  public JvmTestRunResult run(String mainClass) throws IOException {
     ProcessResult result = ToolHelper.runJava(classpath, mainClass);
-    return new TestRunResult(builder.build(), result);
+    return new JvmTestRunResult(builder.build(), result);
   }
 
   @Override

@@ -64,8 +64,8 @@ public class IncompatiblePrimitiveTypesTest extends TestBase {
 
   @Test
   public void dexTest() throws Exception {
-    TestRunResult d8Result = testForD8().addProgramFiles(inputJar).run("TestClass");
-    TestRunResult dxResult = testForDX().addProgramFiles(inputJar).run("TestClass");
+    TestRunResult<?> d8Result = testForD8().addProgramFiles(inputJar).run("TestClass");
+    TestRunResult<?> dxResult = testForDX().addProgramFiles(inputJar).run("TestClass");
     if (ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4)) {
       d8Result.assertSuccessWithOutput(expectedOutput);
       dxResult.assertSuccessWithOutput(expectedOutput);

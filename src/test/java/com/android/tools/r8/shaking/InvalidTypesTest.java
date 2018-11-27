@@ -126,15 +126,15 @@ public class InvalidTypesTest extends JasminTestBase {
     jasminBuilder.writeJar(inputJar);
 
     if (backend == Backend.CF) {
-      TestRunResult jvmResult = testForJvm().addClasspath(inputJar).run(mainClass.name);
+      TestRunResult<?> jvmResult = testForJvm().addClasspath(inputJar).run(mainClass.name);
       checkTestRunResult(jvmResult, false);
     } else {
       assert backend == Backend.DEX;
 
-      TestRunResult dxResult = testForDX().addProgramFiles(inputJar).run(mainClass.name);
+      TestRunResult<?> dxResult = testForDX().addProgramFiles(inputJar).run(mainClass.name);
       checkTestRunResult(dxResult, false);
 
-      TestRunResult d8Result = testForD8().addProgramFiles(inputJar).run(mainClass.name);
+      TestRunResult<?> d8Result = testForD8().addProgramFiles(inputJar).run(mainClass.name);
       checkTestRunResult(d8Result, false);
     }
 
@@ -147,7 +147,7 @@ public class InvalidTypesTest extends JasminTestBase {
     checkTestRunResult(r8Result, true);
   }
 
-  private void checkTestRunResult(TestRunResult result, boolean isR8) {
+  private void checkTestRunResult(TestRunResult<?> result, boolean isR8) {
     switch (mode) {
       case NO_INVOKE:
         result.assertSuccessWithOutput(getExpectedOutput(isR8));

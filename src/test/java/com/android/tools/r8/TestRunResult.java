@@ -15,9 +15,10 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import org.hamcrest.Matcher;
 
-public class TestRunResult {
+public abstract class TestRunResult<RR extends TestRunResult<?>> {
   protected final AndroidApp app;
   private final ProcessResult result;
 
@@ -26,33 +27,51 @@ public class TestRunResult {
     this.result = result;
   }
 
-  public TestRunResult assertSuccess() {
+  abstract RR self();
+
+  public String getStdOut() {
+    return result.stdout;
+  }
+
+  public String getStdErr() {
+    return result.stderr;
+  }
+
+  public int getExitCode() {
+    return result.exitCode;
+  }
+
+  public RR assertSuccess() {
     assertEquals(errorMessage("Expected run to succeed."), 0, result.exitCode);
-    return this;
+    return self();
   }
 
-  public TestRunResult assertFailure() {
+  public RR assertFailure() {
     assertNotEquals(errorMessage("Expected run to fail."), 0, result.exitCode);
-    return this;
+    return self();
   }
 
-  public TestRunResult assertFailureWithOutput(String expected) {
+  public RR assertFailureWithOutput(String expected) {
     assertFailure();
     assertEquals(errorMessage("Run stdout incorrect.", expected), expected, result.stdout);
-    return this;
+    return self();
   }
 
-  public TestRunResult assertFailureWithErrorThatMatches(Matcher<String> matcher) {
+  public RR assertFailureWithErrorThatMatches(Matcher<String> matcher) {
     assertFailure();
     assertThat(
         errorMessage("Run stderr incorrect.", matcher.toString()), result.stderr, matcher);
-    return this;
+    return self();
   }
 
-  public TestRunResult assertSuccessWithOutput(String expected) {
+  public RR assertSuccessWithOutput(String expected) {
     assertSuccess();
     assertEquals(errorMessage("Run stdout incorrect.", expected), expected, result.stdout);
-    return this;
+    return self();
+  }
+
+  public <R> R map(Function<RR, R> mapper) {
+    return mapper.apply(self());
   }
 
   public CodeInspector inspector() throws IOException, ExecutionException {
@@ -63,10 +82,10 @@ public class TestRunResult {
     return new CodeInspector(app);
   }
 
-  public TestRunResult inspect(Consumer<CodeInspector> consumer)
+  public RR inspect(Consumer<CodeInspector> consumer)
       throws IOException, ExecutionException {
     consumer.accept(inspector());
-    return this;
+    return self();
   }
 
   private String errorMessage(String message) {
@@ -102,24 +121,24 @@ public class TestRunResult {
     builder.append("COMMAND: ").append(result.command).append('\n').append(result);
   }
 
-  public TestRunResult writeInfo(PrintStream ps) {
+  public RR writeInfo(PrintStream ps) {
     StringBuilder sb = new StringBuilder();
     appendInfo(sb);
     ps.println(sb.toString());
-    return this;
+    return self();
   }
 
-  public TestRunResult writeApplicaion(PrintStream ps) {
+  public RR writeApplicaion(PrintStream ps) {
     StringBuilder sb = new StringBuilder();
     appendApplication(sb);
     ps.println(sb.toString());
-    return this;
+    return self();
   }
 
-  public TestRunResult writeProcessResult(PrintStream ps) {
+  public RR writeProcessResult(PrintStream ps) {
     StringBuilder sb = new StringBuilder();
     appendProcessResult(sb);
     ps.println(sb.toString());
-    return this;
+    return self();
   }
 }

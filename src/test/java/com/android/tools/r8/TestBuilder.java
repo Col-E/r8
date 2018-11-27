@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class TestBuilder<T extends TestBuilder<T>> {
+public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilder<RR, T>> {
 
   private final TestState state;
 
@@ -28,10 +28,10 @@ public abstract class TestBuilder<T extends TestBuilder<T>> {
 
   abstract T self();
 
-  public abstract TestRunResult run(String mainClass)
+  public abstract RR run(String mainClass)
       throws IOException, CompilationFailedException;
 
-  public TestRunResult run(Class mainClass) throws IOException, CompilationFailedException {
+  public RR run(Class mainClass) throws IOException, CompilationFailedException {
     return run(mainClass.getTypeName());
   }
 

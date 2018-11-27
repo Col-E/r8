@@ -7,14 +7,14 @@ package com.android.tools.r8;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 
-public class D8TestRunResult extends TestRunResult<D8TestRunResult> {
+public class JvmTestRunResult extends TestRunResult<JvmTestRunResult> {
 
-  public D8TestRunResult(AndroidApp app, ProcessResult result) {
+  public JvmTestRunResult(AndroidApp app, ProcessResult result) {
     super(app, result);
   }
 
   @Override
-  protected D8TestRunResult self() {
+  protected JvmTestRunResult self() {
     return this;
   }
 }
