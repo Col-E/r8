@@ -64,8 +64,8 @@ public class DexItemFactory {
   private final Map<SetInlineFrame, SetInlineFrame> setInlineFrames = new HashMap<>();
 
   // ReferenceTypeLattice canonicalization.
-  private final ConcurrentHashMap<DexType, ReferenceTypeLatticeElement>
-      referenceTypeLatticeElements = new ConcurrentHashMap<>();
+  private final Map<DexType, ReferenceTypeLatticeElement>
+      referenceTypeLatticeElements = new HashMap<>();
 
   boolean sorted = false;
 
@@ -975,14 +975,13 @@ public class DexItemFactory {
 
   public ReferenceTypeLatticeElement createReferenceTypeLatticeElement(
       DexType type, boolean isNullable, AppInfo appInfo) {
-    ReferenceTypeLatticeElement typeLattice = referenceTypeLatticeElements.get(type);
-    if (typeLattice != null) {
-      return isNullable == typeLattice.isNullable() ? typeLattice
-          : typeLattice.getOrCreateDualLattice();
-    }
     synchronized (type) {
-      typeLattice = referenceTypeLatticeElements.get(type);
-      if (typeLattice == null) {
+      ReferenceTypeLatticeElement typeLattice = referenceTypeLatticeElements.get(type);
+      if (typeLattice != null) {
+        typeLattice = isNullable == typeLattice.isNullable() ? typeLattice
+            : typeLattice.getOrCreateDualLattice();
+        assert typeLattice.isNullable() == isNullable;
+      } else {
         if (type.isClassType()) {
           if (!type.isUnknown() && type.isInterface()) {
             typeLattice = new ClassTypeLatticeElement(
@@ -1000,8 +999,9 @@ public class DexItemFactory {
         }
         referenceTypeLatticeElements.put(type, typeLattice);
       }
+      assert typeLattice.isNullable() == isNullable;
+      return typeLattice;
     }
-    return typeLattice;
   }
 
   private static <S extends PresortedComparable<S>> void assignSortedIndices(Collection<S> items,
