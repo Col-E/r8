@@ -64,8 +64,8 @@ public class DexItemFactory {
   private final Map<SetInlineFrame, SetInlineFrame> setInlineFrames = new HashMap<>();
 
   // ReferenceTypeLattice canonicalization.
-  private final Map<DexType, ReferenceTypeLatticeElement>
-      referenceTypeLatticeElements = new HashMap<>();
+  private final ConcurrentHashMap<DexType, ReferenceTypeLatticeElement>
+      referenceTypeLatticeElements = new ConcurrentHashMap<>();
 
   boolean sorted = false;
 
