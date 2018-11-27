@@ -16,8 +16,7 @@ VERSIONS = [
   'default',
   '7.0.0',
   '6.0.1',
-  # TODO(b/79191363): Build a boot image for 5.1.1 dex2oat.
-  # '5.1.1',
+  '5.1.1',
 ]
 
 DIRS = {
@@ -32,6 +31,13 @@ PRODUCTS = {
   '7.0.0': 'angler',
   '6.0.1': 'angler',
   '5.1.1': 'mako',
+}
+
+ARCHS = {
+  'default': 'arm64',
+  '7.0.0': 'arm64',
+  '6.0.1': 'arm64',
+  '5.1.1': 'arm',
 }
 
 def ParseOptions():
@@ -74,15 +80,15 @@ def run(dexfile, oatfile=None, version='default'):
       oatfile = os.path.join(temp, "out.oat")
     base = os.path.join(LINUX_DIR, DIRS[version])
     product = PRODUCTS[version]
+    arch = ARCHS[version]
     cmd = [
       os.path.join(base, 'bin', 'dex2oat'),
-      '--android-root=' + os.path.join(base, 'product', product),
+      '--android-root=' + os.path.join(base, 'product', product, 'system'),
       '--runtime-arg',
       '-Xnorelocate',
-      '--boot-image=' + os.path.join(base, 'product', product, 'system', 'framework', 'boot.art'),
       '--dex-file=' + dexfile,
       '--oat-file=' + oatfile,
-      '--instruction-set=arm64',
+      '--instruction-set=' + arch,
     ]
     env = {"LD_LIBRARY_PATH": os.path.join(base, 'lib')}
     utils.PrintCmd(cmd)

@@ -475,7 +475,7 @@ public class ToolHelper {
         .put(DexVm.ART_8_1_0_HOST, "marlin")
         .put(DexVm.ART_7_0_0_HOST, "angler")
         .put(DexVm.ART_6_0_1_HOST, "angler")
-        .put(DexVm.ART_5_1_1_HOST, "<missing>")
+        .put(DexVm.ART_5_1_1_HOST, "mako")
         .put(DexVm.ART_4_4_4_HOST, "<missing>")
         .put(DexVm.ART_4_0_4_HOST, "<missing>");
     PRODUCT = builder.build();
@@ -502,6 +502,10 @@ public class ToolHelper {
 
   private static Path getProductPath(DexVm vm) {
     return getDexVmPath(vm).resolve("product").resolve(PRODUCT.get(vm));
+  }
+
+  private static String getArchString(DexVm vm) {
+    return vm.isOlderThanOrEqual(DexVm.ART_5_1_1_HOST) ? "arm" : "arm64";
   }
 
   private static Path getProductBootImagePath(DexVm vm) {
@@ -1438,39 +1442,40 @@ public class ToolHelper {
   }
 
   public static void runDex2Oat(Path file, Path outFile) throws IOException {
-    DexVm vm = getDexVm();
-    if (vm.isOlderThanOrEqual(DexVm.ART_5_1_1_HOST)) {
-      // TODO(b/79191363): Support running dex2oat for past android versions.
-      // Run default dex2oat for tests on old runtimes.
-      vm = DexVm.ART_DEFAULT;
-    }
-    runDex2Oat(file, outFile, vm);
+    runDex2Oat(file, outFile, getDexVm());
   }
 
   public static void runDex2Oat(Path file, Path outFile, DexVm vm) throws IOException {
-    Assume.assumeTrue(ToolHelper.isDex2OatSupported());
+    ProcessResult result = runDex2OatRaw(file, outFile, vm);
+    if (result.exitCode != 0) {
+      fail("dex2oat failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
+    }
+    if (result.stderr != null && result.stderr.contains("Verification error")) {
+      fail("Verification error: \n" + result.stderr);
+    }
+  }
+
+  public static ProcessResult runDex2OatRaw(Path file, Path outFile, DexVm vm) throws IOException {
     // TODO(jmhenaff): find a way to run this on windows (push dex and run on device/emulator?)
-    Assume.assumeTrue(!ToolHelper.isWindows());
+    Assume.assumeTrue(ToolHelper.isDex2OatSupported());
+    if (vm.isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
+      // Run default dex2oat for tests on dalvik runtimes.
+      vm = DexVm.ART_DEFAULT;
+    }
     assert Files.exists(file);
     assert ByteStreams.toByteArray(Files.newInputStream(file)).length > 0;
     List<String> command = new ArrayList<>();
     command.add(getDex2OatPath(vm).toString());
-    command.add("--android-root=" + getProductPath(vm));
+    command.add("--android-root=" + getProductPath(vm) + "/system");
     command.add("--runtime-arg");
     command.add("-Xnorelocate");
-    command.add("--boot-image=" + getProductBootImagePath(vm));
     command.add("--dex-file=" + file.toAbsolutePath());
     command.add("--oat-file=" + outFile.toAbsolutePath());
-    command.add("--instruction-set=arm64");
+    // TODO(zerny): Create a proper interface for invoking dex2oat. Hardcoding arch here is a hack!
+    command.add("--instruction-set=" + getArchString(vm));
     ProcessBuilder builder = new ProcessBuilder(command);
     builder.environment().put("LD_LIBRARY_PATH", getDexVmLibPath(vm).toString());
-    ProcessResult result = runProcess(builder);
-    if (result.exitCode != 0) {
-      fail("dex2oat failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
-    }
-    if (result.stderr.contains("Verification error")) {
-      fail("Verification error: \n" + result.stderr);
-    }
+    return runProcess(builder);
   }
 
   public static ProcessResult runProguardRaw(
