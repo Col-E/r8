@@ -128,6 +128,9 @@ public class DexItemFactory {
   public final DexString containsMethodName = createString("contains");
   public final DexString startsWithMethodName = createString("startsWith");
   public final DexString endsWithMethodName = createString("endsWith");
+  public final DexString equalsMethodName = createString("equals");
+  public final DexString equalsIgnoreCaseMethodName = createString("equalsIgnoreCase");
+  public final DexString contentEqualsMethodName = createString("contentEquals");
 
   public final DexString valueOfMethodName = createString("valueOf");
   public final DexString toStringMethodName = createString("toString");
@@ -580,6 +583,9 @@ public class DexItemFactory {
     public final DexMethod contains;
     public final DexMethod startsWith;
     public final DexMethod endsWith;
+    public final DexMethod equals;
+    public final DexMethod equalsIgnoreCase;
+    public final DexMethod contentEqualsCharSequence;
 
     public final DexMethod valueOf;
     public final DexMethod toString;
@@ -590,17 +596,25 @@ public class DexItemFactory {
       length = createMethod(
           stringDescriptor, lengthMethodName, intDescriptor, DexString.EMPTY_ARRAY);
 
-      DexString[] needsOneCharSequence = new DexString[]{charSequenceDescriptor};
+      DexString[] needsOneCharSequence = { charSequenceDescriptor };
+      DexString[] needsOneString = { stringDescriptor };
+      DexString[] needsOneObject = { objectDescriptor };
+
       contains = createMethod(
           stringDescriptor, containsMethodName, booleanDescriptor, needsOneCharSequence);
-      DexString[] needsOneString = new DexString[]{stringDescriptor};
       startsWith = createMethod(
           stringDescriptor, startsWithMethodName, booleanDescriptor, needsOneString);
       endsWith = createMethod(
           stringDescriptor, endsWithMethodName, booleanDescriptor, needsOneString);
+      equals = createMethod(
+          stringDescriptor, equalsMethodName, booleanDescriptor, needsOneObject);
+      equalsIgnoreCase = createMethod(
+          stringDescriptor, equalsIgnoreCaseMethodName, booleanDescriptor, needsOneString);
+      contentEqualsCharSequence = createMethod(
+          stringDescriptor, contentEqualsMethodName, booleanDescriptor, needsOneCharSequence);
 
       valueOf = createMethod(
-          stringDescriptor, valueOfMethodName, stringDescriptor, new DexString[]{objectDescriptor});
+          stringDescriptor, valueOfMethodName, stringDescriptor, needsOneObject);
       toString = createMethod(
           stringDescriptor, toStringMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
     }

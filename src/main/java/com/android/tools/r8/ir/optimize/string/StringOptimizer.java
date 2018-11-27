@@ -43,6 +43,9 @@ public class StringOptimizer {
   // boolean String#startsWith(str)
   // boolean String#endsWith(str)
   // boolean String#contains(str)
+  // boolean String#equals(str)
+  // boolean String#equalsIgnoreCase(str)
+  // boolean String#contentEquals(str)
   public void computeTrivialOperationsOnConstString(IRCode code, DexItemFactory factory) {
     if (!code.hasConstString) {
       return;
@@ -67,6 +70,12 @@ public class StringOptimizer {
         operatorWithString = (rcv, arg) -> rcv.startsWith(arg) ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.endsWith) {
         operatorWithString = (rcv, arg) -> rcv.endsWith(arg) ? 1 : 0;
+      } else if (invokedMethod == factory.stringMethods.equals) {
+        operatorWithString = (rcv, arg) -> rcv.equals(arg) ? 1 : 0;
+      } else if (invokedMethod == factory.stringMethods.equalsIgnoreCase) {
+        operatorWithString = (rcv, arg) -> rcv.equalsIgnoreCase(arg) ? 1 : 0;
+      } else if (invokedMethod == factory.stringMethods.contentEqualsCharSequence) {
+        operatorWithString = (rcv, arg) -> rcv.contentEquals(arg) ? 1 : 0;
       }
       if (operatorWithNoArg == null && operatorWithString == null) {
         continue;
