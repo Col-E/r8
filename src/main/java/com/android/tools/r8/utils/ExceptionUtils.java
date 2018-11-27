@@ -11,6 +11,8 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.FileSystemException;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
@@ -65,6 +67,13 @@ public abstract class ExceptionUtils {
       } catch (ResourceException e) {
         throw reporter.fatalError(new ExceptionDiagnostic(e, e.getOrigin()));
       } catch (AssertionError e) {
+        // Most of our assertions don't have a message, create a wrapper that has the stack as the
+        // message.
+        if (e.getMessage() == null) {
+          StringWriter stack = new StringWriter();
+          e.printStackTrace(new PrintWriter(stack));
+          e = new AssertionError(stack.toString(), e);
+        }
         throw reporter.fatalError(new ExceptionDiagnostic(e, Origin.unknown()), e);
       }
       reporter.failIfPendingErrors();
