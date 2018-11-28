@@ -12,8 +12,6 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -203,24 +201,25 @@ public class FieldTypeTest extends TestBase {
     assertEquals(0, javaResult.exitCode);
     assertThat(javaResult.stdout, containsString(impl2.name));
 
-    AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
-        // Disable inlining to avoid the (short) tested method from being inlined and then removed.
-        internalOptions -> internalOptions.enableInlining = false);
+    AndroidApp processedApp = compileWithR8(
+        jasminBuilder.build(),
+        proguardConfig,
+        internalOptions -> {
+          // Disable inlining to avoid the (short) tested method from being inlined and then
+          // removed.
+          internalOptions.enableInlining = false;
+          internalOptions.testing.allowTypeErrors = true;
+        });
 
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
     assertNotEquals(0, artResult.exitCode);
-    assertEquals(-1, artResult.stderr.indexOf("DoFieldPut"));
-    DexVm.Version currentVersion = ToolHelper.getDexVm().getVersion();
-    String errorMessage =
-        currentVersion.isNewerThan(Version.V4_4_4)
-            ? "type Precise Reference: Impl1[] but expected Reference: Itf1[]"
-            : "storing type '[LImpl1;' into field type '[LItf1;'";
-    assertThat(artResult.stderr, containsString(errorMessage));
+    assertThat(artResult.stderr, containsString("java.lang.NullPointerException"));
+    assertThat(artResult.stderr, not(containsString("DoFieldPut")));
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject itf1Subject = inspector.clazz(itf1.name);
-    assertThat(itf1Subject, isPresent());
+    assertThat(itf1Subject, not(isPresent()));
   }
 
 }

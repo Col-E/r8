@@ -193,7 +193,7 @@ public class TypeVerificationHelper {
     if (result.isClassType()) {
       return result.asClassTypeLatticeElement().getClassType();
     } else if (result.isArrayType()) {
-      return result.asArrayTypeLatticeElement().getArrayType();
+      return result.asArrayTypeLatticeElement().getArrayType(factory);
     }
     throw new CompilationError("Unexpected join " + result + " of types: " +
         String.join(", ",

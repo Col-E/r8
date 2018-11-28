@@ -70,24 +70,22 @@ public class TypeChecker {
         instruction.isInstancePut()
             ? instruction.asInstancePut().value()
             : instruction.asStaticPut().inValue();
-    TypeLatticeElement fieldType =
-        TypeLatticeElement.fromDexType(instruction.getField().type, true, appInfo);
     TypeLatticeElement valueType = value.getTypeLattice();
+    TypeLatticeElement fieldType = TypeLatticeElement.fromDexType(
+        instruction.getField().type, valueType.isNullable(), appInfo);
     return isSubtypeOf(valueType, fieldType);
   }
 
   public boolean check(Throw instruction) {
-    TypeLatticeElement throwableType =
-        TypeLatticeElement.fromDexType(appInfo.dexItemFactory.throwableType, true, appInfo);
     TypeLatticeElement valueType = instruction.exception().getTypeLattice();
+    TypeLatticeElement throwableType = TypeLatticeElement.fromDexType(
+        appInfo.dexItemFactory.throwableType, valueType.isNullable(), appInfo);
     return isSubtypeOf(valueType, throwableType);
   }
 
   private boolean isSubtypeOf(
       TypeLatticeElement expectedSubtype, TypeLatticeElement expectedSupertype) {
     return expectedSubtype.lessThanOrEqual(expectedSupertype, appInfo)
-        || expectedSubtype.isBasedOnMissingClass(appInfo)
-        // TODO(b/119181813): Remove this relaxation when the join of array types is fixed.
-        || (expectedSubtype.isArrayType() && expectedSupertype.isArrayType());
+        || expectedSubtype.isBasedOnMissingClass(appInfo);
   }
 }

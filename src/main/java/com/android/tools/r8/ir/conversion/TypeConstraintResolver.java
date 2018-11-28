@@ -180,8 +180,7 @@ public class TypeConstraintResolver {
     if (array.getTypeLattice().isArrayType()) {
       // If the array type is known it uniquely defines the actual member type.
       ArrayTypeLatticeElement arrayType = array.getTypeLattice().asArrayTypeLatticeElement();
-      constraint =
-          ValueTypeConstraint.fromDexType(arrayType.getArrayElementType(builder.getFactory()));
+      constraint = ValueTypeConstraint.fromTypeLattice(arrayType.getArrayMemberTypeAsValueType());
     } else {
       // If not, e.g., the array input is null, the canonical value determines the final type.
       constraint = getCanonicalTypeConstraint(canonical, true);

@@ -28,11 +28,6 @@ public class BottomTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public TypeLatticeElement arrayGet(AppInfo appInfo) {
-    return this;
-  }
-
-  @Override
   public TypeLatticeElement checkCast(AppInfo appInfo, DexType castType) {
     return this;
   }

@@ -158,9 +158,12 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       forEachOutValue(irCode, (v, l) -> {
         if (l.isArrayType()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+          assertEquals(1, lattice.getNesting());
+          TypeLatticeElement elementTypeLattice = lattice.getArrayMemberTypeAsMemberType();
+          assertTrue(elementTypeLattice.isClassType());
           assertEquals(
               appInfo.dexItemFactory.stringType,
-              lattice.getArrayElementType(appInfo.dexItemFactory));
+              elementTypeLattice.asClassTypeLatticeElement().getClassType());
           assertEquals(v.definition.isArgument(), l.isNullable());
         } else if (l.isClassType()) {
           verifyClassTypeLattice(expectedLattices, mainClass, v, l);
@@ -184,9 +187,12 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       forEachOutValue(irCode, (v, l) -> {
         if (l.isArrayType()) {
           ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+          assertEquals(1, lattice.getNesting());
+          TypeLatticeElement elementTypeLattice = lattice.getArrayMemberTypeAsMemberType();
+          assertTrue(elementTypeLattice.isClassType());
           assertEquals(
               appInfo.dexItemFactory.stringType,
-              lattice.getArrayElementType(appInfo.dexItemFactory));
+              elementTypeLattice.asClassTypeLatticeElement().getClassType());
           assertEquals(v.definition.isArgument(), l.isNullable());
         } else if (l.isClassType()) {
           verifyClassTypeLattice(expectedLattices, mainClass, v, l);
