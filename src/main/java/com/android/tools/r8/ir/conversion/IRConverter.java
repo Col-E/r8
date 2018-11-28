@@ -74,6 +74,7 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -175,7 +176,8 @@ public class IRConverter {
       assert appInfo.hasLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
       AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      this.nonNullTracker = new NonNullTracker(appInfo);
+      this.nonNullTracker =
+          new NonNullTracker(appInfo, libraryMethodsReturningNonNull(appInfo.dexItemFactory));
       this.inliner = new Inliner(appViewWithLiveness, this, options);
       this.outliner = new Outliner(appInfoWithLiveness, options, this);
       this.memberValuePropagation =
@@ -286,6 +288,16 @@ public class IRConverter {
     dexItemFactory.stringBufferMethods.forEachAppendMethod(methods::add);
     dexItemFactory.stringBuilderMethods.forEachAppendMethod(methods::add);
     return methods;
+  }
+
+  // Library methods listed here are based on their original implementations. That is, we assume
+  // these cannot be overridden.
+  public static Set<DexMethod> libraryMethodsReturningNonNull(DexItemFactory factory) {
+    return ImmutableSet.of(
+        factory.stringMethods.valueOf,
+        factory.classMethods.getName,
+        factory.classMethods.getSimpleName
+    );
   }
 
   private void removeLambdaDeserializationMethods() {

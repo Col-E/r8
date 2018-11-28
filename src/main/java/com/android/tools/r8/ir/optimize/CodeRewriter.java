@@ -151,8 +151,10 @@ public class CodeRewriter {
   private final Set<DexMethod> libraryMethodsReturningReceiver;
   private final InternalOptions options;
 
-  public CodeRewriter(IRConverter converter,
-      Set<DexMethod> libraryMethodsReturningReceiver, InternalOptions options) {
+  public CodeRewriter(
+      IRConverter converter,
+      Set<DexMethod> libraryMethodsReturningReceiver,
+      InternalOptions options) {
     this.converter = converter;
     this.appInfo = converter.appInfo;
     this.options = options;
@@ -1531,15 +1533,15 @@ public class CodeRewriter {
       return;
     }
     AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
+    Set<Value> needToWidenValues = Sets.newIdentityHashSet();
+    Set<Value> needToNarrowValues = Sets.newIdentityHashSet();
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
         if (invoke.outValue() != null && !invoke.outValue().hasLocalInfo()) {
-          boolean isLibraryMethodReturningReceiver =
-              libraryMethodsReturningReceiver.contains(invoke.getInvokedMethod());
-          if (isLibraryMethodReturningReceiver) {
+          if (libraryMethodsReturningReceiver.contains(invoke.getInvokedMethod())) {
             if (checkArgumentType(invoke, invoke.getInvokedMethod(), 0)) {
               invoke.outValue().replaceUsers(invoke.arguments().get(0));
               invoke.setOutValue(null);
@@ -1554,17 +1556,35 @@ public class CodeRewriter {
               if (definition != null && definition.getOptimizationInfo().returnsArgument()) {
                 int argumentIndex = definition.getOptimizationInfo().getReturnedArgument();
                 // Replace the out value of the invoke with the argument and ignore the out value.
-                if (argumentIndex != -1 && checkArgumentType(invoke, target.method,
-                    argumentIndex)) {
+                if (argumentIndex != -1
+                    && checkArgumentType(invoke, target.method, argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
-                  assert invoke.outValue().verifyCompatible(argument.outType());
-                  invoke.outValue().replaceUsers(argument);
+                  Value outValue = invoke.outValue();
+                  assert outValue.verifyCompatible(argument.outType());
+                  if (argument.getTypeLattice().lessThanOrEqual(
+                      outValue.getTypeLattice(), appInfo)) {
+                    needToNarrowValues.addAll(outValue.affectedValues());
+                  } else {
+                    needToWidenValues.addAll(outValue.affectedValues());
+                  }
+                  outValue.replaceUsers(argument);
                   invoke.setOutValue(null);
                 }
               }
             }
           }
         }
+      }
+    }
+    if (!needToWidenValues.isEmpty() || !needToNarrowValues.isEmpty()) {
+      TypeAnalysis analysis = new TypeAnalysis(appInfo, code.method);
+      // If out value of invoke < argument (e.g., losing non-null info), widen users type.
+      if (!needToWidenValues.isEmpty()) {
+        analysis.widening(needToWidenValues);
+      }
+      // Otherwise, i.e., argument has more precise types, narrow users type.
+      if (!needToNarrowValues.isEmpty()) {
+        analysis.narrowing(needToNarrowValues);
       }
     }
     assert code.isConsistentGraph();

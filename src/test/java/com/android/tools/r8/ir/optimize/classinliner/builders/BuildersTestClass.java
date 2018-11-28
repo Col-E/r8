@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.builders;
 
+import com.android.tools.r8.NeverInline;
+
 public class BuildersTestClass {
   private static int ID = 0;
 
@@ -17,31 +19,35 @@ public class BuildersTestClass {
 
   public static void main(String[] args) {
     BuildersTestClass test = new BuildersTestClass();
-    test.testSimpleBuilder();
+    test.testSimpleBuilder1();
     test.testSimpleBuilderWithMultipleBuilds();
     test.testBuilderConstructors();
     test.testWithControlFlow();
     test.testWithMoreControlFlow();
   }
 
-  private synchronized void testSimpleBuilder() {
+  @NeverInline
+  private void testSimpleBuilder1() {
     System.out.println(
-        new PairBuilder<String, String>().setFirst("f-" + next()).build().toString());
+        new PairBuilder<String, String>().setFirst("f-" + next()).build());
     testSimpleBuilder2();
     testSimpleBuilder3();
   }
 
-  private synchronized void testSimpleBuilder2() {
+  @NeverInline
+  private void testSimpleBuilder2() {
     System.out.println(
-        new PairBuilder<String, String>().setSecond("s-" + next()).build().toString());
+        new PairBuilder<String, String>().setSecond("s-" + next()).build());
   }
 
-  private synchronized void testSimpleBuilder3() {
+  @NeverInline
+  private void testSimpleBuilder3() {
     System.out.println(new PairBuilder<String, String>()
-        .setFirst("f-" + next()).setSecond("s-" + next()).build().toString());
+        .setFirst("f-" + next()).setSecond("s-" + next()).build());
   }
 
-  private synchronized void testSimpleBuilderWithMultipleBuilds() {
+  @NeverInline
+  private void testSimpleBuilderWithMultipleBuilds() {
     PairBuilder<String, String> builder = new PairBuilder<>();
     Pair p1 = builder.build();
     System.out.println(p1.toString());
@@ -53,13 +59,15 @@ public class BuildersTestClass {
     System.out.println(p3.toString());
   }
 
-  private synchronized void testBuilderConstructors() {
+  @NeverInline
+  private void testBuilderConstructors() {
     System.out.println(new Tuple().toString());
     System.out.println(new Tuple(true, (byte) 77, (short) 9977, '#', 42,
         987654321123456789L, -12.34f, 43210.98765, "s-" + next() + "-s").toString());
   }
 
-  private synchronized void testWithControlFlow() {
+  @NeverInline
+  private void testWithControlFlow() {
     ControlFlow flow = new ControlFlow(-1, 2, 7);
     for (int k = 0; k < 25; k++) {
       if (k % 3 == 0) {
@@ -71,7 +79,8 @@ public class BuildersTestClass {
     System.out.println("flow = " + flow.toString());
   }
 
-  private synchronized void testWithMoreControlFlow() {
+  @NeverInline
+  private void testWithMoreControlFlow() {
     String str = "1234567890";
     Pos pos = new Pos();
     while (pos.y < str.length()) {
