@@ -29,7 +29,6 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.BitSet;
-import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
