@@ -28,7 +28,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
-import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -45,7 +44,6 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
-import com.android.tools.r8.ir.code.Store;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
@@ -385,75 +383,59 @@ public class CfBuilder {
 
   private void rewriteIincPatterns() {
     for (BasicBlock block : code.blocks) {
-      if (block.getInstructions().size() < IINC_PATTERN_SIZE) {
-        continue;
-      }
-      int earliestAddInstrIdx = 2;
-      int latestAddInstrIdx = block.getInstructions().size() - 3;
       ListIterator<Instruction> it = block.getInstructions().listIterator();
-      int instrIdx = -1;
-      while (it.hasNext()) {
-        ++instrIdx;
-        Instruction current = it.next();
-        if (instrIdx < earliestAddInstrIdx || latestAddInstrIdx < instrIdx || !current.isAdd()) {
-          continue;
-        }
-        it.previous();
-        it.previous();
-        it.previous();
-        Instruction instruction0 = it.next();
-        Instruction instruction1 = it.next();
-        Add instruction2 = it.next().asAdd();
-        Store instruction3 = it.next().asStore();
-
-        // Set bail-out position after Add.
-        it.previous();
-
-        if (instruction3 == null) {
+      // Test that we have enough instructions for iinc.
+      while (IINC_PATTERN_SIZE <= block.getInstructions().size() - it.nextIndex()) {
+        Instruction loadOrConst1 = it.next();
+        if (!loadOrConst1.isLoad() && !loadOrConst1.isConstNumber()) {
           continue;
         }
         Load load;
         ConstNumber constNumber;
-
-        if (instruction0.isLoad()) {
-          load = instruction0.asLoad();
-          constNumber = instruction1.asConstNumber();
+        if (loadOrConst1.isLoad()) {
+          load = loadOrConst1.asLoad();
+          constNumber = it.next().asConstNumber();
         } else {
-          constNumber = instruction0.asConstNumber();
-          load = instruction1.asLoad();
+          load = it.next().asLoad();
+          constNumber = loadOrConst1.asConstNumber();
         }
-
+        Instruction add = it.next().asAdd();
+        Instruction store = it.next().asStore();
+        // Reset pointer to load.
+        it.previous();
+        it.previous();
+        it.previous();
+        it.previous();
         if (load == null
             || constNumber == null
+            || add == null
+            || store == null
             || constNumber.outValue().getTypeLattice() != TypeLatticeElement.INT) {
+          it.next();
           continue;
         }
-
         int increment = constNumber.getIntValue();
         if (increment < Byte.MIN_VALUE || Byte.MAX_VALUE < increment) {
+          it.next();
           continue;
         }
-
-        int register = getLocalRegister(load.inValues().get(0));
-        if (register != getLocalRegister(instruction3.outValue())) {
+        if (getLocalRegister(load.src()) != getLocalRegister(store.outValue())) {
+          it.next();
           continue;
         }
-        Position position = instruction2.getPosition();
-        if (position != instruction0.getPosition()
-            || position != instruction1.getPosition()
-            || position != instruction3.getPosition()) {
+        Position position = add.getPosition();
+        if (position != load.getPosition()
+            || position != constNumber.getPosition()
+            || position != store.getPosition()) {
           continue;
         }
-        it.previous();
-        it.previous();
-        it.previous();
         it.remove();
         it.next();
         it.remove();
         it.next();
         it.remove();
         it.next();
-        Inc inc = new Inc(instruction3.outValue(), load.inValues().get(0), increment);
+        Inc inc = new Inc(store.outValue(), load.inValues().get(0), increment);
         inc.setPosition(position);
         inc.setBlock(block);
         it.set(inc);
