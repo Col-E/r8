@@ -88,6 +88,13 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
     return self();
   }
 
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    appendInfo(builder);
+    return builder.toString();
+  }
+
   private String errorMessage(String message) {
     return errorMessage(message, null);
   }

@@ -36,6 +36,8 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
@@ -93,6 +95,7 @@ import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class IRConverter {
@@ -1243,18 +1246,114 @@ public class IRConverter {
     }
   }
 
+  /**
+   * For each block, we look to see if the header matches:
+   *
+   * <pre>
+   *   pseudo-instructions*
+   *   v2 <- long-{mul,div} v0 v1
+   *   pseudo-instructions*
+   *   v5 <- long-{add,sub} v3 v4
+   * </pre>
+   *
+   * where v2 ~=~ v3 or v2 ~=~ v4 (with ~=~ being equal or an alias of) and the block is not a
+   * fallthrough target.
+   */
   private void materializeInstructionBeforeLongOperationsWorkaround(IRCode code) {
     if (!options.canHaveDex2OatLinkedListBug()) {
       return;
     }
+    DexItemFactory factory = options.itemFactory;
+    final Supplier<DexMethod> javaLangLangSignum =
+        Suppliers.memoize(
+            () ->
+                factory.createMethod(
+                    factory.createString("Ljava/lang/Long;"),
+                    factory.createString("signum"),
+                    factory.intDescriptor,
+                    new DexString[] {factory.longDescriptor}));
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator();
-      Instruction firstMaterializing =
-          it.nextUntil(IRConverter::isMaterializingInstructionOnArtArmVersionM);
-      if (needsInstructionBeforeLongOperation(firstMaterializing)) {
-        ensureInstructionBefore(code, firstMaterializing, it);
+      Instruction firstMaterializing = it.nextUntil(IRConverter::isNotPseudoInstruction);
+      if (!isLongMul(firstMaterializing)) {
+        continue;
+      }
+      Instruction secondMaterializing = it.nextUntil(IRConverter::isNotPseudoInstruction);
+      if (!isLongAddOrSub(secondMaterializing)) {
+        continue;
+      }
+      if (isFallthoughTarget(block)) {
+        continue;
+      }
+      Value outOfMul = firstMaterializing.outValue();
+      for (Value inOfAddOrSub : secondMaterializing.inValues()) {
+        if (isAliasOf(inOfAddOrSub, outOfMul)) {
+          it = block.listIterator();
+          it.nextUntil(i -> i == firstMaterializing);
+          Value longValue = firstMaterializing.inValues().get(0);
+          InvokeStatic invokeLongSignum =
+              new InvokeStatic(
+                  javaLangLangSignum.get(), null, Collections.singletonList(longValue));
+          ensureThrowingInstructionBefore(code, firstMaterializing, it, invokeLongSignum);
+          return;
+        }
       }
     }
+  }
+
+  private static boolean isAliasOf(Value usedValue, Value definingValue) {
+    while (true) {
+      if (usedValue == definingValue) {
+        return true;
+      }
+      Instruction definition = usedValue.definition;
+      if (definition == null || !definition.isMove()) {
+        return false;
+      }
+      usedValue = definition.asMove().src();
+    }
+  }
+
+  private static boolean isNotPseudoInstruction(Instruction instruction) {
+    return !(instruction.isDebugInstruction() || instruction.isMove());
+  }
+
+  private static boolean isLongMul(Instruction instruction) {
+    return instruction != null
+        && instruction.isMul()
+        && instruction.asBinop().getNumericType() == NumericType.LONG
+        && instruction.outValue() != null;
+  }
+
+  private static boolean isLongAddOrSub(Instruction instruction) {
+    return instruction != null
+        && (instruction.isAdd() || instruction.isSub())
+        && instruction.asBinop().getNumericType() == NumericType.LONG;
+  }
+
+  private static boolean isFallthoughTarget(BasicBlock block) {
+    for (BasicBlock pred : block.getPredecessors()) {
+      if (pred.exit().fallthroughBlock() == block) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void ensureThrowingInstructionBefore(
+      IRCode code, Instruction addBefore, InstructionListIterator it, Instruction instruction) {
+    Instruction check = it.previous();
+    assert addBefore == check;
+    BasicBlock block = check.getBlock();
+    if (block.hasCatchHandlers()) {
+      // Split so the existing instructions retain their handlers and the new instruction has none.
+      BasicBlock split = it.split(code);
+      assert split.hasCatchHandlers();
+      assert !block.hasCatchHandlers();
+      it = block.listIterator(block.getInstructions().size() - 1);
+    }
+    instruction.setPosition(addBefore.getPosition());
+    it.add(instruction);
   }
 
   private static void ensureInstructionBefore(
@@ -1273,33 +1372,6 @@ public class IRConverter {
     fixitUser.setBlock(addBefore.getBlock());
     fixitUser.setPosition(addBefore.getPosition());
     it.add(fixitUser);
-  }
-
-  private static boolean needsInstructionBeforeLongOperation(Instruction instruction) {
-    // The cortex fixup will only trigger on long sub and long add instructions.
-    if (!((instruction.isAdd() || instruction.isSub()) && instruction.outType().isWide())) {
-      return false;
-    }
-    // If the block with the instruction is a fallthrough block, then it can't end up being
-    // preceded by the incorrectly linked prologue/epilogue..
-    BasicBlock block = instruction.getBlock();
-    for (BasicBlock pred : block.getPredecessors()) {
-      if (pred.exit().fallthroughBlock() == block) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private static boolean isMaterializingInstructionOnArtArmVersionM(Instruction instruction) {
-    return !instruction.isDebugInstruction()
-        && !instruction.isMove()
-        && !isPossiblyNonMaterializingLongOperationOnArtArmVersionM(instruction);
-  }
-
-  private static boolean isPossiblyNonMaterializingLongOperationOnArtArmVersionM(
-      Instruction instruction) {
-    return (instruction.isMul() || instruction.isDiv()) && instruction.outType().isWide();
   }
 
   private void printC1VisualizerHeader(DexEncodedMethod method) {

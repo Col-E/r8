@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -113,6 +114,14 @@ public abstract class TestCompilerBuilder<
   }
 
   @Override
+  public T addProgramClassFileData(Collection<byte[]> classes) {
+    for (byte[] clazz : classes) {
+      builder.addClassProgramData(clazz, Origin.unknown());
+    }
+    return self();
+  }
+
+  @Override
   public T addProgramFiles(Collection<Path> files) {
     builder.addProgramFiles(files);
     return self();
@@ -122,6 +131,11 @@ public abstract class TestCompilerBuilder<
   public T addLibraryFiles(Collection<Path> files) {
     defaultLibrary = null;
     builder.addLibraryFiles(files);
+    return self();
+  }
+
+  public T noDesugaring() {
+    builder.setDisableDesugaring(true);
     return self();
   }
 }
