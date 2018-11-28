@@ -1392,6 +1392,7 @@ public class Enqueuer {
           ConsequentRootSet consequentRootSet = ifRuleEvaluator.run(liveTypes);
           enqueueRootItems(consequentRootSet.noShrinking);
           rootSet.neverInline.addAll(consequentRootSet.neverInline);
+          rootSet.neverClassInline.addAll(consequentRootSet.neverClassInline);
           rootSet.noOptimization.addAll(consequentRootSet.noOptimization);
           rootSet.noObfuscation.addAll(consequentRootSet.noObfuscation);
           rootSet.addDependentItems(consequentRootSet.dependentNoShrinking);

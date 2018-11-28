@@ -327,7 +327,12 @@ public class RootSetBuilder {
         application.timing.end();
       }
       return new ConsequentRootSet(
-          neverInline, noShrinking, noOptimization, noObfuscation, dependentNoShrinking);
+          neverInline,
+          neverClassInline,
+          noShrinking,
+          noOptimization,
+          noObfuscation,
+          dependentNoShrinking);
     }
 
     /**
@@ -412,6 +417,14 @@ public class RootSetBuilder {
 
     private void materializeIfRule(ProguardIfRule rule) {
       ProguardIfRule materializedRule = rule.materialize();
+
+      // We need to abort class inlining of classes that could be matched by the condition of this
+      // -if rule.
+      ClassInlineRule neverClassInlineRuleForCondition =
+          materializedRule.neverClassInlineRuleForCondition();
+      if (neverClassInlineRuleForCondition != null) {
+        runPerRule(executorService, futures, neverClassInlineRuleForCondition, materializedRule);
+      }
 
       // If the condition of the -if rule has any members, then we need to keep these members to
       // ensure that the subsequent rule will be applied again in the second round of tree
@@ -957,7 +970,7 @@ public class RootSetBuilder {
       this.alwaysInline = Collections.unmodifiableSet(alwaysInline);
       this.forceInline = Collections.unmodifiableSet(forceInline);
       this.neverInline = neverInline;
-      this.neverClassInline = Collections.unmodifiableSet(neverClassInline);
+      this.neverClassInline = neverClassInline;
       this.neverMerge = Collections.unmodifiableSet(neverMerge);
       this.noSideEffects = Collections.unmodifiableMap(noSideEffects);
       this.assumedValues = Collections.unmodifiableMap(assumedValues);
@@ -1010,6 +1023,7 @@ public class RootSetBuilder {
   // A partial RootSet that becomes live due to the enabled -if rule.
   static class ConsequentRootSet {
     final Set<DexMethod> neverInline;
+    final Set<DexType> neverClassInline;
     final Map<DexDefinition, ProguardKeepRule> noShrinking;
     final Set<DexDefinition> noOptimization;
     final Set<DexDefinition> noObfuscation;
@@ -1017,11 +1031,13 @@ public class RootSetBuilder {
 
     private ConsequentRootSet(
         Set<DexMethod> neverInline,
+        Set<DexType> neverClassInline,
         Map<DexDefinition, ProguardKeepRule> noShrinking,
         Set<DexDefinition> noOptimization,
         Set<DexDefinition> noObfuscation,
         Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking) {
       this.neverInline = Collections.unmodifiableSet(neverInline);
+      this.neverClassInline = Collections.unmodifiableSet(neverClassInline);
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
       this.noOptimization = Collections.unmodifiableSet(noOptimization);
       this.noObfuscation = Collections.unmodifiableSet(noObfuscation);
