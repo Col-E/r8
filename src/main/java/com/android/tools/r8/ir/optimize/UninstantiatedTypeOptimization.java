@@ -29,6 +29,7 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.BitSet;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
@@ -249,8 +250,10 @@ public class UninstantiatedTypeOptimization {
     instructionIterator.previous();
 
     // Unlink all blocks that are dominated by successor.
-    DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-    blocksToBeRemoved.addAll(block.unlink(normalSuccessorBlock, dominatorTree));
+    {
+      DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
+      blocksToBeRemoved.addAll(block.unlink(normalSuccessorBlock, dominatorTree));
+    }
 
     // Insert constant null before the instruction.
     instructionIterator.previous();
@@ -284,6 +287,9 @@ public class UninstantiatedTypeOptimization {
               return;
             }
             if (!appView.dexItemFactory().npeType.isSubtypeOf(guard, appView.appInfo())) {
+              // TODO(christofferqa): Consider updating previous dominator tree instead of
+              // rebuilding it from scratch.
+              DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
               blocksToBeRemoved.addAll(block.unlink(target, dominatorTree));
             }
           });
