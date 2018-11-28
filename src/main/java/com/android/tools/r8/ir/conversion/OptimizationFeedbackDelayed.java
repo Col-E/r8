@@ -59,7 +59,7 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
   }
 
   @Override
-  public void markUseIdentifierNameString(DexEncodedMethod method) {
+  public synchronized void markUseIdentifierNameString(DexEncodedMethod method) {
     getOptimizationInfoForUpdating(method).markUseIdentifierNameString();
   }
 

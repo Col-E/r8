@@ -11,6 +11,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.utils.EncodedValueUtils;
 import java.util.Arrays;
 import org.objectweb.asm.Handle;
@@ -719,9 +720,20 @@ public abstract class DexValue extends DexItem {
   }
 
   public static class DexItemBasedValueString extends NestedDexValue<DexReference> {
+    private final ClassNameComputationInfo classNameComputationInfo;
 
     public DexItemBasedValueString(DexReference value) {
+      this(value, ClassNameComputationInfo.none());
+    }
+
+    public DexItemBasedValueString(
+        DexReference value, ClassNameComputationInfo classNameComputationInfo) {
       super(value);
+      this.classNameComputationInfo = classNameComputationInfo;
+    }
+
+    public ClassNameComputationInfo getClassNameComputationInfo() {
+      return classNameComputationInfo;
     }
 
     @Override

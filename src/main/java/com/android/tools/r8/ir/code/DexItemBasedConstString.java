@@ -13,23 +13,36 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 
 public class DexItemBasedConstString extends ConstInstruction {
 
   private final DexReference item;
+  private final ClassNameComputationInfo classNameComputationInfo;
 
   public DexItemBasedConstString(Value dest, DexReference item) {
+    this(dest, item, ClassNameComputationInfo.none());
+  }
+
+  public DexItemBasedConstString(
+      Value dest, DexReference item, ClassNameComputationInfo classNameComputationInfo) {
     super(dest);
     dest.markNeverNull();
     this.item = item;
+    this.classNameComputationInfo = classNameComputationInfo;
   }
 
   public static DexItemBasedConstString copyOf(Value newValue, DexItemBasedConstString original) {
-    return new DexItemBasedConstString(newValue, original.getItem());
+    return new DexItemBasedConstString(
+        newValue, original.getItem(), original.classNameComputationInfo);
   }
 
   public DexReference getItem() {
     return item;
+  }
+
+  public ClassNameComputationInfo getClassNameComputationInfo() {
+    return classNameComputationInfo;
   }
 
   @Override
@@ -45,7 +58,10 @@ public class DexItemBasedConstString extends ConstInstruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(outValue(), getNumber());
-    builder.add(this, new com.android.tools.r8.code.DexItemBasedConstString(dest, item));
+    builder.add(
+        this,
+        new com.android.tools.r8.code.DexItemBasedConstString(
+            dest, item, classNameComputationInfo));
   }
 
   @Override
@@ -99,7 +115,7 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfDexItemBasedConstString(item));
+    builder.add(new CfDexItemBasedConstString(item, classNameComputationInfo));
   }
 
   @Override
@@ -109,6 +125,6 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.stringType, false, appInfo);
+    return TypeLatticeElement.stringClassType(appInfo);
   }
 }

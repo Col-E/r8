@@ -1726,7 +1726,7 @@ public class CodeRewriter {
   }
 
   // Check if the static put is a constant derived from the class holding the method.
-  // This checks for java.lang.Class.getName and java.lang.Class.getSimpleName.
+  // This checks for java.lang.Class.get*Name.
   private boolean isClassNameConstantOf(DexClass clazz, StaticPut put) {
     if (put.getField().type != dexItemFactory.stringType) {
       return false;
@@ -1740,8 +1740,7 @@ public class CodeRewriter {
   private boolean isClassNameConstantOf(DexClass clazz, Instruction instruction) {
     if (instruction.isInvokeVirtual()) {
       InvokeVirtual invoke = instruction.asInvokeVirtual();
-      if ((invoke.getInvokedMethod() == dexItemFactory.classMethods.getSimpleName
-          || invoke.getInvokedMethod() == dexItemFactory.classMethods.getName)
+      if (dexItemFactory.classMethods.isReflectiveNameLookup(invoke.getInvokedMethod())
           && !invoke.inValues().get(0).isPhi()
           && invoke.inValues().get(0).definition.isConstClass()
           && invoke.inValues().get(0).definition.asConstClass().getValue() == clazz.type) {
@@ -1785,7 +1784,9 @@ public class CodeRewriter {
             } else if (inValue.isDexItemBasedConstString()) {
               DexItemBasedConstString cnst =
                   inValue.getConstInstruction().asDexItemBasedConstString();
-              encodedField.setStaticValue(new DexItemBasedValueString(cnst.getItem()));
+              assert !cnst.getClassNameComputationInfo().needsToComputeClassName();
+              encodedField.setStaticValue(
+                  new DexItemBasedValueString(cnst.getItem(), cnst.getClassNameComputationInfo()));
             } else {
               assert false;
             }
@@ -1886,6 +1887,9 @@ public class CodeRewriter {
               }
               DexField field = put.getField();
               if (clazz.definesStaticField(field)) {
+                if (put.inValue().isDexItemBasedConstStringThatNeedsToComputeClassName()) {
+                  continue;
+                }
                 if (put.inValue().isConstant()) {
                   if ((field.type.isClassType() || field.type.isArrayType())
                       && put.inValue().isZero()) {

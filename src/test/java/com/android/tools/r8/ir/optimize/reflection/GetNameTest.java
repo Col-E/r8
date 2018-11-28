@@ -153,6 +153,53 @@ public class GetNameTest extends GetNameTestBase {
       // getSimpleName, local
       "-Returned-empty-"
   );
+  private static final String RENAMED_OUTPUT = StringUtils.lines(
+      // getName
+      "com.android.tools.r8.ir.optimize.reflection.e",
+      // getTypeName
+      // TODO(b/119426668): desugar Type#getTypeName
+      // "com.android.tools.r8.ir.optimize.reflection.e",
+      // getCanonicalName
+      "com.android.tools.r8.ir.optimize.reflection.e",
+      // getSimpleName
+      "e",
+      // getName, inner
+      "com.android.tools.r8.ir.optimize.reflection.c",
+      // getTypeName, inner
+      // TODO(b/119426668): desugar Type#getTypeName
+      // "com.android.tools.r8.ir.optimize.reflection.c",
+      // getCanonicalName, inner
+      "com.android.tools.r8.ir.optimize.reflection.c",
+      // getSimpleName, inner
+      "c",
+      // getName, array
+      "[Lcom.android.tools.r8.ir.optimize.reflection.e;",
+      // getTypeName, array
+      // TODO(b/119426668): desugar Type#getTypeName
+      // "com.android.tools.r8.ir.optimize.reflection.e[]",
+      // getCanonicalName, array
+      "com.android.tools.r8.ir.optimize.reflection.e[]",
+      // getSimpleName, array
+      "e[]",
+      // getName, anonymous
+      "com.android.tools.r8.ir.optimize.reflection.a",
+      // getTypeName, anonymous
+      // TODO(b/119426668): desugar Type#getTypeName
+      // "com.android.tools.r8.ir.optimize.reflection.a",
+      // getCanonicalName, anonymous
+      "-Returned-null-",
+      // getSimpleName, anonymous
+      "-Returned-empty-",
+      // getName, local
+      "com.android.tools.r8.ir.optimize.reflection.b",
+      // getTypeName, local
+      // TODO(b/119426668): desugar Type#getTypeName
+      // "com.android.tools.r8.ir.optimize.reflection.b,
+      // getCanonicalName, local
+      "-Returned-null-",
+      // getSimpleName, local
+      "-Returned-empty-"
+  );
   private static final Class<?> MAIN = GetName0Main.class;
 
   public GetNameTest(Backend backend, boolean enableMinification) throws Exception {
@@ -212,18 +259,13 @@ public class GetNameTest extends GetNameTestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.GetName0*")
-        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod");
+        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
-    TestRunResult result = builder.run(MAIN);
-    if (enableMinification) {
-      // TODO(b/118536394): Check even renamed names.
-      test(result, 11);
-    } else {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-      test(result, 0);
-    }
+    TestRunResult result = builder.run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, 0);
   }
 
   @Test
@@ -235,7 +277,8 @@ public class GetNameTest extends GetNameTestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep,allowobfuscation class **.GetName0*")
-        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod");
+        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
@@ -245,12 +288,11 @@ public class GetNameTest extends GetNameTestBase {
       if (backend == Backend.CF) {
         return;
       }
-      // TODO(b/118536394): Check even renamed names.
-      test(result, 11);
+      result.assertSuccessWithOutput(RENAMED_OUTPUT);
     } else {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
-      test(result, 0);
     }
+    test(result, 0);
   }
 
 }

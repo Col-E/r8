@@ -1203,14 +1203,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     optimizationInfo = info;
   }
 
-  public void copyMetadataFromInlinee(DexEncodedMethod inlinee) {
+  public void copyMetadata(DexEncodedMethod from) {
     checkIfObsolete();
     // Record that the current method uses identifier name string if the inlinee did so.
-    if (inlinee.getOptimizationInfo().useIdentifierNameString()) {
+    if (from.getOptimizationInfo().useIdentifierNameString()) {
       getMutableOptimizationInfo().markUseIdentifierNameString();
     }
-    if (inlinee.classFileVersion > classFileVersion) {
-      upgradeClassFileVersion(inlinee.getClassFileVersion());
+    if (from.classFileVersion > classFileVersion) {
+      upgradeClassFileVersion(from.getClassFileVersion());
     }
   }
 

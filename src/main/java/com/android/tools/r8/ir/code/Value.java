@@ -726,6 +726,12 @@ public class Value {
     return isConstant() && getConstInstruction().isDexItemBasedConstString();
   }
 
+  public boolean isDexItemBasedConstStringThatNeedsToComputeClassName() {
+    return isDexItemBasedConstString()
+        && getConstInstruction().asDexItemBasedConstString()
+            .getClassNameComputationInfo().needsToComputeClassName();
+  }
+
   public boolean isConstClass() {
     return isConstant() && getConstInstruction().isConstClass();
   }
