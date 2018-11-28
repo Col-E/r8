@@ -41,8 +41,6 @@ public class MetadataStripTest extends TestBase {
       o -> {
         o.enableTreeShaking = true;
         o.enableMinification = true;
-        // TODO(b/119626580): assertion failure at fixupStaticizedValueUsers.
-        o.enableClassStaticizer = false;
       };
 
   @Parameterized.Parameters(name = "Backend: {0} target: {1}")
