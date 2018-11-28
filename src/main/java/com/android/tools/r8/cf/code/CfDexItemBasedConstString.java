@@ -6,22 +6,32 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfDexItemBasedConstString extends CfInstruction {
 
-  private DexReference item;
+  private final DexReference item;
+  private final ClassNameComputationInfo classNameComputationInfo;
 
-  public CfDexItemBasedConstString(DexReference item) {
+  public CfDexItemBasedConstString(
+      DexReference item, ClassNameComputationInfo classNameComputationInfo) {
     this.item = item;
+    this.classNameComputationInfo = classNameComputationInfo;
   }
 
   public DexReference getItem() {
     return item;
+  }
+
+  public ClassNameComputationInfo getClassNameComputationInfo() {
+    return classNameComputationInfo;
   }
 
   @Override
@@ -49,6 +59,13 @@ public class CfDexItemBasedConstString extends CfInstruction {
   public boolean canThrow() {
     // The ldc instruction may throw in Java bytecode.
     return true;
+  }
+
+  @Override
+  public void registerUse(UseRegistry registry, DexType clazz) {
+    if (item.isDexType() && classNameComputationInfo.needsToRegisterTypeReference()) {
+      registry.registerTypeReference(item.asDexType());
+    }
   }
 
   @Override

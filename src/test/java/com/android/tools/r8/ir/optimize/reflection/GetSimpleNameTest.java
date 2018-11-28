@@ -88,6 +88,14 @@ public class GetSimpleNameTest extends GetNameTestBase {
       "Local[][][]",
       "[][][]"
   );
+  private static final String RENAMED_OUTPUT = StringUtils.lines(
+      "f",
+      "e",
+      "b",
+      "a",
+      "d[][][]",
+      "[][][]"
+  );
   private static final Class<?> MAIN = ClassGetSimpleName.class;
 
   public GetSimpleNameTest(Backend backend, boolean enableMinification) throws Exception {
@@ -146,16 +154,12 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.ClassGetSimpleName*")
-        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod");
+        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
-    TestRunResult result = builder.run(MAIN);
-    if (enableMinification) {
-      // TODO(b/118536394): Check even renamed simple name.
-    } else {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
+    TestRunResult result = builder.run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0);
   }
 
@@ -168,7 +172,8 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep,allowobfuscation class **.ClassGetSimpleName*")
-        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod");
+        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
@@ -178,7 +183,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
       if (backend == Backend.CF) {
         return;
       }
-      // TODO(b/118536394): Check even renamed simple name.
+      result.assertSuccessWithOutput(RENAMED_OUTPUT);
     } else {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
     }

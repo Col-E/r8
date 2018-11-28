@@ -531,6 +531,7 @@ final class LambdaClass {
                   encodedMethod.annotations,
                   encodedMethod.parameterAnnotationsList,
                   encodedMethod.getCode());
+          newMethod.copyMetadata(encodedMethod);
           rewriter.methodMapping.put(encodedMethod.method, callTarget);
           // TODO(ager): Should we give the new first parameter an actual name? Maybe 'this'?
           DexCode dexCode = newMethod.getCode().asDexCode();

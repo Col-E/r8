@@ -4,10 +4,13 @@
 package com.android.tools.r8.ir.optimize.reflection;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Streams;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -19,6 +22,7 @@ public abstract class GetNameTestBase extends TestBase {
 
   final Backend backend;
   final boolean enableMinification;
+  Path mapping;
 
   @Parameterized.Parameters(name = "Backend: {0} minification: {1}")
   public static Collection<Object[]> data() {
@@ -28,6 +32,11 @@ public abstract class GetNameTestBase extends TestBase {
   GetNameTestBase(Backend backend, boolean enableMinification) {
     this.backend = backend;
     this.enableMinification = enableMinification;
+  }
+
+  Path createNewMappingPath() throws IOException {
+    mapping = temp.newFile(ToolHelper.DEFAULT_PROGUARD_MAP_FILE).toPath();
+    return mapping;
   }
 
   static boolean isNameReflection(DexMethod method) {

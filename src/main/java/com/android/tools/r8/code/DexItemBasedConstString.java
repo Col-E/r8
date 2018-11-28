@@ -6,7 +6,9 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 
@@ -15,12 +17,20 @@ public class DexItemBasedConstString extends Format21c {
   public static final String NAME = "DexItemBasedConstString";
   public static final String SMALI_NAME = "const-string*";
 
-  public DexItemBasedConstString(int register, DexReference string) {
+  private final ClassNameComputationInfo classNameComputationInfo;
+
+  public DexItemBasedConstString(
+      int register, DexReference string, ClassNameComputationInfo classNameComputationInfo) {
     super(register, string);
+    this.classNameComputationInfo = classNameComputationInfo;
   }
 
   public DexReference getItem() {
     return (DexReference) BBBB;
+  }
+
+  public ClassNameComputationInfo getClassNameComputationInfo() {
+    return classNameComputationInfo;
   }
 
   @Override
@@ -65,6 +75,13 @@ public class DexItemBasedConstString extends Format21c {
   public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
     throw new Unreachable(
         "DexItemBasedConstString instructions should always be rewritten into ConstString");
+  }
+
+  @Override
+  public void registerUse(UseRegistry registry) {
+    if (getItem().isDexType() && classNameComputationInfo.needsToRegisterTypeReference()) {
+      registry.registerTypeReference(getItem().asDexType());
+    }
   }
 
   @Override

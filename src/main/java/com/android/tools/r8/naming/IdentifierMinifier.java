@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.computeClassName;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 
 import com.android.tools.r8.cf.code.CfConstString;
@@ -23,7 +24,6 @@ import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
-import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,23 +36,19 @@ class IdentifierMinifier {
   private final AppInfoWithLiveness appInfo;
   private final ProguardClassFilter adaptClassStrings;
   private final NamingLens lens;
-  private final Object2BooleanMap<DexReference> identifierNameStrings;
 
   IdentifierMinifier(
       AppInfoWithLiveness appInfo, ProguardClassFilter adaptClassStrings, NamingLens lens) {
     this.appInfo = appInfo;
     this.adaptClassStrings = adaptClassStrings;
     this.lens = lens;
-    this.identifierNameStrings = appInfo.identifierNameStrings;
   }
 
   void run() {
     if (!adaptClassStrings.isEmpty()) {
       adaptClassStrings();
     }
-    if (!identifierNameStrings.isEmpty()) {
-      replaceIdentifierNameString();
-    }
+    replaceDexItemBasedConstString();
   }
 
   private void adaptClassStrings() {
@@ -120,28 +116,35 @@ class IdentifierMinifier {
     return originalLiteral;
   }
 
-  // TODO(christofferqa): Rename to replaceDexItemBasedConstString.
-  private void replaceIdentifierNameString() {
+  private void replaceDexItemBasedConstString() {
     for (DexProgramClass clazz : appInfo.classes()) {
       // Some const strings could be moved to field's static value (from <clinit>).
       for (DexEncodedField field : clazz.staticFields()) {
-        replaceIdentifierNameStringInStaticField(field);
+        replaceDexItemBasedConstStringInStaticField(field);
       }
-      clazz.forEachMethod(this::replaceIdentifierNameStringInMethod);
+      clazz.forEachMethod(this::replaceDexItemBasedConstStringInMethod);
     }
   }
 
-  private void replaceIdentifierNameStringInStaticField(DexEncodedField encodedField) {
+  private void replaceDexItemBasedConstStringInStaticField(DexEncodedField encodedField) {
     assert encodedField.accessFlags.isStatic();
     DexValue staticValue = encodedField.getStaticValue();
     if (staticValue instanceof DexItemBasedValueString) {
-      DexReference original = ((DexItemBasedValueString) staticValue).getValue();
-      encodedField.setStaticValue(
-          new DexValueString(lens.lookupName(original, appInfo.dexItemFactory)));
+      DexItemBasedValueString dexItemBasedValueString = (DexItemBasedValueString) staticValue;
+      DexReference original = dexItemBasedValueString.getValue();
+      DexString replacement =
+          dexItemBasedValueString.getClassNameComputationInfo().needsToComputeClassName()
+              ? appInfo.dexItemFactory.createString(
+                  computeClassName(
+                      lens.lookupDescriptor(original.asDexType()),
+                      appInfo.definitionFor(original.asDexType()),
+                      dexItemBasedValueString.getClassNameComputationInfo()))
+              : lens.lookupName(original, appInfo.dexItemFactory);
+      encodedField.setStaticValue(new DexValueString(replacement));
     }
   }
 
-  private void replaceIdentifierNameStringInMethod(DexEncodedMethod encodedMethod) {
+  private void replaceDexItemBasedConstStringInMethod(DexEncodedMethod encodedMethod) {
     if (!encodedMethod.getOptimizationInfo().useIdentifierNameString()) {
       return;
     }
@@ -159,8 +162,15 @@ class IdentifierMinifier {
         Instruction instruction = instructions[i];
         if (instruction instanceof DexItemBasedConstString) {
           DexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
-          instructions[i] =
-              new ConstString(cnst.AA, lens.lookupName(cnst.getItem(), appInfo.dexItemFactory));
+          DexString replacement =
+              cnst.getClassNameComputationInfo().needsToComputeClassName()
+                  ? appInfo.dexItemFactory.createString(
+                      computeClassName(
+                          lens.lookupDescriptor(cnst.getItem().asDexType()),
+                          appInfo.definitionFor(cnst.getItem().asDexType()),
+                          cnst.getClassNameComputationInfo()))
+                  : lens.lookupName(cnst.getItem(), appInfo.dexItemFactory);
+          instructions[i] = new ConstString(cnst.AA, replacement);
         }
       }
     } else {
@@ -170,8 +180,15 @@ class IdentifierMinifier {
         CfInstruction instruction = instructions.get(i);
         if (instruction.isDexItemBasedConstString()) {
           CfDexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
-          instructions.set(
-              i, new CfConstString(lens.lookupName(cnst.getItem(), appInfo.dexItemFactory)));
+          DexString replacement =
+              cnst.getClassNameComputationInfo().needsToComputeClassName()
+                  ? appInfo.dexItemFactory.createString(
+                      computeClassName(
+                          lens.lookupDescriptor(cnst.getItem().asDexType()),
+                          appInfo.definitionFor(cnst.getItem().asDexType()),
+                          cnst.getClassNameComputationInfo()))
+                  : lens.lookupName(cnst.getItem(), appInfo.dexItemFactory);
+          instructions.set(i, new CfConstString(replacement));
         }
       }
     }

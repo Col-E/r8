@@ -647,7 +647,7 @@ public class Inliner {
                 context.accessFlags.unsetBridge();
               }
 
-              context.copyMetadataFromInlinee(target);
+              context.copyMetadata(target);
               code.copyMetadataFromInlinee(inlinee.code);
             }
           }
