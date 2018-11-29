@@ -33,8 +33,7 @@ public class ArchiveBuilder implements OutputBuilder {
   private int openCount = 0;
   private int classesFileIndex = 0;
   private Map<Integer, DelayedData> delayedClassesDexFiles = new HashMap<>();
-  private SortedSet<DelayedData> delayedFiles = new TreeSet<>();
-  private SortedSet<String> delayedDirectories = new TreeSet<>();
+  private SortedSet<DelayedData> delayedWrites = new TreeSet<>();
 
   public ArchiveBuilder(Path archive) {
     this.archive = archive;
@@ -66,11 +65,14 @@ public class ArchiveBuilder implements OutputBuilder {
   private void writeDelayed(DiagnosticsHandler handler) {
     // We should never have any indexed files at this point
     assert delayedClassesDexFiles.isEmpty();
-    for (String directory : delayedDirectories) {
-      writeDirectoryNow(directory, handler);
-    }
-    for (DelayedData data : delayedFiles) {
-      writeFileNow(data.name, data.content, handler);
+    for (DelayedData data : delayedWrites) {
+      if (data.isDirectory) {
+        assert data.content == null;
+        writeDirectoryNow(data.name, handler);
+      } else {
+        assert data.content != null;
+        writeFileNow(data.name, data.content, handler);
+      }
     }
   }
 
@@ -106,7 +108,7 @@ public class ArchiveBuilder implements OutputBuilder {
 
   @Override
   public synchronized void addDirectory(String name, DiagnosticsHandler handler) {
-    delayedDirectories.add(name);
+    delayedWrites.add(DelayedData.createDirectory(name));
   }
 
   private void writeDirectoryNow(String name, DiagnosticsHandler handler) {
@@ -131,7 +133,7 @@ public class ArchiveBuilder implements OutputBuilder {
     try (InputStream in = content.getByteStream()) {
       ByteDataView view = ByteDataView.of(ByteStreams.toByteArray(in));
       synchronized (this) {
-        delayedFiles.add(new DelayedData(name, view));
+        delayedWrites.add(DelayedData.createFile(name, view));
       }
     } catch (IOException e) {
       handleIOException(e, handler);
@@ -143,7 +145,7 @@ public class ArchiveBuilder implements OutputBuilder {
 
   @Override
   public synchronized void addFile(String name, ByteDataView content, DiagnosticsHandler handler) {
-    delayedFiles.add(new DelayedData(name,  ByteDataView.of(content.copyByteData())));
+    delayedWrites.add(DelayedData.createFile(name,  ByteDataView.of(content.copyByteData())));
   }
 
   private void writeFileNow(String name, ByteDataView content, DiagnosticsHandler handler) {
@@ -174,7 +176,7 @@ public class ArchiveBuilder implements OutputBuilder {
     } else {
       // Data is released in the application writer, take a copy.
       delayedClassesDexFiles.put(index,
-          new DelayedData(name, ByteDataView.of(content.copyByteData())));
+          new DelayedData(name, ByteDataView.of(content.copyByteData()), false));
     }
   }
 
@@ -191,9 +193,20 @@ public class ArchiveBuilder implements OutputBuilder {
   private static class DelayedData implements Comparable<DelayedData> {
     public final String name;
     public final ByteDataView content;
-    public DelayedData(String name, ByteDataView content) {
+    public final boolean isDirectory;
+
+    public static DelayedData createFile(String name, ByteDataView content) {
+      return new DelayedData(name, content, false);
+    }
+
+    public static DelayedData createDirectory(String name) {
+      return new DelayedData(name, null, true);
+    }
+
+    private DelayedData(String name, ByteDataView content, boolean isDirectory) {
       this.name = name;
       this.content = content;
+      this.isDirectory = isDirectory;
     }
 
     @Override
