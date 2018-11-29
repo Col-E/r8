@@ -25,6 +25,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
   private final CompilationMode mode;
   private final ProgramConsumer programConsumer;
+  private final StringConsumer mainDexListConsumer;
   private final int minApiLevel;
   private final Reporter reporter;
   private final boolean enableDesugaring;
@@ -33,6 +34,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
     programConsumer = null;
+    mainDexListConsumer = null;
     mode = null;
     minApiLevel = 0;
     reporter = new Reporter();
@@ -44,6 +46,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       AndroidApp app,
       CompilationMode mode,
       ProgramConsumer programConsumer,
+      StringConsumer mainDexListConsumer,
       int minApiLevel,
       Reporter reporter,
       boolean enableDesugaring,
@@ -53,6 +56,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     assert mode != null;
     this.mode = mode;
     this.programConsumer = programConsumer;
+    this.mainDexListConsumer = mainDexListConsumer;
     this.minApiLevel = minApiLevel;
     this.reporter = reporter;
     this.enableDesugaring = enableDesugaring;
@@ -79,6 +83,13 @@ public abstract class BaseCompilerCommand extends BaseCommand {
    */
   public ProgramConsumer getProgramConsumer() {
     return programConsumer;
+  }
+
+  /**
+   * Get the main dex list consumer that will receive the final complete main dex list.
+   */
+  public StringConsumer getMainDexListConsumer() {
+    return mainDexListConsumer;
   }
 
   /** Get the use-desugaring state. True if enabled, false otherwise. */
@@ -109,6 +120,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       extends BaseCommand.Builder<C, B> {
 
     private ProgramConsumer programConsumer = null;
+    private StringConsumer mainDexListConsumer = null;
     private Path outputPath = null;
     // TODO(b/70656566): Remove default output mode when deprecated API is removed.
     private OutputMode outputMode = OutputMode.DexIndexed;
@@ -189,6 +201,13 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     }
 
     /**
+     * Get the main dex list consumer that will receive the final complete main dex list.
+     */
+    public StringConsumer getMainDexListConsumer() {
+      return mainDexListConsumer;
+    }
+
+    /**
      * If set to true, legacy multidex partitioning will be optimized to reduce LinearAlloc usage
      * during Dalvik DexOpt. Has no effect when compiling for a target with native multidex support
      * or without main dex list specification.
@@ -220,6 +239,33 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       outputPath = null;
       outputMode = null;
       this.programConsumer = programConsumer;
+      return self();
+    }
+
+    /**
+     * Set an output destination to which main-dex-list content should be written.
+     *
+     * <p>This is a short-hand for setting a {@link StringConsumer.FileConsumer} using {@link
+     * #setMainDexListConsumer}. Note that any subsequent call to this method or {@link
+     * #setMainDexListConsumer} will override the previous setting.
+     *
+     * @param mainDexListOutputPath File-system path to write output at.
+     */
+    public B setMainDexListOutputPath(Path mainDexListOutputPath) {
+      mainDexListConsumer = new StringConsumer.FileConsumer(mainDexListOutputPath);
+      return self();
+    }
+
+    /**
+     * Set a consumer for receiving the main-dex-list content.
+     *
+     * <p>Note that any subsequent call to this method or {@link #setMainDexListOutputPath} will
+     * override the previous setting.
+     *
+     * @param mainDexListConsumer Consumer to receive the content once produced.
+     */
+    public B setMainDexListConsumer(StringConsumer mainDexListConsumer) {
+      this.mainDexListConsumer = mainDexListConsumer;
       return self();
     }
 

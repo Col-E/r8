@@ -137,6 +137,8 @@ public final class D8Command extends BaseCompilerCommand {
         if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
           reporter.error("Option --main-dex-list cannot be used with --file-per-class");
         }
+      } else if (getMainDexListConsumer() != null) {
+        reporter.error("Option --main-dex-list-output require --main-dex-list");
       }
       super.validate();
     }
@@ -153,6 +155,7 @@ public final class D8Command extends BaseCompilerCommand {
           getAppBuilder().build(),
           getMode(),
           getProgramConsumer(),
+          getMainDexListConsumer(),
           getMinApiLevel(),
           getReporter(),
           !getDisableDesugaring(),
@@ -209,6 +212,7 @@ public final class D8Command extends BaseCompilerCommand {
       AndroidApp inputApp,
       CompilationMode mode,
       ProgramConsumer programConsumer,
+      StringConsumer mainDexListConsumer,
       int minApiLevel,
       Reporter diagnosticsHandler,
       boolean enableDesugaring,
@@ -218,6 +222,7 @@ public final class D8Command extends BaseCompilerCommand {
         inputApp,
         mode,
         programConsumer,
+        mainDexListConsumer,
         minApiLevel,
         diagnosticsHandler,
         enableDesugaring,
@@ -235,6 +240,7 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
+    internal.mainDexListConsumer = getMainDexListConsumer();
     internal.minimalMainDex = internal.debug;
     internal.minApiLevel = getMinApiLevel();
     internal.intermediate = intermediate;

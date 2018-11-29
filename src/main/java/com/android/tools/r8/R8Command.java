@@ -90,8 +90,6 @@ public final class R8Command extends BaseCompilerCommand {
     private boolean allowPartiallyImplementedProguardOptions = false;
     private boolean allowTestProguardOptions = false;
 
-    private StringConsumer mainDexListConsumer = null;
-
     // TODO(zerny): Consider refactoring CompatProguardCommandBuilder to avoid subclassing.
     Builder() {
       this(new DefaultR8DiagnosticsHandler());
@@ -175,33 +173,6 @@ public final class R8Command extends BaseCompilerCommand {
     public Builder addMainDexRules(List<String> lines, Origin origin) {
       guard(() -> mainDexRules.add(
           new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
-      return self();
-    }
-
-    /**
-     * Set an output destination to which main-dex-list content should be written.
-     *
-     * <p>This is a short-hand for setting a {@link StringConsumer.FileConsumer} using {@link
-     * #setMainDexListConsumer}. Note that any subsequent call to this method or {@link
-     * #setMainDexListConsumer} will override the previous setting.
-     *
-     * @param mainDexListOutputPath File-system path to write output at.
-     */
-    public Builder setMainDexListOutputPath(Path mainDexListOutputPath) {
-      mainDexListConsumer = new StringConsumer.FileConsumer(mainDexListOutputPath);
-      return self();
-    }
-
-    /**
-     * Set a consumer for receiving the main-dex-list content.
-     *
-     * <p>Note that any subsequent call to this method or {@link #setMainDexListOutputPath} will
-     * override the previous setting.
-     *
-     * @param mainDexListConsumer Consumer to receive the content once produced.
-     */
-    public Builder setMainDexListConsumer(StringConsumer mainDexListConsumer) {
-      this.mainDexListConsumer = mainDexListConsumer;
       return self();
     }
 
@@ -321,7 +292,7 @@ public final class R8Command extends BaseCompilerCommand {
       if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
         reporter.error("R8 does not support compiling to a single DEX file per Java class file");
       }
-      if (mainDexListConsumer != null
+      if (getMainDexListConsumer() != null
           && mainDexRules.isEmpty()
           && !getAppBuilder().hasMainDexList()) {
         reporter.error(
@@ -433,7 +404,7 @@ public final class R8Command extends BaseCompilerCommand {
               getAppBuilder().build(),
               getProgramConsumer(),
               mainDexKeepRules,
-              mainDexListConsumer,
+              getMainDexListConsumer(),
               configuration,
               getMode(),
               getMinApiLevel(),
@@ -503,7 +474,6 @@ public final class R8Command extends BaseCompilerCommand {
   static final String USAGE_MESSAGE = R8CommandParser.USAGE_MESSAGE;
 
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
-  private final StringConsumer mainDexListConsumer;
   private final ProguardConfiguration proguardConfiguration;
   private final boolean enableTreeShaking;
   private final boolean enableMinification;
@@ -576,12 +546,11 @@ public final class R8Command extends BaseCompilerCommand {
       StringConsumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput,
       boolean optimizeMultidexForLinearAlloc) {
-    super(inputApp, mode, programConsumer, minApiLevel, reporter, enableDesugaring,
-        optimizeMultidexForLinearAlloc);
+    super(inputApp, mode, programConsumer, mainDexListConsumer, minApiLevel, reporter,
+        enableDesugaring, optimizeMultidexForLinearAlloc);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
-    this.mainDexListConsumer = mainDexListConsumer;
     this.proguardConfiguration = proguardConfiguration;
     this.enableTreeShaking = enableTreeShaking;
     this.enableMinification = enableMinification;
@@ -594,7 +563,6 @@ public final class R8Command extends BaseCompilerCommand {
   private R8Command(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
     mainDexKeepRules = ImmutableList.of();
-    mainDexListConsumer = null;
     proguardConfiguration = null;
     enableTreeShaking = false;
     enableMinification = false;
@@ -641,7 +609,7 @@ public final class R8Command extends BaseCompilerCommand {
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.minimalMainDex = getMode() == CompilationMode.DEBUG;
-    internal.mainDexListConsumer = mainDexListConsumer;
+    internal.mainDexListConsumer = getMainDexListConsumer();
     internal.lineNumberOptimization =
         !internal.debug && (proguardConfiguration.isOptimizing() || internal.enableMinification)
             ? LineNumberOptimization.ON

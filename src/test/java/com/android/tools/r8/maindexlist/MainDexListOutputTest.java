@@ -9,16 +9,19 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 import org.junit.Rule;
@@ -26,6 +29,34 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class MainDexListOutputTest extends TestBase {
+
+  interface MyConsumer<T> {
+    void accept(T element);
+  }
+
+  class TestClass {
+    public void f(MyConsumer<String> s) {
+      s.accept("asdf");
+    }
+
+    public void g() {
+      f(System.out::println);
+    }
+  }
+
+  private static String testClassMainDexName =
+      "com/android/tools/r8/maindexlist/MainDexListOutputTest$TestClass.class";
+
+  private static class TestMainDexListConsumer implements StringConsumer {
+    public boolean called = false;
+
+    @Override
+    public void accept(String string, DiagnosticsHandler handler) {
+      called = true;
+      assertTrue(string.contains(testClassMainDexName));
+      assertTrue(string.contains("Lambda"));
+    }
+  }
 
   class Reporter implements DiagnosticsHandler {
     int errorCount = 0;
@@ -76,5 +107,38 @@ public class MainDexListOutputTest extends TestBase {
             .stream()
             .filter(s -> !s.isEmpty())
             .collect(Collectors.toList()));
+  }
+
+  @Test
+  public void testD8DesugaredLambdasInMainDexList() throws IOException, CompilationFailedException {
+    Path mainDexList = writeTextToTempFile(testClassMainDexName);
+    TestMainDexListConsumer consumer = new TestMainDexListConsumer();
+    testForD8()
+        .addProgramClasses(ImmutableList.of(TestClass.class, MyConsumer.class))
+        .addMainDexListFiles(ImmutableList.of(mainDexList))
+        .setMainDexListConsumer(consumer)
+        .compile();
+    assertTrue(consumer.called);
+  }
+
+  @Test
+  public void testD8DesugaredLambdasInMainDexListMerging()
+      throws IOException, CompilationFailedException {
+    Path mainDexList = writeTextToTempFile(testClassMainDexName);
+    Path dexOutput = temp.getRoot().toPath().resolve("classes.zip");
+    // Build intermediate dex code first.
+    testForD8()
+        .addProgramClasses(ImmutableList.of(TestClass.class, MyConsumer.class))
+        .setIntermediate(true)
+        .setProgramConsumer(new ArchiveConsumer(dexOutput))
+        .compile();
+    // Now test that when merging with a main dex list it is correctly updated.
+    TestMainDexListConsumer consumer = new TestMainDexListConsumer();
+    testForD8()
+        .addProgramFiles(dexOutput)
+        .addMainDexListFiles(ImmutableList.of(mainDexList))
+        .setMainDexListConsumer(consumer)
+        .compile();
+    assertTrue(consumer.called);
   }
 }

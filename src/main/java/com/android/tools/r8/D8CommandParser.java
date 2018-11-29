@@ -104,6 +104,7 @@ public class D8CommandParser extends BaseCompilerCommandParser {
               "  --file-per-class        # Produce a separate dex file per input class",
               "  --no-desugaring         # Force disable desugaring.",
               "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
+              "  --main-dex-list-output <file> # Output resulting main dex list in <file>.",
               "  --version               # Print the version of d8.",
               "  --help                  # Print this message."));
 
@@ -198,6 +199,8 @@ public class D8CommandParser extends BaseCompilerCommandParser {
           }
         } else if (arg.equals("--main-dex-list")) {
           builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
+        } else if (arg.equals("--main-dex-list-output")) {
+          builder.setMainDexListOutputPath(Paths.get(expandedArgs[++i]));
         } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
           builder.setOptimizeMultidexForLinearAlloc(true);
         } else if (arg.equals("--min-api")) {

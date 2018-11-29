@@ -37,6 +37,7 @@ public abstract class TestCompilerBuilder<
   // Default initialized setup. Can be overwritten if needed.
   private Path defaultLibrary;
   private ProgramConsumer programConsumer;
+  private StringConsumer mainDexListConsumer;
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
 
@@ -62,6 +63,7 @@ public abstract class TestCompilerBuilder<
   public CR compile() throws CompilationFailedException {
     AndroidAppConsumers sink = new AndroidAppConsumers();
     builder.setProgramConsumer(sink.wrapProgramConsumer(programConsumer));
+    builder.setMainDexListConsumer(mainDexListConsumer);
     if (defaultLibrary != null) {
       builder.addLibraryFiles(defaultLibrary);
     }
@@ -110,6 +112,17 @@ public abstract class TestCompilerBuilder<
   public T setProgramConsumer(ProgramConsumer programConsumer) {
     assert programConsumer != null;
     this.programConsumer = programConsumer;
+    return self();
+  }
+
+  public T setMainDexListConsumer(StringConsumer consumer) {
+    assert consumer != null;
+    this.mainDexListConsumer = consumer;
+    return self();
+  }
+
+  public T addMainDexListFiles(Collection<Path> files) {
+    builder.addMainDexListFiles(files);
     return self();
   }
 
