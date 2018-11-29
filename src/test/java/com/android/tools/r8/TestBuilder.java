@@ -39,6 +39,12 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
 
   public abstract T addProgramFiles(Collection<Path> files);
 
+  public abstract T addProgramClassFileData(Collection<byte[]> classes);
+
+  public T addProgramClassFileData(byte[]... classes) {
+    return addProgramClassFileData(Arrays.asList(classes));
+  }
+
   public T addProgramClasses(Class<?>... classes) {
     return addProgramClasses(Arrays.asList(classes));
   }

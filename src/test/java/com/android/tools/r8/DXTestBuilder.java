@@ -67,6 +67,11 @@ public class DXTestBuilder
   }
 
   @Override
+  public DXTestBuilder addProgramClassFileData(Collection<byte[]> classes) {
+    throw new Unimplemented("No support for adding classfile data directly");
+  }
+
+  @Override
   public DXTestBuilder addProgramFiles(Collection<Path> files) {
     injars.addAll(files);
     return self();
