@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
-import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
@@ -127,13 +126,11 @@ public class StaticClassMerger {
   }
 
   public GraphLense run() {
-    // Visit the program classes in a top-down order according to the class hierarchy.
-    Iterable<DexProgramClass> classes = appView.appInfo().app.classesWithDeterministicOrder();
-    TopDownClassHierarchyTraversal.visit(appView, classes, clazz -> {
+    for (DexProgramClass clazz : appView.appInfo().app.classesWithDeterministicOrder()) {
       if (satisfiesMergeCriteria(clazz)) {
         merge(clazz);
       }
-    });
+    }
     if (Log.ENABLED) {
       Log.info(
           getClass(),
@@ -204,6 +201,11 @@ public class StaticClassMerger {
     return true;
   }
 
+  private boolean isValidRepresentative(DexProgramClass clazz) {
+    // Disallow interfaces from being representatives, since interface methods require desugaring.
+    return !clazz.isInterface();
+  }
+
   private boolean merge(DexProgramClass clazz) {
     assert satisfiesMergeCriteria(clazz);
 
@@ -216,8 +218,12 @@ public class StaticClassMerger {
   private boolean mergeGlobally(DexProgramClass clazz, String pkg) {
     Representative globalRepresentative = representatives.get(GLOBAL);
     if (globalRepresentative == null) {
-      // Make the current class the global representative.
-      setRepresentative(GLOBAL, getOrCreateRepresentative(clazz, pkg));
+      if (isValidRepresentative(clazz)) {
+        // Make the current class the global representative.
+        setRepresentative(GLOBAL, getOrCreateRepresentative(clazz, pkg));
+      } else {
+        clearRepresentative(GLOBAL);
+      }
 
       // Do not attempt to merge this class inside its own package, because that could lead to
       // an increase in the global representative, which is not desirable.
@@ -227,8 +233,12 @@ public class StaticClassMerger {
       globalRepresentative.include(clazz);
 
       if (globalRepresentative.isFull()) {
-        // Make the current class the global representative instead.
-        setRepresentative(GLOBAL, getOrCreateRepresentative(clazz, pkg));
+        if (isValidRepresentative(clazz)) {
+          // Make the current class the global representative instead.
+          setRepresentative(GLOBAL, getOrCreateRepresentative(clazz, pkg));
+        } else {
+          clearRepresentative(GLOBAL);
+        }
 
         // Do not attempt to merge this class inside its own package, because that could lead to
         // an increase in the global representative, which is not desirable.
@@ -244,7 +254,8 @@ public class StaticClassMerger {
   private boolean mergeInsidePackage(DexProgramClass clazz, String pkg) {
     Representative packageRepresentative = representatives.get(pkg);
     if (packageRepresentative != null) {
-      if (clazz.accessFlags.isMoreVisibleThan(packageRepresentative.clazz.accessFlags)) {
+      if (isValidRepresentative(clazz)
+          && clazz.accessFlags.isMoreVisibleThan(packageRepresentative.clazz.accessFlags)) {
         // Use `clazz` as a representative for this package instead.
         Representative newRepresentative = getOrCreateRepresentative(clazz, pkg);
         newRepresentative.include(packageRepresentative.clazz);
@@ -271,7 +282,9 @@ public class StaticClassMerger {
     }
 
     // We were unable to use the current representative for this package (if any).
-    setRepresentative(pkg, getOrCreateRepresentative(clazz, pkg));
+    if (isValidRepresentative(clazz)) {
+      setRepresentative(pkg, getOrCreateRepresentative(clazz, pkg));
+    }
     return false;
   }
 
@@ -288,6 +301,7 @@ public class StaticClassMerger {
   }
 
   private void setRepresentative(String pkg, Representative representative) {
+    assert isValidRepresentative(representative.clazz);
     if (Log.ENABLED) {
       if (pkg.equals(GLOBAL)) {
         Log.info(
@@ -303,6 +317,17 @@ public class StaticClassMerger {
       }
     }
     representatives.put(pkg, representative);
+  }
+
+  private void clearRepresentative(String pkg) {
+    if (Log.ENABLED) {
+      if (pkg.equals(GLOBAL)) {
+        Log.info(getClass(), "Removing the global representative");
+      } else {
+        Log.info(getClass(), "Removing the representative for package %s", pkg);
+      }
+    }
+    representatives.remove(pkg);
   }
 
   private boolean mayMergeAcrossPackageBoundaries(DexProgramClass clazz) {
