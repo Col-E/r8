@@ -20,15 +20,21 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -301,6 +307,34 @@ public class MainDexTracingTest extends TestBase {
         nonLambdaOffset++;
       }
     }
+    testZipfileOrder(out);
+  }
+
+  private void testZipfileOrder(Path out) throws IOException {
+    // Sanity check that the classes.dex files are in the correct order
+    ZipFile outZip = new ZipFile(out.toFile());
+    Enumeration<? extends ZipEntry> entries = outZip.entries();
+    int index = 0;
+    LinkedList<String> entryNames = new LinkedList<>();
+    // We expect classes*.dex files first, in order, then the rest of the files, in order.
+    while(entries.hasMoreElements()) {
+      ZipEntry entry = entries.nextElement();
+      if (!entry.getName().startsWith("classes") || !entry.getName().endsWith(".dex")) {
+        entryNames.add(entry.getName());
+        continue;
+      }
+      if (index == 0) {
+        Assert.assertEquals("classes.dex", entry.getName());
+      } else {
+        Assert.assertEquals("classes" + (index + 1) + ".dex", entry.getName());
+      }
+      index++;
+    }
+    // Everything else should be sorted according to name.
+    String[] entriesUnsorted = entryNames.toArray(new String[0]);
+    String[] entriesSorted = entryNames.toArray(new String[0]);
+    Arrays.sort(entriesSorted);
+    Assert.assertArrayEquals(entriesUnsorted, entriesSorted);
   }
 
   private boolean isLambda(String mainDexEntry) {
