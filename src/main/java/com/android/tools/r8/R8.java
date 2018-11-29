@@ -304,7 +304,10 @@ public class R8 {
                   .prunedCopyFrom(application, pruner.getRemovedClasses()));
           new AbstractMethodRemover(appView.appInfo()).run();
         }
-        new AnnotationRemover(appView.appInfo().withLiveness(), compatibility, options).run();
+
+        new AnnotationRemover(appView.appInfo().withLiveness(), options)
+            .ensureValid(compatibility)
+            .run();
 
         // TODO(69445518): This is still work in progress, and this file writing is currently used
         // for testing.
@@ -478,6 +481,8 @@ public class R8 {
             // Print reasons on the application after pruning, so that we reflect the actual result.
             ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(rootSet.reasonAsked);
             reasonPrinter.run(application);
+            // Remove annotations that refer to types that no longer exist.
+            new AnnotationRemover(appView.appInfo().withLiveness(), options).run();
           }
         } finally {
           timing.end();
