@@ -21,13 +21,10 @@ public class AnnotationRemover {
   private final AppInfoWithLiveness appInfo;
   private final ProguardKeepAttributes keep;
   private final InternalOptions options;
-  private final ProguardConfiguration.Builder compatibility;
 
-  public AnnotationRemover(AppInfoWithLiveness appInfo,
-      ProguardConfiguration.Builder compatibility, InternalOptions options) {
+  public AnnotationRemover(AppInfoWithLiveness appInfo, InternalOptions options) {
     this.appInfo = appInfo;
     this.keep = options.proguardConfiguration.getKeepAttributes();
-    this.compatibility = compatibility;
     this.options = options;
   }
 
@@ -128,8 +125,12 @@ public class AnnotationRemover {
     return isAnnotationTypeLive(annotation);
   }
 
-  public void run() {
+  public AnnotationRemover ensureValid(ProguardConfiguration.Builder compatibility) {
     keep.ensureValid(options.forceProguardCompatibility, compatibility);
+    return this;
+  }
+
+  public void run() {
     for (DexProgramClass clazz : appInfo.classes()) {
       stripAttributes(clazz);
       clazz.annotations = clazz.annotations.keepIf(this::filterAnnotations);

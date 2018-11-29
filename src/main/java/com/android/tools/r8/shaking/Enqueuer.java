@@ -862,20 +862,24 @@ public class Enqueuer {
     }
   }
 
-  private void markMethodAsTargeted(DexEncodedMethod encodedMethod, KeepReason reason) {
-    markTypeAsLive(encodedMethod.method.holder);
-    markParameterAndReturnTypesAsLive(encodedMethod);
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Method `%s` is targeted.", encodedMethod.method);
+  private void markMethodAsTargeted(DexEncodedMethod method, KeepReason reason) {
+    if (!targetedMethods.add(method, reason)) {
+      return;
     }
-    targetedMethods.add(encodedMethod, reason);
+    markTypeAsLive(method.method.holder);
+    markParameterAndReturnTypesAsLive(method);
+    processAnnotations(method.annotations.annotations);
+    method.parameterAnnotationsList.forEachAnnotation(this::processAnnotation);
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Method `%s` is targeted.", method.method);
+    }
     if (forceProguardCompatibility) {
       // Keep targeted default methods in compatibility mode. The tree pruner will otherwise make
       // these methods abstract, whereas Proguard does not (seem to) touch their code.
-      DexClass clazz = appInfo.definitionFor(encodedMethod.method.holder);
-      if (!encodedMethod.accessFlags.isAbstract()
+      DexClass clazz = appInfo.definitionFor(method.method.holder);
+      if (!method.accessFlags.isAbstract()
           && clazz.isInterface() && !clazz.isLibraryClass()) {
-        markMethodAsKeptWithCompatRule(encodedMethod);
+        markMethodAsKeptWithCompatRule(method);
       }
     }
   }
