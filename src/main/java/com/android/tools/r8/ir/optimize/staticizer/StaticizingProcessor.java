@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
@@ -34,6 +35,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -237,7 +239,7 @@ final class StaticizingProcessor {
   }
 
   private void removeReferencesToThis(DexEncodedMethod method, IRCode code) {
-    fixupStaticizedValueUsers(code, code.getThis());
+    fixupStaticizedThisUsers(code, code.getThis());
   }
 
   private void rewriteReferences(DexEncodedMethod method, IRCode code) {
@@ -250,11 +252,12 @@ final class StaticizingProcessor {
             .collect(Collectors.toList());
 
     singletonFieldReads.forEach(read -> {
-      CandidateInfo candidateInfo = singletonFields.get(read.getField());
+      DexField field = read.getField();
+      CandidateInfo candidateInfo = singletonFields.get(field);
       assert candidateInfo != null;
       Value value = read.dest();
       if (value != null) {
-        fixupStaticizedValueUsers(code, value);
+        fixupStaticizedFieldReadUsers(code, value, field);
       }
       if (!candidateInfo.preserveRead.get()) {
         read.removeOrReplaceByDebugLocalRead();
@@ -266,12 +269,116 @@ final class StaticizingProcessor {
     }
   }
 
-  // Fixup value usages: rewrites all method calls so that they point to static methods.
-  private void fixupStaticizedValueUsers(IRCode code, Value thisValue) {
+  // Fixup `this` usages: rewrites all method calls so that they point to static methods.
+  private void fixupStaticizedThisUsers(IRCode code, Value thisValue) {
     assert thisValue != null;
     assert thisValue.numberOfPhiUsers() == 0;
 
-    for (Instruction user : thisValue.uniqueUsers()) {
+    fixupStaticizedValueUsers(code, thisValue.uniqueUsers());
+
+    assert thisValue.numberOfUsers() == 0;
+  }
+
+  // Re-processing finalized code may create slightly different IR code than what the examining
+  // phase has seen. For example,
+  //
+  //  b1:
+  //    s1 <- static-get singleton
+  //    ...
+  //    invoke-virtual { s1, ... } mtd1
+  //    goto Exit
+  //  b2:
+  //    s2 <- static-get singleoton
+  //    ...
+  //    invoke-virtual { s2, ... } mtd1
+  //    goto Exit
+  //  ...
+  //  Exit: ...
+  //
+  // ~>
+  //
+  //  b1:
+  //    s1 <- static-get singleton
+  //    ...
+  //    goto Exit
+  //  b2:
+  //    s2 <- static-get singleton
+  //    ...
+  //    goto Exit
+  //  Exit:
+  //    sp <- phi(s1, s2)
+  //    invoke-virtual { sp, ... } mtd1
+  //    ...
+  //
+  // From staticizer's viewpoint, `sp` is trivial in the sense that it is composed of values that
+  // refer to the same singleton field. If so, we can safely relax the assertion; remove uses of
+  // field reads; remove quasi-trivial phis; and then remove original field reads.
+  private boolean testAndcollectPhisComposedOfSameFieldRead(
+      Set<Phi> phisToCheck, DexField field, Set<Phi> trivialPhis) {
+    for (Phi phi : phisToCheck) {
+      Set<Phi> chainedPhis = Sets.newIdentityHashSet();
+      for (Value operand : phi.getOperands()) {
+        if (operand.isPhi()) {
+          chainedPhis.add(operand.asPhi());
+        } else {
+          if (!operand.definition.isStaticGet()) {
+            return false;
+          }
+          if (operand.definition.asStaticGet().getField() != field) {
+            return false;
+          }
+        }
+      }
+      if (!chainedPhis.isEmpty()) {
+        if (!testAndcollectPhisComposedOfSameFieldRead(chainedPhis, field, trivialPhis)) {
+          return false;
+        }
+      }
+      trivialPhis.add(phi);
+    }
+    return true;
+  }
+
+  // Fixup field read usages. Same as {@link #fixupStaticizedThisUsers} except this one is handling
+  // quasi-trivial phis that might be introduced while re-processing finalized code.
+  private void fixupStaticizedFieldReadUsers(IRCode code, Value dest, DexField field) {
+    assert dest != null;
+    // During the examine phase, field reads with any phi users have been invalidated, hence zero.
+    // However, it may be not true if re-processing introduces phis after optimizing common suffix.
+    Set<Phi> trivialPhis = Sets.newIdentityHashSet();
+    boolean hasTrivialPhis =
+        testAndcollectPhisComposedOfSameFieldRead(dest.uniquePhiUsers(), field, trivialPhis);
+    assert dest.numberOfPhiUsers() == 0 || hasTrivialPhis;
+    Set<Instruction> users = new HashSet<>(dest.uniqueUsers());
+    // If that is the case, method calls we want to fix up include users of those phis.
+    if (hasTrivialPhis) {
+      for (Phi phi : trivialPhis) {
+        users.addAll(phi.uniqueUsers());
+      }
+    }
+
+    fixupStaticizedValueUsers(code, users);
+
+    if (hasTrivialPhis) {
+      // We can't directly use Phi#removeTrivialPhi because they still refer to different operands.
+      for (Phi phi : trivialPhis) {
+        // First, make sure phi users are indeed uses of field reads and removed via fixup.
+        assert phi.numberOfUsers() == 0;
+        // Then, manually clean up this from all of the operands.
+        for (Value operand : phi.getOperands()) {
+          operand.removePhiUser(phi);
+        }
+        // And remove it from the containing block.
+        phi.getBlock().removePhi(phi);
+      }
+    }
+
+    // No matter what, number of phi users should be zero too.
+    assert dest.numberOfUsers() == 0 && dest.numberOfPhiUsers() == 0;
+  }
+
+  private void fixupStaticizedValueUsers(IRCode code, Set<Instruction> users) {
+    for (Instruction user : users) {
       assert user.isInvokeVirtual() || user.isInvokeDirect();
       InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
       Value newValue = null;
@@ -287,8 +394,6 @@ final class StaticizingProcessor {
       invoke.replace(new InvokeStatic(
           invoke.getInvokedMethod(), newValue, args.subList(1, args.size())));
     }
-
-    assert thisValue.numberOfUsers() == 0;
   }
 
   private void remapMovedCandidates(IRCode code) {
