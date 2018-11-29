@@ -1979,7 +1979,7 @@ public class CodeRewriter {
       }
       DexType type = inType.isClassType()
           ? inType.asClassTypeLatticeElement().getClassType()
-          : inType.asArrayTypeLatticeElement().getArrayType();
+          : inType.asArrayTypeLatticeElement().getArrayType(appInfo.dexItemFactory);
       DexType baseType = type.toBaseType(appInfo.dexItemFactory);
       // Make sure base type is a class type.
       if (!baseType.isClassType()) {

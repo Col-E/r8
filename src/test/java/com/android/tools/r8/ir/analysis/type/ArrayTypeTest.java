@@ -5,15 +5,18 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.FLOAT;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.INT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.ArrayPut;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -32,6 +35,13 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
   @Test
   public void testNestedArray() throws Exception {
     buildAndCheckIR("nestedArrayTest", nestedArrayTestInspector(appInfo));
+  }
+
+  @Test
+  public void testJoinOfArraysForPrimitivesSmallerThanInt() throws Exception {
+    buildAndCheckIR(
+        "joinOfArraysForPrimitivesSmallerThanInt",
+        joinOfArraysForPrimitivesSmallerThanInt(appInfo));
   }
 
   private static Consumer<IRCode> arrayTestInspector(AppInfo appInfo) {
@@ -53,9 +63,7 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
           assertTrue(array.getTypeLattice().isArrayType());
 
           ArrayTypeLatticeElement arrayType = array.getTypeLattice().asArrayTypeLatticeElement();
-          TypeLatticeElement elementType =
-              TypeLatticeElement.fromDexType(
-                  arrayType.getArrayElementType(appInfo.dexItemFactory), true, appInfo);
+          TypeLatticeElement elementType = arrayType.getArrayMemberTypeAsMemberType();
 
           assertEquals(FLOAT, elementType);
           assertEquals(FLOAT, value.getTypeLattice());
@@ -75,9 +83,7 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
         assertTrue(array.getTypeLattice().isArrayType());
 
         ArrayTypeLatticeElement arrayType = array.getTypeLattice().asArrayTypeLatticeElement();
-        TypeLatticeElement elementType =
-            TypeLatticeElement.fromDexType(
-                arrayType.getArrayElementType(appInfo.dexItemFactory), true, appInfo);
+        TypeLatticeElement elementType = arrayType.getArrayMemberTypeAsMemberType();
 
         assertEquals(FLOAT, elementType);
         assertEquals(FLOAT, value.getTypeLattice());
@@ -91,6 +97,19 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
                     instruction.isConstNumber() && instruction.asConstNumber().getRawValue() != 0);
         assertEquals(FLOAT, constNumberInstruction.outValue().getTypeLattice());
       }
+    };
+  }
+
+  private static Consumer<IRCode> joinOfArraysForPrimitivesSmallerThanInt(AppInfo appInfo) {
+    return code -> {
+      int phiCount = 0;
+      for (BasicBlock block : code.blocks) {
+        for (Phi phi : block.getPhis()) {
+          phiCount++;
+          assertEquals(INT, phi.getTypeLattice());
+        }
+      }
+      assertEquals(2, phiCount);
     };
   }
 
@@ -118,6 +137,15 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
     public static void nestedArrayTest(float[][] array) {
       float x = 1f;
       array[0][0] = x;
+    }
+
+    public static void joinOfArraysForPrimitivesSmallerThanInt(
+        boolean predicate, byte[] bs, char[] cs) {
+      char s = (char) (predicate ? bs[0] : cs[0]);
+      byte b = (predicate ? bs[0] : bs[0]);
+      if (s == b) {
+        System.out.println("Meh, just to use variables.");
+      }
     }
   }
 }

@@ -18,10 +18,12 @@ import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.ReferenceTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.LRUCacheTable;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -66,6 +68,8 @@ public class DexItemFactory {
   // ReferenceTypeLattice canonicalization.
   private final ConcurrentHashMap<DexType, ReferenceTypeLatticeElement>
       referenceTypeLatticeElements = new ConcurrentHashMap<>();
+  public static final LRUCacheTable<Set<DexType>, Set<DexType>, Set<DexType>>
+      leastUpperBoundOfInterfacesTable = LRUCacheTable.create(8, 8);
 
   boolean sorted = false;
 
@@ -1009,7 +1013,10 @@ public class DexItemFactory {
           }
         } else {
           assert type.isArrayType();
-          typeLattice = new ArrayTypeLatticeElement(type, isNullable);
+          DexType elementType = type.toArrayElementType(this);
+          TypeLatticeElement elementTypeLattice =
+              TypeLatticeElement.fromDexType(elementType, true, appInfo, true);
+          typeLattice = new ArrayTypeLatticeElement(elementTypeLattice, isNullable);
         }
         referenceTypeLatticeElements.put(type, typeLattice);
       }

@@ -679,6 +679,7 @@ public class IRCode {
     return verifySSATypeLattice(
         v -> {
           assert v.getTypeLattice().isPreciseType();
+          assert !v.getTypeLattice().isFineGrainedType();
           // For now we assume no bottom types on IR values. We may want to reconsider this for
           // representing unreachable code.
           assert !v.getTypeLattice().isBottom();

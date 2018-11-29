@@ -11,8 +11,9 @@ import java.util.Set;
 
 public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   private static final ReferenceTypeLatticeElement NULL_INSTANCE =
-      new ReferenceTypeLatticeElement(DexItemFactory.nullValueType, true);
+      new ReferenceTypeLatticeElement(true, DexItemFactory.nullValueType);
 
+  // TODO(b/72693244): Consider moving this to ClassTypeLatticeElement.
   final DexType type;
 
   // Link between maybe-null and definitely-not-null reference type lattices.
@@ -28,7 +29,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
     t2.dual = t1;
   }
 
-  ReferenceTypeLatticeElement(DexType type, boolean isNullable) {
+  ReferenceTypeLatticeElement(boolean isNullable, DexType type) {
     super(isNullable);
     this.type = type;
   }

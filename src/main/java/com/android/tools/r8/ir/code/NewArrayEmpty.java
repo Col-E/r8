@@ -107,6 +107,6 @@ public class NewArrayEmpty extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.newArray(type, false);
+    return TypeLatticeElement.fromDexType(type, false, appInfo);
   }
 }

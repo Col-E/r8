@@ -1208,7 +1208,7 @@ public abstract class Instruction {
         DexType outBaseType =
             outTypeLatticeElement
                 .asArrayTypeLatticeElement()
-                .getArrayType()
+                .getArrayType(appInfo.dexItemFactory)
                 .toBaseType(appInfo.dexItemFactory);
         assert graphLense.lookupType(outBaseType) == outBaseType;
       } else if (outTypeLatticeElement.isClassType()) {

@@ -97,7 +97,7 @@ public class InvokeNewArray extends Invoke {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.newArray(type, false);
+    return TypeLatticeElement.fromDexType(type, false, appInfo);
   }
 
   @Override

@@ -189,7 +189,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
       if (v == finalArray) {
         assertTrue(l.isArrayType());
         ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-        assertTrue(lattice.getArrayType().isPrimitiveArrayType());
+        assertTrue(lattice.getArrayMemberTypeAsMemberType().isPrimitive());
         assertEquals(1, lattice.getNesting());
         assertFalse(lattice.isNullable());
       }
@@ -222,7 +222,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
       if (v == finalArray) {
         assertTrue(l.isArrayType());
         ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-        assertTrue(lattice.getArrayType().isPrimitiveArrayType());
+        assertTrue(lattice.getArrayMemberTypeAsMemberType().isPrimitive());
         assertEquals(1, lattice.getNesting());
         assertFalse(lattice.isNullable());
       }

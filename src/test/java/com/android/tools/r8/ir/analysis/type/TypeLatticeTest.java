@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.computeLeastUpperBoundOfInterfaces;
+import static com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement.computeLeastUpperBoundOfInterfaces;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -293,9 +293,41 @@ public class TypeLatticeTest extends TestBase {
 
   @Test
   public void joinInterfaceArrayAndImplementerArray() {
+    DexType queue = factory.createType("Ljava/util/Queue;");
+    DexType arrayDeque = factory.createType("Ljava/util/ArrayDeque;");
     assertEquals(
-        // TODO(b/119181813): This should be array(1, charSequence)
-        array(1, factory.objectType),
+        array(1, queue),
+        join(
+            array(1, queue),
+            array(1, arrayDeque)));
+    assertEquals(
+        array(2, queue),
+        join(
+            array(2, arrayDeque),
+            array(2, queue)));
+
+    DexType type = factory.createType("Ljava/lang/reflect/Type;");
+    DexType wType = factory.createType("Ljava/lang/reflect/WildcardType;");
+    DexType pType = factory.createType("Ljava/lang/reflect/ParameterizedType;");
+    assertEquals(
+        array(1, type),
+        join(
+            array(1, wType),
+            array(1, pType)));
+    assertEquals(
+        array(2, type),
+        join(
+            array(2, wType),
+            array(2, factory.classType)));
+    assertEquals(
+        array(1, type),
+        join(
+            array(1, wType),
+            array(1, pType),
+            array(1, factory.classType)));
+
+    assertEquals(
+        array(1, factory.charSequenceType),
         join(
             array(1, factory.charSequenceType),
             array(1, factory.stringType)));
@@ -347,6 +379,18 @@ public class TypeLatticeTest extends TestBase {
         join(
             array(1, factory.longType),
             array(1, factory.intType)));
+
+    // Test primitive types smaller than int.
+    assertEquals(
+        element(factory.objectType),
+        join(
+            array(1, factory.intType),
+            array(1, factory.byteType)));
+    assertEquals(
+        element(factory.objectType),
+        join(
+            array(1, factory.charType),
+            array(1, factory.shortType)));
   }
 
   @Test
@@ -397,10 +441,10 @@ public class TypeLatticeTest extends TestBase {
   @Test
   public void joinDistinctTypesClassArrays() {
     assertEquals(
-        array(3, factory.objectType),
+        array(3, factory.serializableType),
         join(
             array(3, factory.stringType),
-            array(3, factory.stringBuilderType)));
+            array(3, factory.classType)));
   }
 
   @Test

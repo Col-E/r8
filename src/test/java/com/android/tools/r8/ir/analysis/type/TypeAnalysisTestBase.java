@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.junit.Before;
 
-public class TypeAnalysisTestBase extends TestBase {
+public abstract class TypeAnalysisTestBase extends TestBase {
 
   private final AndroidApp app;
   private final String className;

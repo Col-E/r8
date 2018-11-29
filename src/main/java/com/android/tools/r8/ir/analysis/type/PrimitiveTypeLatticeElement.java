@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.NumericType;
 
@@ -32,17 +33,62 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
     return this;
   }
 
-  public static PrimitiveTypeLatticeElement fromDexType(DexType type) {
+  static PrimitiveTypeLatticeElement fromDexType(DexType type, boolean asArrayElementType) {
     assert type.isPrimitiveType();
-    return fromTypeDescriptorChar((char) type.descriptor.content[0]);
+    return fromTypeDescriptorChar((char) type.descriptor.content[0], asArrayElementType);
   }
 
-  public static PrimitiveTypeLatticeElement fromTypeDescriptorChar(char descriptor) {
+  DexType toDexType(DexItemFactory factory) {
+    if (isBoolean()) {
+      return factory.booleanType;
+    }
+    if (isByte()) {
+      return factory.byteType;
+    }
+    if (isShort()) {
+      return factory.shortType;
+    }
+    if (isChar()) {
+      return factory.charType;
+    }
+    if (isInt()) {
+      return factory.intType;
+    }
+    if (isFloat()) {
+      return factory.floatType;
+    }
+    if (isLong()) {
+      return factory.longType;
+    }
+    if (isDouble()) {
+      return factory.doubleType;
+    }
+    throw new Unreachable("Imprecise primitive type '" + toString() + "'");
+  }
+
+  private static PrimitiveTypeLatticeElement fromTypeDescriptorChar(
+      char descriptor, boolean asArrayElementType) {
     switch (descriptor) {
       case 'Z':
+        if (asArrayElementType) {
+          return TypeLatticeElement.BOOLEAN;
+        }
+        // fall through
       case 'B':
+        if (asArrayElementType) {
+          return TypeLatticeElement.BYTE;
+        }
+        // fall through
       case 'S':
+        if (asArrayElementType) {
+          return TypeLatticeElement.SHORT;
+        }
+        // fall through
       case 'C':
+        if (asArrayElementType) {
+          return TypeLatticeElement.CHAR;
+        }
+        // fall through
       case 'I':
         return TypeLatticeElement.INT;
       case 'F':
@@ -76,23 +122,22 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
     }
   }
 
-  public static TypeLatticeElement join(
-      PrimitiveTypeLatticeElement t1, PrimitiveTypeLatticeElement t2) {
-    if (t1 == t2) {
-      return t1;
+  TypeLatticeElement join(PrimitiveTypeLatticeElement other) {
+    if (this == other) {
+      return this;
     }
-    if (t1.isSingle()) {
-      if (t2.isSingle()) {
+    if (isSingle()) {
+      if (other.isSingle()) {
         return TypeLatticeElement.SINGLE;
       }
-      assert t2.isWide();
+      assert other.isWide();
       return TypeLatticeElement.TOP;
     }
-    assert t1.isWide();
-    if (t2.isWide()) {
+    assert isWide();
+    if (other.isWide()) {
       return TypeLatticeElement.WIDE;
     }
-    assert t2.isSingle();
+    assert other.isSingle();
     return TypeLatticeElement.TOP;
   }
 }

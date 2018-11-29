@@ -19,6 +19,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -170,29 +171,47 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
+    ArrayTypeLatticeElement arrayTypeLattice = array().getTypeLattice().isArrayType()
+        ? array().getTypeLattice().asArrayTypeLatticeElement()
+        : null;
     switch (getMemberType()) {
       case OBJECT:
         // If the out-type of the array is bottom (the input array must be definitely null), then
         // the instruction cannot return. For now we return NULL as the type to ensure we have a
         // type consistent witness for the out-value type. We could consider returning bottom in
         // this case as the value is indeed empty, i.e., the instruction will always fail.
-        TypeLatticeElement outType = array().getTypeLattice().arrayGet(appInfo);
-        return outType.isBottom() ? TypeLatticeElement.NULL : outType;
+        TypeLatticeElement valueType = arrayTypeLattice == null
+            ? TypeLatticeElement.NULL
+            : arrayTypeLattice.getArrayMemberTypeAsValueType();
+        assert valueType.isReference();
+        return valueType;
       case BOOLEAN:
       case BYTE:
       case CHAR:
       case SHORT:
       case INT:
+        assert arrayTypeLattice == null
+            || arrayTypeLattice.getArrayMemberTypeAsValueType().isInt();
         return TypeLatticeElement.INT;
       case FLOAT:
+        assert arrayTypeLattice == null
+            || arrayTypeLattice.getArrayMemberTypeAsValueType().isFloat();
         return TypeLatticeElement.FLOAT;
       case LONG:
+        assert arrayTypeLattice == null
+            || arrayTypeLattice.getArrayMemberTypeAsValueType().isLong();
         return TypeLatticeElement.LONG;
       case DOUBLE:
+        assert arrayTypeLattice == null
+            || arrayTypeLattice.getArrayMemberTypeAsValueType().isDouble();
         return TypeLatticeElement.DOUBLE;
       case INT_OR_FLOAT:
+        assert arrayTypeLattice == null
+            || arrayTypeLattice.getArrayMemberTypeAsValueType().isSingle();
         return checkConstraint(dest(), ValueTypeConstraint.INT_OR_FLOAT);
       case LONG_OR_DOUBLE:
+        assert arrayTypeLattice == null
+            || arrayTypeLattice.getArrayMemberTypeAsValueType().isWide();
         return checkConstraint(dest(), ValueTypeConstraint.LONG_OR_DOUBLE);
       default:
         throw new Unreachable("Unexpected member type: " + getMemberType());

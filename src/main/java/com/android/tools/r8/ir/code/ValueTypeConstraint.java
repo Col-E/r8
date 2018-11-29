@@ -134,7 +134,7 @@ public enum ValueTypeConstraint {
     if (typeLatticeElement.isReference()) {
       return OBJECT;
     }
-    if (typeLatticeElement.isInt()) {
+    if (typeLatticeElement.isFineGrainedType() || typeLatticeElement.isInt()) {
       return INT;
     }
     if (typeLatticeElement.isFloat()) {
