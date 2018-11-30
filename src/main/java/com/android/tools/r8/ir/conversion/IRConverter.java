@@ -56,6 +56,7 @@ import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
+import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
@@ -904,7 +905,7 @@ public class IRConverter {
 
     if (appInfo.hasLiveness()) {
       // Reflection optimization 1. getClass() -> const-class
-      codeRewriter.rewriteGetClass(code);
+      ReflectionOptimizer.rewriteGetClass(appInfo.withLiveness(), code);
     }
 
     if (!isDebugMode) {
