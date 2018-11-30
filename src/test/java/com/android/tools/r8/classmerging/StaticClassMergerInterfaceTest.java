@@ -11,6 +11,8 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -50,7 +52,12 @@ public class StaticClassMergerInterfaceTest extends TestBase {
     // Check that A has not been merged into B. The static class merger visits classes in alpha-
     // betical order. By the time A is processed, there is no merge representative and A is not
     // a valid merge representative itself, because it is an interface.
-    assertThat(inspector.clazz(A.class), isPresent());
+    if (ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1) || backend == Backend.CF) {
+      assertThat(inspector.clazz(A.class), isPresent());
+    } else {
+      assertThat(inspector.clazz(A.class.getTypeName() + "$-CC"), isPresent());
+    }
+
 
     // By the time B is processed, there is no merge representative, so it should be present.
     assertThat(inspector.clazz(B.class), isPresent());
