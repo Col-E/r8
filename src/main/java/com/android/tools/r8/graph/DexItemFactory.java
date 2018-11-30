@@ -68,7 +68,7 @@ public class DexItemFactory {
   // ReferenceTypeLattice canonicalization.
   private final ConcurrentHashMap<DexType, ReferenceTypeLatticeElement>
       referenceTypeLatticeElements = new ConcurrentHashMap<>();
-  public static final LRUCacheTable<Set<DexType>, Set<DexType>, Set<DexType>>
+  public final LRUCacheTable<Set<DexType>, Set<DexType>, Set<DexType>>
       leastUpperBoundOfInterfacesTable = LRUCacheTable.create(8, 8);
 
   boolean sorted = false;
