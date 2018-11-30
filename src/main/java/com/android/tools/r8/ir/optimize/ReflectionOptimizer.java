@@ -9,8 +9,19 @@ import static com.android.tools.r8.utils.DescriptorUtils.getSimpleClassNameFromD
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.ConstClass;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.base.Strings;
 
 public class ReflectionOptimizer {
@@ -55,6 +66,67 @@ public class ReflectionOptimizer {
     public boolean needsToRegisterTypeReference() {
       return classNameComputationOption.needsToRegisterTypeReference();
     }
+  }
+
+  // Rewrite getClass() call to const-class if the type of the given instance is effectively final.
+  public static void rewriteGetClass(AppInfoWithLiveness appInfo, IRCode code) {
+    InstructionIterator it = code.instructionIterator();
+    while (it.hasNext()) {
+      Instruction current = it.next();
+      // Conservatively bail out if the containing block has catch handlers.
+      // TODO(b/118509730): unless join of all catch types is ClassNotFoundException ?
+      if (current.getBlock().hasCatchHandlers()) {
+        continue;
+      }
+      if (!current.isInvokeVirtual()) {
+        continue;
+      }
+      InvokeVirtual invoke = current.asInvokeVirtual();
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      // Class<?> Object#getClass() is final and cannot be overridden.
+      if (invokedMethod != appInfo.dexItemFactory.objectMethods.getClass) {
+        continue;
+      }
+      Value in = invoke.getReceiver();
+      if (in.hasLocalInfo()) {
+        continue;
+      }
+      TypeLatticeElement inType = in.getTypeLattice();
+      // Check the receiver is either class type or array type. Also make sure it is not nullable.
+      if (!(inType.isClassType() || inType.isArrayType())
+          || inType.isNullable()) {
+        continue;
+      }
+      DexType type = inType.isClassType()
+          ? inType.asClassTypeLatticeElement().getClassType()
+          : inType.asArrayTypeLatticeElement().getArrayType(appInfo.dexItemFactory);
+      DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+      // Make sure base type is a class type.
+      if (!baseType.isClassType()) {
+        continue;
+      }
+      // Only consider program class, e.g., platform can introduce sub types in different versions.
+      DexClass clazz = appInfo.definitionFor(baseType);
+      if (clazz == null || !clazz.isProgramClass()) {
+        continue;
+      }
+      // Only consider effectively final class. Exception: new Base().getClass().
+      if (!baseType.hasSubtypes()
+          || !appInfo.isInstantiatedIndirectly(baseType)
+          || (!in.isPhi() && in.definition.isCreatingInstanceOrArray())) {
+        // Make sure the target (base) type is visible.
+        ConstraintWithTarget constraints =
+            ConstraintWithTarget.classIsVisible(code.method.method.getHolder(), baseType, appInfo);
+        if (constraints == ConstraintWithTarget.NEVER) {
+          continue;
+        }
+        TypeLatticeElement typeLattice = TypeLatticeElement.classClassType(appInfo);
+        Value value = code.createValue(typeLattice, invoke.getLocalInfo());
+        ConstClass constClass = new ConstClass(value, type);
+        it.replaceCurrentInstruction(constClass);
+      }
+    }
+    assert code.isConsistentSSA();
   }
 
   public static String computeClassName(
