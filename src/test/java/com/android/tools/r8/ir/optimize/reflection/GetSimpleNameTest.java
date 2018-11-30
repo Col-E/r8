@@ -13,6 +13,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -139,8 +140,18 @@ public class GetSimpleNameTest extends GetNameTestBase {
       "$$",
       "d[][][]",
       "[][][]",
-      "g",
-      "g"
+      "Inner",
+      "Inner"
+  );
+  private static final String RENAMED_OUTPUT_FOR_OLDER_VMS = StringUtils.lines(
+      "Local_t03",
+      "InnerLocal",
+      "$",
+      "$$",
+      "Local[][][]",
+      "[][][]",
+      "Inner",
+      "Inner"
   );
   private static final Class<?> MAIN = ClassGetSimpleName.class;
 
@@ -229,6 +240,10 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep,allowobfuscation class **.ClassGetSimpleName*")
+        // See b/119471127: some old VMs are not resilient to broken attributes.
+        // Comment out the following line to reproduce b/120130435
+        // then use OUTPUT_WITH_SHRUNK_ATTRIBUTE
+        .addKeepRules("-keep,allowobfuscation class **.Outer*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
         .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
@@ -243,9 +258,14 @@ public class GetSimpleNameTest extends GetNameTestBase {
       if (backend == Backend.CF) {
         return;
       }
-      result.assertSuccessWithOutput(RENAMED_OUTPUT);
+      // TODO(b/120185045): Short name of innerName is not renamed.
+      if (ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
+        result.assertSuccessWithOutput(RENAMED_OUTPUT_FOR_OLDER_VMS);
+      } else {
+        result.assertSuccessWithOutput(RENAMED_OUTPUT);
+      }
     } else {
-      result.assertSuccessWithOutput(OUTPUT_WITH_SHRUNK_ATTRIBUTE);
+      result.assertSuccessWithOutput(JAVA_OUTPUT);
     }
     test(result, 0);
   }
