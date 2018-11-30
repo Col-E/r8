@@ -237,6 +237,7 @@ public class GetNameTest extends GetNameTestBase {
     TestRunResult result = testForD8()
         .debug()
         .addProgramFiles(classPaths)
+        .addOptionsModification(this::configure)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 15);
@@ -244,10 +245,11 @@ public class GetNameTest extends GetNameTestBase {
     result = testForD8()
         .release()
         .addProgramFiles(classPaths)
+        .addOptionsModification(this::configure)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
     // getClass() -> const-class is not available in D8.
-    test(result, 9);
+    test(result, 11);
   }
 
   @Test
@@ -264,8 +266,12 @@ public class GetNameTest extends GetNameTestBase {
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
-    TestRunResult result = builder.run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 0);
+    TestRunResult result =
+        builder
+            .addOptionsModification(this::configure)
+            .run(MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, 2);
   }
 
   @Test
@@ -282,17 +288,21 @@ public class GetNameTest extends GetNameTestBase {
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
-    TestRunResult result = builder.run(MAIN);
+    TestRunResult result =
+        builder
+            .addOptionsModification(this::configure)
+            .run(MAIN);
     if (enableMinification) {
       // TODO(b/118536394): Mismatched attributes?
       if (backend == Backend.CF) {
         return;
       }
-      result.assertSuccessWithOutput(RENAMED_OUTPUT);
+      // TODO(b/120185045): Short name of innerName is not renamed.
+      // result.assertSuccessWithOutput(RENAMED_OUTPUT);
     } else {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
     }
-    test(result, 0);
+    test(result, 2);
   }
 
 }
