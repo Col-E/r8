@@ -524,4 +524,9 @@ public abstract class DexClass extends DexDefinition {
     return getKotlinInfo() != null;
   }
 
+  public boolean isValid() {
+    assert !isInterface()
+        || Arrays.stream(virtualMethods()).noneMatch(method -> method.accessFlags.isFinal());
+    return true;
+  }
 }

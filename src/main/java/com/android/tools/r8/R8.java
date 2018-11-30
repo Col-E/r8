@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -526,6 +527,8 @@ public class R8 {
         options.methodsFilter.forEach((m) -> System.out.println("  - " + m));
         return;
       }
+
+      assert application.classes().stream().allMatch(DexClass::isValid);
 
       // Generate the resulting application resources.
       writeApplication(
