@@ -309,8 +309,8 @@ cloudDependencies.each { entry ->
             def outputDir = "${entry.key}/${entryFile}"
             def gzFile = "${outputDir}.tar.gz"
             def sha1File = "${gzFile}.sha1"
-            inputs.file sha1File
-            outputs.file gzFile
+            // Make the output file part of the input dependencies explictly.
+            inputs.files files(sha1File, gzFile)
             outputs.dir outputDir
             List<String> dlFromStorageArgs = ["-n", "-b", "r8-deps", "-u", "-s", "${sha1File}"]
             if (OperatingSystem.current().isWindows()) {
