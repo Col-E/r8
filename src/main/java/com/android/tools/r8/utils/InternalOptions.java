@@ -109,6 +109,8 @@ public class InternalOptions {
       !Version.isDev() || System.getProperty("com.android.tools.r8.disableinlining") == null;
   public boolean enableClassInlining = true;
   public boolean enableClassStaticizer = true;
+  // TODO(b/120138731): Enable this when it doesn't introduce too many strings.
+  public boolean enableNameReflectionOptimization = false;
   public int classInliningInstructionLimit = 50;
   // This defines the limit of instructions in the inlinee
   public int inliningInstructionLimit = 3;

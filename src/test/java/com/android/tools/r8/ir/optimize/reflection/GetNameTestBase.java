@@ -7,6 +7,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Streams;
 import java.io.IOException;
@@ -32,6 +33,10 @@ public abstract class GetNameTestBase extends TestBase {
   GetNameTestBase(Backend backend, boolean enableMinification) {
     this.backend = backend;
     this.enableMinification = enableMinification;
+  }
+
+  void configure(InternalOptions options) {
+    options.enableNameReflectionOptimization = true;
   }
 
   Path createNewMappingPath() throws IOException {

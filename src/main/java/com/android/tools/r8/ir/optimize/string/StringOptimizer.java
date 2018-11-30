@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComp
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.NAME;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.SIMPLE_NAME;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.computeClassName;
+import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -115,6 +116,10 @@ public class StringOptimizer {
 
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
   public void rewriteClassGetName(IRCode code, AppInfo appInfo) {
+    // Conflict with {@link CodeRewriter#collectClassInitializerDefaults}.
+    if (code.method.isClassInitializer()) {
+      return;
+    }
     boolean markUseIdentifierNameString = false;
     InstructionIterator it = code.instructionIterator();
     while (it.hasNext()) {
@@ -159,6 +164,8 @@ public class StringOptimizer {
         continue;
       }
 
+      String descriptor = baseType.toDescriptorString();
+      boolean assumeTopLevel = descriptor.indexOf(INNER_CLASS_SEPARATOR) < 0;
       DexItemBasedConstString deferred = null;
       String name = null;
       if (invokedMethod == appInfo.dexItemFactory.classMethods.getName) {
@@ -166,7 +173,7 @@ public class StringOptimizer {
           deferred = new DexItemBasedConstString(
               invoke.outValue(), baseType, new ClassNameComputationInfo(NAME, arrayDepth));
         } else {
-          name = computeClassName(baseType.toDescriptorString(), holder, NAME, arrayDepth);
+          name = computeClassName(descriptor, holder, NAME, arrayDepth);
         }
       } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getTypeName) {
         // TODO(b/119426668): desugar Type#getTypeName
@@ -177,6 +184,11 @@ public class StringOptimizer {
           ConstNumber constNull = code.createConstNull();
           it.replaceCurrentInstruction(constNull);
         } else {
+          // b/119471127: If an outer class is shrunk, we may compute a wrong canonical name.
+          // Leave it as-is so that the class's canonical name is consistent across the app.
+          if (!assumeTopLevel) {
+            continue;
+          }
           if (code.options.enableMinification) {
             deferred =
                 new DexItemBasedConstString(
@@ -184,8 +196,7 @@ public class StringOptimizer {
                     baseType,
                     new ClassNameComputationInfo(CANONICAL_NAME, arrayDepth));
           } else {
-            name = computeClassName(
-                baseType.toDescriptorString(), holder, CANONICAL_NAME, arrayDepth);
+            name = computeClassName(descriptor, holder, CANONICAL_NAME, arrayDepth);
           }
         }
       } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getSimpleName) {
@@ -193,11 +204,16 @@ public class StringOptimizer {
         if (holder.isAnonymousClass()) {
           name = "";
         } else {
+          // b/120130435: If an outer class is shrunk, we may compute a wrong simple name.
+          // Leave it as-is so that the class's simple name is consistent across the app.
+          if (!assumeTopLevel) {
+            continue;
+          }
           if (code.options.enableMinification) {
             deferred = new DexItemBasedConstString(
                 invoke.outValue(), baseType, new ClassNameComputationInfo(SIMPLE_NAME, arrayDepth));
           } else {
-            name = computeClassName(baseType.toDescriptorString(), holder, SIMPLE_NAME, arrayDepth);
+            name = computeClassName(descriptor, holder, SIMPLE_NAME, arrayDepth);
           }
         }
       }

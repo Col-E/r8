@@ -4,6 +4,11 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.CANONICAL_NAME;
+import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.NAME;
+import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.SIMPLE_NAME;
+import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.computeClassName;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -1811,16 +1816,25 @@ public class CodeRewriter {
               assert false;
             }
           } else {
+            // TODO(b/120280603): Consider minification!
             InvokeVirtual invoke = inValue.definition.asInvokeVirtual();
-            String name = method.method.getHolder().toSourceString();
-            if (invoke.getInvokedMethod() == dexItemFactory.classMethods.getSimpleName) {
-              String simpleName = name.substring(name.lastIndexOf('.') + 1);
-              encodedField.setStaticValue(
-                  new DexValueString(dexItemFactory.createString(simpleName)));
-            } else {
-              assert invoke.getInvokedMethod() == dexItemFactory.classMethods.getName;
-              encodedField.setStaticValue(new DexValueString(dexItemFactory.createString(name)));
+            DexMethod invokedMethod = invoke.getInvokedMethod();
+            DexType holderType = method.method.getHolder();
+            DexClass holder = appInfo.definitionFor(holderType);
+            assert holder != null;
+            String descriptor = holderType.toDescriptorString();
+            String name = null;
+            if (invokedMethod == appInfo.dexItemFactory.classMethods.getName) {
+              name = computeClassName(descriptor, holder, NAME, 0);
+            } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getTypeName) {
+              // TODO(b/119426668): desugar Type#getTypeName
+            } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getCanonicalName) {
+              name = computeClassName(descriptor, holder, CANONICAL_NAME, 0);
+            } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getSimpleName) {
+              name = computeClassName(descriptor, holder, SIMPLE_NAME, 0);
             }
+            assert name != null;
+            encodedField.setStaticValue(new DexValueString(dexItemFactory.createString(name)));
           }
         } else if (field.type.isClassType() || field.type.isArrayType()) {
           if (inValue.isZero()) {

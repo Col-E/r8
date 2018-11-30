@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestRunResult;
@@ -71,10 +72,41 @@ class ClassGetSimpleName {
     System.out.println(a2.getSimpleName());
   }
 
+  @NeverInline
+  static void b120130435() {
+    System.out.println(Outer.Inner.class.getSimpleName());
+    System.out.println(Outer.TestHelper.getHelper().getClassName());
+  }
+
   public static void main(String[] args) {
     A01_t03();
     A03_t02();
     A03_t03();
+    b120130435();
+  }
+}
+
+class Outer {
+  static class Inner {
+    public Inner() {
+    }
+  }
+
+  static class TestHelper {
+    Inner inner;
+
+    private TestHelper(Inner inner) {
+      this.inner = inner;
+    }
+
+    @ForceInline
+    String getClassName() {
+      return inner.getClass().getSimpleName();
+    }
+
+    static TestHelper getHelper() {
+      return new TestHelper(new Inner());
+    }
   }
 }
 
@@ -86,15 +118,29 @@ public class GetSimpleNameTest extends GetNameTestBase {
       "$",
       "$$",
       "Local[][][]",
-      "[][][]"
+      "[][][]",
+      "Inner",
+      "Inner"
+  );
+  private static final String OUTPUT_WITH_SHRUNK_ATTRIBUTE = StringUtils.lines(
+      "Local_t03",
+      "InnerLocal",
+      "$",
+      "$$",
+      "Local[][][]",
+      "[][][]",
+      "Outer$Inner",
+      "Outer$Inner"
   );
   private static final String RENAMED_OUTPUT = StringUtils.lines(
       "f",
-      "e",
+      "InnerLocal",
       "b",
-      "a",
+      "$$",
       "d[][][]",
-      "[][][]"
+      "[][][]",
+      "g",
+      "g"
   );
   private static final Class<?> MAIN = ClassGetSimpleName.class;
 
@@ -105,6 +151,10 @@ public class GetSimpleNameTest extends GetNameTestBase {
     builder.addAll(ToolHelper.getClassFilesForTestDirectory(
         ToolHelper.getPackageDirectoryForTestPackage(MAIN.getPackage()),
         path -> path.getFileName().toString().startsWith("ClassGetSimpleName")));
+    builder.add(ToolHelper.getClassFileForTestClass(Outer.class));
+    builder.add(ToolHelper.getClassFileForTestClass(Outer.Inner.class));
+    builder.add(ToolHelper.getClassFileForTestClass(Outer.TestHelper.class));
+    builder.add(ToolHelper.getClassFileForTestClass(ForceInline.class));
     builder.add(ToolHelper.getClassFileForTestClass(NeverInline.class));
     classPaths = builder.build();
   }
@@ -133,6 +183,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
     TestRunResult result = testForD8()
         .debug()
         .addProgramFiles(classPaths)
+        .addOptionsModification(this::configure)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0);
@@ -140,6 +191,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
     result = testForD8()
         .release()
         .addProgramFiles(classPaths)
+        .addOptionsModification(this::configure)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0);
@@ -154,12 +206,17 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.ClassGetSimpleName*")
+        .addKeepRules("-keep class **.Outer*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
         .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
-    TestRunResult result = builder.run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+    TestRunResult result =
+        builder
+            .addOptionsModification(this::configure)
+            .run(MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0);
   }
 
@@ -177,7 +234,10 @@ public class GetSimpleNameTest extends GetNameTestBase {
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
-    TestRunResult result = builder.run(MAIN);
+    TestRunResult result =
+        builder
+            .addOptionsModification(this::configure)
+            .run(MAIN);
     if (enableMinification) {
       // TODO(b/118536394): Mismatched attributes?
       if (backend == Backend.CF) {
@@ -185,7 +245,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
       }
       result.assertSuccessWithOutput(RENAMED_OUTPUT);
     } else {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
+      result.assertSuccessWithOutput(OUTPUT_WITH_SHRUNK_ATTRIBUTE);
     }
     test(result, 0);
   }

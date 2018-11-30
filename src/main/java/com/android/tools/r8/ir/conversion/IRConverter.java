@@ -911,7 +911,9 @@ public class IRConverter {
       // TODO(jsjeon): Consider merging these into one single optimize().
       stringOptimizer.computeTrivialOperationsOnConstString(code, appInfo.dexItemFactory);
       // Reflection optimization 2. get*Name() with const-class -> const-string
-      stringOptimizer.rewriteClassGetName(code, appInfo);
+      if (options.enableNameReflectionOptimization) {
+        stringOptimizer.rewriteClassGetName(code, appInfo);
+      }
       // Reflection optimization 3. String#valueOf(const-string) -> no op.
       stringOptimizer.removeTrivialConversions(code, appInfo);
       assert code.isConsistentSSA();

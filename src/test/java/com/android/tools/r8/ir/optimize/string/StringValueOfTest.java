@@ -14,6 +14,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -107,6 +108,9 @@ public class StringValueOfTest extends TestBase {
     this.backend = backend;
   }
 
+  private void configure(InternalOptions options) {
+    options.enableNameReflectionOptimization = true;
+  }
 
   @Test
   public void testJVMoutput() throws Exception {
@@ -189,6 +193,7 @@ public class StringValueOfTest extends TestBase {
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-dontobfuscate")
+        .addOptionsModification(this::configure)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1, 1, 1);
