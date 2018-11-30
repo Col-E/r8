@@ -399,7 +399,11 @@ final class InlineCandidateProcessor {
         continue;
       }
 
-      throw new Unreachable("Unexpected usage left after method inlining: " + user);
+      throw new Unreachable(
+          "Unexpected usage left in method `"
+              + method.method.toSourceString()
+              + "` after inlining: "
+              + user);
     }
 
     if (needToRemoveUnreachableBlocks) {
@@ -423,7 +427,11 @@ final class InlineCandidateProcessor {
         continue;
       }
 
-      throw new Unreachable("Unexpected usage left after method inlining: " + user);
+      throw new Unreachable(
+          "Unexpected usage left in method `"
+              + method.method.toSourceString()
+              + "` after inlining: "
+              + user);
     }
   }
 
@@ -448,10 +456,18 @@ final class InlineCandidateProcessor {
   private void removeFieldWrites() {
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       if (!user.isInstancePut()) {
-        throw new Unreachable("Unexpected usage left after field reads removed: " + user);
+        throw new Unreachable(
+            "Unexpected usage left in method `"
+                + method.method.toSourceString()
+                + "` after field reads removed: "
+                + user);
       }
       if (user.asInstancePut().getField().clazz != eligibleClass) {
-        throw new Unreachable("Unexpected field write left after field reads removed: " + user);
+        throw new Unreachable(
+            "Unexpected field write left in method `"
+                + method.method.toSourceString()
+                + "` after field reads removed: "
+                + user);
       }
       removeInstruction(user);
     }
