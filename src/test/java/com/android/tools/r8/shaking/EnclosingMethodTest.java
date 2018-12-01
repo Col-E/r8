@@ -8,6 +8,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -71,6 +72,9 @@ public class EnclosingMethodTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    DexVm vm = ToolHelper.getDexVm();
+    assumeTrue("Known to be broken at 5.1.1 and 6.0.1 due to access to fragile EnclosingMethod.",
+        vm.isOlderThanOrEqual(DexVm.ART_4_4_4_HOST) && vm.isNewerThan(DexVm.ART_6_0_1_HOST));
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(classPaths)
         .enableProguardTestOptions()
