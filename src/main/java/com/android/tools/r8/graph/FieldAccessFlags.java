@@ -8,7 +8,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
-public class FieldAccessFlags extends AccessFlags {
+public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
 
   private static final int FLAGS
       = AccessFlags.BASE_FLAGS
@@ -40,8 +40,14 @@ public class FieldAccessFlags extends AccessFlags {
     super(flags);
   }
 
+  @Override
   public FieldAccessFlags copy() {
-    return new FieldAccessFlags(flags);
+    return new FieldAccessFlags(flags).setPromotedToPublic(isPromotedToPublic());
+  }
+
+  @Override
+  public FieldAccessFlags self() {
+    return this;
   }
 
   public static FieldAccessFlags fromSharedAccessFlags(int access) {
@@ -59,12 +65,12 @@ public class FieldAccessFlags extends AccessFlags {
 
   @Override
   public int getAsCfAccessFlags() {
-    return flags;
+    return materialize();
   }
 
   @Override
   public int getAsDexAccessFlags() {
-    return flags;
+    return materialize();
   }
 
   public boolean isVolatile() {

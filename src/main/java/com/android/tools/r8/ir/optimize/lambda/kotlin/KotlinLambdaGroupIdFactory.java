@@ -53,7 +53,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
     DexEncodedMethod mainMethod = null;
 
     for (DexEncodedMethod method : lambda.virtualMethods()) {
-      if (method.accessFlags.equals(MAIN_METHOD_FLAGS)) {
+      if (method.accessFlags.materialize() == MAIN_METHOD_FLAGS.materialize()) {
         if (mainMethod != null) {
           throw new LambdaStructureError("more than one main method found");
         }
@@ -208,7 +208,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
   static <T extends AccessFlags> void checkAccessFlags(
       String message, T actual, T... expected) throws LambdaStructureError {
     for (T flag : expected) {
-      if (flag.equals(actual)) {
+      if (flag.materialize() == actual.materialize()) {
         return;
       }
     }

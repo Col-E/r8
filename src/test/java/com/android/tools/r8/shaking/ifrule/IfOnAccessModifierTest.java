@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking.ifrule;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -102,12 +103,6 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     assertTrue(methodSubject.getMethod().accessFlags.isPublic());
 
     classSubject = codeInspector.clazz(ClassForSubsequent.class);
-    if (shrinker.isR8()) {
-      // TODO(b/117330692): ClassForIf#nonPublicMethod becomes public, and -if rule is not applied
-      // at the 2nd tree shaking.
-      assertThat(classSubject, not(isPresent()));
-      return;
-    }
     assertThat(classSubject, isPresent());
     methodSubject = classSubject.method(publicMethod);
     assertThat(methodSubject, isPresent());
@@ -141,18 +136,12 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     assertTrue(methodSubject.getMethod().accessFlags.isPublic());
 
     classSubject = codeInspector.clazz(ClassForSubsequent.class);
-    if (shrinker.isR8()) {
-      // TODO(b/117330692): ClassForIf#nonPublicMethod becomes public, and -if rule is not applied
-      // at the 2nd tree shaking.
-      assertThat(classSubject, not(isPresent()));
-      return;
-    }
     assertThat(classSubject, isPresent());
     methodSubject = classSubject.method(publicMethod);
     assertThat(methodSubject, not(isPresent()));
     methodSubject = classSubject.method(nonPublicMethod);
     assertThat(methodSubject, isPresent());
-    assertFalse(methodSubject.getMethod().accessFlags.isPublic());
+    assertEquals(shrinker.isR8(), methodSubject.getMethod().accessFlags.isPublic());
   }
 
   @Test
@@ -217,12 +206,6 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     assertThat(methodSubject, not(isPresent()));
     methodSubject = classSubject.method(nonPublicMethod);
     assertThat(methodSubject, isPresent());
-    if (shrinker.isR8()) {
-      // TODO(b/117330692): if kept in the 1st tree shaking, should not be publicized.
-      assertTrue(methodSubject.getMethod().accessFlags.isPublic());
-      return;
-    }
-    assertFalse(methodSubject.getMethod().accessFlags.isPublic());
+    assertEquals(shrinker.isR8(), methodSubject.getMethod().accessFlags.isPublic());
   }
-
 }

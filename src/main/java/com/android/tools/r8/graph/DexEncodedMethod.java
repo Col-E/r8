@@ -211,7 +211,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public boolean isPublicized() {
     checkIfObsolete();
-    return optimizationInfo.isPublicized();
+    return accessFlags.isPromotedToPublic();
   }
 
   public boolean isPublicMethod() {
@@ -889,11 +889,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
-    public boolean isPublicized() {
-      return NOT_PUBLICZED;
-    }
-
-    @Override
     public boolean isInitializerEnablingJavaAssertions() {
       return UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
     }
@@ -1041,11 +1036,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public long getReturnedConstant() {
       assert returnsConstant();
       return returnedConstant;
-    }
-
-    @Override
-    public boolean isPublicized() {
-      return publicized;
     }
 
     @Override

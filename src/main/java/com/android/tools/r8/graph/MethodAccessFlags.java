@@ -8,7 +8,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
-public class MethodAccessFlags extends AccessFlags {
+public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
 
   private static final int SHARED_FLAGS
       = AccessFlags.BASE_FLAGS
@@ -57,8 +57,14 @@ public class MethodAccessFlags extends AccessFlags {
     super(flags);
   }
 
+  @Override
   public MethodAccessFlags copy() {
-    return new MethodAccessFlags(flags);
+    return new MethodAccessFlags(flags).setPromotedToPublic(isPromotedToPublic());
+  }
+
+  @Override
+  public MethodAccessFlags self() {
+    return this;
   }
 
   public static MethodAccessFlags fromSharedAccessFlags(int access, boolean isConstructor) {
@@ -88,12 +94,12 @@ public class MethodAccessFlags extends AccessFlags {
       copy.unsetSynchronized();
       copy.setDeclaredSynchronized();
     }
-    return copy.flags;
+    return copy.materialize();
   }
 
   @Override
   public int getAsCfAccessFlags() {
-    return flags & ~Constants.ACC_CONSTRUCTOR;
+    return materialize() & ~Constants.ACC_CONSTRUCTOR;
   }
 
   public boolean isSynchronized() {

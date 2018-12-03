@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 
 /** Access flags common to classes, methods and fields. */
-public abstract class AccessFlags {
+public abstract class AccessFlags<T extends AccessFlags<T>> {
 
   protected static final int BASE_FLAGS
       = Constants.ACC_PUBLIC
@@ -46,26 +46,43 @@ public abstract class AccessFlags {
   }
 
   protected int flags;
+  protected boolean isPublicized = false;
 
   protected AccessFlags(int flags) {
     this.flags = flags;
+  }
+
+  public abstract T copy();
+
+  public abstract T self();
+
+  public int materialize() {
+    if (isPromotedToPublic()) {
+      return ((flags | Constants.ACC_PUBLIC) & ~Constants.ACC_PROTECTED) & ~Constants.ACC_PRIVATE;
+    }
+    return flags;
   }
 
   public abstract int getAsCfAccessFlags();
 
   public abstract int getAsDexAccessFlags();
 
+  public final int getOriginalCfAccessFlags() {
+    return flags;
+  }
+
   @Override
-  public boolean equals(Object other) {
-    if (other instanceof AccessFlags) {
-      return flags == ((AccessFlags) other).flags;
+  public boolean equals(Object object) {
+    if (object instanceof AccessFlags) {
+      AccessFlags other = (AccessFlags) object;
+      return flags == other.flags && isPublicized == other.isPublicized;
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return flags;
+    return (flags << 1) | (isPublicized ? 1 : 0);
   }
 
   public boolean isMoreVisibleThan(AccessFlags other) {
@@ -92,7 +109,7 @@ public abstract class AccessFlags {
   }
 
   public boolean isPublic() {
-    return isSet(Constants.ACC_PUBLIC);
+    return isSet(Constants.ACC_PUBLIC) || isPromotedToPublic();
   }
 
   public void setPublic() {
@@ -105,7 +122,7 @@ public abstract class AccessFlags {
   }
 
   public boolean isPrivate() {
-    return isSet(Constants.ACC_PRIVATE);
+    return isSet(Constants.ACC_PRIVATE) && !isPromotedToPublic();
   }
 
   public void setPrivate() {
@@ -118,7 +135,7 @@ public abstract class AccessFlags {
   }
 
   public boolean isProtected() {
-    return isSet(Constants.ACC_PROTECTED);
+    return isSet(Constants.ACC_PROTECTED) && !isPromotedToPublic();
   }
 
   public void setProtected() {
@@ -162,10 +179,21 @@ public abstract class AccessFlags {
     unset(Constants.ACC_SYNTHETIC);
   }
 
+  public boolean isPromotedToPublic() {
+    return isPublicized;
+  }
+
+  public T setPromotedToPublic(boolean isPublicized) {
+    this.isPublicized = isPublicized;
+    return self();
+  }
+
   public void promoteToPublic() {
-    unsetProtected();
-    unsetPrivate();
-    setPublic();
+    isPublicized = true;
+  }
+
+  public void unsetPromotedToPublic() {
+    isPublicized = false;
   }
 
   protected boolean isSet(int flag) {

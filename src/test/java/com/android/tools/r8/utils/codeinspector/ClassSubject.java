@@ -70,6 +70,8 @@ public abstract class ClassSubject extends Subject {
 
   public abstract FieldSubject field(String type, String name);
 
+  public abstract FieldSubject uniqueFieldWithName(String name);
+
   public FoundClassSubject asFoundClassSubject() {
     return null;
   }
@@ -77,6 +79,8 @@ public abstract class ClassSubject extends Subject {
   public abstract boolean isAbstract();
 
   public abstract boolean isAnnotation();
+
+  public abstract boolean isPublic();
 
   public String dumpMethods() {
     StringBuilder dump = new StringBuilder();
