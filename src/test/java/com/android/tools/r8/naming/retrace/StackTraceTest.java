@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming.retrace;
 
+import static com.android.tools.r8.naming.retrace.StackTrace.TAB_AT_PREFIX;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
@@ -12,10 +13,11 @@ import org.junit.Test;
 
 public class StackTraceTest {
 
-  private static String oneLineStackTrace = "\tat Test.main(Test.java:10)\n";
+  private static String oneLineStackTrace =
+      TAB_AT_PREFIX + "Test.main(Test.java:10)" + System.lineSeparator();
   private static String twoLineStackTrace =
-      "\tat Test.a(Test.java:6)\n" +
-      "\tat Test.main(Test.java:10)\n";
+      TAB_AT_PREFIX + "Test.a(Test.java:6)" + System.lineSeparator()
+          + TAB_AT_PREFIX + "Test.main(Test.java:10)" + System.lineSeparator();
 
   private void testEquals(String stderr) {
     StackTrace stackTrace = StackTrace.extractFromJvm(stderr);
@@ -33,7 +35,7 @@ public class StackTraceTest {
     assertEquals("Test.java", stackTraceLine.fileName);
     assertEquals(10, stackTraceLine.lineNumber);
     assertEquals(StringUtils.splitLines(oneLineStackTrace).get(0), stackTraceLine.originalLine);
-    assertEquals(oneLineStackTrace, stackTrace.toStringWithPrefix(StackTrace.TAB_AT_PREFIX));
+    assertEquals(oneLineStackTrace, stackTrace.toStringWithPrefix(TAB_AT_PREFIX));
   }
 
   @Test
@@ -51,7 +53,7 @@ public class StackTraceTest {
     assertEquals("Test.java", stackTraceLine.fileName);
     assertEquals(10, stackTraceLine.lineNumber);
     assertEquals(StringUtils.splitLines(twoLineStackTrace).get(1), stackTraceLine.originalLine);
-    assertEquals(twoLineStackTrace, stackTrace.toStringWithPrefix(StackTrace.TAB_AT_PREFIX));
+    assertEquals(twoLineStackTrace, stackTrace.toStringWithPrefix(TAB_AT_PREFIX));
   }
 
   @Test
