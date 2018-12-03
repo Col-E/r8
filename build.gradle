@@ -18,7 +18,7 @@ ext {
     gsonVersion = '2.7'
     junitVersion = '4.12'
     kotlinVersion = '1.2.30'
-    kotlinExtMetadataJVMVersion = '0.0.3'
+    kotlinExtMetadataJVMVersion = '0.0.4'
     smaliVersion = '2.2b4'
 }
 
