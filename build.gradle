@@ -246,6 +246,7 @@ dependencies {
     supportLibs "junit:junit:$junitVersion"
     supportLibs "com.android.support.test.espresso:espresso-core:$espressoVersion"
     apiUsageSampleCompile sourceSets.main.output
+    apiUsageSampleCompile "com.google.guava:guava:$guavaVersion"
     debugTestResourcesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     examplesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"

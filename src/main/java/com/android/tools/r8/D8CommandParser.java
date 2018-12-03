@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.utils.FileUtils.isArchive;
-
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -23,6 +20,17 @@ import java.util.List;
 import java.util.Set;
 
 public class D8CommandParser extends BaseCompilerCommandParser {
+
+  private static final String APK_EXTENSION = ".apk";
+  private static final String JAR_EXTENSION = ".jar";
+  private static final String ZIP_EXTENSION = ".zip";
+
+  private static boolean isArchive(Path path) {
+    String name = path.getFileName().toString().toLowerCase();
+    return name.endsWith(APK_EXTENSION)
+        || name.endsWith(JAR_EXTENSION)
+        || name.endsWith(ZIP_EXTENSION);
+  }
 
   static class OrderedClassFileResourceProvider implements ClassFileResourceProvider {
     static class Builder {
@@ -143,101 +151,98 @@ public class D8CommandParser extends BaseCompilerCommandParser {
     OrderedClassFileResourceProvider.Builder classpathBuilder =
         OrderedClassFileResourceProvider.builder();
     String[] expandedArgs = FlagFile.expandFlagFiles(args, builder);
-    try {
-      for (int i = 0; i < expandedArgs.length; i++) {
-        String arg = expandedArgs[i].trim();
-        if (arg.length() == 0) {
+    for (int i = 0; i < expandedArgs.length; i++) {
+      String arg = expandedArgs[i].trim();
+      if (arg.length() == 0) {
+        continue;
+      } else if (arg.equals("--help")) {
+        builder.setPrintHelp(true);
+      } else if (arg.equals("--version")) {
+        builder.setPrintVersion(true);
+      } else if (arg.equals("--debug")) {
+        if (compilationMode == CompilationMode.RELEASE) {
+          builder.error(
+              new StringDiagnostic("Cannot compile in both --debug and --release mode.", origin));
           continue;
-        } else if (arg.equals("--help")) {
-          builder.setPrintHelp(true);
-        } else if (arg.equals("--version")) {
-          builder.setPrintVersion(true);
-        } else if (arg.equals("--debug")) {
-          if (compilationMode == CompilationMode.RELEASE) {
-            builder.error(
-                new StringDiagnostic("Cannot compile in both --debug and --release mode.", origin));
-            continue;
-          }
-          compilationMode = CompilationMode.DEBUG;
-        } else if (arg.equals("--release")) {
-          if (compilationMode == CompilationMode.DEBUG) {
-            builder.error(
-                new StringDiagnostic("Cannot compile in both --debug and --release mode.", origin));
-            continue;
-          }
-          compilationMode = CompilationMode.RELEASE;
-        } else if (arg.equals("--file-per-class")) {
-          outputMode = OutputMode.DexFilePerClass;
-        } else if (arg.equals("--output")) {
-          String output = expandedArgs[++i];
-          if (outputPath != null) {
-            builder.error(
-                new StringDiagnostic(
-                    "Cannot output both to '" + outputPath.toString() + "' and '" + output + "'",
-                    origin));
-            continue;
-          }
-          outputPath = Paths.get(output);
-        } else if (arg.equals("--lib")) {
-          builder.addLibraryFiles(Paths.get(expandedArgs[++i]));
-        } else if (arg.equals("--classpath")) {
-          Path file = Paths.get(expandedArgs[++i]);
-          try {
-            if (!Files.exists(file)) {
-              throw new NoSuchFileException(file.toString());
-            }
-            if (isArchive(file)) {
-              classpathBuilder.addClassFileResourceProvider(new ArchiveClassFileProvider(file));
-            } else if (Files.isDirectory(file)) {
-              classpathBuilder.addClassFileResourceProvider(
-                  DirectoryClassFileProvider.fromDirectory(file));
-            } else {
-              throw new CompilationError("Unsupported classpath file type", new PathOrigin(file));
-            }
-          } catch (IOException e) {
-            builder.error(new ExceptionDiagnostic(e, new PathOrigin(file)));
-          }
-        } else if (arg.equals("--main-dex-list")) {
-          builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
-        } else if (arg.equals("--main-dex-list-output")) {
-          builder.setMainDexListOutputPath(Paths.get(expandedArgs[++i]));
-        } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
-          builder.setOptimizeMultidexForLinearAlloc(true);
-        } else if (arg.equals("--min-api")) {
-          String minApiString = expandedArgs[++i];
-          if (hasDefinedApiLevel) {
-            builder.error(new StringDiagnostic("Cannot set multiple --min-api options", origin));
-          } else {
-            parseMinApi(builder, minApiString, origin);
-            hasDefinedApiLevel = true;
-          }
-        } else if (arg.equals("--intermediate")) {
-          builder.setIntermediate(true);
-        } else if (arg.equals("--no-desugaring")) {
-          builder.setDisableDesugaring(true);
-        } else {
-          if (arg.startsWith("--")) {
-            builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
-            continue;
-          }
-          builder.addProgramFiles(Paths.get(arg));
         }
+        compilationMode = CompilationMode.DEBUG;
+      } else if (arg.equals("--release")) {
+        if (compilationMode == CompilationMode.DEBUG) {
+          builder.error(
+              new StringDiagnostic("Cannot compile in both --debug and --release mode.", origin));
+          continue;
+        }
+        compilationMode = CompilationMode.RELEASE;
+      } else if (arg.equals("--file-per-class")) {
+        outputMode = OutputMode.DexFilePerClass;
+      } else if (arg.equals("--output")) {
+        String output = expandedArgs[++i];
+        if (outputPath != null) {
+          builder.error(
+              new StringDiagnostic(
+                  "Cannot output both to '" + outputPath.toString() + "' and '" + output + "'",
+                  origin));
+          continue;
+        }
+        outputPath = Paths.get(output);
+      } else if (arg.equals("--lib")) {
+        builder.addLibraryFiles(Paths.get(expandedArgs[++i]));
+      } else if (arg.equals("--classpath")) {
+        Path file = Paths.get(expandedArgs[++i]);
+        try {
+          if (!Files.exists(file)) {
+            throw new NoSuchFileException(file.toString());
+          }
+          if (isArchive(file)) {
+            classpathBuilder.addClassFileResourceProvider(new ArchiveClassFileProvider(file));
+          } else if (Files.isDirectory(file)) {
+            classpathBuilder.addClassFileResourceProvider(
+                DirectoryClassFileProvider.fromDirectory(file));
+          } else {
+            builder.error(
+                new StringDiagnostic("Unsupported classpath file type", new PathOrigin(file)));
+          }
+        } catch (IOException e) {
+          builder.error(new ExceptionDiagnostic(e, new PathOrigin(file)));
+        }
+      } else if (arg.equals("--main-dex-list")) {
+        builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
+      } else if (arg.equals("--main-dex-list-output")) {
+        builder.setMainDexListOutputPath(Paths.get(expandedArgs[++i]));
+      } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
+        builder.setOptimizeMultidexForLinearAlloc(true);
+      } else if (arg.equals("--min-api")) {
+        String minApiString = expandedArgs[++i];
+        if (hasDefinedApiLevel) {
+          builder.error(new StringDiagnostic("Cannot set multiple --min-api options", origin));
+        } else {
+          parseMinApi(builder, minApiString, origin);
+          hasDefinedApiLevel = true;
+        }
+      } else if (arg.equals("--intermediate")) {
+        builder.setIntermediate(true);
+      } else if (arg.equals("--no-desugaring")) {
+        builder.setDisableDesugaring(true);
+      } else {
+        if (arg.startsWith("--")) {
+          builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
+          continue;
+        }
+        builder.addProgramFiles(Paths.get(arg));
       }
-      if (!classpathBuilder.isEmpty()) {
-        builder.addClasspathResourceProvider(classpathBuilder.build());
-      }
-      if (compilationMode != null) {
-        builder.setMode(compilationMode);
-      }
-      if (outputMode == null) {
-        outputMode = OutputMode.DexIndexed;
-      }
-      if (outputPath == null) {
-        outputPath = Paths.get(".");
-      }
-      return builder.setOutput(outputPath, outputMode);
-    } catch (CompilationError e) {
-      throw builder.fatalError(e);
     }
+    if (!classpathBuilder.isEmpty()) {
+      builder.addClasspathResourceProvider(classpathBuilder.build());
+    }
+    if (compilationMode != null) {
+      builder.setMode(compilationMode);
+    }
+    if (outputMode == null) {
+      outputMode = OutputMode.DexIndexed;
+    }
+    if (outputPath == null) {
+      outputPath = Paths.get(".");
+    }
+    return builder.setOutput(outputPath, outputMode);
   }
 }
