@@ -13,13 +13,9 @@ import optparse
 import subprocess
 import sys
 import utils
-import uuid
 import notify
-import upload_to_x20
-
 
 ALL_ART_VMS = ["default", "8.1.0", "7.0.0", "6.0.1", "5.1.1", "4.4.4", "4.0.4"]
-BUCKET = 'r8-test-results'
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -88,15 +84,6 @@ def ParseOptions():
            ' location and use them instead of executing on host runtime.')
 
   return result.parse_args()
-
-def archive_failures():
-  upload_dir = os.path.join(utils.REPO_ROOT, 'build', 'reports', 'tests')
-  u_dir = uuid.uuid4()
-  destination = 'gs://%s/%s' % (BUCKET, u_dir)
-  utils.upload_dir_to_cloud_storage(upload_dir, destination, is_html=True)
-  url = 'http://storage.googleapis.com/%s/%s/test/index.html' % (BUCKET, u_dir)
-  print 'Test results available at: %s' % url
-  print '@@@STEP_LINK@Test failures@%s@@@' % url
 
 def Main():
   (options, args) = ParseOptions()
@@ -193,7 +180,7 @@ def Main():
 
     if return_code != 0:
       if options.archive_failures and os.name != 'nt':
-        archive_failures()
+        utils.archive_failures()
       return return_code
 
   return 0
