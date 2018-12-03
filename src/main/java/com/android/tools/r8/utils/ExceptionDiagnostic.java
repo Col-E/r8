@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
@@ -11,6 +12,7 @@ import java.io.FileNotFoundException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
 
+@Keep
 public class ExceptionDiagnostic extends DiagnosticWithThrowable {
 
   private final Origin origin;

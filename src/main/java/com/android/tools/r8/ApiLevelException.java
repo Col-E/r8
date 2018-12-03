@@ -6,9 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
-/**
- * Exception to signal features that are not supported until a given API level.
- */
+/** Exception to signal features that are not supported until a given API level. */
 public class ApiLevelException extends CompilationError {
 
   public ApiLevelException(

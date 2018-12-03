@@ -582,6 +582,55 @@ task CompatProguard(type: ShadowJar) {
     }
 }
 
+def r8CfCommandLine(input, output, pgconf) {
+    return ["java", "-ea", "-jar", R8.outputs.files[0],
+        "--classfile", "--release",
+        input,
+        "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar",
+        "--output", output,
+        "--pg-conf", pgconf]
+}
+
+task R8R8(type: Exec) {
+    def pgconf = "pgconfs/r8.cfg"
+    def output = "build/libs/r8-r8.jar"
+    inputs.files files(pgconf, "build/libs/r8.jar")
+    outputs.file output
+    dependsOn R8
+    commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
+    workingDir = projectDir
+}
+
+task D8R8(type: Exec) {
+    def pgconf = "pgconfs/d8.cfg"
+    def output = "build/libs/d8-r8.jar"
+    inputs.files files(pgconf, "build/libs/d8.jar")
+    outputs.file output
+    dependsOn D8
+    commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
+    workingDir = projectDir
+}
+
+task CompatDxR8(type: Exec) {
+    def pgconf = "pgconfs/compatdx.cfg"
+    def output = "build/libs/compatdx-r8.jar"
+    inputs.files files(pgconf, "build/libs/compatdx.jar")
+    outputs.file output
+    dependsOn CompatDx
+    commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
+    workingDir = projectDir
+}
+
+task CompatProguardR8(type: Exec) {
+    def pgconf = "pgconfs/compatproguard.cfg"
+    def output = "build/libs/compatproguard-r8.jar"
+    inputs.files files(pgconf, "build/libs/compatproguard.jar")
+    outputs.file output
+    dependsOn CompatProguard
+    commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
+    workingDir = projectDir
+}
+
 task sourceJar(type: Jar, dependsOn: classes) {
     classifier = 'src'
     from sourceSets.main.allSource

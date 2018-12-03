@@ -35,7 +35,8 @@ def copy_targets(root, target_root, srcs, dests):
     copyfile(src, dest)
 
 def copy_jar_targets(root, target_root):
-  srcs = map((lambda t: t + '.jar'), JAR_TARGETS)
+  # With the '-r8' postfix we're using the R8-processed jars.
+  srcs = map((lambda t: t + '-r8.jar'), JAR_TARGETS)
   dests = map((lambda t: t + '-master.jar'), JAR_TARGETS)
   copy_targets(root, target_root, srcs, dests)
 
@@ -61,12 +62,13 @@ def Main():
   args = parse_arguments()
   target_root = args.android_root[0]
   if args.commit_hash == None and args.version == None:
-    gradle.RunGradle(JAR_TARGETS)
+    gradle.RunGradle(map((lambda t: t + 'r8'), JAR_TARGETS))
     copy_jar_targets(utils.LIBS, target_root)
     copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
   else:
     assert args.commit_hash == None or args.version == None
-    targets = map((lambda t: t + '.jar'), JAR_TARGETS) + OTHER_TARGETS
+    # With the '-r8' postfix we're using the R8-processed jars.
+    targets = map((lambda t: t + '-r8.jar'), JAR_TARGETS) + OTHER_TARGETS
     with utils.TempDir() as root:
       for target in targets:
         if args.commit_hash:

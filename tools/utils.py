@@ -35,11 +35,15 @@ COMPATDX = 'compatdx'
 COMPATPROGUARD = 'compatproguard'
 
 D8_JAR = os.path.join(LIBS, 'd8.jar')
+D8R8_JAR = os.path.join(LIBS, 'd8-r8.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
+R8R8_JAR = os.path.join(LIBS, 'r8-r8.jar')
 R8_SRC_JAR = os.path.join(LIBS, 'r8-src.jar')
 R8_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8-exclude-deps.jar')
 COMPATDX_JAR = os.path.join(LIBS, 'compatdx.jar')
+COMPATDXR8_JAR = os.path.join(LIBS, 'compatdx-r8.jar')
 COMPATPROGUARD_JAR = os.path.join(LIBS, 'compatproguard.jar')
+COMPATPROGUARDR8_JAR = os.path.join(LIBS, 'compatproguard-r8.jar')
 MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')

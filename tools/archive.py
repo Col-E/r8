@@ -88,7 +88,10 @@ def Main():
   shutil.copyfile(utils.R8_JAR, utils.R8_EXCLUDE_DEPS_JAR)
 
   # Ensure all archived artifacts has been built before archiving.
-  gradle.RunGradle([utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD])
+  # The target tasks postfixed by 'r8' depend on the actual target task so
+  # building it invokes the original task first.
+  gradle.RunGradle(map((lambda t: t + 'r8'),
+    [utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD]))
   version = GetVersion()
   is_master = IsMaster(version)
   if is_master:
@@ -107,12 +110,12 @@ def Main():
           'releaser=go/r8bot (' + os.environ.get('BUILDBOT_SLAVENAME') + ')\n')
       version_writer.write('version-file.version.code=1\n')
 
-    for file in [utils.D8_JAR,
-                 utils.R8_JAR,
+    for file in [utils.D8_JAR, utils.D8R8_JAR,
+                 utils.R8_JAR, utils.R8R8_JAR,
                  utils.R8_SRC_JAR,
                  utils.R8_EXCLUDE_DEPS_JAR,
-                 utils.COMPATDX_JAR,
-                 utils.COMPATPROGUARD_JAR,
+                 utils.COMPATDX_JAR, utils.COMPATDXR8_JAR,
+                 utils.COMPATPROGUARD_JAR, utils.COMPATPROGUARDR8_JAR,
                  utils.MAVEN_ZIP,
                  utils.GENERATED_LICENSE]:
       file_name = os.path.basename(file)
