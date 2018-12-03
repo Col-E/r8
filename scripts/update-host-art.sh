@@ -130,6 +130,19 @@ cp -r $ANDROID_TARGET_BUILD/product/$ANDROID_PRODUCT/system/framework/* $DEST/pr
 mkdir -p $DEST/usr/icu
 cp -r $ANDROID_HOST_BUILD/usr/icu/* $DEST/usr/icu
 
+# Update links for vdex files for Android P and later.
+if [ -f $DEST/product/$ANDROID_PRODUCT/system/framework/boot.vdex ]; then
+  for VDEXFILE in $DEST/product/$ANDROID_PRODUCT/system/framework/*.vdex; do
+    VDEXNAME=$(basename ${VDEXFILE});
+    for ARCH in arm arm64; do
+      rm $DEST/product/$ANDROID_PRODUCT/system/framework/$ARCH/${VDEXNAME};
+      # This relative link command will create a symbolic link of the form
+      # ../${VDEXNAME} for each architecture.
+      ln -r -s $DEST/product/$ANDROID_PRODUCT/system/framework/${VDEXNAME} $DEST/product/$ANDROID_PRODUCT/system/framework/$ARCH/${VDEXNAME};
+    done
+  done
+fi
+
 # Allow failure for strip commands below.
 set +e
 

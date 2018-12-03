@@ -186,7 +186,9 @@ public abstract class RunExamplesAndroidPTest
           .put(DexVm.Version.V6_0_1, ImmutableList.of("invokecustom"))
           // Dex version not supported
           .put(DexVm.Version.V7_0_0, ImmutableList.of("invokecustom"))
+          // Dex version not supported
           .put(DexVm.Version.V8_1_0, ImmutableList.of("invokecustom"))
+          // Dex version not supported
           .put(DexVm.Version.DEFAULT, ImmutableList.of())
           .build();
 

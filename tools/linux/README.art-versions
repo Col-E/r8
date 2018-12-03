@@ -42,6 +42,29 @@ To reproduce that AOSP state, use the following commands:
   <continue with repo sync as above>
 
 
+art-9.0.0 (Android P)
+---------------------
+Build from branch android-9.0.0_r18.
+
+export BRANCH=android-9.0.0_r18
+mkdir ${BRANCH}
+cd ${BRANCH}
+repo init -u https://android.googlesource.com/platform/manifest -b ${BRANCH}
+repo sync -cq -j24
+source build/envsetup.sh
+lunch aosp_marlin-userdebug
+m -j24
+m -j24 build-art
+m -j24 test-art-host
+
+Collected into tools/linux/art-9.0.0.
+
+  cd <r8 checkout>
+  scripts/update-host-art.sh \
+    --android-checkout /usr/local/ssd/android/${BRANCH} \
+    --art-dir art-9.0.0 \
+    --android-product marlin
+
 art-8.1.0 (Android O MR1)
 -------------------------
 Build from branch android-8.1.0_r51.
@@ -59,6 +82,7 @@ m -j24 test-art-host
 
 Collected into tools/linux/art-8.1.0.
 
+  cd <r8 checkout>
   scripts/update-host-art.sh \
     --android-checkout /usr/local/ssd/android/${BRANCH} \
     --art-dir art-8.1.0 \

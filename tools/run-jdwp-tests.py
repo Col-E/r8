@@ -15,6 +15,7 @@ TEST_PACKAGE = 'org.apache.harmony.jpda.tests.jdwp'
 
 VERSIONS = [
   'default',
+  '9.0.0',
   '8.1.0',
   '7.0.0',
   '6.0.1',
@@ -101,6 +102,8 @@ def get_common_flags(version):
     flags.extend(['-Ximage:%s' % IMAGE])
     if version != '5.1.1':
       flags.extend(['-Xcompiler-option', '--debuggable'])
+  if version == '9.0.0':
+    flags.extend(['-XjdwpProvider:internal'])
   return flags
 
 def get_debuggee_flags(version):

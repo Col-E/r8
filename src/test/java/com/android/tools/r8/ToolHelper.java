@@ -126,6 +126,8 @@ public class ToolHelper {
     ART_7_0_0_HOST(Version.V7_0_0, Kind.HOST),
     ART_8_1_0_TARGET(Version.V8_1_0, Kind.TARGET),
     ART_8_1_0_HOST(Version.V8_1_0, Kind.HOST),
+    ART_9_0_0_TARGET(Version.V9_0_0, Kind.TARGET),
+    ART_9_0_0_HOST(Version.V9_0_0, Kind.HOST),
     ART_DEFAULT(Version.DEFAULT, Kind.HOST);
 
     private static final ImmutableMap<String, DexVm> SHORT_NAME_MAP =
@@ -140,6 +142,7 @@ public class ToolHelper {
       V6_0_1("6.0.1"),
       V7_0_0("7.0.0"),
       V8_1_0("8.1.0"),
+      V9_0_0("9.0.0"),
       DEFAULT("default");
 
       Version(String shortName) {
@@ -416,6 +419,7 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_DIRS =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "art")
+          .put(DexVm.ART_9_0_0_HOST, "art-9.0.0")
           .put(DexVm.ART_8_1_0_HOST, "art-8.1.0")
           .put(DexVm.ART_7_0_0_HOST, "art-7.0.0")
           .put(DexVm.ART_6_0_1_HOST, "art-6.0.1")
@@ -425,6 +429,7 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_BINARY_VERSIONS =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "bin/art")
+          .put(DexVm.ART_9_0_0_HOST, "bin/art")
           .put(DexVm.ART_8_1_0_HOST, "bin/art")
           .put(DexVm.ART_7_0_0_HOST, "bin/art")
           .put(DexVm.ART_6_0_1_HOST, "bin/art")
@@ -435,6 +440,7 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_BINARY_VERSIONS_X64 =
       ImmutableMap.of(
           DexVm.ART_DEFAULT, "bin/art",
+          DexVm.ART_9_0_0_HOST, "bin/art",
           DexVm.ART_8_1_0_HOST, "bin/art",
           DexVm.ART_7_0_0_HOST, "bin/art",
           DexVm.ART_6_0_1_HOST, "bin/art");
@@ -457,6 +463,7 @@ public class ToolHelper {
     ImmutableMap.Builder<DexVm, List<String>> builder = ImmutableMap.builder();
     builder
         .put(DexVm.ART_DEFAULT, ART_BOOT_LIBS)
+        .put(DexVm.ART_9_0_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_8_1_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_7_0_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_6_0_1_HOST, ART_BOOT_LIBS)
@@ -472,6 +479,7 @@ public class ToolHelper {
     ImmutableMap.Builder<DexVm, String> builder = ImmutableMap.builder();
     builder
         .put(DexVm.ART_DEFAULT, "angler")
+        .put(DexVm.ART_9_0_0_HOST, "marlin")
         .put(DexVm.ART_8_1_0_HOST, "marlin")
         .put(DexVm.ART_7_0_0_HOST, "angler")
         .put(DexVm.ART_6_0_1_HOST, "angler")
@@ -721,6 +729,8 @@ public class ToolHelper {
     switch (dexVm.version) {
       case DEFAULT:
         return AndroidApiLevel.O;
+      case V9_0_0:
+        return AndroidApiLevel.P;
       case V8_1_0:
         return AndroidApiLevel.O;
       case V7_0_0:

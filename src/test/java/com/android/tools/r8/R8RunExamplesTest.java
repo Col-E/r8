@@ -208,6 +208,9 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
         // Early art versions incorrectly print doubles.
         .put("regress_72361252.Test",
             TestCondition.match(TestCondition.runtimesUpTo(Version.V6_0_1)))
+        // TODO(120402200): Triage.
+        .put("regress_62300145.Regress",
+            TestCondition.match(TestCondition.runtimesUpTo(Version.V9_0_0)))
         .build();
   }
 
