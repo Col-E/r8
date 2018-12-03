@@ -160,7 +160,7 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
     public void accept(
         int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       super.accept(fileIndex, data, descriptors, handler);
-      outputBuilder.addIndexedClassFile(fileIndex, getDexFileName(fileIndex), data, handler);
+      outputBuilder.addFile(getDexFileName(fileIndex), data, handler);
     }
 
     @Override
