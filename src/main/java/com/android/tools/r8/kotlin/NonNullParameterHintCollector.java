@@ -69,8 +69,10 @@ class NonNullParameterHintCollector {
       return new JvmFunctionExtensionVisitor() {
         @Override
         public void visit(JvmMethodSignature desc) {
-          name = desc.getName();
-          descriptor = desc.getDesc();
+          if (desc != null) {
+            name = desc.getName();
+            descriptor = desc.getDesc();
+          }
         }
       };
     }

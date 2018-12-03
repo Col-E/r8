@@ -28,7 +28,9 @@ import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorParserException;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.KeepingDiagnosticHandler;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
@@ -48,14 +50,24 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.junit.Before;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
 public abstract class CompilationTestBase {
 
+  protected KeepingDiagnosticHandler handler;
+  protected Reporter reporter;
+
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  @Before
+  public void reset() {
+    handler = new KeepingDiagnosticHandler();
+    reporter = new Reporter(handler);
+  }
 
   public AndroidApp runAndCheckVerification(
       CompilerUnderTest compiler,
@@ -88,7 +100,7 @@ public abstract class CompilationTestBase {
     assertTrue(referenceApk == null || new File(referenceApk).exists());
     AndroidAppConsumers outputApp;
     if (compiler == CompilerUnderTest.R8) {
-      R8Command.Builder builder = R8Command.builder();
+      R8Command.Builder builder = R8Command.builder(reporter);
       builder.addProgramFiles(ListUtils.map(inputs, Paths::get));
       if (pgConfs != null) {
         builder.addProguardConfigurationFiles(
