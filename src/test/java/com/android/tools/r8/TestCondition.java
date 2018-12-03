@@ -23,6 +23,7 @@ public class TestCondition {
     ART_V6_0_1,
     ART_V7_0_0,
     ART_V8_1_0,
+    ART_V9_0_0,
     ART_DEFAULT,
     JAVA;
 
@@ -43,6 +44,8 @@ public class TestCondition {
           return ART_V7_0_0;
         case V8_1_0:
           return ART_V8_1_0;
+        case V9_0_0:
+          return ART_V9_0_0;
         case DEFAULT:
           return ART_DEFAULT;
         default:

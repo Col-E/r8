@@ -1019,6 +1019,10 @@ public abstract class DebugTestBase extends TestBase {
               artCommandBuilder.appendArtOption("-Xcompiler-option");
               artCommandBuilder.appendArtOption("--debuggable");
             }
+            if (ToolHelper.getDexVm().getVersion().isAtLeast(DexVm.Version.V9_0_0) &&
+                ToolHelper.getDexVm().getVersion() != DexVm.Version.DEFAULT) {
+              artCommandBuilder.appendArtOption("-XjdwpProvider:internal");
+            }
             if (DEBUG_TESTS && ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4)) {
               artCommandBuilder.appendArtOption("-verbose:jdwp");
             }

@@ -231,7 +231,9 @@ public abstract class RunExamplesJava9Test
               + "1: d>i>s>i>a\n"
               + "2: l>i>s>i>a\n"
               + "3: x>s\n"
-              + "4: c>d>i>s>i>a\n"
+              + "4: c>d>i>s>i>a\n",
+          "varhandle",
+          "true\nfalse\n"
       );
 
   @Rule

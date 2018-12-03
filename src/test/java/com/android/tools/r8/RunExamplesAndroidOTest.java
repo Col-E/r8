@@ -269,6 +269,12 @@ public abstract class RunExamplesAndroidOTest
                 "testMissingSuperDesugaredAndroidO"
             ))
         .put(
+            DexVm.Version.V9_0_0, ImmutableList.of(
+                // TODO(120402963): Triage.
+                "invokecustom",
+                "invokecustom2"
+            ))
+        .put(
             DexVm.Version.DEFAULT, ImmutableList.of()
         );
     failsOn = builder.build();
@@ -577,9 +583,6 @@ public abstract class RunExamplesAndroidOTest
       String qualifiedMainClass, Path[] jars, Path[] dexes, List<String> args) throws IOException {
 
     boolean expectedToFail = expectedToFail(testName);
-    if (expectedToFail && !ToolHelper.compareAgaintsGoldenFiles()) {
-      thrown.expect(Throwable.class);
-    }
     String output = ToolHelper.runArtNoVerificationErrors(
         Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
         qualifiedMainClass,
@@ -588,18 +591,22 @@ public abstract class RunExamplesAndroidOTest
             builder.appendProgramArgument(arg);
           }
         });
-    if (!expectedToFail && !skipRunningOnJvm(testName) && !ToolHelper.compareAgaintsGoldenFiles()) {
-      ArrayList<String> javaArgs = Lists.newArrayList(args);
-      javaArgs.add(0, qualifiedMainClass);
-      ToolHelper.ProcessResult javaResult =
-          ToolHelper.runJava(ImmutableList.copyOf(jars), javaArgs.toArray(new String[0]));
-      assertEquals("JVM run failed", javaResult.exitCode, 0);
-      assertTrue(
-          "JVM output does not match art output.\n\tjvm: "
-              + javaResult.stdout
-              + "\n\tart: "
-              + output,
-          output.replace("\r", "").equals(javaResult.stdout.replace("\r", "")));
+    try {
+      if (!skipRunningOnJvm(testName) && !ToolHelper.compareAgaintsGoldenFiles()) {
+        ArrayList<String> javaArgs = Lists.newArrayList(args);
+        javaArgs.add(0, qualifiedMainClass);
+        ToolHelper.ProcessResult javaResult =
+            ToolHelper.runJava(ImmutableList.copyOf(jars), javaArgs.toArray(new String[0]));
+        assertEquals("JVM run failed", javaResult.exitCode, 0);
+        assertTrue(
+            "JVM output does not match art output.\n\tjvm: "
+                + javaResult.stdout
+                + "\n\tart: "
+                + output,
+            output.replace("\r", "").equals(javaResult.stdout.replace("\r", "")));
+      }
+    } catch (Throwable t) {
+      assert expectedToFail;
     }
   }
 

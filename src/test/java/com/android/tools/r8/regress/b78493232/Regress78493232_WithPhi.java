@@ -52,6 +52,7 @@ public class Regress78493232_WithPhi extends AsmTestBase {
         case V4_4_4:
         case V7_0_0:
         case V8_1_0:
+        case V9_0_0:
         case DEFAULT:
           assertNotEquals(-1, d8Result.stderr.indexOf("java.lang.VerifyError"));
           assertNotEquals(-1, r8Result.stderr.indexOf("java.lang.VerifyError"));
