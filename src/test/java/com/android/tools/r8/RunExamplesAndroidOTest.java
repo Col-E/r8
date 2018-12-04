@@ -606,7 +606,7 @@ public abstract class RunExamplesAndroidOTest
             output.replace("\r", "").equals(javaResult.stdout.replace("\r", "")));
       }
     } catch (Throwable t) {
-      assert expectedToFail;
+      assert expectedToFail && !ToolHelper.compareAgaintsGoldenFiles();
     }
   }
 
