@@ -123,7 +123,8 @@ class StackTrace {
     List<StackTraceLine> stackTraceLines = new ArrayList<>();
     List<String> stderrLines = StringUtils.splitLines(stderr);
 
-    // A Dalvik stacktrace looks like this:
+    // A Dalvik stacktrace looks like this (apparently the bottom frame
+    // "dalvik.system.NativeStart.main" is not always present)
     // W(209693) threadid=1: thread exiting with uncaught exception (group=0xf616cb20)  (dalvikvm)
     // java.lang.NullPointerException
     // \tat com.android.tools.r8.naming.retrace.Main.a(:133)
@@ -143,8 +144,9 @@ class StackTrace {
     // \tat com.android.tools.r8.naming.retrace.Main.a(:156)
     // \tat com.android.tools.r8.naming.retrace.Main.main(:162)
     int last = stderrLines.size();
-    if (ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-      // Skip the bottom frame "dalvik.system.NativeStart.main".
+    // Skip the bottom frame "dalvik.system.NativeStart.main" if present.
+    if (ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)
+        && stderrLines.get(last - 1).contains("dalvik.system.NativeStart.main")) {
       last--;
     }
     // Take all lines from the bottom starting with "\tat ".
