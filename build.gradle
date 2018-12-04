@@ -377,6 +377,16 @@ task downloadProguard {
     }
 }
 
+task downloadOpenJDKrt {
+   cloudDependencies.each { entry ->
+        entry.value.each { entryFile ->
+            if (entryFile.contains("openjdk-rt")) {
+                dependsOn "download_deps_${entry.key}/${entryFile}"
+            }
+        }
+    }
+}
+
 task downloadDx {
     cloudDependencies.each { entry ->
         entry.value.each { entryFile ->
@@ -597,6 +607,7 @@ task R8R8(type: Exec) {
     inputs.files files(pgconf, "build/libs/r8.jar")
     outputs.file output
     dependsOn R8
+    dependsOn downloadOpenJDKrt
     commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
     workingDir = projectDir
 }
@@ -606,6 +617,7 @@ task D8R8(type: Exec) {
     def output = "build/libs/d8-r8.jar"
     inputs.files files(pgconf, "build/libs/d8.jar")
     outputs.file output
+    dependsOn downloadOpenJDKrt
     dependsOn D8
     commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
     workingDir = projectDir
@@ -617,6 +629,7 @@ task CompatDxR8(type: Exec) {
     inputs.files files(pgconf, "build/libs/compatdx.jar")
     outputs.file output
     dependsOn CompatDx
+    dependsOn downloadOpenJDKrt
     commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
     workingDir = projectDir
 }
@@ -627,6 +640,7 @@ task CompatProguardR8(type: Exec) {
     inputs.files files(pgconf, "build/libs/compatproguard.jar")
     outputs.file output
     dependsOn CompatProguard
+    dependsOn downloadOpenJDKrt
     commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
     workingDir = projectDir
 }
