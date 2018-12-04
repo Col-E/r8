@@ -509,6 +509,8 @@ public class IRConverter {
     // 2) Perform outlining for the collected candidates.
     // Ideally, we should outline eagerly when threshold for a template has been reached.
 
+    printPhase("Primary optimization pass");
+
     // Process the application identifying outlining candidates.
     OptimizationFeedbackDelayed feedback = new OptimizationFeedbackDelayed();
     {
@@ -533,30 +535,39 @@ public class IRConverter {
 
     // TODO(b/112831361): Implement support for staticizeClasses in CF backend.
     if (!options.isGeneratingClassFiles()) {
+      printPhase("Class staticizer post processing");
       staticizeClasses(feedback, executorService);
     }
 
     // Second inlining pass for dealing with double inline callers.
     if (inliner != null) {
+      printPhase("Double caller inlining");
       // Use direct feedback still, since methods after inlining may
       // change their status or other properties.
       inliner.processDoubleInlineCallers(this, feedback);
     }
 
+    printPhase("Lambda class synthesis");
     synthesizeLambdaClasses(builder, executorService);
-    desugarInterfaceMethods(builder, IncludeAllResources, executorService);
-    synthesizeTwrCloseResourceUtilityClass(builder);
 
+    printPhase("Interface method desugaring");
+    desugarInterfaceMethods(builder, IncludeAllResources, executorService);
+
+    printPhase("Twr close resource utility class synthesis");
+    synthesizeTwrCloseResourceUtilityClass(builder);
     handleSynthesizedClassMapping(builder);
+
+    printPhase("Lambda merging finalization");
     finalizeLambdaMerging(application, feedback, builder, executorService);
 
     if (outliner != null) {
+      printPhase("Outlining");
       timing.begin("IR conversion phase 2");
       if (outliner.selectMethodsForOutlining()) {
         forEachSelectedOutliningMethod(
             executorService,
             (code, method) -> {
-              printMethod(code, "IR before outlining (SSA)");
+              printMethod(code, "IR before outlining (SSA)", null);
               outliner.identifyOutlineSites(code, method);
             });
         DexProgramClass outlineClass = outliner.buildOutlinerClass(computeOutlineClassType());
@@ -565,7 +576,7 @@ public class IRConverter {
             executorService,
             (code, method) -> {
               outliner.applyOutliningCandidate(code, method);
-              printMethod(code, "IR after outlining (SSA)");
+              printMethod(code, "IR after outlining (SSA)", null);
               finalizeIR(method, code, ignoreOptimizationFeedback);
             });
         assert outliner.checkAllOutlineSitesFoundAgain();
@@ -831,7 +842,7 @@ public class IRConverter {
     }
     // Compilation header if printing CFGs for this method.
     printC1VisualizerHeader(method);
-    printMethod(code, "Initial IR (SSA)");
+    String previous = printMethod(code, "Initial IR (SSA)", null);
 
     if (method.getCode() != null && method.getCode().isJarCode()) {
       computeKotlinNonNullParamHints(feedback, method, code);
@@ -879,6 +890,8 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    previous = printMethod(code, "IR after class staticizer (SSA)", previous);
+
     if (identifierNameStringMarker != null) {
       identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(method, code);
       assert code.isConsistentSSA();
@@ -902,6 +915,8 @@ public class IRConverter {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
     }
+
+    previous = printMethod(code, "IR after inlining (SSA)", previous);
 
     if (appInfo.hasLiveness()) {
       // Reflection optimization 1. getClass() -> const-class
@@ -982,7 +997,11 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    previous = printMethod(code, "IR after lambda desugaring (SSA)", previous);
+
     assert code.verifyTypes(appInfo, appView, graphLense());
+
+    previous = printMethod(code, "IR before class inlining (SSA)", previous);
 
     if (classInliner != null) {
       // Class inliner should work before lambda merger, so if it inlines the
@@ -1000,24 +1019,34 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    previous = printMethod(code, "IR after class inlining (SSA)", previous);
+
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.rewriteMethodReferences(method, code);
       assert code.isConsistentSSA();
     }
 
+    previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);
+
     if (twrCloseResourceRewriter != null) {
       twrCloseResourceRewriter.rewriteMethodCode(code);
     }
+
+    previous = printMethod(code, "IR after twr close resource rewriter (SSA)", previous);
 
     if (lambdaMerger != null) {
       lambdaMerger.processMethodCode(method, code);
       assert code.isConsistentSSA();
     }
 
+    previous = printMethod(code, "IR after lambda merger (SSA)", previous);
+
     if (options.outline.enabled) {
       outlineHandler.accept(code, method);
       assert code.isConsistentSSA();
     }
+
+    previous = printMethod(code, "IR after outline handler (SSA)", previous);
 
     // TODO(mkroghj) Test if shorten live ranges is worth it.
     if (!options.isGeneratingClassFiles()) {
@@ -1027,10 +1056,14 @@ public class IRConverter {
     }
     idempotentFunctionCallCanonicalizer.canonicalize(code);
 
+    previous =
+        printMethod(code, "IR after idempotent function call canonicalization (SSA)", previous);
+
     codeRewriter.identifyReturnsArgument(method, code, feedback);
     if (options.enableInlining && inliner != null) {
       codeRewriter.identifyInvokeSemanticsForInlining(method, code, feedback);
     }
+
     // If hints from Kotlin metadata or use of Kotlin Intrinsics were not available, track usage of
     // parameters and compute their nullability.
     if (method.getOptimizationInfo().getNonNullParamHints() == null) {
@@ -1043,8 +1076,13 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    previous = printMethod(code, "IR after argument type logging (SSA)", previous);
+
     // Analysis must be done after method is rewritten by logArgumentTypes()
     codeRewriter.identifyClassInlinerEligibility(method, code, feedback);
+
+    previous = printMethod(code, "IR after class inliner eligibility (SSA)", previous);
+
     if (method.isInstanceInitializer() || method.isClassInitializer()) {
       codeRewriter.identifyTrivialInitializer(method, code, feedback);
     }
@@ -1057,7 +1095,7 @@ public class IRConverter {
       codeRewriter.workaroundNumberConversionRegisterAllocationBug(code);
     }
 
-    printMethod(code, "Optimized IR (SSA)");
+    printMethod(code, "Optimized IR (SSA)", previous);
     finalizeIR(method, code, feedback);
   }
 
@@ -1174,7 +1212,7 @@ public class IRConverter {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",
           method.toSourceString(), logCode(options, method));
     }
-    printMethod(code, "Final IR (non-SSA)");
+    printMethod(code, "Final IR (non-SSA)", null);
     markProcessed(method, code, feedback);
   }
 
@@ -1213,7 +1251,7 @@ public class IRConverter {
     if (options.canHaveExceptionTargetingLoopHeaderBug()) {
       codeRewriter.workaroundExceptionTargetingLoopHeaderBug(code);
     }
-    printMethod(code, "After register allocation (non-SSA)");
+    printMethod(code, "After register allocation (non-SSA)", null);
     for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
       CodeRewriter.collapseTrivialGotos(method, code);
       PeepholeOptimizer.optimize(code, registerAllocator);
@@ -1399,7 +1437,13 @@ public class IRConverter {
     }
   }
 
-  private void printMethod(IRCode code, String title) {
+  private void printPhase(String phase) {
+    if (!options.extensiveLoggingFilter.isEmpty()) {
+      System.out.println("Entering phase: " + phase);
+    }
+  }
+
+  private String printMethod(IRCode code, String title, String previous) {
     if (printer != null) {
       printer.resetUnusedValue();
       printer.begin("cfg");
@@ -1407,5 +1451,20 @@ public class IRConverter {
       code.print(printer);
       printer.end("cfg");
     }
+    if (options.extensiveLoggingFilter.contains(code.method.method.toSourceString())) {
+      String current = code.toString();
+      System.out.println();
+      System.out.println("-----------------------------------------------------------------------");
+      System.out.println(title);
+      System.out.println("-----------------------------------------------------------------------");
+      if (previous != null && previous.equals(current)) {
+        System.out.println("Unchanged");
+      } else {
+        System.out.println(current);
+      }
+      System.out.println("-----------------------------------------------------------------------");
+      return current;
+    }
+    return previous;
   }
 }
