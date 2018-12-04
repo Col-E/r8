@@ -25,6 +25,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -207,6 +208,7 @@ public class InternalOptions {
     }
   }
 
+  public Set<String> extensiveLoggingFilter = getExtensiveLoggingFilter();
   public List<String> methodsFilter = ImmutableList.of();
   public int minApiLevel = AndroidApiLevel.getDefault().getLevel();
   // Skipping min_api check and compiling an intermediate result intended for later merging.
@@ -264,6 +266,18 @@ public class InternalOptions {
   public boolean enableInheritanceClassInDexDistributor = true;
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
+
+  private static Set<String> getExtensiveLoggingFilter() {
+    String property = System.getProperty("com.android.tools.r8.extensiveLoggingFilter");
+    if (property != null) {
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      for (String method : property.split(";")) {
+        builder.add(method);
+      }
+      return builder.build();
+    }
+    return ImmutableSet.of();
+  }
 
   public static class InvalidParameterAnnotationInfo {
 
