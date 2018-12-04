@@ -583,15 +583,15 @@ public abstract class RunExamplesAndroidOTest
       String qualifiedMainClass, Path[] jars, Path[] dexes, List<String> args) throws IOException {
 
     boolean expectedToFail = expectedToFail(testName);
-    String output = ToolHelper.runArtNoVerificationErrors(
-        Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
-        qualifiedMainClass,
-        builder -> {
-          for (String arg : args) {
-            builder.appendProgramArgument(arg);
-          }
-        });
     try {
+      String output = ToolHelper.runArtNoVerificationErrors(
+          Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
+          qualifiedMainClass,
+          builder -> {
+            for (String arg : args) {
+              builder.appendProgramArgument(arg);
+            }
+          });
       if (!skipRunningOnJvm(testName) && !ToolHelper.compareAgaintsGoldenFiles()) {
         ArrayList<String> javaArgs = Lists.newArrayList(args);
         javaArgs.add(0, qualifiedMainClass);
