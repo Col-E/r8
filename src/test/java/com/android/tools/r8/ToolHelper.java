@@ -713,6 +713,12 @@ public class ToolHelper {
       return DexVm.ART_DEFAULT;
     } else {
       DexVm artVersionEnum = DexVm.fromShortName(artVersion);
+      if (artVersionEnum == null
+          && !artVersion.endsWith(Kind.HOST.toString())
+          && !artVersion.endsWith(Kind.TARGET.toString())) {
+        // Default to host Art/Dalvik when not specified.
+        artVersionEnum = DexVm.fromShortName(artVersion + '_' + Kind.HOST.toString());
+      }
       if (artVersionEnum == null) {
         throw new RuntimeException("Unsupported Art version " + artVersion);
       } else {
