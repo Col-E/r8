@@ -41,8 +41,6 @@ public interface OptimizationInfo {
 
   long getReturnedConstant();
 
-  boolean isPublicized();
-
   boolean forceInline();
 
   boolean neverInline();

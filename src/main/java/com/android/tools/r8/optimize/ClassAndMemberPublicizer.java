@@ -7,36 +7,32 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLense.PublicizedLenseBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.base.Equivalence;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 public final class ClassAndMemberPublicizer {
+
   private final DexApplication application;
   private final AppView appView;
   private final RootSet rootSet;
-  private final PublicizedLenseBuilder lenseBuilder;
-
-  private final Equivalence<DexMethod> equivalence = MethodSignatureEquivalence.get();
   private final MethodPoolCollection methodPoolCollection;
+
+  private final PublicizedLenseBuilder lenseBuilder = PublicizerLense.createBuilder();
 
   private ClassAndMemberPublicizer(DexApplication application, AppView appView, RootSet rootSet) {
     this.application = application;
     this.appView = appView;
     this.methodPoolCollection = new MethodPoolCollection(application);
     this.rootSet = rootSet;
-    lenseBuilder = PublicizerLense.createBuilder();
   }
 
   /**
@@ -99,15 +95,13 @@ public final class ClassAndMemberPublicizer {
     }
 
     if (!accessFlags.isPrivate()) {
-      accessFlags.unsetProtected();
-      accessFlags.setPublic();
+      accessFlags.promoteToPublic();
       return false;
     }
     assert accessFlags.isPrivate();
 
     if (appView.dexItemFactory().isConstructor(encodedMethod.method)) {
-      accessFlags.unsetPrivate();
-      accessFlags.setPublic();
+      accessFlags.promoteToPublic();
       return false;
     }
 
@@ -134,9 +128,8 @@ public final class ClassAndMemberPublicizer {
         return false;
       }
       lenseBuilder.add(encodedMethod.method);
-      accessFlags.unsetPrivate();
       accessFlags.setFinal();
-      accessFlags.setPublic();
+      accessFlags.promoteToPublic();
       // Although the current method became public, it surely has the single virtual target.
       encodedMethod.method.setSingleVirtualMethodCache(
           encodedMethod.method.getHolder(), encodedMethod);
@@ -148,8 +141,7 @@ public final class ClassAndMemberPublicizer {
     // even though JLS prevents from declaring static method in derived class if
     // an instance method with same signature exists in superclass, JVM actually
     // does not take into account access of the static methods.
-    accessFlags.unsetPrivate();
-    accessFlags.setPublic();
+    accessFlags.promoteToPublic();
     return false;
   }
 }

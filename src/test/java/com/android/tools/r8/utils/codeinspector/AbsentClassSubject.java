@@ -37,12 +37,22 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public FieldSubject uniqueFieldWithName(String name) {
+    return new AbsentFieldSubject();
+  }
+
+  @Override
   public boolean isAbstract() {
     return false;
   }
 
   @Override
   public boolean isAnnotation() {
+    return false;
+  }
+
+  @Override
+  public boolean isPublic() {
     return false;
   }
 

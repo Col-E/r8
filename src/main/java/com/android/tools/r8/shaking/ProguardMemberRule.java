@@ -171,7 +171,6 @@ public class ProguardMemberRule {
       case ALL:
       case ALL_FIELDS:
         // Access flags check.
-        // TODO(b/117330692): The access flags may have changed as a result of access relaxation.
         if (!getAccessFlags().containsAll(field.accessFlags)
             || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
           break;
@@ -185,7 +184,6 @@ public class ProguardMemberRule {
           break;
         }
         // Access flags check.
-        // TODO(b/117330692): The access flags may have changed as a result of access relaxation.
         if (!getAccessFlags().containsAll(field.accessFlags)
             || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
           break;
@@ -219,7 +217,6 @@ public class ProguardMemberRule {
         // Fall through for all other methods.
       case ALL:
         // Access flags check.
-        // TODO(b/117330692): The access flags may have changed as a result of access relaxation.
         if (!getAccessFlags().containsAll(method.accessFlags)
             || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
           break;
@@ -240,7 +237,6 @@ public class ProguardMemberRule {
           break;
         }
         // Access flags check.
-        // TODO(b/117330692): The access flags may have changed as a result of access relaxation.
         if (!getAccessFlags().containsAll(method.accessFlags)
             || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
           break;

@@ -1146,11 +1146,11 @@ public class VerticalClassMerger {
               ParameterAnnotationsList.empty(),
               code,
               method.hasClassFileVersion() ? method.getClassFileVersion() : -1);
-      if (method.getOptimizationInfo().isPublicized()) {
+      if (method.accessFlags.isPromotedToPublic()) {
         // The bridge is now the public method serving the role of the original method, and should
         // reflect that this method was publicized.
-        bridge.getMutableOptimizationInfo().markPublicized();
-        method.getMutableOptimizationInfo().unsetPublicized();
+        assert bridge.accessFlags.isPromotedToPublic();
+        method.accessFlags.unsetPromotedToPublic();
       }
       return bridge;
     }
@@ -1345,6 +1345,7 @@ public class VerticalClassMerger {
 
   private static void makePrivate(DexEncodedMethod method) {
     assert !method.accessFlags.isAbstract();
+    method.accessFlags.unsetPromotedToPublic();
     method.accessFlags.unsetPublic();
     method.accessFlags.unsetProtected();
     method.accessFlags.setPrivate();

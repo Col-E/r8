@@ -8,7 +8,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
-public class ClassAccessFlags extends AccessFlags {
+public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
 
   // List of valid flags for both DEX and Java.
   private static final int SHARED_FLAGS
@@ -68,24 +68,30 @@ public class ClassAccessFlags extends AccessFlags {
     return new ClassAccessFlags(access & CF_FLAGS);
   }
 
+  @Override
   public ClassAccessFlags copy() {
-    return new ClassAccessFlags(flags);
+    return new ClassAccessFlags(flags).setPromotedToPublic(isPromotedToPublic());
+  }
+
+  @Override
+  public ClassAccessFlags self() {
+    return this;
   }
 
   @Override
   public int getAsDexAccessFlags() {
     // We unset the super flag here, as it is meaningless in DEX. Furthermore, we add missing
     // abstract to interfaces to work around a javac bug when generating package-info classes.
+    int flags = materialize() & ~Constants.ACC_SUPER;
     if (isInterface()) {
-      return (flags & ~Constants.ACC_SUPER) | Constants.ACC_ABSTRACT;
-    } else {
-      return flags & ~Constants.ACC_SUPER;
+      return flags | Constants.ACC_ABSTRACT;
     }
+    return flags;
   }
 
   @Override
   public int getAsCfAccessFlags() {
-    return flags;
+    return materialize();
   }
 
   /**

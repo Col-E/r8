@@ -18,7 +18,7 @@ final class PublicizerLense extends NestedGraphLense {
   private final AppView appView;
   private final Set<DexMethod> publicizedMethods;
 
-  PublicizerLense(AppView appView, Set<DexMethod> publicizedMethods) {
+  private PublicizerLense(AppView appView, Set<DexMethod> publicizedMethods) {
     // This lense does not map any DexItem's at all.
     // It will just tweak invoke type for publicized methods from invoke-direct to invoke-virtual.
     super(

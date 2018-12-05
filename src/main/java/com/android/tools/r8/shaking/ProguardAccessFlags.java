@@ -54,15 +54,15 @@ public class ProguardAccessFlags {
   }
 
   public boolean containsAll(AccessFlags other) {
-    return containsAll(other.getAsCfAccessFlags());
+    return containsAll(other.getOriginalCfAccessFlags());
   }
 
   public boolean containsNone(AccessFlags other) {
-    return containsNone(other.getAsCfAccessFlags());
+    return containsNone(other.getOriginalCfAccessFlags());
   }
 
   public void setFlags(AccessFlags other) {
-    this.flags = other.getAsCfAccessFlags();
+    this.flags = other.getOriginalCfAccessFlags();
   }
 
   public void setPublic() {

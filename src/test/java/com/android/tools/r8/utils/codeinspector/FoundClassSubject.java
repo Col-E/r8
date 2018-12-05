@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -144,6 +143,18 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public FieldSubject uniqueFieldWithName(String name) {
+    FieldSubject fieldSubject = null;
+    for (FoundFieldSubject candidate : allFields()) {
+      if (candidate.getOriginalName().equals(name)) {
+        assert fieldSubject == null;
+        fieldSubject = candidate;
+      }
+    }
+    return fieldSubject != null ? fieldSubject : new AbsentFieldSubject();
+  }
+
+  @Override
   public FoundClassSubject asFoundClassSubject() {
     return this;
   }
@@ -151,6 +162,11 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public boolean isAbstract() {
     return dexClass.accessFlags.isAbstract();
+  }
+
+  @Override
+  public boolean isPublic() {
+    return dexClass.accessFlags.isPublic();
   }
 
   @Override
