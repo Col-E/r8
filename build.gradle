@@ -603,7 +603,7 @@ def r8CfCommandLine(input, output, pgconf) {
 }
 
 task R8R8(type: Exec) {
-    def pgconf = "pgconfs/r8.cfg"
+    def pgconf = "src/main/keep.txt"
     def output = "build/libs/r8-r8.jar"
     inputs.files files(pgconf, "build/libs/r8.jar")
     outputs.file output
@@ -614,7 +614,7 @@ task R8R8(type: Exec) {
 }
 
 task D8R8(type: Exec) {
-    def pgconf = "pgconfs/d8.cfg"
+    def pgconf = "src/main/keep.txt"
     def output = "build/libs/d8-r8.jar"
     inputs.files files(pgconf, "build/libs/d8.jar")
     outputs.file output
@@ -625,7 +625,7 @@ task D8R8(type: Exec) {
 }
 
 task CompatDxR8(type: Exec) {
-    def pgconf = "pgconfs/compatdx.cfg"
+    def pgconf = "src/main/keep-compatdx.txt"
     def output = "build/libs/compatdx-r8.jar"
     inputs.files files(pgconf, "build/libs/compatdx.jar")
     outputs.file output
@@ -636,7 +636,7 @@ task CompatDxR8(type: Exec) {
 }
 
 task CompatProguardR8(type: Exec) {
-    def pgconf = "pgconfs/compatproguard.cfg"
+    def pgconf = "src/main/keep-compatproguard.txt"
     def output = "build/libs/compatproguard-r8.jar"
     inputs.files files(pgconf, "build/libs/compatproguard.jar")
     outputs.file output

@@ -4,3 +4,11 @@
 
 -keep @com.android.tools.r8.Keep class * { public *; }
 -keep @com.android.tools.r8.KeepForSubclassing class * { public *; protected *; }
+
+-keep public class com.android.tools.r8.D8 { public static void main(java.lang.String[]); }
+-keep public class com.android.tools.r8.R8 { public static void main(java.lang.String[]); }
+-keep public class com.android.tools.r8.ExtractMarker { public static void main(java.lang.String[]); }
+-keep public class com.android.tools.r8.compatdexbuilder.CompatDexBuilder { public static void main(java.lang.String[]); }
+-keep public class com.android.tools.r8.compatdx.CompatDx { public static void main(java.lang.String[]); }
+-keep public class com.android.tools.r8.dexfilemerger.DexFileMerger { public static void main(java.lang.String[]); }
+-keep public class com.android.tools.r8.dexsplitter.DexSplitter { public static void main(java.lang.String[]); }

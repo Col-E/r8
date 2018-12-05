@@ -12,6 +12,7 @@ import sys
 import toolhelper
 import utils
 import zipfile
+from build_r8lib import build_r8lib
 
 ARCHIVE_BUCKET = 'r8-releases'
 
@@ -80,12 +81,17 @@ def GetMavenUrl(is_master):
 def Main():
   if not 'BUILDBOT_BUILDERNAME' in os.environ:
     raise Exception('You are not a bot, don\'t archive builds')
-  # Create maven release first which uses a build that exclude dependencies.
+
+  # Generate an r8-ed build without dependencies.
+  # Note: build_r8lib does a gradle-clean, this must be the first command.
+  build_r8lib('r8', True, True, utils.R8_KEEP_RULES, utils.R8_EXCLUDE_DEPS_JAR)
+
+  # Create maven release which uses a build that exclude dependencies.
   create_maven_release.main(["--out", utils.LIBS])
 
-  # Generate and copy the build that exclude dependencies.
+  # Generate and copy a full build without dependencies.
   gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
-  shutil.copyfile(utils.R8_JAR, utils.R8_EXCLUDE_DEPS_JAR)
+  shutil.copyfile(utils.R8_JAR, utils.R8_FULL_EXCLUDE_DEPS_JAR)
 
   # Ensure all archived artifacts has been built before archiving.
   # The target tasks postfixed by 'r8' depend on the actual target task so
@@ -113,6 +119,7 @@ def Main():
     for file in [utils.D8_JAR, utils.D8R8_JAR,
                  utils.R8_JAR, utils.R8R8_JAR,
                  utils.R8_SRC_JAR,
+                 utils.R8_FULL_EXCLUDE_DEPS_JAR,
                  utils.R8_EXCLUDE_DEPS_JAR,
                  utils.COMPATDX_JAR, utils.COMPATDXR8_JAR,
                  utils.COMPATPROGUARD_JAR, utils.COMPATPROGUARDR8_JAR,
