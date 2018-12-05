@@ -25,7 +25,9 @@ public class R8TestBuilder
 
   public static R8TestBuilder create(TestState state, Backend backend, R8Mode mode) {
     R8Command.Builder builder =
-        mode == R8Mode.Full ? R8Command.builder() : new CompatProguardCommandBuilder();
+        mode == R8Mode.Full
+            ? R8Command.builder(state.getDiagnosticsHandler())
+            : new CompatProguardCommandBuilder(true, state.getDiagnosticsHandler());
     return new R8TestBuilder(state, builder, backend);
   }
 

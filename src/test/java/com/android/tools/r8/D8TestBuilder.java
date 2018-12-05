@@ -22,7 +22,7 @@ public class D8TestBuilder
   }
 
   public static D8TestBuilder create(TestState state) {
-    return new D8TestBuilder(state, D8Command.builder());
+    return new D8TestBuilder(state, D8Command.builder(state.getDiagnosticsHandler()));
   }
 
   @Override

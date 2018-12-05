@@ -4,6 +4,9 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.TestBase.Backend.DEX;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -18,6 +21,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
+import org.hamcrest.Matcher;
 
 public abstract class TestCompileResult<RR extends TestRunResult> {
   final TestState state;
@@ -29,6 +33,8 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
   }
 
   public abstract Backend getBackend();
+
+  public abstract TestDiagnosticMessages getDiagnosticMessages();
 
   protected abstract RR createRunResult(AndroidApp add, ProcessResult result);
 
@@ -59,6 +65,38 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
   public TestCompileResult<RR> inspect(Consumer<CodeInspector> consumer)
       throws IOException, ExecutionException {
     consumer.accept(inspector());
+    return this;
+  }
+
+  public TestCompileResult<RR> assertNoMessages() {
+    assertEquals(0, getDiagnosticMessages().getInfos().size());
+    assertEquals(0, getDiagnosticMessages().getWarnings().size());
+    assertEquals(0, getDiagnosticMessages().getErrors().size());
+    return this;
+  }
+
+  public TestCompileResult<RR> assertOnlyInfos() {
+    assertNotEquals(0, getDiagnosticMessages().getInfos().size());
+    assertEquals(0, getDiagnosticMessages().getWarnings().size());
+    assertEquals(0, getDiagnosticMessages().getErrors().size());
+    return this;
+  }
+
+  public TestCompileResult<RR> assertOnlyWarnings() {
+    assertEquals(0, getDiagnosticMessages().getInfos().size());
+    assertNotEquals(0, getDiagnosticMessages().getWarnings().size());
+    assertEquals(0, getDiagnosticMessages().getErrors().size());
+    return this;
+  }
+
+  public TestCompileResult<RR> assertWarningMessageThatMatches(Matcher<String> matcher) {
+    assertNotEquals(0, getDiagnosticMessages().getWarnings().size());
+    for (int i = 0; i < getDiagnosticMessages().getWarnings().size(); i++) {
+      if (matcher.matches(getDiagnosticMessages().getWarnings().get(i).getDiagnosticMessage())) {
+        return this;
+      }
+    }
+    fail("No warning matches " + matcher.toString());
     return this;
   }
 

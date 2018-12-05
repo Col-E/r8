@@ -10,6 +10,7 @@ import org.junit.rules.TemporaryFolder;
 public class TestState {
 
   private final TemporaryFolder temp;
+  private final TestDiagnosticMessagesImpl messages = new TestDiagnosticMessagesImpl();
 
   public TestState(TemporaryFolder temp) {
     this.temp = temp;
@@ -17,5 +18,13 @@ public class TestState {
 
   public Path getNewTempFolder() throws IOException {
     return temp.newFolder().toPath();
+  }
+
+  DiagnosticsHandler getDiagnosticsHandler() {
+    return messages;
+  }
+
+  public TestDiagnosticMessages getDiagnosticsMessages() {
+    return messages;
   }
 }

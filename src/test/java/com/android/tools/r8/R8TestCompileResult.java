@@ -27,6 +27,11 @@ public class R8TestCompileResult extends TestCompileResult<R8TestRunResult> {
   }
 
   @Override
+  public TestDiagnosticMessages getDiagnosticMessages() {
+    return state.getDiagnosticsMessages();
+  }
+
+  @Override
   public CodeInspector inspector() throws IOException, ExecutionException {
     return new CodeInspector(app, proguardMap);
   }
