@@ -112,6 +112,10 @@ public abstract class ProguardTypeMatcher {
     return null;
   }
 
+  public final boolean matchesSpecificType() {
+    return getSpecificType() != null;
+  }
+
   private static class MatchAllTypes extends ProguardTypeMatcher {
 
     private static final ProguardTypeMatcher MATCH_ALL_TYPES = new MatchAllTypes();
