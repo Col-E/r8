@@ -25,6 +25,11 @@ public class ProguardTestCompileResult extends TestCompileResult<ProguardTestRun
   }
 
   @Override
+  public TestDiagnosticMessages getDiagnosticMessages() {
+    throw new UnsupportedOperationException("No diagnostics messages from dx");
+  }
+
+  @Override
   public CodeInspector inspector() throws IOException, ExecutionException {
     return new CodeInspector(app, proguardMap);
   }

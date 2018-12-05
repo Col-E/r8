@@ -18,6 +18,11 @@ public class D8TestCompileResult extends TestCompileResult<D8TestRunResult> {
   }
 
   @Override
+  public TestDiagnosticMessages getDiagnosticMessages() {
+    return state.getDiagnosticsMessages();
+  }
+
+  @Override
   public D8TestRunResult createRunResult(AndroidApp app, ProcessResult result) {
     return new D8TestRunResult(app, result);
   }

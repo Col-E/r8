@@ -19,6 +19,11 @@ public class DXTestCompileResult extends TestCompileResult<DXTestRunResult> {
   }
 
   @Override
+  public TestDiagnosticMessages getDiagnosticMessages() {
+    throw new UnsupportedOperationException("No diagnostics messages from dx");
+  }
+
+  @Override
   public DXTestRunResult createRunResult(AndroidApp app, ProcessResult result) {
     return new DXTestRunResult(app, result);
   }
