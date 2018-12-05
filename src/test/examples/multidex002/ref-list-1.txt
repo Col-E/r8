@@ -7,6 +7,7 @@ Lmultidex002/AnnotatedStaticField;
 Lmultidex002/AnnotatedVirtualMethod;
 Lmultidex002/AnnotationWithClass;
 Lmultidex002/AnnotationWithEnum2;
+Lmultidex002/AnnotationWithEnum3$Value3;
 Lmultidex002/AnnotationWithEnum3;
 Lmultidex002/AnnotationWithEnum;
 Lmultidex002/AnnotationWithoutEnum;

@@ -69,15 +69,17 @@ public class MainDexListBuilder {
         continue;
       }
       if (isAnnotation(dexType) && isAnnotationWithEnum(dexType)) {
-        addDirectDependencyOrRuntimeAnnotationsWithEnum(dexType);
+        addAnnotationsWithEnum(clazz);
         continue;
       }
+      // Classes with annotations must be in the same dex file as the annotation. As all
+      // annotations with enums goes into the main dex, move annotated classes there as well.
       clazz.forEachAnnotation(
           annotation -> {
             if (!mainDexClassesBuilder.contains(dexType)
                 && annotation.visibility == DexAnnotation.VISIBILITY_RUNTIME
                 && isAnnotationWithEnum(annotation.annotation.type)) {
-              addDirectDependencyOrRuntimeAnnotationsWithEnum(dexType);
+              addClassAnnotatedWithAnnotationWithEnum(dexType);
             }
           });
     }
@@ -89,9 +91,9 @@ public class MainDexListBuilder {
       DexClass clazz = appInfo.definitionFor(dexType);
       if (clazz == null) {
         // Information is missing lets be conservative.
-        value = Boolean.TRUE;
+        value = true;
       } else {
-        value = Boolean.FALSE;
+        value = false;
         // Browse annotation values types in search for enum.
         // Each annotation value is represented by a virtual method.
         for (DexEncodedMethod method : clazz.virtualMethods()) {
@@ -99,10 +101,10 @@ public class MainDexListBuilder {
           if (proto.parameters.isEmpty()) {
             DexType valueType = proto.returnType.toBaseType(appInfo.dexItemFactory);
             if (isEnum(valueType)) {
-              value = Boolean.TRUE;
+              value = true;
               break;
             } else if (isAnnotation(valueType) && isAnnotationWithEnum(valueType)) {
-              value = Boolean.TRUE;
+              value = true;
               break;
             }
           }
@@ -110,7 +112,7 @@ public class MainDexListBuilder {
       }
       annotationTypeContainEnum.put(dexType, value);
     }
-    return value.booleanValue();
+    return value;
   }
 
   private boolean isEnum(DexType valueType) {
@@ -127,11 +129,31 @@ public class MainDexListBuilder {
   }
 
   private void traceMainDexDirectDependencies() {
-    new MainDexDirectReferenceTracer(appInfo, this::addDirectDependencyOrRuntimeAnnotationsWithEnum)
+    new MainDexDirectReferenceTracer(appInfo, this::addDirectDependency)
         .run(roots);
   }
 
-  private void addDirectDependencyOrRuntimeAnnotationsWithEnum(DexType type) {
+  private void addAnnotationsWithEnum(DexProgramClass clazz) {
+    // Add the annotation class as a direct dependency.
+    addDirectDependency(clazz);
+    // Add enum classes used for values as direct dependencies.
+    for (DexEncodedMethod method : clazz.virtualMethods()) {
+      DexProto proto = method.method.proto;
+      if (proto.parameters.isEmpty()) {
+        DexType valueType = proto.returnType.toBaseType(appInfo.dexItemFactory);
+        if (isEnum(valueType)) {
+          addDirectDependency(valueType);
+        }
+      }
+    }
+  }
+
+  private void addClassAnnotatedWithAnnotationWithEnum(DexType type) {
+    // Just add classes annotated with annotations with enum ad direct dependencies.
+    addDirectDependency(type);
+  }
+
+  private void addDirectDependency(DexType type) {
     // Consider only component type of arrays
     type = type.toBaseType(appInfo.dexItemFactory);
 
@@ -144,18 +166,18 @@ public class MainDexListBuilder {
     if (clazz == null || clazz.isLibraryClass()) {
       return;
     }
-    addDirectDependencyOrRuntimeAnnotationsWithEnum(clazz.asProgramClass());
+    addDirectDependency(clazz.asProgramClass());
   }
 
-  private void addDirectDependencyOrRuntimeAnnotationsWithEnum(DexProgramClass dexClass) {
+  private void addDirectDependency(DexProgramClass dexClass) {
     DexType type = dexClass.type;
     assert !mainDexClassesBuilder.contains(type);
     mainDexClassesBuilder.addDependency(type);
     if (dexClass.superType != null) {
-      addDirectDependencyOrRuntimeAnnotationsWithEnum(dexClass.superType);
+      addDirectDependency(dexClass.superType);
     }
     for (DexType interfaze : dexClass.interfaces.values) {
-      addDirectDependencyOrRuntimeAnnotationsWithEnum(interfaze);
+      addDirectDependency(interfaze);
     }
   }
 }
