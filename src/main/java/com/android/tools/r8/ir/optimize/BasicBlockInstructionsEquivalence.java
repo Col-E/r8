@@ -10,7 +10,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.google.common.base.Equivalence;
-import com.google.common.base.Objects;
 import java.util.Arrays;
 import java.util.List;
 
@@ -40,7 +39,7 @@ class BasicBlockInstructionsEquivalence extends Equivalence<BasicBlock> {
       }
     }
 
-    if (!Objects.equal(first.getLocalsAtEntry(), second.getLocalsAtEntry())) {
+    if (!allocator.hasEqualTypesAtEntry(first, second)) {
       return false;
     }
 

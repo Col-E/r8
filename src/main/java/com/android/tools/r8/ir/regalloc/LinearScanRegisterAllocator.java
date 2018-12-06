@@ -3172,6 +3172,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   @Override
+  public boolean hasEqualTypesAtEntry(BasicBlock first, BasicBlock second) {
+    return java.util.Objects.equals(first.getLocalsAtEntry(), second.getLocalsAtEntry());
+  }
+
+  @Override
   public void addNewBlockToShareIdenticalSuffix(
       BasicBlock block, int suffixSize, List<BasicBlock> predsBeforeSplit) {
     // Intentionally empty, we don't need to track suffix sharing in this allocator.

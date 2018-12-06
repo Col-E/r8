@@ -381,6 +381,37 @@ public class CfRegisterAllocator implements RegisterAllocator {
     updateFirstStackByJoiningTheSecond(typesOfKept.stack, typesOfRemoved.stack);
   }
 
+  @Override
+  public boolean hasEqualTypesAtEntry(BasicBlock first, BasicBlock second) {
+    if (!java.util.Objects.equals(first.getLocalsAtEntry(), second.getLocalsAtEntry())) {
+      return false;
+    }
+    // Check that stack at entry is same.
+    List<TypeInfo> firstStack = getTypesAtBlockEntry(first).stack;
+    List<TypeInfo> secondStack = getTypesAtBlockEntry(second).stack;
+    if (firstStack.size() != secondStack.size()) {
+      return false;
+    }
+    for (int i = 0; i < firstStack.size(); i++) {
+      if (firstStack.get(i).getDexType() != secondStack.get(i).getDexType()) {
+        return false;
+      }
+    }
+    // Check if the blocks are catch-handlers, which implies that the exception is transferred
+    // through the stack.
+    if (first.entry().isMoveException() != second.entry().isMoveException()) {
+      return false;
+    }
+    // If both blocks are catch handlers, we require that the exceptions are the same type.
+    if (first.entry().isMoveException()
+        && typeHelper.getTypeInfo(first.entry().outValue()).getDexType()
+            != typeHelper.getTypeInfo(second.entry().outValue()).getDexType()) {
+      return false;
+    }
+
+    return true;
+  }
+
   // Return false if this is not an instruction with the type of outvalue dependent on types of
   // invalues.
   private boolean tryApplyInstructionWithDependentOutType(
