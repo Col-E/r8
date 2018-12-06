@@ -197,8 +197,11 @@ final class InlineCandidateProcessor {
     //      of class inlining
     //
 
-    if (eligibleClassDefinition.instanceFields().length > 0 ||
-        !eligibleClassDefinition.accessFlags.isFinal()) {
+    if (eligibleClassDefinition.instanceFields().length > 0) {
+      return false;
+    }
+    if (eligibleClassDefinition.type.hasSubtypes()) {
+      assert !eligibleClassDefinition.accessFlags.isFinal();
       return false;
     }
 
