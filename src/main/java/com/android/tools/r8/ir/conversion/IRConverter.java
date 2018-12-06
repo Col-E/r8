@@ -924,7 +924,6 @@ public class IRConverter {
     }
 
     if (!isDebugMode) {
-      // TODO(jsjeon): Consider merging these into one single optimize().
       stringOptimizer.computeTrivialOperationsOnConstString(code, appInfo.dexItemFactory);
       // Reflection optimization 2. get*Name() with const-class -> const-string
       if (options.enableNameReflectionOptimization) {
@@ -1008,7 +1007,12 @@ public class IRConverter {
       // lambda, it does not get collected by merger.
       assert options.enableInlining && inliner != null;
       classInliner.processMethodCode(
-          appInfo.withLiveness(), codeRewriter, method, code, isProcessedConcurrently,
+          appInfo.withLiveness(),
+          codeRewriter,
+          stringOptimizer,
+          method,
+          code,
+          isProcessedConcurrently,
           methodsToInline -> inliner.performForcedInlining(method, code, methodsToInline),
           Suppliers.memoize(() -> inliner.createDefaultOracle(
               method, code,
