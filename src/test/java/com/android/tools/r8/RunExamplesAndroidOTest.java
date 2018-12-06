@@ -592,7 +592,9 @@ public abstract class RunExamplesAndroidOTest
               builder.appendProgramArgument(arg);
             }
           });
-      if (!skipRunningOnJvm(testName) && !ToolHelper.compareAgaintsGoldenFiles()) {
+      if (!expectedToFail
+          && !skipRunningOnJvm(testName)
+          && !ToolHelper.compareAgaintsGoldenFiles()) {
         ArrayList<String> javaArgs = Lists.newArrayList(args);
         javaArgs.add(0, qualifiedMainClass);
         ToolHelper.ProcessResult javaResult =
@@ -606,6 +608,13 @@ public abstract class RunExamplesAndroidOTest
             output.replace("\r", "").equals(javaResult.stdout.replace("\r", "")));
       }
     } catch (Throwable t) {
+      if (ToolHelper.isWindows()) {
+        System.out.println("Throwable: " + t.getMessage());
+        t.printStackTrace(System.out);
+        System.out.println("expectedToFail: " + expectedToFail);
+        System.out.println(
+            "ToolHelper.compareAgaintsGoldenFiles(): " + ToolHelper.compareAgaintsGoldenFiles());
+      }
       assert expectedToFail && !ToolHelper.compareAgaintsGoldenFiles();
     }
   }
