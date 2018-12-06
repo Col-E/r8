@@ -104,8 +104,8 @@ final class InlineCandidateProcessor {
       return false;
     }
 
-    eligibleClass = isNewInstance() ?
-        root.asNewInstance().clazz : root.asStaticGet().getField().type;
+    eligibleClass =
+        root.isNewInstance() ? root.asNewInstance().clazz : root.asStaticGet().getField().type;
     eligibleClassDefinition = appInfo.definitionFor(eligibleClass);
     if (eligibleClassDefinition == null && lambdaRewriter != null) {
       // Check if the class is synthesized for a desugared lambda
@@ -131,7 +131,7 @@ final class InlineCandidateProcessor {
       return false;
     }
 
-    if (isNewInstance()) {
+    if (root.isNewInstance()) {
       // NOTE: if the eligible class does not directly extend java.lang.Object,
       // we also have to guarantee that it is initialized with initializer classified as
       // TrivialInstanceInitializer. This will be checked in areInstanceUsersEligible(...).
@@ -797,10 +797,6 @@ final class InlineCandidateProcessor {
     if (!exemptFromInstructionLimit(inlinee)) {
       estimatedCombinedSizeForInlining += inlinee.getCode().estimatedSizeForInlining();
     }
-  }
-
-  private boolean isNewInstance() {
-    return root.isNewInstance();
   }
 
   private DexEncodedMethod findSingleTarget(DexMethod callee, boolean isDirect) {

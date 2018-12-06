@@ -128,9 +128,10 @@ public final class ClassInliner {
       Supplier<InliningOracle> defaultOracle) {
 
     // Collect all the new-instance and static-get instructions in the code before inlining.
-    List<Instruction> roots = Streams.stream(code.instructionIterator())
-        .filter(insn -> insn.isNewInstance() || insn.isStaticGet())
-        .collect(Collectors.toList());
+    List<Instruction> roots =
+        Streams.stream(code.instructionIterator())
+            .filter(insn -> insn.isNewInstance() || insn.isStaticGet())
+            .collect(Collectors.toList());
 
     // We loop inlining iterations until there was no inlining, but still use same set
     // of roots to avoid infinite inlining. Looping makes possible for some roots to
@@ -153,7 +154,6 @@ public final class ClassInliner {
         if (!processor.isInstanceEligible() ||
             !processor.isClassAndUsageEligible()) {
           // This root will never be inlined.
-          rootsIterator.remove();
           continue;
         }
 
@@ -174,7 +174,6 @@ public final class ClassInliner {
         // Restore normality.
         code.removeAllTrivialPhis();
         assert code.isConsistentSSA();
-        rootsIterator.remove();
         repeat = true;
       }
     } while (repeat);
