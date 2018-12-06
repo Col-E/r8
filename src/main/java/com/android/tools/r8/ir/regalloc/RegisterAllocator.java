@@ -17,6 +17,8 @@ public interface RegisterAllocator {
 
   void mergeBlocks(BasicBlock kept, BasicBlock removed);
 
+  boolean hasEqualTypesAtEntry(BasicBlock first, BasicBlock second);
+
   // Call before removing the suffix from the preds. Block is used only as a key.
   void addNewBlockToShareIdenticalSuffix(
       BasicBlock block, int suffixSize, List<BasicBlock> predsBeforeSplit);
