@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -581,7 +582,7 @@ public abstract class RunExamplesAndroidOTest
 
   void execute(String testName,
       String qualifiedMainClass, Path[] jars, Path[] dexes, List<String> args) throws IOException {
-
+    Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
     boolean expectedToFail = expectedToFail(testName);
     try {
       String output = ToolHelper.runArtNoVerificationErrors(
@@ -608,14 +609,7 @@ public abstract class RunExamplesAndroidOTest
             output.replace("\r", "").equals(javaResult.stdout.replace("\r", "")));
       }
     } catch (Throwable t) {
-      if (ToolHelper.isWindows()) {
-        System.out.println("Throwable: " + t.getMessage());
-        t.printStackTrace(System.out);
-        System.out.println("expectedToFail: " + expectedToFail);
-        System.out.println(
-            "ToolHelper.compareAgaintsGoldenFiles(): " + ToolHelper.compareAgaintsGoldenFiles());
-      }
-      assert expectedToFail && !ToolHelper.compareAgaintsGoldenFiles();
+      assert expectedToFail;
     }
   }
 
