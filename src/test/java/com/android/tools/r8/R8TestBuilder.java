@@ -10,10 +10,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class R8TestBuilder
     extends TestShrinkerBuilder<
@@ -61,6 +63,28 @@ public class R8TestBuilder
   @Override
   public R8TestBuilder addKeepRules(Collection<String> rules) {
     builder.addProguardConfiguration(new ArrayList<>(rules), Origin.unknown());
+    return self();
+  }
+
+  public R8TestBuilder addMainDexRules(Collection<String> rules) {
+    builder.addMainDexRules(new ArrayList<>(rules), Origin.unknown());
+    return self();
+  }
+
+  public R8TestBuilder addMainDexRules(String... rules) {
+    return addMainDexRules(Arrays.asList(rules));
+  }
+
+  public R8TestBuilder addMainDexClassRules(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      addMainDexRules("-keep class " + clazz.getTypeName());
+    }
+    return self();
+  }
+
+  public R8TestBuilder addMainDexListClasses(Class<?>... classes) {
+    builder.addMainDexClasses(
+        Arrays.stream(classes).map(Class::getTypeName).collect(Collectors.toList()));
     return self();
   }
 

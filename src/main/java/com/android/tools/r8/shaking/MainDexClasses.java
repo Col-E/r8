@@ -7,12 +7,18 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class MainDexClasses {
+
+  public static MainDexClasses NONE = new MainDexClasses(ImmutableSet.of(), ImmutableSet.of());
 
   public static class Builder {
     public final AppInfo appInfo;
@@ -21,6 +27,12 @@ public class MainDexClasses {
 
     private Builder(AppInfo appInfo) {
       this.appInfo = appInfo;
+    }
+
+    public Builder addRoot(DexType type) {
+      assert isProgramClass(type) : type.toSourceString();
+      roots.add(type);
+      return this;
     }
 
     public Builder addRoots(Collection<DexType> rootSet) {
@@ -50,21 +62,26 @@ public class MainDexClasses {
   }
 
   // The classes in the root set.
-  private final Set<DexType> rootSet;
-  // Additional dependencies (direct dependencise and runtime annotations with enums).
+  private final Set<DexType> roots;
+  // Additional dependencies (direct dependencies and runtime annotations with enums).
   private final Set<DexType> dependencies;
   // All main dex classes.
   private final Set<DexType> classes;
 
-  private MainDexClasses(Set<DexType> rootSet, Set<DexType> dependencies) {
-    assert Sets.intersection(rootSet, dependencies).isEmpty();
-    this.rootSet = Collections.unmodifiableSet(rootSet);
+  private MainDexClasses(Set<DexType> roots, Set<DexType> dependencies) {
+    assert Sets.intersection(roots, dependencies).isEmpty();
+    this.roots = Collections.unmodifiableSet(roots);
     this.dependencies = Collections.unmodifiableSet(dependencies);
-    this.classes = Sets.union(rootSet, dependencies);
+    this.classes = Sets.union(roots, dependencies);
+  }
+
+  public boolean isEmpty() {
+    assert !roots.isEmpty() || dependencies.isEmpty();
+    return roots.isEmpty();
   }
 
   public Set<DexType> getRoots() {
-    return rootSet;
+    return roots;
   }
 
   public Set<DexType> getDependencies() {
@@ -73,6 +90,24 @@ public class MainDexClasses {
 
   public Set<DexType> getClasses() {
     return classes;
+  }
+
+  private void collectTypesMatching(
+      Set<DexType> types, Predicate<DexType> predicate, Consumer<DexType> consumer) {
+    types.forEach(
+        type -> {
+          if (predicate.test(type)) {
+            consumer.accept(type);
+          }
+        });
+  }
+
+  public MainDexClasses prunedCopy(AppInfoWithLiveness appInfo) {
+    Builder builder = builder(appInfo);
+    Predicate<DexType> wasPruned = appInfo::wasPruned;
+    collectTypesMatching(roots, wasPruned.negate(), builder::addRoot);
+    collectTypesMatching(dependencies, wasPruned.negate(), builder::addDependency);
+    return builder.build();
   }
 
   public static Builder builder(AppInfo appInfo) {

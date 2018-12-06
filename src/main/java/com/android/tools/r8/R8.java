@@ -431,6 +431,7 @@ public class R8 {
       new SourceFileRewriter(appView.appInfo(), options).run();
       timing.end();
 
+      MainDexClasses mainDexClasses = MainDexClasses.NONE;
       if (!options.mainDexKeepRules.isEmpty()) {
         appView.setAppInfo(new AppInfoWithSubtyping(application));
         Enqueuer enqueuer = new Enqueuer(appView, options, true);
@@ -444,8 +445,7 @@ public class R8 {
         // LiveTypes is the tracing result.
         Set<DexType> mainDexBaseClasses = new HashSet<>(mainDexAppInfo.liveTypes);
         // Calculate the automatic main dex list according to legacy multidex constraints.
-        MainDexClasses mainDexClasses =
-            new MainDexListBuilder(mainDexBaseClasses, application).run();
+        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
         if (!mainDexRootSet.checkDiscarded.isEmpty()) {
           new DiscardedChecker(
                   mainDexRootSet, mainDexClasses.getClasses(), appView.appInfo(), options)
@@ -459,8 +459,6 @@ public class R8 {
           ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(mainDexRootSet.reasonAsked);
           reasonPrinter.run(mainDexApplication);
         }
-        // Add automatic main dex classes to an eventual manual list of classes.
-        application = application.builder().addToMainDexList(mainDexClasses.getClasses()).build();
       }
 
       appView.setAppInfo(new AppInfoWithSubtyping(application));
@@ -484,10 +482,19 @@ public class R8 {
             reasonPrinter.run(application);
             // Remove annotations that refer to types that no longer exist.
             new AnnotationRemover(appView.appInfo().withLiveness(), options).run();
+            if (!mainDexClasses.isEmpty()) {
+              // Remove types that no longer exists from the computed main dex list.
+              mainDexClasses = mainDexClasses.prunedCopy(appView.appInfo().withLiveness());
+            }
           }
         } finally {
           timing.end();
         }
+      }
+
+      // Add automatic main dex classes to an eventual manual list of classes.
+      if (!options.mainDexKeepRules.isEmpty()) {
+        application = application.builder().addToMainDexList(mainDexClasses.getClasses()).build();
       }
 
       // Only perform discard-checking if tree-shaking is turned on.

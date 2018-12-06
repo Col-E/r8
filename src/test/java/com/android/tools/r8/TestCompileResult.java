@@ -96,7 +96,30 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
         return this;
       }
     }
-    fail("No warning matches " + matcher.toString());
+    StringBuilder builder = new StringBuilder("No warning matches " + matcher.toString());
+    builder.append(System.lineSeparator());
+    if (getDiagnosticMessages().getWarnings().size() == 0) {
+      builder.append("There where no warnings.");
+    } else {
+      builder.append("There where " + getDiagnosticMessages().getWarnings().size() + " warnings:");
+      builder.append(System.lineSeparator());
+      for (int i = 0; i < getDiagnosticMessages().getWarnings().size(); i++) {
+        builder.append(getDiagnosticMessages().getWarnings().get(i).getDiagnosticMessage());
+        builder.append(System.lineSeparator());
+      }
+    }
+    fail(builder.toString());
+    return this;
+  }
+
+  public TestCompileResult<RR> assertNoWarningMessageThatMatches(Matcher<String> matcher) {
+    assertNotEquals(0, getDiagnosticMessages().getWarnings().size());
+    for (int i = 0; i < getDiagnosticMessages().getWarnings().size(); i++) {
+      String message = getDiagnosticMessages().getWarnings().get(i).getDiagnosticMessage();
+      if (matcher.matches(message)) {
+        fail("The warning: \"" + message + "\" + matches " + matcher + ".");
+      }
+    }
     return this;
   }
 
