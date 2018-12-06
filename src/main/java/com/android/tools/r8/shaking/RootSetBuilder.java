@@ -593,19 +593,23 @@ public class RootSetBuilder {
       implementsExpected = satisfyImplementsRule(clazz, rule);
     }
     if (extendsExpected || implementsExpected) {
-      // Warn if users got it wrong, but only warn once.
-      if (rule.getInheritanceIsExtends()) {
-        if (implementsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
+      // Warn if users got it wrong, but only warn once. Also, only warn if rule is actually
+      // specific (there is no correct way to write "keep class X that extends or implements from
+      // a class or interface in package Y").
+      if (rule.getInheritanceClassName().matchesSpecificType()) {
+        if (rule.getInheritanceIsExtends()) {
+          if (implementsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
+            assert options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong;
+            options.reporter.warning(
+                new StringDiagnostic(
+                    "The rule `" + rule + "` uses extends but actually matches implements."));
+          }
+        } else if (extendsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
           assert options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong;
           options.reporter.warning(
               new StringDiagnostic(
-                  "The rule `" + rule + "` uses extends but actually matches implements."));
+                  "The rule `" + rule + "` uses implements but actually matches extends."));
         }
-      } else if (extendsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
-        assert options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong;
-        options.reporter.warning(
-            new StringDiagnostic(
-                "The rule `" + rule + "` uses implements but actually matches extends."));
       }
       return true;
     }
