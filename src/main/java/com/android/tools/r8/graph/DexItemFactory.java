@@ -993,13 +993,14 @@ public class DexItemFactory {
 
   public ReferenceTypeLatticeElement createReferenceTypeLatticeElement(
       DexType type, boolean isNullable, AppInfo appInfo) {
+    ReferenceTypeLatticeElement typeLattice = referenceTypeLatticeElements.get(type);
+    if (typeLattice != null) {
+      return isNullable == typeLattice.isNullable() ? typeLattice
+          : typeLattice.getOrCreateDualLattice();
+    }
     synchronized (type) {
-      ReferenceTypeLatticeElement typeLattice = referenceTypeLatticeElements.get(type);
-      if (typeLattice != null) {
-        typeLattice = isNullable == typeLattice.isNullable() ? typeLattice
-            : typeLattice.getOrCreateDualLattice();
-        assert typeLattice.isNullable() == isNullable;
-      } else {
+      typeLattice = referenceTypeLatticeElements.get(type);
+      if (typeLattice == null) {
         if (type.isClassType()) {
           if (!type.isUnknown() && type.isInterface()) {
             typeLattice = new ClassTypeLatticeElement(
@@ -1020,9 +1021,11 @@ public class DexItemFactory {
         }
         referenceTypeLatticeElements.put(type, typeLattice);
       }
-      assert typeLattice.isNullable() == isNullable;
-      return typeLattice;
     }
+    // The call to getOrCreateDualLattice can't be under the DexType synchronized block, since that
+    // can create deadlocks with ClassTypeLatticeElement::getInterfaces (both lock on the lattice).
+    return isNullable == typeLattice.isNullable() ? typeLattice
+        : typeLattice.getOrCreateDualLattice();
   }
 
   private static <S extends PresortedComparable<S>> void assignSortedIndices(Collection<S> items,
