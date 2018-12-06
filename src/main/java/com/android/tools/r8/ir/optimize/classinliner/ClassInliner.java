@@ -154,6 +154,7 @@ public final class ClassInliner {
         if (!processor.isInstanceEligible() ||
             !processor.isClassAndUsageEligible()) {
           // This root will never be inlined.
+          rootsIterator.remove();
           continue;
         }
 
@@ -174,6 +175,7 @@ public final class ClassInliner {
         // Restore normality.
         code.removeAllTrivialPhis();
         assert code.isConsistentSSA();
+        rootsIterator.remove();
         repeat = true;
       }
     } while (repeat);
