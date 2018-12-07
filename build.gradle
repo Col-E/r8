@@ -1343,6 +1343,9 @@ test {
             println "Start executing test ${desc.name} [${desc.className}]"
         }
         afterTest { desc, result ->
+            if (project.hasProperty('update_test_timestamp')) {
+                file(project.getProperty('update_test_timestamp')).text = new Date().getTime()
+            }
             println "Done executing test ${desc.name} [${desc.className}] with result: ${result.resultType}"
         }
     }

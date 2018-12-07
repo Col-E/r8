@@ -12,6 +12,8 @@ import gradle
 import optparse
 import subprocess
 import sys
+import thread
+import time
 import utils
 import notify
 
@@ -24,6 +26,14 @@ ALL_ART_VMS = [
     "5.1.1",
     "4.4.4",
     "4.0.4"]
+
+# How often do we check for progress on the bots:
+# Should be long enough that a normal run would always have med progress
+# Should be short enough that we ensure that two calls are close enough
+# to happen before bot times out.
+# A false positiv, i.e., printing the stacks of non hanging processes
+# is not a problem, no harm done except some logging in the stdout.
+TIMEOUT_HANDLER_PERIOD = 60 * 18
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -95,7 +105,7 @@ def ParseOptions():
 
 def Main():
   (options, args) = ParseOptions()
-  if 'BUILDBOT_BUILDERNAME' in os.environ:
+  if utils.is_bot():
     gradle.RunGradle(['clean'])
 
   # Build R8lib with dependencies for bootstrapping tests before adding test sources
@@ -171,6 +181,12 @@ def Main():
                                     '%s.tar.gz' % sha1)
       utils.unpack_archive('%s.tar.gz' % sha1)
 
+  if utils.is_bot() and not utils.IsWindows():
+    timestamp_file = os.path.join(utils.BUILD, 'last_test_time')
+    if os.path.exists(timestamp_file):
+      os.remove(timestamp_file)
+    gradle_args.append('-Pupdate_test_timestamp=' + timestamp_file)
+    thread.start_new_thread(timeout_handler, (timestamp_file,))
 
   # Now run tests on selected runtime(s).
   vms_to_test = [options.dex_vm] if options.dex_vm != "all" else ALL_ART_VMS
@@ -192,6 +208,45 @@ def Main():
       return return_code
 
   return 0
+
+
+def print_jstacks():
+  processes = subprocess.check_output(['ps', 'aux'])
+  for l in processes.splitlines():
+    if 'java' in l and 'openjdk' in l:
+      # Example line:
+      # ricow    184313  2.6  0.0 36839068 31808 ?      Sl   09:53   0:00 /us..
+      columns = l.split()
+      pid = columns[1]
+      return_value = subprocess.call(['jstack', pid])
+      if return_value:
+        print('Could not jstack %s' % l)
+  print('----') # May be eaten by gradle prints.
+  print('----') # May be eaten by gradle prints.
+
+def get_time_from_file(timestamp_file):
+  if os.path.exists(timestamp_file):
+    timestamp = os.stat(timestamp_file).st_mtime
+    print('TIMEOUT HANDLER timestamp: %s' % (timestamp))
+    print('---') # May be eaten by gradle prints.
+    print('---') # May be eaten by gradle prints.
+    sys.stdout.flush()
+    return timestamp
+  else:
+    print('TIMEOUT HANDLER no timestamp file yet')
+    print('---') # May be eaten by gradle prints.
+    print('---') # May be eaten by gradle prints.
+    sys.stdout.flush()
+    return None
+
+def timeout_handler(timestamp_file):
+  last_timestamp = None
+  while True:
+    time.sleep(TIMEOUT_HANDLER_PERIOD)
+    new_timestamp = get_time_from_file(timestamp_file)
+    if last_timestamp and new_timestamp == last_timestamp:
+      print_jstacks()
+    last_timestamp = new_timestamp
 
 if __name__ == '__main__':
   return_code = Main()
