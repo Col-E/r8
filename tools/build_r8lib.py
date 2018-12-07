@@ -56,7 +56,7 @@ def build_r8lib(target, exclude_deps, no_relocate, keep_rules_path,
   # Produce R8 for compiling lib
   if output_path is None:
     output_path = target + 'lib.jar'
-  output_map_path = os.path.splitext(output_path)[0] + '.map'
+  output_map_path = output_path + '.map'
   toolhelper.run(
       'r8',
       ('--release',

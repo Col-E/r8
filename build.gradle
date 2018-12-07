@@ -599,7 +599,8 @@ def r8CfCommandLine(input, output, pgconf) {
         input,
         "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar",
         "--output", output,
-        "--pg-conf", pgconf]
+        "--pg-conf", pgconf,
+        "--pg-map-output", output + ".map"]
 }
 
 task R8Lib(type: Exec) {
