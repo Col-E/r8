@@ -221,21 +221,15 @@ def print_jstacks():
       return_value = subprocess.call(['jstack', pid])
       if return_value:
         print('Could not jstack %s' % l)
-  print('----') # May be eaten by gradle prints.
-  print('----') # May be eaten by gradle prints.
 
 def get_time_from_file(timestamp_file):
   if os.path.exists(timestamp_file):
     timestamp = os.stat(timestamp_file).st_mtime
     print('TIMEOUT HANDLER timestamp: %s' % (timestamp))
-    print('---') # May be eaten by gradle prints.
-    print('---') # May be eaten by gradle prints.
     sys.stdout.flush()
     return timestamp
   else:
     print('TIMEOUT HANDLER no timestamp file yet')
-    print('---') # May be eaten by gradle prints.
-    print('---') # May be eaten by gradle prints.
     sys.stdout.flush()
     return None
 
