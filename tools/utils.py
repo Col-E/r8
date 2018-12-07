@@ -313,3 +313,6 @@ def check_java_version():
 
 def get_android_jar(api):
   return os.path.join(REPO_ROOT, ANDROID_JAR.format(api=api))
+
+def is_bot():
+  return 'BUILDBOT_BUILDERNAME' in os.environ
