@@ -15,7 +15,24 @@ import urllib
 BUILD_ROOT = "http://storage.googleapis.com/r8-releases/raw/"
 MASTER_BUILD_ROOT = "%smaster/" % BUILD_ROOT
 
-JAR_TARGETS = [utils.D8, utils.R8, utils.COMPATDX, utils.COMPATPROGUARD]
+JAR_TARGETS = [
+  utils.D8,
+  utils.R8,
+  utils.COMPATDX,
+  utils.COMPATPROGUARD,
+  utils.R8LIB,
+  utils.COMPATDXLIB,
+  utils.COMPATPROGUARDLIB,
+]
+JAR_FILES = [
+  utils.D8_JAR,
+  utils.R8_JAR,
+  utils.COMPATDX_JAR,
+  utils.COMPATPROGUARD_JAR,
+  utils.R8LIB_JAR,
+  utils.COMPATDXLIB_JAR,
+  utils.COMPATPROGUARDLIB_JAR,
+]
 OTHER_TARGETS = ["LICENSE"]
 
 def parse_arguments():
@@ -28,6 +45,7 @@ def parse_arguments():
   return parser.parse_args()
 
 def copy_targets(root, target_root, srcs, dests):
+  assert len(srcs) == len(dests)
   for i in range(len(srcs)):
     src = os.path.join(root, srcs[i])
     dest = os.path.join(target_root, 'prebuilts', 'r8', dests[i])
@@ -35,8 +53,16 @@ def copy_targets(root, target_root, srcs, dests):
     copyfile(src, dest)
 
 def copy_jar_targets(root, target_root):
-  srcs = map((lambda t: t + '.jar'), JAR_TARGETS)
-  dests = map((lambda t: t + '-master.jar'), JAR_TARGETS)
+  srcs = JAR_FILES
+  dests = [
+    'd8-master.jar',
+    'r8-master.jar',
+    'compatdx-master.jar',
+    'compatproguard-master.jar',
+    'r8lib-master.jar',
+    'compatdxlib-master.jar',
+    'compatproguardlib-master.jar',
+  ]
   copy_targets(root, target_root, srcs, dests)
 
 def copy_other_targets(root, target_root):
@@ -61,12 +87,12 @@ def Main():
   args = parse_arguments()
   target_root = args.android_root[0]
   if args.commit_hash == None and args.version == None:
-    gradle.RunGradle(map((lambda t: t), JAR_TARGETS))
+    gradle.RunGradle(JAR_TARGETS)
     copy_jar_targets(utils.LIBS, target_root)
     copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
   else:
     assert args.commit_hash == None or args.version == None
-    targets = map((lambda t: t + '.jar'), JAR_TARGETS) + OTHER_TARGETS
+    targets = JAR_FILES + OTHER_TARGETS
     with utils.TempDir() as root:
       for target in targets:
         if args.commit_hash:

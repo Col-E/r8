@@ -602,45 +602,31 @@ def r8CfCommandLine(input, output, pgconf) {
         "--pg-conf", pgconf]
 }
 
-task R8R8(type: Exec) {
+task R8Lib(type: Exec) {
     def pgconf = "src/main/keep.txt"
-    def output = "build/libs/r8-r8.jar"
-    inputs.files files(pgconf, "build/libs/r8.jar")
+    def output = "build/libs/r8lib.jar"
+    inputs.files files(pgconf, R8.outputs)
     outputs.file output
-    dependsOn R8
     dependsOn downloadOpenJDKrt
     commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
     workingDir = projectDir
 }
 
-task D8R8(type: Exec) {
-    def pgconf = "src/main/keep.txt"
-    def output = "build/libs/d8-r8.jar"
-    inputs.files files(pgconf, "build/libs/d8.jar")
-    outputs.file output
-    dependsOn downloadOpenJDKrt
-    dependsOn D8
-    commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
-    workingDir = projectDir
-}
-
-task CompatDxR8(type: Exec) {
+task CompatDxLib(type: Exec) {
     def pgconf = "src/main/keep-compatdx.txt"
-    def output = "build/libs/compatdx-r8.jar"
-    inputs.files files(pgconf, "build/libs/compatdx.jar")
+    def output = "build/libs/compatdxlib.jar"
+    inputs.files files(pgconf, CompatDx.outputs, R8.outputs)
     outputs.file output
-    dependsOn CompatDx
     dependsOn downloadOpenJDKrt
     commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
     workingDir = projectDir
 }
 
-task CompatProguardR8(type: Exec) {
+task CompatProguardLib(type: Exec) {
     def pgconf = "src/main/keep-compatproguard.txt"
-    def output = "build/libs/compatproguard-r8.jar"
-    inputs.files files(pgconf, "build/libs/compatproguard.jar")
+    def output = "build/libs/compatproguardlib.jar"
+    inputs.files files(pgconf, CompatProguard.outputs, R8.outputs)
     outputs.file output
-    dependsOn CompatProguard
     dependsOn downloadOpenJDKrt
     commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
     workingDir = projectDir
