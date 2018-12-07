@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
@@ -121,6 +122,7 @@ public final class ClassInliner {
   public final void processMethodCode(
       AppInfoWithLiveness appInfo,
       CodeRewriter codeRewriter,
+      StringOptimizer stringOptimizer,
       DexEncodedMethod method,
       IRCode code,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
@@ -187,6 +189,13 @@ public final class ClassInliner {
       codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code, true);
       // If a method was inlined we may be able to prune additional branches.
       codeRewriter.simplifyIf(code);
+      // If a method was inlined we may see more trivial computation/conversion of String.
+      boolean isDebugMode =
+          code.options.debug || method.getOptimizationInfo().isReachabilitySensitive();
+      if (!isDebugMode) {
+        stringOptimizer.computeTrivialOperationsOnConstString(code, appInfo.dexItemFactory);
+        stringOptimizer.removeTrivialConversions(code, appInfo);
+      }
     }
   }
 

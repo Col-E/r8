@@ -30,6 +30,17 @@ import org.junit.runners.Parameterized;
 
 class StringValueOfTestMain {
 
+  static class Notification {
+    String id;
+    Notification(String id) {
+      this.id = id;
+    }
+
+    String getId() {
+      return id;
+    }
+  }
+
   interface Itf {
     String getter();
   }
@@ -53,6 +64,11 @@ class StringValueOfTestMain {
     }
   }
 
+  @NeverInline
+  static String eventuallyReturnsNull(String s) {
+    return System.currentTimeMillis() > 0 ? null : s;
+  }
+
   public static void main(String[] args) {
     Foo foo = new Foo();
     System.out.println(foo.getter());
@@ -73,6 +89,15 @@ class StringValueOfTestMain {
     } catch (NullPointerException npe) {
       fail("Not expected: " + npe);
     }
+
+    // No matter what we pass, that function will return null.
+    // But, we're not sure about it, hence not optimizing String#valueOf.
+    System.out.println(String.valueOf(eventuallyReturnsNull(null)));
+    System.out.println(String.valueOf(eventuallyReturnsNull("non-null")));
+
+    // Eligible for class inlining. Make sure we're optimizing valueOf after class inlining.
+    Notification n = new Notification(null);
+    System.out.println(String.valueOf(n.getId()));
   }
 }
 
@@ -83,6 +108,7 @@ public class StringValueOfTest extends TestBase {
       ForceInline.class,
       NeverInline.class,
       StringValueOfTestMain.class,
+      StringValueOfTestMain.Notification.class,
       StringValueOfTestMain.Itf.class,
       StringValueOfTestMain.Foo.class
   );
@@ -91,6 +117,9 @@ public class StringValueOfTest extends TestBase {
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
+      "null",
+      "null",
+      "null",
       "null",
       "null"
   );
@@ -175,14 +204,14 @@ public class StringValueOfTest extends TestBase {
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 4, 1, 0);
+    test(result, 7, 1, 0);
 
     result = testForD8()
         .release()
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 3, 1, 1);
+    test(result, 6, 1, 1);
   }
 
   @Test
@@ -196,6 +225,9 @@ public class StringValueOfTest extends TestBase {
         .addOptionsModification(this::configure)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 1, 1, 1);
+    // Due to the different behavior regarding constant canonicalization.
+    int expectedNullCount = backend == Backend.CF ? 2 : 1;
+    int expectedNullStringCount = backend == Backend.CF ? 2 : 1;
+    test(result, 3, expectedNullCount, expectedNullStringCount);
   }
 }
