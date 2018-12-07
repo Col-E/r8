@@ -79,7 +79,7 @@ def GetMavenUrl(is_master):
   return GetVersionDestination('http://storage.googleapis.com/', '', is_master)
 
 def Main():
-  if utils.is_bot():
+  if not utils.is_bot():
     raise Exception('You are not a bot, don\'t archive builds')
 
   # Generate an r8-ed build without dependencies.
