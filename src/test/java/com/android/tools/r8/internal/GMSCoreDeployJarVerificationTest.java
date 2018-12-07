@@ -5,6 +5,7 @@ package com.android.tools.r8.internal;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApp;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class GMSCoreDeployJarVerificationTest extends GMSCoreCompilationTestBase {
 
@@ -38,4 +40,20 @@ public class GMSCoreDeployJarVerificationTest extends GMSCoreCompilationTestBase
         optionsConsumer,
         Collections.singletonList(base + DEPLOY_JAR));
   }
+
+  public AndroidApp buildFromDeployJar(
+      CompilerUnderTest compiler, CompilationMode mode, String base, boolean hasReference,
+      Consumer<InternalOptions> optionsConsumer, Supplier<DexIndexedConsumer> consumerSupplier)
+      throws ExecutionException, IOException, ProguardRuleParserException,
+      CompilationFailedException {
+    return runAndCheckVerification(
+        compiler,
+        mode,
+        hasReference ? base + REFERENCE_APK : null,
+        null,
+        optionsConsumer,
+        consumerSupplier,
+        Collections.singletonList(base + DEPLOY_JAR));
+  }
+
 }

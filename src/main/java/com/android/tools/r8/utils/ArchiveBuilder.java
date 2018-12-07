@@ -17,6 +17,10 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -27,6 +31,9 @@ public class ArchiveBuilder implements OutputBuilder {
   private ZipOutputStream stream = null;
   private boolean closed = false;
   private int openCount = 0;
+  private int classesFileIndex = 0;
+  private Map<Integer, DelayedData> delayedClassesDexFiles = new HashMap<>();
+  private SortedSet<DelayedData> delayedWrites = new TreeSet<>();
 
   public ArchiveBuilder(Path archive) {
     this.archive = archive;
@@ -44,12 +51,27 @@ public class ArchiveBuilder implements OutputBuilder {
     assert !closed;
     openCount--;
     if (openCount == 0) {
+      writeDelayed(handler);
       closed = true;
       try {
         getStreamRaw().close();
         stream = null;
       } catch (IOException e) {
         handler.error(new ExceptionDiagnostic(e, origin));
+      }
+    }
+  }
+
+  private void writeDelayed(DiagnosticsHandler handler) {
+    // We should never have any indexed files at this point
+    assert delayedClassesDexFiles.isEmpty();
+    for (DelayedData data : delayedWrites) {
+      if (data.isDirectory) {
+        assert data.content == null;
+        writeDirectoryNow(data.name, handler);
+      } else {
+        assert data.content != null;
+        writeFileNow(data.name, data.content, handler);
       }
     }
   }
@@ -85,7 +107,11 @@ public class ArchiveBuilder implements OutputBuilder {
   }
 
   @Override
-  public void addDirectory(String name, DiagnosticsHandler handler) {
+  public synchronized void addDirectory(String name, DiagnosticsHandler handler) {
+    delayedWrites.add(DelayedData.createDirectory(name));
+  }
+
+  private void writeDirectoryNow(String name, DiagnosticsHandler handler) {
     if (name.charAt(name.length() - 1) != DataResource.SEPARATOR) {
       name += DataResource.SEPARATOR;
     }
@@ -105,7 +131,10 @@ public class ArchiveBuilder implements OutputBuilder {
   @Override
   public void addFile(String name, DataEntryResource content, DiagnosticsHandler handler) {
     try (InputStream in = content.getByteStream()) {
-      addFile(name, ByteDataView.of(ByteStreams.toByteArray(in)), handler);
+      ByteDataView view = ByteDataView.of(ByteStreams.toByteArray(in));
+      synchronized (this) {
+        delayedWrites.add(DelayedData.createFile(name, view));
+      }
     } catch (IOException e) {
       handleIOException(e, handler);
     } catch (ResourceException e) {
@@ -116,10 +145,38 @@ public class ArchiveBuilder implements OutputBuilder {
 
   @Override
   public synchronized void addFile(String name, ByteDataView content, DiagnosticsHandler handler) {
+    delayedWrites.add(DelayedData.createFile(name,  ByteDataView.of(content.copyByteData())));
+  }
+
+  private void writeFileNow(String name, ByteDataView content, DiagnosticsHandler handler) {
     try {
       ZipUtils.writeToZipStream(getStream(handler), name, content, ZipEntry.STORED);
     } catch (IOException e) {
       handleIOException(e, handler);
+    }
+  }
+
+  private void writeNextIfAvailable(DiagnosticsHandler handler) {
+    DelayedData data = delayedClassesDexFiles.remove(classesFileIndex);
+    while (data != null) {
+      writeFileNow(data.name, data.content, handler);
+      classesFileIndex++;
+      data = delayedClassesDexFiles.remove(classesFileIndex);
+    }
+  }
+
+  @Override
+  public synchronized void addIndexedClassFile(
+      int index, String name, ByteDataView content, DiagnosticsHandler handler) {
+    if (index == classesFileIndex) {
+      // Fast case, we got the file in order (or we only had one).
+      writeFileNow(name, content, handler);
+      classesFileIndex++;
+      writeNextIfAvailable(handler);
+    } else {
+      // Data is released in the application writer, take a copy.
+      delayedClassesDexFiles.put(index,
+          new DelayedData(name, ByteDataView.of(content.copyByteData()), false));
     }
   }
 
@@ -131,5 +188,33 @@ public class ArchiveBuilder implements OutputBuilder {
   @Override
   public Path getPath() {
     return archive;
+  }
+
+  private static class DelayedData implements Comparable<DelayedData> {
+    public final String name;
+    public final ByteDataView content;
+    public final boolean isDirectory;
+
+    public static DelayedData createFile(String name, ByteDataView content) {
+      return new DelayedData(name, content, false);
+    }
+
+    public static DelayedData createDirectory(String name) {
+      return new DelayedData(name, null, true);
+    }
+
+    private DelayedData(String name, ByteDataView content, boolean isDirectory) {
+      this.name = name;
+      this.content = content;
+      this.isDirectory = isDirectory;
+    }
+
+    @Override
+    public int compareTo(DelayedData other) {
+      if (other == null) {
+        return name.compareTo(null);
+      }
+      return name.compareTo(other.name);
+    }
   }
 }

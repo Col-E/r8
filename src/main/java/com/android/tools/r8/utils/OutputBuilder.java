@@ -23,6 +23,9 @@ public interface OutputBuilder {
 
   void addFile(String name, ByteDataView content, DiagnosticsHandler handler);
 
+  void addIndexedClassFile(
+      int index, String name, ByteDataView content, DiagnosticsHandler handler);
+
   Path getPath();
 
   Origin getOrigin();

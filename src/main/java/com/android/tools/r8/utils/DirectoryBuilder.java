@@ -68,6 +68,12 @@ public class DirectoryBuilder implements OutputBuilder {
   }
 
   @Override
+  public void addIndexedClassFile(
+      int index, String name, ByteDataView content, DiagnosticsHandler handler) {
+    addFile(name, content, handler);
+  }
+
+  @Override
   public Origin getOrigin() {
     return origin;
   }

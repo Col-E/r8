@@ -19,6 +19,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -43,13 +44,18 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
@@ -89,12 +95,41 @@ public abstract class CompilationTestBase {
     return result;
   }
 
+  public void assertIdenticalZipFiles(File file1, File file2) throws IOException {
+    try (ZipFile zipFile1 = new ZipFile(file1); ZipFile zipFile2 = new ZipFile(file2)) {
+      final Enumeration<? extends ZipEntry> entries1 = zipFile1.entries();
+      final Enumeration<? extends ZipEntry> entries2 = zipFile2.entries();
+
+      while (entries1.hasMoreElements()) {
+        Assert.assertTrue(entries2.hasMoreElements());
+        ZipEntry entry1 = entries1.nextElement();
+        ZipEntry entry2 = entries2.nextElement();
+        Assert.assertEquals(entry1.getName(), entry2.getName());
+        Assert.assertEquals(entry1.getCrc(), entry2.getCrc());
+        Assert.assertEquals(entry1.getSize(), entry2.getSize());
+      }
+    }
+  }
+
   public AndroidApp runAndCheckVerification(
       CompilerUnderTest compiler,
       CompilationMode mode,
       String referenceApk,
       List<String> pgConfs,
       Consumer<InternalOptions> optionsConsumer,
+      List<String> inputs)
+      throws ExecutionException, IOException, CompilationFailedException {
+    return runAndCheckVerification(compiler, mode, referenceApk, pgConfs, optionsConsumer,
+        DexIndexedConsumer::emptyConsumer, inputs);
+  }
+
+  public AndroidApp runAndCheckVerification(
+      CompilerUnderTest compiler,
+      CompilationMode mode,
+      String referenceApk,
+      List<String> pgConfs,
+      Consumer<InternalOptions> optionsConsumer,
+      Supplier<DexIndexedConsumer> dexIndexedConsumerSupplier,
       List<String> inputs)
       throws ExecutionException, IOException, CompilationFailedException {
     assertTrue(referenceApk == null || new File(referenceApk).exists());
@@ -107,7 +142,7 @@ public abstract class CompilationTestBase {
             pgConfs.stream().map(Paths::get).collect(Collectors.toList()));
       }
       builder.setMode(mode);
-      builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+      builder.setProgramConsumer(dexIndexedConsumerSupplier.get());
       builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
       ToolHelper.allowPartiallyImplementedProguardOptions(builder);
       ToolHelper.addProguardConfigurationConsumer(
@@ -130,6 +165,7 @@ public abstract class CompilationTestBase {
     }
     return checkVerification(outputApp.build(), referenceApk);
   }
+
 
   public AndroidApp checkVerification(AndroidApp outputApp, String referenceApk)
       throws IOException, ExecutionException {
