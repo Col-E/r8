@@ -55,6 +55,18 @@ public class R8TestBuilder
     return new R8TestCompileResult(getState(), backend, app.get(), proguardMapBuilder.toString());
   }
 
+  @Override
+  public R8TestBuilder noTreeShaking() {
+    builder.setDisableTreeShaking(true);
+    return self();
+  }
+
+  @Override
+  public R8TestBuilder noMinification() {
+    builder.setDisableMinification(true);
+    return self();
+  }
+
   public R8TestBuilder addDataResources(List<DataEntryResource> resources) {
     resources.forEach(builder.getAppBuilder()::addDataResource);
     return self();
