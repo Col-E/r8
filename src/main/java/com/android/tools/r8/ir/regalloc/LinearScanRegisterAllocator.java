@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCode.LiveAtEntrySets;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Move;
@@ -222,6 +223,15 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // and we do not actually want locals information in the output.
     if (options.debug) {
       computeDebugInfo(blocks);
+    } else if (code.method.getOptimizationInfo().isReachabilitySensitive()) {
+      InstructionIterator it = code.instructionIterator();
+      while (it.hasNext()) {
+        Instruction instruction = it.next();
+        if (instruction.isDebugLocalRead()) {
+          instruction.clearDebugValues();
+          it.remove();
+        }
+      }
     }
     clearUserInfo();
     clearState();
@@ -372,11 +382,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           }
           // Remove the end markers now that local liveness is computed.
           instruction.clearDebugValues();
-          if (instruction.isDebugLocalRead()) {
-            Instruction prev = instructionIterator.previous();
-            assert prev == instruction;
-            instructionIterator.remove();
-          }
+        }
+        if (instruction.isDebugLocalRead()) {
+          Instruction prev = instructionIterator.previous();
+          assert prev == instruction;
+          instructionIterator.remove();
         }
 
         Instruction nextInstruction = instructionIterator.peekNext();
