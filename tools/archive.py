@@ -84,7 +84,7 @@ def Main():
 
   # Generate an r8-ed build without dependencies.
   # Note: build_r8lib does a gradle-clean, this must be the first command.
-  build_r8lib('r8', True, True, utils.R8LIB_KEEP_RULES,
+  build_r8lib('r8nomanifest', True, True, utils.R8LIB_KEEP_RULES,
     utils.R8LIB_EXCLUDE_DEPS_JAR)
 
   # Create maven release which uses a build that exclude dependencies.

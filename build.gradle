@@ -569,6 +569,21 @@ task R8(type: ShadowJar) {
     }
 }
 
+task R8NoManifest(type: ShadowJar) {
+    from consolidatedLicense.outputs.files
+    baseName 'r8nomanifest'
+    classifier = null
+    version = null
+    // In order to build without dependencies, pass the exclude_deps property using:
+    // gradle -Pexclude_deps R8
+    if (!project.hasProperty('exclude_deps')) {
+        from repackageSources.outputs.files
+        from repackageDeps.outputs.files
+    } else {
+        from sourceSets.main.output
+    }
+}
+
 task D8(type: ShadowJar) {
     from R8.outputs.files
     baseName 'd8'
@@ -606,10 +621,10 @@ def r8CfCommandLine(input, output, pgconf) {
 task R8Lib(type: Exec) {
     def pgconf = "src/main/keep.txt"
     def output = "build/libs/r8lib.jar"
-    inputs.files files(pgconf, R8.outputs)
+    inputs.files files(pgconf, R8.outputs, R8NoManifest.outputs)
     outputs.file output
     dependsOn downloadOpenJDKrt
-    commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
+    commandLine r8CfCommandLine(R8NoManifest.outputs.files[0], output, pgconf)
     workingDir = projectDir
 }
 
@@ -619,7 +634,7 @@ task CompatDxLib(type: Exec) {
     inputs.files files(pgconf, CompatDx.outputs, R8.outputs)
     outputs.file output
     dependsOn downloadOpenJDKrt
-    commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
+    commandLine r8CfCommandLine(CompatDx.outputs.files[0], output, pgconf)
     workingDir = projectDir
 }
 
@@ -629,7 +644,7 @@ task CompatProguardLib(type: Exec) {
     inputs.files files(pgconf, CompatProguard.outputs, R8.outputs)
     outputs.file output
     dependsOn downloadOpenJDKrt
-    commandLine r8CfCommandLine(R8.outputs.files[0], output, pgconf)
+    commandLine r8CfCommandLine(CompatProguard.outputs.files[0], output, pgconf)
     workingDir = projectDir
 }
 
