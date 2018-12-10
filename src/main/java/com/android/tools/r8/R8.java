@@ -407,7 +407,7 @@ public class R8 {
       Set<DexCallSite> desugaredCallSites;
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
-        IRConverter converter = new IRConverter(appView, options, timing, printer);
+        IRConverter converter = new IRConverter(appView, options, timing, printer, rootSet);
         application = converter.optimize(application, executorService);
         desugaredCallSites = converter.getDesugaredCallSites();
       } finally {

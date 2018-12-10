@@ -68,6 +68,7 @@ import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -106,6 +107,7 @@ public class IRConverter {
 
   public final AppInfo appInfo;
   public final AppView<? extends AppInfoWithSubtyping> appView;
+  public final RootSet rootSet;
 
   private final Timing timing;
   private final Outliner outliner;
@@ -150,13 +152,15 @@ public class IRConverter {
       InternalOptions options,
       Timing timing,
       CfgPrinter printer,
-      AppView<? extends AppInfoWithSubtyping> appView) {
+      AppView<? extends AppInfoWithSubtyping> appView,
+      RootSet rootSet) {
     assert appInfo != null;
     assert options != null;
     assert options.programConsumer != null;
     this.timing = timing != null ? timing : new Timing("internal");
     this.appInfo = appInfo;
     this.appView = appView;
+    this.rootSet = rootSet;
     this.options = options;
     this.printer = printer;
     this.codeRewriter = new CodeRewriter(this, libraryMethodsReturningReceiver(), options);
@@ -180,6 +184,7 @@ public class IRConverter {
       assert appInfo.hasLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
       AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      assert rootSet != null;
       this.nonNullTracker =
           new NonNullTracker(appInfo, libraryMethodsReturningNonNull(appInfo.dexItemFactory));
       this.inliner = new Inliner(appViewWithLiveness, this, options);
@@ -241,14 +246,14 @@ public class IRConverter {
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(AppInfo appInfo, InternalOptions options) {
-    this(appInfo, options, null, null, null);
+    this(appInfo, options, null, null, null, null);
   }
 
   /**
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(AppInfo appInfo, InternalOptions options, Timing timing, CfgPrinter printer) {
-    this(appInfo, options, timing, printer, null);
+    this(appInfo, options, timing, printer, null, null);
   }
 
   /**
@@ -258,8 +263,9 @@ public class IRConverter {
       AppView<AppInfoWithSubtyping> appView,
       InternalOptions options,
       Timing timing,
-      CfgPrinter printer) {
-    this(appView.appInfo(), options, timing, printer, appView);
+      CfgPrinter printer,
+      RootSet rootSet) {
+    this(appView.appInfo(), options, timing, printer, appView, rootSet);
   }
 
   private boolean enableInterfaceMethodDesugaring() {
@@ -913,7 +919,7 @@ public class IRConverter {
       stringOptimizer.computeTrivialOperationsOnConstString(code, appInfo.dexItemFactory);
       // Reflection optimization 2. get*Name() with const-class -> const-string
       if (options.enableNameReflectionOptimization) {
-        stringOptimizer.rewriteClassGetName(code, appInfo);
+        stringOptimizer.rewriteClassGetName(code, appInfo, rootSet);
       }
       // Reflection optimization 3. String#valueOf(const-string) -> no op.
       stringOptimizer.removeTrivialConversions(code, appInfo);
