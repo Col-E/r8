@@ -158,6 +158,18 @@ public class ProguardTestBuilder
   }
 
   @Override
+  public ProguardTestBuilder noTreeShaking() {
+    addKeepRules("-dontshrink");
+    return self();
+  }
+
+  @Override
+  public ProguardTestBuilder noMinification() {
+    addKeepRules("-dontobfuscate");
+    return self();
+  }
+
+  @Override
   public ProguardTestBuilder addProgramClasses(Collection<Class<?>> classes) {
     // Adding a collection of classes will build a jar of exactly those classes so that no other
     // classes are made available via a too broad classpath directory.

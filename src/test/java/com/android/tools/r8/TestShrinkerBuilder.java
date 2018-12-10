@@ -21,6 +21,10 @@ public abstract class TestShrinkerBuilder<
     super(state, builder, backend);
   }
 
+  public abstract T noTreeShaking();
+
+  public abstract T noMinification();
+
   public abstract T addKeepRules(Collection<String> rules);
 
   public T addKeepRules(String... rules) {
@@ -53,4 +57,5 @@ public abstract class TestShrinkerBuilder<
             "  public static void main(java.lang.String[]);",
             "}"));
   }
+
 }

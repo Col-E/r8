@@ -797,7 +797,15 @@ public class TestBase {
     }
   }
 
-  public String extractClassName(byte[] ccc) {
+  public static String extractClassName(byte[] ccc) {
+    return DescriptorUtils.descriptorToJavaType(extractClassDescriptor(ccc));
+  }
+
+  public static String extractClassDescriptor(byte[] ccc) {
+    return "L" + extractClassInternalType(ccc) + ";";
+  }
+
+  private static String extractClassInternalType(byte[] ccc) {
     class ClassNameExtractor extends ClassVisitor {
       private String className;
 
@@ -813,13 +821,10 @@ public class TestBase {
           String signature,
           String superName,
           String[] interfaces) {
-        className =
-            name.replace(
-                DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR,
-                DescriptorUtils.JAVA_PACKAGE_SEPARATOR);
+        className = name;
       }
 
-      String getClassName() {
+      String getClassInternalType() {
         return className;
       }
     }
@@ -828,7 +833,7 @@ public class TestBase {
     ClassNameExtractor extractor = new ClassNameExtractor();
     reader.accept(
         extractor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-    return extractor.getClassName();
+    return extractor.getClassInternalType();
   }
 
   protected Path writeToJar(List<byte[]> classes) throws IOException {
