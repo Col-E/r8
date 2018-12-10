@@ -519,7 +519,7 @@ static configureRelocations(ShadowJar task) {
 }
 
 task repackageDeps(type: ShadowJar) {
-    configurations = [project.configurations.compile]
+    configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
     if (!project.hasProperty('lib_no_relocate')) {
         configureRelocations(it)
@@ -530,7 +530,7 @@ task repackageDeps(type: ShadowJar) {
 }
 
 task repackageDepsForLib(type: ShadowJar) {
-    configurations = [project.configurations.compile]
+    configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
     configureRelocations(it)
     exclude { it.getRelativePath().getPathString() == "module-info.class" }
