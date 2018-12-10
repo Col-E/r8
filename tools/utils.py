@@ -12,7 +12,6 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import uuid
 
 ANDROID_JAR = 'third_party/android_jar/lib-v{api}/android.jar'
 TOOLS_DIR = os.path.abspath(os.path.normpath(os.path.join(__file__, '..')))
@@ -51,8 +50,6 @@ MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
-
-TEST_RESULT_BUCKET = 'r8-test-results'
 
 def PrintCmd(s):
   if type(s) is list:
@@ -189,15 +186,6 @@ class TempDir(object):
 
  def __exit__(self, *_):
    shutil.rmtree(self._temp_dir, ignore_errors=True)
-
-def archive_failures():
-  upload_dir = os.path.join(REPO_ROOT, 'build', 'reports', 'tests')
-  u_dir = uuid.uuid4()
-  destination = 'gs://%s/%s' % (TEST_RESULT_BUCKET, u_dir)
-  upload_dir_to_cloud_storage(upload_dir, destination, is_html=True)
-  url = 'http://storage.googleapis.com/%s/%s/test/index.html' % (TEST_RESULT_BUCKET, u_dir)
-  print 'Test results available at: %s' % url
-  print '@@@STEP_LINK@Test failures@%s@@@' % url
 
 class ChangedWorkingDirectory(object):
  def __init__(self, working_directory):
