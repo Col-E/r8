@@ -13,7 +13,7 @@ def run(tool, args, build=None, debug=True,
   if build is None:
     build, args = extract_build_from_args(args)
   if build:
-    gradle.RunGradle(['r8'])
+    gradle.RunGradle(['r8lib' if tool.startswith('r8lib') else 'r8'])
   cmd = []
   if track_memory_file:
     cmd.extend(['tools/track_memory.sh', track_memory_file])
@@ -24,7 +24,13 @@ def run(tool, args, build=None, debug=True,
     cmd.append('-ea')
   if profile:
     cmd.append('-agentlib:hprof=cpu=samples,interval=1,depth=8')
-  cmd.extend(['-jar', utils.R8_JAR, tool])
+  if tool in ['r8', 'd8']:
+    cmd.extend(['-jar', utils.R8_JAR, tool])
+  elif tool == 'r8lib-r8':
+    cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.R8'])
+  else:
+    assert(tool == 'r8lib-d8')
+    cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.D8'])
   lib, args = extract_lib_from_args(args)
   if lib:
     cmd.extend(["--lib", lib])
