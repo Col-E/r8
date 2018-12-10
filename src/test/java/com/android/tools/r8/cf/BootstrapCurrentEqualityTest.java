@@ -84,8 +84,8 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     if (testExternal) {
       R8Result output =
           runExternalR8(
-              ToolHelper.R8_LIB_JAR,
-              ToolHelper.R8_LIB_JAR,
+              ToolHelper.R8_WITH_RELOCATED_DEPS_JAR,
+              ToolHelper.R8_WITH_RELOCATED_DEPS_JAR,
               testFolder.newFolder().toPath(),
               MAIN_KEEP,
               mode);
@@ -96,7 +96,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
           R8Command.builder()
               .setMode(CompilationMode.RELEASE)
               .addLibraryFiles(runtimeJar(Backend.CF))
-              .addProgramFiles(ToolHelper.R8_LIB_JAR)
+              .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
               .setOutput(jar, OutputMode.ClassFile)
               .build());
     }
@@ -114,10 +114,20 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   private void compareR8(Path program, ProcessResult runResult, String[] keep, String... args)
       throws Exception {
     R8Result runR8Debug =
-        runExternalR8(ToolHelper.R8_LIB_JAR, program, temp.newFolder().toPath(), keep, "--debug");
+        runExternalR8(
+            ToolHelper.R8_WITH_RELOCATED_DEPS_JAR,
+            program,
+            temp.newFolder().toPath(),
+            keep,
+            "--debug");
     assertEquals(runResult.toString(), ToolHelper.runJava(runR8Debug.outputJar, args).toString());
     R8Result runR8Release =
-        runExternalR8(ToolHelper.R8_LIB_JAR, program, temp.newFolder().toPath(), keep, "--release");
+        runExternalR8(
+            ToolHelper.R8_WITH_RELOCATED_DEPS_JAR,
+            program,
+            temp.newFolder().toPath(),
+            keep,
+            "--release");
     assertEquals(runResult.toString(), ToolHelper.runJava(runR8Release.outputJar, args).toString());
     RunR8AndCheck(r8R8Debug, program, runR8Debug, keep, "--debug");
     RunR8AndCheck(r8R8Debug, program, runR8Release, keep, "--release");
