@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
+import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -115,7 +116,7 @@ public class StringOptimizer {
   }
 
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
-  public void rewriteClassGetName(IRCode code, AppInfo appInfo) {
+  public void rewriteClassGetName(IRCode code, AppInfo appInfo, RootSet rootSet) {
     // Conflict with {@link CodeRewriter#collectClassInitializerDefaults}.
     if (code.method.isClassInitializer()) {
       return;
@@ -169,7 +170,7 @@ public class StringOptimizer {
       DexItemBasedConstString deferred = null;
       String name = null;
       if (invokedMethod == appInfo.dexItemFactory.classMethods.getName) {
-        if (code.options.enableMinification) {
+        if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder)) {
           deferred = new DexItemBasedConstString(
               invoke.outValue(), baseType, new ClassNameComputationInfo(NAME, arrayDepth));
         } else {
@@ -189,7 +190,7 @@ public class StringOptimizer {
           if (!assumeTopLevel) {
             continue;
           }
-          if (code.options.enableMinification) {
+          if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder)) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),
@@ -209,7 +210,7 @@ public class StringOptimizer {
           if (!assumeTopLevel) {
             continue;
           }
-          if (code.options.enableMinification) {
+          if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder)) {
             deferred = new DexItemBasedConstString(
                 invoke.outValue(), baseType, new ClassNameComputationInfo(SIMPLE_NAME, arrayDepth));
           } else {

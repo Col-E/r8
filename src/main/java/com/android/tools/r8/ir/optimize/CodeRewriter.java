@@ -90,6 +90,7 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1815,25 +1816,48 @@ public class CodeRewriter {
               assert false;
             }
           } else {
-            // TODO(b/120280603): Consider minification!
             InvokeVirtual invoke = inValue.definition.asInvokeVirtual();
             DexMethod invokedMethod = invoke.getInvokedMethod();
             DexType holderType = method.method.getHolder();
             DexClass holder = appInfo.definitionFor(holderType);
             assert holder != null;
             String descriptor = holderType.toDescriptorString();
+            DexItemBasedValueString deferred = null;
             String name = null;
             if (invokedMethod == appInfo.dexItemFactory.classMethods.getName) {
-              name = computeClassName(descriptor, holder, NAME, 0);
+              if (code.options.enableMinification
+                  && !converter.rootSet.noObfuscation.contains(holder)) {
+                deferred = new DexItemBasedValueString(
+                    holderType, new ClassNameComputationInfo(NAME));
+              } else {
+                name = computeClassName(descriptor, holder, NAME);
+              }
             } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getTypeName) {
               // TODO(b/119426668): desugar Type#getTypeName
             } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getCanonicalName) {
-              name = computeClassName(descriptor, holder, CANONICAL_NAME, 0);
+              if (code.options.enableMinification
+                  && !converter.rootSet.noObfuscation.contains(holder)) {
+                deferred = new DexItemBasedValueString(
+                    holderType, new ClassNameComputationInfo(CANONICAL_NAME));
+              } else {
+                name = computeClassName(descriptor, holder, CANONICAL_NAME);
+              }
             } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getSimpleName) {
-              name = computeClassName(descriptor, holder, SIMPLE_NAME, 0);
+              if (code.options.enableMinification
+                  && !converter.rootSet.noObfuscation.contains(holder)) {
+                deferred = new DexItemBasedValueString(
+                    holderType, new ClassNameComputationInfo(SIMPLE_NAME));
+              } else {
+                name = computeClassName(descriptor, holder, SIMPLE_NAME);
+              }
             }
-            assert name != null;
-            encodedField.setStaticValue(new DexValueString(dexItemFactory.createString(name)));
+            assert name != null || deferred != null;
+            if (name != null) {
+              encodedField.setStaticValue(new DexValueString(dexItemFactory.createString(name)));
+            } else {
+              assert deferred != null;
+              encodedField.setStaticValue(deferred);
+            }
           }
         } else if (field.type.isClassType() || field.type.isArrayType()) {
           if (inValue.isZero()) {

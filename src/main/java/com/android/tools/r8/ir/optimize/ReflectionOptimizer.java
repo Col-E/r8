@@ -44,10 +44,14 @@ public class ReflectionOptimizer {
     }
 
     private static final ClassNameComputationInfo DEFAULT_INSTANCE =
-        new ClassNameComputationInfo(ClassNameComputationOption.NONE, 0);
+        new ClassNameComputationInfo(ClassNameComputationOption.NONE);
 
     final ClassNameComputationOption classNameComputationOption;
     final int arrayDepth;
+
+    public ClassNameComputationInfo(ClassNameComputationOption classNameComputationOption) {
+      this(classNameComputationOption, 0);
+    }
 
     public ClassNameComputationInfo(
         ClassNameComputationOption classNameComputationOption, int arrayDepth) {
@@ -136,6 +140,13 @@ public class ReflectionOptimizer {
         holder,
         classNameComputationInfo.classNameComputationOption,
         classNameComputationInfo.arrayDepth);
+  }
+
+  public static String computeClassName(
+      String descriptor,
+      DexClass holder,
+      ClassNameComputationOption classNameComputationOption) {
+    return computeClassName(descriptor, holder, classNameComputationOption, 0);
   }
 
   public static String computeClassName(
