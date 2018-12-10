@@ -5,6 +5,7 @@
 
 import create_maven_release
 import gradle
+import optparse
 import os
 import shutil
 import subprocess
@@ -15,6 +16,13 @@ import zipfile
 from build_r8lib import build_r8lib
 
 ARCHIVE_BUCKET = 'r8-releases'
+
+def ParseOptions():
+  result = optparse.OptionParser()
+  result.add_option('--dry-run', '--dry_run',
+      help='Build only, no upload.',
+      default=False, action='store_true')
+  return result.parse_args()
 
 def GetToolVersion(jar_path):
   output = subprocess.check_output(['java', '-jar', jar_path, '--version'])
@@ -79,7 +87,8 @@ def GetMavenUrl(is_master):
   return GetVersionDestination('http://storage.googleapis.com/', '', is_master)
 
 def Main():
-  if not utils.is_bot():
+  (options, args) = ParseOptions()
+  if not utils.is_bot() and not options.dry_run:
     raise Exception('You are not a bot, don\'t archive builds')
 
   # Generate an r8-ed build without dependencies.
@@ -150,14 +159,20 @@ def Main():
           zip.write(version_file, os.path.basename(version_file))
       destination = GetUploadDestination(version, file_name, is_master)
       print('Uploading %s to %s' % (tagged_jar, destination))
-      utils.upload_file_to_cloud_storage(tagged_jar, destination)
-      print('File available at: %s' % GetUrl(version, file_name, is_master))
+      if options.dry_run:
+        print('Dry run, not actually uploading')
+      else:
+        utils.upload_file_to_cloud_storage(tagged_jar, destination)
+        print('File available at: %s' % GetUrl(version, file_name, is_master))
       if file == utils.R8_JAR:
         # Upload R8 to a maven compatible location.
         maven_dst = GetUploadDestination(utils.get_maven_path(version),
                                          'r8-%s.jar' % version, is_master)
-        utils.upload_file_to_cloud_storage(tagged_jar, maven_dst)
-        print('Maven repo root available at: %s' % GetMavenUrl(is_master))
+        if options.dry_run:
+          print('Dry run, not actually creating maven repo')
+        else:
+          utils.upload_file_to_cloud_storage(tagged_jar, maven_dst)
+          print('Maven repo root available at: %s' % GetMavenUrl(is_master))
 
 
 if __name__ == '__main__':
