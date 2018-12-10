@@ -73,4 +73,26 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
     });
   }
 
+  @Test
+  public void test_example3() throws Exception {
+    final TestKotlinClass ex3 = new TestKotlinClass("non_null.Example3Kt");
+    final MethodSignature testMethodSignature =
+        new MethodSignature("neverThrowNPE", "void", ImmutableList.of("non_null.Foo"));
+
+    final String mainClassName = ex3.getClassName();
+    final String extraRules = keepAllMembers(mainClassName);
+    runTest(FOLDER, mainClassName, extraRules, app -> {
+      CodeInspector codeInspector = new CodeInspector(app);
+      ClassSubject clazz = checkClassIsKept(codeInspector, ex3.getClassName());
+
+      MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
+      DexCode dexCode = getDexCode(testMethod);
+      long count = Arrays.stream(dexCode.instructions)
+          .filter(SimplifyIfNotNullKotlinTest::isIf).count();
+      // !! operator inside explicit null check should be gone.
+      // One explicit null-check as well as 4 bar? accesses.
+      assertEquals(5, count);
+    });
+  }
+
 }
