@@ -63,7 +63,6 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.cookpad.android.licensetools:license-tools-plugin:0.23.0'
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
         classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
         classpath "net.ltgt.gradle:gradle-apt-plugin:0.12"
@@ -80,7 +79,6 @@ buildScan {
 
 apply plugin: 'java'
 apply plugin: 'idea'
-apply plugin: 'com.cookpad.android.licensetools'
 apply plugin: 'net.ltgt.errorprone-base'
 apply plugin: "net.ltgt.apt"
 
@@ -210,24 +208,24 @@ configurations {
 }
 
 dependencies {
-    compile "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
-    compile "com.google.code.gson:gson:$gsonVersion"
+    implementation "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
+    implementation "com.google.code.gson:gson:$gsonVersion"
     // Include all of guava when compiling the code, but exclude annotations that we don't
     // need from the packaging.
     compileOnly("com.google.guava:guava:$guavaVersion")
-    compile("com.google.guava:guava:$guavaVersion", {
+    implementation("com.google.guava:guava:$guavaVersion", {
         exclude group: 'com.google.errorprone'
         exclude group: 'com.google.code.findbugs'
         exclude group: 'com.google.j2objc'
         exclude group: 'org.codehaus.mojo'
     })
-    compile group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
-    compile "org.jetbrains.kotlinx:kotlinx-metadata-jvm:$kotlinExtMetadataJVMVersion"
-    compile group: 'org.ow2.asm', name: 'asm', version: asmVersion
-    compile group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
-    compile group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
-    compile group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
-    compile group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
+    implementation group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
+    implementation "org.jetbrains.kotlinx:kotlinx-metadata-jvm:$kotlinExtMetadataJVMVersion"
+    implementation group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    implementation group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
+    implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
+    implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
+    implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
     testCompile sourceSets.examples.output
     testCompile "junit:junit:$junitVersion"
     testCompile group: 'org.smali', name: 'smali', version: smaliVersion
@@ -251,10 +249,6 @@ dependencies {
     examplesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     apt "com.google.auto.value:auto-value:$autoValueVersion"
-}
-
-licenseTools {
-    licensesYaml = file('LIBRARY-LICENSE')
 }
 
 def osString = OperatingSystem.current().isLinux() ? "linux" :
@@ -458,13 +452,27 @@ compileJctfTestsJava {
 }
 
 task consolidatedLicense {
-    // checkLicenses verifies that the list of libraries referenced in 'LIBRARY-LICENSE' is
-    // corresponding to the effective list of embedded libraries.
-    dependsOn 'checkLicenses'
     def license = new File(new File(buildDir, 'generatedLicense'), 'LICENSE')
+
     inputs.files files('LICENSE', 'LIBRARY-LICENSE') + fileTree(dir: 'library-licensing')
+    def runtimeClasspath = configurations.findByName("runtimeClasspath")
+    inputs.files { runtimeClasspath.getResolvedConfiguration().files }
+
     outputs.files license
+
     doLast {
+        def dependencies = []
+        runtimeClasspath.resolvedConfiguration.resolvedArtifacts.each {
+            def identifier = (ModuleComponentIdentifier) it.id.componentIdentifier
+            dependencies.add("${identifier.group}:${identifier.module}")
+        }
+        def libraryLicenses = file('LIBRARY-LICENSE').text
+        dependencies.each {
+            if (!libraryLicenses.contains("- artifact: $it")) {
+                 throw new GradleException("No license for $it in LIBRARY_LICENSE")
+            }
+        }
+
         license.getParentFile().mkdirs()
         license.createNewFile()
         license.text = "This file lists all licenses for code distributed.\n"
@@ -476,7 +484,7 @@ task consolidatedLicense {
         license.text += "\n"
         license.text += "Summary of distributed libraries:\n"
         license.text += "\n"
-        license.text += file('LIBRARY-LICENSE').text
+        license.text += libraryLicenses
         license.text += "\n"
         license.text += "\n"
         license.text += "Licenses details:\n"
