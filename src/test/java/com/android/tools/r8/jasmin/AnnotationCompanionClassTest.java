@@ -3,10 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
@@ -34,9 +37,9 @@ public class AnnotationCompanionClassTest extends JasminTestBase {
     AndroidApp androidApp = compileWithD8(builder);
 
     CodeInspector codeInspector = new CodeInspector(androidApp);
-    assertFalse(
-        codeInspector
-            .clazz("LMyAnnotation" + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
-            .isAnnotation());
+    ClassSubject clazz =
+        codeInspector.clazz("MyAnnotation" + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX);
+    assertThat(clazz, isPresent());
+    assertFalse(clazz.isAnnotation());
   }
 }

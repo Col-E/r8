@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
 import java.util.List;
 import java.util.function.Consumer;
@@ -43,17 +44,17 @@ public class AbsentClassSubject extends ClassSubject {
 
   @Override
   public boolean isAbstract() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent class is abstract");
   }
 
   @Override
   public boolean isAnnotation() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent class is an annotation");
   }
 
   @Override
   public boolean isPublic() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent class is public");
   }
 
   @Override
@@ -88,27 +89,27 @@ public class AbsentClassSubject extends ClassSubject {
 
   @Override
   public boolean isRenamed() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent class has been renamed");
   }
 
   @Override
   public boolean isMemberClass() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent class is a member class");
   }
 
   @Override
   public boolean isLocalClass() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent class is a local class");
   }
 
   @Override
   public boolean isAnonymousClass() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent class is an anonymous class");
   }
 
   @Override
   public boolean isSynthesizedJavaLambdaClass() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent class is a synthesized lambda class");
   }
 
   @Override

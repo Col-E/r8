@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 
@@ -16,42 +17,42 @@ public class AbsentMethodSubject extends MethodSubject {
 
   @Override
   public boolean isRenamed() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent method has been renamed");
   }
 
   @Override
   public boolean isPublic() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent method is public");
   }
 
   @Override
   public boolean isStatic() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent method is static");
   }
 
   @Override
   public boolean isFinal() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent method is final");
   }
 
   @Override
   public boolean isAbstract() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent method is abstract");
   }
 
   @Override
   public boolean isBridge() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent method is a bridge");
   }
 
   @Override
   public boolean isInstanceInitializer() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent method is an instance initializer");
   }
 
   @Override
   public boolean isClassInitializer() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent method is a class initializer");
   }
 
   @Override
@@ -86,6 +87,6 @@ public class AbsentMethodSubject extends MethodSubject {
 
   @Override
   public boolean hasLocalVariableTable() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent method has a local variable table");
   }
 }

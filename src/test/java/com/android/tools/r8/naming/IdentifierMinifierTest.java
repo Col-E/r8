@@ -298,7 +298,8 @@ public class IdentifierMinifierTest extends TestBase {
                   ((ConstStringInstructionSubject) instr).getString().toSourceString();
               if (isValidJavaType(cnstString)) {
                 ClassSubject classSubject = inspector.clazz(cnstString);
-                if (classSubject.isRenamed()
+                if (classSubject.isPresent()
+                    && classSubject.isRenamed()
                     && descriptorToJavaType(classSubject.getFinalDescriptor()).equals(cnstString)) {
                   return cnt + 1;
                 }

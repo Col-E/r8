@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.naming.MemberNaming.Signature;
@@ -12,17 +13,17 @@ public class AbsentFieldSubject extends FieldSubject {
 
   @Override
   public boolean isPublic() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent field is public");
   }
 
   @Override
   public boolean isStatic() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent field is static");
   }
 
   @Override
   public boolean isFinal() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent field is final");
   }
 
   @Override
@@ -32,7 +33,7 @@ public class AbsentFieldSubject extends FieldSubject {
 
   @Override
   public boolean isRenamed() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent field has been renamed");
   }
 
   @Override
@@ -47,7 +48,7 @@ public class AbsentFieldSubject extends FieldSubject {
 
   @Override
   public boolean hasExplicitStaticValue() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent field has en explicit static value");
   }
 
   @Override
