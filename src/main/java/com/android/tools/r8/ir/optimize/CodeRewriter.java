@@ -1055,8 +1055,18 @@ public class CodeRewriter {
         continue;
       }
 
-      if (insn.isInstanceGet() ||
-          (insn.isInstancePut() && insn.asInstancePut().object() == receiver)) {
+      if (insn.isInstanceGet() || insn.isInstancePut()) {
+        if (insn.isInstancePut()) {
+          InstancePut instancePutInstruction = insn.asInstancePut();
+          // Only allow field writes to the receiver.
+          if (instancePutInstruction.object() != receiver) {
+            return;
+          }
+          // Do not allow the receiver to escape via a field write.
+          if (instancePutInstruction.value() == receiver) {
+            return;
+          }
+        }
         DexField field = insn.asFieldInstruction().getField();
         if (field.clazz == clazz.type && clazz.lookupInstanceField(field) != null) {
           // Require only accessing instance fields of the *current* class.

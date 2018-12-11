@@ -250,28 +250,42 @@ final class InlineCandidateProcessor {
         // Eligible constructor call (for new instance roots only).
         if (user.isInvokeDirect()) {
           InvokeDirect invoke = user.asInvokeDirect();
-          boolean isCorrespondingConstructorCall =
-              root.isNewInstance()
-                  && !invoke.inValues().isEmpty()
-                  && root.outValue() == invoke.inValues().get(0);
-          if (isCorrespondingConstructorCall) {
-            InliningInfo inliningInfo =
-                isEligibleConstructorCall(user.asInvokeDirect(), defaultOracle);
-            if (inliningInfo != null) {
-              methodCallsOnInstance.put(user.asInvokeDirect(), inliningInfo);
-              continue;
+          if (factory.isConstructor(invoke.getInvokedMethod())) {
+            boolean isCorrespondingConstructorCall =
+                root.isNewInstance()
+                    && !invoke.inValues().isEmpty()
+                    && root.outValue() == invoke.inValues().get(0);
+            if (isCorrespondingConstructorCall) {
+              InliningInfo inliningInfo =
+                  isEligibleConstructorCall(user.asInvokeDirect(), defaultOracle);
+              if (inliningInfo != null) {
+                methodCallsOnInstance.put(user.asInvokeDirect(), inliningInfo);
+                continue;
+              }
             }
+            return false; // Not eligible.
           }
         }
 
         // Eligible virtual method call on the instance as a receiver.
         if (user.isInvokeVirtual() || user.isInvokeInterface()) {
-          InliningInfo inliningInfo =
-              isEligibleDirectVirtualMethodCall(user.asInvokeMethodWithReceiver(), indirectUsers);
-          if (inliningInfo != null) {
-            methodCallsOnInstance.put(user.asInvokeMethodWithReceiver(), inliningInfo);
+          InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
+          boolean isMethodCallOnEligibleInstance = invoke.getReceiver() == eligibleInstance;
+          if (isMethodCallOnEligibleInstance) {
+            InliningInfo inliningInfo =
+                isEligibleDirectVirtualMethodCall(user.asInvokeMethodWithReceiver(), indirectUsers);
+            if (inliningInfo != null) {
+              methodCallsOnInstance.put(user.asInvokeMethodWithReceiver(), inliningInfo);
+              continue;
+            }
+          } else if (isExtraMethodCallEligible(defaultOracle, invoke, invocationContext)) {
             continue;
           }
+          return false; // Not eligible.
+        }
+
+        if (user.isInvokeSuper()) {
+          return false; // Not eligible.
         }
 
         // Eligible usage as an invocation argument.
@@ -698,26 +712,21 @@ final class InlineCandidateProcessor {
   //   -- method itself can be inlined
   //
   private boolean isExtraMethodCallEligible(
-      Supplier<InliningOracle> defaultOracle,
-      InvokeMethod invokeMethod,
-      DexType invocationContext) {
+      Supplier<InliningOracle> defaultOracle, InvokeMethod invoke, DexType invocationContext) {
+    // Don't consider constructor invocations and super calls, since we don't want to forcibly
+    // inline them.
+    assert !invoke.isInvokeSuper();
+    assert !(invoke.isInvokeDirect() && factory.isConstructor(invoke.getInvokedMethod()));
 
-    List<Value> arguments = Lists.newArrayList(invokeMethod.inValues());
-
-    // Don't consider constructor invocations and super calls, since
-    // we don't want to forcibly inline them.
-    if (invokeMethod.isInvokeSuper() ||
-        (invokeMethod.isInvokeDirect() && factory.isConstructor(invokeMethod.getInvokedMethod()))) {
-      return false;
-    }
+    List<Value> arguments = Lists.newArrayList(invoke.inValues());
 
     // If we got here with invocation on receiver the user is ineligible.
-    if (invokeMethod.isInvokeMethodWithReceiver() && arguments.get(0) == eligibleInstance) {
+    if (invoke.isInvokeMethodWithReceiver() && arguments.get(0) == eligibleInstance) {
       return false;
     }
 
     // Need single target.
-    DexEncodedMethod singleTarget = invokeMethod.lookupSingleTarget(appInfo, invocationContext);
+    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appInfo, invocationContext);
     if (singleTarget == null || isProcessedConcurrently.test(singleTarget)) {
       return false;  // Not eligible.
     }
@@ -725,12 +734,12 @@ final class InlineCandidateProcessor {
     OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
 
     // Don't inline code w/o normal returns into block with catch handlers (b/64432527).
-    if (invokeMethod.getBlock().hasCatchHandlers() && optimizationInfo.neverReturnsNormally()) {
+    if (invoke.getBlock().hasCatchHandlers() && optimizationInfo.neverReturnsNormally()) {
       return false;
     }
 
     // Go through all arguments, see if all usages of eligibleInstance are good.
-    if (!isEligibleParameterUsages(invokeMethod, arguments, singleTarget, defaultOracle)) {
+    if (!isEligibleParameterUsages(invoke, arguments, singleTarget, defaultOracle)) {
       return false;
     }
 
@@ -738,11 +747,11 @@ final class InlineCandidateProcessor {
       Value argument = arguments.get(argIndex);
       if (argument == eligibleInstance && optimizationInfo.getParameterUsages(argIndex).notUsed()) {
         // Reference can be removed since it's not used.
-        unusedArguments.add(new Pair<>(invokeMethod, argIndex));
+        unusedArguments.add(new Pair<>(invoke, argIndex));
       }
     }
 
-    extraMethodCalls.put(invokeMethod, new InliningInfo(singleTarget, null));
+    extraMethodCalls.put(invoke, new InliningInfo(singleTarget, null));
 
     // Looks good.
     markSizeForInlining(singleTarget);

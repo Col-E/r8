@@ -30,7 +30,7 @@ public class EscapingBuilderTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     assertThat(inspector.clazz(Builder0.class), not(isPresent()));
     assertThat(inspector.clazz(Builder1.class), isPresent());
-    assertThat(inspector.clazz(Builder2.class), not(isPresent()));
+    assertThat(inspector.clazz(Builder2.class), isPresent());
     assertThat(inspector.clazz(Builder3.class), isPresent());
     assertThat(inspector.clazz(Builder4.class), isPresent());
     assertThat(inspector.clazz(Builder5.class), isPresent());
@@ -41,8 +41,7 @@ public class EscapingBuilderTest extends TestBase {
     public static void main(String[] args) {
       testBuilder0();
       testBuilder1();
-      // TODO(b/120182628): Ensure that builder does not escape via `this` in virtual invokes.
-      // testBuilder2();
+      testBuilder2();
       testBuilder3();
       testBuilder4();
       testBuilder5();
