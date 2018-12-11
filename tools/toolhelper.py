@@ -24,13 +24,12 @@ def run(tool, args, build=None, debug=True,
     cmd.append('-ea')
   if profile:
     cmd.append('-agentlib:hprof=cpu=samples,interval=1,depth=8')
-  if tool in ['r8', 'd8']:
-    cmd.extend(['-jar', utils.R8_JAR, tool])
+  if tool == 'r8lib-d8':
+    cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.D8'])
   elif tool == 'r8lib-r8':
     cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.R8'])
   else:
-    assert(tool == 'r8lib-d8')
-    cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.D8'])
+    cmd.extend(['-jar', utils.R8_JAR, tool])
   lib, args = extract_lib_from_args(args)
   if lib:
     cmd.extend(["--lib", lib])
