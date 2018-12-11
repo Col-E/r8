@@ -140,7 +140,7 @@ public class CfApplicationWriter {
     }
 
     for (InnerClassAttribute entry : clazz.getInnerClasses()) {
-      entry.write(writer, namingLens);
+      entry.write(writer, namingLens, options);
     }
 
     for (DexEncodedField field : clazz.staticFields()) {

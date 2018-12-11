@@ -412,7 +412,9 @@ public class ApplicationWriter {
             } else {
               annotations.add(
                   DexAnnotation.createInnerClassAnnotation(
-                      innerClass.getInnerName(), innerClass.getAccess(), options.itemFactory));
+                      namingLens.lookupInnerName(innerClass, options),
+                      innerClass.getAccess(),
+                      options.itemFactory));
               if (innerClass.getOuter() != null && innerClass.isNamed()) {
                 annotations.add(
                     DexAnnotation.createEnclosingClassAnnotation(

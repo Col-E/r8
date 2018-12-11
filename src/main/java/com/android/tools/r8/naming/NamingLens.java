@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 
 import com.android.tools.r8.graph.DexCallSite;
@@ -13,8 +14,10 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -38,7 +41,16 @@ public abstract class NamingLens {
 
   public abstract DexString lookupDescriptor(DexType type);
 
-  public abstract String lookupSimpleName(DexType inner, DexString innerName);
+  public DexString lookupSimpleName(DexType type, DexItemFactory factory) {
+    String descriptor = lookupDescriptor(type).toString();
+    int lastSeparator = descriptor.lastIndexOf(DESCRIPTOR_PACKAGE_SEPARATOR);
+    String simpleName =
+        descriptor.substring(lastSeparator > 0 ? lastSeparator + 1 : 1, descriptor.length() - 1);
+    // TODO(b/120811478): Replace by DescriptorUtils.getSimpleClassNameFromDescriptor once fixed.
+    return factory.createString(simpleName);
+  }
+
+  public abstract DexString lookupInnerName(InnerClassAttribute attribute, InternalOptions options);
 
   public abstract DexString lookupName(DexMethod method);
 
@@ -97,8 +109,8 @@ public abstract class NamingLens {
     }
 
     @Override
-    public String lookupSimpleName(DexType inner, DexString innerName) {
-      return innerName == null ? null : innerName.toString();
+    public DexString lookupInnerName(InnerClassAttribute attribute, InternalOptions options) {
+      return attribute.getInnerName();
     }
 
     @Override

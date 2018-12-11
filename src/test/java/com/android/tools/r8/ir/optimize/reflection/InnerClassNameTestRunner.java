@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.optimize.reflection;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.JvmTestRunResult;
@@ -132,10 +132,6 @@ public class InnerClassNameTestRunner extends TestBase {
 
   @Test
   public void test() throws IOException, CompilationFailedException, ExecutionException {
-    assumeTrue(
-        "b/120185045 The DEX backend does not minify inner-class names",
-        backend != Backend.DEX || !minify);
-
     JvmTestRunResult runResult =
         testForJvm().addProgramClassFileData(InnerClassNameTestDump.dump(config)).run(MAIN_CLASS);
 
@@ -150,7 +146,23 @@ public class InnerClassNameTestRunner extends TestBase {
       r8TestBuilder.noMinification();
     }
 
-    R8TestCompileResult r8CompileResult = r8TestBuilder.compile();
+    R8TestCompileResult r8CompileResult;
+    try {
+      r8CompileResult =
+          r8TestBuilder
+              .addOptionsModification(o -> o.testing.allowFailureOnInnerClassErrors = true)
+              .compile();
+    } catch (CompilationFailedException e) {
+      // TODO(b/120639028) R8 does not keep the structure of inner classes.
+      assertTrue(
+          "b/120639028",
+          config == TestNamingConfig.DEFAULT
+              || config == TestNamingConfig.DOLLAR2_SEPARATOR
+              || config == TestNamingConfig.OUTER_ENDS_WITH_DOLLAR
+              || config == TestNamingConfig.$_$_$);
+      assertTrue("b/120639028", minify);
+      return;
+    }
     CodeInspector inspector = r8CompileResult.inspector();
     R8TestRunResult r8RunResult = r8CompileResult.run(MAIN_CLASS);
     switch (config) {
@@ -160,12 +172,7 @@ public class InnerClassNameTestRunner extends TestBase {
         if (backend == Backend.CF) {
           runResult.assertSuccessWithOutput(getExpectedNonMinified(config.getInnerClassName()));
         }
-        if (backend == Backend.CF && minify) {
-          // TODO(b/120639028) R8 does not keep the structure of inner classes.
-          r8RunResult.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
-        } else {
-          r8RunResult.assertSuccessWithOutput(getExpectedMinified(inspector));
-        }
+        r8RunResult.assertSuccessWithOutput(getExpectedMinified(inspector));
         break;
       case DOLLAR2_SEPARATOR:
         if (backend == Backend.CF && minify) {

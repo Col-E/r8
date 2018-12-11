@@ -149,7 +149,7 @@ public class SwitchMapCollector {
     // We are looking for synthetic fields of type int[].
     DexField field = dexEncodedField.field;
     return dexEncodedField.accessFlags.isSynthetic()
-        && field.name.beginsWith(switchMapPrefix)
+        && field.name.startsWith(switchMapPrefix)
         && field.type == intArrayType;
   }
 }

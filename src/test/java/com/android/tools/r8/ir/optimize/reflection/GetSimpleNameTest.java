@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize.reflection;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -11,9 +12,9 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -135,23 +136,13 @@ public class GetSimpleNameTest extends GetNameTestBase {
   );
   private static final String RENAMED_OUTPUT = StringUtils.lines(
       "f",
-      "InnerLocal",
+      "e",
       "b",
-      "$$",
+      "a",
       "d[][][]",
       "[][][]",
-      "Inner",
-      "Inner"
-  );
-  private static final String RENAMED_OUTPUT_FOR_OLDER_VMS = StringUtils.lines(
-      "Local_t03",
-      "InnerLocal",
-      "$",
-      "$$",
-      "Local[][][]",
-      "[][][]",
-      "Inner",
-      "Inner"
+      "g", // TODO(b/120639028): Should have A$B structure. May differ on old VMs.
+      "g" // TODO(b/120639028): Should have A$B structure. May differ on old VMs.
   );
   private static final Class<?> MAIN = ClassGetSimpleName.class;
 
@@ -249,18 +240,15 @@ public class GetSimpleNameTest extends GetNameTestBase {
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
-    TestRunResult result =
+    R8TestRunResult result =
         builder
             .addOptionsModification(this::configure)
             .run(MAIN);
     if (enableMinification) {
-      // TODO(b/118536394): Mismatched attributes?
       if (backend == Backend.CF) {
+        // TODO(b/120639028): Incorrect inner-class structure fails on JVM.
+        result.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
         return;
-      }
-      // TODO(b/120185045): Short name of innerName is not renamed.
-      if (ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-        result.assertSuccessWithOutput(RENAMED_OUTPUT_FOR_OLDER_VMS);
       } else {
         result.assertSuccessWithOutput(RENAMED_OUTPUT);
       }

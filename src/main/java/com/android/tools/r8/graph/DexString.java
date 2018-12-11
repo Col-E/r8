@@ -302,7 +302,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     return builder.toString();
   }
 
-  public boolean beginsWith(DexString prefix) {
+  public boolean startsWith(DexString prefix) {
     if (content.length < prefix.content.length) {
       return false;
     }

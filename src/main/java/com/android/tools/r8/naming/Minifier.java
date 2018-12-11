@@ -13,11 +13,13 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
@@ -106,9 +108,40 @@ public class Minifier {
     }
 
     @Override
-    public String lookupSimpleName(DexType inner, DexString innerName) {
-      String internalName = lookupInternalName(inner);
-      return internalName.substring(internalName.lastIndexOf(INNER_CLASS_SEPARATOR) + 1);
+    public DexString lookupInnerName(InnerClassAttribute attribute, InternalOptions options) {
+      if (attribute.getInnerName() == null) {
+        return null;
+      }
+      // The Java reflection library assumes that that inner-class names are separated by a $ and
+      // thus we allow the mapping of an inner name to rely on that too. If the dollar is not
+      // present after pulling off the original inner-name, then we revert to using the simple name
+      // of the inner class as its name.
+      DexType innerType = attribute.getInner();
+      String inner = DescriptorUtils.descriptorToInternalName(innerType.descriptor.toString());
+      String innerName = attribute.getInnerName().toString();
+      int lengthOfPrefix = inner.length() - innerName.length();
+      if (lengthOfPrefix < 0
+          || inner.lastIndexOf(INNER_CLASS_SEPARATOR, lengthOfPrefix - 1) < 0
+          || !inner.endsWith(innerName)) {
+        return lookupSimpleName(innerType, options.itemFactory);
+      }
+
+      // At this point we assume the input was of the form: <OuterType>$<index><InnerName>
+      // Find the mapped type and if it remains the same return that, otherwise split at $.
+      String innerTypeMapped =
+          DescriptorUtils.descriptorToInternalName(lookupDescriptor(innerType).toString());
+      if (inner.equals(innerTypeMapped)) {
+        return attribute.getInnerName();
+      }
+      int index = innerTypeMapped.lastIndexOf(INNER_CLASS_SEPARATOR);
+      if (index < 0) {
+        // TODO(b/120639028): Replace this by "assert false" and remove the testing option.
+        // Hitting means we have converted a proper Outer$Inner relationship to an invalid one.
+        assert !options.testing.allowFailureOnInnerClassErrors
+            : "Outer$Inner class was remapped without keeping the dollar separator";
+        return lookupSimpleName(innerType, options.itemFactory);
+      }
+      return options.itemFactory.createString(innerTypeMapped.substring(index + 1));
     }
 
     @Override

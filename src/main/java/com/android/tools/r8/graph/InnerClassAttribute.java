@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.InternalOptions;
 import org.objectweb.asm.ClassWriter;
 
 /** Representation of an entry in the Java InnerClasses attribute table. */
@@ -60,13 +61,12 @@ public class InnerClassAttribute {
     return innerName;
   }
 
-  public void write(ClassWriter writer, NamingLens lens) {
+  public void write(ClassWriter writer, NamingLens lens, InternalOptions options) {
     String internalName = lens.lookupInternalName(inner);
-    String simpleName = lens.lookupSimpleName(inner, innerName);
     writer.visitInnerClass(
         internalName,
         outer == null ? null : lens.lookupInternalName(outer),
-        innerName == null ? null : simpleName,
+        innerName == null ? null : lens.lookupInnerName(this, options).toString(),
         access);
   }
 
