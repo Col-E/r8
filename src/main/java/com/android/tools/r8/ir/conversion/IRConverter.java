@@ -318,11 +318,12 @@ public class IRConverter {
     }
   }
 
-  private void staticizeClasses(OptimizationFeedback feedback, ExecutorService executorService)
-      throws ExecutionException {
+  private Set<DexEncodedMethod> staticizeClasses(
+      OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
     if (classStaticizer != null) {
-      classStaticizer.staticizeCandidates(feedback, executorService);
+      return classStaticizer.staticizeCandidates(feedback, executorService);
     }
+    return ImmutableSet.of();
   }
 
   private void collectStaticizerCandidates(DexApplication application) {
@@ -521,9 +522,8 @@ public class IRConverter {
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler =
           outliner == null ? Outliner::noProcessing : outliner.identifyCandidateMethods();
       callGraph.forEachMethod(
-          (method, isProcessedConcurrently) -> {
-            processMethod(method, feedback, isProcessedConcurrently, callGraph, outlineHandler);
-          },
+          (method, isProcessedConcurrently) ->
+              processMethod(method, feedback, isProcessedConcurrently, callGraph, outlineHandler),
           feedback::updateVisibleOptimizationInfo,
           executorService);
       timing.end();
@@ -536,7 +536,13 @@ public class IRConverter {
     // TODO(b/112831361): Implement support for staticizeClasses in CF backend.
     if (!options.isGeneratingClassFiles()) {
       printPhase("Class staticizer post processing");
-      staticizeClasses(feedback, executorService);
+      Set<DexEncodedMethod> reprocessedMethods = staticizeClasses(feedback, executorService);
+
+      // Update optimization info since the optimization info for methods may change as a result
+      // of staticizing (e.g., the parameter usages change).
+      if (!reprocessedMethods.isEmpty()) {
+        feedback.updateVisibleOptimizationInfo();
+      }
     }
 
     // Second inlining pass for dealing with double inline callers.

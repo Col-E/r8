@@ -65,7 +65,8 @@ final class StaticizingProcessor {
     this.executorService = executorService;
   }
 
-  final void run(OptimizationFeedback feedback) throws ExecutionException {
+  /** @return the set of methods that have been reprocessed as a result of staticizing. */
+  final Set<DexEncodedMethod> run(OptimizationFeedback feedback) throws ExecutionException {
     // Filter out candidates based on the information we collected while examining methods.
     finalEligibilityCheck();
 
@@ -80,16 +81,16 @@ final class StaticizingProcessor {
     processMethodsConcurrently(methodsToBeStaticized, this::removeReferencesToThis, feedback);
 
     // Convert instance methods into static methods with an extra parameter.
-    Set<DexEncodedMethod> staticizedMethods = staticizeMethodSymbols();
+    Set<DexEncodedMethod> methods = staticizeMethodSymbols();
 
     // Process all other methods that may reference singleton fields and call methods on them.
     // (Note that we exclude the former instance methods, but include new static methods created as
     // a result of staticizing.)
-    Set<DexEncodedMethod> methods = Sets.newIdentityHashSet();
     methods.addAll(referencingExtraMethods);
-    methods.addAll(staticizedMethods);
     methods.addAll(hostClassInits.keySet());
     processMethodsConcurrently(methods, this::rewriteReferences, feedback);
+
+    return methods;
   }
 
   private void finalEligibilityCheck() {
