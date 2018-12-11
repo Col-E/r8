@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IROrdering;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -41,7 +42,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -456,7 +456,7 @@ public class CallGraph extends CallSiteInformation {
    */
   public <E extends Exception> void forEachMethod(
       ThrowingBiConsumer<DexEncodedMethod, Predicate<DexEncodedMethod>, E> consumer,
-      Consumer<Collection<DexEncodedMethod>> waveDone,
+      Action waveDone,
       ExecutorService executorService)
       throws ExecutionException {
     while (!isEmpty()) {
@@ -470,7 +470,7 @@ public class CallGraph extends CallSiteInformation {
         }));
       }
       ThreadUtils.awaitFutures(futures);
-      waveDone.accept(methods);
+      waveDone.execute();
     }
   }
 

@@ -10,8 +10,8 @@ import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.UpdatableOptimizationInfo;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.utils.IteratorUtils;
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -102,7 +102,13 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
     getOptimizationInfoForUpdating(method).setNonNullParamHints(hints);
   }
 
-  public void updateVisibleOptimizationInfo(Collection<DexEncodedMethod> methods) {
+  public void updateVisibleOptimizationInfo() {
+    // Remove methods that have become obsolete. A method may become obsolete, for example, as a
+    // result of the class staticizer, which aims to transform virtual methods on companion classes
+    // into static methods on the enclosing class of the companion class.
+    IteratorUtils.removeIf(
+        optimizationInfos.entrySet().iterator(), entry -> entry.getKey().isObsolete());
+    IteratorUtils.removeIf(processed.entrySet().iterator(), entry -> entry.getKey().isObsolete());
     optimizationInfos.forEach(DexEncodedMethod::setOptimizationInfo);
     processed.forEach(DexEncodedMethod::markProcessed);
     optimizationInfos.clear();

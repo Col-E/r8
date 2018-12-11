@@ -4,9 +4,14 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.InstanceGet;
+import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
@@ -38,32 +43,63 @@ public final class ParameterUsagesInfo {
   }
 
   public final static class ParameterUsage {
+
     public final int index;
     public final Set<Type> ifZeroTest;
     public final List<Pair<Invoke.Type, DexMethod>> callsReceiver;
-    public final boolean returnValue;
 
-    ParameterUsage(int index, Set<Type> ifZeroTest,
-        List<Pair<Invoke.Type, DexMethod>> callsReceiver, boolean returnValue) {
+    // If a field of this argument is assigned: arg.f = x.
+    public final boolean hasFieldAssignment;
+
+    // If a field of this argument is read: x = arg.f.
+    public final boolean hasFieldRead;
+
+    // If this argument is assigned to a field: x.f = arg.
+    public final boolean isAssignedToField;
+
+    // If this argument is returned: return arg.
+    public final boolean isReturned;
+
+    ParameterUsage(
+        int index,
+        Set<Type> ifZeroTest,
+        List<Pair<Invoke.Type, DexMethod>> callsReceiver,
+        boolean hasFieldAssignment,
+        boolean hasFieldRead,
+        boolean isAssignedToField,
+        boolean isReturned) {
       this.index = index;
-      this.ifZeroTest = ifZeroTest.isEmpty()
-          ? Collections.emptySet() : ImmutableSet.copyOf(ifZeroTest);
-      this.callsReceiver = callsReceiver.isEmpty()
-          ? Collections.emptyList() : ImmutableList.copyOf(callsReceiver);
-      this.returnValue = returnValue;
+      this.ifZeroTest =
+          ifZeroTest.isEmpty() ? Collections.emptySet() : ImmutableSet.copyOf(ifZeroTest);
+      this.callsReceiver =
+          callsReceiver.isEmpty() ? Collections.emptyList() : ImmutableList.copyOf(callsReceiver);
+      this.hasFieldAssignment = hasFieldAssignment;
+      this.hasFieldRead = hasFieldRead;
+      this.isAssignedToField = isAssignedToField;
+      this.isReturned = isReturned;
     }
 
     public boolean notUsed() {
-      return ifZeroTest == null && callsReceiver == null && !returnValue;
+      return ifZeroTest == null
+          && callsReceiver == null
+          && !hasFieldAssignment
+          && !hasFieldRead
+          && !isAssignedToField
+          && !isReturned;
     }
   }
 
   public static class ParameterUsageBuilder {
+
     private final int index;
     private final Value arg;
     private final Set<Type> ifZeroTestTypes = new HashSet<>();
     private final List<Pair<Invoke.Type, DexMethod>> callsOnReceiver = new ArrayList<>();
-    private boolean returnValue = false;
+
+    private boolean hasFieldAssignment = false;
+    private boolean hasFieldRead = false;
+    private boolean isAssignedToField = false;
+    private boolean isReturned = false;
 
     public ParameterUsageBuilder(Value arg, int index) {
       this.arg = arg;
@@ -72,31 +108,82 @@ public final class ParameterUsagesInfo {
 
     // Returns false if the instruction is not supported.
     public boolean note(Instruction instruction) {
-      if (instruction.isInvokeMethodWithReceiver() &&
-          instruction.inValues().lastIndexOf(arg) == 0) {
-        callsOnReceiver.add(new Pair<>(
-            instruction.asInvokeMethodWithReceiver().getType(),
-            instruction.asInvokeMethodWithReceiver().getInvokedMethod()));
-        return true;
+      if (instruction.isIf()) {
+        return note(instruction.asIf());
       }
-
-      if (instruction.isIf() && instruction.asIf().isZeroTest()) {
-        assert instruction.inValues().size() == 1 && instruction.inValues().get(0) == arg;
-        ifZeroTestTypes.add(instruction.asIf().getType());
-        return true;
+      if (instruction.isInstanceGet()) {
+        return note(instruction.asInstanceGet());
       }
-
+      if (instruction.isInstancePut()) {
+        return note(instruction.asInstancePut());
+      }
+      if (instruction.isInvokeMethodWithReceiver()) {
+        return note(instruction.asInvokeMethodWithReceiver());
+      }
       if (instruction.isReturn()) {
-        assert instruction.inValues().size() == 1 && instruction.inValues().get(0) == arg;
-        returnValue = true;
-        return true;
+        return note(instruction.asReturn());
       }
-
       return false;
     }
 
     public ParameterUsage build() {
-      return new ParameterUsage(index, ifZeroTestTypes, callsOnReceiver, returnValue);
+      return new ParameterUsage(
+          index,
+          ifZeroTestTypes,
+          callsOnReceiver,
+          hasFieldAssignment,
+          hasFieldRead,
+          isAssignedToField,
+          isReturned);
+    }
+
+    private boolean note(If ifInstruction) {
+      if (ifInstruction.asIf().isZeroTest()) {
+        assert ifInstruction.inValues().size() == 1 && ifInstruction.inValues().get(0) == arg;
+        ifZeroTestTypes.add(ifInstruction.asIf().getType());
+        return true;
+      }
+      return false;
+    }
+
+    private boolean note(InstanceGet instanceGetInstruction) {
+      assert arg != instanceGetInstruction.outValue();
+      if (instanceGetInstruction.object() == arg) {
+        hasFieldRead = true;
+        return true;
+      }
+      return false;
+    }
+
+    private boolean note(InstancePut instancePutInstruction) {
+      assert arg != instancePutInstruction.outValue();
+      if (instancePutInstruction.object() == arg) {
+        hasFieldAssignment = true;
+        isAssignedToField |= instancePutInstruction.value() == arg;
+        return true;
+      }
+      if (instancePutInstruction.value() == arg) {
+        isAssignedToField = true;
+        return true;
+      }
+      return false;
+    }
+
+    private boolean note(InvokeMethodWithReceiver invokeInstruction) {
+      if (invokeInstruction.inValues().lastIndexOf(arg) == 0) {
+        callsOnReceiver.add(
+            new Pair<>(
+                invokeInstruction.asInvokeMethodWithReceiver().getType(),
+                invokeInstruction.asInvokeMethodWithReceiver().getInvokedMethod()));
+        return true;
+      }
+      return false;
+    }
+
+    private boolean note(Return returnInstruction) {
+      assert returnInstruction.inValues().size() == 1 && returnInstruction.inValues().get(0) == arg;
+      isReturned = true;
+      return true;
     }
   }
 }

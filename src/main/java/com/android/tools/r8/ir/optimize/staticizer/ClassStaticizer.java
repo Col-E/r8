@@ -528,10 +528,10 @@ public final class ClassStaticizer {
   //  2. Rewrite instance methods of classes being staticized into static ones
   //  3. Rewrite methods referencing staticized members, also remove instance creation
   //
-  public final void staticizeCandidates(
+  public final Set<DexEncodedMethod> staticizeCandidates(
       OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
     phase = Phase.None; // We are done with processing/examining methods.
-    new StaticizingProcessor(this, executorService).run(feedback);
+    return new StaticizingProcessor(this, executorService).run(feedback);
   }
 
   public final void fixupMethodCode(DexEncodedMethod method, IRCode code) {

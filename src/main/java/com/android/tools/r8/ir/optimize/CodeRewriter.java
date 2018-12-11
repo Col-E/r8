@@ -1117,7 +1117,7 @@ public class CodeRewriter {
   public void identifyParameterUsages(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     List<ParameterUsage> usages = new ArrayList<>();
-    List<Value> values = code.collectArguments(true);
+    List<Value> values = code.collectArguments();
     for (int i = 0; i < values.size(); i++) {
       Value value = values.get(i);
       if (value.numberOfPhiUsers() > 0) {

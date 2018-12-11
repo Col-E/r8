@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.function.Predicate;
 
@@ -20,6 +21,15 @@ public class IteratorUtils {
     T previous = iterator.previous();
     assert previous == next;
     return next;
+  }
+
+  public static <T> void removeIf(Iterator<T> iterator, Predicate<T> predicate) {
+    while (iterator.hasNext()) {
+      T item = iterator.next();
+      if (predicate.test(item)) {
+        iterator.remove();
+      }
+    }
   }
 
   public static <T> boolean allRemainingMatch(ListIterator<T> iterator, Predicate<T> predicate) {

@@ -172,7 +172,7 @@ public final class ClassInliner {
         }
 
         // Inline the class instance.
-        anyInlinedMethods |= processor.processInlining(code, inliner);
+        anyInlinedMethods |= processor.processInlining(code, inliner, defaultOracle);
 
         // Restore normality.
         code.removeAllTrivialPhis();
