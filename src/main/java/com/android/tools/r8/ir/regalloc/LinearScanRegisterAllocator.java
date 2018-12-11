@@ -2514,7 +2514,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       Set<Value> live = new HashSet<>();
       List<BasicBlock> successors = block.getSuccessors();
       Set<Value> phiOperands = new HashSet<>();
-      Set<Value> exceptionalPhiOperands = new HashSet<>();
       Set<Value> liveAtThrowingInstruction = new HashSet<>();
       Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
       for (BasicBlock successor : successors) {
@@ -2530,13 +2529,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         } else {
           live.addAll(liveAtEntrySets.get(successor).liveValues);
         }
+        // Exception blocks should not have any phis (if an exception block has more than one
+        // predecessor, then we insert a split block in-between).
+        assert !isExceptionalSuccessor || successor.getPhis().isEmpty();
         for (Phi phi : successor.getPhis()) {
           live.remove(phi);
-          if (isExceptionalSuccessor && options.isGeneratingDex()) {
-            exceptionalPhiOperands.add(phi.getOperand(successor.getPhis().indexOf(block)));
-          } else {
-            phiOperands.add(phi.getOperand(successor.getPredecessors().indexOf(block)));
-          }
+          phiOperands.add(phi.getOperand(successor.getPredecessors().indexOf(block)));
         }
       }
       live.addAll(phiOperands);
@@ -2620,17 +2618,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
                   use,
                   block,
                   getLiveRangeEndOnExceptionalFlow(instruction, use),
-                  liveIntervals,
-                  options);
-            }
-          }
-          for (Value operand : exceptionalPhiOperands) {
-            if (!live.contains(operand)) {
-              live.add(operand);
-              addLiveRange(
-                  operand,
-                  block,
-                  getLiveRangeEndOnExceptionalFlow(instruction, operand),
                   liveIntervals,
                   options);
             }
