@@ -270,15 +270,12 @@ final class InlineCandidateProcessor {
         // Eligible virtual method call on the instance as a receiver.
         if (user.isInvokeVirtual() || user.isInvokeInterface()) {
           InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
-          boolean isMethodCallOnEligibleInstance = invoke.getReceiver() == eligibleInstance;
-          if (isMethodCallOnEligibleInstance) {
-            InliningInfo inliningInfo =
-                isEligibleDirectVirtualMethodCall(user.asInvokeMethodWithReceiver(), indirectUsers);
-            if (inliningInfo != null) {
-              methodCallsOnInstance.put(user.asInvokeMethodWithReceiver(), inliningInfo);
-              continue;
-            }
-          } else if (isExtraMethodCallEligible(defaultOracle, invoke, invocationContext)) {
+          InliningInfo inliningInfo = isEligibleDirectVirtualMethodCall(invoke, indirectUsers);
+          if (inliningInfo != null) {
+            methodCallsOnInstance.put(invoke, inliningInfo);
+            continue;
+          }
+          if (isExtraMethodCallEligible(defaultOracle, invoke, invocationContext)) {
             continue;
           }
           return false; // Not eligible.
