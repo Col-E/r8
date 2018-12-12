@@ -389,6 +389,11 @@ public class Value {
     return users.getFirst();
   }
 
+  public Phi firstPhiUser() {
+    assert !phiUsers.isEmpty();
+    return phiUsers.getFirst();
+  }
+
   public Set<Phi> uniquePhiUsers() {
     if (uniquePhiUsers != null) {
       return uniquePhiUsers;

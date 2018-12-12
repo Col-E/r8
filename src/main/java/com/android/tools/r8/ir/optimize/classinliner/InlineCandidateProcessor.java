@@ -25,17 +25,18 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningOracle;
-import com.android.tools.r8.ir.optimize.classinliner.ClassInliner.InlinerAction;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Pair;
@@ -59,6 +60,7 @@ final class InlineCandidateProcessor {
   private final DexItemFactory factory;
   private final AppInfoWithLiveness appInfo;
   private final LambdaRewriter lambdaRewriter;
+  private final Inliner inliner;
   private final Predicate<DexClass> isClassEligible;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final DexEncodedMethod method;
@@ -79,12 +81,17 @@ final class InlineCandidateProcessor {
   private int estimatedCombinedSizeForInlining = 0;
 
   InlineCandidateProcessor(
-      DexItemFactory factory, AppInfoWithLiveness appInfo,
-      LambdaRewriter lambdaRewriter, Predicate<DexClass> isClassEligible,
+      DexItemFactory factory,
+      AppInfoWithLiveness appInfo,
+      LambdaRewriter lambdaRewriter,
+      Inliner inliner,
+      Predicate<DexClass> isClassEligible,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
-      DexEncodedMethod method, Instruction root) {
+      DexEncodedMethod method,
+      Instruction root) {
     this.factory = factory;
     this.lambdaRewriter = lambdaRewriter;
+    this.inliner = inliner;
     this.isClassEligible = isClassEligible;
     this.method = method;
     this.root = root;
@@ -221,13 +228,17 @@ final class InlineCandidateProcessor {
         !appInfo.isPinned(eligibleClassDefinition.lookupStaticField(instanceField).field);
   }
 
-  // Checks if the inlining candidate instance users are eligible,
-  // see comment on processMethodCode(...).
-  protected boolean areInstanceUsersEligible(
+  /**
+   * Checks if the inlining candidate instance users are eligible, see comment on {@link
+   * ClassInliner#processMethodCode}.
+   *
+   * @return null if all users are eligible, or the first ineligible user.
+   */
+  protected InstructionOrPhi areInstanceUsersEligible(
       DexType invocationContext, Supplier<InliningOracle> defaultOracle) {
     // No Phi users.
     if (eligibleInstance.numberOfPhiUsers() > 0) {
-      return false; // Not eligible.
+      return eligibleInstance.firstPhiUser(); // Not eligible.
     }
 
     Set<Instruction> currentUsers = eligibleInstance.uniqueUsers();
@@ -244,7 +255,7 @@ final class InlineCandidateProcessor {
             // java.lang.Object, we don't need to worry about fields defined in superclasses.
             continue;
           }
-          return false; // Not eligible.
+          return user; // Not eligible.
         }
 
         // Eligible constructor call (for new instance roots only).
@@ -263,7 +274,7 @@ final class InlineCandidateProcessor {
                 continue;
               }
             }
-            return false; // Not eligible.
+            return user; // Not eligible.
           }
         }
 
@@ -278,11 +289,11 @@ final class InlineCandidateProcessor {
           if (isExtraMethodCallEligible(defaultOracle, invoke, invocationContext)) {
             continue;
           }
-          return false; // Not eligible.
+          return user; // Not eligible.
         }
 
         if (user.isInvokeSuper()) {
-          return false; // Not eligible.
+          return user; // Not eligible.
         }
 
         // Eligible usage as an invocation argument.
@@ -302,12 +313,12 @@ final class InlineCandidateProcessor {
           }
         }
 
-        return false; // Not eligible.
+        return user; // Not eligible.
       }
       currentUsers = indirectUsers;
     }
 
-    return true;
+    return null; // Eligible.
   }
 
   // Process inlining, includes the following steps:
@@ -320,11 +331,10 @@ final class InlineCandidateProcessor {
   //  * remove root instruction
   //
   // Returns `true` if at least one method was inlined.
-  boolean processInlining(
-      IRCode code, InlinerAction inliner, Supplier<InliningOracle> defaultOracle) {
+  boolean processInlining(IRCode code, Supplier<InliningOracle> defaultOracle) {
     replaceUsagesAsUnusedArgument(code);
-    boolean anyInlinedMethods = forceInlineExtraMethodInvocations(inliner, defaultOracle);
-    anyInlinedMethods |= forceInlineDirectMethodInvocations(inliner);
+    boolean anyInlinedMethods = forceInlineExtraMethodInvocations(code, defaultOracle);
+    anyInlinedMethods |= forceInlineDirectMethodInvocations(code);
     removeMiscUsages(code);
     removeFieldReads(code);
     removeFieldWrites();
@@ -350,13 +360,13 @@ final class InlineCandidateProcessor {
   }
 
   private boolean forceInlineExtraMethodInvocations(
-      InlinerAction inliner, Supplier<InliningOracle> defaultOracle) {
+      IRCode code, Supplier<InliningOracle> defaultOracle) {
     if (extraMethodCalls.isEmpty()) {
       return false;
     }
 
     // Inline extra methods.
-    inliner.inline(extraMethodCalls);
+    inliner.performForcedInlining(method, code, extraMethodCalls);
 
     // Reset the collections.
     methodCallsOnInstance.clear();
@@ -365,19 +375,24 @@ final class InlineCandidateProcessor {
     estimatedCombinedSizeForInlining = 0;
 
     // Repeat user analysis
-    if (!areInstanceUsersEligible(null, defaultOracle)) {
-      throw new Unreachable("Analysis must succeed after inlining of extra methods");
+    InstructionOrPhi ineligibleUser = areInstanceUsersEligible(null, defaultOracle);
+    if (ineligibleUser != null) {
+      throw new Unreachable(
+          "Unexpected ineligible user in method `"
+              + method.method.toSourceString()
+              + "` after inlining of extra methods: "
+              + ineligibleUser);
     }
     assert extraMethodCalls.isEmpty();
     assert unusedArguments.isEmpty();
     return true;
   }
 
-  private boolean forceInlineDirectMethodInvocations(InlinerAction inliner) {
+  private boolean forceInlineDirectMethodInvocations(IRCode code) {
     if (methodCallsOnInstance.isEmpty()) {
       return false;
     }
-    inliner.inline(methodCallsOnInstance);
+    inliner.performForcedInlining(method, code, methodCallsOnInstance);
     return true;
   }
 
