@@ -60,6 +60,10 @@ public final class FeatureClassMapping {
   static final String COMMENT = "#";
   static final String SEPARATOR = ":";
 
+  public String getBaseName() {
+    return baseName;
+  }
+
   private static class SpecificationOrigin extends PathOrigin {
 
     public SpecificationOrigin(Path path) {
