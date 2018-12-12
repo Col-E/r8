@@ -41,7 +41,7 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
 
   @Override
   public void markUseIdentifierNameString(DexEncodedMethod method) {
-    // Ignored.
+    method.getMutableOptimizationInfo().markUseIdentifierNameString();
   }
 
   @Override
@@ -76,7 +76,12 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   }
 
   @Override
-  public void setNonNullParamHints(DexEncodedMethod method, BitSet hints) {
+  public void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts) {
+    // Ignored.
+  }
+
+  @Override
+  public void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {
     // Ignored.
   }
 }

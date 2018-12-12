@@ -217,7 +217,7 @@ public class UninstantiatedTypeOptimization {
       return;
     }
 
-    BitSet nonNullParamHints = target.getOptimizationInfo().getNonNullParamHints();
+    BitSet nonNullParamHints = target.getOptimizationInfo().getNonNullParamOrThrow();
     if (nonNullParamHints != null) {
       int argumentIndex = target.isStatic() ? 0 : 1;
       int nonNullParamHintIndex = 0;

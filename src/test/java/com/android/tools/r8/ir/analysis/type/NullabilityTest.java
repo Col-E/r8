@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -31,6 +30,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableMap;
@@ -44,9 +44,9 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       Class<?> mainClass,
       MethodSignature signature,
       boolean npeCaught,
-      BiConsumer<AppInfo, IRCode> inspector)
+      BiConsumer<AppInfoWithLiveness, IRCode> inspector)
       throws Exception {
-    AppInfo appInfo = build(mainClass);
+    AppInfoWithLiveness appInfo = build(mainClass);
     CodeInspector codeInspector = new CodeInspector(appInfo.app);
     DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();
     IRCode irCode =

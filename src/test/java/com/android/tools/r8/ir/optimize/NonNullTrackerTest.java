@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
@@ -22,6 +21,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterNullCheck;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableSet;
 import java.util.function.Consumer;
@@ -35,7 +35,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
       int expectedNumberOfNonNull,
       Consumer<IRCode> testAugmentedIRCode)
       throws Exception {
-    AppInfo appInfo = build(testClass);
+    AppInfoWithLiveness appInfo = build(testClass);
     CodeInspector codeInspector = new CodeInspector(appInfo.app);
     DexEncodedMethod foo = codeInspector.clazz(testClass.getName()).method(signature).getMethod();
     IRCode irCode =
@@ -70,8 +70,9 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
             || NonNullTracker.throwsOnNullInput(prev)
             || (prev.isIf() && prev.asIf().isZeroTest())
             || !curr.getBlock().getPredecessors().contains(prev.getBlock()));
-        // Make sure non-null is used.
-        assertTrue(curr.outValue().numberOfAllUsers() > 0);
+        // Make sure non-null is used or inserted for arguments.
+        assertTrue(curr.outValue().numberOfAllUsers() > 0
+            || curr.asNonNull().src().isArgument());
         count++;
       }
     }
@@ -117,7 +118,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     buildAndTest(NonNullAfterInvoke.class, foo, 1, this::checkInvokeGetsNonNullReceiver);
     MethodSignature bar =
         new MethodSignature("bar", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, bar, 1, this::checkInvokeGetsNullReceiver);
+    buildAndTest(NonNullAfterInvoke.class, bar, 2, this::checkInvokeGetsNullReceiver);
   }
 
   @Test
@@ -179,6 +180,6 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     buildAndTest(NonNullAfterNullCheck.class, bar, 1, this::checkInvokeGetsNonNullReceiver);
     MethodSignature baz =
         new MethodSignature("baz", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterNullCheck.class, baz, 1, this::checkInvokeGetsNullReceiver);
+    buildAndTest(NonNullAfterNullCheck.class, baz, 2, this::checkInvokeGetsNullReceiver);
   }
 }

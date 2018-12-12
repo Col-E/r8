@@ -24,5 +24,6 @@ public interface OptimizationFeedback {
   void setTrivialInitializer(DexEncodedMethod method, TrivialInitializer info);
   void setInitializerEnablingJavaAssertions(DexEncodedMethod method);
   void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo);
-  void setNonNullParamHints(DexEncodedMethod method, BitSet hints);
+  void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts);
+  void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts);
 }

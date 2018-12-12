@@ -16,7 +16,7 @@ public class IntrinsicsDeputy {
   @NeverInline
   public static IntrinsicsDeputy getInstance() {
     // Trick to ensure that R8 cannot conclude that this method always returns null.
-    return System.currentTimeMillis() < 0 ? new IntrinsicsDeputy(null) : null;
+    return System.currentTimeMillis() > 0 ? new IntrinsicsDeputy(null) : null;
   }
 
   @Override
@@ -52,29 +52,31 @@ public class IntrinsicsDeputy {
 
   @NeverInline
   static void checkNull() {
-    IntrinsicsDeputy nullObject = getInstance();
-    checkParameterIsNotNullDifferently(nullObject, "nullObject");
-    // Dead code below.
-    System.out.println(nullObject);
+    IntrinsicsDeputy maybeNull = getInstance();
+    checkParameterIsNotNullDifferently(maybeNull, "maybeNull");
+    // After the check, it's not null, hence live.
+    System.out.println(maybeNull);
   }
 
   @NeverInline
-  static void nonNullAfterParamCheck(IntrinsicsDeputy arg) {
-    checkParameterIsNotNull(arg, "arg");
-    if (arg != null) {
-      System.out.println(arg.toString());
+  static void nonNullAfterParamCheck() {
+    IntrinsicsDeputy maybeNull = getInstance();
+    checkParameterIsNotNull(maybeNull, "maybeNull");
+    if (maybeNull != null) {
+      System.out.println(maybeNull.toString());
     } else {
-      throw new IllegalArgumentException("arg != null");
+      throw new IllegalArgumentException("maybeNull != null");
     }
   }
 
   @NeverInline
-  static void nonNullAfterParamCheckDifferently(IntrinsicsDeputy arg) {
-    checkParameterIsNotNullDifferently(arg, "arg");
-    if (arg == null) {
-      throw new IllegalArgumentException("arg != null");
+  static void nonNullAfterParamCheckDifferently() {
+    IntrinsicsDeputy maybeNull = getInstance();
+    checkParameterIsNotNullDifferently(maybeNull, "maybeNull");
+    if (maybeNull == null) {
+      throw new IllegalArgumentException("maybeNull != null");
     } else {
-      System.out.println(arg.toString());
+      System.out.println(maybeNull.toString());
     }
   }
 
@@ -88,19 +90,8 @@ public class IntrinsicsDeputy {
       // Expected
     }
 
-    nonNullAfterParamCheck(instance);
-    try {
-      nonNullAfterParamCheck(null);
-    } catch (NullPointerException npe) {
-      // Expected
-    }
-
-    nonNullAfterParamCheckDifferently(instance);
-    try {
-      nonNullAfterParamCheckDifferently(null);
-    } catch (NullPointerException npe) {
-      // Expected
-    }
+    nonNullAfterParamCheck();
+    nonNullAfterParamCheckDifferently();
 
     // To prevent those utils from being force inlined.
     checkParameterIsNotNull(instance, "instance");

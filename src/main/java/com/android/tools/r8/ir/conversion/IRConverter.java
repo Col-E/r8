@@ -81,6 +81,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -185,8 +186,8 @@ public class IRConverter {
       AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
       AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       assert rootSet != null;
-      this.nonNullTracker =
-          new NonNullTracker(appInfo, libraryMethodsReturningNonNull(appInfo.dexItemFactory));
+      this.nonNullTracker = new NonNullTracker(
+          appInfoWithLiveness, libraryMethodsReturningNonNull(appInfo.dexItemFactory));
       this.inliner = new Inliner(appViewWithLiveness, this, options);
       this.outliner = new Outliner(appInfoWithLiveness, options, this);
       this.memberValuePropagation =
@@ -946,12 +947,6 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
-    // Either marked by IdentifierNameStringMarker or name reflection, or propagated from inlinee.
-    // Then, make it visible to IdentifierMinifier.
-    if (method.getOptimizationInfo().useIdentifierNameString()) {
-      feedback.markUseIdentifierNameString(method);
-    }
-
     if (devirtualizer != null) {
       assert code.verifyTypes(appInfo, appView, graphLense());
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
@@ -980,6 +975,8 @@ public class IRConverter {
     }
 
     if (options.enableNonNullTracking && nonNullTracker != null) {
+      // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
+      nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
       nonNullTracker.cleanupNonNull(code);
       assert code.isConsistentSSA();
     }
@@ -1084,8 +1081,8 @@ public class IRConverter {
     }
 
     // If hints from Kotlin metadata or use of Kotlin Intrinsics were not available, track usage of
-    // parameters and compute their nullability.
-    if (method.getOptimizationInfo().getNonNullParamHints() == null) {
+    // parameters and compute their nullability and possibility of NPE.
+    if (method.getOptimizationInfo().getNonNullParamOrThrow() == null) {
       computeNonNullParamHints(feedback, method, code);
     }
 
@@ -1114,6 +1111,17 @@ public class IRConverter {
       codeRewriter.workaroundNumberConversionRegisterAllocationBug(code);
     }
 
+    // Either marked by IdentifierNameStringMarker or name reflection, or propagated from inlinee,
+    // Then, make it visible to IdentifierMinifier.
+    // Note that we place this at the end of IR processing because inlinee can be inlined by
+    // Inliner, ClassInliner, or future optimizations that use the inlining machinery.
+    if (method.getOptimizationInfo().useIdentifierNameString()) {
+      feedback.markUseIdentifierNameString(method);
+    } else {
+      assert Streams.stream(code.instructionIterator())
+          .noneMatch(Instruction::isDexItemBasedConstString);
+    }
+
     printMethod(code, "Optimized IR (SSA)", previous);
     finalizeIR(method, code, feedback);
   }
@@ -1134,7 +1142,7 @@ public class IRConverter {
               originalSignature.name.toString(), originalSignature.proto.toDescriptorString());
       if (hintFromMetadata != null) {
         if (hintFromMetadata.length() > 0) {
-          feedback.setNonNullParamHints(method, hintFromMetadata);
+          feedback.setNonNullParamOrThrow(method, hintFromMetadata);
         }
         return;
       }
@@ -1166,7 +1174,7 @@ public class IRConverter {
       }
     }
     if (paramsCheckedForNull.length() > 0) {
-      feedback.setNonNullParamHints(method, paramsCheckedForNull);
+      feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
     }
   }
 
@@ -1180,7 +1188,6 @@ public class IRConverter {
           && checksNullReceiverBeforeSideEffect(code, appInfo.dexItemFactory, argument)) {
         paramsCheckedForNull.set(index);
       }
-      // TODO(b/71500340): More sophisticated analysis?
       // The above one only catches something like:
       //   if (param != null) return;
       //   invoke-static throwParameterIsNullException(msg)
@@ -1188,7 +1195,7 @@ public class IRConverter {
       // kotlinc for arguments that are not nullable.
     }
     if (paramsCheckedForNull.length() > 0) {
-      feedback.setNonNullParamHints(method, paramsCheckedForNull);
+      feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
     }
   }
 

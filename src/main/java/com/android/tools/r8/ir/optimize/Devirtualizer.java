@@ -69,7 +69,8 @@ public class Devirtualizer {
           NonNull nonNull = current.asNonNull();
           Instruction origin = nonNull.origin();
           if (origin.isInvokeInterface()
-              && devirtualizedCall.containsKey(origin.asInvokeInterface())) {
+              && devirtualizedCall.containsKey(origin.asInvokeInterface())
+              && origin.asInvokeInterface().getReceiver() == nonNull.getAliasForOutValue()) {
             InvokeVirtual devirtualizedInvoke = devirtualizedCall.get(origin.asInvokeInterface());
 
             // Extract the newly added check-cast instruction, if any.

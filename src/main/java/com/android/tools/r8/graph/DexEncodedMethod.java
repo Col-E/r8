@@ -826,7 +826,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public static TrivialInitializer UNKNOWN_TRIVIAL_INITIALIZER = null;
     public static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
     public static ParameterUsagesInfo UNKNOWN_PARAMETER_USAGE_INFO = null;
-    public static BitSet NO_NULL_PARAMETER_HINTS = null;
+    public static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
+    public static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
 
     private DefaultOptimizationInfoImpl() {}
 
@@ -842,8 +843,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
-    public BitSet getNonNullParamHints() {
-      return NO_NULL_PARAMETER_HINTS;
+    public BitSet getNonNullParamOrThrow() {
+      return NO_NULL_PARAMETER_OR_THROW_FACTS;
+    }
+
+    @Override
+    public BitSet getNonNullParamOnNormalExits() {
+      return NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS;
     }
 
     @Override
@@ -953,9 +959,17 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // Stores information about nullability hint per parameter. If set, that means, the method
     // somehow (e.g., null check, such as arg != null, or using checkParameterIsNotNull) ensures
     // the corresponding parameter is not null, or throws NPE before any other side effects.
-    // TODO(b/71500340): We call this *hint* because it does not 100% guarantee that a parameter is
-    // not null when the method returns normally. Maybe nonNullParamOnNormalExit in the future.
-    private BitSet nonNullParamHints = null;
+    // This info is used by {@link UninstantiatedTypeOptimization#rewriteInvoke} that replaces an
+    // invocation with null throwing code if an always-null argument is passed. Also used by Inliner
+    // to give a credit to null-safe code, e.g., Kotlin's null safe argument.
+    private BitSet nonNullParamOrThrow = null;
+    // Stores information about nullability facts per parameter. If set, that means, the method
+    // somehow (e.g., null check, such as arg != null, or NPE-throwing instructions such as array
+    // access or another invocation) ensures the corresponding parameter is not null, and that is
+    // guaranteed until the normal exits. That is, if the invocation of this method is finished
+    // normally, the recorded parameter is definitely not null. These facts are used to propagate
+    // non-null information through {@link NonNullTracker}.
+    private BitSet nonNullParamOnNormalExits = null;
     private boolean reachabilitySensitive = false;
 
     private OptimizationInfoImpl() {
@@ -977,7 +991,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       trivialInitializerInfo = template.trivialInitializerInfo;
       initializerEnablingJavaAssertions = template.initializerEnablingJavaAssertions;
       parametersUsages = template.parametersUsages;
-      nonNullParamHints = template.nonNullParamHints;
+      nonNullParamOrThrow = template.nonNullParamOrThrow;
+      nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
       reachabilitySensitive = template.reachabilitySensitive;
     }
 
@@ -992,8 +1007,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
-    public BitSet getNonNullParamHints() {
-      return nonNullParamHints;
+    public BitSet getNonNullParamOrThrow() {
+      return nonNullParamOrThrow;
+    }
+
+    @Override
+    public BitSet getNonNullParamOnNormalExits() {
+      return nonNullParamOnNormalExits;
     }
 
     @Override
@@ -1074,8 +1094,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
-    public void setNonNullParamHints(BitSet hints) {
-      this.nonNullParamHints = hints;
+    public void setNonNullParamOrThrow(BitSet facts) {
+      this.nonNullParamOrThrow = facts;
+    }
+
+    @Override
+    public void setNonNullParamOnNormalExits(BitSet facts) {
+      this.nonNullParamOnNormalExits = facts;
     }
 
     @Override

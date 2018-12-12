@@ -98,8 +98,13 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
   }
 
   @Override
-  public synchronized void setNonNullParamHints(DexEncodedMethod method, BitSet hints) {
-    getOptimizationInfoForUpdating(method).setNonNullParamHints(hints);
+  public synchronized void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts) {
+    getOptimizationInfoForUpdating(method).setNonNullParamOrThrow(facts);
+  }
+
+  @Override
+  public synchronized void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {
+    getOptimizationInfoForUpdating(method).setNonNullParamOnNormalExits(facts);
   }
 
   public void updateVisibleOptimizationInfo() {

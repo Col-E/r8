@@ -19,7 +19,9 @@ public interface OptimizationInfo {
 
   ParameterUsage getParameterUsages(int parameter);
 
-  BitSet getNonNullParamHints();
+  BitSet getNonNullParamOrThrow();
+
+  BitSet getNonNullParamOnNormalExits();
 
   boolean isReachabilitySensitive();
 

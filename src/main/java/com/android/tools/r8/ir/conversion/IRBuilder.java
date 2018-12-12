@@ -1054,6 +1054,7 @@ public class IRBuilder {
   }
 
   public void addDexItemBasedConstString(int dest, DexReference item) {
+    assert method.getOptimizationInfo().useIdentifierNameString();
     TypeLatticeElement typeLattice = TypeLatticeElement.stringClassType(appInfo);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     DexItemBasedConstString instruction = new DexItemBasedConstString(out, item);

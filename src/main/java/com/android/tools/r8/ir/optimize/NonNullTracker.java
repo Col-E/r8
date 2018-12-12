@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -14,16 +14,22 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.OptimizationFeedback;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import java.util.ArrayDeque;
+import java.util.BitSet;
+import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -34,10 +40,12 @@ import java.util.function.Predicate;
 
 public class NonNullTracker {
 
-  private final AppInfo appInfo;
+  private final AppInfoWithLiveness appInfo;
   private final Set<DexMethod> libraryMethodsReturningNonNull;
 
-  public NonNullTracker(AppInfo appInfo, Set<DexMethod> libraryMethodsReturningNonNull) {
+  public NonNullTracker(
+      AppInfoWithLiveness appInfo,
+      Set<DexMethod> libraryMethodsReturningNonNull) {
     this.appInfo = appInfo;
     this.libraryMethodsReturningNonNull = libraryMethodsReturningNonNull;
   }
@@ -88,7 +96,7 @@ public class NonNullTracker {
       // Add non-null after
       // 1) invocations that call non-overridable library methods that are known to return non null.
       // 2) instructions that implicitly indicate receiver/array is not null.
-      // TODO(b/71500340): We can add non-null IRs for known-to-be-non-null parameters here.
+      // 3) parameters that are not null after the invocation.
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
@@ -109,6 +117,22 @@ public class NonNullTracker {
           Value knownToBeNonNullValue = getNonNullInput(current);
           if (isNonNullCandidate(knownToBeNonNullValue)) {
             knownToBeNonNullValues.add(knownToBeNonNullValue);
+          }
+        }
+        if (current.isInvokeMethod()) {
+          DexEncodedMethod singleTarget =
+              current.asInvokeMethod().lookupSingleTarget(appInfo, code.method.method.getHolder());
+          if (singleTarget != null
+              && singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits() != null) {
+            BitSet hints = singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits();
+            for (int i = 0; i < current.inValues().size(); i++) {
+              if (hints.get(i)) {
+                Value knownToBeNonNullValue = current.inValues().get(i);
+                if (isNonNullCandidate(knownToBeNonNullValue)) {
+                  knownToBeNonNullValues.add(knownToBeNonNullValue);
+                }
+              }
+            }
           }
         }
         if (!knownToBeNonNullValues.isEmpty()) {
@@ -255,7 +279,10 @@ public class NonNullTracker {
       }
 
       // Only insert non-null instruction if it is ever used.
-      if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
+      // Exception: if it is an argument, non-null IR can be used to compute non-null parameter.
+      if (knownToBeNonNullValue.isArgument()
+          || !dominatedUsers.isEmpty()
+          || !dominatedPhiUsersWithPositions.isEmpty()) {
         // Add non-null fake IR, e.g.,
         // ...x
         // invoke(rcv, ...)
@@ -321,6 +348,105 @@ public class NonNullTracker {
         && typeLattice.isNullable()
         // e.g., v <- non-null INT ?!
         && typeLattice.isReference();
+  }
+
+  public void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
+    Set<BasicBlock> normalExits = Sets.newIdentityHashSet();
+    normalExits.addAll(code.computeNormalExitBlocks());
+    DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
+    List<Value> arguments = code.collectArguments(true);
+    BitSet facts = new BitSet();
+    Set<BasicBlock> nullCheckedBlocks = Sets.newIdentityHashSet();
+    for (int index = 0; index < arguments.size(); index++) {
+      Value argument = arguments.get(index);
+      // Consider reference-type parameter only.
+      if (!argument.getTypeLattice().isReference()) {
+        continue;
+      }
+      // Collect basic blocks that check nullability of the parameter.
+      nullCheckedBlocks.clear();
+      for (Instruction user : argument.uniqueUsers()) {
+        if (user.isNonNull()) {
+          nullCheckedBlocks.add(user.asNonNull().getBlock());
+        }
+        if (user.isIf()
+            && user.asIf().isZeroTest()
+            && (user.asIf().getType() == Type.EQ || user.asIf().getType() == Type.NE)) {
+          nullCheckedBlocks.add(user.asIf().targetFromNonNullObject());
+        }
+      }
+      if (!nullCheckedBlocks.isEmpty()) {
+        boolean allExitsCovered = true;
+        for (BasicBlock normalExit : normalExits) {
+          if (!isNormalExitDominated(normalExit, code, dominatorTree, nullCheckedBlocks)) {
+            allExitsCovered = false;
+            break;
+          }
+        }
+        if (allExitsCovered) {
+          facts.set(index);
+        }
+      }
+    }
+    if (facts.length() > 0) {
+      feedback.setNonNullParamOnNormalExits(code.method, facts);
+    }
+  }
+
+  private boolean isNormalExitDominated(
+      BasicBlock normalExit,
+      IRCode code,
+      DominatorTree dominatorTree,
+      Set<BasicBlock> nullCheckedBlocks) {
+    // Each normal exit should be...
+    for (BasicBlock nullCheckedBlock : nullCheckedBlocks) {
+      // A) ...directly dominated by any null-checked block.
+      if (dominatorTree.dominatedBy(normalExit, nullCheckedBlock)) {
+        return true;
+      }
+    }
+    // B) ...or indirectly dominated by null-checked blocks.
+    // Although the normal exit is not dominated by any of null-checked blocks (because of other
+    // paths to the exit), it could be still the case that all possible paths to that exit should
+    // pass some of null-checked blocks.
+    Set<BasicBlock> visited = Sets.newIdentityHashSet();
+    // Initial fan-out of predecessors.
+    Deque<BasicBlock> uncoveredPaths = new ArrayDeque<>(normalExit.getPredecessors());
+    while (!uncoveredPaths.isEmpty()) {
+      BasicBlock uncoveredPath = uncoveredPaths.poll();
+      // Stop traversing upwards if we hit the entry block: if the entry block has an non-null,
+      // this case should be handled already by A) because the entry block surely dominates all
+      // normal exits.
+      // TODO(b/120787963): code.entryBlock()
+      if (uncoveredPath == code.blocks.getFirst()) {
+        return false;
+      }
+      // Make sure we're not visiting the same block over and over again.
+      if (!visited.add(uncoveredPath)) {
+        // But, if that block is the last one in the queue, the normal exit is not fully covered.
+        if (uncoveredPaths.isEmpty()) {
+          return false;
+        } else {
+          continue;
+        }
+      }
+      boolean pathCovered = false;
+      for (BasicBlock nullCheckedBlock : nullCheckedBlocks) {
+        if (dominatorTree.dominatedBy(uncoveredPath, nullCheckedBlock)) {
+          pathCovered = true;
+          break;
+        }
+      }
+      if (!pathCovered) {
+        // Fan out predecessors one more level.
+        // Note that remaining, unmatched null-checked blocks should cover newly added paths.
+        uncoveredPaths.addAll(uncoveredPath.getPredecessors());
+      }
+    }
+    // Reaching here means that every path to the given normal exit is covered by the set of
+    // null-checked blocks.
+    assert uncoveredPaths.isEmpty();
+    return true;
   }
 
   public void cleanupNonNull(IRCode code) {

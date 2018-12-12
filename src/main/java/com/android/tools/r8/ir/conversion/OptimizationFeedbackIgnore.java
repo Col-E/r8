@@ -55,6 +55,10 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
   }
 
   @Override
-  public void setNonNullParamHints(DexEncodedMethod method, BitSet hints) {
+  public void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts) {
+  }
+
+  @Override
+  public void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {
   }
 }

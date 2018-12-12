@@ -519,9 +519,11 @@ public class DexBuilder {
     addNop(position);
   }
 
-  public void add(com.android.tools.r8.ir.code.Instruction ir, Instruction dex) {
-    assert !ir.isGoto();
-    add(ir, new FixedSizeInfo(ir, dex));
+  public void add(com.android.tools.r8.ir.code.Instruction instr, Instruction dex) {
+    assert !instr.isGoto();
+    assert !instr.isDexItemBasedConstString()
+        || ir.method.getOptimizationInfo().useIdentifierNameString();
+    add(instr, new FixedSizeInfo(instr, dex));
   }
 
   public void add(com.android.tools.r8.ir.code.Instruction ir, Instruction... dex) {
