@@ -240,7 +240,7 @@ public class Switch extends JumpInstruction {
 
   @Override
   public void setFallthroughBlock(BasicBlock block) {
-    getBlock().getSuccessors().set(fallthroughBlockIndex, block);
+    getBlock().getMutableSuccessors().set(fallthroughBlockIndex, block);
   }
 
   public Nop buildPayload(int[] targets, int fallthroughTarget, InternalOutputMode mode) {

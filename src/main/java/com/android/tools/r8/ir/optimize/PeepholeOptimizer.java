@@ -49,7 +49,7 @@ public class PeepholeOptimizer {
     ImmutableList<BasicBlock> normalExits = code.computeNormalExitBlocks();
     if (normalExits.size() > 1) {
       normalExit = new BasicBlock();
-      normalExit.getPredecessors().addAll(normalExits);
+      normalExit.getMutablePredecessors().addAll(normalExits);
       blocks = new ArrayList<>(code.blocks);
       blocks.add(normalExit);
     }
@@ -181,12 +181,12 @@ public class PeepholeOptimizer {
       jump.setBlock(pred);
       jump.setPosition(lastPosition);
       instructions.add(jump);
-      newBlock.getPredecessors().add(pred);
+      newBlock.getMutablePredecessors().add(pred);
       if (successorBlock != null) {
         pred.replaceSuccessor(successorBlock, newBlock);
-        successorBlock.getPredecessors().remove(pred);
+        successorBlock.getMutablePredecessors().remove(pred);
       } else {
-        pred.getSuccessors().add(newBlock);
+        pred.getMutableSuccessors().add(newBlock);
       }
       if (movedThrowingInstruction) {
         pred.clearCatchHandlers();
@@ -271,10 +271,10 @@ public class PeepholeOptimizer {
             for (BasicBlock succ : pred.getSuccessors()) {
               succ.removePredecessor(pred);
             }
-            pred.getSuccessors().clear();
-            pred.getSuccessors().add(otherPred);
+            pred.getMutableSuccessors().clear();
+            pred.getMutableSuccessors().add(otherPred);
             assert !otherPred.getPredecessors().contains(pred);
-            otherPred.getPredecessors().add(pred);
+            otherPred.getMutablePredecessors().add(pred);
             Goto exit = new Goto();
             exit.setBlock(pred);
             exit.setPosition(otherPred.getPosition());

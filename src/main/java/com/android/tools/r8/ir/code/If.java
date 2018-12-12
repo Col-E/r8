@@ -103,7 +103,7 @@ public class If extends JumpInstruction {
 
   public void setTrueTarget(BasicBlock block) {
     assert getBlock().exit() == this;
-    List<BasicBlock> successors = getBlock().getSuccessors();
+    List<BasicBlock> successors = getBlock().getMutableSuccessors();
     assert successors.size() >= 2;
     successors.set(successors.size() - 2, block);
   }
@@ -118,7 +118,7 @@ public class If extends JumpInstruction {
 
   @Override
   public void setFallthroughBlock(BasicBlock block) {
-    List<BasicBlock> successors = getBlock().getSuccessors();
+    List<BasicBlock> successors = getBlock().getMutableSuccessors();
     successors.set(successors.size() - 1, block);
   }
 
