@@ -47,7 +47,7 @@ public class TrivialGotoEliminationTest {
     block2.setNumber(2);
     BasicBlock block0 = BasicBlock.createGotoBlock(0, position, block2);
     block0.setFilledForTesting();
-    block2.getPredecessors().add(block0);
+    block2.getMutablePredecessors().add(block0);
     Instruction ret = new Return();
     ret.setPosition(position);
     block2.add(ret);
@@ -118,10 +118,10 @@ public class TrivialGotoEliminationTest {
     instruction.setPosition(position);
     block3.add(instruction);
     block3.setFilledForTesting();
-    block3.getSuccessors().add(block3);
+    block3.getMutableSuccessors().add(block3);
 
     BasicBlock block1 = BasicBlock.createGotoBlock(1, position);
-    block1.getSuccessors().add(block3);
+    block1.getMutableSuccessors().add(block3);
     block1.setFilledForTesting();
 
     BasicBlock block0 = new BasicBlock();
@@ -135,14 +135,14 @@ public class TrivialGotoEliminationTest {
     instruction = new If(Type.EQ, value);
     instruction.setPosition(position);
     block0.add(instruction);
-    block0.getSuccessors().add(block2);
-    block0.getSuccessors().add(block1);
+    block0.getMutableSuccessors().add(block2);
+    block0.getMutableSuccessors().add(block1);
     block0.setFilledForTesting();
 
-    block1.getPredecessors().add(block0);
-    block2.getPredecessors().add(block0);
-    block3.getPredecessors().add(block1);
-    block3.getPredecessors().add(block3);
+    block1.getMutablePredecessors().add(block0);
+    block2.getMutablePredecessors().add(block0);
+    block3.getMutablePredecessors().add(block1);
+    block3.getMutablePredecessors().add(block3);
 
     LinkedList<BasicBlock> blocks = new LinkedList<>();
     blocks.add(block0);

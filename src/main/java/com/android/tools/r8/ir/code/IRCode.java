@@ -256,7 +256,7 @@ public class IRCode {
     for (BasicBlock block : blocks) {
       // We are using a spilling register allocator that might need to insert moves at
       // all critical edges, so we always split them all.
-      List<BasicBlock> predecessors = block.getPredecessors();
+      List<BasicBlock> predecessors = block.getMutablePredecessors();
       if (predecessors.size() <= 1) {
         continue;
       }
@@ -276,7 +276,7 @@ public class IRCode {
               BasicBlock.createGotoBlock(nextBlockNumber++, pred.exit().getPosition(), block);
           newBlocks.add(newBlock);
           pred.replaceSuccessor(block, newBlock);
-          newBlock.getPredecessors().add(pred);
+          newBlock.getMutablePredecessors().add(pred);
           predecessors.set(predIndex, newBlock);
         }
       }
@@ -333,7 +333,7 @@ public class IRCode {
               BasicBlock.createGotoBlock(
                   nextBlockNumber++, block.exit().getPosition(), fallthrough);
           current.exit().setFallthroughBlock(newFallthrough);
-          newFallthrough.getPredecessors().add(current);
+          newFallthrough.getMutablePredecessors().add(current);
           fallthrough.replacePredecessor(current, newFallthrough);
           newFallthrough.mark(color);
           tracedBlocks.add(newFallthrough);

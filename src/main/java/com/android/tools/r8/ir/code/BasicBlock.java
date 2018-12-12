@@ -160,6 +160,10 @@ public class BasicBlock {
   private Map<Integer, Value> currentDefinitions = new HashMap<>();
 
   public List<BasicBlock> getSuccessors() {
+    return Collections.unmodifiableList(successors);
+  }
+
+  public List<BasicBlock> getMutableSuccessors() {
     return successors;
   }
 
@@ -178,6 +182,10 @@ public class BasicBlock {
   }
 
   public List<BasicBlock> getPredecessors() {
+    return Collections.unmodifiableList(predecessors);
+  }
+
+  public List<BasicBlock> getMutablePredecessors() {
     return predecessors;
   }
 
@@ -771,7 +779,7 @@ public class BasicBlock {
   public void addCatchHandler(BasicBlock rethrowBlock, DexType guard) {
     assert !hasCatchHandlers();
     successors.add(0, rethrowBlock);
-    rethrowBlock.getPredecessors().add(this);
+    rethrowBlock.getMutablePredecessors().add(this);
     catchHandlers = new CatchHandlers<>(ImmutableList.of(guard), ImmutableList.of(0));
   }
 
@@ -1196,7 +1204,7 @@ public class BasicBlock {
    */
   public static BasicBlock createGotoBlock(int blockNumber, Position position, BasicBlock target) {
     BasicBlock block = createGotoBlock(blockNumber, position);
-    block.getSuccessors().add(target);
+    block.getMutableSuccessors().add(target);
     return block;
   }
 
@@ -1521,7 +1529,7 @@ public class BasicBlock {
       int nextBlockNumber,
       ValueNumberGenerator valueNumberGenerator,
       Consumer<BasicBlock> onNewBlock) {
-    List<BasicBlock> predecessors = this.getPredecessors();
+    List<BasicBlock> predecessors = getMutablePredecessors();
     boolean hasMoveException = entry().isMoveException();
     TypeLatticeElement exceptionTypeLattice = null;
     MoveException move = null;
@@ -1558,8 +1566,8 @@ public class BasicBlock {
       next.setPosition(position);
       newBlock.add(next);
       newBlock.close(null);
-      newBlock.getSuccessors().add(this);
-      newBlock.getPredecessors().add(predecessor);
+      newBlock.getMutableSuccessors().add(this);
+      newBlock.getMutablePredecessors().add(predecessor);
       predecessor.replaceSuccessor(this, newBlock);
       onNewBlock.accept(newBlock);
       assert newBlock.getNumber() >= 0 : "Number must be assigned by `onNewBlock`";

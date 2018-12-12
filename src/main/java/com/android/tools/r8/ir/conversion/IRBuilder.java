@@ -2359,8 +2359,8 @@ public class IRBuilder {
   private static BasicBlock createSplitEdgeBlock(BasicBlock source, BasicBlock target) {
     BasicBlock splitBlock = new BasicBlock();
     splitBlock.incrementUnfilledPredecessorCount();
-    splitBlock.getPredecessors().add(source);
-    splitBlock.getSuccessors().add(target);
+    splitBlock.getMutablePredecessors().add(source);
+    splitBlock.getMutableSuccessors().add(target);
     source.replaceSuccessor(target, splitBlock);
     target.replacePredecessor(source, splitBlock);
     return splitBlock;
@@ -2429,11 +2429,11 @@ public class IRBuilder {
               joinBlocks.put(otherPredecessorIndex, joinBlock);
               blocksToAdd.add(joinBlock);
               BasicBlock otherPredecessor = block.getPredecessors().get(otherPredecessorIndex);
-              joinBlock.getPredecessors().add(otherPredecessor);
+              joinBlock.getMutablePredecessors().add(otherPredecessor);
               otherPredecessor.replaceSuccessor(block, joinBlock);
-              block.getPredecessors().set(otherPredecessorIndex, joinBlock);
+              block.getMutablePredecessors().set(otherPredecessorIndex, joinBlock);
             }
-            joinBlock.getPredecessors().add(predecessor);
+            joinBlock.getMutablePredecessors().add(predecessor);
             predecessor.replaceSuccessor(block, joinBlock);
             operandsToRemove.add(operandIndex);
           } else {

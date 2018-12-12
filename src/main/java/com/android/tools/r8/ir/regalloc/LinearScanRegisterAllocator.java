@@ -2512,12 +2512,11 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       List<LiveIntervals> liveIntervals) {
     for (BasicBlock block : code.topologicallySortedBlocks()) {
       Set<Value> live = new HashSet<>();
-      List<BasicBlock> successors = block.getSuccessors();
       Set<Value> phiOperands = new HashSet<>();
       Set<Value> exceptionalPhiOperands = new HashSet<>();
       Set<Value> liveAtThrowingInstruction = new HashSet<>();
       Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
-      for (BasicBlock successor : successors) {
+      for (BasicBlock successor : block.getSuccessors()) {
         // Values live at entry to a block that is an exceptional successor are only live
         // until the throwing instruction in this block. They are live until the end of
         // the block only if they are used in normal flow as well.

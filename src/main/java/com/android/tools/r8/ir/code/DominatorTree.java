@@ -35,7 +35,7 @@ public class DominatorTree {
     // Add the internal exit block to the block list.
     for (BasicBlock block : blocks) {
       if (block.exit().isReturn()) {
-        normalExitBlock.getPredecessors().add(block);
+        normalExitBlock.getMutablePredecessors().add(block);
       }
     }
     int numberOfBlocks = code.blocks.size();

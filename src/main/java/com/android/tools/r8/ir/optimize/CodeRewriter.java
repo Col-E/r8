@@ -235,11 +235,11 @@ public class CodeRewriter {
       pred.replaceSuccessor(block, target);
     }
     for (BasicBlock succ : block.getSuccessors()) {
-      succ.getPredecessors().remove(block);
+      succ.getMutablePredecessors().remove(block);
     }
     for (BasicBlock pred : block.getPredecessors()) {
       if (!target.getPredecessors().contains(pred)) {
-        target.getPredecessors().add(pred);
+        target.getMutablePredecessors().add(pred);
       }
     }
   }
@@ -252,9 +252,9 @@ public class CodeRewriter {
     BasicBlock newFallthrough = fallthrough.endOfGotoChain();
     if (newTarget != null && target != newTarget) {
       insn.getBlock().replaceSuccessor(target, newTarget);
-      target.getPredecessors().remove(block);
+      target.getMutablePredecessors().remove(block);
       if (!newTarget.getPredecessors().contains(block)) {
-        newTarget.getPredecessors().add(block);
+        newTarget.getMutablePredecessors().add(block);
       }
     }
     if (block.exit().isIf()) {
@@ -278,9 +278,9 @@ public class CodeRewriter {
         BasicBlock newTarget = target.endOfGotoChain();
         if (newTarget != null && target != newTarget && !replacedBlocks.contains(target)) {
           insn.getBlock().replaceSuccessor(target, newTarget);
-          target.getPredecessors().remove(block);
+          target.getMutablePredecessors().remove(block);
           if (!newTarget.getPredecessors().contains(block)) {
-            newTarget.getPredecessors().add(block);
+            newTarget.getMutablePredecessors().add(block);
           }
           replacedBlocks.add(target);
         }
