@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-public class Phi extends Value {
+public class Phi extends Value implements InstructionOrPhi {
 
   public enum RegisterReadType {
     NORMAL,

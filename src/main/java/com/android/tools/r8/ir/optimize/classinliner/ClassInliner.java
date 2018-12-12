@@ -9,17 +9,16 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
-import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
+import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -30,10 +29,6 @@ public final class ClassInliner {
   private final LambdaRewriter lambdaRewriter;
   private final int totalMethodInstructionLimit;
   private final ConcurrentHashMap<DexClass, Boolean> knownClasses = new ConcurrentHashMap<>();
-
-  public interface InlinerAction {
-    void inline(Map<InvokeMethod, InliningInfo> methods);
-  }
 
   public ClassInliner(DexItemFactory factory,
       LambdaRewriter lambdaRewriter, int totalMethodInstructionLimit) {
@@ -126,7 +121,7 @@ public final class ClassInliner {
       DexEncodedMethod method,
       IRCode code,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
-      InlinerAction inliner,
+      Inliner inliner,
       Supplier<InliningOracle> defaultOracle) {
 
     // Collect all the new-instance and static-get instructions in the code before inlining.
@@ -148,9 +143,15 @@ public final class ClassInliner {
       while (rootsIterator.hasNext()) {
         Instruction root = rootsIterator.next();
         InlineCandidateProcessor processor =
-            new InlineCandidateProcessor(factory, appInfo, lambdaRewriter,
+            new InlineCandidateProcessor(
+                factory,
+                appInfo,
+                lambdaRewriter,
+                inliner,
                 clazz -> isClassEligible(appInfo, clazz),
-                isProcessedConcurrently, method, root);
+                isProcessedConcurrently,
+                method,
+                root);
 
         // Assess eligibility of instance and class.
         if (!processor.isInstanceEligible() ||
@@ -161,7 +162,9 @@ public final class ClassInliner {
         }
 
         // Assess users eligibility and compute inlining of direct calls and extra methods needed.
-        if (!processor.areInstanceUsersEligible(method.method.getHolder(), defaultOracle)) {
+        InstructionOrPhi ineligibleUser =
+            processor.areInstanceUsersEligible(method.method.getHolder(), defaultOracle);
+        if (ineligibleUser != null) {
           // This root may succeed if users change in future.
           continue;
         }
@@ -172,7 +175,7 @@ public final class ClassInliner {
         }
 
         // Inline the class instance.
-        anyInlinedMethods |= processor.processInlining(code, inliner, defaultOracle);
+        anyInlinedMethods |= processor.processInlining(code, defaultOracle);
 
         // Restore normality.
         code.removeAllTrivialPhis();
