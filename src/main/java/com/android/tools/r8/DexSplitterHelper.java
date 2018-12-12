@@ -128,6 +128,10 @@ public final class DexSplitterHelper {
       Builder featureApplication = applications.get(feature);
       if (featureApplication == null) {
         featureApplication = DexApplication.builder(app.dexItemFactory, app.timing);
+        // If this is the base, we add the main dex list.
+        if (feature.equals(featureClassMapping.getBaseName())) {
+          featureApplication.addToMainDexList(app.mainDexList);
+        }
         applications.put(feature, featureApplication);
       }
       featureApplication.addProgramClass(clazz);

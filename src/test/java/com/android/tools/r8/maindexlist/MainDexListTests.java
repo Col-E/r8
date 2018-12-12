@@ -24,6 +24,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.dexsplitter.DexSplitter;
+import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
@@ -210,7 +212,7 @@ public class MainDexListTests extends TestBase {
   }
 
   @Test
-  public void everySecondClassInMainDex() throws Throwable {
+  public void everyThirdClassInMainDex() throws Throwable {
     ImmutableList.Builder<String> mainDexBuilder = ImmutableList.builder();
     for (int i = 0; i < MANY_CLASSES.size(); i++) {
       String clazz = MANY_CLASSES.get(i);
@@ -220,6 +222,47 @@ public class MainDexListTests extends TestBase {
     }
     verifyMainDexContains(mainDexBuilder.build(), getManyClassesSingleDexAppPath(), true);
     verifyMainDexContains(mainDexBuilder.build(), getManyClassesMultiDexAppPath(), false);
+  }
+
+  @Test
+  public void everyThirdClassInMainWithDexSplitter() throws Throwable {
+    List<String> featureMappings = new ArrayList<>();
+
+    ImmutableList.Builder<String> mainDexBuilder = ImmutableList.builder();
+    for (int i = 0; i < MANY_CLASSES.size(); i++) {
+      String clazz = MANY_CLASSES.get(i);
+      // Write the first 2 classes into the split.
+      if (i < 2) {
+        featureMappings.add(clazz + ":feature1");
+        continue;
+      }
+      if (i % 3 == 0) {
+        mainDexBuilder.add(clazz);
+      }
+    }
+    Path featureSplitMapping = temp.getRoot().toPath().resolve("splitmapping");
+    Path mainDexFile = temp.getRoot().toPath().resolve("maindex");
+    FileUtils.writeTextFile(featureSplitMapping, featureMappings);
+    List<String> mainDexList = mainDexBuilder.build();
+    FileUtils.writeTextFile(mainDexFile, ListUtils.map(mainDexList, MainDexListTests::typeToEntry));
+    Path output = temp.getRoot().toPath().resolve("split_output");
+    Files.createDirectories(output);
+
+    Options options = new Options();
+    options.addInputArchive(getManyClassesMultiDexAppPath().toString());
+    options.setFeatureSplitMapping(featureSplitMapping.toString());
+    options.setOutput(output.toString());
+    options.setMainDexList(mainDexFile.toString());
+    DexSplitter.run(options);
+    Path baseDir = output.resolve("base");
+    CodeInspector inspector =
+        new CodeInspector(
+            AndroidApp.builder().addProgramFiles(baseDir.resolve("classes.dex")).build());
+    for (String clazz : mainDexList) {
+      if (!inspector.clazz(clazz).isPresent()) {
+        failedToFindClassInExpectedFile(baseDir, clazz);
+      }
+    }
   }
 
   @Test

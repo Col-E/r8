@@ -94,10 +94,19 @@ public final class DexSplitter {
     private String output = DEFAULT_OUTPUT_DIR;
     private String featureSplitMapping;
     private String proguardMap;
+    private String mainDexList;
     private boolean splitNonClassResources = false;
 
     public DiagnosticsHandler getDiagnosticsHandler() {
       return diagnosticsHandler;
+    }
+
+    public String getMainDexList() {
+      return mainDexList;
+    }
+
+    public void setMainDexList(String mainDexList) {
+      this.mainDexList = mainDexList;
     }
 
     public String getOutput() {
@@ -216,6 +225,13 @@ public final class DexSplitter {
         options.setOutput(output);
         continue;
       }
+
+      String mainDexList= OptionsParsing.tryParseSingle(context, "--main-dex-list", null);
+      if (mainDexList!= null) {
+        options.setMainDexList(mainDexList);
+        continue;
+      }
+
       String proguardMap = OptionsParsing.tryParseSingle(context, "--proguard-map", null);
       if (proguardMap != null) {
         options.setProguardMap(proguardMap);
@@ -284,6 +300,9 @@ public final class DexSplitter {
     // We set the actual consumer on the ApplicationWriter when we have calculated the distribution
     // since we don't yet know the distribution.
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
+    if (options.getMainDexList() != null) {
+      builder.addMainDexListFiles(Paths.get(options.getMainDexList()));
+    }
 
     FeatureClassMapping featureClassMapping = createFeatureClassMapping(options);
 
