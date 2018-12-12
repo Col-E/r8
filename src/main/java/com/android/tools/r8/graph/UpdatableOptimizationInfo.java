@@ -29,7 +29,9 @@ public interface UpdatableOptimizationInfo extends OptimizationInfo {
 
   void setParameterUsages(ParameterUsagesInfo parameterUsagesInfo);
 
-  void setNonNullParamHints(BitSet hints);
+  void setNonNullParamOrThrow(BitSet facts);
+
+  void setNonNullParamOnNormalExits(BitSet facts);
 
   void setReachabilitySensitive(boolean reachabilitySensitive);
 

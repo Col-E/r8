@@ -9,7 +9,6 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.optimize.nonnull.IntrinsicsDeputy;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvoke;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -18,7 +17,7 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
-import java.util.List;
+import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,7 +36,7 @@ public class NonNullParamTest extends TestBase {
     this.backend = backend;
   }
 
-  CodeInspector buildAndRun(Class<?> mainClass, List<Class<?>> classes) throws Exception {
+  CodeInspector buildAndRun(Class<?> mainClass, Collection<Class<?>> classes) throws Exception {
     String javaOutput = runOnJava(mainClass);
 
     return testForR8(backend)
@@ -49,6 +48,10 @@ public class NonNullParamTest extends TestBase {
             ImmutableList.of(
                 "-keepattributes InnerClasses,Signature,EnclosingMethod",
                 "-dontobfuscate"))
+        .addOptionsModification(options -> {
+          // Need to increase a little bit to inline System.out.println
+          options.inliningInstructionLimit = 4;
+        })
         .run(mainClass)
         .assertSuccessWithOutput(javaOutput)
         .inspector();
@@ -75,50 +78,48 @@ public class NonNullParamTest extends TestBase {
     assertEquals(1, countPrintCall(checkNull));
     assertEquals(0, countThrow(checkNull));
 
-    String mainName = mainClass.getCanonicalName();
     MethodSubject paramCheck =
-        mainSubject.method("void", "nonNullAfterParamCheck", ImmutableList.of(mainName));
+        mainSubject.method("void", "nonNullAfterParamCheck", ImmutableList.of());
     assertThat(paramCheck, isPresent());
     assertEquals(1, countPrintCall(paramCheck));
-    // TODO(b/71500340): can be checked iff non-param info is propagated.
-    //assertEquals(0, countThrow(paramCheck));
+    assertEquals(0, countThrow(paramCheck));
 
     paramCheck = mainSubject.method(
-        "void", "nonNullAfterParamCheckDifferently", ImmutableList.of(mainName));
+        "void", "nonNullAfterParamCheckDifferently", ImmutableList.of());
     assertThat(paramCheck, isPresent());
     assertEquals(1, countPrintCall(paramCheck));
-    // TODO(b/71500340): can be checked iff non-param info is propagated.
-    //assertEquals(0, countThrow(paramCheck));
+    assertEquals(0, countThrow(paramCheck));
   }
 
   @Test
   public void testNonNullParamAfterInvoke() throws Exception {
     Class mainClass = NonNullParamAfterInvoke.class;
-    CodeInspector inspector = buildAndRun(mainClass,
-        ImmutableList.of(NeverInline.class, IntrinsicsDeputy.class, mainClass));
+    CodeInspector inspector = buildAndRun(mainClass, ImmutableList.of(
+        NeverInline.class,
+        IntrinsicsDeputy.class,
+        NonNullParamAfterInvoke.NotPinnedClass.class,
+        mainClass));
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
 
-    String mainName = mainClass.getCanonicalName();
+    String argTypeName = NonNullParamAfterInvoke.NotPinnedClass.class.getName();
     MethodSubject checkViaCall =
-        mainSubject.method("void", "checkViaCall", ImmutableList.of(mainName, mainName));
+        mainSubject.method("void", "checkViaCall", ImmutableList.of(argTypeName, argTypeName));
     assertThat(checkViaCall, isPresent());
-    // TODO(b/71500340): can be checked iff non-param info is propagated.
-    //assertEquals(2, countPrintCall(checkViaCall));
+    assertEquals(2, countPrintCall(checkViaCall));
 
     MethodSubject checkViaIntrinsic =
-        mainSubject.method("void", "checkViaIntrinsic", ImmutableList.of(mainName));
+        mainSubject.method("void", "checkViaIntrinsic", ImmutableList.of(argTypeName));
     assertThat(checkViaIntrinsic, isPresent());
     assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
-    // TODO(b/71500340): can be checked iff non-param info is propagated.
-    //assertEquals(1, countPrintCall(checkViaIntrinsic));
+    assertEquals(1, countPrintCall(checkViaIntrinsic));
 
     MethodSubject checkAtOneLevelHigher =
-        mainSubject.method("void", "checkAtOneLevelHigher", ImmutableList.of(mainName));
+        mainSubject.method("void", "checkAtOneLevelHigher", ImmutableList.of(argTypeName));
     assertThat(checkAtOneLevelHigher, isPresent());
-    // TODO(b/71500340): can be checked iff non-param info is propagated.
-    //assertEquals(1, countPrintCall(checkAtOneLevelHigher));
+    assertEquals(1, countPrintCall(checkAtOneLevelHigher));
+    assertEquals(0, countThrow(checkAtOneLevelHigher));
   }
 
   private long countCallToParamNullCheck(MethodSubject method) {
@@ -127,17 +128,6 @@ public class NonNullParamTest extends TestBase {
 
   private long countPrintCall(MethodSubject method) {
     return countCall(method, "PrintStream", "print");
-  }
-
-  private long countCall(MethodSubject method, String className, String methodName) {
-    return Streams.stream(method.iterateInstructions(instructionSubject -> {
-      if (instructionSubject.isInvoke()) {
-        DexMethod invokedMethod = instructionSubject.getMethod();
-        return invokedMethod.getHolder().toString().contains(className)
-            && invokedMethod.name.toString().contains(methodName);
-      }
-      return false;
-    })).count();
   }
 
   private long countThrow(MethodSubject method) {

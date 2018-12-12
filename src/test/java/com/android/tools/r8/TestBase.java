@@ -17,6 +17,7 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
@@ -35,6 +36,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.FileInputStream;
@@ -904,6 +906,17 @@ public class TestBase {
     return Arrays.stream(dexCode.instructions)
         .filter(kind::isInstance)
         .map(kind::cast);
+  }
+
+  protected long countCall(MethodSubject method, String className, String methodName) {
+    return Streams.stream(method.iterateInstructions(instructionSubject -> {
+      if (instructionSubject.isInvoke()) {
+        DexMethod invokedMethod = instructionSubject.getMethod();
+        return invokedMethod.getHolder().toString().contains(className)
+            && invokedMethod.name.toString().contains(methodName);
+      }
+      return false;
+    })).count();
   }
 
   public enum MinifyMode {

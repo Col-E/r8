@@ -9,23 +9,23 @@ import com.android.tools.r8.NeverInline;
 
 public class NonNullParamAfterInvoke {
 
-  final int field;
-
-  NonNullParamAfterInvoke(int field) {
-    this.field = field;
-  }
-
-  void act() {
-    System.out.println("<" + field + ">");
+  public static class NotPinnedClass {
+    final int field;
+    NotPinnedClass(int field) {
+      this.field = field;
+    }
+    void act() {
+      System.out.println(field);
+    }
   }
 
   @NeverInline
-  static int sum(NonNullParamAfterInvoke arg1, NonNullParamAfterInvoke arg2) {
+  static int sum(NotPinnedClass arg1, NotPinnedClass arg2) {
     return arg1.field + arg2.field;
   }
 
   @NeverInline
-  static void checkViaCall(NonNullParamAfterInvoke arg1, NonNullParamAfterInvoke arg2) {
+  static void checkViaCall(NotPinnedClass arg1, NotPinnedClass arg2) {
     // After the call to sum(...), we can know parameters arg1 and arg2 are not null.
     if (sum(arg1, arg2) > 0) {
       // Hence, inlineable.
@@ -37,22 +37,22 @@ public class NonNullParamAfterInvoke {
   }
 
   @NeverInline
-  static void checkViaIntrinsic(NonNullParamAfterInvoke arg) {
+  static void checkViaIntrinsic(NotPinnedClass arg) {
     checkParameterIsNotNull(arg, "arg");
     // Parameter arg is not null.
     arg.act();
   }
 
   @NeverInline
-  static void checkAtOneLevelHigher(NonNullParamAfterInvoke arg) {
+  static void checkAtOneLevelHigher(NotPinnedClass arg) {
     checkViaIntrinsic(arg);
     // Parameter arg is not null.
     arg.act();
   }
 
   public static void main(String[] args) {
-    NonNullParamAfterInvoke arg1 = new NonNullParamAfterInvoke(1);
-    NonNullParamAfterInvoke arg2 = new NonNullParamAfterInvoke(-1);
+    NotPinnedClass arg1 = new NotPinnedClass(1);
+    NotPinnedClass arg2 = new NotPinnedClass(2);
     checkViaCall(arg1, arg2);
     checkViaIntrinsic(arg1);
     checkAtOneLevelHigher(arg2);

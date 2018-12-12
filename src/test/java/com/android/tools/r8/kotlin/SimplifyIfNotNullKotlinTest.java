@@ -5,25 +5,18 @@ package com.android.tools.r8.kotlin;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.code.Format21t;
-import com.android.tools.r8.code.Format22t;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
+import com.google.common.collect.Streams;
 import org.junit.Test;
 
 public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
   private static final String FOLDER = "non_null";
   private static final String STRING = "java.lang.String";
-
-  private static boolean isIf(Instruction instruction) {
-    return instruction instanceof Format21t || instruction instanceof Format22t;
-  }
 
   @Test
   public void test_example1() throws Exception {
@@ -39,15 +32,18 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
       ClassSubject clazz = checkClassIsKept(codeInspector, ex1.getClassName());
 
       MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
-      DexCode dexCode = getDexCode(testMethod);
-      long count = Arrays.stream(dexCode.instructions)
-          .filter(SimplifyIfNotNullKotlinTest::isIf).count();
+      long ifzCount = Streams.stream(testMethod.iterateInstructions())
+          .filter(i -> i.isIfEqz() || i.isIfNez()).count();
+      long paramNullCheckCount =
+          countCall(testMethod, "ArrayIteratorKt", "checkParameterIsNotNull");
       if (allowAccessModification) {
         // Three null-check's from inlined checkParameterIsNotNull for receiver and two arguments.
-        assertEquals(5, count);
+        assertEquals(5, ifzCount);
+        assertEquals(0, paramNullCheckCount);
       } else {
         // One after Iterator#hasNext, and another in the filter predicate: sinceYear != null.
-        assertEquals(2, count);
+        assertEquals(2, ifzCount);
+        assertEquals(5, paramNullCheckCount);
       }
     });
   }
@@ -65,11 +61,19 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
       ClassSubject clazz = checkClassIsKept(codeInspector, ex2.getClassName());
 
       MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
-      DexCode dexCode = getDexCode(testMethod);
-      long count = Arrays.stream(dexCode.instructions)
-          .filter(SimplifyIfNotNullKotlinTest::isIf).count();
-      // One null-check from force inlined coalesce and another from ?:
-      assertEquals(2, count);
+      long ifzCount = Streams.stream(testMethod.iterateInstructions())
+          .filter(InstructionSubject::isIfEqz).count();
+      long paramNullCheckCount =
+          countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
+      if (allowAccessModification) {
+        // One null-check from inlined checkParameterIsNotNull.
+        assertEquals(2, ifzCount);
+        assertEquals(0, paramNullCheckCount);
+      } else {
+        // ?: in aOrDefault
+        assertEquals(1, ifzCount);
+        assertEquals(1, paramNullCheckCount);
+      }
     });
   }
 
@@ -86,12 +90,11 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
       ClassSubject clazz = checkClassIsKept(codeInspector, ex3.getClassName());
 
       MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
-      DexCode dexCode = getDexCode(testMethod);
-      long count = Arrays.stream(dexCode.instructions)
-          .filter(SimplifyIfNotNullKotlinTest::isIf).count();
+      long ifzCount = Streams.stream(testMethod.iterateInstructions())
+          .filter(InstructionSubject::isIfEqz).count();
       // !! operator inside explicit null check should be gone.
       // One explicit null-check as well as 4 bar? accesses.
-      assertEquals(5, count);
+      assertEquals(5, ifzCount);
     });
   }
 
