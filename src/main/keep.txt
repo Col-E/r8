@@ -12,3 +12,5 @@
 -keep public class com.android.tools.r8.compatdx.CompatDx { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.dexfilemerger.DexFileMerger { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.dexsplitter.DexSplitter { public static void main(java.lang.String[]); }
+
+-keepattributes LineNumberTable

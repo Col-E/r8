@@ -59,6 +59,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SelfRetraceTest;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -586,6 +587,7 @@ public class R8 {
   private static void run(String[] args) throws CompilationFailedException {
     R8Command command = R8Command.parse(args, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
+      SelfRetraceTest.test();
       System.out.println(USAGE_MESSAGE);
       return;
     }
