@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,6 +45,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldAccessInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.NewInstanceInstructionSubject;
 import com.google.common.collect.Sets;
@@ -378,13 +380,14 @@ public class ClassInlinerTest extends TestBase {
 
     // TODO(b/120814598): Should only be "java.lang.StringBuilder". Lambdas are not class inlined
     // because parameter usage is not available for each lambda constructor.
-    String lambdaPrefix = "com.android.tools.r8.ir.optimize.classinliner.lambdas.-$$Lambda$";
+    Set<String> expectedTypes = Sets.newHashSet("java.lang.StringBuilder");
+    expectedTypes.addAll(
+        inspector.allClasses().stream()
+            .map(FoundClassSubject::getFinalName)
+            .filter(name -> name.contains(LAMBDA_CLASS_NAME_PREFIX))
+            .collect(Collectors.toList()));
     assertEquals(
-        Sets.newHashSet(
-            lambdaPrefix + "LambdasTestClass$PMJVMAKcTEduaJUHwSPqGoz94RA",
-            lambdaPrefix + "LambdasTestClass$7aZ9OxTODOlfGP_EyeXyO8sKrXQ",
-            lambdaPrefix + "SeBJ7QUVzMOzn5UCnvWQtVXHfD8",
-            "java.lang.StringBuilder"),
+        expectedTypes,
         collectTypes(clazz, "testStatefulLambda", "void", "java.lang.String", "java.lang.String"));
 
     // TODO(b/120814598): Should be 0. Lambdas are not class inlined because parameter usage is not
