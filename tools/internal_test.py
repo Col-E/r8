@@ -60,9 +60,8 @@ TEST_COMMANDS = [
 ]
 
 # Command timeout, in seconds.
-RUN_TIMEOUT = 3600
-# Add some extra time for the bot, since the tester might not start immediately.
-BOT_RUN_TIMEOUT = 4000 * len(TEST_COMMANDS)
+RUN_TIMEOUT = 7200
+BOT_RUN_TIMEOUT = RUN_TIMEOUT * len(TEST_COMMANDS)
 
 def log(str):
   print("%s: %s" % (time.strftime("%c"), str))
