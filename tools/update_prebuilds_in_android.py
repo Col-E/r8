@@ -20,18 +20,6 @@ JAR_TARGETS = [
   utils.R8,
   utils.COMPATDX,
   utils.COMPATPROGUARD,
-  utils.R8LIB,
-  utils.COMPATDXLIB,
-  utils.COMPATPROGUARDLIB,
-]
-JAR_FILES = [
-  utils.D8_JAR,
-  utils.R8_JAR,
-  utils.COMPATDX_JAR,
-  utils.COMPATPROGUARD_JAR,
-  utils.R8LIB_JAR,
-  utils.COMPATDXLIB_JAR,
-  utils.COMPATPROGUARDLIB_JAR,
 ]
 OTHER_TARGETS = ["LICENSE"]
 
@@ -53,16 +41,8 @@ def copy_targets(root, target_root, srcs, dests):
     copyfile(src, dest)
 
 def copy_jar_targets(root, target_root):
-  srcs = JAR_FILES
-  dests = [
-    'd8-master.jar',
-    'r8-master.jar',
-    'compatdx-master.jar',
-    'compatproguard-master.jar',
-    'r8lib-master.jar',
-    'compatdxlib-master.jar',
-    'compatproguardlib-master.jar',
-  ]
+  srcs = map((lambda t: t + '.jar'), JAR_TARGETS)
+  dests = map((lambda t: t + '-master.jar'), JAR_TARGETS)
   copy_targets(root, target_root, srcs, dests)
 
 def copy_other_targets(root, target_root):
@@ -92,7 +72,7 @@ def Main():
     copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
   else:
     assert args.commit_hash == None or args.version == None
-    targets = JAR_FILES + OTHER_TARGETS
+    targets = map((lambda t: t + '.jar'), JAR_TARGETS) + OTHER_TARGETS
     with utils.TempDir() as root:
       for target in targets:
         if args.commit_hash:
