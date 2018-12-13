@@ -164,6 +164,14 @@ public class Enqueuer {
    */
   private final SetWithReason<DexEncodedMethod> targetedMethods = new SetWithReason<>();
   /**
+   * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
+   */
+  private final Set<DexMethod> bootstrapMethods = Sets.newIdentityHashSet();
+  /**
+   * Set of direct methods that are the immediate target of an invoke-dynamic.
+   */
+  private final Set<DexMethod> methodsTargetedByInvokeDynamic = Sets.newIdentityHashSet();
+  /**
    * Set of virtual methods that are the immediate target of an invoke-direct.
    * */
   private final Set<DexMethod> virtualMethodsTargetedByInvokeDirect = Sets.newIdentityHashSet();
@@ -572,6 +580,11 @@ public class Enqueuer {
         }
       }
 
+      DexClass bootstrapClass = appInfo.definitionFor(callSite.bootstrapMethod.asMethod().holder);
+      if (bootstrapClass != null && bootstrapClass.isProgramClass()) {
+        bootstrapMethods.add(callSite.bootstrapMethod.asMethod());
+      }
+
       LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo);
       if (descriptor == null) {
         return;
@@ -582,26 +595,27 @@ public class Enqueuer {
 
       DexMethodHandle implHandle = descriptor.implHandle;
       assert implHandle != null;
+
+      DexMethod method = implHandle.asMethod();
+      if (!methodsTargetedByInvokeDynamic.add(method)) {
+        return;
+      }
+
       switch (implHandle.type) {
         case INVOKE_STATIC:
-          registerInvokeStatic(implHandle.asMethod(),
-              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          registerInvokeStatic(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
           break;
         case INVOKE_INTERFACE:
-          registerInvokeInterface(implHandle.asMethod(),
-              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          registerInvokeInterface(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
           break;
         case INVOKE_INSTANCE:
-          registerInvokeVirtual(implHandle.asMethod(),
-              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          registerInvokeVirtual(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
           break;
         case INVOKE_DIRECT:
-          registerInvokeDirect(implHandle.asMethod(),
-              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          registerInvokeDirect(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
           break;
         case INVOKE_CONSTRUCTOR:
-          registerNewInstance(implHandle.asMethod().holder,
-              KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          registerNewInstance(method.holder, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
           break;
         default:
           throw new Unreachable();
@@ -1277,6 +1291,9 @@ public class Enqueuer {
       reportMissingMethod(method);
       return;
     }
+    if (resolutionTarget.accessFlags.isPrivate() || resolutionTarget.accessFlags.isStatic()) {
+      brokenSuperInvokes.add(method);
+    }
     markMethodAsTargeted(resolutionTarget, KeepReason.targetedBySuperFrom(from));
     // Now we need to compute the actual target in the context.
     DexEncodedMethod target = appInfo.lookupSuperTarget(method, from.method.holder);
@@ -1793,7 +1810,18 @@ public class Enqueuer {
      * removed.
      */
     final SortedSet<DexMethod> targetedMethods;
-    /** Set of virtual methods that are the immediate target of an invoke-direct. */
+    /**
+     * Set of program methods that are used as the bootstrap method for an invoke-dynamic
+     * instruction.
+     */
+    public final SortedSet<DexMethod> bootstrapMethods;
+    /**
+     * Set of methods that are the immediate target of an invoke-dynamic.
+     */
+    public final SortedSet<DexMethod> methodsTargetedByInvokeDynamic;
+    /**
+     * Set of virtual methods that are the immediate target of an invoke-direct.
+     */
     final SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect;
     /**
      * Set of methods that belong to live classes and can be reached by invokes. These need to be
@@ -1924,6 +1952,11 @@ public class Enqueuer {
           ImmutableSortedSet.copyOf(
               PresortedComparable<DexType>::slowCompareTo, enqueuer.instantiatedLambdas.getItems());
       this.targetedMethods = toSortedDescriptorSet(enqueuer.targetedMethods.getItems());
+      this.bootstrapMethods =
+          ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, enqueuer.bootstrapMethods);
+      this.methodsTargetedByInvokeDynamic =
+          ImmutableSortedSet.copyOf(
+              DexMethod::slowCompareTo, enqueuer.methodsTargetedByInvokeDynamic);
       this.virtualMethodsTargetedByInvokeDirect =
           ImmutableSortedSet.copyOf(
               DexMethod::slowCompareTo, enqueuer.virtualMethodsTargetedByInvokeDirect);
@@ -1973,6 +2006,8 @@ public class Enqueuer {
       this.instantiatedTypes = previous.instantiatedTypes;
       this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;
+      this.bootstrapMethods = previous.bootstrapMethods;
+      this.methodsTargetedByInvokeDynamic = previous.methodsTargetedByInvokeDynamic;
       this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
       this.liveMethods = previous.liveMethods;
       this.liveFields = previous.liveFields;
@@ -2018,6 +2053,9 @@ public class Enqueuer {
       this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
       this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
       this.targetedMethods = lense.rewriteMethodsConservatively(previous.targetedMethods);
+      this.bootstrapMethods = lense.rewriteMethodsConservatively(previous.bootstrapMethods);
+      this.methodsTargetedByInvokeDynamic =
+          lense.rewriteMethodsConservatively(previous.methodsTargetedByInvokeDynamic);
       this.virtualMethodsTargetedByInvokeDirect =
           lense.rewriteMethodsConservatively(previous.virtualMethodsTargetedByInvokeDirect);
       this.liveMethods = lense.rewriteMethodsConservatively(previous.liveMethods);
@@ -2080,6 +2118,8 @@ public class Enqueuer {
       this.instantiatedTypes = previous.instantiatedTypes;
       this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;
+      this.bootstrapMethods = previous.bootstrapMethods;
+      this.methodsTargetedByInvokeDynamic = previous.methodsTargetedByInvokeDynamic;
       this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
       this.liveMethods = previous.liveMethods;
       this.liveFields = previous.liveFields;

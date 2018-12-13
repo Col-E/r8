@@ -163,6 +163,7 @@ public final class D8 {
     Timing timing = new Timing("D8");
     try {
       // Disable global optimizations.
+      options.enableArgumentRemoval = false;
       options.enableMinification = false;
       options.enableInlining = false;
       options.enableClassInlining = false;

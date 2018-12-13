@@ -19,12 +19,12 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -33,6 +33,8 @@ import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 interface B112452064SuperInterface1 {
   void foo();
@@ -75,8 +77,19 @@ class B112452064TestMain {
   }
 }
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class ParameterTypeTest extends TestBase {
+
+  private final boolean enableArgumentRemoval;
+
+  @Parameters(name = "Argument removal: {0}")
+  public static Boolean[] data() {
+    return BooleanUtils.values();
+  }
+
+  public ParameterTypeTest(boolean enableArgumentRemoval) {
+    this.enableArgumentRemoval = enableArgumentRemoval;
+  }
 
   @Test
   public void test_fromJavacWithVerticalClassMerging() throws Exception {
@@ -198,9 +211,15 @@ public class ParameterTypeTest extends TestBase {
     assertThat(javaResult.stdout, containsString(bar.name));
     assertEquals(-1, javaResult.stderr.indexOf("ClassNotFoundException"));
 
-    AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
-        // Disable inlining to avoid the (short) tested method from being inlined and then removed.
-        internalOptions -> internalOptions.enableInlining = false);
+    AndroidApp processedApp =
+        compileWithR8(
+            jasminBuilder.build(),
+            proguardConfig,
+            options -> {
+              // Disable inlining to avoid the (short) tested method from being inlined and removed.
+              options.enableInlining = false;
+              options.enableArgumentRemoval = enableArgumentRemoval;
+            });
 
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
@@ -210,7 +229,7 @@ public class ParameterTypeTest extends TestBase {
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject subSubject = inspector.clazz(sub.name);
-    assertThat(subSubject, isPresent());
+    assertNotEquals(enableArgumentRemoval, subSubject.isPresent());
   }
 
   @Test
@@ -272,24 +291,36 @@ public class ParameterTypeTest extends TestBase {
     assertThat(javaResult.stdout, containsString(bar.name));
     assertEquals(-1, javaResult.stderr.indexOf("ClassNotFoundException"));
 
-    AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
-        // Disable inlining to avoid the (short) tested method from being inlined and then removed.
-        internalOptions -> internalOptions.enableInlining = false);
+    AndroidApp processedApp =
+        compileWithR8(
+            jasminBuilder.build(),
+            proguardConfig,
+            options -> {
+              // Disable inlining to avoid the (short) tested method from being inlined and removed.
+              options.enableInlining = false;
+              options.enableArgumentRemoval = enableArgumentRemoval;
+            });
 
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
-    assertNotEquals(0, artResult.exitCode);
+    if (enableArgumentRemoval) {
+      assertEquals(0, artResult.exitCode);
+    } else {
+      assertNotEquals(0, artResult.exitCode);
+
+      DexVm.Version currentVersion = ToolHelper.getDexVm().getVersion();
+      String errorMessage =
+          currentVersion.isNewerThan(Version.V4_4_4)
+              ? "type Precise Reference: Foo[] but expected Reference: SubInterface[]"
+              : "[LFoo; is not instance of [LSubInterface;";
+      assertThat(artResult.stderr, containsString(errorMessage));
+    }
+
     assertEquals(-1, artResult.stderr.indexOf("ClassNotFoundException"));
-    DexVm.Version currentVersion = ToolHelper.getDexVm().getVersion();
-    String errorMessage =
-        currentVersion.isNewerThan(Version.V4_4_4)
-            ? "type Precise Reference: Foo[] but expected Reference: SubInterface[]"
-            : "[LFoo; is not instance of [LSubInterface;";
-    assertThat(artResult.stderr, containsString(errorMessage));
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject subSubject = inspector.clazz(sub.name);
-    assertThat(subSubject, isPresent());
+    assertNotEquals(enableArgumentRemoval, subSubject.isPresent());
   }
 
   @Test
@@ -365,9 +396,15 @@ public class ParameterTypeTest extends TestBase {
     assertThat(javaResult.stdout, containsString(baz.name));
     assertEquals(-1, javaResult.stderr.indexOf("ClassNotFoundException"));
 
-    AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
-        // Disable inlining to avoid the (short) tested method from being inlined and then removed.
-        internalOptions -> internalOptions.enableInlining = false);
+    AndroidApp processedApp =
+        compileWithR8(
+            jasminBuilder.build(),
+            proguardConfig,
+            options -> {
+              // Disable inlining to avoid the (short) tested method from being inlined and removed.
+              options.enableInlining = false;
+              options.enableArgumentRemoval = enableArgumentRemoval;
+            });
 
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
@@ -378,6 +415,6 @@ public class ParameterTypeTest extends TestBase {
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject subSubject = inspector.clazz(sub.name);
-    assertThat(subSubject, isPresent());
+    assertNotEquals(enableArgumentRemoval, subSubject.isPresent());
   }
 }

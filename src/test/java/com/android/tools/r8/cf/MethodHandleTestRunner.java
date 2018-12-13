@@ -16,6 +16,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.cf.MethodHandleTest.C;
+import com.android.tools.r8.cf.MethodHandleTest.I;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -129,6 +131,7 @@ public class MethodHandleTestRunner extends TestBase {
     build(new ClassFileConsumer.ArchiveConsumer(outCf));
     String expected = lookupType == LookupType.CONSTANT ? "error" : "exception";
     ProcessResult runCf = ToolHelper.runJava(outCf, CLASS.getCanonicalName(), expected);
+    assertEquals(runCf.stderr, 0, runCf.exitCode);
     assertEquals(runInput.toString(), runCf.toString());
   }
 
@@ -167,13 +170,22 @@ public class MethodHandleTestRunner extends TestBase {
       builder.addClassProgramData(classAsBytes, Origin.unknown());
     }
     if (minifyMode == MinifyMode.MINIFY) {
+      ToolHelper.allowTestProguardOptions(builder);
       builder.addProguardConfiguration(
           Arrays.asList(
-              "-keep public class com.android.tools.r8.cf.MethodHandleTest {",
-              "  public static void main(...);",
+              keepMainProguardConfiguration(MethodHandleTest.class),
+              neverMergeRule(),
+              // Prevent the second argument of C.svic(), C.sjic(), I.sjic() and I.svic() from
+              // being removed although they are never used unused. This is needed since these
+              // methods are accessed reflectively.
+              "-keep,allowobfuscation public class " + C.class.getTypeName() + " {",
+              "  static void svic(int, char);",
+              "  static long sjic(int, char);",
               "}",
-              // Disallow merging MethodHandleTest$I into MethodHandleTest$Impl
-              "-keep public interface com.android.tools.r8.cf.MethodHandleTest$I"),
+              "-keep,allowobfuscation public interface " + I.class.getTypeName() + " {",
+              "  static long sjic(int, char);",
+              "  static void svic(int, char);",
+              "}"),
           Origin.unknown());
     }
     try {

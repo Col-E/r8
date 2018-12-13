@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -58,7 +57,6 @@ public abstract class UnusedArgumentsTestBase extends TestBase {
         .addKeepMainRule(getTestClass())
         .addKeepRules(minification ? "" : "-dontobfuscate")
         .enableInliningAnnotations()
-        .addOptionsModification(InternalOptions::enableUnusedArgumentRemoval)
         .compile()
         .run(getTestClass())
         .inspect(this::inspect)

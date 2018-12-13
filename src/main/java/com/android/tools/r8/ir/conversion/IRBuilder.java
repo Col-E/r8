@@ -23,6 +23,8 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -97,6 +99,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -116,6 +119,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -385,8 +389,8 @@ public class IRBuilder {
   private DexEncodedMethod context;
   private final AppInfo appInfo;
   private final Origin origin;
-  private IntList removedArguments;
-  private int nextRemovedArgumentsIndex = 0;
+  private RewrittenPrototypeDescription prototypeChanges;
+  private ListIterator<RemovedArgumentInfo> removedArgumentsIterator;
   private int argumentCount = 0;
 
   // Source code to build IR from. Null if already built.
@@ -426,7 +430,7 @@ public class IRBuilder {
         options,
         origin,
         new ValueNumberGenerator(),
-        GraphLense.emptyRemovedArguments());
+        GraphLense.getIdentityLense());
   }
 
   public IRBuilder(
@@ -436,7 +440,7 @@ public class IRBuilder {
       InternalOptions options,
       Origin origin,
       ValueNumberGenerator valueNumberGenerator,
-      IntList removedArguments) {
+      GraphLense graphLense) {
     assert source != null;
     this.method = method;
     this.appInfo = appInfo;
@@ -445,12 +449,24 @@ public class IRBuilder {
         valueNumberGenerator != null ? valueNumberGenerator : new ValueNumberGenerator();
     this.options = options;
     this.origin = origin;
-    this.removedArguments = removedArguments;
-    if (Log.ENABLED && !removedArguments.isEmpty()) {
-      Log.info(
-          getClass(),
-          "Removed " + removedArguments.size() + " arguments from " + method.toSourceString());
+
+    if (method.isProcessed()) {
+      // NOTE: This is currently assuming that we never remove additional arguments from methods
+      // after they have already been processed once.
+      this.prototypeChanges = RewrittenPrototypeDescription.none();
+    } else {
+      this.prototypeChanges = graphLense.lookupPrototypeChanges(method.method);
+
+      if (Log.ENABLED && prototypeChanges.getRemovedArgumentsInfo().hasRemovedArguments()) {
+        Log.info(
+            getClass(),
+            "Removed "
+                + prototypeChanges.getRemovedArgumentsInfo().numberOfRemovedArguments()
+                + " arguments from "
+                + method.toSourceString());
+      }
     }
+    this.removedArgumentsIterator = this.prototypeChanges.getRemovedArgumentsInfo().iterator();
   }
 
   public boolean isGeneratingClassFiles() {
@@ -798,19 +814,19 @@ public class IRBuilder {
     addInstruction(ir);
   }
 
-  private boolean skipArgument() {
-    if (nextRemovedArgumentsIndex < removedArguments.size()
-        && removedArguments.getInt(nextRemovedArgumentsIndex) == argumentCount) {
-      nextRemovedArgumentsIndex++;
+  private RemovedArgumentInfo getRemovedArgumentInfo() {
+    RemovedArgumentInfo removedArgumentInfo = IteratorUtils.peekNext(removedArgumentsIterator);
+    if (removedArgumentInfo != null && removedArgumentInfo.getArgumentIndex() == argumentCount) {
       argumentCount++;
-      return true;
+      return removedArgumentsIterator.next();
     }
     argumentCount++;
-    return false;
+    return null;
   }
 
   public void addThisArgument(int register) {
-    assert !skipArgument(); // Only static methods support removed arguments.
+    RemovedArgumentInfo removedArgumentInfo = getRemovedArgumentInfo();
+    assert removedArgumentInfo == null; // Removal of receiver not yet supported.
     DebugLocalInfo local = getOutgoingLocal(register);
     boolean receiverCouldBeNull = context != null && context != method;
     TypeLatticeElement receiver =
@@ -821,22 +837,26 @@ public class IRBuilder {
   }
 
   public void addNonThisArgument(int register, TypeLatticeElement typeLattice) {
-    if (skipArgument()) {
-      return;
+    RemovedArgumentInfo removedArgumentInfo = getRemovedArgumentInfo();
+    if (removedArgumentInfo == null) {
+      DebugLocalInfo local = getOutgoingLocal(register);
+      Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
+      addInstruction(new Argument(value));
+    } else {
+      assert removedArgumentInfo.isNeverUsed();
     }
-    DebugLocalInfo local = getOutgoingLocal(register);
-    Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
-    addInstruction(new Argument(value));
   }
 
   public void addBooleanNonThisArgument(int register) {
-    if (skipArgument()) {
-      return;
+    RemovedArgumentInfo removedArgumentInfo = getRemovedArgumentInfo();
+    if (removedArgumentInfo == null) {
+      DebugLocalInfo local = getOutgoingLocal(register);
+      Value value = writeRegister(register, INT, ThrowingInfo.NO_THROW, local);
+      value.setKnownToBeBoolean(true);
+      addInstruction(new Argument(value));
+    } else {
+      assert removedArgumentInfo.isNeverUsed();
     }
-    DebugLocalInfo local = getOutgoingLocal(register);
-    Value value = writeRegister(register, INT, ThrowingInfo.NO_THROW, local);
-    value.setKnownToBeBoolean(true);
-    addInstruction(new Argument(value));
   }
 
   private static boolean isValidFor(Value value, DebugLocalInfo local) {

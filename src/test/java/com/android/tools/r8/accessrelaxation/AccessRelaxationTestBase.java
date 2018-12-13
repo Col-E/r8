@@ -71,6 +71,7 @@ abstract class AccessRelaxationTestBase extends TestBase {
     ClassSubject classSubject = codeInspector.clazz(clazz);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(signature);
+    assertThat(methodSubject, isPresent());
     assertThat(methodSubject, isPublic());
   }
 
@@ -78,6 +79,7 @@ abstract class AccessRelaxationTestBase extends TestBase {
     ClassSubject classSubject = codeInspector.clazz(clazz);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(signature);
+    assertThat(methodSubject, isPresent());
     assertThat(methodSubject, not(isPublic()));
   }
 

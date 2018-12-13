@@ -383,15 +383,17 @@ public class R8 {
                   .prunedCopyFrom(application, verticalClassMerger.getRemovedClasses())
                   .rewrittenWithLense(application.asDirect(), appView.graphLense()));
         }
-        if (options.enableUnusedArgumentRemoval) {
-          timing.begin("UnusedArgumentRemoval");
-          appView.setGraphLense(new UnusedArgumentsCollector(appViewWithLiveness).run());
-          application = application.asDirect().rewrittenWithLense(appView.graphLense());
-          timing.end();
-          appViewWithLiveness.setAppInfo(
-              appViewWithLiveness
-                  .appInfo()
-                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+        if (options.enableArgumentRemoval) {
+          if (options.enableUnusedArgumentRemoval) {
+            timing.begin("UnusedArgumentRemoval");
+            appView.setGraphLense(new UnusedArgumentsCollector(appViewWithLiveness).run());
+            application = application.asDirect().rewrittenWithLense(appView.graphLense());
+            timing.end();
+            appViewWithLiveness.setAppInfo(
+                appViewWithLiveness
+                    .appInfo()
+                    .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+          }
         }
 
         // Collect switch maps and ordinals maps.

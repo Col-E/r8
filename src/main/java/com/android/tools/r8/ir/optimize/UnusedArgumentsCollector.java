@@ -16,7 +16,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentInfo;
+import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -24,27 +25,24 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class UnusedArgumentsCollector {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Set<DexEncodedMethod> methods = Sets.newIdentityHashSet();
 
   private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
-  private final Map<DexMethod, IntList> removedArguments = new IdentityHashMap<>();
+  private final Map<DexMethod, RemovedArgumentsInfo> removedArguments = new IdentityHashMap<>();
 
   static class UnusedArgumentsGraphLense extends NestedGraphLense {
 
-    private final Map<DexMethod, IntList> removedArguments;
+    private final Map<DexMethod, RemovedArgumentsInfo> removedArguments;
 
     UnusedArgumentsGraphLense(
         Map<DexType, DexType> typeMap,
@@ -52,9 +50,9 @@ public class UnusedArgumentsCollector {
         Map<DexField, DexField> fieldMap,
         BiMap<DexField, DexField> originalFieldSignatures,
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
-        com.android.tools.r8.graph.GraphLense previousLense,
+        GraphLense previousLense,
         DexItemFactory dexItemFactory,
-        Map<DexMethod, IntList> removedArguments) {
+        Map<DexMethod, RemovedArgumentsInfo> removedArguments) {
       super(
           typeMap,
           methodMap,
@@ -67,10 +65,13 @@ public class UnusedArgumentsCollector {
     }
 
     @Override
-    public GraphLenseLookupResult lookupMethod(
-        DexMethod method, DexEncodedMethod context, Type type) {
-      GraphLenseLookupResult result = super.lookupMethod(method, context, type);
-      IntList removedArguments = this.removedArguments.get(result.getMethod());
+    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+      DexMethod originalMethod =
+          originalMethodSignatures != null
+              ? originalMethodSignatures.getOrDefault(method, method)
+              : method;
+      RewrittenPrototypeDescription result = previousLense.lookupPrototypeChanges(originalMethod);
+      RemovedArgumentsInfo removedArguments = this.removedArguments.get(method);
       return removedArguments != null ? result.withRemovedArguments(removedArguments) : result;
     }
   }
@@ -101,22 +102,15 @@ public class UnusedArgumentsCollector {
   private class UsedSignatures {
 
     private final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
-    private final Set<Wrapper<DexMethod>> usedSignatures;
+    private final Set<Wrapper<DexMethod>> usedSignatures = new HashSet<>();
 
-    UsedSignatures(DexProgramClass clazz) {
-      // Only static methods for now, so just consider direct methods.
-      usedSignatures =
-          Arrays.stream(clazz.directMethods())
-              .map(targetMethod -> equivalence.wrap(targetMethod.method))
-              .collect(Collectors.toSet());
-    }
-
-    private DexProto protoWithRemovedArguments(DexMethod method, IntList unused) {
-      DexType[] parameters = new DexType[method.proto.parameters.size() - unused.size()];
+    private DexProto protoWithRemovedArguments(DexMethod method, RemovedArgumentsInfo unused) {
+      DexType[] parameters =
+          new DexType[method.proto.parameters.size() - unused.numberOfRemovedArguments()];
       if (parameters.length > 0) {
         int newIndex = 0;
         for (int j = 0; j < method.proto.parameters.size(); j++) {
-          if (!unused.contains(j)) {
+          if (!unused.isArgumentRemoved(j)) {
             parameters[newIndex++] = method.proto.parameters.values[j];
           }
         }
@@ -129,7 +123,11 @@ public class UnusedArgumentsCollector {
       return !usedSignatures.contains(equivalence.wrap(method));
     }
 
-    DexEncodedMethod removeArguments(DexEncodedMethod method, IntList unused) {
+    private void markSignatureAsUsed(DexMethod method) {
+      usedSignatures.add(equivalence.wrap(method));
+    }
+
+    DexEncodedMethod removeArguments(DexEncodedMethod method, RemovedArgumentsInfo unused) {
       boolean removed = usedSignatures.remove(equivalence.wrap(method.method));
       assert removed;
       DexProto newProto = protoWithRemovedArguments(method.method, unused);
@@ -147,16 +145,19 @@ public class UnusedArgumentsCollector {
             appView.dexItemFactory().createMethod(method.method.holder, newProto, newName);
         count++;
       } while (!isMethodSignatureAvailable(newSignature));
-      usedSignatures.add(equivalence.wrap(newSignature));
+      markSignatureAsUsed(newSignature);
       return method.toTypeSubstitutedMethod(newSignature);
     }
   }
 
   private void processClass(DexProgramClass clazz) {
-    UsedSignatures signatures = new UsedSignatures(clazz);
+    UsedSignatures signatures = new UsedSignatures();
+    for (DexEncodedMethod method : clazz.methods()) {
+      signatures.markSignatureAsUsed(method.method);
+    }
     for (int i = 0; i < clazz.directMethods().length; i++) {
       DexEncodedMethod method = clazz.directMethods()[i];
-      IntList unused = collectUnusedArguments(method);
+      RemovedArgumentsInfo unused = collectUnusedArguments(method);
       if (unused != null) {
         DexEncodedMethod newMethod = signatures.removeArguments(method, unused);
         clazz.directMethods()[i] = newMethod;
@@ -166,9 +167,12 @@ public class UnusedArgumentsCollector {
     }
   }
 
-  private IntList collectUnusedArguments(DexEncodedMethod method) {
-    // TODO(65810338): Do we need more exclusions here?
-    if (appView.appInfo().isPinned(method.method)) {
+  private RemovedArgumentsInfo collectUnusedArguments(DexEncodedMethod method) {
+    if (appView.appInfo().isPinned(method.method)
+        || appView.appInfo().bootstrapMethods.contains(method.method)
+        || appView.appInfo().brokenSuperInvokes.contains(method.method)
+        || appView.appInfo().methodsTargetedByInvokeDynamic.contains(method.method)
+        || method.accessFlags.isNative()) {
       return null;
     }
     // Only process JAR code.
@@ -185,16 +189,16 @@ public class UnusedArgumentsCollector {
     CollectUsedArguments collector = new CollectUsedArguments();
     method.getCode().registerArgumentReferences(collector);
     BitSet used = collector.getUsedArguments();
-    IntList unused = null;
     if (used.cardinality() < argumentCount) {
-      unused = new IntArrayList();
+      List<RemovedArgumentInfo> unused = new ArrayList<>();
       for (int i = 0; i < argumentCount; i++) {
         if (!used.get(i)) {
-          unused.add(i);
+          unused.add(new RemovedArgumentInfo(i));
         }
       }
+      return new RemovedArgumentsInfo(unused);
     }
-    return unused;
+    return null;
   }
 
   private static class CollectUsedArguments extends ArgumentUse {

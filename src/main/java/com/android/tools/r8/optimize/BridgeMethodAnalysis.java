@@ -130,6 +130,11 @@ public class BridgeMethodAnalysis {
     }
 
     @Override
+    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+      return previousLense.lookupPrototypeChanges(method);
+    }
+
+    @Override
     public DexField lookupField(DexField field) {
       return previousLense.lookupField(field);
     }

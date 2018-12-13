@@ -37,18 +37,18 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
 
     int size = capturesAndParams.size();
     if (size != implReceiverAndArgs.size()) {
-      return false;
+      assert false;
     }
 
     for (int i = 0; i < size; i++) {
       if (!isSameOrAdaptableTo(capturesAndParams.get(i), implReceiverAndArgs.get(i))) {
-        return false;
+        assert false;
       }
     }
 
     if (!enforcedReturnType.isVoidType()
         && !isSameOrAdaptableTo(implReturnType, enforcedReturnType)) {
-      return false;
+      assert false;
     }
     return true;
   }
@@ -242,7 +242,6 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
       add(builder -> builder.addMoveResult(tempValue));
       int adjustedValue = prepareReturnValue(tempValue,
           erasedReturnType, enforcedReturnType, methodToCall.proto.returnType);
-      ValueType adjustedValueType = ValueType.fromDexType(erasedReturnType);
       add(builder -> builder.addReturn(adjustedValue));
     }
   }
