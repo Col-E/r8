@@ -10,9 +10,9 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -74,8 +74,9 @@ public final class DexSplitterHelper {
       if (proguardMap != null) {
         mapper = ClassNameMapper.mapperFromFile(Paths.get(proguardMap));
       }
-      Map<String, Builder> applications = getDistribution(app, featureClassMapping, mapper);
-      for (Entry<String, Builder> entry : applications.entrySet()) {
+      Map<String, LazyLoadedDexApplication.Builder> applications =
+          getDistribution(app, featureClassMapping, mapper);
+      for (Entry<String, LazyLoadedDexApplication.Builder> entry : applications.entrySet()) {
         DexApplication featureApp = entry.getValue().build();
         // We use the same factory, reset sorting.
         featureApp.dexItemFactory.resetSortedIndices();
@@ -117,15 +118,15 @@ public final class DexSplitterHelper {
     }
   }
 
-  private static Map<String, Builder> getDistribution(
+  private static Map<String, LazyLoadedDexApplication.Builder> getDistribution(
       DexApplication app, FeatureClassMapping featureClassMapping, ClassNameMapper mapper)
       throws FeatureMappingException {
-    Map<String, Builder> applications = new HashMap<>();
+    Map<String, LazyLoadedDexApplication.Builder> applications = new HashMap<>();
     for (DexProgramClass clazz : app.classes()) {
       String clazzName =
           mapper != null ? mapper.deobfuscateClassName(clazz.toString()) : clazz.toString();
       String feature = featureClassMapping.featureForClass(clazzName);
-      Builder featureApplication = applications.get(feature);
+      LazyLoadedDexApplication.Builder featureApplication = applications.get(feature);
       if (featureApplication == null) {
         featureApplication = DexApplication.builder(app.dexItemFactory, app.timing);
         // If this is the base, we add the main dex list.
