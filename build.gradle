@@ -17,6 +17,7 @@ ext {
     joptSimpleVersion = '4.6'
     gsonVersion = '2.7'
     junitVersion = '4.12'
+    mockitoVersion = '2.10.0'
     kotlinVersion = '1.2.30'
     kotlinExtMetadataJVMVersion = '0.0.4'
     smaliVersion = '2.2b4'
@@ -239,6 +240,8 @@ dependencies {
     examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     // Import Guava for @Nullable annotation
     examplesCompile "com.google.guava:guava:$guavaVersion"
+    examplesCompile "junit:junit:$junitVersion"
+    examplesCompile "org.mockito:mockito-core:$mockitoVersion"
     examplesCompileOnly "com.google.auto.value:auto-value:$autoValueVersion"
     supportLibs "com.android.support:support-v4:$androidSupportVersion"
     supportLibs "junit:junit:$junitVersion"
