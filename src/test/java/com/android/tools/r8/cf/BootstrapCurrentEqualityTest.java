@@ -104,6 +104,17 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   }
 
   @Test
+  public void testRetrace() throws IOException {
+    ProcessResult result =
+        ToolHelper.runProcess(
+            new ProcessBuilder(
+                "python",
+                Paths.get(ToolHelper.TOOLS_DIR, "test_self_retrace.py").toString(),
+                r8R8Release.toString()));
+    assertEquals(0, result.exitCode);
+  }
+
+  @Test
   public void test() throws Exception {
     Path helloJar = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION);
     ProcessResult runResult = ToolHelper.runJava(helloJar, "hello.Hello");
@@ -144,7 +155,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   private static R8Result runExternalR8(
       Path r8Jar, Path inputJar, Path output, Path keepRules, String mode) throws Exception {
     Path outputJar = output.resolve("output.jar");
-    Path pgMapFile = output.resolve("map.txt");
+    Path pgMapFile = output.resolve("output.jar.map");
     ProcessResult processResult =
         ToolHelper.runJava(
             r8Jar,

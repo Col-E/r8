@@ -3,6 +3,9 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import gradle
 import os
 import subprocess
@@ -26,10 +29,22 @@ EXPECTED_LINES = [
 ]
 
 def main():
-  gradle.RunGradle(['r8lib'])
+  args = sys.argv[1:]
+  if len(args) == 0:
+    gradle.RunGradle(['r8lib'])
+    r8lib = utils.R8LIB_JAR
+  elif len(args) == 1:
+    if args[0] == '--help':
+      print('Usage: test_self_retrace.py [<path-to-r8lib-jar>]')
+      print('If the path is missing the script builds and uses ' + utils.R8LIB_JAR)
+      return
+    else:
+      r8lib = args[0]
+  else:
+    raise Exception("Only one argument is allowed, see '--help'.")
 
   # Run 'r8 --help' which throws an exception.
-  cmd = ['java','-cp', utils.R8LIB_JAR, 'com.android.tools.r8.R8', '--help']
+  cmd = ['java','-cp', r8lib, 'com.android.tools.r8.R8', '--help']
   os.environ["R8_THROW_EXCEPTION_FOR_TESTING_RETRACE"] = "1"
   utils.PrintCmd(cmd)
   p = subprocess.Popen(cmd, stderr=subprocess.PIPE)
@@ -40,7 +55,7 @@ def main():
   assert('SelfRetraceTest' not in stacktrace)
 
   # Run the retrace tool.
-  cmd = ['java', '-jar', RETRACE_JAR, utils.R8LIB_JAR + ".map"]
+  cmd = ['java', '-jar', RETRACE_JAR, r8lib + ".map"]
   utils.PrintCmd(cmd)
   p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
   retrace_stdout, _ = p.communicate(stacktrace)

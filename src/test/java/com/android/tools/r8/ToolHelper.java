@@ -72,6 +72,7 @@ public class ToolHelper {
 
   public static final String BUILD_DIR = "build/";
   public static final String LIBS_DIR = BUILD_DIR + "libs/";
+  public static final String TOOLS_DIR = "tools/";
   public static final String TESTS_DIR = "src/test/";
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
   public static final String EXAMPLES_ANDROID_N_DIR = TESTS_DIR + "examplesAndroidN/";
