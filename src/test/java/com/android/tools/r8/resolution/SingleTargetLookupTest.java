@@ -32,6 +32,7 @@ import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassOne;
 import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassTwo;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepRule;
@@ -114,7 +115,8 @@ public class SingleTargetLookupTest extends AsmTestBase {
                 buildKeepRuleForClass(Main.class, application.dexItemFactory),
                 options)
             .run(executor);
-    appInfo = new Enqueuer(appView, options).traceApplication(rootSet, executor, timing);
+    appInfo = new Enqueuer(appView, options).traceApplication(
+        rootSet, ProguardClassFilter.empty(), executor, timing);
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
   }

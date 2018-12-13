@@ -90,7 +90,9 @@ public class PrintSeeds {
                   appView, application, options.proguardConfiguration.getRules(), options)
               .run(executor);
       Enqueuer enqueuer = new Enqueuer(appView, options);
-      AppInfoWithLiveness appInfo = enqueuer.traceApplication(rootSet, executor, timing);
+      AppInfoWithLiveness appInfo =
+          enqueuer.traceApplication(
+              rootSet, options.proguardConfiguration.getDontWarnPatterns(), executor, timing);
       RootSetBuilder.writeSeeds(
           appInfo, System.out, type -> descriptors.contains(type.toDescriptorString()));
     } catch (ExecutionException e) {

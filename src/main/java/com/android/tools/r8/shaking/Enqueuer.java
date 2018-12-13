@@ -101,6 +101,7 @@ public class Enqueuer {
   private final AppView<? extends AppInfoWithSubtyping> appView;
   private final InternalOptions options;
   private RootSet rootSet;
+  private ProguardClassFilter dontWarnPatterns;
 
   private final Map<DexType, Set<DexMethod>> virtualInvokes = Maps.newIdentityHashMap();
   private final Map<DexType, Set<DexMethod>> interfaceInvokes = Maps.newIdentityHashMap();
@@ -847,13 +848,15 @@ public class Enqueuer {
 
     DexClass holder = appInfo.definitionFor(type);
     if (holder != null && !holder.isLibraryClass()) {
-      Diagnostic message = new StringDiagnostic("Library class " + context.toSourceString()
-          + (holder.isInterface() ? " implements " : " extends ")
-          + "program class " + type.toSourceString());
-      if (forceProguardCompatibility) {
-        options.reporter.warning(message);
-      } else {
-        options.reporter.error(message);
+      if (!dontWarnPatterns.matches(context)) {
+        Diagnostic message = new StringDiagnostic("Library class " + context.toSourceString()
+            + (holder.isInterface() ? " implements " : " extends ")
+            + "program class " + type.toSourceString());
+        if (forceProguardCompatibility) {
+          options.reporter.warning(message);
+        } else {
+          options.reporter.error(message);
+        }
       }
     }
   }
@@ -1349,8 +1352,12 @@ public class Enqueuer {
   }
 
   public AppInfoWithLiveness traceApplication(
-      RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
+      RootSet rootSet,
+      ProguardClassFilter dontWarnPatterns,
+      ExecutorService executorService,
+      Timing timing) throws ExecutionException {
     this.rootSet = rootSet;
+    this.dontWarnPatterns = dontWarnPatterns;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
     appInfo.libraryClasses().forEach(this::markAllLibraryVirtualMethodsReachable);

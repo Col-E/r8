@@ -10,6 +10,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.Set;
 
 public class ProguardClassFilter {
+  private static ProguardClassFilter EMPTY = new ProguardClassFilter(ImmutableList.of());
+
   private final ImmutableList<ProguardClassNameList> patterns;
 
   public static Builder builder() {
@@ -34,6 +36,10 @@ public class ProguardClassFilter {
 
   private ProguardClassFilter(ImmutableList<ProguardClassNameList> patterns) {
     this.patterns = patterns;
+  }
+
+  public static ProguardClassFilter empty() {
+    return EMPTY;
   }
 
   public boolean isEmpty() {

@@ -288,7 +288,8 @@ public class R8 {
                 .run(executorService);
 
         Enqueuer enqueuer = new Enqueuer(appView, options, compatibility);
-        appView.setAppInfo(enqueuer.traceApplication(rootSet, executorService, timing));
+        appView.setAppInfo(enqueuer.traceApplication(
+            rootSet, options.proguardConfiguration.getDontWarnPatterns(), executorService, timing));
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
@@ -484,7 +485,12 @@ public class R8 {
         timing.begin("Post optimization code stripping");
         try {
           Enqueuer enqueuer = new Enqueuer(appView, options);
-          appView.setAppInfo(enqueuer.traceApplication(rootSet, executorService, timing));
+          appView.setAppInfo(
+              enqueuer.traceApplication(
+                  rootSet,
+                  options.proguardConfiguration.getDontWarnPatterns(),
+                  executorService,
+                  timing));
 
           AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
           if (options.enableTreeShaking) {

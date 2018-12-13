@@ -83,7 +83,9 @@ abstract class NamingTestBase {
     }
 
     Enqueuer enqueuer = new Enqueuer(appView, options, options.forceProguardCompatibility);
-    AppInfoWithSubtyping appInfo = enqueuer.traceApplication(rootSet, executor, timing);
+    AppInfoWithSubtyping appInfo =
+        enqueuer.traceApplication(
+            rootSet, configuration.getDontWarnPatterns(), executor, timing);
     return new Minifier(appInfo.withLiveness(), rootSet, Collections.emptySet(), options)
         .run(timing);
   }
