@@ -75,7 +75,7 @@ def extract_lib_from_args(input_args):
   args = []
   for arg in input_args:
     if arg == '--lib-android':
-      lib = utils.get_android_jar(26)
+      lib = utils.get_android_jar(28)
     elif arg == '--lib-java':
       lib = utils.RT_JAR
     else:
