@@ -5,7 +5,10 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -24,6 +27,10 @@ public abstract class TestShrinkerBuilder<
   public abstract T noTreeShaking();
 
   public abstract T noMinification();
+
+  public T addKeepRules(Path path) throws IOException {
+    return addKeepRules(FileUtils.readAllLines(path));
+  }
 
   public abstract T addKeepRules(Collection<String> rules);
 
