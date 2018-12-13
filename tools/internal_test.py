@@ -197,8 +197,6 @@ def run_bot():
   assert not get_magic_file_exists(READY_FOR_TESTING)
   git_hash = utils.get_HEAD_sha1()
   put_magic_file(READY_FOR_TESTING, git_hash)
-  print("TODO(118647285): Reenable when bug fixed")
-  return
   begin = time.time()
   while True:
     if time.time() - begin > BOT_RUN_TIMEOUT:
