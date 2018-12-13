@@ -128,8 +128,9 @@ final class LambdaClass {
   }
 
   private DexProgramClass synthesizeLambdaClass() {
-    DexMethod mainMethod = rewriter.factory
-        .createMethod(type, descriptor.erasedProto, descriptor.name);
+    DexMethod mainMethod =
+        rewriter.factory.createMethod(type, descriptor.erasedProto, descriptor.name);
+
     DexProgramClass clazz =
         new DexProgramClass(
             type,

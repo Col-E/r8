@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -54,8 +55,10 @@ public class LinearFlowIteratorTest extends TestBase {
     // Build the code, and split the code into three blocks.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     AndroidApp app = compileWithD8(appBuilder.build());
+    AppInfo appInfo = getAppInfo(app);
     DexEncodedMethod method = getMethod(app, "foo", "void", "bar", ImmutableList.of("int"));
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code =
+        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
     ListIterator<BasicBlock> blocks = code.listIterator();
     blocks.next();
     InstructionListIterator iter = blocks.next().listIterator();
@@ -90,8 +93,10 @@ public class LinearFlowIteratorTest extends TestBase {
     // Build the code, and split the code into three blocks.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     AndroidApp app = compileWithD8(appBuilder.build());
+    AppInfo appInfo = getAppInfo(app);
     DexEncodedMethod method = getMethod(app, "foo", "void", "bar", ImmutableList.of("int"));
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code =
+        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
     ListIterator<BasicBlock> blocks = code.listIterator();
     InstructionListIterator iter = blocks.next().listIterator();
     iter.nextUntil(i -> !i.isArgument());

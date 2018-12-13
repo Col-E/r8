@@ -1400,6 +1400,7 @@ public class Outliner {
             TypeLatticeElement.fromDexType(outline.argumentTypes.get(i), true, appInfo);
         builder.addNonThisArgument(i, typeLattice);
       }
+      builder.flushArgumentInstructions();
     }
 
     @Override

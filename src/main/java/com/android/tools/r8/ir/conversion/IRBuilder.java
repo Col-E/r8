@@ -393,6 +393,8 @@ public class IRBuilder {
   private ListIterator<RemovedArgumentInfo> removedArgumentsIterator;
   private int argumentCount = 0;
 
+  private List<Instruction> pendingArgumentInstructions;
+
   // Source code to build IR from. Null if already built.
   private SourceCode source;
 
@@ -453,6 +455,7 @@ public class IRBuilder {
     if (method.isProcessed()) {
       // NOTE: This is currently assuming that we never remove additional arguments from methods
       // after they have already been processed once.
+      assert verifyMethodSignature(method, graphLense);
       this.prototypeChanges = RewrittenPrototypeDescription.none();
     } else {
       this.prototypeChanges = graphLense.lookupPrototypeChanges(method.method);
@@ -467,6 +470,14 @@ public class IRBuilder {
       }
     }
     this.removedArgumentsIterator = this.prototypeChanges.getRemovedArgumentsInfo().iterator();
+  }
+
+  private static boolean verifyMethodSignature(DexEncodedMethod method, GraphLense graphLense) {
+    RewrittenPrototypeDescription prototypeChanges =
+        graphLense.lookupPrototypeChanges(method.method);
+    assert !prototypeChanges.hasBeenChangedToReturnVoid()
+        || method.method.proto.returnType.isVoidType();
+    return true;
   }
 
   public boolean isGeneratingClassFiles() {
@@ -842,6 +853,13 @@ public class IRBuilder {
       DebugLocalInfo local = getOutgoingLocal(register);
       Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
       addInstruction(new Argument(value));
+    } else if (removedArgumentInfo.isAlwaysNull()) {
+      if (pendingArgumentInstructions == null) {
+        pendingArgumentInstructions = new ArrayList<>();
+      }
+      DebugLocalInfo local = getOutgoingLocal(register);
+      Value value = writeRegister(register, TypeLatticeElement.NULL, ThrowingInfo.NO_THROW, local);
+      pendingArgumentInstructions.add(new ConstNumber(value, 0));
     } else {
       assert removedArgumentInfo.isNeverUsed();
     }
@@ -856,6 +874,13 @@ public class IRBuilder {
       addInstruction(new Argument(value));
     } else {
       assert removedArgumentInfo.isNeverUsed();
+    }
+  }
+
+  public void flushArgumentInstructions() {
+    if (pendingArgumentInstructions != null) {
+      pendingArgumentInstructions.forEach(this::addInstruction);
+      pendingArgumentInstructions.clear();
     }
   }
 
@@ -1598,10 +1623,15 @@ public class IRBuilder {
   }
 
   public void addReturn(int value) {
-    ValueTypeConstraint returnType =
-        ValueTypeConstraint.fromDexType(method.method.proto.returnType);
-    Value in = readRegister(value, returnType);
-    addReturn(new Return(in));
+    if (method.method.proto.returnType == appInfo.dexItemFactory.voidType) {
+      assert prototypeChanges.hasBeenChangedToReturnVoid();
+      addReturn();
+    } else {
+      ValueTypeConstraint returnTypeConstraint =
+          ValueTypeConstraint.fromDexType(method.method.proto.returnType);
+      Value in = readRegister(value, returnTypeConstraint);
+      addReturn(new Return(in));
+    }
   }
 
   public void addReturn() {

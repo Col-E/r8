@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir;
 
+import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -14,6 +17,7 @@ import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.ListIterator;
@@ -48,11 +52,17 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
+    DexApplication dexApplication =
+        new ApplicationReader(
+                application, new InternalOptions(), new Timing("BasicBlockIteratorTest"))
+            .read();
+    AppInfo appInfo = new AppInfo(dexApplication);
 
     // Build the code, and split the code into three blocks.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code =
+        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
     ListIterator<BasicBlock> blocks = code.listIterator();
     InstructionListIterator iter = blocks.next().listIterator();
     iter.nextUntil(i -> !i.isArgument());

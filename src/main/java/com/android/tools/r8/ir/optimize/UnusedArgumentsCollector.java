@@ -168,11 +168,7 @@ public class UnusedArgumentsCollector {
   }
 
   private RemovedArgumentsInfo collectUnusedArguments(DexEncodedMethod method) {
-    if (appView.appInfo().isPinned(method.method)
-        || appView.appInfo().bootstrapMethods.contains(method.method)
-        || appView.appInfo().brokenSuperInvokes.contains(method.method)
-        || appView.appInfo().methodsTargetedByInvokeDynamic.contains(method.method)
-        || method.accessFlags.isNative()) {
+    if (ArgumentRemovalUtils.isPinned(method, appView)) {
       return null;
     }
     // Only process JAR code.
@@ -193,7 +189,7 @@ public class UnusedArgumentsCollector {
       List<RemovedArgumentInfo> unused = new ArrayList<>();
       for (int i = 0; i < argumentCount; i++) {
         if (!used.get(i)) {
-          unused.add(new RemovedArgumentInfo(i));
+          unused.add(RemovedArgumentInfo.builder().setArgumentIndex(i).build());
         }
       }
       return new RemovedArgumentsInfo(unused);

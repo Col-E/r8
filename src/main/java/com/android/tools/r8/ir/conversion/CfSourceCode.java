@@ -363,6 +363,7 @@ public class CfSourceCode implements SourceCode {
         argumentRegister += typeLattice.requiredRegisters();
       }
     }
+    builder.flushArgumentInstructions();
   }
 
   private boolean isStatic() {

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -29,12 +30,10 @@ public class InstructionIteratorTest extends SmaliTestBase {
   /**
    * Simple test IR, which has three blocks:
    *
-   * First block: Argument instructions
-   * Second block: Add instruction
-   * Third block: Return instruction
-   *
+   * <p>First block: Argument instructions Second block: Add instruction Third block: Return
+   * instruction
    */
-  IRCode simpleCode() throws Exception {
+  IRCode simpleCode() {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -49,11 +48,13 @@ public class InstructionIteratorTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
+    AppInfo appInfo = getAppInfo(application);
 
     // Build the code, and split the code into three blocks.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code =
+        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
     ListIterator<BasicBlock> blocks = code.listIterator();
     InstructionListIterator iter = blocks.next().listIterator();
     iter.nextUntil(i -> !i.isArgument());
@@ -63,7 +64,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
   }
 
   @Test
-  public void removeBeforeNext() throws Exception {
+  public void removeBeforeNext() {
     IRCode code = simpleCode();
 
     ListIterator<BasicBlock> blocks = code.listIterator();
@@ -73,7 +74,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
   }
 
   @Test
-  public void removeTwice() throws Exception {
+  public void removeTwice() {
     IRCode code = simpleCode();
 
     ListIterator<BasicBlock> blocks = code.listIterator();

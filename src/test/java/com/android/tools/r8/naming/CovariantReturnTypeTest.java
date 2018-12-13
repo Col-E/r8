@@ -40,6 +40,18 @@ public class CovariantReturnTypeTest extends TestBase {
     JasminBuilder appBuilder = new JasminBuilder();
     ClassBuilder classBuilder = appBuilder.addClass("package.TestClass");
 
+    // TODO(b/120959040): Use a testing rule to disable relevant optimizations instead.
+    // Add a main method that instantiates A and B to make sure that the return type of the methods
+    // below are not changed to void by the uninstantiated type optimization.
+    classBuilder.addMainMethod(
+        ".limit stack 1",
+        ".limit locals 1",
+        "new package/A",
+        "invokespecial package/A/<init>()V",
+        "new package/B",
+        "invokespecial package/B/<init>()V",
+        "return");
+
     classBuilder.addVirtualMethod("method1", "Ljava/lang/Object;", returnNullByteCode);
     classBuilder.addVirtualMethod("method1", "Lpackage/A;", returnNullByteCode);
     classBuilder.addVirtualMethod("method1", "Lpackage/B;", returnNullByteCode);
@@ -52,8 +64,11 @@ public class CovariantReturnTypeTest extends TestBase {
     classBuilder.addVirtualMethod("method3", "Lpackage/B;", returnNullByteCode);
     classBuilder.addVirtualMethod("method3", "Ljava/lang/Object;", returnNullByteCode);
 
-    appBuilder.addInterface("package.A");
-    appBuilder.addInterface("package.B");
+    classBuilder = appBuilder.addClass("package.A");
+    classBuilder.addDefaultConstructor();
+
+    classBuilder = appBuilder.addClass("package.B");
+    classBuilder.addDefaultConstructor();
 
     Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
     AndroidApp output =

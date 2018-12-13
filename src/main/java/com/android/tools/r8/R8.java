@@ -20,7 +20,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
+import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
+import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -388,6 +390,18 @@ public class R8 {
           if (options.enableUnusedArgumentRemoval) {
             timing.begin("UnusedArgumentRemoval");
             appView.setGraphLense(new UnusedArgumentsCollector(appViewWithLiveness).run());
+            application = application.asDirect().rewrittenWithLense(appView.graphLense());
+            timing.end();
+            appViewWithLiveness.setAppInfo(
+                appViewWithLiveness
+                    .appInfo()
+                    .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+          }
+          if (options.enableUninstantiatedTypeOptimization) {
+            timing.begin("UninstantiatedTypeOptimization");
+            appView.setGraphLense(
+                new UninstantiatedTypeOptimization(appViewWithLiveness, options)
+                    .run(new MethodPoolCollection(application), executorService, timing));
             application = application.asDirect().rewrittenWithLense(appView.graphLense());
             timing.end();
             appViewWithLiveness.setAppInfo(

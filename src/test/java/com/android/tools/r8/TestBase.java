@@ -14,7 +14,10 @@ import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -29,6 +32,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -51,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.jar.JarOutputStream;
@@ -330,6 +335,18 @@ public class TestBase {
       addDataResourcesToJar(out, dataResources);
     }
     return newJar;
+  }
+
+  protected AppInfo getAppInfo(AndroidApp application) {
+    try {
+      DexApplication dexApplication =
+          new ApplicationReader(
+                  application, new InternalOptions(), new Timing("TestBase.getAppInfo"))
+              .read();
+      return new AppInfo(dexApplication);
+    } catch (IOException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /** Returns a list containing all the data resources in the given app. */

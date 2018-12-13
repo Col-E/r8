@@ -30,16 +30,12 @@ public class BootstrapTest extends TestBase {
 
   private static final String R8_NAME = "com.android.tools.r8.R8";
   private static final String[] KEEP_R8 = {
-      "-keep public class " + R8_NAME + " {",
-      "  public static void main(...);",
-      "}",
+    "-keep public class " + R8_NAME + " {", "  public static void main(...);", "}",
   };
 
   private static final String HELLO_NAME = "hello.Hello";
   private static final String[] KEEP_HELLO = {
-      "-keep class " + HELLO_NAME + " {",
-      "  public static void main(...);",
-      "}",
+    "-keep class " + HELLO_NAME + " {", "  public static void main(...);", "}",
   };
 
   private class R8Result {

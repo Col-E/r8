@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.code.ConstInstruction;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -64,22 +67,55 @@ public abstract class GraphLense {
 
     public static class RemovedArgumentInfo {
 
-      private final int argumentIndex;
+      public static class Builder {
 
-      public RemovedArgumentInfo(int argumentIndex) {
+        private int argumentIndex = -1;
+        private boolean isAlwaysNull = false;
+
+        public Builder setArgumentIndex(int argumentIndex) {
+          this.argumentIndex = argumentIndex;
+          return this;
+        }
+
+        public Builder setIsAlwaysNull() {
+          this.isAlwaysNull = true;
+          return this;
+        }
+
+        public RemovedArgumentInfo build() {
+          assert argumentIndex >= 0;
+          return new RemovedArgumentInfo(argumentIndex, isAlwaysNull);
+        }
+      }
+
+      private final int argumentIndex;
+      private final boolean isAlwaysNull;
+
+      private RemovedArgumentInfo(int argumentIndex, boolean isAlwaysNull) {
         this.argumentIndex = argumentIndex;
+        this.isAlwaysNull = isAlwaysNull;
+      }
+
+      public static Builder builder() {
+        return new Builder();
       }
 
       public int getArgumentIndex() {
         return argumentIndex;
       }
 
+      public boolean isAlwaysNull() {
+        return isAlwaysNull;
+      }
+
       public boolean isNeverUsed() {
-        return true;
+        return !isAlwaysNull;
       }
 
       public RemovedArgumentInfo withArgumentIndex(int argumentIndex) {
-        return this.argumentIndex != argumentIndex ? new RemovedArgumentInfo(argumentIndex) : this;
+        return this.argumentIndex != argumentIndex
+            ? new RemovedArgumentInfo(argumentIndex, isAlwaysNull)
+            : this;
       }
     }
 
@@ -164,14 +200,17 @@ public abstract class GraphLense {
 
     private static final RewrittenPrototypeDescription none = new RewrittenPrototypeDescription();
 
+    private final boolean hasBeenChangedToReturnVoid;
     private final RemovedArgumentsInfo removedArgumentsInfo;
 
     private RewrittenPrototypeDescription() {
-      this(RemovedArgumentsInfo.empty());
+      this(false, RemovedArgumentsInfo.empty());
     }
 
-    public RewrittenPrototypeDescription(RemovedArgumentsInfo removedArgumentsInfo) {
+    public RewrittenPrototypeDescription(
+        boolean hasBeenChangedToReturnVoid, RemovedArgumentsInfo removedArgumentsInfo) {
       assert removedArgumentsInfo != null;
+      this.hasBeenChangedToReturnVoid = hasBeenChangedToReturnVoid;
       this.removedArgumentsInfo = removedArgumentsInfo;
     }
 
@@ -180,15 +219,35 @@ public abstract class GraphLense {
     }
 
     public boolean isEmpty() {
-      return !getRemovedArgumentsInfo().hasRemovedArguments();
+      return !hasBeenChangedToReturnVoid && !getRemovedArgumentsInfo().hasRemovedArguments();
+    }
+
+    public boolean hasBeenChangedToReturnVoid() {
+      return hasBeenChangedToReturnVoid;
     }
 
     public RemovedArgumentsInfo getRemovedArgumentsInfo() {
       return removedArgumentsInfo;
     }
 
+    /**
+     * Returns the {@link ConstInstruction} that should be used to materialize the result of
+     * invocations to the method represented by this {@link RewrittenPrototypeDescription}.
+     *
+     * <p>This method should only be used for methods that return a constant value and whose return
+     * type has been changed to void.
+     *
+     * <p>Note that the current implementation always returns null at this point.
+     */
+    public ConstInstruction getConstantReturn(IRCode code, Position position) {
+      assert hasBeenChangedToReturnVoid;
+      ConstInstruction instruction = code.createConstNull();
+      instruction.setPosition(position);
+      return instruction;
+    }
+
     public DexType rewriteReturnType(DexType returnType, DexItemFactory dexItemFactory) {
-      return returnType;
+      return hasBeenChangedToReturnVoid ? dexItemFactory.voidType : returnType;
     }
 
     public DexType[] rewriteParameters(DexType[] params) {
@@ -214,8 +273,15 @@ public abstract class GraphLense {
       return dexItemFactory.createProto(newReturnType, newParameters);
     }
 
+    public RewrittenPrototypeDescription withConstantReturn() {
+      return !hasBeenChangedToReturnVoid
+          ? new RewrittenPrototypeDescription(true, removedArgumentsInfo)
+          : this;
+    }
+
     public RewrittenPrototypeDescription withRemovedArguments(RemovedArgumentsInfo other) {
-      return new RewrittenPrototypeDescription(removedArgumentsInfo.combine(other));
+      return new RewrittenPrototypeDescription(
+          hasBeenChangedToReturnVoid, removedArgumentsInfo.combine(other));
     }
   }
 

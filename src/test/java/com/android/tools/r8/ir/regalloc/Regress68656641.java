@@ -39,7 +39,7 @@ public class Regress68656641 extends SmaliTestBase {
     }
   }
 
-  IRCode simpleCode(InternalOptions options) throws Exception {
+  IRCode simpleCode() {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
     MethodSignature signature = builder.addStaticMethod(
         "void",
@@ -48,19 +48,18 @@ public class Regress68656641 extends SmaliTestBase {
         1,
         "    return-void");
     AndroidApp application = buildApplication(builder);
+    AppInfo appInfo = getAppInfo(application);
     // Build the code, and split the code into three blocks.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
-    return code;
+    return method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
   }
 
-
   @Test
-  public void splitOverlappingInactiveIntervalWithNoNextUse() throws Exception {
+  public void splitOverlappingInactiveIntervalWithNoNextUse() {
     InternalOptions options = new InternalOptions();
     AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
-    IRCode code = simpleCode(options);
+    IRCode code = simpleCode();
     MyRegisterAllocator allocator = new MyRegisterAllocator(appInfo, code, options);
     // Setup live an inactive live interval with ranges [0, 10[ and [20, 30[ with only
     // uses in the first interval and which is linked to another interval.

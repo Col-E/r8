@@ -159,6 +159,7 @@ public class DexSourceCode implements SourceCode {
       builder.addNonThisArgument(register, typeLattice);
       register += typeLattice.requiredRegisters();
     }
+    builder.flushArgumentInstructions();
   }
 
   @Override

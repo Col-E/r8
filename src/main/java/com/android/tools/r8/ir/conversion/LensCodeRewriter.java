@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
+import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstMethodHandle;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -168,7 +169,17 @@ public class LensCodeRewriter {
                 graphLense.lookupPrototypeChanges(actualTarget);
             RemovedArgumentsInfo removedArgumentsInfo = prototypeChanges.getRemovedArgumentsInfo();
 
-            Value newOutValue = makeOutValue(invoke, code, newSSAValues);
+            ConstInstruction constantReturnMaterializingInstruction = null;
+            if (prototypeChanges.hasBeenChangedToReturnVoid() && invoke.outValue() != null) {
+              constantReturnMaterializingInstruction =
+                  prototypeChanges.getConstantReturn(code, invoke.getPosition());
+              invoke.outValue().replaceUsers(constantReturnMaterializingInstruction.outValue());
+            }
+
+            Value newOutValue =
+                prototypeChanges.hasBeenChangedToReturnVoid()
+                    ? null
+                    : makeOutValue(invoke, code, newSSAValues);
 
             List<Value> newInValues;
             if (removedArgumentsInfo.hasRemovedArguments()) {
@@ -197,6 +208,10 @@ public class LensCodeRewriter {
             Invoke newInvoke =
                 Invoke.create(actualInvokeType, actualTarget, null, newOutValue, newInValues);
             iterator.replaceCurrentInstruction(newInvoke);
+
+            if (constantReturnMaterializingInstruction != null) {
+              iterator.add(constantReturnMaterializingInstruction);
+            }
 
             DexType actualReturnType = actualTarget.proto.returnType;
             DexType expectedReturnType = graphLense.lookupType(invokedMethod.proto.returnType);

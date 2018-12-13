@@ -336,12 +336,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         Origin.unknown());
   }
 
-  public IRCode buildInliningIRForTesting(
-      InternalOptions options, ValueNumberGenerator valueNumberGenerator) {
-    checkIfObsolete();
-    return buildInliningIRForTesting(options, valueNumberGenerator, null);
-  }
-
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       AppInfo appInfo,

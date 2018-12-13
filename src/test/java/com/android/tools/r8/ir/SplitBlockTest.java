@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -60,11 +61,13 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code =
+        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
 
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
@@ -178,11 +181,13 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code =
+        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
 
@@ -303,11 +308,13 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code =
+        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
 
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }
@@ -429,11 +436,13 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
+    AppInfo appInfo = new AppInfo(application);
 
     // Return the processed method for inspection.
     ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator);
+    IRCode code =
+        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
 
     return new TestApplication(application, method, code, valueNumberGenerator, options);
   }

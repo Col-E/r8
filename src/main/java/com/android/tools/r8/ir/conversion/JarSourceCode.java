@@ -382,6 +382,7 @@ public class JarSourceCode implements SourceCode {
       }
       argumentRegister += typeLattice.requiredRegisters();
     }
+    builder.flushArgumentInstructions();
   }
 
   private Int2ReferenceMap<Type> recordArgumentTypes(IRBuilder builder) {

@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,7 +35,6 @@ public class ParameterRewritingTest extends TestBase {
     this.backend = backend;
   }
 
-  @Ignore("b/110806787")
   @Test
   public void test() throws Exception {
     String expected =
@@ -44,7 +42,8 @@ public class ParameterRewritingTest extends TestBase {
             "Factory.createStatic() -> null",
             "Factory.createStaticWithUnused1() -> null",
             "Factory.createStaticWithUnused2() -> null",
-            "Factory.createStaticWithUnused3() -> null");
+            "Factory.createStaticWithUnused3() -> null",
+            "Factory.createStaticWithUnused4() -> null");
 
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
 
@@ -77,6 +76,15 @@ public class ParameterRewritingTest extends TestBase {
       assertEquals("java.lang.String", method.proto.parameters.toString());
     }
 
+    MethodSubject createStaticWithUnusedMethodSubject =
+        factoryClassSubject.uniqueMethodWithName("createStaticWithUnused4");
+    assertThat(createStaticWithUnusedMethodSubject, isPresent());
+
+    DexMethod method = createStaticWithUnusedMethodSubject.getMethod().method;
+    assertEquals(3, method.proto.parameters.size());
+    assertEquals(
+        "java.lang.String java.lang.String java.lang.String", method.proto.parameters.toString());
+
     assertThat(inspector.clazz(Uninstantiated.class), not(isPresent()));
   }
 
@@ -97,6 +105,11 @@ public class ParameterRewritingTest extends TestBase {
       Object obj4 =
           Factory.createStaticWithUnused3(null, "Factory.createStaticWithUnused3()", new Object());
       System.out.println(" -> " + obj4);
+
+      Object obj5 =
+          Factory.createStaticWithUnused4(
+              "Factory", new Object(), null, ".", new Object(), null, "createStaticWithUnused4()");
+      System.out.println(" -> " + obj5);
     }
   }
 
@@ -131,6 +144,24 @@ public class ParameterRewritingTest extends TestBase {
         Uninstantiated uninstantiated, String msg, Object unused) {
       System.out.print(msg);
       return uninstantiated;
+    }
+
+    @NeverInline
+    public static Object createStaticWithUnused4(
+        String msg1,
+        Object unused1,
+        Uninstantiated uninstantiated1,
+        String msg2,
+        Object unused2,
+        Uninstantiated uninstantiated2,
+        String msg3) {
+      System.out.print(msg1 + msg2 + msg3);
+      return oneOf(uninstantiated1, uninstantiated2);
+    }
+
+    @NeverInline
+    private static <T> T oneOf(T x, T y) {
+      return System.currentTimeMillis() > 0 ? x : y;
     }
   }
 }

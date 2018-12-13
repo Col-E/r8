@@ -192,16 +192,6 @@ public class SmaliTestBase extends TestBase {
     }
   }
 
-  protected AppInfo getAppInfo(AndroidApp application) {
-    try {
-      DexApplication dexApplication = new ApplicationReader(application, new InternalOptions(),
-          new Timing("SmaliTest.getAppInfo")).read();
-      return new AppInfo(dexApplication);
-    } catch (IOException | ExecutionException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   /**
    * Create an application with one method, and processed that application using R8.
    *

@@ -6,17 +6,20 @@ package com.android.tools.r8.ir.optimize.uninstantiatedtypes;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.google.common.collect.Streams;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,14 +33,16 @@ import org.junit.runners.Parameterized.Parameters;
 public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
 
   private final Backend backend;
+  private final boolean enableArgumentRemoval;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return Backend.values();
+  @Parameters(name = "Backend: {0}, enable argument removal: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(Backend.values(), BooleanUtils.values());
   }
 
-  public InvokeMethodWithReceiverOptimizationTest(Backend backend) {
+  public InvokeMethodWithReceiverOptimizationTest(Backend backend, boolean enableArgumentRemoval) {
     this.backend = backend;
+    this.enableArgumentRemoval = enableArgumentRemoval;
   }
 
   @Test
@@ -55,12 +60,10 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
             .addInnerClasses(InvokeMethodWithReceiverOptimizationTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .addOptionsModification(
-                options -> {
-                  // Avoid that the class inliner inlines testRewriteInvokeVirtualToThrowNullWith-
-                  // CatchHandlers(new A()).
-                  options.enableClassInlining = false;
-                })
+            .addOptionsModification(o -> o.enableArgumentRemoval = enableArgumentRemoval)
+            // TODO(b/120764902): The calls to getOriginalName() below does not work in presence of
+            // argument removal.
+            .addKeepRules("-dontobfuscate")
             .run(TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
@@ -69,7 +72,7 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
     assertThat(testClassSubject, isPresent());
 
     ClassSubject otherClassSubject = inspector.clazz(A.class);
-    assertThat(otherClassSubject, isPresent());
+    assertNotEquals(enableArgumentRemoval, otherClassSubject.isPresent());
 
     // Check that A.method() has been removed.
     assertThat(otherClassSubject.uniqueMethodWithName("method"), not(isPresent()));

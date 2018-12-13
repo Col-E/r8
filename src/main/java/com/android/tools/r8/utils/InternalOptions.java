@@ -80,9 +80,10 @@ public class InternalOptions {
     itemFactory = proguardConfiguration.getDexItemFactory();
     // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
+      enableArgumentRemoval = false;
       enableHorizontalClassMerging = false;
       enableVerticalClassMerging = false;
-      enableArgumentRemoval = false;
+      enableUninstantiatedTypeOptimization = false;
       enableUnusedArgumentRemoval = false;
       enableDevirtualization = false;
       enableNonNullTracking = false;

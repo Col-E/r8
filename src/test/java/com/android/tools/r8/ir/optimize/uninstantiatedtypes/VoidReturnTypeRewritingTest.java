@@ -14,7 +14,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,7 +33,6 @@ public class VoidReturnTypeRewritingTest extends TestBase {
     this.backend = backend;
   }
 
-  @Ignore("b/110806787")
   @Test
   public void test() throws Exception {
     String expected =
