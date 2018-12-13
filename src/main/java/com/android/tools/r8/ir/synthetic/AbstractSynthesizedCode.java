@@ -43,8 +43,16 @@ public abstract class AbstractSynthesizedCode extends Code {
       InternalOptions options,
       Origin origin) {
     assert getOwner() == encodedMethod;
-    return new IRBuilder(encodedMethod, appInfo, getSourceCodeProvider().get(null), options, origin)
-        .build(encodedMethod);
+    IRBuilder builder =
+        new IRBuilder(
+            encodedMethod,
+            appInfo,
+            getSourceCodeProvider().get(null),
+            options,
+            origin,
+            new ValueNumberGenerator(),
+            graphLense);
+    return builder.build(encodedMethod);
   }
 
   @Override
@@ -66,7 +74,7 @@ public abstract class AbstractSynthesizedCode extends Code {
             options,
             origin,
             valueNumberGenerator,
-            GraphLense.emptyRemovedArguments());
+            graphLense);
     return builder.build(context);
   }
 

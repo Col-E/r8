@@ -611,6 +611,10 @@ public class TestBase {
         + keepMainProguardConfiguration(clazz);
   }
 
+  public static String neverMergeRule() {
+    return "-nevermerge @com.android.tools.r8.NeverMerge class *";
+  }
+
   /**
    * Run application on the specified version of Art with the specified main class.
    */

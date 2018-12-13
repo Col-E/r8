@@ -217,13 +217,7 @@ public class DexCode extends Code {
             appInfo);
     IRBuilder builder =
         new IRBuilder(
-            encodedMethod,
-            appInfo,
-            source,
-            options,
-            origin,
-            valueNumberGenerator,
-            GraphLense.emptyRemovedArguments());
+            encodedMethod, appInfo, source, options, origin, valueNumberGenerator, graphLense);
     return builder.build(context);
   }
 

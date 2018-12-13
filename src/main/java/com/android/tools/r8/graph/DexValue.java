@@ -40,6 +40,14 @@ public abstract class DexValue extends DexItem {
   public static final byte VALUE_NULL = 0x1e;
   public static final byte VALUE_BOOLEAN = 0x1f;
 
+  public DexValueMethodHandle asDexValueMethodHandle() {
+    return null;
+  }
+
+  public DexValueMethodType asDexValueMethodType() {
+    return null;
+  }
+
   public static DexValue fromAsmBootstrapArgument(
       Object value, JarApplicationReader application, DexType clazz) {
     if (value instanceof Integer) {
@@ -832,6 +840,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexValueMethodType asDexValueMethodType() {
+      return this;
+    }
+
+    @Override
     protected byte getValueKind() {
       return VALUE_METHOD_TYPE;
     }
@@ -1078,6 +1091,11 @@ public abstract class DexValue extends DexItem {
 
     public DexValueMethodHandle(DexMethodHandle value) {
       super(value);
+    }
+
+    @Override
+    public DexValueMethodHandle asDexValueMethodHandle() {
+      return this;
     }
 
     @Override

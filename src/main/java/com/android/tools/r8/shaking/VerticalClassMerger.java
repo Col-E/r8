@@ -1666,6 +1666,11 @@ public class VerticalClassMerger {
     }
 
     @Override
+    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+      throw new Unreachable();
+    }
+
+    @Override
     public DexField lookupField(DexField field) {
       return renamedMembersLense.fieldMap.getOrDefault(field, field);
     }

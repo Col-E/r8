@@ -4,16 +4,19 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,33 +36,19 @@ import java.util.Set;
  */
 public abstract class GraphLense {
 
-  private static IntList emptyIntList = new IntArrayList();
-
   /**
    * Result of a method lookup in a GraphLense.
    *
    * This provide the new target and the invoke type to use.
    */
   public static class GraphLenseLookupResult {
+
     private final DexMethod method;
     private final Type type;
-    private final IntList removedArguments;
 
     public GraphLenseLookupResult(DexMethod method, Type type) {
       this.method = method;
       this.type = type;
-      this.removedArguments = emptyIntList;
-    }
-
-    public GraphLenseLookupResult(DexMethod method, Type type, IntList removedArguments) {
-      this.method = method;
-      this.type = type;
-      this.removedArguments = removedArguments;
-    }
-
-    public GraphLenseLookupResult withRemovedArguments(IntList removedArguments) {
-      assert removedArguments != null;
-      return new GraphLenseLookupResult(method, type, removedArguments);
     }
 
     public DexMethod getMethod() {
@@ -69,17 +58,164 @@ public abstract class GraphLense {
     public Type getType() {
       return type;
     }
+  }
 
-    public boolean hasRemovedArguments() {
-      return !removedArguments.isEmpty();
+  public static class RewrittenPrototypeDescription {
+
+    public static class RemovedArgumentInfo {
+
+      private final int argumentIndex;
+
+      public RemovedArgumentInfo(int argumentIndex) {
+        this.argumentIndex = argumentIndex;
+      }
+
+      public int getArgumentIndex() {
+        return argumentIndex;
+      }
+
+      public boolean isNeverUsed() {
+        return true;
+      }
+
+      public RemovedArgumentInfo withArgumentIndex(int argumentIndex) {
+        return this.argumentIndex != argumentIndex ? new RemovedArgumentInfo(argumentIndex) : this;
+      }
     }
 
-    public boolean isArgumentRemoved(int i) {
-      return removedArguments.contains(i);
+    public static class RemovedArgumentsInfo {
+
+      private static final RemovedArgumentsInfo empty = new RemovedArgumentsInfo(null);
+
+      private final List<RemovedArgumentInfo> removedArguments;
+
+      public RemovedArgumentsInfo(List<RemovedArgumentInfo> removedArguments) {
+        assert verifyRemovedArguments(removedArguments);
+        this.removedArguments = removedArguments;
+      }
+
+      private static boolean verifyRemovedArguments(List<RemovedArgumentInfo> removedArguments) {
+        if (removedArguments != null && !removedArguments.isEmpty()) {
+          // Check that list is sorted by argument indices.
+          int lastArgumentIndex = removedArguments.get(0).getArgumentIndex();
+          for (int i = 1; i < removedArguments.size(); ++i) {
+            int currentArgumentIndex = removedArguments.get(i).getArgumentIndex();
+            assert lastArgumentIndex < currentArgumentIndex;
+            lastArgumentIndex = currentArgumentIndex;
+          }
+        }
+        return true;
+      }
+
+      public static RemovedArgumentsInfo empty() {
+        return empty;
+      }
+
+      public ListIterator<RemovedArgumentInfo> iterator() {
+        return removedArguments == null
+            ? Collections.emptyListIterator()
+            : removedArguments.listIterator();
+      }
+
+      public boolean hasRemovedArguments() {
+        return removedArguments != null && !removedArguments.isEmpty();
+      }
+
+      public boolean isArgumentRemoved(int argumentIndex) {
+        if (removedArguments != null) {
+          for (RemovedArgumentInfo info : removedArguments) {
+            if (info.getArgumentIndex() == argumentIndex) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      public int numberOfRemovedArguments() {
+        return removedArguments != null ? removedArguments.size() : 0;
+      }
+
+      public RemovedArgumentsInfo combine(RemovedArgumentsInfo info) {
+        assert info != null;
+        if (hasRemovedArguments()) {
+          if (!info.hasRemovedArguments()) {
+            return this;
+          }
+        } else {
+          return info;
+        }
+
+        List<RemovedArgumentInfo> newRemovedArguments = new LinkedList<>(removedArguments);
+        ListIterator<RemovedArgumentInfo> iterator = newRemovedArguments.listIterator();
+        int offset = 0;
+        for (RemovedArgumentInfo pending : info.removedArguments) {
+          RemovedArgumentInfo next = IteratorUtils.peekNext(iterator);
+          while (next != null && next.getArgumentIndex() <= pending.getArgumentIndex() + offset) {
+            iterator.next();
+            next = IteratorUtils.peekNext(iterator);
+            offset++;
+          }
+          iterator.add(pending.withArgumentIndex(pending.getArgumentIndex() + offset));
+        }
+        return new RemovedArgumentsInfo(newRemovedArguments);
+      }
     }
 
-    public IntList getRemovedArguments() {
-      return removedArguments;
+    private static final RewrittenPrototypeDescription none = new RewrittenPrototypeDescription();
+
+    private final RemovedArgumentsInfo removedArgumentsInfo;
+
+    private RewrittenPrototypeDescription() {
+      this(RemovedArgumentsInfo.empty());
+    }
+
+    public RewrittenPrototypeDescription(RemovedArgumentsInfo removedArgumentsInfo) {
+      assert removedArgumentsInfo != null;
+      this.removedArgumentsInfo = removedArgumentsInfo;
+    }
+
+    public static RewrittenPrototypeDescription none() {
+      return none;
+    }
+
+    public boolean isEmpty() {
+      return !getRemovedArgumentsInfo().hasRemovedArguments();
+    }
+
+    public RemovedArgumentsInfo getRemovedArgumentsInfo() {
+      return removedArgumentsInfo;
+    }
+
+    public DexType rewriteReturnType(DexType returnType, DexItemFactory dexItemFactory) {
+      return returnType;
+    }
+
+    public DexType[] rewriteParameters(DexType[] params) {
+      RemovedArgumentsInfo removedArgumentsInfo = getRemovedArgumentsInfo();
+      if (removedArgumentsInfo.hasRemovedArguments()) {
+        DexType[] newParams =
+            new DexType[params.length - removedArgumentsInfo.numberOfRemovedArguments()];
+        int newParamIndex = 0;
+        for (int oldParamIndex = 0; oldParamIndex < params.length; ++oldParamIndex) {
+          if (!removedArgumentsInfo.isArgumentRemoved(oldParamIndex)) {
+            newParams[newParamIndex] = params[oldParamIndex];
+            ++newParamIndex;
+          }
+        }
+        return newParams;
+      }
+      return params;
+    }
+
+    public DexProto rewriteProto(DexProto proto, DexItemFactory dexItemFactory) {
+      DexType newReturnType = rewriteReturnType(proto.returnType, dexItemFactory);
+      DexType[] newParameters = rewriteParameters(proto.parameters.values);
+      return dexItemFactory.createProto(newReturnType, newParameters);
+    }
+
+    public RewrittenPrototypeDescription withRemovedArguments(RemovedArgumentsInfo other) {
+      return new RewrittenPrototypeDescription(removedArgumentsInfo.combine(other));
     }
   }
 
@@ -133,7 +269,6 @@ public abstract class GraphLense {
           previousLense,
           dexItemFactory);
     }
-
   }
 
   public static Builder builder() {
@@ -173,6 +308,8 @@ public abstract class GraphLense {
 
   public abstract GraphLenseLookupResult lookupMethod(
       DexMethod method, DexEncodedMethod context, Type type);
+
+  public abstract RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method);
 
   // Context sensitive graph lenses should override this method.
   public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
@@ -215,10 +352,6 @@ public abstract class GraphLense {
 
   public static GraphLense getIdentityLense() {
     return new IdentityGraphLense();
-  }
-
-  public static IntList emptyRemovedArguments() {
-    return emptyIntList;
   }
 
   public final boolean isIdentityLense() {
@@ -307,6 +440,7 @@ public abstract class GraphLense {
   }
 
   private static class IdentityGraphLense extends GraphLense {
+
     @Override
     public DexField getOriginalFieldSignature(DexField field) {
       return field;
@@ -336,6 +470,11 @@ public abstract class GraphLense {
     public GraphLenseLookupResult lookupMethod(
         DexMethod method, DexEncodedMethod context, Type type) {
       return new GraphLenseLookupResult(method, type);
+    }
+
+    @Override
+    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+      return RewrittenPrototypeDescription.none();
     }
 
     @Override
@@ -369,10 +508,10 @@ public abstract class GraphLense {
     protected final Map<DexMethod, DexMethod> methodMap;
     protected final Map<DexField, DexField> fieldMap;
 
-    // Maps that store the original signature of fields and methods that have been affected by
-    // vertical class merging. Needed to generate a correct Proguard map in the end.
-    private final BiMap<DexField, DexField> originalFieldSignatures;
-    private final BiMap<DexMethod, DexMethod> originalMethodSignatures;
+    // Maps that store the original signature of fields and methods that have been affected, for
+    // example, by vertical class merging. Needed to generate a correct Proguard map in the end.
+    protected final BiMap<DexField, DexField> originalFieldSignatures;
+    protected final BiMap<DexMethod, DexMethod> originalMethodSignatures;
 
     public NestedGraphLense(
         Map<DexType, DexType> typeMap,
@@ -460,6 +599,11 @@ public abstract class GraphLense {
       // that only subclasses which are known to need it actually do it?
       return new GraphLenseLookupResult(
           newMethod, mapInvocationType(newMethod, method, context, previous.getType()));
+    }
+
+    @Override
+    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+      return previousLense.lookupPrototypeChanges(method);
     }
 
     /**

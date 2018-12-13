@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.cf;
 
+import com.android.tools.r8.NeverMerge;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -81,6 +82,7 @@ public class MethodHandleTest {
     // Class that is only mentioned in return value of LDC(MethodType)-instruction.
   }
 
+  @NeverMerge
   public interface I {
     int ii = 42;
 

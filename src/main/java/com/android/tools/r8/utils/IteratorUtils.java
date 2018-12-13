@@ -17,10 +17,13 @@ public class IteratorUtils {
   }
 
   public static <T> T peekNext(ListIterator<T> iterator) {
-    T next = iterator.next();
-    T previous = iterator.previous();
-    assert previous == next;
-    return next;
+    if (iterator.hasNext()) {
+      T next = iterator.next();
+      T previous = iterator.previous();
+      assert previous == next;
+      return next;
+    }
+    return null;
   }
 
   public static <T> void removeIf(Iterator<T> iterator, Predicate<T> predicate) {

@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY;
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
+import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -24,6 +25,8 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
+import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -65,7 +68,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LensCodeRewriter {
 
   private final AppInfoWithSubtyping appInfo;
-  private final AppView<? extends AppInfoWithSubtyping> appView;
   private final GraphLense graphLense;
   private final VerticallyMergedClasses verticallyMergedClasses;
   private final InternalOptions options;
@@ -75,7 +77,6 @@ public class LensCodeRewriter {
   public LensCodeRewriter(
       AppView<? extends AppInfoWithSubtyping> appView, InternalOptions options) {
     this.appInfo = appView.appInfo();
-    this.appView = appView;
     this.graphLense = appView.graphLense();
     this.verticallyMergedClasses = appView.verticallyMergedClasses();
     this.options = options;
@@ -162,48 +163,50 @@ public class LensCodeRewriter {
                 rebindVirtualInvokeToMostSpecific(
                     actualTarget, invoke.inValues().get(0), method.method.holder);
           }
-          if (actualTarget != invokedMethod
-              || invoke.getType() != actualInvokeType
-              || lenseLookup.hasRemovedArguments()) {
+          if (actualTarget != invokedMethod || invoke.getType() != actualInvokeType) {
+            RewrittenPrototypeDescription prototypeChanges =
+                graphLense.lookupPrototypeChanges(actualTarget);
+            RemovedArgumentsInfo removedArgumentsInfo = prototypeChanges.getRemovedArgumentsInfo();
+
+            Value newOutValue = makeOutValue(invoke, code, newSSAValues);
+
             List<Value> newInValues;
-            if (lenseLookup.hasRemovedArguments()) {
+            if (removedArgumentsInfo.hasRemovedArguments()) {
               if (Log.ENABLED) {
                 Log.info(
                     getClass(),
                     "Invoked method "
                         + invokedMethod.toSourceString()
                         + " with "
-                        + lenseLookup.getRemovedArguments().size()
+                        + removedArgumentsInfo.numberOfRemovedArguments()
                         + " arguments removed");
               }
               // Remove removed arguments from the invoke.
               newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
               for (int i = 0; i < invoke.inValues().size(); i++) {
-                if (!lenseLookup.isArgumentRemoved(i)) {
+                if (!removedArgumentsInfo.isArgumentRemoved(i)) {
                   newInValues.add(invoke.inValues().get(i));
                 }
               }
-              assert newInValues.size() == actualTarget.proto.parameters.size();
+              assert newInValues.size()
+                  == actualTarget.proto.parameters.size() + (actualInvokeType == STATIC ? 0 : 1);
             } else {
               newInValues = invoke.inValues();
             }
+
+            Invoke newInvoke =
+                Invoke.create(actualInvokeType, actualTarget, null, newOutValue, newInValues);
+            iterator.replaceCurrentInstruction(newInvoke);
+
             DexType actualReturnType = actualTarget.proto.returnType;
             DexType expectedReturnType = graphLense.lookupType(invokedMethod.proto.returnType);
-            if (invoke.outValue() != null && actualReturnType != expectedReturnType) {
+            if (newInvoke.outValue() != null && actualReturnType != expectedReturnType) {
               throw new Unreachable(
                   "Unexpected need to insert a cast. Possibly related to resolving b/79143143.\n"
                       + invokedMethod
                       + " type changed from " + expectedReturnType
                       + " to " + actualReturnType);
             }
-            Invoke newInvoke =
-                Invoke.create(
-                    actualInvokeType,
-                    actualTarget,
-                    null,
-                    makeOutValue(invoke, code, newSSAValues),
-                    newInValues);
-            iterator.replaceCurrentInstruction(newInvoke);
           }
         } else if (current.isInstanceGet()) {
           InstanceGet instanceGet = current.asInstanceGet();
@@ -396,26 +399,15 @@ public class LensCodeRewriter {
 
   private List<DexValue> rewriteBootstrapArgs(
       List<DexValue> bootstrapArgs, DexEncodedMethod method, MethodHandleUse use) {
-    List<DexValue> newBoostrapArgs = null;
+    List<DexValue> newBootstrapArgs = null;
     boolean changed = false;
     for (int i = 0; i < bootstrapArgs.size(); i++) {
       DexValue argument = bootstrapArgs.get(i);
       DexValue newArgument = null;
       if (argument instanceof DexValueMethodHandle) {
-        DexMethodHandle oldHandle = ((DexValueMethodHandle) argument).value;
-        DexMethodHandle newHandle =
-            rewriteDexMethodHandle(oldHandle, method, use);
-        if (newHandle != oldHandle) {
-          newArgument = new DexValueMethodHandle(newHandle);
-        }
+        newArgument = rewriteDexValueMethodHandle(argument.asDexValueMethodHandle(), method, use);
       } else if (argument instanceof DexValueMethodType) {
-        DexProto oldProto = ((DexValueMethodType) argument).value;
-        DexProto newProto =
-            appInfo.dexItemFactory.applyClassMappingToProto(
-                oldProto, graphLense::lookupType, protoFixupCache);
-        if (newProto != oldProto) {
-          newArgument = new DexValueMethodType(newProto);
-        }
+        newArgument = rewriteDexMethodType(argument.asDexValueMethodType());
       } else if (argument instanceof DexValueType) {
         DexType oldType = ((DexValueType) argument).value;
         DexType newType = graphLense.lookupType(oldType);
@@ -424,16 +416,23 @@ public class LensCodeRewriter {
         }
       }
       if (newArgument != null) {
-        if (newBoostrapArgs == null) {
-          newBoostrapArgs = new ArrayList<>(bootstrapArgs.subList(0, i));
+        if (newBootstrapArgs == null) {
+          newBootstrapArgs = new ArrayList<>(bootstrapArgs.subList(0, i));
         }
-        newBoostrapArgs.add(newArgument);
+        newBootstrapArgs.add(newArgument);
         changed = true;
-      } else if (newBoostrapArgs != null) {
-        newBoostrapArgs.add(argument);
+      } else if (newBootstrapArgs != null) {
+        newBootstrapArgs.add(argument);
       }
     }
-    return changed ? newBoostrapArgs : bootstrapArgs;
+    return changed ? newBootstrapArgs : bootstrapArgs;
+  }
+
+  private DexValueMethodHandle rewriteDexValueMethodHandle(
+      DexValueMethodHandle methodHandle, DexEncodedMethod context, MethodHandleUse use) {
+    DexMethodHandle oldHandle = methodHandle.value;
+    DexMethodHandle newHandle = rewriteDexMethodHandle(oldHandle, context, use);
+    return newHandle != oldHandle ? new DexValueMethodHandle(newHandle) : methodHandle;
   }
 
   private DexMethodHandle rewriteDexMethodHandle(
@@ -485,6 +484,14 @@ public class LensCodeRewriter {
       }
     }
     return methodHandle;
+  }
+
+  private DexValueMethodType rewriteDexMethodType(DexValueMethodType type) {
+    DexProto oldProto = type.value;
+    DexProto newProto =
+        appInfo.dexItemFactory.applyClassMappingToProto(
+            oldProto, graphLense::lookupType, protoFixupCache);
+    return newProto != oldProto ? new DexValueMethodType(newProto) : type;
   }
 
   /**

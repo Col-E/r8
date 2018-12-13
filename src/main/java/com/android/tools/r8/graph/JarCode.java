@@ -5,10 +5,8 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
-import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.JarClassFileReader.ReparseContext;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -23,7 +21,6 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
@@ -187,7 +184,6 @@ public class JarCode extends Code {
             && options.proguardConfiguration.getKeepAttributes().localVariableTable))) {
       node.localVariables.clear();
     }
-
     JarSourceCode source =
         new JarSourceCode(
             method.getHolder(),
@@ -195,15 +191,9 @@ public class JarCode extends Code {
             application,
             graphLense.getOriginalMethodSignature(encodedMethod.method),
             callerPosition);
-    IntList removedArguments = GraphLense.emptyRemovedArguments();
-    if (encodedMethod.isStatic()) {
-      GraphLenseLookupResult result =
-          graphLense.lookupMethod(encodedMethod.method, encodedMethod, Type.STATIC);
-      removedArguments = result.getRemovedArguments();
-    }
-    return new IRBuilder(
-            encodedMethod, appInfo, source, options, origin, generator, removedArguments)
-        .build(context);
+    IRBuilder builder =
+        new IRBuilder(encodedMethod, appInfo, source, options, origin, generator, graphLense);
+    return builder.build(context);
   }
 
   @Override
