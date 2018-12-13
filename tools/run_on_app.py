@@ -170,6 +170,7 @@ def main(argv):
 
 def run_with_options(options, args):
   app_provided_pg_conf = False;
+  extra_args = []
   if options.golem:
     golem.link_third_party()
     options.out = os.getcwd()
@@ -241,6 +242,8 @@ def run_with_options(options, args):
     if 'maindexrules' in values:
       for rules in values['maindexrules']:
         args.extend(['--main-dex-rules', rules])
+    if 'allow-type-errors' in values:
+      extra_args.append('-Dcom.android.tools.r8.allowTypeErrors=1')
 
   if not options.no_libraries and 'libraries' in values:
     for lib in values['libraries']:
@@ -290,7 +293,8 @@ def run_with_options(options, args):
                      build=build,
                      debug=not options.no_debug,
                      profile=options.profile,
-                     track_memory_file=options.track_memory_to_file)
+                     track_memory_file=options.track_memory_to_file,
+                     extra_args=extra_args)
       if exit_code != 0:
         return exit_code
 

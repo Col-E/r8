@@ -24,6 +24,7 @@ VERSIONS = {
     'deploy' : {
       'inputs': [os.path.join(V20180926_BASE, 'obsidian-development-debug.jar')],
       'libraries' : [ANDROID_JAR],
+      'allow-type-errors' : 1,
       'pgconf': [
           os.path.join(V20180926_BASE, 'proguard', 'proguard.cfg'),
           os.path.join(V20180926_BASE, 'proguard', 'proguard-no-optimizations.cfg'),
