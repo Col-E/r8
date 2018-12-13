@@ -390,8 +390,8 @@ public class RootSetBuilder {
 
       // Depending on which members trigger the -if rule, the application of the subsequent
       // -keep rule may vary (due to back references). So, we need to try literally all
-      // combinations of live members.
-      // TODO(b/79486261): Some of those are equivalent from the point of view of -if rule.
+      // combinations of live members. But, we can at least limit the number of elements per
+      // combination as the size of member rules to satisfy.
       Sets.combinations(filteredMembers, memberKeepRules.size())
           .forEach(
               combination -> {
