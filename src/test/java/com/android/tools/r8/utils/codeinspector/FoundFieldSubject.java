@@ -29,6 +29,21 @@ public class FoundFieldSubject extends FieldSubject {
   }
 
   @Override
+  public boolean isProtected() {
+    return dexField.accessFlags.isProtected();
+  }
+
+  @Override
+  public boolean isPrivate() {
+    return dexField.accessFlags.isPrivate();
+  }
+
+  @Override
+  public boolean isPackagePrivate() {
+    return !isPublic() && !isProtected() && !isPrivate();
+  }
+
+  @Override
   public boolean isStatic() {
     return dexField.accessFlags.isStatic();
   }

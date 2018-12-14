@@ -17,6 +17,21 @@ public class AbsentFieldSubject extends FieldSubject {
   }
 
   @Override
+  public boolean isProtected() {
+    throw new Unreachable("Cannot determine if an absent field is protected");
+  }
+
+  @Override
+  public boolean isPrivate() {
+    throw new Unreachable("Cannot determine if an absent field is private");
+  }
+
+  @Override
+  public boolean isPackagePrivate() {
+    throw new Unreachable("Cannot determine if an absent field is package-private");
+  }
+
+  @Override
   public boolean isStatic() {
     throw new Unreachable("Cannot determine if an absent field is static");
   }

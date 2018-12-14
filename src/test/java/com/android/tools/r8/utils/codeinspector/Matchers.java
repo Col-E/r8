@@ -4,12 +4,41 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AccessFlags;
 import com.google.common.collect.ImmutableList;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
 public class Matchers {
+
+  private enum Visibility {
+    PUBLIC,
+    PROTECTED,
+    PRIVATE,
+    PACKAGE_PRIVATE;
+
+    @Override
+    public String toString() {
+      switch (this) {
+        case PUBLIC:
+          return "public";
+
+        case PROTECTED:
+          return "protected";
+
+        case PRIVATE:
+          return "private";
+
+        case PACKAGE_PRIVATE:
+          return "package-private";
+
+        default:
+          throw new Unreachable("Unexpected visibility");
+      }
+    }
+  }
 
   private static String type(Subject subject) {
     String type = "<unknown subject type>";
@@ -154,22 +183,67 @@ public class Matchers {
     };
   }
 
-  public static Matcher<MethodSubject> isPublic() {
-    return new TypeSafeMatcher<MethodSubject>() {
+  public static <T extends MemberSubject> Matcher<T> isPrivate() {
+    return hasVisibility(Visibility.PRIVATE);
+  }
+
+  public static <T extends MemberSubject> Matcher<T> isPublic() {
+    return hasVisibility(Visibility.PUBLIC);
+  }
+
+  private static <T extends MemberSubject> Matcher<T> hasVisibility(Visibility visibility) {
+    return new TypeSafeMatcher<T>() {
       @Override
-      public boolean matchesSafely(final MethodSubject method) {
-        return method.isPresent() && method.isPublic();
+      public boolean matchesSafely(final T subject) {
+        if (subject.isPresent()) {
+          switch (visibility) {
+            case PUBLIC:
+              return subject.isPublic();
+
+            case PROTECTED:
+              return subject.isProtected();
+
+            case PRIVATE:
+              return subject.isPrivate();
+
+            case PACKAGE_PRIVATE:
+              return subject.isPackagePrivate();
+
+            default:
+              throw new Unreachable("Unexpected visibility: " + visibility);
+          }
+        }
+        return false;
       }
 
       @Override
       public void describeTo(final Description description) {
-        description.appendText("method public");
+        description.appendText("method " + visibility);
       }
 
       @Override
-      public void describeMismatchSafely(final MethodSubject method, Description description) {
+      public void describeMismatchSafely(final T subject, Description description) {
         description
-            .appendText("method ").appendValue(method.getOriginalName()).appendText(" was not");
+            .appendText("method ")
+            .appendValue(subject.getOriginalName())
+            .appendText(" was ");
+        if (subject.isPresent()) {
+          AccessFlags accessFlags =
+              subject.isMethodSubject()
+                  ? subject.asMethodSubject().getMethod().accessFlags
+                  : subject.asFieldSubject().getField().accessFlags;
+          if (accessFlags.isPublic()) {
+            description.appendText("public");
+          } else if (accessFlags.isProtected()) {
+            description.appendText("protected");
+          } else if (accessFlags.isPrivate()) {
+            description.appendText("private");
+          } else {
+            description.appendText("package-private");
+          }
+        } else {
+          description.appendText(" was absent");
+        }
       }
     };
   }

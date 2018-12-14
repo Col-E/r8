@@ -46,4 +46,14 @@ public abstract class MethodSubject extends MemberSubject {
   public Stream<InstructionSubject> streamInstructions() {
     return Streams.stream(iterateInstructions());
   }
+
+  @Override
+  public MethodSubject asMethodSubject() {
+    return this;
+  }
+
+  @Override
+  public boolean isMethodSubject() {
+    return true;
+  }
 }
