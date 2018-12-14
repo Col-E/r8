@@ -25,12 +25,12 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   @BeforeClass
   public static void setUp() throws Exception {
     JasminBuilder builder = new JasminBuilder();
-    JasminBuilder.ClassBuilder clazz = builder.addClass("junit.framework.TestCase");
+    builder.addClass("junit.framework.TestCase");
     junitClasses = builder.buildClasses();
   }
 
   @Test
-  public void testFullModeError() throws Exception {
+  public void testFullModeError() {
     try {
       testForR8(Backend.DEX)
           .setMinApi(AndroidApiLevel.O)
