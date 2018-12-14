@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.junit.Assert.assertThat;
+
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
-import org.junit.Ignore;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,16 +31,18 @@ public class BuilderWithInheritanceTest extends TestBase {
     this.backend = backend;
   }
 
-  @Ignore("b/120182628")
   @Test
   public void test() throws Exception {
-    testForR8(backend)
-        .addInnerClasses(BuilderWithInheritanceTest.class)
-        .addKeepMainRule(TestClass.class)
-        .enableInliningAnnotations()
-        .enableMergeAnnotations()
-        .run(TestClass.class)
-        .assertSuccessWithOutput("42");
+    CodeInspector inspector =
+        testForR8(backend)
+            .addInnerClasses(BuilderWithInheritanceTest.class)
+            .addKeepMainRule(TestClass.class)
+            .enableInliningAnnotations()
+            .enableMergeAnnotations()
+            .run(TestClass.class)
+            .assertSuccessWithOutput("42")
+            .inspector();
+    assertThat(inspector.clazz(Builder.class), isPresent());
   }
 
   static class TestClass {

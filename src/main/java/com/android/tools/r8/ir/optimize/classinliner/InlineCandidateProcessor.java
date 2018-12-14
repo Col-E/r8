@@ -333,7 +333,31 @@ final class InlineCandidateProcessor {
   // Returns `true` if at least one method was inlined.
   boolean processInlining(IRCode code, Supplier<InliningOracle> defaultOracle) {
     replaceUsagesAsUnusedArgument(code);
-    boolean anyInlinedMethods = forceInlineExtraMethodInvocations(code, defaultOracle);
+
+    boolean anyInlinedMethods = forceInlineExtraMethodInvocations(code);
+    if (anyInlinedMethods) {
+      // Reset the collections.
+      methodCallsOnInstance.clear();
+      extraMethodCalls.clear();
+      unusedArguments.clear();
+      estimatedCombinedSizeForInlining = 0;
+
+      // Repeat user analysis
+      InstructionOrPhi ineligibleUser = areInstanceUsersEligible(null, defaultOracle);
+      if (ineligibleUser != null) {
+        // We introduced a user that we cannot handle in the class inliner as a result of force
+        // inlining. Abort gracefully from class inlining without removing the instance.
+        //
+        // Alternatively we would need to collect additional information about the behavior of
+        // methods (which is bad for memory), or we would need to analyze the called methods before
+        // inlining them. The latter could be good solution, since we are going to build IR for the
+        // methods that need to be inlined anyway.
+        return true;
+      }
+      assert extraMethodCalls.isEmpty();
+      assert unusedArguments.isEmpty();
+    }
+
     anyInlinedMethods |= forceInlineDirectMethodInvocations(code);
     removeMiscUsages(code);
     removeFieldReads(code);
@@ -359,32 +383,12 @@ final class InlineCandidateProcessor {
     unusedArguments.clear();
   }
 
-  private boolean forceInlineExtraMethodInvocations(
-      IRCode code, Supplier<InliningOracle> defaultOracle) {
+  private boolean forceInlineExtraMethodInvocations(IRCode code) {
     if (extraMethodCalls.isEmpty()) {
       return false;
     }
-
     // Inline extra methods.
     inliner.performForcedInlining(method, code, extraMethodCalls);
-
-    // Reset the collections.
-    methodCallsOnInstance.clear();
-    extraMethodCalls.clear();
-    unusedArguments.clear();
-    estimatedCombinedSizeForInlining = 0;
-
-    // Repeat user analysis
-    InstructionOrPhi ineligibleUser = areInstanceUsersEligible(null, defaultOracle);
-    if (ineligibleUser != null) {
-      throw new Unreachable(
-          "Unexpected ineligible user in method `"
-              + method.method.toSourceString()
-              + "` after inlining of extra methods: "
-              + ineligibleUser);
-    }
-    assert extraMethodCalls.isEmpty();
-    assert unusedArguments.isEmpty();
     return true;
   }
 
