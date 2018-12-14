@@ -172,6 +172,8 @@ def main(argv):
 def run_with_options(options, args):
   app_provided_pg_conf = False;
   extra_args = []
+  # todo(121018500): remove when memory is under control
+  extra_args.append('-Xmx8GB')
   if options.golem:
     golem.link_third_party()
     options.out = os.getcwd()
