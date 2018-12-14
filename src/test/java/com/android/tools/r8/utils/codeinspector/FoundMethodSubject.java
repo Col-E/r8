@@ -56,6 +56,21 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
+  public boolean isProtected() {
+    return dexMethod.accessFlags.isProtected();
+  }
+
+  @Override
+  public boolean isPrivate() {
+    return dexMethod.accessFlags.isPrivate();
+  }
+
+  @Override
+  public boolean isPackagePrivate() {
+    return !isPublic() && !isProtected() && !isPrivate();
+  }
+
+  @Override
   public boolean isStatic() {
     return dexMethod.accessFlags.isStatic();
   }

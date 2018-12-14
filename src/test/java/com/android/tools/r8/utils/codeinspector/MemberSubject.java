@@ -10,6 +10,12 @@ public abstract class MemberSubject extends Subject {
 
   public abstract boolean isPublic();
 
+  public abstract boolean isProtected();
+
+  public abstract boolean isPrivate();
+
+  public abstract boolean isPackagePrivate();
+
   public abstract boolean isStatic();
 
   public abstract boolean isFinal();
@@ -26,5 +32,21 @@ public abstract class MemberSubject extends Subject {
   public String getFinalName() {
     Signature finalSignature = getFinalSignature();
     return finalSignature == null ? null : finalSignature.name;
+  }
+
+  public FieldSubject asFieldSubject() {
+    return null;
+  }
+
+  public boolean isFieldSubject() {
+    return false;
+  }
+
+  public MethodSubject asMethodSubject() {
+    return null;
+  }
+
+  public boolean isMethodSubject() {
+    return false;
   }
 }

@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue;
 
 public abstract class FieldSubject extends MemberSubject {
+
   public abstract boolean hasExplicitStaticValue();
 
   public abstract DexEncodedField getField();
@@ -19,4 +20,14 @@ public abstract class FieldSubject extends MemberSubject {
   public abstract String getOriginalSignatureAttribute();
 
   public abstract String getFinalSignatureAttribute();
+
+  @Override
+  public FieldSubject asFieldSubject() {
+    return this;
+  }
+
+  @Override
+  public boolean isFieldSubject() {
+    return true;
+  }
 }
