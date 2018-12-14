@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -24,12 +25,12 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   @BeforeClass
   public static void setUp() throws Exception {
     JasminBuilder builder = new JasminBuilder();
-    JasminBuilder.ClassBuilder clazz = builder.addClass("junit.framework.TestCase");
+    builder.addClass("junit.framework.TestCase");
     junitClasses = builder.buildClasses();
   }
 
   @Test
-  public void testFullModeError() throws Exception {
+  public void testFullModeError() {
     try {
       testForR8(Backend.DEX)
           .setMinApi(AndroidApiLevel.O)
@@ -44,7 +45,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
 
   @Test
   public void testCompatibilityModeWarning() throws Exception {
-    TestCompileResult result = testForR8Compat(Backend.DEX)
+    TestCompileResult<R8TestRunResult> result = testForR8Compat(Backend.DEX)
         .setMinApi(AndroidApiLevel.O)
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
