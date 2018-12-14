@@ -15,12 +15,20 @@ import urllib
 BUILD_ROOT = "http://storage.googleapis.com/r8-releases/raw/"
 MASTER_BUILD_ROOT = "%smaster/" % BUILD_ROOT
 
-JAR_TARGETS = [
-  utils.D8,
-  utils.R8,
-  utils.COMPATDX,
-  utils.COMPATPROGUARD,
-]
+JAR_TARGETS_MAP = {
+  'full': [
+    (utils.D8, 'd8-master'),
+    (utils.R8, 'r8-master'),
+    (utils.COMPATDX, 'compatdx-master'),
+    (utils.COMPATPROGUARD, 'compatproguard-master'),
+  ],
+  'lib': [
+    (utils.R8LIB, 'r8-master'),
+    (utils.COMPATDXLIB, 'compatdx-master'),
+    (utils.COMPATPROGUARDLIB, 'compatproguard-master'),
+  ],
+}
+
 OTHER_TARGETS = ["LICENSE"]
 
 def parse_arguments():
@@ -30,20 +38,36 @@ def parse_arguments():
       help='Android checkout root.')
   parser.add_argument('--commit_hash', default=None, help='Commit hash')
   parser.add_argument('--version', default=None, help='The version to download')
+  parser.add_argument(
+    '--targets',
+    required=True,
+    choices=['full', 'lib'],
+    help="Use 'full' to download the full, non-optimized jars (legacy" +
+      " behaviour) and 'lib' for the R8-processed, optimized jars (this" +
+      " one omits d8.jar)",
+  )
+  parser.add_argument(
+    '--maps',
+    action='store_true',
+    help="Download proguard maps for jars, use only with '--target lib'.",
+  )
   return parser.parse_args()
 
-def copy_targets(root, target_root, srcs, dests):
+def copy_targets(root, target_root, srcs, dests, maps=False):
   assert len(srcs) == len(dests)
   for i in range(len(srcs)):
     src = os.path.join(root, srcs[i])
     dest = os.path.join(target_root, 'prebuilts', 'r8', dests[i])
     print 'Copying: ' + src + ' -> ' + dest
     copyfile(src, dest)
+    if maps:
+      print 'Copying: ' + src + '.map -> ' + dest + '.map'
+      copyfile(src + '.map', dest + '.map')
 
-def copy_jar_targets(root, target_root):
-  srcs = map((lambda t: t + '.jar'), JAR_TARGETS)
-  dests = map((lambda t: t + '-master.jar'), JAR_TARGETS)
-  copy_targets(root, target_root, srcs, dests)
+def copy_jar_targets(root, target_root, jar_targets, maps):
+  srcs = map((lambda t: t[0] + '.jar'), jar_targets)
+  dests = map((lambda t: t[1] + '.jar'), jar_targets)
+  copy_targets(root, target_root, srcs, dests, maps=maps)
 
 def copy_other_targets(root, target_root):
   copy_targets(root, target_root, OTHER_TARGETS, OTHER_TARGETS)
@@ -65,22 +89,29 @@ def download_target(root, url, target):
 
 def Main():
   args = parse_arguments()
+  if args.maps and args.targets != 'lib':
+    raise Exception("Use '--maps' only with '--targets lib.")
   target_root = args.android_root[0]
+  jar_targets = JAR_TARGETS_MAP[args.targets]
   if args.commit_hash == None and args.version == None:
-    gradle.RunGradle(JAR_TARGETS)
-    copy_jar_targets(utils.LIBS, target_root)
+    gradle.RunGradle(map(lambda t: t[0], jar_targets))
+    copy_jar_targets(utils.LIBS, target_root, jar_targets, args.maps)
     copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
   else:
     assert args.commit_hash == None or args.version == None
-    targets = map((lambda t: t + '.jar'), JAR_TARGETS) + OTHER_TARGETS
+    targets = map((lambda t: t[0] + '.jar'), jar_targets) + OTHER_TARGETS
     with utils.TempDir() as root:
       for target in targets:
         if args.commit_hash:
           download_hash(root, args.commit_hash, target)
+          if args.maps and target not in OTHER_TARGETS:
+            download_hash(root, args.commit_hash, target + '.map')
         else:
           assert args.version
           download_version(root, args.version, target)
-      copy_jar_targets(root, target_root)
+          if args.maps and target not in OTHER_TARGETS:
+            download_version(root, args.version, target + '.map')
+      copy_jar_targets(root, target_root, jar_targets, args.maps)
       copy_other_targets(root, target_root)
 
 if __name__ == '__main__':
