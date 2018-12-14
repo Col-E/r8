@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestBase.R8Mode;
+import com.android.tools.r8.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -129,6 +130,16 @@ public class R8TestBuilder
 
   public R8TestBuilder enableProguardTestOptions() {
     builder.allowTestProguardOptions();
+    return self();
+  }
+
+  public R8TestBuilder setKeptGraphConsumer(GraphConsumer graphConsumer) {
+    builder.setKeptGraphConsumer(graphConsumer);
+    return self();
+  }
+
+  public R8TestBuilder setMainDexKeptGraphConsumer(GraphConsumer graphConsumer) {
+    builder.setMainDexKeptGraphConsumer(graphConsumer);
     return self();
   }
 }

@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
@@ -25,6 +26,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
 
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
   private final StringConsumer mainDexListConsumer;
+  private final GraphConsumer mainDexKeptGraphConsumer;
   private final DexItemFactory factory;
   private final Reporter reporter;
 
@@ -33,6 +35,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
     private final DexItemFactory factory = new DexItemFactory();
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private StringConsumer mainDexListConsumer = null;
+    private GraphConsumer mainDexKeptGraphConsumer = null;
 
     private Builder() {
     }
@@ -114,7 +117,18 @@ public class GenerateMainDexListCommand extends BaseCommand {
       }
 
       return new GenerateMainDexListCommand(
-          factory, getAppBuilder().build(), mainDexKeepRules, mainDexListConsumer, getReporter());
+          factory,
+          getAppBuilder().build(),
+          mainDexKeepRules,
+          mainDexListConsumer,
+          mainDexKeptGraphConsumer,
+          getReporter());
+    }
+
+    public GenerateMainDexListCommand.Builder setMainDexKeptGraphConsumer(
+        GraphConsumer graphConsumer) {
+      this.mainDexKeptGraphConsumer = graphConsumer;
+      return self();
     }
   }
 
@@ -185,11 +199,13 @@ public class GenerateMainDexListCommand extends BaseCommand {
       AndroidApp inputApp,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
       StringConsumer mainDexListConsumer,
+      GraphConsumer mainDexKeptGraphConsumer,
       Reporter reporter) {
     super(inputApp);
     this.factory = factory;
     this.mainDexKeepRules = mainDexKeepRules;
     this.mainDexListConsumer = mainDexListConsumer;
+    this.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
     this.reporter = reporter;
   }
 
@@ -198,6 +214,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
     this.factory = new DexItemFactory();
     this.mainDexKeepRules = ImmutableList.of();
     this.mainDexListConsumer = null;
+    this.mainDexKeptGraphConsumer = null;
     this.reporter = new Reporter();
   }
 
@@ -206,6 +223,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
     InternalOptions internal = new InternalOptions(factory, reporter);
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.mainDexListConsumer = mainDexListConsumer;
+    internal.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
     internal.minimalMainDex = internal.debug;
     internal.enableSwitchMapRemoval = false;
     internal.enableInlining = false;

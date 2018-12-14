@@ -6,6 +6,7 @@ package com.android.tools.r8.maindexlist;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
+import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
@@ -14,6 +15,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -59,8 +61,52 @@ public class MainDexTracingTest extends TestBase {
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
         AndroidApiLevel.I);
     String output = new String(baos.toByteArray(), Charset.defaultCharset());
-    Assert.assertTrue(output.contains("is live because referenced in keep rule:"));
+    Assert.assertThat(output, containsString("is referenced in keep rule:"));
     System.setOut(stdout);
+  }
+
+  @Test
+  public void traceMainDexList001_whyareyoukeeping_consumer() throws Throwable {
+    WhyAreYouKeepingConsumer graphConsumer = new WhyAreYouKeepingConsumer(null);
+    doTest(
+        "traceMainDexList001_1",
+        "multidex001",
+        EXAMPLE_BUILD_DIR,
+        Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
+        Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
+        AndroidApiLevel.I,
+        options -> {
+          options.enableInlining = false;
+          options.mainDexKeptGraphConsumer = graphConsumer;
+        });
+    {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      graphConsumer.printWhyAreYouKeeping("Lmultidex001/MainActivity;", new PrintStream(baos));
+      String output = new String(baos.toByteArray(), Charset.defaultCharset());
+      String expected =
+          StringUtils.lines(
+              "multidex001.MainActivity",
+              "|- is referenced in keep rule:",
+              "|  src/test/examples/multidex/main-dex-rules.txt:14:1");
+      Assert.assertEquals(expected, output);
+    }
+    {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      graphConsumer.printWhyAreYouKeeping("Lmultidex001/ClassForMainDex;", new PrintStream(baos));
+      String output = new String(baos.toByteArray(), Charset.defaultCharset());
+      // TODO(b/120951570): We should be able to get the reason for ClassForMainDex too.
+      String expected =
+          true
+              ? StringUtils.lines("Nothing is keeping multidex001.ClassForMainDex")
+              : StringUtils.lines(
+                  "multidex001.ClassForMainDex",
+                  "|- is direct reference from:",
+                  "|  multidex001.MainActivity",
+                  "|- is referenced in keep rule:",
+                  "|  src/test/examples/multidex/main-dex-rules.txt:14:1");
+      Assert.assertEquals(expected, output);
+    }
   }
 
   @Test

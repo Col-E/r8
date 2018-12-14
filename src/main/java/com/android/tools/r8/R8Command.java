@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.origin.StandardOutOrigin;
@@ -83,6 +84,8 @@ public final class R8Command extends BaseCompilerCommand {
     private boolean disableVerticalClassMerging = false;
     private boolean forceProguardCompatibility = false;
     private StringConsumer proguardMapConsumer = null;
+    private GraphConsumer keptGraphConsumer = null;
+    private GraphConsumer mainDexKeptGraphConsumer = null;
 
     // Internal compatibility mode for use from CompatProguard tool.
     Path proguardCompatibilityRulesOutput = null;
@@ -228,6 +231,26 @@ public final class R8Command extends BaseCompilerCommand {
      */
     public Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
       this.proguardMapConsumer = proguardMapConsumer;
+      return self();
+    }
+
+    /**
+     * Set a consumer for receiving kept-graph events.
+     *
+     * @param graphConsumer
+     */
+    public Builder setKeptGraphConsumer(GraphConsumer graphConsumer) {
+      this.keptGraphConsumer = graphConsumer;
+      return self();
+    }
+
+    /**
+     * Set a consumer for receiving kept-graph events for the content of the main-dex output.
+     *
+     * @param graphConsumer
+     */
+    public Builder setMainDexKeptGraphConsumer(GraphConsumer graphConsumer) {
+      this.mainDexKeptGraphConsumer = graphConsumer;
       return self();
     }
 
@@ -416,6 +439,8 @@ public final class R8Command extends BaseCompilerCommand {
               forceProguardCompatibility,
               proguardMapConsumer,
               proguardCompatibilityRulesOutput,
+              keptGraphConsumer,
+              mainDexKeptGraphConsumer,
               isOptimizeMultidexForLinearAlloc());
 
       return command;
@@ -481,6 +506,8 @@ public final class R8Command extends BaseCompilerCommand {
   private final boolean forceProguardCompatibility;
   private final StringConsumer proguardMapConsumer;
   private final Path proguardCompatibilityRulesOutput;
+  private final GraphConsumer keptGraphConsumer;
+  private final GraphConsumer mainDexKeptGraphConsumer;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -545,6 +572,8 @@ public final class R8Command extends BaseCompilerCommand {
       boolean forceProguardCompatibility,
       StringConsumer proguardMapConsumer,
       Path proguardCompatibilityRulesOutput,
+      GraphConsumer keptGraphConsumer,
+      GraphConsumer mainDexKeptGraphConsumer,
       boolean optimizeMultidexForLinearAlloc) {
     super(inputApp, mode, programConsumer, mainDexListConsumer, minApiLevel, reporter,
         enableDesugaring, optimizeMultidexForLinearAlloc);
@@ -558,6 +587,8 @@ public final class R8Command extends BaseCompilerCommand {
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.proguardMapConsumer = proguardMapConsumer;
     this.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
+    this.keptGraphConsumer = keptGraphConsumer;
+    this.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -570,6 +601,8 @@ public final class R8Command extends BaseCompilerCommand {
     forceProguardCompatibility = false;
     proguardMapConsumer = null;
     proguardCompatibilityRulesOutput = null;
+    keptGraphConsumer = null;
+    mainDexKeptGraphConsumer = null;
   }
 
   /** Get the enable-tree-shaking state. */
@@ -670,6 +703,10 @@ public final class R8Command extends BaseCompilerCommand {
       }
       internal.proguardMapConsumer = wrappedConsumer;
     }
+
+    // Set the kept-graph consumer if any. It will only be actively used if the enqueuer triggers.
+    internal.keptGraphConsumer = keptGraphConsumer;
+    internal.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
 
     internal.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
     internal.dataResourceConsumer = internal.programConsumer.getDataResourceConsumer();

@@ -89,7 +89,7 @@ public class PrintSeeds {
           new RootSetBuilder(
                   appView, application, options.proguardConfiguration.getRules(), options)
               .run(executor);
-      Enqueuer enqueuer = new Enqueuer(appView, options);
+      Enqueuer enqueuer = new Enqueuer(appView, options, null);
       AppInfoWithLiveness appInfo =
           enqueuer.traceApplication(
               rootSet, options.proguardConfiguration.getDontWarnPatterns(), executor, timing);

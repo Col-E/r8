@@ -115,8 +115,9 @@ public class SingleTargetLookupTest extends AsmTestBase {
                 buildKeepRuleForClass(Main.class, application.dexItemFactory),
                 options)
             .run(executor);
-    appInfo = new Enqueuer(appView, options).traceApplication(
-        rootSet, ProguardClassFilter.empty(), executor, timing);
+    appInfo =
+        new Enqueuer(appView, options, null)
+            .traceApplication(rootSet, ProguardClassFilter.empty(), executor, timing);
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
   }
