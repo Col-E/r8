@@ -120,8 +120,8 @@ def Main():
   if utils.is_bot():
     gradle.RunGradle(['clean'])
 
-  # Build R8lib with dependencies for bootstrapping tests before adding test sources
-  gradle.RunGradle(['r8libwithdeps'])
+  # Build an R8 with dependencies for bootstrapping tests before adding test sources
+  gradle.RunGradle(['r8WithRelocatedDeps'])
 
   gradle_args = ['--stacktrace']
   # Set all necessary Gradle properties and options first.
