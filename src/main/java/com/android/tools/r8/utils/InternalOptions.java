@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graphinfo.GraphConsumer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -337,6 +338,16 @@ public class InternalOptions {
   // If null, no configuration information needs to be printed.
   // If non-null, configuration must be passed to the consumer.
   public StringConsumer configurationConsumer = null;
+
+  // If null, no graph information needs to be provided for the keep/inclusion of classes
+  // in the output. If non-null, each edge pertaining to kept parts of the resulting program
+  // must be reported to the consumer.
+  public GraphConsumer keptGraphConsumer = null;
+
+  // If null, no graph information needs to be provided for the keep/inclusion of classes
+  // in the main-dex output. If non-null, each edge pertaining to kept parts in the main-dex output
+  // of the resulting program must be reported to the consumer.
+  public GraphConsumer mainDexKeptGraphConsumer = null;
 
   public Path proguardCompatibilityRulesOutput = null;
 

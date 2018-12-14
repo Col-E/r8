@@ -49,6 +49,13 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
+  public T addKeepClassAndMembersRules(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      addKeepRules("-keep class " + clazz.getTypeName() + " { *; }");
+    }
+    return self();
+  }
+
   public T addKeepPackageRules(Package pkg) {
     return addKeepRules("-keep class " + pkg.getName() + ".*");
   }
@@ -64,5 +71,4 @@ public abstract class TestShrinkerBuilder<
             "  public static void main(java.lang.String[]);",
             "}"));
   }
-
 }

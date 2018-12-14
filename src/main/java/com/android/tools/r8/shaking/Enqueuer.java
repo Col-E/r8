@@ -36,6 +36,15 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.graphinfo.AnnotationGraphNode;
+import com.android.tools.r8.graphinfo.ClassGraphNode;
+import com.android.tools.r8.graphinfo.FieldGraphNode;
+import com.android.tools.r8.graphinfo.GraphConsumer;
+import com.android.tools.r8.graphinfo.GraphEdgeInfo;
+import com.android.tools.r8.graphinfo.GraphEdgeInfo.EdgeKind;
+import com.android.tools.r8.graphinfo.GraphNode;
+import com.android.tools.r8.graphinfo.KeepRuleGraphNode;
+import com.android.tools.r8.graphinfo.MethodGraphNode;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -66,7 +75,6 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -79,6 +87,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -121,6 +130,14 @@ public class Enqueuer {
 
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
 
+  // Canonicalization of external graph-nodes and edge info.
+  private final Map<DexItem, AnnotationGraphNode> annotationNodes = new IdentityHashMap<>();
+  private final Map<DexType, ClassGraphNode> classNodes = new IdentityHashMap<>();
+  private final Map<DexMethod, MethodGraphNode> methodNodes = new IdentityHashMap<>();
+  private final Map<DexField, FieldGraphNode> fieldNodes = new IdentityHashMap<>();
+  private final Map<ProguardKeepRule, KeepRuleGraphNode> ruleNodes = new IdentityHashMap<>();
+  private final Map<EdgeKind, GraphEdgeInfo> reasonInfo = new IdentityHashMap<>();
+
   /**
    * Set of method signatures used in invoke-super instructions that either cannot be resolved or
    * resolve to a private method (leading to an IllegalAccessError).
@@ -154,16 +171,15 @@ public class Enqueuer {
    * Set of annotation types that are instantiated.
    */
   private final Set<DexType> instantiatedAnnotations = Sets.newIdentityHashSet();
-  /**
-   * Set of types that are actually instantiated. These cannot be abstract.
-   */
-  private final SetWithReason<DexType> instantiatedTypes = new SetWithReason<>();
+  /** Set of types that are actually instantiated. These cannot be abstract. */
+  private final SetWithReason<DexType> instantiatedTypes = new SetWithReason<>(this::registerType);
   /**
    * Set of methods that are the immediate target of an invoke. They might not actually be live but
    * are required so that invokes can find the method. If a method is only a target but not live,
    * its implementation may be removed and it may be marked abstract.
    */
-  private final SetWithReason<DexEncodedMethod> targetedMethods = new SetWithReason<>();
+  private final SetWithReason<DexEncodedMethod> targetedMethods =
+      new SetWithReason<>(this::registerMethod);
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
    */
@@ -180,19 +196,21 @@ public class Enqueuer {
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
    * kept.
    */
-  private final SetWithReason<DexEncodedMethod> liveMethods = new SetWithReason<>();
+  private final SetWithReason<DexEncodedMethod> liveMethods =
+      new SetWithReason<>(this::registerMethod);
 
   /**
-   * Set of fields that belong to live classes and can be reached by invokes. These need to be
-   * kept.
+   * Set of fields that belong to live classes and can be reached by invokes. These need to be kept.
    */
-  private final SetWithReason<DexEncodedField> liveFields = new SetWithReason<>();
+  private final SetWithReason<DexEncodedField> liveFields =
+      new SetWithReason<>(this::registerField);
 
   /**
    * Set of interface types for which a lambda expression can be reached. These never have a single
    * interface implementation.
    */
-  private final SetWithReason<DexType> instantiatedLambdas = new SetWithReason<>();
+  private final SetWithReason<DexType> instantiatedLambdas =
+      new SetWithReason<>(this::registerType);
 
   /**
    * A queue of items that need processing. Different items trigger different actions:
@@ -236,33 +254,42 @@ public class Enqueuer {
    */
   private final ProguardConfiguration.Builder compatibility;
 
-  public Enqueuer(AppView<? extends AppInfoWithSubtyping> appView, InternalOptions options) {
-    this(appView, options, options.forceProguardCompatibility, null);
+  private final GraphConsumer keptGraphConsumer;
+
+  public Enqueuer(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      InternalOptions options,
+      GraphConsumer keptGraphConsumer) {
+    this(appView, options, keptGraphConsumer, options.forceProguardCompatibility, null);
   }
 
   public Enqueuer(
       AppView<? extends AppInfoWithSubtyping> appView,
       InternalOptions options,
+      GraphConsumer keptGraphConsumer,
       ProguardConfiguration.Builder compatibility) {
-    this(appView, options, options.forceProguardCompatibility, compatibility);
+    this(appView, options, keptGraphConsumer, options.forceProguardCompatibility, compatibility);
   }
 
   public Enqueuer(
       AppView<? extends AppInfoWithSubtyping> appView,
       InternalOptions options,
+      GraphConsumer keptGraphConsumer,
       boolean forceProguardCompatibility) {
-    this(appView, options, forceProguardCompatibility, null);
+    this(appView, options, keptGraphConsumer, forceProguardCompatibility, null);
   }
 
   public Enqueuer(
       AppView<? extends AppInfoWithSubtyping> appView,
       InternalOptions options,
+      GraphConsumer keptGraphConsumer,
       boolean forceProguardCompatibility,
       ProguardConfiguration.Builder compatibility) {
     this.appInfo = appView.appInfo();
     this.appView = appView;
     this.compatibility = compatibility;
     this.forceProguardCompatibility = forceProguardCompatibility;
+    this.keptGraphConsumer = keptGraphConsumer;
     this.options = options;
   }
 
@@ -849,9 +876,13 @@ public class Enqueuer {
     DexClass holder = appInfo.definitionFor(type);
     if (holder != null && !holder.isLibraryClass()) {
       if (!dontWarnPatterns.matches(context)) {
-        Diagnostic message = new StringDiagnostic("Library class " + context.toSourceString()
-            + (holder.isInterface() ? " implements " : " extends ")
-            + "program class " + type.toSourceString());
+        Diagnostic message =
+            new StringDiagnostic(
+                "Library class "
+                    + context.toSourceString()
+                    + (holder.isInterface() ? " implements " : " extends ")
+                    + "program class "
+                    + type.toSourceString());
         if (forceProguardCompatibility) {
           options.reporter.warning(message);
         } else {
@@ -1166,10 +1197,12 @@ public class Enqueuer {
     if (encodedField.accessFlags.isStatic()) {
       markStaticFieldAsLive(encodedField.field, reason);
     } else {
-      SetWithReason<DexEncodedField> reachable = reachableInstanceFields
-          .computeIfAbsent(encodedField.field.clazz, ignore -> new SetWithReason<>());
-      if (reachable.add(encodedField, reason) && isInstantiatedOrHasInstantiatedSubtype(
-          encodedField.field.clazz)) {
+      SetWithReason<DexEncodedField> reachable =
+          reachableInstanceFields.computeIfAbsent(
+              encodedField.field.clazz, ignore -> new SetWithReason<>((f, r) -> {}));
+      // TODO(b/120959039): The reachable.add test might be hiding other paths to the field.
+      if (reachable.add(encodedField, reason)
+          && isInstantiatedOrHasInstantiatedSubtype(encodedField.field.clazz)) {
         // We have at least one live subtype, so mark it as live.
         markInstanceFieldAsLive(encodedField, reason);
       }
@@ -1212,8 +1245,10 @@ public class Enqueuer {
         ? appInfo.lookupInterfaceTargets(method)
         : appInfo.lookupVirtualTargets(method);
     for (DexEncodedMethod encodedMethod : targets) {
-      SetWithReason<DexEncodedMethod> reachable = reachableVirtualMethods
-          .computeIfAbsent(encodedMethod.method.holder, (ignore) -> new SetWithReason<>());
+      // TODO(b/120959039): The reachable.add test might be hiding other paths to the method.
+      SetWithReason<DexEncodedMethod> reachable =
+          reachableVirtualMethods.computeIfAbsent(
+              encodedMethod.method.holder, (ignore) -> new SetWithReason<>((m, r) -> {}));
       if (reachable.add(encodedMethod, reason)) {
         // Abstract methods cannot be live.
         if (!encodedMethod.accessFlags.isAbstract()) {
@@ -1323,23 +1358,6 @@ public class Enqueuer {
     }
   }
 
-  public ReasonPrinter getReasonPrinter(Set<DexDefinition> queriedItems) {
-    // If no reason was asked, just return a no-op printer to avoid computing the information.
-    // This is the common path.
-    if (queriedItems.isEmpty()) {
-      return ReasonPrinter.getNoOpPrinter();
-    }
-    Map<DexDefinition, KeepReason> reachability = new HashMap<>();
-    for (SetWithReason<DexEncodedMethod> mappings : reachableVirtualMethods.values()) {
-      reachability.putAll(mappings.getReasons());
-    }
-    for (SetWithReason<DexEncodedField> mappings : reachableInstanceFields.values()) {
-      reachability.putAll(mappings.getReasons());
-    }
-    return new ReasonPrinter(queriedItems, liveFields.getReasons(), liveMethods.getReasons(),
-        reachability, instantiatedTypes.getReasons());
-  }
-
   public AppInfoWithLiveness traceMainDex(
       RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
     this.tracingMainDex = true;
@@ -1355,7 +1373,8 @@ public class Enqueuer {
       RootSet rootSet,
       ProguardClassFilter dontWarnPatterns,
       ExecutorService executorService,
-      Timing timing) throws ExecutionException {
+      Timing timing)
+      throws ExecutionException {
     this.rootSet = rootSet;
     this.dontWarnPatterns = dontWarnPatterns;
     // Translate the result of root-set computation into enqueuer actions.
@@ -2563,14 +2582,16 @@ public class Enqueuer {
   private static class SetWithReason<T> {
 
     private final Set<T> items = Sets.newIdentityHashSet();
-    private final Map<T, KeepReason> reasons = Maps.newIdentityHashMap();
+
+    private final BiConsumer<T, KeepReason> register;
+
+    public SetWithReason(BiConsumer<T, KeepReason> register) {
+      this.register = register;
+    }
 
     boolean add(T item, KeepReason reason) {
-      if (items.add(item)) {
-        reasons.put(item, reason);
-        return true;
-      }
-      return false;
+      register.accept(item, reason);
+      return items.add(item);
     }
 
     boolean contains(T item) {
@@ -2579,10 +2600,6 @@ public class Enqueuer {
 
     Set<T> getItems() {
       return ImmutableSet.copyOf(items);
-    }
-
-    Map<T, KeepReason> getReasons() {
-      return ImmutableMap.copyOf(reasons);
     }
   }
 
@@ -2708,5 +2725,79 @@ public class Enqueuer {
       }
       return false;
     }
+  }
+
+  private void registerType(DexType type, KeepReason reason) {
+    assert getSourceNode(reason) != null;
+    if (keptGraphConsumer == null) {
+      return;
+    }
+    registerEdge(getClassGraphNode(type), reason);
+  }
+
+  private void registerMethod(DexEncodedMethod method, KeepReason reason) {
+    if (reason.edgeKind() == EdgeKind.IsLibraryMethod) {
+      // Don't report edges to actual library methods.
+      // TODO(b/120959039): Make sure we do have edges to methods overwriting library methods!
+      return;
+    }
+    assert getSourceNode(reason) != null;
+    if (keptGraphConsumer == null) {
+      return;
+    }
+    registerEdge(getMethodGraphNode(method.method), reason);
+  }
+
+  private void registerField(DexEncodedField field, KeepReason reason) {
+    assert getSourceNode(reason) != null;
+    if (keptGraphConsumer == null) {
+      return;
+    }
+    registerEdge(getFieldGraphNode(field.field), reason);
+  }
+
+  private void registerEdge(GraphNode target, KeepReason reason) {
+    keptGraphConsumer.acceptEdge(getSourceNode(reason), target, getEdgeInfo(reason));
+  }
+
+  private GraphNode getSourceNode(KeepReason reason) {
+    return reason.getSourceNode(this);
+  }
+
+  public GraphNode getGraphNode(DexDefinition item) {
+    if (item instanceof DexClass) {
+      return getClassGraphNode(((DexClass) item).type);
+    }
+    if (item instanceof DexEncodedMethod) {
+      return getMethodGraphNode(((DexEncodedMethod) item).method);
+    }
+    if (item instanceof DexEncodedField) {
+      return getFieldGraphNode(((DexEncodedField) item).field);
+    }
+    throw new Unreachable();
+  }
+
+  GraphEdgeInfo getEdgeInfo(KeepReason reason) {
+    return reasonInfo.computeIfAbsent(reason.edgeKind(), k -> new GraphEdgeInfo(k));
+  }
+
+  AnnotationGraphNode getAnnotationGraphNode(DexItem type) {
+    return annotationNodes.computeIfAbsent(type, AnnotationGraphNode::new);
+  }
+
+  ClassGraphNode getClassGraphNode(DexType type) {
+    return classNodes.computeIfAbsent(type, ClassGraphNode::new);
+  }
+
+  MethodGraphNode getMethodGraphNode(DexMethod context) {
+    return methodNodes.computeIfAbsent(context, MethodGraphNode::new);
+  }
+
+  FieldGraphNode getFieldGraphNode(DexField context) {
+    return fieldNodes.computeIfAbsent(context, FieldGraphNode::new);
+  }
+
+  KeepRuleGraphNode getKeepRuleGraphNode(ProguardKeepRule rule) {
+    return ruleNodes.computeIfAbsent(rule, KeepRuleGraphNode::new);
   }
 }

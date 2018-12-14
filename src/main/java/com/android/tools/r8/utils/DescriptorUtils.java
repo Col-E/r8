@@ -164,7 +164,8 @@ public class DescriptorUtils {
    * @return Java type name
    */
   public static String descriptorToJavaType(String descriptor, ClassNameMapper classNameMapper) {
-    switch (descriptor.charAt(0)) {
+    char c = descriptor.charAt(0);
+    switch (c) {
       case 'L':
         assert descriptor.charAt(descriptor.length() - 1) == ';';
         String clazz = descriptor.substring(1, descriptor.length() - 1)
@@ -175,6 +176,13 @@ public class DescriptorUtils {
       case '[':
         return descriptorToJavaType(descriptor.substring(1, descriptor.length()), classNameMapper)
             + "[]";
+      default:
+        return primitiveDescriptorToJavaType(c);
+    }
+  }
+
+  public static String primitiveDescriptorToJavaType(char primitive) {
+    switch (primitive) {
       case 'V':
         return "void";
       case 'Z':
@@ -194,7 +202,7 @@ public class DescriptorUtils {
       case 'D':
         return "double";
       default:
-        throw new Unreachable("Unknown type " + descriptor);
+        throw new Unreachable("Unknown type " + primitive);
     }
   }
 

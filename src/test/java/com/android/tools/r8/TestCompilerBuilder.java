@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Suppliers;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.function.Consumer;
@@ -40,6 +41,7 @@ public abstract class TestCompilerBuilder<
   private StringConsumer mainDexListConsumer;
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
+  private PrintStream stdout = null;
 
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
     super(state);
@@ -70,7 +72,17 @@ public abstract class TestCompilerBuilder<
     if (backend == Backend.DEX && defaultMinApiLevel != null) {
       builder.setMinApiLevel(defaultMinApiLevel.getLevel());
     }
-    return internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build));
+    PrintStream oldOut = System.out;
+    try {
+      if (stdout != null) {
+        System.setOut(stdout);
+      }
+      return internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build));
+    } finally {
+      if (stdout != null) {
+        System.setOut(oldOut);
+      }
+    }
   }
 
   @Override
@@ -149,6 +161,12 @@ public abstract class TestCompilerBuilder<
 
   public T noDesugaring() {
     builder.setDisableDesugaring(true);
+    return self();
+  }
+
+  public T redirectStdOut(PrintStream printStream) {
+    assert stdout == null;
+    stdout = printStream;
     return self();
   }
 }

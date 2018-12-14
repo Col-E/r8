@@ -15,9 +15,11 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graphinfo.GraphConsumer;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
@@ -46,12 +48,12 @@ import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.StaticClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.VerticalClassMerger;
+import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -287,9 +289,14 @@ public class R8 {
                     appView, application, options.proguardConfiguration.getRules(), options)
                 .run(executorService);
 
-        Enqueuer enqueuer = new Enqueuer(appView, options, compatibility);
-        appView.setAppInfo(enqueuer.traceApplication(
-            rootSet, options.proguardConfiguration.getDontWarnPatterns(), executorService, timing));
+        Enqueuer enqueuer = new Enqueuer(appView, options, null, compatibility);
+        appView.setAppInfo(
+            enqueuer.traceApplication(
+                rootSet,
+                options.proguardConfiguration.getDontWarnPatterns(),
+                executorService,
+                timing));
+
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
@@ -452,11 +459,19 @@ public class R8 {
       MainDexClasses mainDexClasses = MainDexClasses.NONE;
       if (!options.mainDexKeepRules.isEmpty()) {
         appView.setAppInfo(new AppInfoWithSubtyping(application));
-        Enqueuer enqueuer = new Enqueuer(appView, options, true);
         // Lets find classes which may have code executed before secondary dex files installation.
         RootSet mainDexRootSet =
             new RootSetBuilder(appView, application, options.mainDexKeepRules, options)
                 .run(executorService);
+
+        GraphConsumer mainDexKeptGraphConsumer = options.mainDexKeptGraphConsumer;
+        WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;
+        if (!mainDexRootSet.reasonAsked.isEmpty()) {
+          whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(mainDexKeptGraphConsumer);
+          mainDexKeptGraphConsumer = whyAreYouKeepingConsumer;
+        }
+
+        Enqueuer enqueuer = new Enqueuer(appView, options, mainDexKeptGraphConsumer, true);
         AppInfoWithLiveness mainDexAppInfo =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
 
@@ -469,13 +484,12 @@ public class R8 {
                   mainDexRootSet, mainDexClasses.getClasses(), appView.appInfo(), options)
               .run();
         }
-        if (!mainDexRootSet.reasonAsked.isEmpty()) {
-          // If the main dex rules have -whyareyoukeeping rules build an application
-          // pruned with the main dex tracing result to reflect only on main dex content.
-          TreePruner mainDexPruner = new TreePruner(application, mainDexAppInfo, options);
-          DexApplication mainDexApplication = mainDexPruner.run();
-          ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(mainDexRootSet.reasonAsked);
-          reasonPrinter.run(mainDexApplication);
+        if (whyAreYouKeepingConsumer != null) {
+          // TODO(b/120959039): Sort the set so the order is always the same print order!
+          for (DexDefinition dexDefinition : mainDexRootSet.reasonAsked) {
+            whyAreYouKeepingConsumer.printWhyAreYouKeeping(
+                enqueuer.getGraphNode(dexDefinition), System.out);
+          }
         }
       }
 
@@ -484,7 +498,18 @@ public class R8 {
       if (options.enableTreeShaking || options.enableMinification) {
         timing.begin("Post optimization code stripping");
         try {
-          Enqueuer enqueuer = new Enqueuer(appView, options);
+
+          GraphConsumer keptGraphConsumer = null;
+          WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;
+          if (options.enableTreeShaking) {
+            keptGraphConsumer = options.keptGraphConsumer;
+            if (!rootSet.reasonAsked.isEmpty()) {
+              whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(keptGraphConsumer);
+              keptGraphConsumer = whyAreYouKeepingConsumer;
+            }
+          }
+
+          Enqueuer enqueuer = new Enqueuer(appView, options, keptGraphConsumer);
           appView.setAppInfo(
               enqueuer.traceApplication(
                   rootSet,
@@ -501,8 +526,13 @@ public class R8 {
                     .appInfo()
                     .prunedCopyFrom(application, pruner.getRemovedClasses()));
             // Print reasons on the application after pruning, so that we reflect the actual result.
-            ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(rootSet.reasonAsked);
-            reasonPrinter.run(application);
+            if (whyAreYouKeepingConsumer != null) {
+              // TODO(b/120959039): Sort the set so the order is always the same print order!
+              for (DexDefinition dexDefinition : rootSet.reasonAsked) {
+                whyAreYouKeepingConsumer.printWhyAreYouKeeping(
+                    enqueuer.getGraphNode(dexDefinition), System.out);
+              }
+            }
             // Remove annotations that refer to types that no longer exist.
             new AnnotationRemover(appView.appInfo().withLiveness(), options).run();
             if (!mainDexClasses.isEmpty()) {

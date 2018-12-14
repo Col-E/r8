@@ -7,15 +7,16 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graphinfo.GraphConsumer;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
-import com.android.tools.r8.shaking.ReasonPrinter;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.shaking.TreePruner;
+import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -46,7 +47,15 @@ public class GenerateMainDexList {
           new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
       RootSet mainDexRootSet =
           new RootSetBuilder(appView, application, options.mainDexKeepRules, options).run(executor);
-      Enqueuer enqueuer = new Enqueuer(appView, options, true);
+
+      GraphConsumer graphConsumer = options.mainDexKeptGraphConsumer;
+      WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;
+      if (!mainDexRootSet.reasonAsked.isEmpty()) {
+        whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(graphConsumer);
+        graphConsumer = whyAreYouKeepingConsumer;
+      }
+
+      Enqueuer enqueuer = new Enqueuer(appView, options, graphConsumer, true);
       AppInfoWithLiveness mainDexAppInfo = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
       // LiveTypes is the result.
       MainDexClasses mainDexClasses =
@@ -63,12 +72,12 @@ public class GenerateMainDexList {
       }
 
       // Print -whyareyoukeeping results if any.
-      if (mainDexRootSet.reasonAsked.size() > 0) {
-        // Print reasons on the application after pruning, so that we reflect the actual result.
-        TreePruner pruner = new TreePruner(application, mainDexAppInfo.withLiveness(), options);
-        application = pruner.run();
-        ReasonPrinter reasonPrinter = enqueuer.getReasonPrinter(mainDexRootSet.reasonAsked);
-        reasonPrinter.run(application);
+      if (whyAreYouKeepingConsumer != null) {
+        // TODO(b/120959039): This should be ordered!
+        for (DexDefinition definition : mainDexRootSet.reasonAsked) {
+          whyAreYouKeepingConsumer.printWhyAreYouKeeping(
+              enqueuer.getGraphNode(definition), System.out);
+        }
       }
 
       return result;

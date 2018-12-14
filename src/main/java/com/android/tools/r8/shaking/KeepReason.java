@@ -6,10 +6,16 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.shaking.ReasonPrinter.ReasonFormatter;
+import com.android.tools.r8.graphinfo.GraphEdgeInfo;
+import com.android.tools.r8.graphinfo.GraphEdgeInfo.EdgeKind;
+import com.android.tools.r8.graphinfo.GraphNode;
 
 // TODO(herhut): Canonicalize reason objects.
-abstract class KeepReason {
+public abstract class KeepReason {
+
+  public abstract GraphEdgeInfo.EdgeKind edgeKind();
+
+  public abstract GraphNode getSourceNode(Enqueuer enqueuer);
 
   static KeepReason dueToKeepRule(ProguardKeepRule rule) {
     return new DueToKeepRule(rule);
@@ -51,8 +57,6 @@ abstract class KeepReason {
     return new ReferencedInAnnotation(holder);
   }
 
-  public abstract void print(ReasonFormatter formatter);
-
   public boolean isDueToKeepRule() {
     return false;
   }
@@ -78,6 +82,11 @@ abstract class KeepReason {
     }
 
     @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.KeepRule;
+    }
+
+    @Override
     public boolean isDueToKeepRule() {
       return true;
     }
@@ -88,24 +97,19 @@ abstract class KeepReason {
     }
 
     @Override
-    public void print(ReasonFormatter formatter) {
-      formatter.addReason("referenced in keep rule:");
-      formatter.addMessage("  " + keepRule.toShortString() + " {");
-      int ruleCount = 0;
-      for (ProguardMemberRule memberRule : keepRule.getMemberRules()) {
-        formatter.addMessage("    " + memberRule + ";");
-        if (++ruleCount > 10) {
-          formatter.addMessage("      <...>");
-          break;
-        }
-      }
-      formatter.addMessage("  };");
+    public GraphNode getSourceNode(Enqueuer enqueuer) {
+      return enqueuer.getKeepRuleGraphNode(keepRule);
     }
   }
 
   private static class DueToProguardCompatibilityKeepRule extends DueToKeepRule {
     private DueToProguardCompatibilityKeepRule(ProguardKeepRule keepRule) {
       super(keepRule);
+    }
+
+    @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.CompatibilityRule;
     }
 
     @Override
@@ -125,17 +129,20 @@ abstract class KeepReason {
     abstract String getKind();
 
     @Override
-    public void print(ReasonFormatter formatter) {
-      formatter.addReason("is " + getKind() + " " + method.toSourceString());
-      formatter.addMethodReferenceReason(method);
+    public GraphNode getSourceNode(Enqueuer enqueuer) {
+      return enqueuer.getMethodGraphNode(method.method);
     }
-
   }
 
   private static class InstatiatedIn extends BasedOnOtherMethod {
 
     private InstatiatedIn(DexEncodedMethod method) {
       super(method);
+    }
+
+    @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.InstantiatedIn;
     }
 
     @Override
@@ -151,6 +158,11 @@ abstract class KeepReason {
     }
 
     @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.InvokedViaSuper;
+    }
+
+    @Override
     String getKind() {
       return "invoked via super from";
     }
@@ -160,6 +172,11 @@ abstract class KeepReason {
 
     private TargetedBySuper(DexEncodedMethod method) {
       super(method);
+    }
+
+    @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.TargetedBySuper;
     }
 
     @Override
@@ -175,6 +192,11 @@ abstract class KeepReason {
     }
 
     @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.InvokedFrom;
+    }
+
+    @Override
     String getKind() {
       return "invoked from";
     }
@@ -187,6 +209,11 @@ abstract class KeepReason {
     }
 
     @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.InvokedFromLambdaCreatedIn;
+    }
+
+    @Override
     String getKind() {
       return "invoked from lambda created in";
     }
@@ -196,6 +223,11 @@ abstract class KeepReason {
 
     private ReferenedFrom(DexEncodedMethod method) {
       super(method);
+    }
+
+    @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.ReferencedFrom;
     }
 
     @Override
@@ -213,9 +245,13 @@ abstract class KeepReason {
     }
 
     @Override
-    public void print(ReasonFormatter formatter) {
-      formatter.addReason("is reachable from type " + type.toSourceString());
-      formatter.addTypeLivenessReason(type);
+    public EdgeKind edgeKind() {
+      return EdgeKind.ReachableFromLiveType;
+    }
+
+    @Override
+    public GraphNode getSourceNode(Enqueuer enqueuer) {
+      return enqueuer.getClassGraphNode(type);
     }
   }
 
@@ -225,8 +261,13 @@ abstract class KeepReason {
     }
 
     @Override
-    public void print(ReasonFormatter formatter) {
-      formatter.addReason("is defined in a library.");
+    public EdgeKind edgeKind() {
+      return EdgeKind.IsLibraryMethod;
+    }
+
+    @Override
+    public GraphNode getSourceNode(Enqueuer enqueuer) {
+      return null;
     }
   }
 
@@ -239,8 +280,13 @@ abstract class KeepReason {
     }
 
     @Override
-    public void print(ReasonFormatter formatter) {
-      formatter.addReason("is referenced in annotation on " + holder.toSourceString());
+    public EdgeKind edgeKind() {
+      return EdgeKind.ReferencedInAnnotation;
+    }
+
+    @Override
+    public GraphNode getSourceNode(Enqueuer enqueuer) {
+      return enqueuer.getAnnotationGraphNode(holder);
     }
   }
 }
