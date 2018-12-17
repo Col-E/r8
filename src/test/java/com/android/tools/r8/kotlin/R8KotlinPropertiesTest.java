@@ -434,8 +434,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
       // non-null, thus the getter/setter can be inlined if their code is small enough.
       // Because the backing field is private, they will call into an accessor (static) method. If
       // access relaxation is enabled, this accessor can be removed.
-      checkMethodIsRemoved(companionClass, getter);
-      checkMethodIsRemoved(companionClass, setter);
+      checkMethodIsAbsent(companionClass, getter);
+      checkMethodIsAbsent(companionClass, setter);
       if (allowAccessModification) {
         assertTrue(fieldSubject.getField().accessFlags.isPublic());
       } else {
@@ -527,8 +527,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
       // non-null, thus the getter/setter can be inlined if their code is small enough.
       // Because the backing field is private, they will call into an accessor (static) method. If
       // access relaxation is enabled, this accessor can be removed.
-      checkMethodIsRemoved(companionClass, getter);
-      checkMethodIsRemoved(companionClass, setter);
+      checkMethodIsAbsent(companionClass, getter);
+      checkMethodIsAbsent(companionClass, setter);
       if (allowAccessModification) {
         assertTrue(fieldSubject.getField().accessFlags.isPublic());
       } else {
