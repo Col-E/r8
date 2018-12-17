@@ -122,10 +122,9 @@ public class TestCondition {
           CompilerUnderTest.R8CF);
   public static final CompilerSet R8DEX_COMPILER =
       compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8);
-  public static final CompilerSet R8_AFTER_D8_COMPILER = compilers(CompilerUnderTest.R8_AFTER_D8);
   public static final CompilerSet R8_NOT_AFTER_D8_COMPILER =
       compilers(CompilerUnderTest.R8, CompilerUnderTest.D8_AFTER_R8CF, CompilerUnderTest.R8CF);
-  public static final CompilerSet R8DEX_NOT_AFTER_D8_COMPILER = compilers(CompilerUnderTest.R8);
+  public static final CompilerSet R8CF = compilers(CompilerUnderTest.R8CF);
 
   public static final CompilationModeSet DEBUG_MODE =
       new CompilationModeSet(EnumSet.of(CompilationMode.DEBUG));
@@ -138,6 +137,7 @@ public class TestCondition {
   private static final RuntimeSet ANY_RUNTIME = new RuntimeSet(EnumSet.allOf(Runtime.class));
   private static final RuntimeSet ANY_DEX_VM_RUNTIME =
       RuntimeSet.fromDexVmVersionSet(EnumSet.allOf(ToolHelper.DexVm.Version.class));
+  public static final RuntimeSet JAVA_RUNTIME = new RuntimeSet(EnumSet.of(Runtime.JAVA));
   private static final CompilationModeSet ANY_MODE =
       new CompilationModeSet(EnumSet.allOf(CompilationMode.class));
 
@@ -232,6 +232,10 @@ public class TestCondition {
   public static TestCondition anyDexVm() {
     return match(
         TestCondition.ANY_TOOL, TestCondition.ANY_COMPILER, TestCondition.ANY_DEX_VM_RUNTIME);
+  }
+
+  public static TestCondition cf() {
+    return match(TestCondition.ANY_TOOL, R8CF, JAVA_RUNTIME);
   }
 
   public static TestCondition match(ToolSet tools) {
