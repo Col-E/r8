@@ -254,6 +254,8 @@ dependencies {
     apt "com.google.auto.value:auto-value:$autoValueVersion"
 }
 
+def r8LibClasses = "build/classes/r8lib"
+
 def osString = OperatingSystem.current().isLinux() ? "linux" :
         OperatingSystem.current().isMacOsX() ? "mac" : "windows"
 
@@ -521,6 +523,14 @@ static configureRelocations(ShadowJar task) {
     task.relocate('org.intellij', 'com.android.tools.r8.org.intellij')
 }
 
+task repackageDepsNoRelocate(type: ShadowJar) {
+    configurations = [project.configurations.runtimeClasspath]
+    mergeServiceFiles(it)
+    exclude { it.getRelativePath().getPathString() == "module-info.class" }
+    exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
+    baseName 'deps'
+}
+
 task repackageDeps(type: ShadowJar) {
     configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
@@ -554,6 +564,17 @@ task r8WithRelocatedDeps(type: ShadowJar) {
     doLast {
         configureRelocations(it)
     }
+}
+
+task r8WithoutDeps(type: ShadowJar) {
+    from consolidatedLicense.outputs.files
+    baseName 'r8_without_deps'
+    classifier = null
+    version = null
+    manifest {
+        attributes 'Main-Class': 'com.android.tools.r8.SwissArmyKnife'
+    }
+    from sourceSets.main.output
 }
 
 task R8(type: ShadowJar) {
@@ -613,14 +634,43 @@ task CompatProguard(type: ShadowJar) {
     }
 }
 
-def r8CfCommandLine(input, output, pgconf) {
-    return ["java", "-ea", "-jar", R8.outputs.files[0],
+def r8CfCommandLine(input, output, pgconf, args = [], libs = []) {
+    return [
+        "java", "-ea", "-jar", R8.outputs.files[0],
         "--classfile", "--release",
         input,
-        "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar",
         "--output", output,
         "--pg-conf", pgconf,
-        "--pg-map-output", output + ".map"]
+        "--pg-map-output", output + ".map",
+        "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar"
+    ] + args + libs.collectMany { ["--lib", it] }
+}
+
+def r8LibCreateTask(name, pgConf, r8Task, output, args = [], libs = []) {
+    return tasks.create("r8Lib${name}", Exec) {
+        inputs.files ([pgConf, R8.outputs] + [r8Task.outputs])
+        outputs.file output
+        dependsOn downloadOpenJDKrt
+        commandLine r8CfCommandLine(r8Task.outputs.files[0], output, pgConf, args, libs)
+        workingDir = projectDir
+    }
+}
+
+task R8LibForTesting {
+    mkdir r8LibClasses
+    if (project.hasProperty('r8lib_no_deps')) {
+        dependsOn r8LibCreateTask(
+                "_ForTesting",
+                "src/main/keep.txt",
+                r8WithoutDeps,
+                r8LibClasses,
+                ["--no-tree-shaking", "--no-minification"],
+                repackageDepsNoRelocate.outputs.files
+        ).dependsOn(repackageDepsNoRelocate, r8WithoutDeps)
+    } else if (project.hasProperty('r8lib')) {
+        throw new GradleException('r8lib is not yet supported')
+    }
+    outputs.file r8LibClasses
 }
 
 task R8Lib(type: Exec) {
@@ -1312,6 +1362,15 @@ task AospJarTest(type: Exec) {
     workingDir = projectDir
 }
 
+task configureTestForR8Lib {
+    dependsOn R8LibForTesting
+    doLast {
+        test {
+            classpath = classpath - sourceSets.main.output + files(r8LibClasses)
+        }
+    }
+}
+
 test {
     if (project.hasProperty('generate_golden_files_to')) {
         systemProperty 'generate_golden_files_to', project.property('generate_golden_files_to')
@@ -1324,7 +1383,6 @@ test {
         assert project.hasProperty('HEAD_sha1')
         systemProperty 'test_git_HEAD_sha1', project.property('HEAD_sha1')
     }
-
     dependsOn getJarsFromSupportLibs
     // R8.jar is required for running bootstrap tests.
     dependsOn R8
@@ -1434,6 +1492,9 @@ test {
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +
             "Linux and partially supported on Mac OS and Windows. Art does not run on other platforms.")
+    }
+    if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
+        dependsOn configureTestForR8Lib
     }
 }
 
