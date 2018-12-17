@@ -1631,26 +1631,13 @@ public abstract class R8RunArtTestsTest {
       case R8:
       case R8CF:
         {
-          boolean cfBackend = compilerUnderTest == CompilerUnderTest.R8CF;
           R8Command.Builder builder =
               R8Command.builder()
                   .setMode(mode)
-                  .setOutput(
-                      Paths.get(resultPath),
-                      cfBackend ? OutputMode.ClassFile : OutputMode.DexIndexed);
+                  .setOutput(Paths.get(resultPath), OutputMode.ClassFile);
           // Add program files directly to the underlying app to avoid errors on DEX inputs.
           ToolHelper.getAppBuilder(builder).addProgramFiles(ListUtils.map(fileNames, Paths::get));
-          if (cfBackend) {
-            builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
-          } else {
-            AndroidApiLevel minSdkVersion = needMinSdkVersion.get(name);
-            if (minSdkVersion != null) {
-              builder.setMinApiLevel(minSdkVersion.getLevel());
-              ToolHelper.addFilteredAndroidJar(builder, minSdkVersion);
-            } else {
-              ToolHelper.addFilteredAndroidJar(builder, AndroidApiLevel.getDefault());
-            }
-          }
+          builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
           if (keepRulesFile != null) {
             builder.addProguardConfigurationFiles(Paths.get(keepRulesFile));
           }
@@ -1849,7 +1836,6 @@ public abstract class R8RunArtTestsTest {
     if (compilerUnderTest == CompilerUnderTest.R8CF) {
       runJctfTestDoRunOnJava(fileNames, specification, fullClassName, compilationMode, resultDir);
     } else {
-
       runJctfTestDoRunOnArt(
           fileNames,
           specification,
