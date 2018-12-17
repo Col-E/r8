@@ -331,7 +331,7 @@ public class IRCode {
         if (fallthrough != null) {
           BasicBlock newFallthrough =
               BasicBlock.createGotoBlock(
-                  nextBlockNumber++, block.exit().getPosition(), fallthrough);
+                  nextBlockNumber++, current.exit().getPosition(), fallthrough);
           current.exit().setFallthroughBlock(newFallthrough);
           newFallthrough.getMutablePredecessors().add(current);
           fallthrough.replacePredecessor(current, newFallthrough);
