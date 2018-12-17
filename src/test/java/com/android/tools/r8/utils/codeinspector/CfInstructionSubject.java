@@ -252,4 +252,20 @@ public class CfInstructionSubject implements InstructionSubject {
     int opcode = ((CfArithmeticBinop) instruction).getAsmOpcode();
     return Opcodes.IMUL <= opcode && opcode <= Opcodes.DMUL;
   }
+
+  @Override
+  public boolean equals(Object other) {
+    return other instanceof CfInstructionSubject
+        && instruction.equals(((CfInstructionSubject) other).instruction);
+  }
+
+  @Override
+  public int hashCode() {
+    return instruction.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return instruction.toString();
+  }
 }
