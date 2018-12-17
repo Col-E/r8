@@ -24,6 +24,8 @@ TYPES = ['dex', 'deploy', 'proguarded']
 APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome']
 COMPILERS = ['d8', 'r8', 'r8lib-r8', 'r8lib-d8']
 R8_COMPILERS = ['r8', 'r8lib-r8']
+# We use this magic exit code to signal that the program OOM'ed
+OOM_EXIT_CODE = 42
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
@@ -45,6 +47,10 @@ def ParseOptions(argv):
                     default=utils.BUILD)
   result.add_option('--no-build',
                     help='Run without building first',
+                    default=False,
+                    action='store_true')
+  result.add_option('--find-min-xmx',
+                    help='Find the minimum amount of memory we can run in',
                     default=False,
                     action='store_true')
   result.add_option('--golem',
@@ -160,6 +166,37 @@ def run_all(options, args):
       print('Failed %s %s %s with %s' % (name, version, type, compiler))
       exit(exit_code)
 
+def find_min_xmx(options, args):
+  # Args will be destroyed
+  assert len(args) == 0
+  # If we can run in 128 MB then we are good (which we can for small examples
+  # or D8 on medium sized examples)
+  not_working = 128
+  working = 1024 * 8
+  exit_code = 0
+  while working - not_working > 32:
+    next_candidate = working - ((working - not_working)/2)
+    print('working: %s, non_working: %s, next_candidate: %s' %
+          (working, not_working, next_candidate))
+    extra_args = ['-Xmx%sM' % next_candidate]
+    new_options = copy.copy(options)
+    t0 = time.time()
+    exit_code = run_with_options(options, [], extra_args)
+    t1 = time.time()
+    print('Running took: %s ms' % (1000.0 * (t1 - t0)))
+    if exit_code != 0 and exit_code != OOM_EXIT_CODE:
+      print('Non OOM error executing, exiting')
+      return 2
+    if exit_code == 0:
+      working = next_candidate
+    else:
+      assert exit_code == OOM_EXIT_CODE
+      not_working = next_candidate
+
+  assert working - not_working <= 32
+  print('Found range: %s - %s' % (not_working, working))
+  return 0
+
 def main(argv):
   (options, args) = ParseOptions(argv)
   if not options.ignore_java_version:
@@ -167,11 +204,12 @@ def main(argv):
 
   if options.run_all:
     return run_all(options, args)
+  if options.find_min_xmx:
+    return find_min_xmx(options, args)
   return run_with_options(options, args)
 
-def run_with_options(options, args):
+def run_with_options(options, args, extra_args=[]):
   app_provided_pg_conf = False;
-  extra_args = []
   # todo(121018500): remove when memory is under control
   extra_args.append('-Xmx8G')
   if options.golem:
@@ -292,14 +330,22 @@ def run_with_options(options, args):
             temp, os.path.abspath(pg_outdir))
         args.extend(['--pg-conf', additional_pg_conf])
       build = not options.no_build and not options.golem
-      exit_code = toolhelper.run(options.compiler, args,
-                     build=build,
-                     debug=not options.no_debug,
-                     profile=options.profile,
-                     track_memory_file=options.track_memory_to_file,
-                     extra_args=extra_args)
+      stderr_path = os.path.join(temp, 'stderr')
+      with open(stderr_path, 'w') as stderr:
+        exit_code = toolhelper.run(options.compiler, args,
+            build=build,
+            debug=not options.no_debug,
+            profile=options.profile,
+            track_memory_file=options.track_memory_to_file,
+            extra_args=extra_args, stderr=stderr)
       if exit_code != 0:
-        return exit_code
+        with open(stderr_path) as stderr:
+          stderr_text = stderr.read()
+          print(stderr_text)
+          if 'java.lang.OutOfMemoryError' in stderr_text:
+            print('Failure was OOM')
+            return OOM_EXIT_CODE
+          return exit_code
 
       if options.print_memoryuse:
         print('{}(MemoryUse): {}'
