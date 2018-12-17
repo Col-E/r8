@@ -54,7 +54,6 @@ import com.android.tools.r8.shaking.StaticClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.VerticalClassMerger;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -244,12 +243,6 @@ public class R8 {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
     try {
-      AndroidApiLevel oLevel = AndroidApiLevel.O;
-      if (options.minApiLevel >= oLevel.getLevel()
-          && !options.mainDexKeepRules.isEmpty()) {
-        throw new CompilationError("Automatic main dex list is not supported when compiling for "
-            + oLevel.getName() + " and later (--min-api " + oLevel.getLevel() + ")");
-      }
       DexApplication application =
           new ApplicationReader(inputApp, options, timing).read(executorService).toDirect();
 
