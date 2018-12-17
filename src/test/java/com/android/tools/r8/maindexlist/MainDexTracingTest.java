@@ -6,6 +6,7 @@ package com.android.tools.r8.maindexlist;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.withNativeFileSeparators;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.GenerateMainDexList;
@@ -88,7 +89,7 @@ public class MainDexTracingTest extends TestBase {
           StringUtils.lines(
               "multidex001.MainActivity",
               "|- is referenced in keep rule:",
-              "|  src/test/examples/multidex/main-dex-rules.txt:14:1");
+              withNativeFileSeparators("|  src/test/examples/multidex/main-dex-rules.txt:14:1"));
       Assert.assertEquals(expected, output);
     }
     {
@@ -104,7 +105,8 @@ public class MainDexTracingTest extends TestBase {
                   "|- is direct reference from:",
                   "|  multidex001.MainActivity",
                   "|- is referenced in keep rule:",
-                  "|  src/test/examples/multidex/main-dex-rules.txt:14:1");
+                  withNativeFileSeparators(
+                      "|  src/test/examples/multidex/main-dex-rules.txt:14:1"));
       Assert.assertEquals(expected, output);
     }
   }

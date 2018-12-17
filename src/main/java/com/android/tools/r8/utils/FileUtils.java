@@ -5,6 +5,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ByteDataView;
 import com.google.common.io.Closer;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -164,6 +165,16 @@ public class FileUtils {
               StandardOpenOption.TRUNCATE_EXISTING,
               StandardOpenOption.WRITE);
       outputStream.write(contents.getBuffer(), contents.getOffset(), contents.getLength());
+    }
+  }
+
+  public static String withNativeFileSeparators(String path) {
+    char fileSeparator = File.separatorChar;
+    if (fileSeparator == '/') {
+      return path.replace('\\', '/');
+    } else {
+      assert fileSeparator == '\\';
+      return path.replace('/', '\\');
     }
   }
 }
