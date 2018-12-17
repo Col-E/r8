@@ -49,6 +49,7 @@ VERSIONS = {
           '%s_proguard.config' % V180826_15_PREFIX,
           '%s/proguardsettings/Gmail_proguard.config' % utils.THIRD_PARTY],
       'min-api' : ANDROID_L_API,
+      'allow-type-errors' : 1,
     },
     'proguarded' : {
       'flags': '--no-desugaring',
