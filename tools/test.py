@@ -103,6 +103,10 @@ def ParseOptions():
   result.add_option('--use-golden-files-in', '--use_golden_files_in',
       help='Download golden files hierarchy for this commit in the specified'
            ' location and use them instead of executing on host runtime.')
+  result.add_option('--r8lib', '--r8lib', action='store_true',
+      help='Run the tests on r8lib with relocated dependencies.')
+  result.add_option('--r8lib_no_deps', '--r8lib_no_deps', default=False, action='store_true',
+      help='Run the tests on r8lib without relocated dependencies.')
 
   return result.parse_args()
 
@@ -174,6 +178,14 @@ def Main():
     if not os.path.exists(options.use_golden_files_in):
       os.makedirs(options.use_golden_files_in)
     gradle_args.append('-PHEAD_sha1=' + utils.get_HEAD_sha1())
+  if options.r8lib and options.r8lib_no_deps:
+    print('Cannot run tests on r8lib with and without deps')
+    exit(1)
+  if options.r8lib:
+    gradle_args.append('-Pr8lib')
+  if options.r8lib_no_deps:
+    gradle_args.append('-Pr8lib_no_deps')
+
   # Add Gradle tasks
   gradle_args.append('cleanTest')
   gradle_args.append('test')
