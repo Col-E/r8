@@ -254,7 +254,8 @@ dependencies {
     apt "com.google.auto.value:auto-value:$autoValueVersion"
 }
 
-def r8LibClasses = "build/classes/r8lib"
+def r8LibPath = "build/libs/r8lib.jar"
+def r8LibClassesPath = "build/classes/r8lib"
 
 def osString = OperatingSystem.current().isLinux() ? "linux" :
         OperatingSystem.current().isMacOsX() ? "mac" : "windows"
@@ -656,51 +657,32 @@ def r8LibCreateTask(name, pgConf, r8Task, output, args = [], libs = []) {
     }
 }
 
-task R8LibForTesting {
-    mkdir r8LibClasses
-    if (project.hasProperty('r8lib_no_deps')) {
-        dependsOn r8LibCreateTask(
-                "_ForTesting",
-                "src/main/keep.txt",
-                r8WithoutDeps,
-                r8LibClasses,
-                ["--no-tree-shaking", "--no-minification"],
-                repackageDepsNoRelocate.outputs.files
-        ).dependsOn(repackageDepsNoRelocate, r8WithoutDeps)
-    } else if (project.hasProperty('r8lib')) {
-        throw new GradleException('r8lib is not yet supported')
-    }
-    outputs.file r8LibClasses
+task R8LibNoDeps {
+    dependsOn r8LibCreateTask(
+            "NoDeps",
+            "src/main/keep.txt",
+            r8WithoutDeps,
+            r8LibPath,
+            ["--no-tree-shaking", "--no-minification"],
+            repackageDepsNoRelocate.outputs.files
+    ).dependsOn(repackageDepsNoRelocate, r8WithoutDeps)
 }
 
-task R8Lib(type: Exec) {
-    def pgconf = "src/main/keep.txt"
-    def output = "build/libs/r8lib.jar"
-    inputs.files files(pgconf, R8.outputs, R8NoManifest.outputs)
-    outputs.file output
-    dependsOn downloadOpenJDKrt
-    commandLine r8CfCommandLine(R8NoManifest.outputs.files[0], output, pgconf)
-    workingDir = projectDir
+task R8Lib {
+    dependsOn r8LibCreateTask("Main", "src/main/keep.txt", R8NoManifest, r8LibPath)
 }
 
-task CompatDxLib(type: Exec) {
-    def pgconf = "src/main/keep-compatdx.txt"
-    def output = "build/libs/compatdxlib.jar"
-    inputs.files files(pgconf, CompatDx.outputs, R8.outputs)
-    outputs.file output
-    dependsOn downloadOpenJDKrt
-    commandLine r8CfCommandLine(CompatDx.outputs.files[0], output, pgconf)
-    workingDir = projectDir
+task CompatDxLib {
+    dependsOn r8LibCreateTask(
+            "CompatDx", "src/main/keep-compatdx.txt", CompatDx, "build/libs/compatdxlib.jar")
 }
 
-task CompatProguardLib(type: Exec) {
-    def pgconf = "src/main/keep-compatproguard.txt"
-    def output = "build/libs/compatproguardlib.jar"
-    inputs.files files(pgconf, CompatProguard.outputs, R8.outputs)
-    outputs.file output
-    dependsOn downloadOpenJDKrt
-    commandLine r8CfCommandLine(CompatProguard.outputs.files[0], output, pgconf)
-    workingDir = projectDir
+task CompatProguardLib {
+    dependsOn r8LibCreateTask(
+            "CompatPg",
+            "src/main/keep-compatproguard.txt",
+            CompatProguard,
+            "build/libs/compatproguardlib.jar")
 }
 
 task sourceJar(type: Jar, dependsOn: classes) {
@@ -1362,11 +1344,22 @@ task AospJarTest(type: Exec) {
     workingDir = projectDir
 }
 
-task configureTestForR8Lib {
-    dependsOn R8LibForTesting
-    doLast {
-        test {
-            classpath = classpath - sourceSets.main.output + files(r8LibClasses)
+task configureTestForR8Lib(type: Copy) {
+    def r8LibTask;
+    if (project.hasProperty('r8lib')) {
+        r8LibTask = R8Lib
+    } else if (project.hasProperty('r8lib_no_deps')) {
+        r8LibTask = R8LibNoDeps
+    }
+    if (r8LibTask != null) {
+        dependsOn r8LibTask
+        from(zipTree(r8LibPath))
+        into(r8LibClassesPath)
+        outputs.file r8LibClassesPath
+        doLast {
+            test {
+                classpath = (classpath - sourceSets.main.output) + files(r8LibClassesPath)
+            }
         }
     }
 }
