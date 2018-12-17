@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.TestCondition.JAVA_RUNTIME;
 import static com.android.tools.r8.TestCondition.R8_COMPILER;
 import static com.android.tools.r8.TestCondition.and;
 import static com.android.tools.r8.TestCondition.any;
@@ -12,6 +13,7 @@ import static com.android.tools.r8.TestCondition.artRuntimesFrom;
 import static com.android.tools.r8.TestCondition.artRuntimesFromAndJava;
 import static com.android.tools.r8.TestCondition.artRuntimesUpTo;
 import static com.android.tools.r8.TestCondition.artRuntimesUpToAndJava;
+import static com.android.tools.r8.TestCondition.cf;
 import static com.android.tools.r8.TestCondition.match;
 import static com.android.tools.r8.TestCondition.runtimes;
 
@@ -281,7 +283,7 @@ public class JctfTestSpecifications {
           .put(
               "lang.ClassLoader.getSystemResourceAsStreamLjava_lang_String.ClassLoader_getSystemResourceAsStream_A01",
               anyDexVm())
-          .put("lang.ClassLoader.getPackages.ClassLoader_getPackages_A01", anyDexVm())
+          .put("lang.ClassLoader.getPackages.ClassLoader_getPackages_A01", any())
           .put(
               "lang.ClassLoader.setClassAssertionStatusLjava_lang_StringZ.ClassLoader_setClassAssertionStatus_A01",
               any())
@@ -645,6 +647,7 @@ public class JctfTestSpecifications {
                       Runtime.ART_V5_1_1,
                       Runtime.JAVA)))
           .put("lang.ref.SoftReference.get.SoftReference_get_A01", any())
+          .put("lang.ref.SoftReference.clear.SoftReference_clear_A01", cf())
           .put(
               "lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
               match(
@@ -741,6 +744,8 @@ public class JctfTestSpecifications {
               any())
           .put("lang.Long.serialization.Long_serialization_A01", anyDexVm())
           .put("lang.ThreadGroup.resume.ThreadGroup_resume_A01", anyDexVm())
+          .put("lang.ThreadGroup.resume.ThreadGroup_resume_A02", cf())
+          .put("lang.ThreadGroup.suspend.ThreadGroup_suspend_A02", cf())
           .put(
               "lang.AbstractMethodError.serialization.AbstractMethodError_serialization_A01",
               anyDexVm())
@@ -1064,6 +1069,7 @@ public class JctfTestSpecifications {
           .put(
               "lang.SecurityManager.checkAccessLjava_lang_ThreadGroup.SecurityManager_checkAccess_A01",
               anyDexVm())
+          .put("lang.ThreadGroup.interrupt.ThreadGroup_interrupt_A02", cf())
           .put(
               "lang.SecurityManager.inClassLjava_lang_String.SecurityManager_inClass_A03",
               anyDexVm())
@@ -1498,7 +1504,7 @@ public class JctfTestSpecifications {
               anyDexVm())
           .put(
               "lang.ThreadGroup.destroy.ThreadGroup_destroy_A01",
-              match(artRuntimesUpToAndJava(Runtime.ART_V6_0_1)))
+              match(artRuntimesUpTo(Runtime.ART_V6_0_1)))
           .put("lang.Thread.start.Thread_start_A01", match(runtimes(Runtime.ART_V7_0_0)))
           .put(
               "lang.String.getBytesLjava_lang_String.String_getBytes_A02",
@@ -1615,9 +1621,7 @@ public class JctfTestSpecifications {
           .put("lang.Math.sqrtD.Math_sqrt_A01", match(runtimes(Runtime.ART_V4_0_4)))
           .put("lang.StrictMath.cbrtD.StrictMath_cbrt_A01", match(runtimes(Runtime.ART_V4_0_4)))
           .put("lang.StrictMath.log10D.StrictMath_log10_A01", match(runtimes(Runtime.ART_V4_0_4)))
-          .put(
-              "lang.StrictMath.powDD.StrictMath_pow_A01",
-              match(runtimes(Runtime.ART_V4_0_4, Runtime.JAVA)))
+          .put("lang.StrictMath.powDD.StrictMath_pow_A01", match(runtimes(Runtime.ART_V4_0_4)))
           .put("lang.String.indexOfII.String_indexOf_A01", match(runtimes(Runtime.ART_V4_0_4)))
           .put(
               "lang.String.indexOfLjava_lang_StringI.String_indexOf_A01",
@@ -1676,35 +1680,23 @@ public class JctfTestSpecifications {
           .put(
               "util.concurrent.LinkedBlockingQueue.drainToLjava_util_CollectionI.LinkedBlockingQueue_drainTo_A01",
               match(runtimes(Runtime.ART_V4_0_4)))
-          .put(
-              "lang.Thread.stopLjava_lang_Throwable.Thread_stop_A02", match(runtimes(Runtime.JAVA)))
+          .put("lang.Thread.stopLjava_lang_Throwable.Thread_stop_A02", cf())
           .put(
               "lang.AssertionError.ConstructorLjava_lang_Object.AssertionError_Constructor_A01",
               match(runtimes(Runtime.ART_V4_0_4)))
-          .put(
-              "lang.RuntimePermission.Class.RuntimePermission_class_A13",
-              match(runtimes(Runtime.JAVA)))
-          .put(
-              "lang.Thread.stopLjava_lang_Throwable.Thread_stop_A01", match(runtimes(Runtime.JAVA)))
-          .put(
-              "lang.Runtime.addShutdownHookLjava_lang_Thread.Runtime_addShutdownHook_A02",
-              match(runtimes(Runtime.JAVA)))
-          .put(
-              "lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01",
-              match(runtimes(Runtime.JAVA)))
-          .put("lang.ThreadGroup.destroy.ThreadGroup_destroy_A04", match(runtimes(Runtime.JAVA)))
-          .put(
-              "lang.ThreadGroup.setMaxPriorityI.ThreadGroup_setMaxPriority_A02",
-              match(runtimes(Runtime.JAVA)))
+          .put("lang.RuntimePermission.Class.RuntimePermission_class_A13", cf())
+          .put("lang.Thread.stopLjava_lang_Throwable.Thread_stop_A01", cf())
+          .put("lang.Runtime.addShutdownHookLjava_lang_Thread.Runtime_addShutdownHook_A02", cf())
+          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01", cf())
+          .put("lang.ThreadGroup.destroy.ThreadGroup_destroy_A04", cf())
+          .put("lang.ThreadGroup.setMaxPriorityI.ThreadGroup_setMaxPriority_A02", cf())
           .put(
               "lang.String.replaceFirstLjava_lang_StringLjava_lang_String.String_replaceFirst_A01",
-              match(runtimes(Runtime.JAVA)))
+              cf())
           .put(
               "lang.String.replaceAllLjava_lang_StringLjava_lang_String.String_replaceAll_A01",
-              match(runtimes(Runtime.JAVA)))
-          .put(
-              "lang.System.inheritedChannel.System_inheritedChannel_A01",
-              match(runtimes(Runtime.JAVA)))
+              cf())
+          .put("lang.System.inheritedChannel.System_inheritedChannel_A01", cf())
           .build(); // end of failuresToTriage
 
   public static final Multimap<String, TestCondition> flakyWhenRun =
@@ -1731,7 +1723,7 @@ public class JctfTestSpecifications {
               match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put(
               "lang.ref.WeakReference.clear.WeakReference_clear_A01",
-              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(and(artRuntimesUpTo(Runtime.ART_V4_4_4), JAVA_RUNTIME)))
           .put(
               "lang.ref.PhantomReference.isEnqueued.PhantomReference_isEnqueued_A01",
               match(
@@ -1754,7 +1746,7 @@ public class JctfTestSpecifications {
           .put(
               "lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
               match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
-          .put("lang.Runtime.gc.Runtime_gc_A01", match(runtimes(Runtime.JAVA)))
+          .put("lang.Runtime.gc.Runtime_gc_A01", cf())
           .put(
               "util.concurrent.AbstractExecutorService.invokeAllLjava_util_CollectionJLjava_util_concurrent_TimeUnit.AbstractExecutorService_invokeAll_A06",
               match(runtimes(Runtime.ART_V4_0_4)))
@@ -1833,7 +1825,7 @@ public class JctfTestSpecifications {
           .put("lang.ThreadGroup.enumerate_ThreadGroup.ThreadGroup_enumerate_A03", anyDexVm())
           .put("lang.ThreadGroup.getParent.ThreadGroup_getParent_A02", anyDexVm())
           .put("lang.ThreadGroup.setDaemonZ.ThreadGroup_setDaemon_A02", anyDexVm())
-          .put("lang.ThreadGroup.stop.ThreadGroup_stop_A02", anyDexVm())
+          .put("lang.ThreadGroup.stop.ThreadGroup_stop_A02", any())
           .put("lang.Class.getSuperclass.Class_getSuperclass_A01", anyDexVm())
           .put("lang.System.getenv.System_getenv_A03", anyDexVm())
           .put("lang.System.inheritedChannel.System_inheritedChannel_A01", anyDexVm())
@@ -1882,8 +1874,7 @@ public class JctfTestSpecifications {
           .put("lang.Thread.dumpStack.Thread_dumpStack_A01", match(R8_COMPILER))
           .build();
 
-  public static final Set<String> compilationFailsWithAsmMethodTooLarge =
-      ImmutableSet.of("lang.StrictMath.powDD.StrictMath_pow_A01");
+  public static final Set<String> compilationFailsWithAsmMethodTooLarge = ImmutableSet.of();
 
   private static final boolean testMatch(
       Multimap<String, TestCondition> testConditions,
