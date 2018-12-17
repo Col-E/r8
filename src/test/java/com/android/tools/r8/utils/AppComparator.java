@@ -13,7 +13,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.codeinspector.CfInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.DexInstructionSubject;
@@ -23,8 +22,10 @@ import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
@@ -102,6 +103,9 @@ public class AppComparator extends TestBase {
   @Ignore("Comment out this to run locally.")
   @Test
   public void identicalTest_wholeApp() throws Exception {
+    // Set to false to not compare the code, but only the structure.
+    boolean compareInstructions = true;
+
     AndroidApp app1 = loadApp(PATH_1);
     AndroidApp app2 = loadApp(PATH_2);
 
@@ -213,6 +217,7 @@ public class AppComparator extends TestBase {
       collectMethods.accept(class1, true);
       collectMethods.accept(class2, false);
 
+      List<FoundMethodSubject> methodsNotMatching = new ArrayList<>();
       for (Map.Entry<MethodSignature, Pair<FoundMethodSubject>> methodEntry :
           allMethods.entrySet()) {
         MethodSignature signature = methodEntry.getKey();
@@ -235,7 +240,23 @@ public class AppComparator extends TestBase {
         }
 
         // Even compare every single instruction. Adjust for your own purpose or comment out.
-        assertTrue(identicalCode(method1, method2));
+        if (compareInstructions) {
+          if (!identicalCode(method1, method2)) {
+            System.out.println("Full method for " + method1.toString() + ": ");
+            methodsNotMatching.add(method1);
+            methodsNotMatching.add(method2);
+          }
+        }
+      }
+      if (!methodsNotMatching.isEmpty()) {
+        System.out.println("-------------------------------------");
+        for (int i = 0; i < methodsNotMatching.size(); i += 2) {
+          FoundMethodSubject method1 = methodsNotMatching.get(i);
+          FoundMethodSubject method2 = methodsNotMatching.get(i +  1);
+          System.out.println("Full method for " + method1.toString() + ": ");
+          System.out.println(method1.getMethod().codeToString());
+          System.out.println(method2.getMethod().codeToString());
+        }
       }
     }
   }
@@ -243,6 +264,7 @@ public class AppComparator extends TestBase {
   private boolean identicalCode(MethodSubject method1, MethodSubject method2) {
     Iterator<InstructionSubject> it1 = method1.iterateInstructions();
     Iterator<InstructionSubject> it2 = method2.iterateInstructions();
+    boolean identical = true;
     while (it1.hasNext()) {
       assertTrue(it2.hasNext());
       InstructionSubject instr1 = it1.next();
@@ -250,23 +272,15 @@ public class AppComparator extends TestBase {
       assertEquals(
           instr1 instanceof DexInstructionSubject,
           instr2 instanceof DexInstructionSubject);
-      if (instr1 instanceof DexInstructionSubject) {
-        assert instr2 instanceof DexInstructionSubject;
-        DexInstructionSubject dexInstr1 = (DexInstructionSubject) instr1;
-        DexInstructionSubject dexInstr2 = (DexInstructionSubject) instr2;
-        if (!dexInstr1.equals(dexInstr2)) {
-          return false;
+      if (!instr1.equals(instr2)) {
+        if (identical) {
+          System.out.println("DIFF in " + method1.toString() + ":");
         }
-      } else {
-        assert instr1 instanceof CfInstructionSubject;
-        assert instr2 instanceof CfInstructionSubject;
-        CfInstructionSubject cfInstr1 = (CfInstructionSubject) instr1;
-        CfInstructionSubject cfInstr2 = (CfInstructionSubject) instr2;
-        if (!cfInstr1.equals(cfInstr2)) {
-          return false;
-        }
+        System.out.println("< " + instr1);
+        System.out.println("> " + instr2);
+        identical = false;
       }
     }
-    return true;
+    return identical;
   }
 }

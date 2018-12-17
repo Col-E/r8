@@ -350,4 +350,20 @@ public class DexInstructionSubject implements InstructionSubject {
         || instruction instanceof MulDouble
         || instruction instanceof MulDouble2Addr;
   }
+
+  @Override
+  public boolean equals(Object other) {
+    return other instanceof DexInstructionSubject
+        && instruction.equals(((DexInstructionSubject) other).instruction);
+  }
+
+  @Override
+  public int hashCode() {
+    return instruction.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return instruction.toString();
+  }
 }
