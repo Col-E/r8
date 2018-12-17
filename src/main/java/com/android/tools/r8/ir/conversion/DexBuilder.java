@@ -362,7 +362,12 @@ public class DexBuilder {
           } else if (unresolvedPosition != null
               && unresolvedPosition.getPosition() == instruction.getPosition()
               && locals.equals(localsAtUnresolvedPosition)) {
-            toRemove.add(instruction.asDebugPosition());
+            // toRemove needs to be in instruction iteration order since the removal assumes that.
+            // Therefore, we have to remove unresolvedPosition here and record the current
+            // instruction as unresolved. Otherwise, if both of these instructions end up in
+            // toRemove they will be out of order.
+            toRemove.add(unresolvedPosition);
+            unresolvedPosition = instruction.asDebugPosition();
           } else {
             unresolvedPosition = instruction.asDebugPosition();
             localsAtUnresolvedPosition = new Int2ReferenceOpenHashMap<>(locals);
@@ -398,7 +403,9 @@ public class DexBuilder {
           ++i;
         }
       }
+      assert i == toRemove.size();
     }
+
     // Remove all trivial goto blocks that have a position known to be emitted in their predecessor.
     if (!trivialBlocks.isEmpty()) {
       List<BasicBlock> blocksToRemove = new ArrayList<>();
