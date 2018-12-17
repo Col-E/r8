@@ -228,8 +228,8 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
           .getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
 
       assertTrue(fieldSubject.getField().accessFlags.isPublic());
-      checkMethodIsAbsent(outerClass, getterAccessor);
-      checkMethodIsAbsent(outerClass, setterAccessor);
+      checkMethodIsRemoved(outerClass, getterAccessor);
+      checkMethodIsRemoved(outerClass, setterAccessor);
     });
   }
 
@@ -252,8 +252,8 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
           .getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
 
       assertTrue(fieldSubject.getField().accessFlags.isPublic());
-      checkMethodIsAbsent(outerClass, getterAccessor);
-      checkMethodIsAbsent(outerClass, setterAccessor);
+      checkMethodIsRemoved(outerClass, getterAccessor);
+      checkMethodIsRemoved(outerClass, setterAccessor);
     });
   }
 
@@ -272,7 +272,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
       // The getter is always inlined since it just calls into the accessor.
       MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-      checkMethodIsRemoved(companionClass, getter);
+      checkMethodIsAbsent(companionClass, getter);
 
       MemberNaming.MethodSignature getterAccessor =
           testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
