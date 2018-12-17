@@ -65,6 +65,7 @@ public interface StringConsumer {
   }
 
   /** File consumer to write contents to a file-system file. */
+  @Keep // TODO(b/121121779) Extend keep-annotation to public inner classes and remove this.
   class FileConsumer extends ForwardingConsumer {
 
     private final Path outputPath;

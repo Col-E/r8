@@ -22,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+@Keep
 public class GenerateMainDexListCommand extends BaseCommand {
 
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
@@ -30,6 +31,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
   private final DexItemFactory factory;
   private final Reporter reporter;
 
+  @Keep
   public static class Builder extends BaseCommand.Builder<GenerateMainDexListCommand, Builder> {
 
     private final DexItemFactory factory = new DexItemFactory();

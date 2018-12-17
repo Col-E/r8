@@ -88,9 +88,13 @@ import java.util.stream.Stream;
  *
  * <p>Usage of this feature is intentionally not supported from the command line.
  */
+
+// TODO(b/121121779) Remove keep if possible.
 @Deprecated
+@Keep
 final public class ResourceShrinker {
 
+  @Keep
   public final static class Command extends BaseCommand {
 
     Command(AndroidApp app) {
@@ -103,6 +107,7 @@ final public class ResourceShrinker {
     }
   }
 
+  @Keep
   public final static class Builder extends BaseCommand.Builder<Command, Builder> {
 
     @Override
@@ -120,6 +125,7 @@ final public class ResourceShrinker {
    * Classes that would like to process data relevant to resource shrinking should implement this
    * interface.
    */
+  @KeepForSubclassing
   public interface ReferenceChecker {
 
     /**
