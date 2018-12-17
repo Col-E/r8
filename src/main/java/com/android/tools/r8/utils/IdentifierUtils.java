@@ -14,6 +14,10 @@ public class IdentifierUtils {
     return isSimpleNameChar(cp);
   }
 
+  public static boolean isQuestionMark(int cp) {
+    return cp == '?';
+  }
+
   private static boolean isSimpleNameChar(int cp) {
     // See https://source.android.com/devices/tech/dalvik/dex-format#string-syntax.
     return ('A' <= cp && cp <= 'Z')

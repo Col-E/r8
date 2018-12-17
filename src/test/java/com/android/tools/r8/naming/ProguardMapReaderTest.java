@@ -24,6 +24,17 @@ public class ProguardMapReaderTest {
   }
 
   @Test
+  public void parseQuestionMarkMethod() throws IOException {
+    // Regression test for b/120856784
+    String mapping =
+        "com.c.c.b -> com.c.c.b:\n" +
+            "    1287:1287:int ?(int,int) -> ?";
+
+    ClassNameMapper.mapperFromString(mapping);
+  }
+
+
+  @Test
   public void roundTripTest() throws IOException {
     ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
     ClassNameMapper secondMapper = ClassNameMapper.mapperFromString(firstMapper.toString());
