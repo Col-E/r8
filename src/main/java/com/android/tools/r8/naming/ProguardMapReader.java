@@ -309,7 +309,12 @@ public class ProguardMapReader implements AutoCloseable {
       nextChar();
       isInit = true;
     }
-    if (!IdentifierUtils.isDexIdentifierStart(peekCodePoint())) {
+    // Progard sometimes outputs a ? as a method name. We have tools (dexsplitter) that depends
+    // on being able to map class names back to the original, but does not care if methods are
+    // correctly mapped. Using this on proguard output for anything else might not give correct
+    // remappings.
+    if (!IdentifierUtils.isDexIdentifierStart(peekCodePoint())
+        && !IdentifierUtils.isQuestionMark(peekCodePoint())) {
       throw new ParseException("Identifier expected");
     }
     nextCodePoint();
