@@ -23,4 +23,4 @@
 # The contents of this file is ...JvmMetadataExtensions, which is renamed.
 -adaptresourcefilecontents META-INF/services/com.android.tools.r8.jetbrains.kotlinx.metadata.impl.extensions.MetadataExtensions
 
--keepattributes LineNumberTable
+-keepattributes LineNumberTable, InnerClasses, EnclosingMethod, Exceptions, Signature
