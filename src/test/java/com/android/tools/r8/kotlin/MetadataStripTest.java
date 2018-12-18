@@ -10,19 +10,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.TestBase;
+import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -30,12 +26,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataStripTest extends TestBase {
+public class MetadataStripTest extends KotlinTestBase {
   private static final String METADATA_DESCRIPTOR = "Lkotlin/Metadata;";
   private static final String KEEP_ANNOTATIONS = "-keepattributes *Annotation*";
 
   private final Backend backend;
-  private final KotlinTargetVersion targetVersion;
 
   private Consumer<InternalOptions> optionsModifier =
       o -> {
@@ -49,8 +44,8 @@ public class MetadataStripTest extends TestBase {
   }
 
   public MetadataStripTest(Backend backend, KotlinTargetVersion targetVersion) {
+    super(targetVersion);
     this.backend = backend;
-    this.targetVersion = targetVersion;
   }
 
   @Test
@@ -62,7 +57,6 @@ public class MetadataStripTest extends TestBase {
         .addProgramFiles(getKotlinJarFile(folder))
         .addProgramFiles(getJavaJarFile(folder))
         .addProgramFiles(ToolHelper.getKotlinReflectJar())
-        .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(mainClassName)
         .addKeepRules(KEEP_ANNOTATIONS)
@@ -91,13 +85,4 @@ public class MetadataStripTest extends TestBase {
     return null;
   }
 
-  private Path getKotlinJarFile(String folder) {
-    return Paths.get(ToolHelper.TESTS_BUILD_DIR, "kotlinR8TestResources",
-        targetVersion.getFolderName(), folder + FileUtils.JAR_EXTENSION);
-  }
-
-  private Path getJavaJarFile(String folder) {
-    return Paths.get(ToolHelper.TESTS_BUILD_DIR, "kotlinR8TestResources",
-        targetVersion.getFolderName(), folder + ".java" + FileUtils.JAR_EXTENSION);
-  }
 }
