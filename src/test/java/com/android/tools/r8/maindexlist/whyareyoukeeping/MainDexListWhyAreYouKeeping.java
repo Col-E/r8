@@ -85,7 +85,7 @@ public class MainDexListWhyAreYouKeeping extends TestBase {
   public void runTestWithR8(GraphConsumer consumer, String rule) throws Exception {
     R8TestBuilder builder =
         testForR8(Backend.DEX)
-            .setMinApi(AndroidApiLevel.L)
+            .setMinApi(AndroidApiLevel.K)
             .addProgramClasses(CLASSES)
             .addMainDexRules(keepMainProguardConfiguration(HelloWorldMain.class))
             .setMainDexKeptGraphConsumer(consumer);

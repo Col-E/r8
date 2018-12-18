@@ -15,6 +15,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -225,6 +226,32 @@ public class R8CommandTest {
   public void mainDexListOutputWithoutAnyMainDexSpecification() throws Throwable {
     Path mainDexListOutput = temp.newFile("main-dex-out.txt").toPath();
     parse("--main-dex-list-output", mainDexListOutput.toString());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void mainDexRulesWithNonLegacyMinApi() throws Throwable {
+    Path mainDexRules = temp.newFile("main-dex.rules").toPath();
+    DiagnosticsChecker.checkErrorsContains(
+        "does not support main-dex",
+        (handler) ->
+            R8Command.builder(handler)
+                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                .setMinApiLevel(AndroidApiLevel.L.getLevel())
+                .addMainDexRulesFiles(mainDexRules)
+                .build());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void mainDexListWithNonLegacyMinApi() throws Throwable {
+    Path mainDexList = temp.newFile("main-dex-list.txt").toPath();
+    DiagnosticsChecker.checkErrorsContains(
+        "does not support main-dex",
+        (handler) ->
+            R8Command.builder(handler)
+                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                .setMinApiLevel(AndroidApiLevel.L.getLevel())
+                .addMainDexListFiles(mainDexList)
+                .build());
   }
 
   @Test
