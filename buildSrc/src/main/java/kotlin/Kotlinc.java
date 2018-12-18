@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.UncheckedIOException;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputFile;
@@ -23,6 +24,13 @@ import utils.Utils;
  */
 public class Kotlinc extends DefaultTask {
 
+  private static final String kotlincExecName = Utils.toolsDir().equals("windows")
+      ? "kotlinc.bat"
+      : "kotlinc";
+
+  private static final Path kotlincExecPath = Paths
+      .get("third_party", "kotlin", "kotlinc", "bin", kotlincExecName);
+
   enum KotlinTargetVersion {
     JAVA_6("1.6"),
     JAVA_8("1.8");
@@ -34,13 +42,19 @@ public class Kotlinc extends DefaultTask {
     }
   }
 
-  @InputFiles
   private FileTree source;
 
   @OutputFile
   private File destination;
 
   private KotlinTargetVersion targetVersion = KotlinTargetVersion.JAVA_6;
+
+  @InputFiles
+  public FileCollection getInputFiles() {
+    // Note: Using Path object directly causes stack overflow.
+    // See: https://github.com/gradle/gradle/issues/1973
+    return source.plus(getProject().files(kotlincExecPath.toFile()));
+  }
 
   public FileTree getSource() {
     return source;
@@ -72,9 +86,6 @@ public class Kotlinc extends DefaultTask {
       @Override
       public void execute(ExecSpec execSpec) {
         try {
-          String kotlincExecName = Utils.toolsDir().equals("windows") ? "kotlinc.bat" : "kotlinc";
-          Path kotlincExecPath = Paths
-              .get("third_party", "kotlin", "kotlinc", "bin", kotlincExecName);
           execSpec.setExecutable(kotlincExecPath.toFile());
           execSpec.args("-include-runtime");
           execSpec.args("-nowarn");
