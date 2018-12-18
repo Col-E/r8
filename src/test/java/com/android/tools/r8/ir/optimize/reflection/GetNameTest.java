@@ -257,7 +257,6 @@ public class GetNameTest extends GetNameTestBase {
     // Pinning the test class.
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(classPaths)
-        .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.GetName0*")
@@ -279,7 +278,6 @@ public class GetNameTest extends GetNameTestBase {
     // Shallow pinning the test class.
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(classPaths)
-        .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep,allowobfuscation class **.GetName0*")

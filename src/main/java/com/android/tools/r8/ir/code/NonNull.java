@@ -53,6 +53,11 @@ public class NonNull extends Instruction {
   }
 
   @Override
+  public boolean couldIntroduceAnAlias() {
+    return true;
+  }
+
+  @Override
   public Value getAliasForOutValue() {
     return src();
   }

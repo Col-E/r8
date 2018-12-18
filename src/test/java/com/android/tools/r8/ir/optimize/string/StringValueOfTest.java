@@ -138,7 +138,7 @@ public class StringValueOfTest extends TestBase {
   }
 
   private void configure(InternalOptions options) {
-    options.enableNameReflectionOptimization = true;
+    options.testing.forceNameReflectionOptimization = true;
   }
 
   @Test
@@ -218,7 +218,6 @@ public class StringValueOfTest extends TestBase {
   public void testR8() throws Exception {
     TestRunResult result = testForR8(backend)
         .addProgramClasses(CLASSES)
-        .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-dontobfuscate")

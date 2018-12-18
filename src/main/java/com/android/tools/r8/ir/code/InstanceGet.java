@@ -43,6 +43,11 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
+  public boolean couldIntroduceAnAlias() {
+    return true;
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     int destRegister = builder.allocatedRegister(dest(), getNumber());
     int objectRegister = builder.allocatedRegister(object(), getNumber());

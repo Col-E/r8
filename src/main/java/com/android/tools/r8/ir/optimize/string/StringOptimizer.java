@@ -12,9 +12,11 @@ import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -30,14 +32,20 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.annotations.VisibleForTesting;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class StringOptimizer {
 
+  private final AppInfo appInfo;
+  private final DexItemFactory factory;
   private final ThrowingInfo throwingInfo;
 
-  public StringOptimizer(InternalOptions options) {
+  public StringOptimizer(AppInfo appInfo, InternalOptions options) {
+    this.appInfo = appInfo;
+    this.factory = appInfo.dexItemFactory;
     throwingInfo = options.isGeneratingClassFiles()
         ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
   }
@@ -50,7 +58,7 @@ public class StringOptimizer {
   // boolean String#equals(str)
   // boolean String#equalsIgnoreCase(str)
   // boolean String#contentEquals(str)
-  public void computeTrivialOperationsOnConstString(IRCode code, DexItemFactory factory) {
+  public void computeTrivialOperationsOnConstString(IRCode code) {
     if (!code.hasConstString) {
       return;
     }
@@ -116,7 +124,7 @@ public class StringOptimizer {
   }
 
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
-  public void rewriteClassGetName(IRCode code, AppInfo appInfo, RootSet rootSet) {
+  public void rewriteClassGetName(IRCode code, RootSet rootSet) {
     // Conflict with {@link CodeRewriter#collectClassInitializerDefaults}.
     if (code.method.isClassInitializer()) {
       return;
@@ -130,9 +138,23 @@ public class StringOptimizer {
       }
       InvokeVirtual invoke = instr.asInvokeVirtual();
       DexMethod invokedMethod = invoke.getInvokedMethod();
-      if (!appInfo.dexItemFactory.classMethods.isReflectiveNameLookup(invokedMethod)) {
+      if (!factory.classMethods.isReflectiveNameLookup(invokedMethod)) {
         continue;
       }
+
+      Value out = invoke.outValue();
+      // Skip the call if the computed name is already discarded or not used anywhere.
+      if (out == null || out.numberOfAllUsers() == 0) {
+        continue;
+      }
+      // b/120138731: Filter out local uses, which are likely one-time name computation. In such
+      // case, the result of this optimization can lead to a regression if the corresponding class
+      // is in a deep package hierarchy.
+      if (!code.options.testing.forceNameReflectionOptimization
+          && !hasPotentialReadOutside(appInfo, code.method, EscapeAnalysis.escape(code, out))) {
+        continue;
+      }
+
       assert invoke.inValues().size() == 1;
       // In case of handling multiple invocations over the same const-string, all the following
       // usages after the initial one will point to non-null IR (a.k.a. alias), e.g.,
@@ -155,7 +177,7 @@ public class StringOptimizer {
       ConstClass constClass = in.definition.asConstClass();
       DexType type = constClass.getValue();
       int arrayDepth = type.getNumberOfLeadingSquareBrackets();
-      DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+      DexType baseType = type.toBaseType(factory);
       // Make sure base type is a class type.
       if (!baseType.isClassType()) {
         continue;
@@ -169,17 +191,17 @@ public class StringOptimizer {
       boolean assumeTopLevel = descriptor.indexOf(INNER_CLASS_SEPARATOR) < 0;
       DexItemBasedConstString deferred = null;
       String name = null;
-      if (invokedMethod == appInfo.dexItemFactory.classMethods.getName) {
+      if (invokedMethod == factory.classMethods.getName) {
         if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder)) {
           deferred = new DexItemBasedConstString(
               invoke.outValue(), baseType, new ClassNameComputationInfo(NAME, arrayDepth));
         } else {
           name = computeClassName(descriptor, holder, NAME, arrayDepth);
         }
-      } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getTypeName) {
+      } else if (invokedMethod == factory.classMethods.getTypeName) {
         // TODO(b/119426668): desugar Type#getTypeName
         continue;
-      } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getCanonicalName) {
+      } else if (invokedMethod == factory.classMethods.getCanonicalName) {
         // Always returns null if the target type is local or anonymous class.
         if (holder.isLocalClass() || holder.isAnonymousClass()) {
           ConstNumber constNull = code.createConstNull();
@@ -200,7 +222,7 @@ public class StringOptimizer {
             name = computeClassName(descriptor, holder, CANONICAL_NAME, arrayDepth);
           }
         }
-      } else if (invokedMethod == appInfo.dexItemFactory.classMethods.getSimpleName) {
+      } else if (invokedMethod == factory.classMethods.getSimpleName) {
         // Always returns an empty string if the target type is an anonymous class.
         if (holder.isAnonymousClass()) {
           name = "";
@@ -222,7 +244,7 @@ public class StringOptimizer {
         Value stringValue =
             code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
         ConstString constString =
-            new ConstString(stringValue, appInfo.dexItemFactory.createString(name), throwingInfo);
+            new ConstString(stringValue, factory.createString(name), throwingInfo);
         it.replaceCurrentInstruction(constString);
       } else if (deferred != null) {
         it.replaceCurrentInstruction(deferred);
@@ -234,17 +256,47 @@ public class StringOptimizer {
     }
   }
 
+  @VisibleForTesting
+  public static boolean hasPotentialReadOutside(
+      AppInfo appInfo, DexEncodedMethod invocationContext, Set<Instruction> escapingInstructions) {
+    for (Instruction instr : escapingInstructions) {
+      if (instr.isReturn() || instr.isThrow() || instr.isStaticPut()) {
+        return true;
+      }
+      if (instr.isInvokeMethod()) {
+        DexMethod invokedMethod = instr.asInvokeMethod().getInvokedMethod();
+        DexClass holder = appInfo.definitionFor(invokedMethod.getHolder());
+        // For most cases, library call is not interesting, e.g.,
+        // System.out.println(...), String.valueOf(...), etc.
+        // If it's too broad, we can introduce black-list.
+        if (holder == null || holder.isLibraryClass()) {
+          continue;
+        }
+        // Heuristic: if the call target has the same method name, it could be still local.
+        if (invokedMethod.name == invocationContext.method.name) {
+          continue;
+        }
+        // Add more cases to filter out, if any.
+        return true;
+      }
+      if (instr.isArrayPut()) {
+        return instr.asArrayPut().array().isArgument();
+      }
+    }
+    return false;
+  }
+
   // String#valueOf(null) -> "null"
   // String#valueOf(String s) -> s
   // str.toString() -> str
-  public void removeTrivialConversions(IRCode code, AppInfo appInfo) {
+  public void removeTrivialConversions(IRCode code) {
     InstructionIterator it = code.instructionIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
       if (instr.isInvokeStatic()) {
         InvokeStatic invoke = instr.asInvokeStatic();
         DexMethod invokedMethod = invoke.getInvokedMethod();
-        if (invokedMethod != appInfo.dexItemFactory.stringMethods.valueOf) {
+        if (invokedMethod != factory.stringMethods.valueOf) {
           continue;
         }
         assert invoke.inValues().size() == 1;
@@ -257,12 +309,11 @@ public class StringOptimizer {
           Value nullStringValue =
               code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
           ConstString nullString = new ConstString(
-              nullStringValue, appInfo.dexItemFactory.createString("null"), throwingInfo);
+              nullStringValue, factory.createString("null"), throwingInfo);
           it.replaceCurrentInstruction(nullString);
         } else if (inType.nullElement().isDefinitelyNotNull()
             && inType.isClassType()
-            && inType.asClassTypeLatticeElement().getClassType()
-                .equals(appInfo.dexItemFactory.stringType)) {
+            && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
           Value out = invoke.outValue();
           if (out != null) {
             removeOrReplaceByDebugLocalWrite(invoke, it, in, out);
@@ -273,7 +324,7 @@ public class StringOptimizer {
       } else if (instr.isInvokeVirtual()) {
         InvokeVirtual invoke = instr.asInvokeVirtual();
         DexMethod invokedMethod = invoke.getInvokedMethod();
-        if (invokedMethod != appInfo.dexItemFactory.stringMethods.toString) {
+        if (invokedMethod != factory.stringMethods.toString) {
           continue;
         }
         assert invoke.inValues().size() == 1;
@@ -281,8 +332,7 @@ public class StringOptimizer {
         TypeLatticeElement inType = in.getTypeLattice();
         if (inType.nullElement().isDefinitelyNotNull()
             && inType.isClassType()
-            && inType.asClassTypeLatticeElement().getClassType()
-                .equals(appInfo.dexItemFactory.stringType)) {
+            && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
           Value out = invoke.outValue();
           if (out != null) {
             removeOrReplaceByDebugLocalWrite(invoke, it, in, out);

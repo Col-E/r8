@@ -204,7 +204,6 @@ public class GetSimpleNameTest extends GetNameTestBase {
     // Pinning the test class.
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(classPaths)
-        .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.ClassGetSimpleName*")
@@ -227,7 +226,6 @@ public class GetSimpleNameTest extends GetNameTestBase {
     // Shallow pinning the test class.
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(classPaths)
-        .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep,allowobfuscation class **.ClassGetSimpleName*")

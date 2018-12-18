@@ -195,8 +195,8 @@ public final class ClassInliner {
       boolean isDebugMode =
           code.options.debug || method.getOptimizationInfo().isReachabilitySensitive();
       if (!isDebugMode) {
-        stringOptimizer.computeTrivialOperationsOnConstString(code, appInfo.dexItemFactory);
-        stringOptimizer.removeTrivialConversions(code, appInfo);
+        stringOptimizer.computeTrivialOperationsOnConstString(code);
+        stringOptimizer.removeTrivialConversions(code);
       }
     }
   }

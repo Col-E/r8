@@ -113,7 +113,7 @@ public class InternalOptions {
       !Version.isDev() || System.getProperty("com.android.tools.r8.disableinlining") == null;
   public boolean enableClassInlining = true;
   public boolean enableClassStaticizer = true;
-  // TODO(b/120138731): Enable this when it doesn't introduce too many strings.
+  // TODO(b/120138731): Enable this when it is worthwhile, e.g., combined with Class#forName.
   public boolean enableNameReflectionOptimization = false;
   public int classInliningInstructionLimit = 50;
   // This defines the limit of instructions in the inlinee
@@ -522,6 +522,7 @@ public class InternalOptions {
     public boolean nondeterministicCycleElimination = false;
     public Set<Inliner.Reason> validInliningReasons = null;
     public boolean allowFailureOnInnerClassErrors = false;
+    public boolean forceNameReflectionOptimization = false;
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {

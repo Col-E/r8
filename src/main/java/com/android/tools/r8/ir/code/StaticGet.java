@@ -36,6 +36,11 @@ public class StaticGet extends FieldInstruction {
   }
 
   @Override
+  public boolean couldIntroduceAnAlias() {
+    return true;
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int dest = builder.allocatedRegister(dest(), getNumber());

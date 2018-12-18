@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.analysis.type;
+package com.android.tools.r8.ir.analysis;
 
 import static org.junit.Assert.fail;
 
@@ -22,20 +22,25 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.junit.Before;
 
-public abstract class TypeAnalysisTestBase extends TestBase {
+public abstract class AnalysisTestBase extends TestBase {
 
   private final AndroidApp app;
   private final String className;
   private final InternalOptions options = new InternalOptions();
 
-  AppInfo appInfo;
+  public AppInfo appInfo;
 
-  public TypeAnalysisTestBase(Class<?> clazz) throws Exception {
+  public AnalysisTestBase(Class<?> clazz) throws Exception {
     this.app = testForD8().release().addProgramClasses(clazz).compile().app;
     this.className = clazz.getTypeName();
   }
 
-  public TypeAnalysisTestBase(AndroidApp app, String className) {
+  public AnalysisTestBase(String mainClassName, Class<?>... classes) throws Exception {
+    this.app = testForD8().addProgramClasses(classes).compile().app;
+    this.className = mainClassName;
+  }
+
+  public AnalysisTestBase(AndroidApp app, String className) {
     this.app = app;
     this.className = className;
   }
@@ -44,7 +49,7 @@ public abstract class TypeAnalysisTestBase extends TestBase {
   public void setup() throws Exception {
     appInfo =
         new AppInfo(
-            new ApplicationReader(app, options, new Timing("TypeAnalysisTest.appReader")).read());
+            new ApplicationReader(app, options, new Timing("AnalysisTestBase.appReader")).read());
   }
 
   public void buildAndCheckIR(String methodName, Consumer<IRCode> irInspector) throws Exception {

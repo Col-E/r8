@@ -42,6 +42,11 @@ public class Move extends Instruction {
   }
 
   @Override
+  public boolean couldIntroduceAnAlias() {
+    return true;
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     builder.addMove(this);
   }

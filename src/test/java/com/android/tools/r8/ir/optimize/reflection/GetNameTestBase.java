@@ -36,7 +36,7 @@ public abstract class GetNameTestBase extends TestBase {
   }
 
   void configure(InternalOptions options) {
-    options.enableNameReflectionOptimization = true;
+    options.testing.forceNameReflectionOptimization = true;
   }
 
   Path createNewMappingPath() throws IOException {

@@ -11,6 +11,7 @@ import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.LONG;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -21,7 +22,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.function.Consumer;
 import org.junit.Test;
 
-public class TypeConstraintOnTrivialPhiTest extends TypeAnalysisTestBase {
+public class TypeConstraintOnTrivialPhiTest extends AnalysisTestBase {
 
   private enum Config {
     INT,

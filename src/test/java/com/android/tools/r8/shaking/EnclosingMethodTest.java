@@ -12,6 +12,7 @@ import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -66,6 +67,10 @@ public class EnclosingMethodTest extends TestBase {
     classPaths = builder.build();
   }
 
+  private void configure(InternalOptions options) {
+    options.testing.forceNameReflectionOptimization = true;
+  }
+
   @Test
   public void testJVMoutput() throws Exception {
     assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
@@ -77,6 +82,7 @@ public class EnclosingMethodTest extends TestBase {
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(classPaths)
         .enableInliningAnnotations()
+        .addOptionsModification(this::configure)
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.GetName*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod");

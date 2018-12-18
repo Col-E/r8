@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.INT;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.LONG;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -19,7 +20,7 @@ import com.google.common.collect.Streams;
 import java.util.function.Consumer;
 import org.junit.Test;
 
-public class UnconstrainedPrimitiveTypeTest extends TypeAnalysisTestBase {
+public class UnconstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
   public UnconstrainedPrimitiveTypeTest() throws Exception {
     super(buildApp(), "TestClass");

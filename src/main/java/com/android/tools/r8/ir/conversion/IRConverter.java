@@ -182,7 +182,7 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
             : null;
-    this.stringOptimizer = new StringOptimizer(options);
+    this.stringOptimizer = new StringOptimizer(appInfo, options);
     this.enableWholeProgramOptimizations = appView != null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
@@ -944,13 +944,14 @@ public class IRConverter {
     }
 
     if (!isDebugMode) {
-      stringOptimizer.computeTrivialOperationsOnConstString(code, appInfo.dexItemFactory);
+      stringOptimizer.computeTrivialOperationsOnConstString(code);
       // Reflection optimization 2. get*Name() with const-class -> const-string
-      if (options.enableNameReflectionOptimization) {
-        stringOptimizer.rewriteClassGetName(code, appInfo, rootSet);
+      if (options.enableNameReflectionOptimization
+          || options.testing.forceNameReflectionOptimization) {
+        stringOptimizer.rewriteClassGetName(code, rootSet);
       }
       // Reflection optimization 3. String#valueOf(const-string) -> no op.
-      stringOptimizer.removeTrivialConversions(code, appInfo);
+      stringOptimizer.removeTrivialConversions(code);
       assert code.isConsistentSSA();
     }
 

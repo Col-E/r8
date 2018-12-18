@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -21,7 +22,7 @@ import com.android.tools.r8.ir.code.Value;
 import java.util.function.Consumer;
 import org.junit.Test;
 
-public class ArrayTypeTest extends TypeAnalysisTestBase {
+public class ArrayTypeTest extends AnalysisTestBase {
 
   public ArrayTypeTest() throws Exception {
     super(TestClass.class);
@@ -29,22 +30,22 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
 
   @Test
   public void testArray() throws Exception {
-    buildAndCheckIR("arrayTest", arrayTestInspector(appInfo));
+    buildAndCheckIR("arrayTest", arrayTestInspector());
   }
 
   @Test
   public void testNestedArray() throws Exception {
-    buildAndCheckIR("nestedArrayTest", nestedArrayTestInspector(appInfo));
+    buildAndCheckIR("nestedArrayTest", nestedArrayTestInspector());
   }
 
   @Test
   public void testJoinOfArraysForPrimitivesSmallerThanInt() throws Exception {
     buildAndCheckIR(
         "joinOfArraysForPrimitivesSmallerThanInt",
-        joinOfArraysForPrimitivesSmallerThanInt(appInfo));
+        joinOfArraysForPrimitivesSmallerThanInt());
   }
 
-  private static Consumer<IRCode> arrayTestInspector(AppInfo appInfo) {
+  private static Consumer<IRCode> arrayTestInspector() {
     return code -> {
       Iterable<Instruction> instructions = code::instructionIterator;
       for (Instruction instruction : instructions) {
@@ -72,7 +73,7 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
     };
   }
 
-  private static Consumer<IRCode> nestedArrayTestInspector(AppInfo appInfo) {
+  private static Consumer<IRCode> nestedArrayTestInspector() {
     return code -> {
       {
         ArrayPut arrayPutInstruction = getMatchingInstruction(code, Instruction::isArrayPut);
@@ -100,7 +101,7 @@ public class ArrayTypeTest extends TypeAnalysisTestBase {
     };
   }
 
-  private static Consumer<IRCode> joinOfArraysForPrimitivesSmallerThanInt(AppInfo appInfo) {
+  private static Consumer<IRCode> joinOfArraysForPrimitivesSmallerThanInt() {
     return code -> {
       int phiCount = 0;
       for (BasicBlock block : code.blocks) {

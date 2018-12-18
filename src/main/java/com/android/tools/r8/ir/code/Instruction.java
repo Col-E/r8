@@ -1155,6 +1155,15 @@ public abstract class Instruction implements InstructionOrPhi {
     return false;
   }
 
+  /** Returns true if the out-value could be an alias of an in-value.
+   *
+   * <p>This is a conservative version of {@link #isIntroducingAnAlias()} so that other analyses,
+   * e.g., escape analysis, can propagate or track aliased values in a conservative manner.
+   */
+  public boolean couldIntroduceAnAlias() {
+    return false;
+  }
+
   /** Returns true if the out-value is an alias of an in-value. */
   public boolean isIntroducingAnAlias() {
     return false;
