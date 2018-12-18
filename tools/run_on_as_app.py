@@ -221,7 +221,7 @@ def main(argv):
       'Cannot build from ToT without r8.jar')
 
   if options.app:
-    BuildAppWithSelectedShrinkers(options.app, APPS.get(app), options)
+    BuildAppWithSelectedShrinkers(options.app, APPS.get(options.app), options)
   else:
     for app, config in APPS.iteritems():
       if not config.get('skip', False):
