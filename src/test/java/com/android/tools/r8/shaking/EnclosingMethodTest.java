@@ -68,7 +68,8 @@ public class EnclosingMethodTest extends TestBase {
   }
 
   private void configure(InternalOptions options) {
-    options.testing.forceNameReflectionOptimization = true;
+    options.enableNameReflectionOptimization = false;
+    options.testing.forceNameReflectionOptimization = false;
   }
 
   @Test
