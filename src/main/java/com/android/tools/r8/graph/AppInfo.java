@@ -169,8 +169,8 @@ public class AppInfo {
    * non-null value if the result of resolution was a non-static, non-private method.
    */
   public DexEncodedMethod lookupVirtualTarget(DexType type, DexMethod method) {
-    assert type.isClassType();
-    ResolutionResult resolutionResult = resolveMethodOnClass(type, method);
+    assert type.isClassType() || type.isArrayType();
+    ResolutionResult resolutionResult = resolveMethod(type, method);
     DexEncodedMethod target = resolutionResult.asSingleTarget();
     return target == null || target.isVirtualMethod() ? target : null;
   }
@@ -186,6 +186,9 @@ public class AppInfo {
    * kind of a method reference.
    */
   public ResolutionResult resolveMethod(DexType holder, DexMethod method) {
+    if (holder.isArrayType()) {
+      return resolveMethodOnArray(holder, method);
+    }
     DexClass definition = definitionFor(holder);
     if (definition == null) {
       return EmptyResult.get();
@@ -193,6 +196,22 @@ public class AppInfo {
     return definition.isInterface()
         ? resolveMethodOnInterface(holder, method)
         : resolveMethodOnClass(holder, method);
+  }
+
+  /**
+   * Implements resolution of a method descriptor against an array type.
+   * <p>See <a href="https://docs.oracle.com/javase/specs/jls/se8/html/jls-10.html#jls-10.7">
+   * Section 10.7 of the Java Language Specification</a>.
+   * </p>
+   * All invokations will have target java.lang.Object except clone which has no target.
+   */
+  public ResolutionResult resolveMethodOnArray(DexType holder, DexMethod method) {
+    assert holder.isArrayType();
+    if (method.name == dexItemFactory.cloneMethodName) {
+      return EmptyResult.get();
+    } else {
+      return resolveMethodOnClass(dexItemFactory.objectType, method);
+    }
   }
 
   /**

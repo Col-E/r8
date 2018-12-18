@@ -135,6 +135,7 @@ public class DexItemFactory {
   public final DexString equalsMethodName = createString("equals");
   public final DexString equalsIgnoreCaseMethodName = createString("equalsIgnoreCase");
   public final DexString contentEqualsMethodName = createString("contentEquals");
+  public final DexString cloneMethodName = createString("clone");
 
   public final DexString valueOfMethodName = createString("valueOf");
   public final DexString toStringMethodName = createString("toString");
