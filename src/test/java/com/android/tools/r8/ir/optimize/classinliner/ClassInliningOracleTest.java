@@ -12,13 +12,11 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /** Regression test for b/121119666. */
 public class ClassInliningOracleTest extends TestBase {
 
-  @Ignore("b/121119666")
   @Test
   public void test() throws Exception {
     CodeInspector inspector =

@@ -76,6 +76,7 @@ import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.base.Predicates;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -138,6 +139,8 @@ public class IRConverter {
 
   public final boolean enableWholeProgramOptimizations;
 
+  private final OptimizationFeedbackDelayed delayedOptimizationFeedback =
+      new OptimizationFeedbackDelayed();
   private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private final OptimizationFeedback simpleOptimizationFeedback = new OptimizationFeedbackSimple();
   private DexString highestSortingString;
@@ -520,7 +523,7 @@ public class IRConverter {
     printPhase("Primary optimization pass");
 
     // Process the application identifying outlining candidates.
-    OptimizationFeedbackDelayed feedback = new OptimizationFeedbackDelayed();
+    OptimizationFeedbackDelayed feedback = delayedOptimizationFeedback;
     {
       timing.begin("Build call graph");
       CallGraph callGraph = CallGraph.build(application, appView.withLiveness(), options, timing);
@@ -763,7 +766,11 @@ public class IRConverter {
   public void optimizeSynthesizedMethod(DexEncodedMethod method) {
     if (!method.isProcessed()) {
       // Process the generated method, but don't apply any outlining.
-      processMethod(method, ignoreOptimizationFeedback, x -> false, CallSiteInformation.empty(),
+      processMethod(
+          method,
+          delayedOptimizationFeedback,
+          Predicates.alwaysFalse(),
+          CallSiteInformation.empty(),
           Outliner::noProcessing);
     }
   }
@@ -778,7 +785,7 @@ public class IRConverter {
               () -> {
                 processMethod(
                     method,
-                    ignoreOptimizationFeedback,
+                    delayedOptimizationFeedback,
                     methods::contains,
                     CallSiteInformation.empty(),
                     Outliner::noProcessing);

@@ -162,8 +162,7 @@ public final class ClassInliner {
         }
 
         // Assess users eligibility and compute inlining of direct calls and extra methods needed.
-        InstructionOrPhi ineligibleUser =
-            processor.areInstanceUsersEligible(method.method.getHolder(), defaultOracle);
+        InstructionOrPhi ineligibleUser = processor.areInstanceUsersEligible(defaultOracle);
         if (ineligibleUser != null) {
           // This root may succeed if users change in future.
           continue;
