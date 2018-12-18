@@ -18,6 +18,7 @@ import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
@@ -114,6 +115,7 @@ public class MainDexListOutputTest extends TestBase {
     Path mainDexList = writeTextToTempFile(testClassMainDexName);
     TestMainDexListConsumer consumer = new TestMainDexListConsumer();
     testForD8()
+        .setMinApi(AndroidApiLevel.K)
         .addProgramClasses(ImmutableList.of(TestClass.class, MyConsumer.class))
         .addMainDexListFiles(ImmutableList.of(mainDexList))
         .setMainDexListConsumer(consumer)
@@ -128,6 +130,7 @@ public class MainDexListOutputTest extends TestBase {
     Path dexOutput = temp.getRoot().toPath().resolve("classes.zip");
     // Build intermediate dex code first.
     testForD8()
+        .setMinApi(AndroidApiLevel.K)
         .addProgramClasses(ImmutableList.of(TestClass.class, MyConsumer.class))
         .setIntermediate(true)
         .setProgramConsumer(new ArchiveConsumer(dexOutput))
@@ -135,6 +138,7 @@ public class MainDexListOutputTest extends TestBase {
     // Now test that when merging with a main dex list it is correctly updated.
     TestMainDexListConsumer consumer = new TestMainDexListConsumer();
     testForD8()
+        .setMinApi(AndroidApiLevel.K)
         .addProgramFiles(dexOutput)
         .addMainDexListFiles(ImmutableList.of(mainDexList))
         .setMainDexListConsumer(consumer)

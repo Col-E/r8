@@ -18,6 +18,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -248,6 +249,19 @@ public class D8CommandTest {
     Path mainDexList = temp.newFile("main-dex-list.txt").toPath();
     D8Command command = parse("--main-dex-list", mainDexList.toString(), "--intermediate");
     assertTrue(ToolHelper.getApp(command).hasMainDexListResources());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void mainDexListWithNonLegacyMinApi() throws Throwable {
+    Path mainDexList = temp.newFile("main-dex-list.txt").toPath();
+    DiagnosticsChecker.checkErrorsContains(
+        "does not support main-dex",
+        (handler) ->
+            D8Command.builder(handler)
+                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                .setMinApiLevel(AndroidApiLevel.L.getLevel())
+                .addMainDexListFiles(mainDexList)
+                .build());
   }
 
   @Test(expected = CompilationFailedException.class)
