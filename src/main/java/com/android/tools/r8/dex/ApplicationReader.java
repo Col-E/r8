@@ -96,7 +96,6 @@ public class ApplicationReader {
       ExecutorService executorService,
       ProgramClassConflictResolver resolver)
       throws IOException, ExecutionException {
-    assert verifyMainDexOptionsCompatible(inputApp, options);
     timing.begin("DexApplication.read");
     final LazyLoadedDexApplication.Builder builder =
         DexApplication.builder(itemFactory, timing, resolver);
@@ -124,22 +123,7 @@ public class ApplicationReader {
     return builder.build();
   }
 
-  private static boolean verifyMainDexOptionsCompatible(
-      AndroidApp inputApp, InternalOptions options) {
-    if (!options.isGeneratingDex()) {
-      return true;
-    }
-    AndroidApiLevel nativeMultiDex = AndroidApiLevel.L;
-    if (options.minApiLevel < nativeMultiDex.getLevel()) {
-      return true;
-    }
-    assert options.mainDexKeepRules.isEmpty();
-    assert options.mainDexListConsumer == null;
-    assert !inputApp.hasMainDexList();
-    return true;
-  }
-
-  private int validateOrComputeMinApiLevel(int computedMinApiLevel, DexReader dexReader) {
+  private int verifyOrComputeMinApiLevel(int computedMinApiLevel, DexReader dexReader) {
     DexVersion version = DexVersion.getDexVersion(dexReader.getDexVersion());
     if (options.minApiLevel == AndroidApiLevel.getDefault().getLevel()) {
       computedMinApiLevel = Math
@@ -215,7 +199,7 @@ public class ApplicationReader {
         int computedMinApiLevel = options.minApiLevel;
         for (ProgramResource input : dexSources) {
           DexReader dexReader = new DexReader(input);
-          computedMinApiLevel = validateOrComputeMinApiLevel(computedMinApiLevel, dexReader);
+          computedMinApiLevel = verifyOrComputeMinApiLevel(computedMinApiLevel, dexReader);
           dexParsers.add(new DexParser(dexReader, classKind, itemFactory, options.reporter));
         }
         options.minApiLevel = computedMinApiLevel;

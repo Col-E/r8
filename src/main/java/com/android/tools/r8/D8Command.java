@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -140,14 +139,6 @@ public final class D8Command extends BaseCompilerCommand {
         }
       } else if (getMainDexListConsumer() != null) {
         reporter.error("Option --main-dex-list-output require --main-dex-list");
-      }
-      if (getMinApiLevel() >= AndroidApiLevel.L.getLevel()) {
-        if (getMainDexListConsumer() != null || getAppBuilder().hasMainDexList()) {
-          reporter.error(
-              "D8 does not support main-dex inputs and outputs when compiling to API level "
-                  + AndroidApiLevel.L.getLevel()
-                  + " and above");
-        }
       }
       super.validate();
     }
