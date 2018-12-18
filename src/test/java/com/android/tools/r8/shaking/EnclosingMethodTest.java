@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -72,12 +74,8 @@ public class EnclosingMethodTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    DexVm vm = ToolHelper.getDexVm();
-    assumeTrue("Known to be broken at 5.1.1 and 6.0.1 due to access to fragile EnclosingMethod.",
-        vm.isOlderThanOrEqual(DexVm.ART_4_4_4_HOST) && vm.isNewerThan(DexVm.ART_6_0_1_HOST));
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(classPaths)
-        .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.GetName*")
@@ -85,6 +83,16 @@ public class EnclosingMethodTest extends TestBase {
     if (!enableMinification) {
       builder.addKeepRules("-dontobfuscate");
     }
-    builder.run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+
+    TestRunResult result = builder.run(MAIN);
+    if (backend == Backend.DEX) {
+      if (ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4)
+          && ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V6_0_1)) {
+        result.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
+        return;
+      }
+    }
+
+    result.assertSuccessWithOutput(JAVA_OUTPUT);
   }
 }
