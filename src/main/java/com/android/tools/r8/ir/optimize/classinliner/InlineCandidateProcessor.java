@@ -656,9 +656,7 @@ final class InlineCandidateProcessor {
       return null;
     }
 
-    if (singleTarget == null
-        || !singleTarget.isVirtualMethod()
-        || isProcessedConcurrently.test(singleTarget)) {
+    if (!singleTarget.isVirtualMethod()) {
       return null;
     }
     if (method == singleTarget) {
@@ -666,11 +664,6 @@ final class InlineCandidateProcessor {
     }
 
     if (isDesugaredLambda) {
-      // If this is the call to method of the desugared lambda, we consider only calls
-      // to main lambda method eligible (for both direct and indirect calls).
-      if (singleTarget.accessFlags.isBridge()) {
-        return null;
-      }
       markSizeForInlining(singleTarget);
       return new InliningInfo(singleTarget, eligibleClass);
     }
