@@ -495,7 +495,7 @@ public class InternalOptions {
 
   public static class OutlineOptions {
 
-    public static final String CLASS_NAME = "r8.GeneratedOutlineSupport";
+    public static final String CLASS_NAME = "com.android.tools.r8.GeneratedOutlineSupport";
     public static final String METHOD_PREFIX = "outline";
 
     public boolean enabled = true;
