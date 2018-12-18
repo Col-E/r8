@@ -809,4 +809,32 @@ public class InternalOptions {
   public boolean canHaveTracingPastInstructionsStreamBug() {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }
+
+  // The art verifier incorrectly propagates type information for the following pattern:
+  //
+  //  move vA, vB
+  //  instance-of vB, vA, Type
+  //  if-eqz/nez vB
+  //
+  // In that case it will assume that vB has object type after the if. Therefore, if the
+  // result of the instance-of operation is reused in a boolean context the verifier will
+  // fail with a type conflict.
+  //
+  // In order to make sure that cannot happen, we insert a nop between the move and
+  // the instance-of instruction so that this pattern in the art verifier does not
+  // match.
+  //
+  //  move vA, vB
+  //  nop
+  //  instance-of vB, vA, Type
+  //  if-eqz/nez vB
+  //
+  // This happens rarely, but it can happen in debug mode where the move
+  // put a value into a new register which has associated locals information.
+  //
+  // See b/120985556.
+  public boolean canHaveArtInstanceOfVerifierBug() {
+    // TODO(ager): Update this with an actual bound when the issue has been fixed.
+    return true;
+  }
 }

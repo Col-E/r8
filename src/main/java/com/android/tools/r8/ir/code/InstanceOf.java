@@ -40,7 +40,7 @@ public class InstanceOf extends Instruction {
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
     int value = builder.allocatedRegister(value(), getNumber());
-    builder.add(this, new com.android.tools.r8.code.InstanceOf(dest, value, type));
+    builder.addInstanceOf(this, new com.android.tools.r8.code.InstanceOf(dest, value, type));
   }
 
   @Override
