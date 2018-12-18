@@ -109,6 +109,8 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   private int maxRegisterNumber = 0;
 
+  private int maxArgumentRegisterNumber = -1;
+
   public CfRegisterAllocator(
       IRCode code, InternalOptions options, TypeVerificationHelper typeHelper) {
     this.code = code;
@@ -186,6 +188,8 @@ public class CfRegisterAllocator implements RegisterAllocator {
       assignRegisterToUnhandledInterval(argument, getNextFreeRegister(argument.getType().isWide()));
     }
 
+    maxArgumentRegisterNumber = nextUnusedRegisterNumber - 1;
+
     while (!unhandled.isEmpty()) {
       LiveIntervals unhandledInterval = unhandled.poll();
       assert !unhandledInterval.getValue().isArgument();
@@ -259,8 +263,18 @@ public class CfRegisterAllocator implements RegisterAllocator {
   private int getNextFreeRegister(boolean isWide) {
     if (!freeRegisters.isEmpty()) {
       if (isWide) {
+        // In case of a wide local we don't allow it to start at maxArgumentRegisterNumber, that is
+        // either at the last, non-wide argument or the second register of the last, wide argument.
+        // This is a workaround for a jacoco bug (see b/117593305) where the jacoco instrumentation
+        // algorithm assumes that we never reuse argument registers so it is safe to insert the
+        // instrumentation registers starting with the first register after the arguments.
+        //
+        // Without this workaround we may create a wide local whose first register overlaps the
+        // last argument and whose second register will overlap the first instrumentation register.
+        // The result is a Java verification error.
         for (Integer register : freeRegisters) {
-          if (freeRegisters.contains(register + 1) || nextUnusedRegisterNumber == register + 1) {
+          if ((freeRegisters.contains(register + 1) || nextUnusedRegisterNumber == register + 1)
+              && register != maxArgumentRegisterNumber) {
             return register;
           }
         }
