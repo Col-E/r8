@@ -4,22 +4,18 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeStatic;
@@ -29,6 +25,7 @@ import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.optimize.staticizer.dualcallinline.Candidate;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateConflictField;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateConflictMethod;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateOk;
@@ -44,16 +41,13 @@ import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithParams;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithPhi;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithSideEffects;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.TrivialTestClass;
+import com.android.tools.r8.ir.optimize.staticizer.dualcallinline.DualCallTest;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -93,7 +87,8 @@ public class ClassStaticizerTest extends TestBase {
         .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(main)
-        .addKeepRules("-dontobfuscate", "-allowaccessmodification")
+        .noMinification()
+        .addKeepRules("-allowaccessmodification")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
         .addOptionsModification(this::configure)
         .run(main)
@@ -176,7 +171,8 @@ public class ClassStaticizerTest extends TestBase {
         .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(main)
-        .addKeepRules("-dontobfuscate", "-allowaccessmodification")
+        .noMinification()
+        .addKeepRules("-allowaccessmodification")
         .addOptionsModification(this::configure)
         .run(main)
         .assertSuccessWithOutput(javaOutput);
@@ -283,5 +279,42 @@ public class ClassStaticizerTest extends TestBase {
 
   private void configure(InternalOptions options) {
     options.enableClassInlining = false;
+  }
+
+
+  @Test
+  public void dualInlinedMethodRewritten() throws Exception {
+    assumeTrue("b/112831361", backend == Backend.DEX);
+    Class<?> main = DualCallTest.class;
+    Class<?>[] classes = {
+        DualCallTest.class,
+        Candidate.class
+    };
+    String javaOutput = runOnJava(main);
+    TestRunResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .enableProguardTestOptions()
+        .enableInliningAnnotations()
+        .addKeepMainRule(main)
+        .noMinification()
+        .addKeepRules("-allowaccessmodification")
+        .addOptionsModification(this::configure)
+        .run(main)
+        .assertSuccessWithOutput(javaOutput);
+
+    CodeInspector inspector = result.inspector();
+    ClassSubject clazz = inspector.clazz(main);
+
+    // Check that "calledTwice" is removed (inlined into main).
+    assertThat(clazz.uniqueMethodWithName("calledTwice"), not(isPresent()));
+
+    // Check that the two inlines of "calledTwice" is correctly rewritten.
+    assertThat(clazz.uniqueMethodWithName("foo"), isPresent());
+    assertThat(clazz.uniqueMethodWithName("bar"), isPresent());
+    assertEquals(
+        Lists.newArrayList(
+            "STATIC: String dualcallinline.DualCallTest.foo()",
+            "STATIC: String dualcallinline.DualCallTest.foo()"),
+        references(clazz, "main", "void", "java.lang.String[]"));
   }
 }

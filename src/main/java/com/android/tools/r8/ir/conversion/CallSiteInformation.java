@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 
 public abstract class CallSiteInformation {
 
@@ -13,9 +13,9 @@ public abstract class CallSiteInformation {
    * For pinned methods (methods kept through Proguard keep rules) this will always answer
    * <code>false</code>.
    */
-  public abstract boolean hasSingleCallSite(DexEncodedMethod method);
+  public abstract boolean hasSingleCallSite(DexMethod method);
 
-  public abstract boolean hasDoubleCallSite(DexEncodedMethod method);
+  public abstract boolean hasDoubleCallSite(DexMethod method);
 
   public static CallSiteInformation empty() {
     return EmptyCallSiteInformation.EMPTY_INFO;
@@ -26,12 +26,12 @@ public abstract class CallSiteInformation {
     private static final EmptyCallSiteInformation EMPTY_INFO = new EmptyCallSiteInformation();
 
     @Override
-    public boolean hasSingleCallSite(DexEncodedMethod method) {
+    public boolean hasSingleCallSite(DexMethod method) {
       return false;
     }
 
     @Override
-    public boolean hasDoubleCallSite(DexEncodedMethod method) {
+    public boolean hasDoubleCallSite(DexMethod method) {
       return false;
     }
   }

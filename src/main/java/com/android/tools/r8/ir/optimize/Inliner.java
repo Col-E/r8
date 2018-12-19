@@ -70,10 +70,10 @@ public class Inliner {
     blackList.add(appInfo.dexItemFactory.kotlin.intrinsics.throwNpe);
   }
 
-  public boolean isBlackListed(DexEncodedMethod method) {
-    return blackList.contains(appView.graphLense().getOriginalMethodSignature(method.method))
-        || appView.appInfo().neverInline.contains(method.method)
-        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method.method, converter);
+  public boolean isBlackListed(DexMethod method) {
+    return blackList.contains(appView.graphLense().getOriginalMethodSignature(method))
+        || appView.appInfo().neverInline.contains(method)
+        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, converter);
   }
 
   private ConstraintWithTarget instructionAllowedForInlining(
@@ -129,7 +129,7 @@ public class Inliner {
 
   synchronized boolean isDoubleInliningTarget(
       CallSiteInformation callSiteInformation, DexEncodedMethod candidate) {
-    return callSiteInformation.hasDoubleCallSite(candidate)
+    return callSiteInformation.hasDoubleCallSite(candidate.method)
         || doubleInlineSelectedTargets.contains(candidate);
   }
 
@@ -165,15 +165,13 @@ public class Inliner {
           .sorted(DexEncodedMethod::slowCompare)
           .collect(Collectors.toList());
       for (DexEncodedMethod method : methods) {
-        DexEncodedMethod mappedMethod =
-            converter.graphLense().mapDexEncodedMethod(appView.appInfo(), method);
         converter.processMethod(
-            mappedMethod,
+            method,
             feedback,
             x -> false,
             CallSiteInformation.empty(),
             Outliner::noProcessing);
-        assert mappedMethod.isProcessed();
+        assert method.isProcessed();
       }
     }
   }

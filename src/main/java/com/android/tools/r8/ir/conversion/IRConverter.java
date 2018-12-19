@@ -161,6 +161,9 @@ public class IRConverter {
     assert appInfo != null;
     assert options != null;
     assert options.programConsumer != null;
+    assert appView == null
+        || appView.appInfo().hasLiveness()
+        || appView.graphLense().isIdentityLense();
     this.timing = timing != null ? timing : new Timing("internal");
     this.appInfo = appInfo;
     this.appView = appView;
@@ -523,6 +526,7 @@ public class IRConverter {
     printPhase("Primary optimization pass");
 
     // Process the application identifying outlining candidates.
+    GraphLense graphLenseForIR = graphLense();
     OptimizationFeedbackDelayed feedback = delayedOptimizationFeedback;
     {
       timing.begin("Build call graph");
@@ -537,31 +541,27 @@ public class IRConverter {
           feedback::updateVisibleOptimizationInfo,
           executorService);
       timing.end();
-    }
-
-    // Build a new application with jumbo string info.
-    Builder<?> builder = application.builder();
-    builder.setHighestSortingString(highestSortingString);
-
-    // TODO(b/112831361): Implement support for staticizeClasses in CF backend.
-    if (!options.isGeneratingClassFiles()) {
-      printPhase("Class staticizer post processing");
-      Set<DexEncodedMethod> reprocessedMethods = staticizeClasses(feedback, executorService);
-
-      // Update optimization info since the optimization info for methods may change as a result
-      // of staticizing (e.g., the parameter usages change).
-      if (!reprocessedMethods.isEmpty()) {
-        feedback.updateVisibleOptimizationInfo();
-      }
+      assert graphLenseForIR == graphLense();
     }
 
     // Second inlining pass for dealing with double inline callers.
     if (inliner != null) {
       printPhase("Double caller inlining");
-      // Use direct feedback still, since methods after inlining may
-      // change their status or other properties.
+      assert graphLenseForIR == graphLense();
       inliner.processDoubleInlineCallers(this, feedback);
+      feedback.updateVisibleOptimizationInfo();
+      assert graphLenseForIR == graphLense();
     }
+
+    // TODO(b/112831361): Implement support for staticizeClasses in CF backend.
+    if (!options.isGeneratingClassFiles()) {
+      printPhase("Class staticizer post processing");
+      staticizeClasses(feedback, executorService);
+    }
+
+    // Build a new application with jumbo string info.
+    Builder<?> builder = application.builder();
+    builder.setHighestSortingString(highestSortingString);
 
     printPhase("Lambda class synthesis");
     synthesizeLambdaClasses(builder, executorService);
