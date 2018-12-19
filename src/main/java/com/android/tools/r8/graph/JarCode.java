@@ -208,6 +208,7 @@ public class JarCode extends Code {
 
   @Override
   public void registerArgumentReferences(ArgumentUse registry) {
+    triggerDelayedParsingIfNeccessary();
     node.instructions.accept(new JarArgumentUseVisitor(getOwner(), registry));
   }
 
