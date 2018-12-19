@@ -17,6 +17,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationSource;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceBytes;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
@@ -320,6 +321,17 @@ public final class R8Command extends BaseCompilerCommand {
           && !getAppBuilder().hasMainDexList()) {
         reporter.error(
             "Option --main-dex-list-output require --main-dex-rules and/or --main-dex-list");
+      }
+      if (!(getProgramConsumer() instanceof ClassFileConsumer)
+          && getMinApiLevel() >= AndroidApiLevel.L.getLevel()) {
+        if (getMainDexListConsumer() != null
+            || !mainDexRules.isEmpty()
+            || getAppBuilder().hasMainDexList()) {
+          reporter.error(
+              "R8 does not support main-dex inputs and outputs when compiling to API level "
+                  + AndroidApiLevel.L.getLevel()
+                  + " and above");
+        }
       }
       for (Path file : programFiles) {
         if (FileUtils.isDexFile(file)) {
