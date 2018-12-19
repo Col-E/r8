@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.code.Const4;
+import com.android.tools.r8.code.ConstWide16;
 import com.android.tools.r8.code.FillArrayData;
 import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.code.Format31t;
@@ -32,6 +34,8 @@ import com.android.tools.r8.code.MoveWide;
 import com.android.tools.r8.code.MoveWide16;
 import com.android.tools.r8.code.MoveWideFrom16;
 import com.android.tools.r8.code.Nop;
+import com.android.tools.r8.code.ReturnVoid;
+import com.android.tools.r8.code.ReturnWide;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -216,14 +220,22 @@ public class DexBuilder {
     if (options.canHaveTracingPastInstructionsStreamBug()
         && dexInstructions.get(dexInstructions.size() - 1) instanceof Throw
         && hasBackwardsBranch) {
-      Nop nop = new Nop();
-      dexInstructions.add(nop);
-      nop.setOffset(offset);
-      offset += nop.getSize();
-      Goto go = new Goto(-nop.getSize());
-      dexInstructions.add(go);
-      go.setOffset(offset);
-      offset += go.getSize();
+      List<Instruction> instructions = new ArrayList<>();
+      DexType returnType = ir.method.method.proto.returnType;
+      if (returnType.isVoidType()) {
+        instructions.add(new ReturnVoid());
+      } else if (returnType.isDoubleType() || returnType.isLongType()) {
+        instructions.add(new ConstWide16(0, 0));
+        instructions.add(new ReturnWide(0));
+      } else {
+        instructions.add(new Const4(0, 0));
+        instructions.add(new com.android.tools.r8.code.Return(0));
+      }
+      for (Instruction instruction : instructions) {
+        instruction.setOffset(offset);
+        offset += instruction.getSize();
+        dexInstructions.add(instruction);
+      }
     }
 
     // Compute switch payloads.
