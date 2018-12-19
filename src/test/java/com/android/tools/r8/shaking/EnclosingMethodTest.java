@@ -7,8 +7,8 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -91,7 +91,7 @@ public class EnclosingMethodTest extends TestBase {
       builder.addKeepRules("-dontobfuscate");
     }
 
-    TestRunResult result = builder.run(MAIN);
+    R8TestRunResult result = builder.run(MAIN);
     if (backend == Backend.DEX) {
       if (ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4)
           && ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V6_0_1)) {

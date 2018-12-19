@@ -13,6 +13,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -123,7 +124,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     if (!minify) {
       builder.noMinification();
     }
-    TestRunResult result = builder.run(MAIN_CLASS_NAME);
+    R8TestRunResult result = builder.run(MAIN_CLASS_NAME);
 
     if (backend == Backend.DEX) {
       if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
@@ -166,7 +167,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     if (!minify) {
       builder.noMinification();
     }
-    TestRunResult result = builder.run(MAIN_CLASS_NAME);
+    R8TestRunResult result = builder.run(MAIN_CLASS_NAME);
 
     if (backend == Backend.DEX) {
       if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
