@@ -14,9 +14,9 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -118,8 +118,7 @@ public class MainDexListWhyAreYouKeeping extends TestBase {
         throw new Unreachable();
     }
     if (consumer != null) {
-      consumer.printWhyAreYouKeeping(
-          DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()), new PrintStream(baos));
+      consumer.printWhyAreYouKeeping(Reference.classFromClass(clazz), new PrintStream(baos));
     } else {
       System.setOut(stdout);
     }

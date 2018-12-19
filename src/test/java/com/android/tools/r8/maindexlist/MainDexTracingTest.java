@@ -16,6 +16,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -83,7 +84,8 @@ public class MainDexTracingTest extends TestBase {
         });
     {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      graphConsumer.printWhyAreYouKeeping("Lmultidex001/MainActivity;", new PrintStream(baos));
+      graphConsumer.printWhyAreYouKeeping(
+          Reference.classFromTypeName("multidex001.MainActivity"), new PrintStream(baos));
       String output = new String(baos.toByteArray(), Charset.defaultCharset());
       String expected =
           StringUtils.lines(
@@ -94,7 +96,8 @@ public class MainDexTracingTest extends TestBase {
     }
     {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      graphConsumer.printWhyAreYouKeeping("Lmultidex001/ClassForMainDex;", new PrintStream(baos));
+      graphConsumer.printWhyAreYouKeeping(
+          Reference.classFromTypeName("multidex001.ClassForMainDex"), new PrintStream(baos));
       String output = new String(baos.toByteArray(), Charset.defaultCharset());
       // TODO(b/120951570): We should be able to get the reason for ClassForMainDex too.
       String expected =

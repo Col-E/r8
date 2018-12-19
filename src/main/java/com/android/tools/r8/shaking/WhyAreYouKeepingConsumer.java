@@ -17,6 +17,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
@@ -69,15 +70,14 @@ public class WhyAreYouKeepingConsumer implements GraphConsumer {
   }
 
   /** Print the shortest path from a root to a node in the graph. */
-  public void printWhyAreYouKeeping(String descriptor, PrintStream out) {
-    assert DescriptorUtils.isClassDescriptor(descriptor);
+  public void printWhyAreYouKeeping(ClassReference clazz, PrintStream out) {
     for (GraphNode node : target2sources.keySet()) {
-      if (node.identity().equals(descriptor)) {
+      if (node.identity().equals(clazz.toDescriptor())) {
         printWhyAreYouKeeping(node, out);
         return;
       }
     }
-    printNothingKeeping(descriptor, out);
+    printNothingKeeping(clazz, out);
   }
 
   public void printWhyAreYouKeeping(GraphNode node, PrintStream out) {
@@ -100,9 +100,9 @@ public class WhyAreYouKeepingConsumer implements GraphConsumer {
     out.println(getNodeString(node));
   }
 
-  private void printNothingKeeping(String descriptor, PrintStream out) {
+  private void printNothingKeeping(ClassReference clazz, PrintStream out) {
     out.print("Nothing is keeping ");
-    out.println(DescriptorUtils.descriptorToJavaType(descriptor));
+    out.println(DescriptorUtils.descriptorToJavaType(clazz.toDescriptor()));
   }
 
   private List<Pair<GraphNode, GraphEdgeInfo>> findShortestPathTo(final GraphNode node) {

@@ -1,0 +1,32 @@
+// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+package com.android.tools.r8.references;
+
+import com.android.tools.r8.Keep;
+
+@Keep
+public interface TypeReference {
+
+  /**
+   * Get the JVM descriptor for this type.
+   *
+   * @return The descriptor for the type.
+   */
+  String toDescriptor();
+
+  /** Predicate that is true iff the TypeReference is an instance of ClassTypeReference. */
+  default boolean isClass() {
+    return false;
+  }
+
+  /** Predicate that is true iff the TypeReference is an instance of ArrayTypeReference. */
+  default boolean isArray() {
+    return false;
+  }
+
+  /** Predicate that is true iff the TypeReference is an instance of PrimitiveTypeReference. */
+  default boolean isPrimitive() {
+    return false;
+  }
+}

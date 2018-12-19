@@ -7,8 +7,8 @@ package com.android.tools.r8.shaking.whyareyoukeeping;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -73,8 +73,7 @@ public class WhyAreYouKeepingTest extends TestBase {
         .compile();
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    String descriptor = DescriptorUtils.javaTypeToDescriptor(A.class.getTypeName());
-    graphConsumer.printWhyAreYouKeeping(descriptor, new PrintStream(baos));
+    graphConsumer.printWhyAreYouKeeping(Reference.classFromClass(A.class), new PrintStream(baos));
     String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
     assertEquals(expected, output);
   }
