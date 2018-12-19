@@ -5,19 +5,18 @@
 package com.android.tools.r8.regress.b117907456;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.D8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.Goto;
 import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.Nop;
+import com.android.tools.r8.code.Return;
+import com.android.tools.r8.code.ReturnVoid;
+import com.android.tools.r8.code.ReturnWide;
 import com.android.tools.r8.code.Throw;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -36,16 +35,21 @@ class TestClass {
 }
 
 public class B117907456 extends TestBase {
+
+  private boolean isReturn(Instruction lastInstruction) {
+    return lastInstruction instanceof ReturnVoid
+        || lastInstruction instanceof Return
+        || lastInstruction instanceof ReturnWide;
+  }
+
   @Test
   public void testNopDupInsertionForDalvikTracingBug()
       throws IOException, CompilationFailedException, ExecutionException {
     MethodSubject method = getMethodSubject(AndroidApiLevel.K);
     Instruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
     Instruction lastInstruction = instructions[instructions.length - 1];
-    assert !(lastInstruction instanceof Throw);
-    assert lastInstruction instanceof Goto;
-    Instruction previous = instructions[instructions.length - 2];
-    assert previous instanceof Nop;
+    assertFalse(lastInstruction instanceof Throw);
+    assertTrue(isReturn(lastInstruction));
   }
 
   @Test
@@ -54,7 +58,7 @@ public class B117907456 extends TestBase {
     MethodSubject method = getMethodSubject(AndroidApiLevel.L);
     Instruction[] instructions = method.getMethod().getCode().asDexCode().instructions;
     Instruction lastInstruction = instructions[instructions.length - 1];
-    assert lastInstruction instanceof Throw;
+    assertTrue(lastInstruction instanceof Throw);
   }
 
   private MethodSubject getMethodSubject(AndroidApiLevel level)
