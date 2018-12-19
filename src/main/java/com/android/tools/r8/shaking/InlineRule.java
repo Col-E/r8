@@ -10,6 +10,13 @@ import java.util.List;
 
 public class InlineRule extends ProguardConfigurationRule {
 
+  public static final Origin checkDiscardOrigin = new Origin(Origin.root()) {
+    @Override
+    public String part() {
+      return "<SYNTHETIC_CHECK_DISCARD_RULE>";
+    }
+  };
+
   public enum Type {
     ALWAYS, FORCE, NEVER
   }
@@ -74,6 +81,8 @@ public class InlineRule extends ProguardConfigurationRule {
   public ProguardCheckDiscardRule asProguardCheckDiscardRule() {
     assert type == Type.FORCE;
     ProguardCheckDiscardRule.Builder builder = ProguardCheckDiscardRule.builder();
+    builder.setOrigin(checkDiscardOrigin);
+    builder.setSource(null);
     builder.setClassAnnotation(getClassAnnotation());
     builder.setClassAccessFlags(getClassAccessFlags());
     builder.setNegatedClassAccessFlags(getNegatedClassAccessFlags());

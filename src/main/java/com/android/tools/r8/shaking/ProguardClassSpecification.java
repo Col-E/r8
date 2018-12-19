@@ -194,6 +194,9 @@ public abstract class ProguardClassSpecification {
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
+    assert origin != null;
+    assert position != null;
+    assert source != null || origin != Origin.unknown();
     this.origin = origin;
     this.position = position;
     this.source =source;

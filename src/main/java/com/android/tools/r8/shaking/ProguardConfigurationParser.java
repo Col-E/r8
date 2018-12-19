@@ -228,7 +228,7 @@ public class ProguardConfigurationParser {
       } else if (acceptString("keepattributes")) {
         parseKeepAttributes();
       } else if (acceptString("keeppackagenames")) {
-        ProguardKeepPackageNamesRule rule = parseKeepPackageNamesRule();
+        ProguardKeepPackageNamesRule rule = parseKeepPackageNamesRule(optionStart);
         configurationBuilder.addRule(rule);
       } else if (acceptString("keepparameternames")) {
         configurationBuilder.setKeepParameterNames(true, origin, getPosition(optionStart));
@@ -580,10 +580,14 @@ public class ProguardConfigurationParser {
       return keepRuleBuilder.build();
     }
 
-    private ProguardKeepPackageNamesRule parseKeepPackageNamesRule()
+    private ProguardKeepPackageNamesRule parseKeepPackageNamesRule(Position start)
         throws ProguardRuleParserException {
-      ProguardKeepPackageNamesRule.Builder keepRuleBuilder = ProguardKeepPackageNamesRule.builder();
+      ProguardKeepPackageNamesRule.Builder keepRuleBuilder =
+          ProguardKeepPackageNamesRule.builder().setOrigin(origin).setStart(start);
       keepRuleBuilder.setClassNames(parseClassNames());
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
       return keepRuleBuilder.build();
     }
 
@@ -660,6 +664,9 @@ public class ProguardConfigurationParser {
       if (acceptString("-keep")) {
         ProguardKeepRule subsequentRule = parseKeepRule(keepStart);
         ifRuleBuilder.setSubsequentRule(subsequentRule);
+        Position end = getPosition();
+        ifRuleBuilder.setSource(getSourceSnippet(contents, optionStart, end));
+        ifRuleBuilder.setEnd(end);
         ProguardIfRule ifRule = ifRuleBuilder.build();
         verifyAndLinkBackReferences(ifRule.getWildcards());
         return ifRule;

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -19,8 +20,17 @@ import java.util.stream.Collectors;
 
 public class ProguardConfigurationUtils {
 
+  private static Origin proguardCompatOrigin =
+      new Origin(Origin.root()) {
+        @Override
+        public String part() {
+          return "<PROGUARD_COMPATIBILITY_RULE>";
+        }
+      };
+
   public static ProguardKeepRule buildMethodHandleKeepRule(DexClass clazz) {
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
+    builder.setOrigin(proguardCompatOrigin);
     builder.setType(ProguardKeepRuleType.KEEP);
     builder.getModifiersBuilder().setAllowsObfuscation(true);
     builder.getModifiersBuilder().setAllowsOptimization(true);
@@ -33,6 +43,7 @@ public class ProguardConfigurationUtils {
 
   public static ProguardKeepRule buildDefaultInitializerKeepRule(DexClass clazz) {
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
+    builder.setOrigin(proguardCompatOrigin);
     builder.setType(ProguardKeepRuleType.KEEP);
     builder.getModifiersBuilder().setAllowsObfuscation(true);
     builder.getModifiersBuilder().setAllowsOptimization(true);
@@ -54,6 +65,7 @@ public class ProguardConfigurationUtils {
       DexClass clazz, DexEncodedField field, boolean keepClass) {
     assert clazz.type == field.field.getHolder();
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
+    builder.setOrigin(proguardCompatOrigin);
     if (keepClass) {
       builder.setType(ProguardKeepRuleType.KEEP);
     } else {
@@ -82,6 +94,7 @@ public class ProguardConfigurationUtils {
   public static ProguardKeepRule buildMethodKeepRule(DexClass clazz, DexEncodedMethod method) {
     assert clazz.type == method.method.getHolder();
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
+    builder.setOrigin(proguardCompatOrigin);
     builder.setType(ProguardKeepRuleType.KEEP_CLASS_MEMBERS);
     builder.getModifiersBuilder().setAllowsObfuscation(true);
     builder.getModifiersBuilder().setAllowsOptimization(true);

@@ -125,6 +125,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
   private static List<ProguardConfigurationRule> buildKeepRuleForClass(Class clazz,
       DexItemFactory factory) {
     Builder keepRuleBuilder = ProguardKeepRule.builder();
+    keepRuleBuilder.setSource("buildKeepRuleForClass " + clazz.getTypeName());
     keepRuleBuilder.setType(ProguardKeepRuleType.KEEP);
     keepRuleBuilder.setClassNames(
         ProguardClassNameList.singletonList(ProguardTypeMatcher.create(factory

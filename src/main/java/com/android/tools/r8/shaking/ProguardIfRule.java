@@ -12,6 +12,14 @@ import java.util.stream.Collectors;
 
 public class ProguardIfRule extends ProguardKeepRuleBase {
 
+  private static final Origin neverInlineOrigin =
+      new Origin(Origin.root()) {
+        @Override
+        public String part() {
+          return "<SYNTHETIC_NEVER_INLINE_RULE>";
+        }
+      };
+
   final ProguardKeepRule subsequentRule;
 
   public static class Builder extends ProguardKeepRuleBase.Builder<ProguardIfRule, Builder> {
@@ -70,9 +78,9 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
 
   protected ProguardIfRule materialize() {
     return new ProguardIfRule(
-        Origin.unknown(),
-        Position.UNKNOWN,
-        null,
+        getOrigin(),
+        getPosition(),
+        getSource(),
         getClassAnnotation() == null ? null : getClassAnnotation().materialize(),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
@@ -82,15 +90,17 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
         getInheritanceAnnotation() == null ? null : getInheritanceAnnotation().materialize(),
         getInheritanceClassName() == null ? null : getInheritanceClassName().materialize(),
         getInheritanceIsExtends(),
-        getMemberRules() == null ? null :
-            getMemberRules().stream()
-                .map(ProguardMemberRule::materialize).collect(Collectors.toList()),
+        getMemberRules() == null
+            ? null
+            : getMemberRules().stream()
+                .map(ProguardMemberRule::materialize)
+                .collect(Collectors.toList()),
         subsequentRule.materialize());
   }
 
   protected ClassInlineRule neverClassInlineRuleForCondition() {
     return new ClassInlineRule(
-        Origin.unknown(),
+        neverInlineOrigin,
         Position.UNKNOWN,
         null,
         getClassAnnotation() == null ? null : getClassAnnotation().materialize(),
@@ -133,7 +143,7 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
       return null;
     }
     return new InlineRule(
-        Origin.unknown(),
+        neverInlineOrigin,
         Position.UNKNOWN,
         null,
         getClassAnnotation() == null ? null : getClassAnnotation().materialize(),

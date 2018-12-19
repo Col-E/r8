@@ -60,9 +60,9 @@ public class ProguardKeepRule extends ProguardKeepRuleBase {
 
   protected ProguardKeepRule materialize() {
     return new ProguardKeepRule(
-        Origin.unknown(),
-        Position.UNKNOWN,
-        null,
+        getOrigin(),
+        getPosition(),
+        getSource(),
         getClassAnnotation() == null ? null : getClassAnnotation().materialize(),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
@@ -72,9 +72,11 @@ public class ProguardKeepRule extends ProguardKeepRuleBase {
         getInheritanceAnnotation() == null ? null : getInheritanceAnnotation().materialize(),
         getInheritanceClassName() == null ? null : getInheritanceClassName().materialize(),
         getInheritanceIsExtends(),
-        getMemberRules() == null ? null :
-            getMemberRules().stream()
-                .map(ProguardMemberRule::materialize).collect(Collectors.toList()),
+        getMemberRules() == null
+            ? null
+            : getMemberRules().stream()
+                .map(ProguardMemberRule::materialize)
+                .collect(Collectors.toList()),
         getType(),
         getModifiers());
   }
@@ -107,6 +109,13 @@ public class ProguardKeepRule extends ProguardKeepRuleBase {
   public static ProguardKeepRule defaultKeepAllRule(
       Consumer<ProguardKeepRuleModifiers.Builder> modifiers) {
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
+    builder.setOrigin(
+        new Origin(Origin.root()) {
+          @Override
+          public String part() {
+            return "<DEFAULT_KEEP_ALL_RULE>";
+          }
+        });
     builder.setClassType(ProguardClassType.CLASS);
     builder.matchAllSpecification();
     builder.setType(ProguardKeepRuleType.KEEP);

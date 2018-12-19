@@ -20,6 +20,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dexsplitter.DexSplitter.Options;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -327,7 +328,7 @@ public class DexSplitterTests {
             .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
             .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .setProguardMapOutputPath(proguardMap)
-            .addProguardConfiguration(getProguardConf(), null)
+            .addProguardConfiguration(getProguardConf(), Origin.unknown())
             .build());
 
     Path outputDex = temp.newFolder().toPath().resolve("output");
