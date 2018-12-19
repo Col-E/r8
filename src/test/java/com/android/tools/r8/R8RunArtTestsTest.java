@@ -1988,7 +1988,15 @@ public abstract class R8RunArtTestsTest {
       expectException(AssertionError.class);
     }
 
-    ProcessResult result = ToolHelper.runJava(resultDir.toPath(), JUNIT_TEST_RUNNER, fullClassName);
+    // Some tests rely on an OutOfMemoryError being thrown (fx MemoryHog.getBigArray()). To ensure
+    // compatible test results locally and externally, we need to synchronize the max heap size when
+    // running the test.
+    ProcessResult result =
+        ToolHelper.runJava(
+            resultDir.toPath(),
+            "-Xmx" + ToolHelper.BOT_MAX_HEAP_SIZE,
+            JUNIT_TEST_RUNNER,
+            fullClassName);
 
     if (result.exitCode != 0) {
       throw new AssertionError(

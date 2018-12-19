@@ -635,8 +635,7 @@ public class JctfTestSpecifications {
                       Runtime.ART_DEFAULT,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
-                      Runtime.ART_V5_1_1,
-                      Runtime.JAVA)))
+                      Runtime.ART_V5_1_1)))
           .put(
               "lang.ref.SoftReference.isEnqueued.SoftReference_isEnqueued_A01",
               match(
@@ -644,9 +643,8 @@ public class JctfTestSpecifications {
                       Runtime.ART_DEFAULT,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
-                      Runtime.ART_V5_1_1,
-                      Runtime.JAVA)))
-          .put("lang.ref.SoftReference.get.SoftReference_get_A01", any())
+                      Runtime.ART_V5_1_1)))
+          .put("lang.ref.SoftReference.get.SoftReference_get_A01", anyDexVm())
           .put("lang.ref.SoftReference.clear.SoftReference_clear_A01", cf())
           .put(
               "lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
@@ -657,12 +655,11 @@ public class JctfTestSpecifications {
                       Runtime.ART_V8_1_0,
                       Runtime.ART_V7_0_0,
                       Runtime.ART_V6_0_1,
-                      Runtime.ART_V5_1_1,
-                      Runtime.JAVA)))
+                      Runtime.ART_V5_1_1)))
           .put(
               "lang.StackTraceElement.serialization.StackTraceElement_serialization_A01",
               anyDexVm())
-          .put("lang.ref.WeakReference.get.WeakReference_get_A01", any())
+          .put("lang.ref.WeakReference.get.WeakReference_get_A01", anyDexVm())
           .put(
               "lang.StackTraceElement.toString.StackTraceElement_toString_A01",
               match(runtimes(Runtime.ART_DEFAULT, Runtime.ART_V9_0_0, Runtime.ART_V8_1_0)))
@@ -1687,7 +1684,6 @@ public class JctfTestSpecifications {
           .put("lang.RuntimePermission.Class.RuntimePermission_class_A13", cf())
           .put("lang.Thread.stopLjava_lang_Throwable.Thread_stop_A01", cf())
           .put("lang.Runtime.addShutdownHookLjava_lang_Thread.Runtime_addShutdownHook_A02", cf())
-          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01", cf())
           .put("lang.ThreadGroup.destroy.ThreadGroup_destroy_A04", cf())
           .put("lang.ThreadGroup.setMaxPriorityI.ThreadGroup_setMaxPriority_A02", cf())
           .put(

@@ -111,6 +111,8 @@ public class ToolHelper {
   private static final String RETRACE6_0_1 = "third_party/proguard/proguard6.0.1/bin/retrace";
   private static final String RETRACE = RETRACE6_0_1;
 
+  public static final long BOT_MAX_HEAP_SIZE = 7908360192L;
+
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
