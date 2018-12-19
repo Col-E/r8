@@ -144,8 +144,8 @@ public class CallGraph extends CallSiteInformation {
   private final Map<DexEncodedMethod, Node> nodes = new LinkedHashMap<>();
   private final IROrdering shuffle;
 
-  private final Set<DexEncodedMethod> singleCallSite = Sets.newIdentityHashSet();
-  private final Set<DexEncodedMethod> doubleCallSite = Sets.newIdentityHashSet();
+  private final Set<DexMethod> singleCallSite = Sets.newIdentityHashSet();
+  private final Set<DexMethod> doubleCallSite = Sets.newIdentityHashSet();
 
   public static CallGraph build(
       DexApplication application,
@@ -181,12 +181,12 @@ public class CallGraph extends CallSiteInformation {
    * <code>false</code>.
    */
   @Override
-  public boolean hasSingleCallSite(DexEncodedMethod method) {
+  public boolean hasSingleCallSite(DexMethod method) {
     return singleCallSite.contains(method);
   }
 
   @Override
-  public boolean hasDoubleCallSite(DexEncodedMethod method) {
+  public boolean hasDoubleCallSite(DexMethod method) {
     return doubleCallSite.contains(method);
   }
 
@@ -196,9 +196,9 @@ public class CallGraph extends CallSiteInformation {
       // For non-pinned methods we know the exact number of call sites.
       if (!appInfo.isPinned(value.method.method)) {
         if (value.invokeCount == 1) {
-          singleCallSite.add(value.method);
+          singleCallSite.add(value.method.method);
         } else if (value.invokeCount == 2) {
-          doubleCallSite.add(value.method);
+          doubleCallSite.add(value.method.method);
         }
       }
     }

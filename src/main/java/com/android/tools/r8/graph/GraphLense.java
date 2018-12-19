@@ -319,7 +319,7 @@ public abstract class GraphLense {
     }
 
     public GraphLense build(DexItemFactory dexItemFactory) {
-      return build(dexItemFactory, new IdentityGraphLense());
+      return build(dexItemFactory, getIdentityLense());
     }
 
     public GraphLense build(DexItemFactory dexItemFactory, GraphLense previousLense) {
@@ -417,11 +417,11 @@ public abstract class GraphLense {
   }
 
   public static GraphLense getIdentityLense() {
-    return new IdentityGraphLense();
+    return IdentityGraphLense.getInstance();
   }
 
   public final boolean isIdentityLense() {
-    return this instanceof IdentityGraphLense;
+    return this == getIdentityLense();
   }
 
   public <T extends DexDefinition> boolean assertDefinitionNotModified(Iterable<T> items) {
@@ -506,6 +506,14 @@ public abstract class GraphLense {
   }
 
   private static class IdentityGraphLense extends GraphLense {
+
+    private static IdentityGraphLense INSTANCE = new IdentityGraphLense();
+
+    private IdentityGraphLense() {}
+
+    private static IdentityGraphLense getInstance() {
+      return INSTANCE;
+    }
 
     @Override
     public DexField getOriginalFieldSignature(DexField field) {

@@ -105,7 +105,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
         && inliner.appView.withLiveness().appInfo().alwaysInline.contains(target.method)) {
       return Reason.ALWAYS;
     }
-    if (callSiteInformation.hasSingleCallSite(target)) {
+    if (callSiteInformation.hasSingleCallSite(target.method)) {
       return Reason.SINGLE_CALLER;
     }
     if (isDoubleInliningTarget(target)) {
@@ -260,7 +260,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   public InlineAction computeForInvokeWithReceiver(
       InvokeMethodWithReceiver invoke, DexType invocationContext) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null || inliner.isBlackListed(candidate)) {
+    if (candidate == null || inliner.isBlackListed(candidate.method)) {
       return null;
     }
 
@@ -301,7 +301,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
   @Override
   public InlineAction computeForInvokeStatic(InvokeStatic invoke, DexType invocationContext) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null || inliner.isBlackListed(candidate)) {
+    if (candidate == null || inliner.isBlackListed(candidate.method)) {
       return null;
     }
 
