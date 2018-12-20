@@ -1040,7 +1040,7 @@ public class RootSetBuilder {
 
     public boolean verifyKeptItemsAreKept(
         DexApplication application, AppInfo appInfo, InternalOptions options) {
-      if (options.proguardConfiguration.hasApplyMappingFile()) {
+      if (options.getProguardConfiguration().hasApplyMappingFile()) {
         // TODO(b/121295633): Root set is obsolete after mapping has been applied.
         return true;
       }
