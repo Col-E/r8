@@ -37,6 +37,10 @@ public class NumberConversion extends Unop {
     this.to = to;
   }
 
+  public boolean isLongToIntConversion() {
+    return from == NumericType.LONG && to == NumericType.INT;
+  }
+
   @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;

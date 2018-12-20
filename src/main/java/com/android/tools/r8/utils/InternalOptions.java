@@ -815,7 +815,7 @@ public class InternalOptions {
   //
   // We used to insert a empty loop at the end, however, mediatek has an optimizer
   // on lollipop devices that cannot deal with an unreachable infinite loop, so we
-  // couldn't do that. See b/119895393.
+  // couldn't do that. See b/119895393.2
   public boolean canHaveTracingPastInstructionsStreamBug() {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }
@@ -846,5 +846,28 @@ public class InternalOptions {
   public boolean canHaveArtInstanceOfVerifierBug() {
     // TODO(ager): Update this with an actual bound when the issue has been fixed.
     return true;
+  }
+
+  // Some Art Lollipop version do not deal correctly with long-to-int conversions.
+  //
+  // In particular, the following code performs an out of bounds array access when the
+  // long loaded from the long array is very large (has non-zero values in the upper 32 bits).
+  //
+  //   aget-wide v9, v3, v1
+  //   long-to-int v9, v9
+  //   aget-wide v10, v3, v9
+  //
+  // The issue seems to be that the higher bits of the 64-bit register holding the long
+  // are not cleared and the integer is therefore a 64-bit integer that is not truncated
+  // to 32 bits.
+  //
+  // As a workaround, we do not allow long-to-int to have the same source and target register
+  // for min-apis where lollipop devices could be targeted.
+  //
+  // See b/80262475.
+  public boolean canHaveLongToIntBug() {
+    // We have only seen this happening on Lollipop arm64 backends. We have tested on
+    // Marshmallow and Nougat arm64 devices and they do not have the bug.
+    return minApiLevel < AndroidApiLevel.M.getLevel();
   }
 }
