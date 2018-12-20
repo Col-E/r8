@@ -289,6 +289,7 @@ public class R8 {
                 options.proguardConfiguration.getDontWarnPatterns(),
                 executorService,
                 timing));
+        assert rootSet.verifyKeptMethodsAreTargetedAndLive(appView.appInfo().withLiveness());
 
         if (options.proguardConfiguration.isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -301,13 +302,14 @@ public class R8 {
           TreePruner pruner =
               new TreePruner(application, appView.appInfo().withLiveness(), options);
           application = pruner.run();
+
           // Recompute the subtyping information.
           appView.setAppInfo(
               appView
                   .appInfo()
                   .withLiveness()
                   .prunedCopyFrom(application, pruner.getRemovedClasses()));
-          new AbstractMethodRemover(appView.appInfo()).run();
+          new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
         }
 
         new AnnotationRemover(appView.appInfo().withLiveness(), options)
@@ -577,11 +579,13 @@ public class R8 {
       // If a method filter is present don't produce output since the application is likely partial.
       if (options.hasMethodsFilter()) {
         System.out.println("Finished compilation with method filter: ");
-        options.methodsFilter.forEach((m) -> System.out.println("  - " + m));
+        options.methodsFilter.forEach(m -> System.out.println("  - " + m));
         return;
       }
 
+      // Validity checks.
       assert application.classes().stream().allMatch(DexClass::isValid);
+      assert rootSet.verifyKeptItemsAreKept(application, appView.appInfo(), options);
 
       // Generate the resulting application resources.
       writeApplication(

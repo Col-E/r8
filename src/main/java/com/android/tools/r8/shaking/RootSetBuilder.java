@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -25,12 +26,15 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -123,21 +127,22 @@ public class RootSetBuilder {
       Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
       if (rule instanceof ProguardKeepRule) {
+        if (clazz.isLibraryClass()) {
+          return;
+        }
         switch (((ProguardKeepRule) rule).getType()) {
-          case KEEP_CLASS_MEMBERS: {
+          case KEEP_CLASS_MEMBERS:
             // Members mentioned at -keepclassmembers always depend on their holder.
             preconditionSupplier = ImmutableMap.of(definition -> true, clazz);
-            markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier);
-            markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier);
+            markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier, false);
+            markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, false);
             break;
-          }
-          case KEEP_CLASSES_WITH_MEMBERS: {
+          case KEEP_CLASSES_WITH_MEMBERS:
             if (!allRulesSatisfied(memberKeepRules, clazz)) {
               break;
             }
             // fallthrough;
-          }
-          case KEEP: {
+          case KEEP:
             markClass(clazz, rule);
             preconditionSupplier = new HashMap<>();
             if (ifRule != null) {
@@ -150,10 +155,9 @@ public class RootSetBuilder {
               // not triggered conditionally.
               preconditionSupplier.put((definition -> true), null);
             }
-            markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier);
-            markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier);
+            markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier, false);
+            markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, false);
             break;
-          }
           case CONDITIONAL:
             throw new Unreachable("-if rule will be evaluated separately, not here.");
         }
@@ -170,11 +174,11 @@ public class RootSetBuilder {
       } else if (rule instanceof ProguardWhyAreYouKeepingRule
           || rule instanceof ProguardKeepPackageNamesRule) {
         markClass(clazz, rule);
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null);
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else if (rule instanceof ProguardAssumeNoSideEffectRule) {
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null);
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else if (rule instanceof ClassMergingRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
           markClass(clazz, rule);
@@ -186,8 +190,8 @@ public class RootSetBuilder {
           markClass(clazz, rule);
         }
       } else if (rule instanceof ProguardAssumeValuesRule) {
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null);
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else {
         assert rule instanceof ProguardIdentifierNameStringRule;
         markMatchingFields(clazz, memberKeepRules, rule, null);
@@ -463,22 +467,30 @@ public class RootSetBuilder {
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+      boolean includeLibraryClasses) {
     Set<Wrapper<DexMethod>> methodsMarked =
         options.forceProguardCompatibility ? null : new HashSet<>();
     DexClass startingClass = clazz;
     while (clazz != null) {
+      if (!includeLibraryClasses && clazz.isLibraryClass()) {
+        return;
+      }
       // In compat mode traverse all direct methods in the hierarchy.
       if (clazz == startingClass || options.forceProguardCompatibility) {
-        Arrays.stream(clazz.directMethods()).forEach(method -> {
-          DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-          markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
-        });
+        Arrays.stream(clazz.directMethods())
+            .forEach(
+                method -> {
+                  DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+                  markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
+                });
       }
-      Arrays.stream(clazz.virtualMethods()).forEach(method -> {
-        DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-        markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
-      });
+      Arrays.stream(clazz.virtualMethods())
+          .forEach(
+              method -> {
+                DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+                markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
+              });
       clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
     }
   }
@@ -488,18 +500,23 @@ public class RootSetBuilder {
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
-    clazz.forEachMethod(method -> {
-      DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-      markMethod(method, memberKeepRules, null, rule, precondition);
-    });
+    clazz.forEachMethod(
+        method -> {
+          DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+          markMethod(method, memberKeepRules, null, rule, precondition);
+        });
   }
 
   private void markMatchingVisibleFields(
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+      boolean includeLibraryClasses) {
     while (clazz != null) {
+      if (!includeLibraryClasses && clazz.isLibraryClass()) {
+        return;
+      }
       clazz.forEachField(
           field -> {
             DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
@@ -514,10 +531,11 @@ public class RootSetBuilder {
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
-    clazz.forEachField(field -> {
-      DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
-      markField(field, memberKeepRules, rule, precondition);
-    });
+    clazz.forEachField(
+        field -> {
+          DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
+          markField(field, memberKeepRules, rule, precondition);
+        });
   }
 
   // TODO(b/67934426): Test this code.
@@ -855,6 +873,11 @@ public class RootSetBuilder {
       ProguardMemberRule rule,
       DexDefinition precondition) {
     if (context instanceof ProguardKeepRule) {
+      if (item.isDexEncodedMethod() && item.asDexEncodedMethod().accessFlags.isSynthetic()) {
+        // Don't keep synthetic methods (see b/120971047 for additional details).
+        return;
+      }
+
       ProguardKeepRule keepRule = (ProguardKeepRule) context;
       ProguardKeepRuleModifiers modifiers = keepRule.getModifiers();
       if (!modifiers.allowsShrinking) {
@@ -986,15 +1009,105 @@ public class RootSetBuilder {
     // Add dependent items that depend on -if rules.
     void addDependentItems(
         Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentItems) {
-      dependentItems.forEach((def, dependence) -> {
-        dependentNoShrinking.computeIfAbsent(def, x -> new IdentityHashMap<>())
-            .putAll(dependence);
-      });
+      dependentItems.forEach(
+          (def, dependence) ->
+              dependentNoShrinking
+                  .computeIfAbsent(def, x -> new IdentityHashMap<>())
+                  .putAll(dependence));
     }
 
     Map<DexDefinition, ProguardKeepRule> getDependentItems(DexDefinition item) {
       return Collections
           .unmodifiableMap(dependentNoShrinking.getOrDefault(item, Collections.emptyMap()));
+    }
+
+    public boolean verifyKeptMethodsAreTargetedAndLive(AppInfoWithLiveness appInfo) {
+      for (DexDefinition definition : noShrinking.keySet()) {
+        if (definition.isDexEncodedMethod()) {
+          DexEncodedMethod method = definition.asDexEncodedMethod();
+          assert appInfo.targetedMethods.contains(method.method)
+              : "Expected kept method `" + method.method.toSourceString() + "` to be targeted";
+          if (!method.accessFlags.isAbstract()) {
+            assert appInfo.liveMethods.contains(method.method)
+                : "Expected non-abstract kept method `"
+                    + method.method.toSourceString()
+                    + "` to be live";
+          }
+        }
+      }
+      return true;
+    }
+
+    public boolean verifyKeptItemsAreKept(
+        DexApplication application, AppInfo appInfo, InternalOptions options) {
+      if (options.proguardConfiguration.hasApplyMappingFile()) {
+        // TODO(b/121295633): Root set is obsolete after mapping has been applied.
+        return true;
+      }
+
+      boolean isInterfaceMethodDesugaringEnabled =
+          options.enableDesugaring
+              && options.interfaceMethodDesugaring == OffOrAuto.Auto
+              && !options.canUseDefaultAndStaticInterfaceMethods();
+
+      Set<DexReference> pinnedItems =
+          appInfo.hasLiveness() ? appInfo.withLiveness().pinnedItems : null;
+
+      // Create a mapping from each required type to the set of required members on that type.
+      Map<DexType, Set<DexDefinition>> requiredDefinitionsPerType = new IdentityHashMap<>();
+      for (DexDefinition definition : noShrinking.keySet()) {
+        // Check that `pinnedItems` is a super set of the root set.
+        assert pinnedItems == null || pinnedItems.contains(definition.toReference());
+        if (definition.isDexClass()) {
+          DexType type = definition.toReference().asDexType();
+          requiredDefinitionsPerType.putIfAbsent(type, Sets.newIdentityHashSet());
+        } else {
+          assert definition.isDexEncodedField() || definition.isDexEncodedMethod();
+          Descriptor<?, ?> descriptor = definition.toReference().asDescriptor();
+          requiredDefinitionsPerType
+              .computeIfAbsent(descriptor.getHolder(), key -> Sets.newIdentityHashSet())
+              .add(definition);
+        }
+      }
+
+      // Run through each class in the program and check that it has members it must have.
+      for (DexProgramClass clazz : application.classes()) {
+        Set<DexDefinition> requiredDefinitions =
+            requiredDefinitionsPerType.getOrDefault(clazz.type, ImmutableSet.of());
+        for (DexDefinition requiredDefinition : requiredDefinitions) {
+          if (requiredDefinition.isDexEncodedField()) {
+            DexEncodedField requiredField = requiredDefinition.asDexEncodedField();
+            assert Streams.stream(clazz.fields())
+                .anyMatch(field -> field.field == requiredField.field);
+          } else if (requiredDefinition.isDexEncodedMethod()) {
+            DexEncodedMethod requiredMethod = requiredDefinition.asDexEncodedMethod();
+            if (isInterfaceMethodDesugaringEnabled) {
+              if (clazz.isInterface() && requiredMethod.hasCode()) {
+                // TODO(b/121240523): Ideally, these default interface methods should not be in the
+                // root set.
+                continue;
+              }
+            }
+            assert Streams.stream(clazz.methods())
+                .anyMatch(method -> method.method == requiredMethod.method);
+          } else {
+            assert false;
+          }
+        }
+        requiredDefinitionsPerType.remove(clazz.type);
+      }
+
+      // If the map is non-empty, then a type in the root set was not in the application.
+      if (!requiredDefinitionsPerType.isEmpty()) {
+        DexType type = requiredDefinitionsPerType.keySet().iterator().next();
+        DexClass clazz = application.definitionFor(type);
+        assert clazz == null || clazz.isProgramClass()
+            : "Unexpected library type in root set: `" + type + "`";
+        assert requiredDefinitionsPerType.isEmpty()
+            : "Expected type `" + type.toSourceString() + "` to be present";
+      }
+
+      return true;
     }
 
     @Override

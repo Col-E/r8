@@ -5,13 +5,11 @@
 package com.android.tools.r8.desugar;
 
 import com.android.tools.r8.TestBase;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /** Regression test for b/120971047. */
 public class KeptLambdaDesugaringTest extends TestBase {
 
-  @Ignore("b/120971047")
   @Test
   public void test() throws Exception {
     testForR8(Backend.DEX)
