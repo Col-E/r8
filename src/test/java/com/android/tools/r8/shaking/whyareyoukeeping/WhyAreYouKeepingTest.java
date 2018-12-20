@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking.whyareyoukeeping;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
@@ -109,10 +108,7 @@ public class WhyAreYouKeepingTest extends TestBase {
         .redirectStdOut(new PrintStream(baos))
         .compile();
     String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    // TODO(b/120959039): Should -whyareyoukeeping rules print both the methods and class?
-    // TODO(b/120959039): The order of these should be deterministic!
-    assertTrue(output.contains(expected));
-    assertTrue(output.contains(expectedPathToBaz));
+    assertEquals(expected + expectedPathToBaz, output);
   }
 
   @Test

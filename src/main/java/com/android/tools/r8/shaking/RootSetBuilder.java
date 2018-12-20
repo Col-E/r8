@@ -30,6 +30,7 @@ import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -44,6 +45,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,7 +64,7 @@ public class RootSetBuilder {
   private final Map<DexDefinition, ProguardKeepRule> noShrinking = new IdentityHashMap<>();
   private final Set<DexDefinition> noOptimization = Sets.newIdentityHashSet();
   private final Set<DexDefinition> noObfuscation = Sets.newIdentityHashSet();
-  private final Set<DexDefinition> reasonAsked = Sets.newIdentityHashSet();
+  private final LinkedHashMap<DexDefinition, DexDefinition> reasonAsked = new LinkedHashMap<>();
   private final Set<DexDefinition> keepPackageName = Sets.newIdentityHashSet();
   private final Set<ProguardConfigurationRule> rulesThatUseExtendsOrImplementsWrong =
       Sets.newIdentityHashSet();
@@ -253,7 +255,7 @@ public class RootSetBuilder {
         noShrinking,
         noOptimization,
         noObfuscation,
-        reasonAsked,
+        ImmutableList.copyOf(reasonAsked.values()),
         keepPackageName,
         checkDiscarded,
         alwaysInline,
@@ -900,7 +902,7 @@ public class RootSetBuilder {
     } else if (context instanceof ProguardAssumeNoSideEffectRule) {
       noSideEffects.put(item, rule);
     } else if (context instanceof ProguardWhyAreYouKeepingRule) {
-      reasonAsked.add(item);
+      reasonAsked.computeIfAbsent(item, i -> i);
     } else if (context instanceof ProguardKeepPackageNamesRule) {
       keepPackageName.add(item);
     } else if (context instanceof ProguardAssumeValuesRule) {
@@ -957,7 +959,7 @@ public class RootSetBuilder {
     public final Map<DexDefinition, ProguardKeepRule> noShrinking;
     public final Set<DexDefinition> noOptimization;
     public final Set<DexDefinition> noObfuscation;
-    public final Set<DexDefinition> reasonAsked;
+    public final ImmutableList<DexDefinition> reasonAsked;
     public final Set<DexDefinition> keepPackageName;
     public final Set<DexDefinition> checkDiscarded;
     public final Set<DexMethod> alwaysInline;
@@ -975,7 +977,7 @@ public class RootSetBuilder {
         Map<DexDefinition, ProguardKeepRule> noShrinking,
         Set<DexDefinition> noOptimization,
         Set<DexDefinition> noObfuscation,
-        Set<DexDefinition> reasonAsked,
+        ImmutableList<DexDefinition> reasonAsked,
         Set<DexDefinition> keepPackageName,
         Set<DexDefinition> checkDiscarded,
         Set<DexMethod> alwaysInline,
@@ -991,7 +993,7 @@ public class RootSetBuilder {
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
       this.noOptimization = noOptimization;
       this.noObfuscation = noObfuscation;
-      this.reasonAsked = Collections.unmodifiableSet(reasonAsked);
+      this.reasonAsked = reasonAsked;
       this.keepPackageName = Collections.unmodifiableSet(keepPackageName);
       this.checkDiscarded = Collections.unmodifiableSet(checkDiscarded);
       this.alwaysInline = Collections.unmodifiableSet(alwaysInline);

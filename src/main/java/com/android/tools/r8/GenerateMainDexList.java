@@ -74,7 +74,6 @@ public class GenerateMainDexList {
 
       // Print -whyareyoukeeping results if any.
       if (whyAreYouKeepingConsumer != null) {
-        // TODO(b/120959039): This should be ordered!
         for (DexDefinition definition : mainDexRootSet.reasonAsked) {
           whyAreYouKeepingConsumer.printWhyAreYouKeeping(
               enqueuer.getGraphNode(definition), System.out);

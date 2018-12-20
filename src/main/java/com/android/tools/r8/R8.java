@@ -503,7 +503,6 @@ public class R8 {
               .run();
         }
         if (whyAreYouKeepingConsumer != null) {
-          // TODO(b/120959039): Sort the set so the order is always the same print order!
           for (DexDefinition dexDefinition : mainDexRootSet.reasonAsked) {
             whyAreYouKeepingConsumer.printWhyAreYouKeeping(
                 enqueuer.getGraphNode(dexDefinition), System.out);
@@ -546,7 +545,6 @@ public class R8 {
 
             // Print reasons on the application after pruning, so that we reflect the actual result.
             if (whyAreYouKeepingConsumer != null) {
-              // TODO(b/120959039): Sort the set so the order is always the same print order!
               for (DexDefinition dexDefinition : rootSet.reasonAsked) {
                 whyAreYouKeepingConsumer.printWhyAreYouKeeping(
                     enqueuer.getGraphNode(dexDefinition), System.out);
