@@ -517,6 +517,11 @@ final class LambdaClass {
       for (int i = 0; i < directMethods.length; i++) {
         DexEncodedMethod encodedMethod = directMethods[i];
         if (implMethod.match(encodedMethod)) {
+          // Check that this method is synthetic, since this implies that the method cannot be kept
+          // by an explicit -keep rule. This is necessary because we could otherwise be changing
+          // the signature of a kept method here, which is not allowed (see b/120971047).
+          assert encodedMethod.accessFlags.isSynthetic();
+
           // We need to create a new static method with the same code to be able to safely
           // relax its accessibility without making it virtual.
           MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();

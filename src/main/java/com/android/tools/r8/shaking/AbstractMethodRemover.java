@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,10 +22,10 @@ import java.util.List;
  */
 public class AbstractMethodRemover {
 
-  private final AppInfoWithSubtyping appInfo;
+  private final AppInfoWithLiveness appInfo;
   private ScopedDexMethodSet scope = new ScopedDexMethodSet();
 
-  public AbstractMethodRemover(AppInfoWithSubtyping appInfo) {
+  public AbstractMethodRemover(AppInfoWithLiveness appInfo) {
     this.appInfo = appInfo;
   }
 
@@ -52,7 +52,9 @@ public class AbstractMethodRemover {
     List<DexEncodedMethod> methods = null;
     for (int i = 0; i < virtualMethods.length; i++) {
       DexEncodedMethod method = virtualMethods[i];
-      if (scope.addMethodIfMoreVisible(method) || !method.accessFlags.isAbstract()) {
+      if (scope.addMethodIfMoreVisible(method)
+          || !method.accessFlags.isAbstract()
+          || appInfo.isPinned(method.method)) {
         if (methods != null) {
           methods.add(method);
         }
