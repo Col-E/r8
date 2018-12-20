@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexDirectReferenceTracer;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import java.util.BitSet;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Predicate;
 
-final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
+public final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
   private final AppView<? extends AppInfoWithLiveness> appView;
   private final Inliner inliner;
@@ -187,6 +188,7 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
     }
 
     DexClass holder = inliner.appView.appInfo().definitionFor(candidate.method.getHolder());
+
     if (holder.isInterface()) {
       // Art978_virtual_interfaceTest correctly expects an IncompatibleClassChangeError exception at
       // runtime.
@@ -233,6 +235,21 @@ final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
         return false;
       }
     }
+
+    if (!inliner.mainDexClasses.isEmpty()) {
+      // Don't inline code with references beyond root main dex classes into a root main dex class.
+      // If we do this it can increase the size of the main dex dependent classes.
+      if (inliner.mainDexClasses.getRoots().contains(method.method.holder)
+          && MainDexDirectReferenceTracer.hasReferencesOutsideFromCode(
+          appView.appInfo(), candidate, inliner.mainDexClasses.getRoots())) {
+        if (info != null) {
+          info.exclude(invoke, "target has references beyond main dex");
+        }
+        return false;
+      }
+      // Allow inlining into the classes in the main dex dependent set without restrictions.
+    }
+
     return true;
   }
 

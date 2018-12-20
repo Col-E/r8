@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -18,6 +19,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -44,12 +46,52 @@ public class MainDexDirectReferenceTracer {
       // Super and interfaces are live, no need to add them.
       traceAnnotationsDirectDependencies(clazz.annotations);
       clazz.forEachField(field -> consumer.accept(field.field.type));
-      clazz.forEachMethod(
-          method -> {
-            traceMethodDirectDependencies(method.method, consumer);
-            method.registerCodeReferences(codeDirectReferenceCollector);
-          });
+      clazz.forEachMethod(method -> {
+        traceMethodDirectDependencies(method.method, consumer);
+        method.registerCodeReferences(codeDirectReferenceCollector);
+      });
     }
+  }
+
+  public void runOnCode(DexEncodedMethod method) {
+    method.registerCodeReferences(codeDirectReferenceCollector);
+  }
+
+  private static class BooleanBox {
+    boolean value = false;
+  }
+
+  public static boolean hasReferencesOutside(
+      AppInfoWithSubtyping appInfo, DexProgramClass clazz, Set<DexType> types) {
+    BooleanBox result = new BooleanBox();
+
+    new MainDexDirectReferenceTracer(appInfo, type -> {
+      if (!types.contains(type)) {
+        DexClass cls = appInfo.definitionFor(type);
+        if (cls != null && !cls.isLibraryClass()) {
+          result.value = true;
+        }
+      }
+    }).run(ImmutableSet.of(clazz.type));
+
+    return result.value;
+  }
+
+  public static boolean hasReferencesOutsideFromCode(
+      AppInfoWithSubtyping appInfo, DexEncodedMethod method, Set<DexType> classes) {
+
+    BooleanBox result = new BooleanBox();
+
+    new MainDexDirectReferenceTracer(appInfo, type -> {
+      if (!classes.contains(type)) {
+        DexClass cls = appInfo.definitionFor(type);
+        if (cls != null && !cls.isLibraryClass()) {
+          result.value = true;
+        }
+      }
+    }).runOnCode(method);
+
+    return result.value;
   }
 
   private void traceAnnotationsDirectDependencies(DexAnnotationSet annotations) {

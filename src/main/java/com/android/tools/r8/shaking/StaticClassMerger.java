@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -48,10 +49,99 @@ import java.util.stream.Collectors;
  * of X into Y -- it does not change all occurrences of X in the program into Y. This makes the
  * optimization more applicable, because it would otherwise not be possible to merge two classes if
  * they inherited from, say, X' and Y' (since multiple inheritance is not allowed).
+ *
+ * <p>When there is a main dex specification, merging will only happen within the three groups of
+ * classes found from main dex tracing ("main dex roots", "main dex dependencies" and
+ * "non main dex classes"), and not between them. This ensures that the size of the main dex
+ * will not grow out of proportions due to non main dex classes getting merged into main dex
+ * classes.
  */
 public class StaticClassMerger {
 
-  private static final String GLOBAL = "<global>";
+  enum MergeGroup {
+    MAIN_DEX_ROOTS,
+    MAIN_DEX_DEPENDENCIES,
+    NOT_MAIN_DEX,
+    DONT_MERGE;
+
+    private static final String GLOBAL = "<global>";
+    private static Key mainDexRootsGlobalKey = new Key(MergeGroup.MAIN_DEX_ROOTS, GLOBAL);
+    private static Key mainDexDependenciesGlobalKey =
+        new Key(MergeGroup.MAIN_DEX_DEPENDENCIES, GLOBAL);
+    private static Key notMainDexGlobalKey = new Key(MergeGroup.NOT_MAIN_DEX, GLOBAL);
+
+    private static class Key {
+      private final MergeGroup mergeGroup;
+      private final String packageOrGlobal;
+
+      public Key(MergeGroup mergeGroup, String packageOrGlobal) {
+        this.mergeGroup = mergeGroup;
+        this.packageOrGlobal = packageOrGlobal;
+      }
+
+      public MergeGroup getMergeGroup() {
+        return mergeGroup;
+      }
+
+      public String getPackageOrGlobal() {
+        return packageOrGlobal;
+      }
+
+      public boolean isGlobal() {
+        return packageOrGlobal.equals(GLOBAL);
+      }
+
+      @Override
+      public int hashCode() {
+        return mergeGroup.ordinal() * 13 + packageOrGlobal.hashCode();
+      }
+
+      @Override
+      public boolean equals(Object other) {
+        if (other == this) {
+          return true;
+        }
+        if (other == null || this.getClass() != other.getClass()) {
+          return false;
+        }
+        Key o = (Key) other;
+        return o.mergeGroup == mergeGroup && o.packageOrGlobal.equals(packageOrGlobal);
+      }
+    }
+
+    public Key globalKey() {
+      switch (this) {
+        case NOT_MAIN_DEX:
+          return notMainDexGlobalKey;
+        case MAIN_DEX_ROOTS:
+          return mainDexRootsGlobalKey;
+        case MAIN_DEX_DEPENDENCIES:
+          return mainDexDependenciesGlobalKey;
+        default:
+          throw new Unreachable("Unexpected MergeGroup value");
+      }
+    }
+
+    public Key key(String pkg) {
+      assert this != DONT_MERGE;
+      return new Key(this, pkg);
+    }
+
+    @Override
+    public String toString() {
+      switch (this) {
+        case NOT_MAIN_DEX:
+          return "outside main dex";
+        case MAIN_DEX_ROOTS:
+          return "main dex roots";
+        case MAIN_DEX_DEPENDENCIES:
+          return "main dex dependencies";
+        default:
+          assert this == DONT_MERGE;
+          return "don't merge";
+      }
+    }
+  }
 
   // There are 52 characters in [a-zA-Z], so with a capacity just below 52 the minifier should be
   // able to find single-character names for all members, but around 30 appears to work better in
@@ -101,12 +191,13 @@ public class StaticClassMerger {
   }
 
   private final AppView<? extends AppInfoWithLiveness> appView;
+  private final MainDexClasses mainDexClasses;
 
   /** The equivalence that should be used for the member buckets in {@link Representative}. */
   private final Equivalence<DexField> fieldEquivalence;
   private final Equivalence<DexMethod> methodEquivalence;
 
-  private final Map<String, Representative> representatives = new HashMap<>();
+  private final Map<MergeGroup.Key, Representative> representatives = new HashMap<>();
 
   private final BiMap<DexField, DexField> fieldMapping = HashBiMap.create();
   private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
@@ -114,7 +205,9 @@ public class StaticClassMerger {
   private int numberOfMergedClasses = 0;
 
   public StaticClassMerger(
-      AppView<? extends AppInfoWithLiveness> appView, InternalOptions options) {
+      AppView<? extends AppInfoWithLiveness> appView,
+      InternalOptions options,
+      MainDexClasses mainDexClasses) {
     this.appView = appView;
     if (options.proguardConfiguration.isOverloadAggressivelyWithoutUseUniqueClassMemberNames()) {
       fieldEquivalence = FieldSignatureEquivalence.getEquivalenceIgnoreName();
@@ -123,12 +216,14 @@ public class StaticClassMerger {
       fieldEquivalence = new SingletonEquivalence<>();
       methodEquivalence = MethodJavaSignatureEquivalence.getEquivalenceIgnoreName();
     }
+    this.mainDexClasses = mainDexClasses;
   }
 
   public GraphLense run() {
     for (DexProgramClass clazz : appView.appInfo().app.classesWithDeterministicOrder()) {
-      if (satisfiesMergeCriteria(clazz)) {
-        merge(clazz);
+      MergeGroup group = satisfiesMergeCriteria(clazz);
+      if (group != MergeGroup.DONT_MERGE) {
+        merge(clazz, group);
       }
     }
     if (Log.ENABLED) {
@@ -157,26 +252,26 @@ public class StaticClassMerger {
     return appView.graphLense();
   }
 
-  private boolean satisfiesMergeCriteria(DexProgramClass clazz) {
+  private MergeGroup satisfiesMergeCriteria(DexProgramClass clazz) {
     if (appView.appInfo().neverMerge.contains(clazz.type)) {
-      return false;
+      return MergeGroup.DONT_MERGE;
     }
     if (clazz.staticFields().length + clazz.directMethods().length + clazz.virtualMethods().length
         == 0) {
-      return false;
+      return MergeGroup.DONT_MERGE;
     }
     if (clazz.instanceFields().length > 0) {
-      return false;
+      return MergeGroup.DONT_MERGE;
     }
     if (Arrays.stream(clazz.staticFields())
         .anyMatch(field -> appView.appInfo().isPinned(field.field))) {
-      return false;
+      return MergeGroup.DONT_MERGE;
     }
     if (Arrays.stream(clazz.directMethods()).anyMatch(DexEncodedMethod::isInitializer)) {
-      return false;
+      return MergeGroup.DONT_MERGE;
     }
     if (!Arrays.stream(clazz.virtualMethods()).allMatch(DexEncodedMethod::isPrivateMethod)) {
-      return false;
+      return MergeGroup.DONT_MERGE;
     }
     if (Streams.stream(clazz.methods())
         .anyMatch(
@@ -187,7 +282,7 @@ public class StaticClassMerger {
                     // modify any methods from the sets alwaysInline and noSideEffects.
                     || appView.appInfo().alwaysInline.contains(method.method)
                     || appView.appInfo().noSideEffects.keySet().contains(method))) {
-      return false;
+      return MergeGroup.DONT_MERGE;
     }
     if (clazz.classInitializationMayHaveSideEffects(appView.appInfo())) {
       // This could have a negative impact on inlining.
@@ -196,33 +291,41 @@ public class StaticClassMerger {
       // for further details.
       //
       // Note that this will be true for all classes that inherit from or implement a library class.
-      return false;
+      return MergeGroup.DONT_MERGE;
     }
-    return true;
+    if (!mainDexClasses.isEmpty()) {
+      if (mainDexClasses.getRoots().contains(clazz.type)) {
+        return MergeGroup.MAIN_DEX_ROOTS;
+      }
+      if (mainDexClasses.getDependencies().contains(clazz.type)) {
+        return MergeGroup.MAIN_DEX_DEPENDENCIES;
+      }
+    }
+    return MergeGroup.NOT_MAIN_DEX;
   }
 
   private boolean isValidRepresentative(DexProgramClass clazz) {
     // Disallow interfaces from being representatives, since interface methods require desugaring.
     return !clazz.isInterface();
   }
-
-  private boolean merge(DexProgramClass clazz) {
-    assert satisfiesMergeCriteria(clazz);
+  private boolean merge(DexProgramClass clazz, MergeGroup group) {
+    assert satisfiesMergeCriteria(clazz) == group;
+    assert group != MergeGroup.DONT_MERGE;
 
     String pkg = clazz.type.getPackageDescriptor();
     return mayMergeAcrossPackageBoundaries(clazz)
-        ? mergeGlobally(clazz, pkg)
-        : mergeInsidePackage(clazz, pkg);
+        ? mergeGlobally(clazz, pkg, group)
+        : mergeInsidePackage(clazz, pkg, group);
   }
 
-  private boolean mergeGlobally(DexProgramClass clazz, String pkg) {
-    Representative globalRepresentative = representatives.get(GLOBAL);
+  private boolean mergeGlobally(DexProgramClass clazz, String pkg, MergeGroup group) {
+    Representative globalRepresentative = representatives.get(group.globalKey());
     if (globalRepresentative == null) {
       if (isValidRepresentative(clazz)) {
         // Make the current class the global representative.
-        setRepresentative(GLOBAL, getOrCreateRepresentative(clazz, pkg));
+        setRepresentative(group.globalKey(), getOrCreateRepresentative(group.key(pkg), clazz));
       } else {
-        clearRepresentative(GLOBAL);
+        clearRepresentative(group.globalKey());
       }
 
       // Do not attempt to merge this class inside its own package, because that could lead to
@@ -235,9 +338,9 @@ public class StaticClassMerger {
       if (globalRepresentative.isFull()) {
         if (isValidRepresentative(clazz)) {
           // Make the current class the global representative instead.
-          setRepresentative(GLOBAL, getOrCreateRepresentative(clazz, pkg));
+          setRepresentative(group.globalKey(), getOrCreateRepresentative(group.key(pkg), clazz));
         } else {
-          clearRepresentative(GLOBAL);
+          clearRepresentative(group.globalKey());
         }
 
         // Do not attempt to merge this class inside its own package, because that could lead to
@@ -251,17 +354,18 @@ public class StaticClassMerger {
     }
   }
 
-  private boolean mergeInsidePackage(DexProgramClass clazz, String pkg) {
-    Representative packageRepresentative = representatives.get(pkg);
+  private boolean mergeInsidePackage(DexProgramClass clazz, String pkg, MergeGroup group) {
+    MergeGroup.Key key = group.key(pkg);
+    Representative packageRepresentative = representatives.get(key);
     if (packageRepresentative != null) {
       if (isValidRepresentative(clazz)
           && clazz.accessFlags.isMoreVisibleThan(packageRepresentative.clazz.accessFlags)) {
         // Use `clazz` as a representative for this package instead.
-        Representative newRepresentative = getOrCreateRepresentative(clazz, pkg);
+        Representative newRepresentative = getOrCreateRepresentative(key, clazz);
         newRepresentative.include(packageRepresentative.clazz);
 
         if (!newRepresentative.isFull()) {
-          setRepresentative(pkg, newRepresentative);
+          setRepresentative(group.key(pkg), newRepresentative);
           moveMembersFromSourceToTarget(packageRepresentative.clazz, clazz);
           return true;
         }
@@ -283,51 +387,54 @@ public class StaticClassMerger {
 
     // We were unable to use the current representative for this package (if any).
     if (isValidRepresentative(clazz)) {
-      setRepresentative(pkg, getOrCreateRepresentative(clazz, pkg));
+      setRepresentative(key, getOrCreateRepresentative(key, clazz));
     }
     return false;
   }
 
-  private Representative getOrCreateRepresentative(DexProgramClass clazz, String pkg) {
-    Representative globalRepresentative = representatives.get(GLOBAL);
+  private Representative getOrCreateRepresentative(MergeGroup.Key key, DexProgramClass clazz) {
+    Representative globalRepresentative = representatives.get(key.getMergeGroup().globalKey());
     if (globalRepresentative != null && globalRepresentative.clazz == clazz) {
       return globalRepresentative;
     }
-    Representative packageRepresentative = representatives.get(pkg);
+    Representative packageRepresentative = representatives.get(key);
     if (packageRepresentative != null && packageRepresentative.clazz == clazz) {
       return packageRepresentative;
     }
     return new Representative(clazz);
   }
 
-  private void setRepresentative(String pkg, Representative representative) {
+  private void setRepresentative(MergeGroup.Key key, Representative representative) {
     assert isValidRepresentative(representative.clazz);
     if (Log.ENABLED) {
-      if (pkg.equals(GLOBAL)) {
+      if (key.isGlobal()) {
         Log.info(
             getClass(),
-            "Making %s the global representative",
-            representative.clazz.type.toSourceString());
+            "Making %s the global representative in group %s",
+            representative.clazz.type.toSourceString(),
+            key.getMergeGroup().toString());
       } else {
         Log.info(
             getClass(),
-            "Making %s the representative for package %s",
+            "Making %s the representative for package %s in group %s",
             representative.clazz.type.toSourceString(),
-            pkg);
+            key.getPackageOrGlobal(),
+            key.getMergeGroup().toString());
       }
     }
-    representatives.put(pkg, representative);
+    representatives.put(key, representative);
   }
 
-  private void clearRepresentative(String pkg) {
+  private void clearRepresentative(MergeGroup.Key key) {
     if (Log.ENABLED) {
-      if (pkg.equals(GLOBAL)) {
+      if (key.isGlobal()) {
         Log.info(getClass(), "Removing the global representative");
       } else {
-        Log.info(getClass(), "Removing the representative for package %s", pkg);
+        Log.info(
+            getClass(), "Removing the representative for package %s", key.getPackageOrGlobal());
       }
     }
-    representatives.remove(pkg);
+    representatives.remove(key);
   }
 
   private boolean mayMergeAcrossPackageBoundaries(DexProgramClass clazz) {
