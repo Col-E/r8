@@ -9,6 +9,7 @@ import optparse
 import subprocess
 import sys
 import utils
+import zipfile
 
 import as_utils
 
@@ -78,6 +79,14 @@ android_build_tools_version = '28.0.3'
 android_build_tools = os.path.join(
     android_home, 'build-tools', android_build_tools_version)
 
+def ComputeSizeOfDexFilesInApk(apk):
+  dex_size = 0
+  z = zipfile.ZipFile(apk, 'r')
+  for filename in z.namelist():
+    if filename.endswith('.dex'):
+      dex_size += z.getinfo(filename).file_size
+  return dex_size
+
 def IsBuiltWithR8(apk):
   script = os.path.join(utils.TOOLS_DIR, 'extractmarker.py')
   return '~~R8' in subprocess.check_output(['python', script, apk]).strip()
@@ -119,15 +128,23 @@ def BuildAppWithSelectedShrinkers(app, config, options):
   else:
     as_utils.remove_r8_dependency(checkout_dir)
 
+  dex_size_per_shrinker = {}
+
   with utils.ChangedWorkingDirectory(checkout_dir):
     for shrinker in SHRINKERS:
       if options.shrinker is not None and shrinker != options.shrinker:
         continue
 
-      BuildAppWithShrinker(app, config, shrinker, checkout_dir, options)
+      apk_dest = BuildAppWithShrinker(
+        app, config, shrinker, checkout_dir, options)
+
+      dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
+      dex_size_per_shrinker[shrinker] = dex_size
 
     if IsTrackedByGit('gradle.properties'):
       GitCheckout('gradle.properties')
+
+  return dex_size_per_shrinker
 
 def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   print('Building {} with {}'.format(app, shrinker))
@@ -200,6 +217,23 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   assert IsBuiltWithR8(apk_dest) == ('r8' in shrinker), (
       'Unexpected marker in generated APK for {}'.format(shrinker))
 
+  return apk_dest
+
+def LogResults(dex_size_per_shrinker_per_app):
+  for app, dex_size_per_shrinker in dex_size_per_shrinker_per_app.iteritems():
+    print(app + ':')
+    baseline = dex_size_per_shrinker.get('proguard', -1)
+    for shrinker, dex_size in dex_size_per_shrinker.iteritems():
+      if dex_size != baseline and baseline >= 0:
+        if dex_size < baseline:
+          success('  {}: {} ({})'.format(
+            shrinker, dex_size, dex_size - baseline))
+        elif dex_size > baseline:
+          warn('  {}: {} ({})'.format(
+            shrinker, dex_size, dex_size - baseline))
+      else:
+        print('  {}: {}'.format(shrinker, dex_size))
+
 def ParseOptions(argv):
   result = optparse.OptionParser()
   result.add_option('--app',
@@ -223,12 +257,28 @@ def main(argv):
   assert not options.use_tot or os.path.isfile(utils.R8_JAR), (
       'Cannot build from ToT without r8.jar')
 
+  dex_size_per_shrinker_per_app = {}
+
   if options.app:
-    BuildAppWithSelectedShrinkers(options.app, APPS.get(options.app), options)
+    dex_size_per_shrinker_per_app[options.app] = BuildAppWithSelectedShrinkers(
+        options.app, APPS.get(options.app), options)
   else:
     for app, config in APPS.iteritems():
       if not config.get('skip', False):
-        BuildAppWithSelectedShrinkers(app, config, options)
+        dex_size_per_shrinker_per_app[app] = BuildAppWithSelectedShrinkers(
+            app, config, options)
+
+  LogResults(dex_size_per_shrinker_per_app)
+
+def success(message):
+  CGREEN = '\033[32m'
+  CEND = '\033[0m'
+  print(CGREEN + message + CEND)
+
+def warn(message):
+  CRED = '\033[91m'
+  CEND = '\033[0m'
+  print(CRED + message + CEND)
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
