@@ -1027,7 +1027,9 @@ public class RootSetBuilder {
           DexEncodedMethod method = definition.asDexEncodedMethod();
           assert appInfo.targetedMethods.contains(method.method)
               : "Expected kept method `" + method.method.toSourceString() + "` to be targeted";
-          if (!method.accessFlags.isAbstract()) {
+
+          if (!method.accessFlags.isAbstract()
+              && isKeptDirectlyOrIndirectly(method.method.holder, appInfo)) {
             assert appInfo.liveMethods.contains(method.method)
                 : "Expected non-abstract kept method `"
                     + method.method.toSourceString()
@@ -1036,6 +1038,20 @@ public class RootSetBuilder {
         }
       }
       return true;
+    }
+
+    private boolean isKeptDirectlyOrIndirectly(DexType type, AppInfoWithLiveness appInfo) {
+      DexClass clazz = appInfo.definitionFor(type);
+      if (clazz == null) {
+        return false;
+      }
+      if (noShrinking.containsKey(clazz)) {
+        return true;
+      }
+      if (clazz.superType != null) {
+        return isKeptDirectlyOrIndirectly(clazz.superType, appInfo);
+      }
+      return false;
     }
 
     public boolean verifyKeptItemsAreKept(
