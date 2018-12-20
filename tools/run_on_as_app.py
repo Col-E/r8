@@ -39,6 +39,9 @@ APPS = {
       'flavor': 'prod',
       'signed-apk-name': 'app-prod-universal-release.apk'
   },
+  'friendlyeats-android': {
+      'git_repo': 'https://github.com/firebase/friendlyeats-android.git'
+  },
   'KISS': {
       'git_repo': 'https://github.com/Neamar/KISS',
   },
