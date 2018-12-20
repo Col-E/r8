@@ -27,6 +27,8 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
   private CompilationResult doRun() throws CompilationFailedException {
     R8Command command =
         R8Command.builder()
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addProgramFiles(Paths.get(GMSCORE_V7_DIR, GMSCORE_APK))
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
             .setMinApiLevel(AndroidApiLevel.L.getLevel())

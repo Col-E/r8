@@ -156,7 +156,11 @@ public class MethodHandleTestRunner extends TestBase {
     // MethodHandle.invoke() only supported from Android O
     // ConstMethodHandle only supported from Android P
     Builder builder =
-        R8Command.builder().setMode(compilationMode).setProgramConsumer(programConsumer);
+        R8Command.builder()
+            .setMode(compilationMode)
+            .setProgramConsumer(programConsumer)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true);
     if (programConsumer instanceof ClassFileConsumer) {
       builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
     } else {

@@ -8,8 +8,10 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.rules.TemporaryFolder;
 
@@ -23,10 +25,15 @@ public class R8CfDebugTestResourcesConfig extends CfDebugTestConfig {
       AndroidAppConsumers sink = new AndroidAppConsumers();
       R8.run(
           R8Command.builder()
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
               .setMode(CompilationMode.DEBUG)
               .addProgramFiles(DebugTestBase.DEBUGGEE_JAR)
               .setProgramConsumer(sink.wrapClassFileConsumer(null))
               .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
+              .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
               .build());
       compiledResources = sink.build();
     }

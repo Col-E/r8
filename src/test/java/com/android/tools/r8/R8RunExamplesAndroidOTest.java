@@ -210,12 +210,21 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
       return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel.getLevel()));
     }
 
+    @Override R8TestRunner withKeepAll() {
+      return withBuilderTransformation(builder ->
+          builder
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
+              .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown()));
+    }
+
     @Override
     void build(Path inputFile, Path out, OutputMode mode) throws Throwable {
       R8Command.Builder builder = R8Command.builder().setOutput(out, mode);
       for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
+
       builder.addLibraryFiles(ToolHelper.getAndroidJar(
           androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
       R8Command command = builder.addProgramFiles(inputFile).build();

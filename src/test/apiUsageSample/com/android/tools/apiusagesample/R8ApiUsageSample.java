@@ -124,6 +124,8 @@ public class R8ApiUsageSample {
           R8Command.builder(handler)
               .setMode(mode)
               .setMinApiLevel(minApiLevel)
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
               .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
@@ -140,6 +142,8 @@ public class R8ApiUsageSample {
       R8Command.Builder builder =
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
               .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries);
       for (ClassFileContent classfile : readClassFiles(inputs)) {
@@ -160,6 +164,8 @@ public class R8ApiUsageSample {
       R8Command.Builder builder =
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
               .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries);
       for (Path input : inputs) {
@@ -189,6 +195,8 @@ public class R8ApiUsageSample {
       R8Command.Builder builder =
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
               .setProgramConsumer(new EnsureOutputConsumer())
               .addProgramFiles(inputs);
       for (Path library : libraries) {
@@ -211,6 +219,8 @@ public class R8ApiUsageSample {
       R8.run(
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
               .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
@@ -240,6 +250,8 @@ public class R8ApiUsageSample {
       R8.run(
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
               .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
@@ -261,6 +273,8 @@ public class R8ApiUsageSample {
       R8.run(
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
               .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
@@ -280,6 +294,8 @@ public class R8ApiUsageSample {
       R8Command.Builder builder =
           R8Command.builder(handler)
               .setMinApiLevel(minApiLevel)
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
               .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs);

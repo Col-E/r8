@@ -19,7 +19,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -140,6 +139,9 @@ public abstract class CompilationTestBase {
       if (pgConfs != null) {
         builder.addProguardConfigurationFiles(
             pgConfs.stream().map(Paths::get).collect(Collectors.toList()));
+      } else {
+        builder.setDisableTreeShaking(true);
+        builder.setDisableMinification(true);
       }
       builder.setMode(mode);
       builder.setProgramConsumer(dexIndexedConsumerSupplier.get());

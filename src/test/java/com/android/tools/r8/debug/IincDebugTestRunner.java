@@ -17,6 +17,8 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
+import com.android.tools.r8.origin.Origin;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 import org.junit.Assume;
@@ -112,6 +114,10 @@ public class IincDebugTestRunner extends DebugTestBase {
     Builder builder =
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(
+                ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown())
             .setProgramConsumer(consumer)
             .addProgramFiles(inputJar);
     if ((consumer instanceof ClassFileConsumer)) {

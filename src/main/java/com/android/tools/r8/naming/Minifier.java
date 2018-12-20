@@ -72,8 +72,8 @@ public class Minifier {
             fieldRenaming,
             appInfo);
     timing.begin("MinifyIdentifiers");
-    new IdentifierMinifier(appInfo, options.proguardConfiguration.getAdaptClassStrings(), lens)
-        .run();
+    new IdentifierMinifier(
+        appInfo, options.getProguardConfiguration().getAdaptClassStrings(), lens).run();
     timing.end();
     return lens;
   }

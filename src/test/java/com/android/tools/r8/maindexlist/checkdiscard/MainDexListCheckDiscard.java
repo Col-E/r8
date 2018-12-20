@@ -36,6 +36,8 @@ public class MainDexListCheckDiscard extends TestBase {
             .addMainDexRules(ImmutableList.of(checkDiscardRule), Origin.unknown())
             .setOutput(temp.getRoot().toPath(), OutputMode.DexIndexed)
             .setMode(CompilationMode.RELEASE)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .build();
     try {
       ToolHelper.runR8(command);

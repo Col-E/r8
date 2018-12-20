@@ -10,6 +10,7 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestConfig.RuntimeKind;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.collect.ImmutableList;
@@ -58,7 +59,12 @@ public class LineNumberOptimizationTest extends DebugTestBase {
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
-            .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE);
+            .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(
+                ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown());
+
     DebugTestConfig config = null;
 
     if (runtimeKind == RuntimeKind.CF) {

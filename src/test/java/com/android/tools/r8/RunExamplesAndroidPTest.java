@@ -161,6 +161,10 @@ public abstract class RunExamplesAndroidPTest
 
     abstract C withMinApiLevel(int minApiLevel);
 
+    C withKeepAll() {
+      return self();
+    }
+
     C withAndroidJar(int androidJarVersion) {
       assert this.androidJarVersion == null;
       this.androidJarVersion = androidJarVersion;
@@ -219,6 +223,7 @@ public abstract class RunExamplesAndroidPTest
   public void invokeCustom() throws Throwable {
     test("invokecustom", "invokecustom", "InvokeCustom")
         .withMinApiLevel(AndroidApiLevel.P.getLevel())
+        .withKeepAll()
         .run();
   }
 
@@ -226,6 +231,7 @@ public abstract class RunExamplesAndroidPTest
   public void invokeCustomErrorDueToMinSdk() throws Throwable {
     test("invokecustom-error-due-to-min-sdk", "invokecustom", "InvokeCustom")
         .withMinApiLevel(AndroidApiLevel.O.getLevel())
+        .withKeepAll()
         .run();
   }
 

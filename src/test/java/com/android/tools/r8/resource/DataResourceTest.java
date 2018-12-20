@@ -59,6 +59,8 @@ public class DataResourceTest {
     Path r8Out = temp.getRoot().toPath().resolve("r8out.jar");
     R8Command.Builder builder =
         R8Command.builder()
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addProgramFiles(inputJar)
             .addProguardConfiguration(ImmutableList.of("-keepdirectories"), Origin.unknown())
             .setProgramConsumer(

@@ -103,12 +103,14 @@ public class ProguardConfiguration {
       this.ignoreWarnings = ignoreWarnings;
     }
 
-    public void disableOptimization() {
+    public Builder disableOptimization() {
       this.optimizing = false;
+      return this;
     }
 
-    public void disableObfuscation() {
+    public Builder disableObfuscation() {
       this.obfuscating = false;
+      return this;
     }
 
     boolean isObfuscating() {
@@ -123,8 +125,9 @@ public class ProguardConfiguration {
       return shrinking;
     }
 
-    public void disableShrinking() {
+    public Builder disableShrinking() {
       shrinking = false;
+      return this;
     }
 
     public void setPrintConfiguration(boolean printConfiguration) {
@@ -165,8 +168,9 @@ public class ProguardConfiguration {
       this.renameSourceFileAttribute = renameSourceFileAttribute;
     }
 
-    public void addKeepAttributePatterns(List<String> keepAttributePatterns) {
+    public Builder addKeepAttributePatterns(List<String> keepAttributePatterns) {
       this.keepAttributePatterns.addAll(keepAttributePatterns);
+      return this;
     }
 
     public void addRule(ProguardConfigurationRule rule) {
@@ -315,20 +319,13 @@ public class ProguardConfiguration {
     }
 
     public ProguardConfiguration build() {
-      boolean rulesWasEmpty = rules.isEmpty();
-      if (rules.isEmpty()) {
-        disableObfuscation();
-        disableShrinking();
-        // TODO(sgjesse): Honor disable-optimization flag when no config provided.
-        // disableOptimization();
-      }
-
-      if ((keepAttributePatterns.isEmpty() && rulesWasEmpty)
-          || (forceProguardCompatibility && !isObfuscating())
-          || !isShrinking()) {
+      if (forceProguardCompatibility && !isObfuscating()) {
+        // For Proguard -keepattributes are only applicable when obfuscating.
         keepAttributePatterns.addAll(ProguardKeepAttributes.KEEP_ALL);
       }
-
+      // If either of the flags -dontshrink, -dontobfuscate or -dontoptimize is passed, or
+      // shrinking or minification is turned off through the API, then add a match all rule
+      // which will apply that.
       if (!isShrinking() || !isObfuscating() || !isOptimizing()) {
         addRule(ProguardKeepRule.defaultKeepAllRule(modifiers -> {
           modifiers.setAllowsShrinking(isShrinking());
@@ -599,11 +596,6 @@ public class ProguardConfiguration {
 
   public ProguardPathFilter getKeepDirectories() {
     return keepDirectories;
-  }
-
-  public static ProguardConfiguration defaultConfiguration(DexItemFactory dexItemFactory,
-      Reporter reporter) {
-    return builder(dexItemFactory, reporter).build();
   }
 
   public boolean isPrintSeeds() {

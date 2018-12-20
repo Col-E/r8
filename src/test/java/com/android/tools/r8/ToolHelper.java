@@ -19,7 +19,6 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -876,11 +875,15 @@ public class ToolHelper {
   }
 
   public static ProguardConfiguration loadProguardConfiguration(
-      DexItemFactory factory, List<Path> configPaths)
-      throws IOException, ProguardRuleParserException {
+      DexItemFactory factory, List<Path> configPaths) {
     Reporter reporter = new Reporter();
     if (configPaths.isEmpty()) {
-      return ProguardConfiguration.defaultConfiguration(factory, reporter);
+      return ProguardConfiguration.builder(factory, reporter)
+          .disableShrinking()
+          .disableObfuscation()
+          .disableOptimization()
+          .addKeepAttributePatterns(ImmutableList.of("*"))
+          .build();
     }
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(factory, reporter);
@@ -923,7 +926,11 @@ public class ToolHelper {
 
   public static AndroidApp runR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws CompilationFailedException {
-    return runR8(prepareR8CommandBuilder(app).build(), optionsConsumer);
+    R8Command command = prepareR8CommandBuilder(app)
+        .setDisableTreeShaking(true)
+        .setDisableMinification(true)
+        .build();
+    return runR8(command, optionsConsumer);
   }
 
   public static AndroidApp runR8(R8Command command) throws CompilationFailedException {

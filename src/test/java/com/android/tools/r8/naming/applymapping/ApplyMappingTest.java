@@ -261,6 +261,8 @@ public class ApplyMappingTest extends TestBase {
             ToolHelper.addProguardConfigurationConsumer(
                 getCommandForApps(out, flag, NAMING001_JAR).setDisableMinification(true),
                 pgConfig -> {
+                  pgConfig.disableShrinking();
+                  pgConfig.disableObfuscation();
                   pgConfig.setPrintMapping(true);
                   pgConfig.setPrintMappingFile(proguardMap);
                 })

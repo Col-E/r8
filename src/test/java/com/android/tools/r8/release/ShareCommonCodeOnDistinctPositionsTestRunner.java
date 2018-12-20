@@ -10,12 +10,14 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.LineNumberTable;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import java.io.IOException;
@@ -51,6 +53,8 @@ public class ShareCommonCodeOnDistinctPositionsTestRunner extends TestBase {
             .setProgramConsumer(sink.wrapProgramConsumer(emptyConsumer(backend)))
             .setDisableMinification(true)
             .setDisableTreeShaking(true)
+            .addProguardConfiguration(
+                ImmutableList.of("-keepattributes LineNumberTable"), Origin.unknown())
             .build(),
         options -> options.lineNumberOptimization = LineNumberOptimization.OFF);
     CodeInspector inspector = new CodeInspector(sink.build());

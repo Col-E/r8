@@ -60,7 +60,7 @@ public class StaticLibraryValuesChangeTest extends TestBase {
     builder.addLibraryResourceProvider(PreloadedClassFileProvider.fromClassData(
         "Lcom/android/tools/r8/rewrite/staticvalues/inlibraries/LibraryClass;",
         compileTimeLibrary.buildClasses().get(0)));
-    AndroidApp app = compileWithR8(builder.build());
+    AndroidApp app = compileWithR8(builder.build(), "-dontshrink\n-dontobfuscate\n");
 
     // Build the third version of LibraryClass
     SmaliBuilder runtimeLibrary = new SmaliBuilder(LibraryClass.class.getCanonicalName());

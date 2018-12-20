@@ -12,12 +12,15 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ProguardClassFilter;
+import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import java.util.concurrent.ExecutorService;
 
 public abstract class NonNullTrackerTestBase extends TestBase {
@@ -33,12 +36,18 @@ public abstract class NonNullTrackerTestBase extends TestBase {
     ExecutorService executorService = ThreadUtils.getExecutorService(TEST_OPTIONS);
     RootSet rootSet =
         new RootSetBuilder(
-            appView, dexApplication, TEST_OPTIONS.proguardConfiguration.getRules(), TEST_OPTIONS)
+            appView,
+            dexApplication,
+            ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})),
+            TEST_OPTIONS)
         .run(executorService);
     Enqueuer enqueuer =
         new Enqueuer(appView, TEST_OPTIONS, null, TEST_OPTIONS.forceProguardCompatibility);
     return enqueuer.traceApplication(
-        rootSet, TEST_OPTIONS.proguardConfiguration.getDontWarnPatterns(), executorService, timing);
+        rootSet,
+        ProguardClassFilter.empty(),
+        executorService,
+        timing);
   }
 
 }

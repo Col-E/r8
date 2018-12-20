@@ -50,6 +50,8 @@ public class UnicodeSetRegressionTest {
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(Paths.get(JAR_FILE))
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .setOutput(Paths.get(combinedInput.toString()), OutputMode.DexIndexed);
     AndroidAppConsumers compatSink = new AndroidAppConsumers(builder);
     // Ignore missing classes since we don't want to link to the IBM text library.
@@ -87,7 +89,6 @@ public class UnicodeSetRegressionTest {
   @Test
   public void testUnicodeSetFromJarToCF() throws Throwable {
     Path combinedInput = temp.getRoot().toPath().resolve("all.zip");
-    Path oatFile = temp.getRoot().toPath().resolve("all.oat");
     R8Command.Builder builder =
         R8Command.builder()
             .addProgramFiles(Paths.get(JAR_FILE))
@@ -96,6 +97,6 @@ public class UnicodeSetRegressionTest {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(builder);
     // Ignore missing classes since we don't want to link to the IBM text library.
     ToolHelper.runR8(builder.build(), options -> options.ignoreMissingClasses = true);
-    AndroidApp result = compatSink.build();
+    compatSink.build();
   }
 }

@@ -157,7 +157,7 @@ public class CfCode extends Code {
       if (instruction instanceof CfFrame
           && (classFileVersion <= 49
               || (classFileVersion == 50
-                  && !options.proguardConfiguration.getKeepAttributes().stackMapTable))) {
+                  && !options.getProguardConfiguration().getKeepAttributes().stackMapTable))) {
         continue;
       }
       instruction.write(visitor, namingLens);

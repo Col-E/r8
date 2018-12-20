@@ -46,7 +46,7 @@ public class ResourceAdapter {
   public DataEntryResource adaptIfNeeded(DataEntryResource file) {
     // Adapt name, if needed.
     ProguardPathFilter adaptResourceFileNamesFilter =
-        options.proguardConfiguration.getAdaptResourceFilenames();
+        options.getProguardConfiguration().getAdaptResourceFilenames();
     String name =
         adaptResourceFileNamesFilter.isEnabled()
                 && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
@@ -56,7 +56,7 @@ public class ResourceAdapter {
     assert name != null;
     // Adapt contents, if needed.
     ProguardPathFilter adaptResourceFileContentsFilter =
-        options.proguardConfiguration.getAdaptResourceFileContents();
+        options.getProguardConfiguration().getAdaptResourceFileContents();
     byte[] contents =
         adaptResourceFileContentsFilter.isEnabled()
                 && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
@@ -80,7 +80,8 @@ public class ResourceAdapter {
 
   public DataDirectoryResource adaptIfNeeded(DataDirectoryResource directory) {
     // First check if this directory should even be in the output.
-    ProguardPathFilter keepDirectoriesFilter = options.proguardConfiguration.getKeepDirectories();
+    ProguardPathFilter keepDirectoriesFilter =
+        options.getProguardConfiguration().getKeepDirectories();
     if (!keepDirectoriesFilter.matches(directory.getName())) {
       return null;
     }

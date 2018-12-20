@@ -108,6 +108,8 @@ public class PhiDefinitionsTestRunner extends TestBase {
     Builder builder =
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .setProgramConsumer(consumer)
             .addProgramFiles(inputJar);
     if (consumer instanceof ClassFileConsumer) {

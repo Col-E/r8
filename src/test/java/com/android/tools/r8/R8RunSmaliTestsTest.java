@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
@@ -165,8 +166,9 @@ public class R8RunSmaliTestsTest {
     Path originalDexFile = Paths.get(SMALI_DIR, directoryName, dexFileName);
     String outputPath = temp.getRoot().getCanonicalPath();
     R8Command.Builder builder = R8Command.builder()
+        .addProguardConfiguration(ImmutableList.of("-keep class * { *; }"), Origin.unknown())
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-            .setOutput(Paths.get(outputPath), OutputMode.DexIndexed);
+        .setOutput(Paths.get(outputPath), OutputMode.DexIndexed);
     ToolHelper.getAppBuilder(builder).addProgramFiles(originalDexFile);
 
     if (failingOnX8.contains(directoryName)) {

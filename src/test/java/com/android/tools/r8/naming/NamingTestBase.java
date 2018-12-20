@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
@@ -65,8 +64,7 @@ abstract class NamingTestBase {
     appView = new AppView<>(new AppInfoWithSubtyping(program), GraphLense.getIdentityLense());
   }
 
-  NamingLens runMinifier(List<Path> configPaths)
-      throws IOException, ProguardRuleParserException, ExecutionException {
+  NamingLens runMinifier(List<Path> configPaths) throws ExecutionException {
     ProguardConfiguration configuration =
         ToolHelper.loadProguardConfiguration(dexItemFactory, configPaths);
     InternalOptions options = new InternalOptions(configuration, new Reporter());
@@ -76,7 +74,7 @@ abstract class NamingTestBase {
     RootSet rootSet =
         new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
 
-    if (options.proguardConfiguration.isAccessModificationAllowed()) {
+    if (options.getProguardConfiguration().isAccessModificationAllowed()) {
       ClassAndMemberPublicizer.run(executor, timing, program, appView, rootSet);
       rootSet =
           new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);

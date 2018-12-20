@@ -36,8 +36,6 @@ public class Regress72485384Test extends TestBase {
           {baseConfig + "-dontshrink", null},
           {baseConfig + "-dontshrink -dontobfuscate", null},
           {baseConfig + "-dontobfuscate", null},
-          {"", null},
-          {"-dontshrink", null},
           {"-keep class DoesNotExist -dontshrink", "ClassNotFoundException"}
         });
   }

@@ -16,6 +16,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -23,6 +24,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -321,6 +323,10 @@ public class MainDexTracingTest extends TestBase {
                 Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
             .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
             .setOutput(out, OutputMode.DexIndexed)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(
+                ImmutableList.of("-keepattributes *Annotation*"), Origin.unknown())
             .addMainDexRulesFiles(mainDexRules)
             .setMainDexListConsumer((string, handler) -> r8MainDexListOutput.content = string)
             .build();

@@ -80,11 +80,12 @@ class ClassNameMinifier {
       InternalOptions options) {
     this.appInfo = appInfo;
     this.reporter = options.reporter;
-    this.packageObfuscationMode = options.proguardConfiguration.getPackageObfuscationMode();
-    this.isAccessModificationAllowed = options.proguardConfiguration.isAccessModificationAllowed();
-    this.packageDictionary = options.proguardConfiguration.getPackageObfuscationDictionary();
-    this.classDictionary = options.proguardConfiguration.getClassObfuscationDictionary();
-    this.keepInnerClassStructure = options.proguardConfiguration.getKeepAttributes().signature;
+    this.packageObfuscationMode = options.getProguardConfiguration().getPackageObfuscationMode();
+    this.isAccessModificationAllowed =
+        options.getProguardConfiguration().isAccessModificationAllowed();
+    this.packageDictionary = options.getProguardConfiguration().getPackageObfuscationDictionary();
+    this.classDictionary = options.getProguardConfiguration().getClassObfuscationDictionary();
+    this.keepInnerClassStructure = options.getProguardConfiguration().getKeepAttributes().signature;
     this.noObfuscationTypes =
         DexReference.filterDexType(
             DexDefinition.mapToReference(rootSet.noObfuscation.stream()))
@@ -96,7 +97,7 @@ class ClassNameMinifier {
 
     // Initialize top-level naming state.
     topLevelState = new Namespace(
-        getPackageBinaryNameFromJavaType(options.proguardConfiguration.getPackagePrefix()));
+        getPackageBinaryNameFromJavaType(options.getProguardConfiguration().getPackagePrefix()));
     states.computeIfAbsent("", k -> topLevelState);
   }
 

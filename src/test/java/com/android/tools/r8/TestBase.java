@@ -442,7 +442,7 @@ public class TestBase {
 
   /** Compile an application with D8. */
   protected AndroidApp compileWithD8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     return ToolHelper.runD8(app, optionsConsumer);
   }
 
@@ -467,8 +467,7 @@ public class TestBase {
   }
 
   /** Compile an application with R8. */
-  protected AndroidApp compileWithR8(AndroidApp app)
-      throws IOException, CompilationFailedException {
+  protected AndroidApp compileWithR8(AndroidApp app) throws CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(app).build();
     return ToolHelper.runR8(command);
   }
@@ -476,7 +475,12 @@ public class TestBase {
   /** Compile an application with R8. */
   protected AndroidApp compileWithR8(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationFailedException {
-    R8Command command = ToolHelper.prepareR8CommandBuilder(app).build();
+    R8Command command = ToolHelper.prepareR8CommandBuilder(app)
+        .setDisableTreeShaking(true)
+        .setDisableMinification(true)
+        .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
+        .build();
+
     return ToolHelper.runR8(command, optionsConsumer);
   }
 
@@ -588,6 +592,11 @@ public class TestBase {
         + "  public static void main(java.lang.String[]);\n"
         + "}\n"
         + "-printmapping\n";
+  }
+
+  public static String noShrinkingNoMinificationProguardConfiguration() {
+    return "-dontshrink\n"
+        + "-dontobfuscate\n";
   }
 
   /**
@@ -947,6 +956,10 @@ public class TestBase {
 
     public boolean isMinify() {
       return this != NONE;
+    }
+
+    public boolean isAggressive() {
+      return this == AGGRESSIVE;
     }
   }
 

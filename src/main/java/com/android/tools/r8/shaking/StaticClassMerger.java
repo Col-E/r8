@@ -209,7 +209,8 @@ public class StaticClassMerger {
       InternalOptions options,
       MainDexClasses mainDexClasses) {
     this.appView = appView;
-    if (options.proguardConfiguration.isOverloadAggressivelyWithoutUseUniqueClassMemberNames()) {
+    if (options
+        .getProguardConfiguration().isOverloadAggressivelyWithoutUseUniqueClassMemberNames()) {
       fieldEquivalence = FieldSignatureEquivalence.getEquivalenceIgnoreName();
       methodEquivalence = MethodSignatureEquivalence.getEquivalenceIgnoreName();
     } else {

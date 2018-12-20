@@ -257,7 +257,7 @@ public class R8 {
       try {
         Set<DexType> missingClasses = appView.appInfo().getMissingClasses();
         missingClasses = filterMissingClasses(
-            missingClasses, options.proguardConfiguration.getDontWarnPatterns());
+            missingClasses, options.getProguardConfiguration().getDontWarnPatterns());
         if (!missingClasses.isEmpty()) {
           missingClasses.forEach(
               clazz -> {
@@ -279,18 +279,18 @@ public class R8 {
 
         rootSet =
             new RootSetBuilder(
-                    appView, application, options.proguardConfiguration.getRules(), options)
+                    appView, application, options.getProguardConfiguration().getRules(), options)
                 .run(executorService);
 
         Enqueuer enqueuer = new Enqueuer(appView, options, null, compatibility);
         appView.setAppInfo(
             enqueuer.traceApplication(
                 rootSet,
-                options.proguardConfiguration.getDontWarnPatterns(),
+                options.getProguardConfiguration().getDontWarnPatterns(),
                 executorService,
                 timing));
 
-        if (options.proguardConfiguration.isPrintSeeds()) {
+        if (options.getProguardConfiguration().isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
           RootSetBuilder.writeSeeds(appView.appInfo().withLiveness(), out, type -> true);
@@ -334,7 +334,7 @@ public class R8 {
         timing.end();
       }
 
-      if (options.proguardConfiguration.isAccessModificationAllowed()) {
+      if (options.getProguardConfiguration().isAccessModificationAllowed()) {
         appView.setGraphLense(
             ClassAndMemberPublicizer.run(executorService, timing, application, appView, rootSet));
         // We can now remove visibility bridges. Note that we do not need to update the
@@ -365,9 +365,10 @@ public class R8 {
       if (appView.appInfo().hasLiveness()) {
         AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
-        if (options.proguardConfiguration.hasApplyMappingFile()) {
+        if (options.getProguardConfiguration().hasApplyMappingFile()) {
           SeedMapper seedMapper =
-              SeedMapper.seedMapperFromFile(options.proguardConfiguration.getApplyMappingFile());
+              SeedMapper.seedMapperFromFile(
+                  options.getProguardConfiguration().getApplyMappingFile());
           timing.begin("apply-mapping");
           appView.setGraphLense(
               new ProguardMapApplier(appView.withLiveness(), seedMapper).run(timing));
@@ -525,7 +526,7 @@ public class R8 {
           appView.setAppInfo(
               enqueuer.traceApplication(
                   rootSet,
-                  options.proguardConfiguration.getDontWarnPatterns(),
+                  options.getProguardConfiguration().getDontWarnPatterns(),
                   executorService,
                   timing));
 

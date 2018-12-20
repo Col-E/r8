@@ -64,8 +64,8 @@ public class R8CommandTest {
   private void verifyEmptyCommand(R8Command command) throws Throwable {
     assertEquals(0, ToolHelper.getApp(command).getDexProgramResourcesForTesting().size());
     assertEquals(0, ToolHelper.getApp(command).getClassProgramResourcesForTesting().size());
-    assertFalse(command.getEnableMinification());
-    assertFalse(command.getEnableTreeShaking());
+    assertTrue(command.getEnableMinification());
+    assertTrue(command.getEnableTreeShaking());
     assertEquals(CompilationMode.RELEASE, command.getMode());
     assertTrue(command.getProgramConsumer() instanceof DexIndexedConsumer);
   }
@@ -93,7 +93,12 @@ public class R8CommandTest {
     Path output = working.resolve("classes.dex");
     assertFalse(Files.exists(output));
     ProcessResult result =
-        ToolHelper.forkR8(working, input.toString(), "--lib", library.toAbsolutePath().toString());
+        ToolHelper.forkR8(
+            working,
+            input.toString(),
+            "--lib",
+            library.toAbsolutePath().toString(),
+            "--no-tree-shaking");
     assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
     assertTrue(Files.exists(output));
   }
@@ -113,6 +118,7 @@ public class R8CommandTest {
         "24",
         "--lib",
         library.toAbsolutePath().toString(),
+        "--no-tree-shaking",
         input.toString());
     assertEquals(0, ToolHelper.forkR8(working, "@flags.txt").exitCode);
     assertTrue(Files.exists(output));
@@ -281,6 +287,8 @@ public class R8CommandTest {
     ProcessResult result =
         ToolHelper.forkR8(
             Paths.get("."),
+            "--no-tree-shaking",
+            "--no-minification",
             input.toString(),
             "--output",
             existingDir.toString(),
@@ -552,7 +560,7 @@ public class R8CommandTest {
   @Test
   public void noTreeShakingOption() throws Throwable {
     // Default "keep all" rule implies no tree shaking.
-    assertFalse(parse().getEnableTreeShaking());
+    assertTrue(parse().getEnableTreeShaking());
     assertFalse(parse("--no-tree-shaking").getEnableTreeShaking());
 
     // With a Proguard configuration --no-tree-shaking takes effect.
@@ -565,7 +573,7 @@ public class R8CommandTest {
   @Test
   public void noMinificationOption() throws Throwable {
     // Default "keep all" rule implies no tree minification.
-    assertFalse(parse().getEnableMinification());
+    assertTrue(parse().getEnableMinification());
     assertFalse(parse("--no-minification").getEnableMinification());
 
     // With a Proguard configuration --no-tree-shaking takes effect.

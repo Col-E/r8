@@ -99,6 +99,10 @@ public abstract class RunExamplesAndroidNTest<B> {
 
     abstract TestRunner withMinApiLevel(int minApiLevel);
 
+    TestRunner withKeepAll() {
+      return this;
+    }
+
     abstract void build(Path inputFile, Path out) throws Throwable;
   }
 
@@ -126,6 +130,7 @@ public abstract class RunExamplesAndroidNTest<B> {
     test("staticinterfacemethods", "interfacemethods", "StaticInterfaceMethods")
         .withMinApiLevel(AndroidApiLevel.K.getLevel())
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withKeepAll()
         .run();
   }
 
@@ -134,7 +139,8 @@ public abstract class RunExamplesAndroidNTest<B> {
     test("staticinterfacemethods-error-due-to-min-sdk", "interfacemethods",
         "StaticInterfaceMethods")
         .withInterfaceMethodDesugaring(OffOrAuto.Off)
-       .run();
+        .withKeepAll()
+        .run();
   }
 
   @Test
@@ -142,6 +148,7 @@ public abstract class RunExamplesAndroidNTest<B> {
     test("defaultmethods", "interfacemethods", "DefaultMethods")
         .withMinApiLevel(AndroidApiLevel.K.getLevel())
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withKeepAll()
         .run();
   }
 
@@ -150,6 +157,7 @@ public abstract class RunExamplesAndroidNTest<B> {
     test("defaultmethods-error-due-to-min-sdk", "interfacemethods",
         "DefaultMethods")
         .withInterfaceMethodDesugaring(OffOrAuto.Off)
+        .withKeepAll()
         .run();
   }
 
