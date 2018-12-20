@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -42,14 +43,26 @@ public class InstanceOfRemovalTest extends TestBase {
       System.out.println("B instanceof B: " + (getBForFoo() instanceof B));
       System.out.println("null instanceof A: " + (getNullForFoo() instanceof A));
       System.out.println("null instanceof B: " + (getNullForFoo() instanceof B));
+      System.out.println("A[] instanceof A[]: " + (getAarrayForFoo() instanceof A[]));
+      System.out.println("A[] instanceof B[]: " + (getAarrayForFoo() instanceof B[]));
+      System.out.println("B[] instanceof A[]: " + (getBarrayForFoo() instanceof A[]));
+      System.out.println("B[] instanceof B[]: " + (getBarrayForFoo() instanceof B[]));
     }
 
     public static A getAForFoo() {
       return new A();
     }
 
+    public static A[] getAarrayForFoo() {
+      return new A[] { };
+    }
+
     public static A getBForFoo() {
       return new B();
+    }
+
+    public static A[] getBarrayForFoo() {
+      return new B[0];
     }
 
     public static A getNullForFoo() { return null; }
@@ -61,7 +74,11 @@ public class InstanceOfRemovalTest extends TestBase {
       System.out.println("B instanceof A: " + (getBForBar() instanceof A));
       System.out.println("B instanceof B: " + (getBForBar() instanceof B));
       System.out.println("null instanceof A: " + (getNullForBar(true) instanceof A));
-      System.out.print("null instanceof B: " + (getNullForBar(true) instanceof B));
+      System.out.println("null instanceof B: " + (getNullForBar(true) instanceof B));
+      System.out.println("A[] instanceof A[]: " + (getAarrayForBar() instanceof A[]));
+      System.out.println("A[] instanceof B[]: " + (getAarrayForBar() instanceof B[]));
+      System.out.println("B[] instanceof A[]: " + (getBarrayForBar() instanceof A[]));
+      System.out.println("B[] instanceof B[]: " + (getBarrayForBar() instanceof B[]));
     }
 
     @NeverInline
@@ -70,8 +87,18 @@ public class InstanceOfRemovalTest extends TestBase {
     }
 
     @NeverInline
+    public static A[] getAarrayForBar() {
+      return new A[] { new A(), new B() };
+    }
+
+    @NeverInline
     public static A getBForBar() {
       return new B();
+    }
+
+    @NeverInline
+    public static A[] getBarrayForBar() {
+      return new B[0];
     }
 
     @NeverInline
@@ -103,12 +130,21 @@ public class InstanceOfRemovalTest extends TestBase {
             "B instanceof B: true",
             "null instanceof A: false",
             "null instanceof B: false",
+            "A[] instanceof A[]: true",
+            "A[] instanceof B[]: false",
+            "B[] instanceof A[]: true",
+            "B[] instanceof B[]: true",
             "A instanceof A: true",
             "A instanceof B: false",
             "B instanceof A: true",
             "B instanceof B: true",
             "null instanceof A: false",
-            "null instanceof B: false");
+            "null instanceof B: false",
+            "A[] instanceof A[]: true",
+            "A[] instanceof B[]: false",
+            "B[] instanceof A[]: true",
+            "B[] instanceof B[]: true",
+            "");
 
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
 
@@ -122,18 +158,18 @@ public class InstanceOfRemovalTest extends TestBase {
             .assertSuccessWithOutput(expected)
             .inspector();
 
+    ClassSubject testClass = inspector.clazz(TestClass.class);
+
     // With inlining we can prove that all instance-of checks succeed or fail.
-    MethodSubject fooMethodSubject =
-        inspector.clazz(TestClass.class).method("void", "foo", ImmutableList.of());
+    MethodSubject fooMethodSubject = testClass.uniqueMethodWithName("foo");
     Iterator<InstructionSubject> fooInstructionIterator =
         fooMethodSubject.iterateInstructions(InstructionSubject::isInstanceOf);
     assertEquals(0, Streams.stream(fooInstructionIterator).count());
 
     // Without inlining we cannot prove any of the instance-of checks to be trivial.
-    MethodSubject barMethodSubject =
-        inspector.clazz(TestClass.class).method("void", "bar", ImmutableList.of());
+    MethodSubject barMethodSubject = testClass.uniqueMethodWithName("bar");
     Iterator<InstructionSubject> barInstructionIterator =
         barMethodSubject.iterateInstructions(InstructionSubject::isInstanceOf);
-    assertEquals(4, Streams.stream(barInstructionIterator).count());
+    assertEquals(6, Streams.stream(barInstructionIterator).count());
   }
 }

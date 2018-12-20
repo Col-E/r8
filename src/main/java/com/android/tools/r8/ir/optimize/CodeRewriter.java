@@ -2118,7 +2118,7 @@ public class CodeRewriter {
     } else if (inType.lessThanOrEqual(instanceOfType, appInfo) && !inType.isNullable()) {
       result = InstanceOfResult.TRUE;
     } else if (!inValue.isPhi()
-        && inValue.definition.isNewInstance()
+        && inValue.definition.isCreatingInstanceOrArray()
         && instanceOfType.strictlyLessThan(inType, appInfo)) {
       result = InstanceOfResult.FALSE;
     } else if (appInfo.hasLiveness()) {
