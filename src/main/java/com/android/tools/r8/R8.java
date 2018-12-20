@@ -343,6 +343,25 @@ public class R8 {
         application = new VisibilityBridgeRemover(appView.appInfo(), application).run();
       }
 
+      // Build conservative main dex content before first round of tree shaking. This is used
+      // by certain optimizations to avoid introducing additional class references into main dex
+      // classes, as that can cause the final number of main dex methods to grow.
+      RootSet mainDexRootSet = null;
+      MainDexClasses mainDexClasses = MainDexClasses.NONE;
+      if (!options.mainDexKeepRules.isEmpty()) {
+        // Find classes which may have code executed before secondary dex files installation.
+        mainDexRootSet =
+            new RootSetBuilder(appView, application, options.mainDexKeepRules, options)
+                .run(executorService);
+        Enqueuer enqueuer = new Enqueuer(appView, options, null, true);
+        AppInfoWithLiveness mainDexAppInfo =
+            enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
+        // LiveTypes is the tracing result.
+        Set<DexType> mainDexBaseClasses = new HashSet<>(mainDexAppInfo.liveTypes);
+        // Calculate the automatic main dex list according to legacy multidex constraints.
+        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
+      }
+
       if (appView.appInfo().hasLiveness()) {
         AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
@@ -361,11 +380,9 @@ public class R8 {
           timing.end();
         }
         appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness, options).run());
-        // TODO(117854943): Pass information on main dex classes to class merging.
-        if (options.enableHorizontalClassMerging
-            && options.mainDexKeepRules.isEmpty()
-            && application.mainDexList.isEmpty()) {
-          StaticClassMerger staticClassMerger = new StaticClassMerger(appViewWithLiveness, options);
+        if (options.enableHorizontalClassMerging) {
+          StaticClassMerger staticClassMerger =
+              new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);
           appView.setGraphLense(staticClassMerger.run());
           appViewWithLiveness.setAppInfo(
               appViewWithLiveness
@@ -376,7 +393,12 @@ public class R8 {
           timing.begin("ClassMerger");
           VerticalClassMerger verticalClassMerger =
               new VerticalClassMerger(
-                  application, appViewWithLiveness, executorService, options, timing);
+                  application,
+                  appViewWithLiveness,
+                  executorService,
+                  options,
+                  timing,
+                  mainDexClasses);
           appView.setGraphLense(verticalClassMerger.run());
           appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
           timing.end();
@@ -425,7 +447,8 @@ public class R8 {
       Set<DexCallSite> desugaredCallSites;
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
-        IRConverter converter = new IRConverter(appView, options, timing, printer, rootSet);
+        IRConverter converter =
+            new IRConverter(appView, options, timing, printer, mainDexClasses, rootSet);
         application = converter.optimize(application, executorService);
         desugaredCallSites = converter.getDesugaredCallSites();
       } finally {
@@ -449,14 +472,10 @@ public class R8 {
       new SourceFileRewriter(appView.appInfo(), options).run();
       timing.end();
 
-      MainDexClasses mainDexClasses = MainDexClasses.NONE;
       if (!options.mainDexKeepRules.isEmpty()) {
         appView.setAppInfo(new AppInfoWithSubtyping(application));
-        // Lets find classes which may have code executed before secondary dex files installation.
-        RootSet mainDexRootSet =
-            new RootSetBuilder(appView, application, options.mainDexKeepRules, options)
-                .run(executorService);
-
+        // No need to build a new main dex root set
+        assert mainDexRootSet != null;
         GraphConsumer mainDexKeptGraphConsumer = options.mainDexKeptGraphConsumer;
         WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;
         if (!mainDexRootSet.reasonAsked.isEmpty()) {
@@ -465,9 +484,9 @@ public class R8 {
         }
 
         Enqueuer enqueuer = new Enqueuer(appView, options, mainDexKeptGraphConsumer, true);
+        // Find classes which may have code executed before secondary dex files installation.
         AppInfoWithLiveness mainDexAppInfo =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
-
         // LiveTypes is the tracing result.
         Set<DexType> mainDexBaseClasses = new HashSet<>(mainDexAppInfo.liveTypes);
         // Calculate the automatic main dex list according to legacy multidex constraints.
@@ -518,6 +537,7 @@ public class R8 {
                 appViewWithLiveness
                     .appInfo()
                     .prunedCopyFrom(application, pruner.getRemovedClasses()));
+
             // Print reasons on the application after pruning, so that we reflect the actual result.
             if (whyAreYouKeepingConsumer != null) {
               // TODO(b/120959039): Sort the set so the order is always the same print order!

@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -46,6 +47,7 @@ public class Inliner {
   protected final AppView<? extends AppInfoWithLiveness> appView;
   private final IRConverter converter;
   final InternalOptions options;
+  final MainDexClasses mainDexClasses;
 
   // State for inlining methods which are known to be called twice.
   private boolean applyDoubleInlining = false;
@@ -58,10 +60,12 @@ public class Inliner {
   public Inliner(
       AppView<? extends AppInfoWithLiveness> appView,
       IRConverter converter,
-      InternalOptions options) {
+      InternalOptions options,
+      MainDexClasses mainDexClasses) {
     this.appView = appView;
     this.converter = converter;
     this.options = options;
+    this.mainDexClasses = mainDexClasses;
     fillInBlackList(appView.appInfo());
   }
 

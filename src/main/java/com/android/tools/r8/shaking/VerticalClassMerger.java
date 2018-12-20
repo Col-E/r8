@@ -225,12 +225,15 @@ public class VerticalClassMerger {
   // All the bridge methods that have been synthesized during vertical class merging.
   private final List<SynthesizedBridgeCode> synthesizedBridges = new ArrayList<>();
 
+  private final MainDexClasses mainDexClasses;
+
   public VerticalClassMerger(
       DexApplication application,
       AppView<AppInfoWithLiveness> appView,
       ExecutorService executorService,
       InternalOptions options,
-      Timing timing) {
+      Timing timing,
+      MainDexClasses mainDexClasses) {
     this.application = application;
     this.appInfo = appView.appInfo();
     this.appView = appView;
@@ -240,6 +243,7 @@ public class VerticalClassMerger {
     this.options = options;
     this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder();
     this.timing = timing;
+    this.mainDexClasses = mainDexClasses;
 
     Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
     initializePinnedTypes(classes); // Must be initialized prior to mergeCandidates.
@@ -699,6 +703,10 @@ public class VerticalClassMerger {
     return false;
   }
 
+  private boolean hasReferencesOutside(DexProgramClass clazz, Set<DexType> types) {
+    return MainDexDirectReferenceTracer.hasReferencesOutside(appInfo, clazz, types);
+  }
+
   private void mergeClassIfPossible(DexProgramClass clazz) {
     if (!mergeCandidates.contains(clazz)) {
       return;
@@ -727,6 +735,23 @@ public class VerticalClassMerger {
       if (Log.ENABLED) {
         AbortReason.CONFLICT.printLogMessageForClass(clazz);
       }
+      return;
+    }
+
+    // For a main dex class in the dependent set only merge with other classes in either main dex
+    // set.
+    if ((mainDexClasses.getDependencies().contains(clazz.type)
+        || mainDexClasses.getDependencies().contains(targetClass.type))
+        && !(mainDexClasses.getClasses().contains(clazz.type)
+        && mainDexClasses.getClasses().contains(targetClass.type))) {
+      return;
+    }
+
+    // For a main dex class in the root set only merge with other classes in main dex root set.
+    if ((mainDexClasses.getRoots().contains(clazz.type)
+        || mainDexClasses.getRoots().contains(targetClass.type))
+        && !(mainDexClasses.getRoots().contains(clazz.type)
+        && mainDexClasses.getRoots().contains(targetClass.type))) {
       return;
     }
 

@@ -68,6 +68,7 @@ import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -109,6 +110,7 @@ public class IRConverter {
 
   public final AppInfo appInfo;
   public final AppView<? extends AppInfoWithSubtyping> appView;
+  public final Set<DexType> mainDexClasses;
   public final RootSet rootSet;
 
   private final Timing timing;
@@ -157,6 +159,7 @@ public class IRConverter {
       Timing timing,
       CfgPrinter printer,
       AppView<? extends AppInfoWithSubtyping> appView,
+      MainDexClasses mainDexClasses,
       RootSet rootSet) {
     assert appInfo != null;
     assert options != null;
@@ -170,6 +173,7 @@ public class IRConverter {
     this.rootSet = rootSet;
     this.options = options;
     this.printer = printer;
+    this.mainDexClasses = mainDexClasses.getClasses();
     this.codeRewriter = new CodeRewriter(this, libraryMethodsReturningReceiver(), options);
     this.stringConcatRewriter = new StringConcatRewriter(appInfo);
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(this) : null;
@@ -194,7 +198,7 @@ public class IRConverter {
       assert rootSet != null;
       this.nonNullTracker = new NonNullTracker(
           appInfoWithLiveness, libraryMethodsReturningNonNull(appInfo.dexItemFactory));
-      this.inliner = new Inliner(appViewWithLiveness, this, options);
+      this.inliner = new Inliner(appViewWithLiveness, this, options, mainDexClasses);
       this.outliner = new Outliner(appInfoWithLiveness, options, this);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appInfoWithLiveness) : null;
@@ -253,14 +257,14 @@ public class IRConverter {
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(AppInfo appInfo, InternalOptions options) {
-    this(appInfo, options, null, null, null, null);
+    this(appInfo, options, null, null, null, MainDexClasses.NONE, null);
   }
 
   /**
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(AppInfo appInfo, InternalOptions options, Timing timing, CfgPrinter printer) {
-    this(appInfo, options, timing, printer, null, null);
+    this(appInfo, options, timing, printer, null, MainDexClasses.NONE, null);
   }
 
   /**
@@ -271,8 +275,9 @@ public class IRConverter {
       InternalOptions options,
       Timing timing,
       CfgPrinter printer,
+      MainDexClasses mainDexClasses,
       RootSet rootSet) {
-    this(appView.appInfo(), options, timing, printer, appView, rootSet);
+    this(appView.appInfo(), options, timing, printer, appView, mainDexClasses, rootSet);
   }
 
   private boolean enableInterfaceMethodDesugaring() {
