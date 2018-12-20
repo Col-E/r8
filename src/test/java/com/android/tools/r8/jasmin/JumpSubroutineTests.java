@@ -13,6 +13,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -40,6 +41,9 @@ public class JumpSubroutineTests extends JasminTestBase {
             .addProgramFiles(inputJar)
             .setOutput(outputJar, OutputMode.ClassFile)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
             .build(),
         options -> options.enableCfFrontend = true);
     ProcessResult processResult = ToolHelper.runJava(outputJar, main);

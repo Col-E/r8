@@ -54,6 +54,8 @@ public class DebugInfoTestRunner extends TestBase {
     Builder builder =
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(consumer);
     input.accept(builder);

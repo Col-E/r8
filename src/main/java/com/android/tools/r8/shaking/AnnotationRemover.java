@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class AnnotationRemover {
@@ -24,7 +25,7 @@ public class AnnotationRemover {
 
   public AnnotationRemover(AppInfoWithLiveness appInfo, InternalOptions options) {
     this.appInfo = appInfo;
-    this.keep = options.proguardConfiguration.getKeepAttributes();
+    this.keep = options.getProguardConfiguration().getKeepAttributes();
     this.options = options;
   }
 
@@ -41,7 +42,11 @@ public class AnnotationRemover {
       boolean isAnnotationTypeLive,
       DexItemFactory dexItemFactory,
       InternalOptions options) {
-    ProguardKeepAttributes config = options.proguardConfiguration.getKeepAttributes();
+    ProguardKeepAttributes config =
+        options.getProguardConfiguration() != null
+            ? options.getProguardConfiguration().getKeepAttributes()
+            : ProguardKeepAttributes.fromPatterns(ImmutableList.of());
+
     switch (annotation.visibility) {
       case DexAnnotation.VISIBILITY_SYSTEM:
         // InnerClass and EnclosingMember are represented in class attributes, not annotations.

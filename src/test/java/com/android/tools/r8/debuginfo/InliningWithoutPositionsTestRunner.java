@@ -22,8 +22,9 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.Range;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import java.io.IOException;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -91,7 +92,7 @@ public class InliningWithoutPositionsTestRunner {
   }
 
   @Test
-  public void testStackTrace() throws IOException, Exception {
+  public void testStackTrace() throws Exception {
     // See InliningWithoutPositionsTestSourceDump for the code compiled here.
     Path testClassDir = temp.newFolder(TEST_PACKAGE.split(".")).toPath();
     Path testClassPath = testClassDir.resolve(TEST_CLASS + ".class");
@@ -121,6 +122,11 @@ public class InliningWithoutPositionsTestRunner {
           .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
           .setOutput(outputPath, OutputMode.ClassFile);
     }
+    builder
+        .setDisableTreeShaking(true)
+        .setDisableMinification(true)
+        .addProguardConfiguration(
+            ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown());
 
     ToolHelper.runR8(builder.build(), options -> options.inliningInstructionLimit = 40);
 

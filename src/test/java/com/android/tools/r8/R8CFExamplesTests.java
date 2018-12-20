@@ -104,6 +104,8 @@ public class R8CFExamplesTests extends TestBase {
         R8Command.builder()
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setMode(mode)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addProgramFiles(inputJar)
             .setOutput(outputJar, OutputMode.ClassFile)
             .build(),

@@ -76,15 +76,16 @@ public class AsmTestBase extends TestBase {
     ProcessResult javaResult =
         useJavaNoVerify ? runOnJavaRawNoVerify(main, classes) : runOnJavaRaw(main, classes);
     ProcessResult d8Result = runOnArtRaw(compileWithD8(app), main);
-    ProcessResult r8Result = runOnArtRaw(compileWithR8(app), main);
+    ProcessResult r8NonShakenResult =
+        runOnArtRaw(compileWithR8(app, "-dontshrink\n-dontobfuscate\n"), main);
     ProcessResult r8ShakenResult = runOnArtRaw(
         compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n"), main);
     Assert.assertEquals(javaResult.stdout, d8Result.stdout);
-    Assert.assertEquals(javaResult.stdout, r8Result.stdout);
+    Assert.assertEquals(javaResult.stdout, r8NonShakenResult.stdout);
     Assert.assertEquals(javaResult.stdout, r8ShakenResult.stdout);
     Assert.assertEquals(0, javaResult.exitCode);
     Assert.assertEquals(0, d8Result.exitCode);
-    Assert.assertEquals(0, r8Result.exitCode);
+    Assert.assertEquals(0, r8NonShakenResult.exitCode);
     Assert.assertEquals(0, r8ShakenResult.exitCode);
   }
 
@@ -95,7 +96,7 @@ public class AsmTestBase extends TestBase {
     CompilationFailedException r8Error = null;
     CompilationFailedException r8ShakenError = null;
     try {
-      runOnArtRaw(compileWithR8(app), main);
+      runOnArtRaw(compileWithR8(app, "-dontshrink\n-dontobfuscate\n"), main);
     } catch (CompilationFailedException e) {
       r8Error = e;
     }

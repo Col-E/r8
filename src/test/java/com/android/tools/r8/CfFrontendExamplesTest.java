@@ -7,6 +7,8 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.google.common.io.ByteStreams.toByteArray;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.origin.Origin;
+import com.google.common.collect.ImmutableList;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Path;
@@ -305,6 +307,9 @@ public class CfFrontendExamplesTest extends TestBase {
             .addProgramFiles(inputJar)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
             .setOutput(outputJar, OutputMode.ClassFile)
             .build();
     ToolHelper.runR8(

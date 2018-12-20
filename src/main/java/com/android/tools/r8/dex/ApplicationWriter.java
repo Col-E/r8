@@ -306,7 +306,7 @@ public class ApplicationWriter {
     if (options.configurationConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.configurationConsumer,
-          options.proguardConfiguration.getParsedConfiguration());
+          options.getProguardConfiguration().getParsedConfiguration());
     }
     if (options.usageInformationConsumer != null && deadCode != null) {
       ExceptionUtils.withConsumeResourceHandler(

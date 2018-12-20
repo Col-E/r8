@@ -164,6 +164,10 @@ public abstract class RunExamplesJava9Test
 
     abstract C withMinApiLevel(int minApiLevel);
 
+    C withKeepAll() {
+      return self();
+    }
+
     C withAndroidJar(int androidJarVersion) {
       assert this.androidJarVersion == null;
       this.androidJarVersion = androidJarVersion;
@@ -264,6 +268,7 @@ public abstract class RunExamplesJava9Test
     test("native-private-interface-methods",
         "privateinterfacemethods", "PrivateInterfaceMethods")
         .withMinApiLevel(AndroidApiLevel.N.getLevel())
+        .withKeepAll()
         .run();
   }
 
@@ -273,6 +278,7 @@ public abstract class RunExamplesJava9Test
     test("desugared-private-interface-methods",
         "privateinterfacemethods", "PrivateInterfaceMethods")
         .withMinApiLevel(AndroidApiLevel.M.getLevel())
+        .withKeepAll()
         .withDexCheck(dexInspector -> {
           ClassSubject companion = dexInspector.clazz(
               iName + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX);
@@ -298,6 +304,7 @@ public abstract class RunExamplesJava9Test
   public void varHandleErrorDueToMinSdk() throws Throwable {
     test("varhandle-error-due-to-min-sdk", "varhandle", "VarHandleTests")
         .withMinApiLevel(AndroidApiLevel.O.getLevel())
+        .withKeepAll()
         .run();
   }
 
@@ -306,6 +313,7 @@ public abstract class RunExamplesJava9Test
     TestRunner<?> test = test("twr-close-resource", "twrcloseresource", "TwrCloseResourceTest");
     test
         .withMinApiLevel(AndroidApiLevel.I.getLevel())
+        .withKeepAll()
         .withAndroidJar(AndroidApiLevel.K.getLevel())
         .withArg(test.getInputJar().toAbsolutePath().toString())
         .run();

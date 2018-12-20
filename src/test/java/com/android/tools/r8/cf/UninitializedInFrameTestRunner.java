@@ -53,6 +53,8 @@ public class UninitializedInFrameTestRunner {
     R8.run(
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addClassProgramData(clazz, Origin.unknown())
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new ArchiveConsumer(output))

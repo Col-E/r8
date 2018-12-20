@@ -15,6 +15,8 @@ import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.origin.Origin;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
 
@@ -71,6 +73,10 @@ public class KotlinDebugInfoTestRunner extends TestBase {
     Builder builder =
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(
+                ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown())
             .setProgramConsumer(consumer)
             .addProgramFiles(inputJar);
     if ((consumer instanceof ClassFileConsumer)) {

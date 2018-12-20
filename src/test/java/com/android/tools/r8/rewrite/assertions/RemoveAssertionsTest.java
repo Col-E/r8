@@ -166,6 +166,8 @@ public class RemoveAssertionsTest extends TestBase {
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(readClasses(ClassWithAssertions.class))
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setOutput(outputJar, OutputMode.ClassFile)
             .build();
@@ -213,6 +215,8 @@ public class RemoveAssertionsTest extends TestBase {
                 ToolHelper.getClassAsBytes(ChromuimAssertionHookMock.class), Origin.unknown())
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .build());
   }
 

@@ -31,10 +31,10 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     this.appInfo = appInfo;
     this.rootSet = rootSet;
     this.options = options;
-    this.dictionary = options.proguardConfiguration.getObfuscationDictionary();
-    this.useUniqueMemberNames = options.proguardConfiguration.isUseUniqueClassMemberNames();
+    this.dictionary = options.getProguardConfiguration().getObfuscationDictionary();
+    this.useUniqueMemberNames = options.getProguardConfiguration().isUseUniqueClassMemberNames();
     this.overloadAggressively =
-        options.proguardConfiguration.isOverloadAggressivelyWithoutUseUniqueClassMemberNames();
+        options.getProguardConfiguration().isOverloadAggressivelyWithoutUseUniqueClassMemberNames();
     this.globalState = NamingState.createRoot(
         appInfo.dexItemFactory, dictionary, getKeyTransform(), useUniqueMemberNames);
   }

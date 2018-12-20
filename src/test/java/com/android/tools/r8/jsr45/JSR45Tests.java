@@ -49,7 +49,7 @@ public class JSR45Tests {
   public TemporaryFolder tmpOutputDir = ToolHelper.getTemporaryFolderForTest();
 
   private AndroidApp compileWithD8(Path intputPath, Path outputPath)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     D8Command.Builder builder =
         D8Command.builder()
             .setMinApiLevel(AndroidApiLevel.O.getLevel())
@@ -61,7 +61,7 @@ public class JSR45Tests {
   }
 
   private AndroidApp compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException {
     return ToolHelper.runR8(
         R8Command.builder()
             .addProgramFiles(inputPath)

@@ -4,7 +4,9 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.function.UnaryOperator;
 
@@ -19,6 +21,15 @@ public class R8RunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Build
     @Override
     R8TestRunner withMinApiLevel(int minApiLevel) {
       return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel));
+    }
+
+    @Override
+    R8TestRunner withKeepAll() {
+      return withBuilderTransformation(builder ->
+          builder
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
+              .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown()));
     }
 
     @Override

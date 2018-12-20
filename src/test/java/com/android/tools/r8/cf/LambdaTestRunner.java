@@ -51,6 +51,8 @@ public class LambdaTestRunner {
     R8.run(
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(appBuilder.wrapClassFileConsumer(new ArchiveConsumer(outPath)))
             .addClassProgramData(inputClass, Origin.unknown())

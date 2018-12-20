@@ -10,6 +10,7 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -42,6 +43,11 @@ public class SynchronizedBlockTest extends DebugTestBase {
                     .setOutput(out, OutputMode.ClassFile)
                     .setMode(CompilationMode.DEBUG)
                     .addProgramFiles(DebugTestBase.DEBUGGEE_JAR)
+                    .setDisableTreeShaking(true)
+                    .setDisableMinification(true)
+                    .addProguardConfiguration(
+                        ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
+                        Origin.unknown())
                     .build(),
                 options -> options.enableCfFrontend = true);
           } catch (Exception e) {

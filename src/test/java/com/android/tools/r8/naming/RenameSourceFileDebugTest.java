@@ -13,6 +13,7 @@ import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
+import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -41,6 +42,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
           ToolHelper.addProguardConfigurationConsumer(
                   R8Command.builder(),
                   pgConfig -> {
+                    pgConfig.addRule(ProguardKeepRule.defaultKeepAllRule(unused -> {}));
                     pgConfig.setRenameSourceFileAttribute(TEST_FILE);
                     pgConfig.addKeepAttributePatterns(
                         ImmutableList.of("SourceFile", "LineNumberTable"));

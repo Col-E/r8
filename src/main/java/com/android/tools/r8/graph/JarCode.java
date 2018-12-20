@@ -171,6 +171,20 @@ public class JarCode extends Code {
     }
   }
 
+  private boolean keepLocals(DexEncodedMethod encodedMethod, InternalOptions options) {
+    if (options.testing.noLocalsTableOnInput) {
+      return false;
+    }
+    if (options.debug) {
+      return true;
+    }
+    if (options.getProguardConfiguration() != null
+        && options.getProguardConfiguration().getKeepAttributes().localVariableTable) {
+      return true;
+    }
+    return encodedMethod.getOptimizationInfo().isReachabilitySensitive();
+  }
+
   private IRCode internalBuild(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
@@ -179,9 +193,7 @@ public class JarCode extends Code {
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition) {
-    if (!(encodedMethod.getOptimizationInfo().isReachabilitySensitive()
-        || (options.debug
-            && options.proguardConfiguration.getKeepAttributes().localVariableTable))) {
+    if (!keepLocals(encodedMethod, options)) {
       node.localVariables.clear();
     }
     JarSourceCode source =
@@ -272,13 +284,16 @@ public class JarCode extends Code {
     // to get locals information which we need to extend the live ranges of locals for their
     // entire scope.
     int parsingOptions = ClassReader.SKIP_FRAMES;
-    ProguardKeepAttributes keep = application.options.proguardConfiguration.getKeepAttributes();
 
-    if (!keep.localVariableTable
-        && !keep.localVariableTypeTable
-        && !keep.lineNumberTable
-        && !reachabilitySensitive) {
-      parsingOptions |= ClassReader.SKIP_DEBUG;
+    if (application.options.getProguardConfiguration() != null) {
+      ProguardKeepAttributes keep =
+          application.options.getProguardConfiguration().getKeepAttributes();
+      if (!keep.localVariableTable
+          && !keep.localVariableTypeTable
+          && !keep.lineNumberTable
+          && !reachabilitySensitive) {
+        parsingOptions |= ClassReader.SKIP_DEBUG;
+      }
     }
     SecondVisitor classVisitor = new SecondVisitor(createCodeLocator(context), useJsrInliner);
     try {

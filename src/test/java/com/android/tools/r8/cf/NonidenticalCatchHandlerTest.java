@@ -50,10 +50,20 @@ public class NonidenticalCatchHandlerTest extends TestBase {
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .build();
     assertEquals(2, countCatchHandlers(inputApp));
-    AndroidApp outputDexApp = ToolHelper.runR8(inputApp);
+    AndroidApp outputDexApp =
+        ToolHelper.runR8(
+            ToolHelper.prepareR8CommandBuilder(inputApp)
+                .setDisableTreeShaking(true)
+                .setDisableMinification(true)
+                .build());
     assertEquals(1, countCatchHandlers(outputDexApp));
     AndroidApp outputCfApp =
-        ToolHelper.runR8WithProgramConsumer(inputApp, ClassFileConsumer.emptyConsumer());
+        ToolHelper.runR8(
+            ToolHelper.prepareR8CommandBuilder(inputApp)
+                .setDisableTreeShaking(true)
+                .setDisableMinification(true)
+                .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+                .build());
     // ClassCastException and NullPointerException will not have same type on stack.
     assertEquals(2, countCatchHandlers(outputCfApp));
   }

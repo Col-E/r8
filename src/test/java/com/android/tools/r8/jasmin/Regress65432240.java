@@ -80,6 +80,8 @@ public class Regress65432240 extends JasminTestBase {
         ToolHelper.runR8(
             ToolHelper.prepareR8CommandBuilder(originalApplication, emptyConsumer(backend))
                 .addLibraryFiles(runtimeJar(backend))
+                .setDisableTreeShaking(true)
+                .setDisableMinification(true)
                 .build());
 
     CodeInspector inspector =

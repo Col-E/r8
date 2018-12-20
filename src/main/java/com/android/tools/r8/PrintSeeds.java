@@ -87,12 +87,12 @@ public class PrintSeeds {
           new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
       RootSet rootSet =
           new RootSetBuilder(
-                  appView, application, options.proguardConfiguration.getRules(), options)
+                  appView, application, options.getProguardConfiguration().getRules(), options)
               .run(executor);
       Enqueuer enqueuer = new Enqueuer(appView, options, null);
       AppInfoWithLiveness appInfo =
           enqueuer.traceApplication(
-              rootSet, options.proguardConfiguration.getDontWarnPatterns(), executor, timing);
+              rootSet, options.getProguardConfiguration().getDontWarnPatterns(), executor, timing);
       RootSetBuilder.writeSeeds(
           appInfo, System.out, type -> descriptors.contains(type.toDescriptorString()));
     } catch (ExecutionException e) {

@@ -11,6 +11,8 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
+import com.android.tools.r8.origin.Origin;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Assume;
@@ -40,6 +42,10 @@ public class NonExitingMethodTestRunner extends DebugTestBase {
     ToolHelper.runR8(
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(
+                ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown())
             .addProgramFiles(getClassFilePath())
             .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(path))
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())

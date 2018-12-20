@@ -19,7 +19,7 @@ final class KStyleLambdaGroupIdFactory extends KotlinLambdaGroupIdFactory {
   @Override
   LambdaGroupId validateAndCreate(Kotlin kotlin, DexClass lambda, InternalOptions options)
       throws LambdaStructureError {
-    boolean accessRelaxed = options.proguardConfiguration.isAccessModificationAllowed();
+    boolean accessRelaxed = options.getProguardConfiguration().isAccessModificationAllowed();
 
     assert lambda.hasKotlinInfo() && lambda.getKotlinInfo().isSyntheticClass();
     assert lambda.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda();

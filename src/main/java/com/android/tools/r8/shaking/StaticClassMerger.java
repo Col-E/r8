@@ -116,7 +116,8 @@ public class StaticClassMerger {
   public StaticClassMerger(
       AppView<? extends AppInfoWithLiveness> appView, InternalOptions options) {
     this.appView = appView;
-    if (options.proguardConfiguration.isOverloadAggressivelyWithoutUseUniqueClassMemberNames()) {
+    if (options
+        .getProguardConfiguration().isOverloadAggressivelyWithoutUseUniqueClassMemberNames()) {
       fieldEquivalence = FieldSignatureEquivalence.getEquivalenceIgnoreName();
       methodEquivalence = MethodSignatureEquivalence.getEquivalenceIgnoreName();
     } else {

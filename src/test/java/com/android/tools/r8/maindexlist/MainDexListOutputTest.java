@@ -96,6 +96,8 @@ public class MainDexListOutputTest extends TestBase {
     Path mainDexListOutput = temp.getRoot().toPath().resolve("main-dex-output.txt");
     R8Command command =
         ToolHelper.prepareR8CommandBuilder(readClasses(HelloWorldMain.class))
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addMainDexRulesFiles(mainDexRules)
             .setMainDexListOutputPath(mainDexListOutput)
             .setOutput(temp.getRoot().toPath(), OutputMode.DexIndexed)

@@ -35,6 +35,9 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
           "R8/" + backend,
           temp ->
               testForR8(temp, backend)
+                  .noTreeShaking()
+                  .noMinification()
+                  .addKeepRules("-keepattributes SourceFile,LineNumberTable")
                   .addProgramClasses(CLASS)
                   .setMode(CompilationMode.DEBUG)
                   .debugConfig());

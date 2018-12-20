@@ -10,7 +10,9 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 import org.junit.Assume;
@@ -49,6 +51,10 @@ public class NopDebugTestRunner extends DebugTestBase {
         R8Command.builder()
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(
+                ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown())
             .addProgramFiles(inputJar)
             .setOutput(outputJar, OutputMode.ClassFile)
             .build(),

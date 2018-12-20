@@ -95,7 +95,9 @@ public class MemberRebindingTest {
     R8Command.Builder builder =
         R8Command.builder()
             .setOutput(Paths.get(out), TestBase.outputMode(backend))
-            .addLibraryFiles(JAR_LIBRARY, TestBase.runtimeJar(backend));
+            .addLibraryFiles(JAR_LIBRARY, TestBase.runtimeJar(backend))
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true);
     if (backend == Backend.DEX) {
       builder.setMinApiLevel(minApiLevel);
     }

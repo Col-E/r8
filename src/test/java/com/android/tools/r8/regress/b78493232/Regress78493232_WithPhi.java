@@ -37,7 +37,9 @@ public class Regress78493232_WithPhi extends AsmTestBase {
     ProcessResult d8Result =
         runOnArtRaw(compileWithD8(app), Regress78493232Dump_WithPhi.CLASS_NAME);
     ProcessResult r8Result =
-        runOnArtRaw(compileWithR8(app), Regress78493232Dump_WithPhi.CLASS_NAME);
+        runOnArtRaw(
+            compileWithR8(app, "-dontshrink\n-dontobfuscate\n"),
+            Regress78493232Dump_WithPhi.CLASS_NAME);
     String proguardConfig =
         keepMainProguardConfiguration(Regress78493232Dump_WithPhi.CLASS_NAME) + "-dontobfuscate\n";
     ProcessResult r8ShakenResult =

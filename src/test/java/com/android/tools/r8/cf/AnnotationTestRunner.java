@@ -12,6 +12,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +33,10 @@ public class AnnotationTestRunner {
     R8.run(
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(
+                ImmutableList.of("-keepattributes *Annotation*"), Origin.unknown())
             .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new DirectoryConsumer(out))

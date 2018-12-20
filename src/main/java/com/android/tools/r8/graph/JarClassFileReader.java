@@ -100,9 +100,12 @@ public class JarClassFileReader {
 
     // If the source-file and source-debug-extension attributes are not kept we can skip all debug
     // related attributes when parsing the class structure.
-    ProguardKeepAttributes keep = application.options.proguardConfiguration.getKeepAttributes();
-    if (!keep.sourceFile && !keep.sourceDebugExtension) {
-      parsingOptions |= SKIP_DEBUG;
+    if (application.options.getProguardConfiguration() != null) {
+      ProguardKeepAttributes keep =
+          application.options.getProguardConfiguration().getKeepAttributes();
+      if (!keep.sourceFile && !keep.sourceDebugExtension) {
+        parsingOptions |= SKIP_DEBUG;
+      }
     }
     reader.accept(
         new CreateDexClassVisitor(origin, classKind, reader.b, application, classConsumer),

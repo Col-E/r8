@@ -28,6 +28,8 @@ public class NestedExceptionTestRunner {
     R8.run(
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(sink.wrapClassFileConsumer(null))

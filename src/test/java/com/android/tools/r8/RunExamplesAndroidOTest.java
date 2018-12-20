@@ -44,7 +44,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -174,6 +173,10 @@ public abstract class RunExamplesAndroidOTest
     }
 
     abstract C withMinApiLevel(AndroidApiLevel minApiLevel);
+
+    C withKeepAll() {
+      return self();
+    }
 
     C withAndroidJar(AndroidApiLevel androidJarVersion) {
       assert this.androidJarVersion == null;
@@ -312,6 +315,7 @@ public abstract class RunExamplesAndroidOTest
   public void stringConcat() throws Throwable {
     test("stringconcat", "stringconcat", "StringConcat")
         .withMinApiLevel(AndroidApiLevel.K)
+        .withKeepAll()
         .run();
   }
 
@@ -319,6 +323,7 @@ public abstract class RunExamplesAndroidOTest
   public void invokeCustom() throws Throwable {
     test("invokecustom", "invokecustom", "InvokeCustom")
         .withMinApiLevel(AndroidApiLevel.O)
+        .withKeepAll()
         .run();
   }
 
@@ -326,6 +331,7 @@ public abstract class RunExamplesAndroidOTest
   public void invokeCustom2() throws Throwable {
     test("invokecustom2", "invokecustom2", "InvokeCustom")
         .withMinApiLevel(AndroidApiLevel.O)
+        .withKeepAll()
         .run();
   }
 
@@ -333,6 +339,7 @@ public abstract class RunExamplesAndroidOTest
   public void invokeCustomErrorDueToMinSdk() throws Throwable {
     test("invokecustom-error-due-to-min-sdk", "invokecustom", "InvokeCustom")
         .withMinApiLevel(AndroidApiLevel.N_MR1)
+        .withKeepAll()
         .run();
   }
 
@@ -340,6 +347,7 @@ public abstract class RunExamplesAndroidOTest
   public void invokePolymorphic() throws Throwable {
     test("invokepolymorphic", "invokepolymorphic", "InvokePolymorphic")
         .withMinApiLevel(AndroidApiLevel.O)
+        .withKeepAll()
         .run();
   }
 
@@ -347,6 +355,7 @@ public abstract class RunExamplesAndroidOTest
   public void invokePolymorphicErrorDueToMinSdk() throws Throwable {
     test("invokepolymorphic-error-due-to-min-sdk", "invokepolymorphic", "InvokePolymorphic")
         .withMinApiLevel(AndroidApiLevel.N_MR1)
+        .withKeepAll()
         .run();
   }
 
@@ -354,6 +363,7 @@ public abstract class RunExamplesAndroidOTest
   public void lambdaDesugaring() throws Throwable {
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(AndroidApiLevel.K)
+        .withKeepAll()
         .run();
   }
 
@@ -362,6 +372,7 @@ public abstract class RunExamplesAndroidOTest
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
         .withMinApiLevel(AndroidApiLevel.K)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withKeepAll()
         .run();
   }
 
@@ -371,6 +382,7 @@ public abstract class RunExamplesAndroidOTest
         .withMinApiLevel(AndroidApiLevel.K)
         .withAndroidJar(AndroidApiLevel.O)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withKeepAll()
         .run();
   }
 
@@ -380,6 +392,7 @@ public abstract class RunExamplesAndroidOTest
         .withMinApiLevel(AndroidApiLevel.K)
         .withAndroidJar(AndroidApiLevel.O)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
+        .withKeepAll()
         .run();
   }
 
@@ -387,6 +400,7 @@ public abstract class RunExamplesAndroidOTest
   public void lambdaDesugaringValueAdjustments() throws Throwable {
     test("lambdadesugaring-value-adjustments", "lambdadesugaring", "ValueAdjustments")
         .withMinApiLevel(AndroidApiLevel.K)
+        .withKeepAll()
         .run();
   }
 
@@ -394,6 +408,7 @@ public abstract class RunExamplesAndroidOTest
   public void paramNames() throws Throwable {
     test("paramnames", "paramnames", "ParameterNames")
         .withMinApiLevel(AndroidApiLevel.O)
+        .withKeepAll()
         .run();
   }
 
@@ -410,13 +425,16 @@ public abstract class RunExamplesAndroidOTest
     // No need to specify minSdk as repeat annotations are handled by javac and we do not have
     // to do anything to support them. The library methods to access them just have to be in
     // the system.
-    test("repeat_annotations", "repeat_annotations", "RepeatAnnotations").run();
+    test("repeat_annotations", "repeat_annotations", "RepeatAnnotations")
+        .withKeepAll()
+        .run();
   }
 
   @Test
   public void testTryWithResources() throws Throwable {
     test("try-with-resources-simplified", "trywithresources", "TryWithResourcesNotDesugaredTests")
         .withTryWithResourcesDesugaring(OffOrAuto.Off)
+        .withKeepAll()
         .run();
   }
 
@@ -429,6 +447,7 @@ public abstract class RunExamplesAndroidOTest
               Assert.assertFalse(invoke.invokedMethod().name.toString().equals("addSuppressed"));
               Assert.assertFalse(invoke.invokedMethod().name.toString().equals("getSuppressed"));
             })
+        .withKeepAll()
         .run();
   }
 
@@ -477,6 +496,7 @@ public abstract class RunExamplesAndroidOTest
         .withMinApiLevel(AndroidApiLevel.K) // K to create dispatch classes
         .withAndroidJar(AndroidApiLevel.O)
         .withArg(String.valueOf(ToolHelper.getMinApiLevelForDexVm().getLevel() >= 24))
+        .withKeepAll()
         .run();
   }
 
@@ -507,7 +527,8 @@ public abstract class RunExamplesAndroidOTest
             .withMinApiLevel(minApi)
             .withOptionConsumer(option -> option.minimalMainDex = true)
             .withOptionConsumer(option -> option.enableInheritanceClassInDexDistributor = false)
-            .withMainDexClass(mainDexClasses);
+            .withMainDexClass(mainDexClasses)
+            .withKeepAll();
     Path fullDexes = temp.getRoot().toPath().resolve(packageName + "full" + ZIP_EXTENSION);
     full.build(input, fullDexes);
 
@@ -564,7 +585,8 @@ public abstract class RunExamplesAndroidOTest
             .withOptionConsumer(option -> option.minimalMainDex = true)
             .withOptionConsumer(option -> option.enableInheritanceClassInDexDistributor = false)
             .withMainDexClass(mainDexClasses)
-            .withMinApiLevel(minApi);
+            .withMinApiLevel(minApi)
+            .withKeepAll();
 
     Path dexesThroughIntermediate =
         temp.getRoot().toPath().resolve(packageName + "dex" + ZIP_EXTENSION);
@@ -581,7 +603,7 @@ public abstract class RunExamplesAndroidOTest
   }
 
   void execute(String testName,
-      String qualifiedMainClass, Path[] jars, Path[] dexes, List<String> args) throws IOException {
+      String qualifiedMainClass, Path[] jars, Path[] dexes, List<String> args) {
     Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
     boolean expectedToFail = expectedToFail(testName);
     try {
@@ -614,7 +636,7 @@ public abstract class RunExamplesAndroidOTest
   }
 
   protected CodeInspector getMainDexInspector(Path zip)
-      throws ZipException, IOException, ExecutionException {
+      throws IOException, ExecutionException {
     try (ZipFile zipFile = new ZipFile(zip.toFile(), StandardCharsets.UTF_8)) {
       try (InputStream in =
           zipFile.getInputStream(zipFile.getEntry(ToolHelper.DEFAULT_DEX_FILENAME))) {

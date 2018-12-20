@@ -671,7 +671,8 @@ public class MemberResolutionTest extends JasminTestBase {
     Assert.assertTrue(dxOutput.stderr.contains(name));
     ProcessResult d8Output = runOnArtD8Raw(app, library, MAIN_CLASS);
     Assert.assertTrue(d8Output.stderr.contains(name));
-    ProcessResult r8Output = runOnArtR8Raw(app, library, MAIN_CLASS, null, null);
+    ProcessResult r8Output = runOnArtR8Raw(app, library, MAIN_CLASS,
+        noShrinkingNoMinificationProguardConfiguration(), null);
     Assert.assertTrue(r8Output.stderr.contains(name));
     ProcessResult r8ShakenOutput = runOnArtR8Raw(app, library, MAIN_CLASS,
         keepMainProguardConfiguration(MAIN_CLASS), null);

@@ -1576,6 +1576,10 @@ public abstract class R8RunArtTestsTest {
           R8Command.Builder r8builder =
               R8Command.builder()
                   .setMode(mode)
+                  .setDisableTreeShaking(true)
+                  .setDisableMinification(true)
+                  .addProguardConfiguration(
+                      ImmutableList.of("-keepattributes *"), Origin.unknown())
                   .setProgramConsumer(
                       new ClassFileConsumer() {
 
@@ -1635,6 +1639,9 @@ public abstract class R8RunArtTestsTest {
           R8Command.Builder builder =
               R8Command.builder()
                   .setMode(mode)
+                  .setDisableTreeShaking(true)
+                  .setDisableMinification(true)
+                  .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
                   .setOutput(
                       Paths.get(resultPath),
                       cfBackend ? OutputMode.ClassFile : OutputMode.DexIndexed);

@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.TestBase.MinifyMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestConfig.RuntimeKind;
 import com.android.tools.r8.errors.Unreachable;
@@ -69,16 +68,17 @@ public class MinificationTest extends DebugTestBase {
 
   private DebugTestConfig getTestConfig() throws Throwable {
     List<String> proguardConfigurations = Collections.emptyList();
-    if (minificationMode.isMinify()) {
-      ImmutableList.Builder<String> builder = ImmutableList.builder();
-      builder.add("-keep public class Minified { public static void main(java.lang.String[]); }");
-      builder.add("-keepattributes SourceFile");
-      builder.add("-keepattributes LineNumberTable");
-      if (minificationMode == MinifyMode.AGGRESSIVE) {
-        builder.add("-overloadaggressively");
-      }
-      proguardConfigurations = builder.build();
+    ImmutableList.Builder<String> proguardConfigurationBuilder = ImmutableList.builder();
+    if (!minificationMode.isMinify()) {
+      proguardConfigurationBuilder.add("-dontobfuscate");
+    } else if (minificationMode.isAggressive()) {
+      proguardConfigurationBuilder.add("-overloadaggressively");
     }
+    proguardConfigurationBuilder.add(
+        "-keep public class Minified { public static void main(java.lang.String[]); }");
+    proguardConfigurationBuilder.add("-keepattributes SourceFile");
+    proguardConfigurationBuilder.add("-keepattributes LineNumberTable");
+    proguardConfigurations = proguardConfigurationBuilder.build();
 
     Path outputPath = temp.getRoot().toPath().resolve("classes.zip");
     Path proguardMap = writeProguardMap ? temp.getRoot().toPath().resolve("proguard.map") : null;

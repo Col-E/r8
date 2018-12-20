@@ -73,7 +73,7 @@ public class ProguardKeepAttributes {
       if (previous) {
         return true;
       }
-      if (pattern.charAt(0) == '!') {
+      if (pattern.length() > 0 && pattern.charAt(0) == '!') {
         if (matches(pattern, 1, text, 0)) {
           break;
         }

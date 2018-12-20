@@ -66,6 +66,8 @@ public class UnneededLoadStoreDebugInfoTest extends TestBase {
     R8.run(
         R8Command.builder()
             .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addProgramFiles(inputJar)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new ArchiveConsumer(outputJar))

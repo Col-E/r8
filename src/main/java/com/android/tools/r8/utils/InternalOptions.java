@@ -47,7 +47,12 @@ public class InternalOptions {
   }
 
   public final DexItemFactory itemFactory;
-  public final ProguardConfiguration proguardConfiguration;
+
+  public ProguardConfiguration getProguardConfiguration() {
+    return proguardConfiguration;
+  }
+
+  private final ProguardConfiguration proguardConfiguration;
   public final Reporter reporter;
 
   // TODO(zerny): Make this private-final once we have full program-consumer support.
@@ -60,7 +65,7 @@ public class InternalOptions {
   public InternalOptions() {
     reporter = new Reporter();
     itemFactory = new DexItemFactory();
-    proguardConfiguration = ProguardConfiguration.defaultConfiguration(itemFactory, reporter);
+    proguardConfiguration = null;
   }
 
   // Constructor for D8.
@@ -69,7 +74,7 @@ public class InternalOptions {
     assert factory != null;
     this.reporter = reporter;
     itemFactory = factory;
-    proguardConfiguration = ProguardConfiguration.defaultConfiguration(itemFactory, reporter);
+    proguardConfiguration = null;
   }
 
   // Constructor for R8.
@@ -522,6 +527,7 @@ public class InternalOptions {
     public boolean nondeterministicCycleElimination = false;
     public Set<Inliner.Reason> validInliningReasons = null;
     public boolean allowFailureOnInnerClassErrors = false;
+    public boolean noLocalsTableOnInput = false;
     public boolean forceNameReflectionOptimization = false;
   }
 

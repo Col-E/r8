@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -67,6 +68,15 @@ public class R8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<R8Command
     @Override
     R8TestRunner withMinApiLevel(int minApiLevel) {
       return withBuilderTransformation(builder -> builder.setMinApiLevel(minApiLevel));
+    }
+
+    @Override
+    R8TestRunner withKeepAll() {
+      return withBuilderTransformation(builder ->
+          builder
+              .setDisableTreeShaking(true)
+              .setDisableMinification(true)
+              .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown()));
     }
 
     @Override

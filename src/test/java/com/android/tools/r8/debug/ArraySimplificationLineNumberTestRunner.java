@@ -27,7 +27,7 @@ public class ArraySimplificationLineNumberTestRunner extends DebugTestBase {
     DebugTestConfig d8NoLocals = new D8DebugTestConfig().compileAndAdd(
         temp,
         Collections.singletonList(ToolHelper.getClassFileForTestClass(CLASS)),
-        options -> options.proguardConfiguration.getKeepAttributes().localVariableTable = false);
+        options -> options.testing.noLocalsTableOnInput = true);
 
     new DebugStreamComparator()
         .add("CF", streamDebugTest(cf, NAME, NO_FILTER))

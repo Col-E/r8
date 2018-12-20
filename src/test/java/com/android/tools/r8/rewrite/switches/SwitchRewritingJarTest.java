@@ -130,6 +130,8 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     AndroidApp app =
         ToolHelper.runR8(
             ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
+                .setDisableTreeShaking(true)
+                .setDisableMinification(true)
                 .addLibraryFiles(runtimeJar(backend))
                 .build());
 
@@ -198,6 +200,8 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     AndroidApp app =
         ToolHelper.runR8(
             ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(backend))
+                .setDisableTreeShaking(true)
+                .setDisableMinification(true)
                 .addLibraryFiles(runtimeJar(backend))
                 .build());
 
@@ -275,6 +279,8 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     AndroidApp app =
         ToolHelper.runR8(
             ToolHelper.prepareR8CommandBuilder(appBuilder.build(), emptyConsumer(backend))
+                .setDisableTreeShaking(true)
+                .setDisableMinification(true)
                 .addLibraryFiles(runtimeJar(backend))
                 .build());
 

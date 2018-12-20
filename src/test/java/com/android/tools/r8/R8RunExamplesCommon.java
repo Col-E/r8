@@ -12,8 +12,10 @@ import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -168,6 +170,9 @@ public abstract class R8RunExamplesCommon {
                           : ToolHelper.getDefaultAndroidJar())
                   .setOutput(getOutputFile(), outputMode)
                   .setMode(mode)
+                  .setDisableTreeShaking(true)
+                  .setDisableMinification(true)
+                  .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
                   .build();
           ToolHelper.runR8(
               command,

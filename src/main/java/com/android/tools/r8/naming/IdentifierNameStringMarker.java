@@ -304,7 +304,7 @@ public class IdentifierNameStringMarker {
       return;
     }
     // Undetermined identifiers matter only if minification is enabled.
-    if (!options.proguardConfiguration.isObfuscating()) {
+    if (!options.getProguardConfiguration().isObfuscating()) {
       return;
     }
     Origin origin = appInfo.originFor(originHolder);

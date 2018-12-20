@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.maindexlist;
 
-import static com.android.tools.r8.resolution.SingleTargetLookupTest.appInfo;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -474,7 +473,11 @@ public class MainDexListTests extends TestBase {
       jasminBuilder.addClass(name);
     }
     Path input = temp.newFolder().toPath().resolve("input.zip");
-    ToolHelper.runR8(jasminBuilder.build()).writeToZip(input, OutputMode.DexIndexed);
+    ToolHelper.runR8(
+        ToolHelper.prepareR8CommandBuilder(jasminBuilder.build())
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .build()).writeToZip(input, OutputMode.DexIndexed);
 
     // Test with empty main dex list.
     runDeterministicTest(input, null, true);

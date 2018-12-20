@@ -31,6 +31,8 @@ public class SynchronizedNoopTestRunner {
     AndroidAppConsumers a = new AndroidAppConsumers();
     R8.run(
         R8Command.builder()
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(a.wrapClassFileConsumer(null))
