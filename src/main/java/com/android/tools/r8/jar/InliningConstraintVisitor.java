@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.conversion.JarSourceCode;
@@ -60,6 +61,10 @@ public class InliningConstraintVisitor extends MethodVisitor {
     // Model a synchronized method as having a monitor instruction.
     this.constraint = method.accessFlags.isSynchronized()
         ? inliningConstraints.forMonitor() : ConstraintWithTarget.ALWAYS;
+  }
+
+  public void disallowStaticInterfaceMethodCalls() {
+    inliningConstraints.disallowStaticInterfaceMethodCalls();
   }
 
   public ConstraintWithTarget getConstraint() {
@@ -160,12 +165,15 @@ public class InliningConstraintVisitor extends MethodVisitor {
         }
         break;
 
-      case Opcodes.INVOKESTATIC:
-        type = Invoke.Type.STATIC;
-        assert noNeedToUseGraphLense(target, type);
+      case Opcodes.INVOKESTATIC: {
+        // Static invokes may have changed as a result of horizontal class merging.
+        GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, Invoke.Type.STATIC);
+        target = lookup.getMethod();
+        type = lookup.getType();
         break;
+      }
 
-      case Opcodes.INVOKEVIRTUAL:
+      case Opcodes.INVOKEVIRTUAL: {
         type = Invoke.Type.VIRTUAL;
         // Instructions that target a private method in the same class translates to invoke-direct.
         if (target.holder == method.method.holder) {
@@ -174,8 +182,13 @@ public class InliningConstraintVisitor extends MethodVisitor {
             type = Invoke.Type.DIRECT;
           }
         }
-        assert noNeedToUseGraphLense(target, type);
+
+        // Virtual invokes may have changed to interface invokes as a result of member rebinding.
+        GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, type);
+        target = lookup.getMethod();
+        type = lookup.getType();
         break;
+      }
 
       default:
         throw new Unreachable("Unexpected opcode " + opcode);

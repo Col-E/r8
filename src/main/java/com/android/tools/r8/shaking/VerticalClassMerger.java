@@ -1619,7 +1619,7 @@ public class VerticalClassMerger {
         ConstraintWithTarget constraint =
             jarCode.computeInliningConstraint(
                 method,
-                appInfo,
+                appView,
                 new SingleTypeMapperGraphLense(method.method.holder, invocationContext),
                 invocationContext);
         return constraint == ConstraintWithTarget.NEVER;

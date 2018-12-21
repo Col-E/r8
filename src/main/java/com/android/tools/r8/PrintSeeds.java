@@ -84,7 +84,8 @@ public class PrintSeeds {
       DexApplication application =
           new ApplicationReader(command.getInputApp(), options, timing).read(executor).toDirect();
       AppView<? extends AppInfoWithSubtyping> appView =
-          new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
+          new AppView<>(
+              new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
       RootSet rootSet =
           new RootSetBuilder(
                   appView, application, options.getProguardConfiguration().getRules(), options)
