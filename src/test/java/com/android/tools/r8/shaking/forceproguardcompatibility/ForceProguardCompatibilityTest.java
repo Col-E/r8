@@ -108,7 +108,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     builder.addProguardConfiguration(
         ImmutableList.of(keepMainProguardConfiguration(mainClass, true, false)), Origin.unknown());
     builder.addProguardConfiguration(
-        ImmutableList.of("-keep class " + annotationClass.getCanonicalName() + " { }"),
+        ImmutableList.of("-keep class " + annotationClass.getCanonicalName() + " { *; }"),
         Origin.unknown());
     if (keepAnnotations) {
       builder.addProguardConfiguration(ImmutableList.of("-keepattributes *Annotation*"),

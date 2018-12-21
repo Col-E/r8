@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 public class DexAnnotation extends DexItem {
   public static final int VISIBILITY_BUILD = 0x00;
@@ -372,5 +373,16 @@ public class DexAnnotation extends DexItem {
   public static boolean isSynthesizedClassMapAnnotation(DexAnnotation annotation,
       DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationSynthesizedClassMap;
+  }
+
+  public DexAnnotation rewrite(Function<DexEncodedAnnotation, DexEncodedAnnotation> rewriter) {
+    DexEncodedAnnotation rewritten = rewriter.apply(annotation);
+    if (rewritten == annotation) {
+      return this;
+    }
+    if (rewritten == null) {
+      return null;
+    }
+    return new DexAnnotation(visibility, rewritten);
   }
 }

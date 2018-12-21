@@ -13,18 +13,20 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.R8TestRunResult;
-import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,6 +36,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   private static final String FOLDER = "internal_annotation";
   private static final String MAIN_CLASS_NAME = "internal_annotation.MainKt";
   private static final String ANNOTATION_NAME = "internal_annotation.Annotation";
+  private static final String IMPL_CLASS_NAME = "internal_annotation.Impl";
   private static final String KEEP_ANNOTATIONS = "-keepattributes *Annotation*";
 
   private static final String JAVA_OUTPUT = StringUtils.lines(
@@ -44,6 +47,13 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   private static final String OUTPUT_WITHOUT_ANNOTATION = StringUtils.lines(
       "Impl::toString",
       "null"
+  );
+
+  private static final Map<String, String> EXPECTED_ANNOTATION_VALUES = ImmutableMap.of(
+      "f1", "2",
+      "f2", "Impl::Annotation::field2",
+      "f3", "3]",
+      "f4", "field4]"
   );
 
   private final Backend backend;
@@ -87,11 +97,9 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     if (!minify) {
       builder.noMinification();
     }
-    TestRunResult result = builder.run(MAIN_CLASS_NAME);
 
-    result.assertSuccessWithOutput(JAVA_OUTPUT);
-
-    CodeInspector inspector = result.inspector();
+    CodeInspector inspector =
+        builder.run(MAIN_CLASS_NAME).assertSuccessWithOutput(JAVA_OUTPUT).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertThat(clazz, not(isRenamed()));
@@ -107,6 +115,12 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     MethodSubject f4 = clazz.uniqueMethodWithName("f4");
     assertThat(f4, isPresent());
     assertThat(f4, not(isRenamed()));
+
+    ClassSubject impl = inspector.clazz(IMPL_CLASS_NAME);
+    assertThat(impl, isPresent());
+    AnnotationSubject anno = impl.annotation(ANNOTATION_NAME);
+    assertThat(anno, isPresent());
+    inspectAnnotationInstantiation(anno, ImmutableSet.of("f1", "f2", "f3", "f4"));
   }
 
   @Test
@@ -124,24 +138,9 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     if (!minify) {
       builder.noMinification();
     }
-    R8TestRunResult result = builder.run(MAIN_CLASS_NAME);
 
-    if (backend == Backend.DEX) {
-      if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
-        result.assertFailureWithErrorThatMatches(
-            containsString("failure in processEncodedAnnotation"));
-        return;
-      }
-      if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V6_0_1)) {
-        result.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
-        return;
-      }
-      result.assertSuccessWithOutput(OUTPUT_WITHOUT_ANNOTATION);
-    } else {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
-
-    CodeInspector inspector = result.inspector();
+    CodeInspector inspector =
+        builder.run(MAIN_CLASS_NAME).assertSuccessWithOutput(JAVA_OUTPUT).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
@@ -155,6 +154,12 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     assertThat(f3, not(isPresent()));
     MethodSubject f4 = clazz.uniqueMethodWithName("f4");
     assertThat(f4, not(isPresent()));
+
+    ClassSubject impl = inspector.clazz(IMPL_CLASS_NAME);
+    assertThat(impl, isPresent());
+    AnnotationSubject anno = impl.annotation(ANNOTATION_NAME);
+    assertThat(anno, isPresent());
+    inspectAnnotationInstantiation(anno, ImmutableSet.of("f1", "f2"));
   }
 
   @Test
@@ -167,24 +172,9 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     if (!minify) {
       builder.noMinification();
     }
-    R8TestRunResult result = builder.run(MAIN_CLASS_NAME);
 
-    if (backend == Backend.DEX) {
-      if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
-        result.assertFailureWithErrorThatMatches(
-            containsString("failure in processEncodedAnnotation"));
-        return;
-      }
-      if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V6_0_1)) {
-        result.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
-        return;
-      }
-      result.assertSuccessWithOutput(OUTPUT_WITHOUT_ANNOTATION);
-    } else {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
-
-    CodeInspector inspector = result.inspector();
+    CodeInspector inspector =
+        builder.run(MAIN_CLASS_NAME).assertSuccessWithOutput(JAVA_OUTPUT).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
@@ -198,6 +188,12 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     assertThat(f3, not(isPresent()));
     MethodSubject f4 = clazz.uniqueMethodWithName("f4");
     assertThat(f4, not(isPresent()));
+
+    ClassSubject impl = inspector.clazz(IMPL_CLASS_NAME);
+    assertThat(impl, isPresent());
+    AnnotationSubject anno = impl.annotation(ANNOTATION_NAME);
+    assertThat(anno, isPresent());
+    inspectAnnotationInstantiation(anno, ImmutableSet.of("f1", "f2"));
   }
 
   @Test
@@ -209,10 +205,9 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     if (!minify) {
       builder.noMinification();
     }
-    TestRunResult result = builder.run(MAIN_CLASS_NAME);
-    result.assertSuccessWithOutput(OUTPUT_WITHOUT_ANNOTATION);
 
-    CodeInspector inspector = result.inspector();
+    CodeInspector inspector =
+        builder.run(MAIN_CLASS_NAME).assertSuccessWithOutput(OUTPUT_WITHOUT_ANNOTATION).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
@@ -224,6 +219,25 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     assertThat(f3, not(isPresent()));
     MethodSubject f4 = clazz.uniqueMethodWithName("f4");
     assertThat(f4, not(isPresent()));
+
+    ClassSubject impl = inspector.clazz(IMPL_CLASS_NAME);
+    assertThat(impl, isPresent());
+    AnnotationSubject anno = impl.annotation(ANNOTATION_NAME);
+    assertThat(anno, not(isPresent()));
+  }
+
+  private void inspectAnnotationInstantiation(
+      AnnotationSubject annotationSubject, Set<String> expectedFields) {
+    int count = 0;
+    for (DexAnnotationElement element : annotationSubject.getAnnotation().elements) {
+      String fieldName = element.name.toString();
+      if (expectedFields.contains(fieldName)) {
+        count++;
+        String expectedValue = EXPECTED_ANNOTATION_VALUES.get(fieldName);
+        assertThat(element.value.toString(), containsString(expectedValue));
+      }
+    }
+    assertEquals(expectedFields.size(), count);
   }
 
 }

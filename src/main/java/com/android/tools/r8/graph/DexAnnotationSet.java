@@ -5,8 +5,9 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import java.util.ArrayList;
+import com.android.tools.r8.utils.ArrayUtils;
 import java.util.Arrays;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class DexAnnotationSet extends CachedHashValueDexItem {
@@ -119,28 +120,20 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
   }
 
   public DexAnnotationSet keepIf(Predicate<DexAnnotation> filter) {
-    ArrayList<DexAnnotation> filtered = null;
-    for (int i = 0; i < annotations.length; i++) {
-      DexAnnotation annotation = annotations[i];
-      if (filter.test(annotation)) {
-        if (filtered != null) {
-          filtered.add(annotation);
-        }
-      } else {
-        if (filtered == null) {
-          filtered = new ArrayList<>(annotations.length);
-          for (int j = 0; j < i; j++) {
-            filtered.add(annotations[j]);
-          }
-        }
-      }
-    }
-    if (filtered == null) {
+    return rewrite(anno -> filter.test(anno) ? anno : null);
+  }
+
+  public DexAnnotationSet rewrite(Function<DexAnnotation, DexAnnotation> rewriter) {
+    if (isEmpty()) {
       return this;
-    } else if (filtered.isEmpty()) {
-      return DexAnnotationSet.empty();
-    } else {
-      return new DexAnnotationSet(filtered.toArray(new DexAnnotation[filtered.size()]));
     }
+    DexAnnotation[] rewritten = ArrayUtils.map(DexAnnotation[].class, annotations, rewriter);
+    if (rewritten == annotations) {
+      return this;
+    }
+    if (rewritten.length == 0) {
+      return DexAnnotationSet.empty();
+    }
+    return new DexAnnotationSet(rewritten);
   }
 }
