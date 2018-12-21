@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.synthetic;
 
-import com.android.tools.r8.KeepSubclassesForCodeGeneration;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.util.function.BiFunction;
 
 // Source code representing code of a method generated based on a template.
-@KeepSubclassesForCodeGeneration
 public abstract class TemplateMethodCode extends JarCode {
   private final String templateMethodName;
   private final String templateMethodDesc;
