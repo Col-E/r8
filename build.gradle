@@ -686,6 +686,10 @@ task generateR8LibKeepRules(type: Exec) {
             r8WithoutDeps.outputs.files[0],
             testJar.outputs.files[0]])
     workingDir = projectDir
+    // TODO(b/121350534) Keep this until we have proper generation of keep rules for r8lib.
+    doLast {
+        new File(r8LibGeneratedKeepRulesPath).append("\n-keep class ** { *; }\n")
+    }
 }
 
 task R8LibNoDeps {
