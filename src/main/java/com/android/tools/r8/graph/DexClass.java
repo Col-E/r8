@@ -321,6 +321,10 @@ public abstract class DexClass extends DexDefinition {
     return accessFlags.isInterface();
   }
 
+  public boolean isEnum() {
+    return accessFlags.isEnum();
+  }
+
   public abstract void addDependencies(MixedSectionCollection collector);
 
   @Override
