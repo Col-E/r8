@@ -220,22 +220,14 @@ public class DexBuilder {
     if (options.canHaveTracingPastInstructionsStreamBug()
         && dexInstructions.get(dexInstructions.size() - 1) instanceof Throw
         && hasBackwardsBranch) {
-      List<Instruction> instructions = new ArrayList<>();
-      DexType returnType = ir.method.method.proto.returnType;
-      if (returnType.isVoidType()) {
-        instructions.add(new ReturnVoid());
-      } else if (returnType.isDoubleType() || returnType.isLongType()) {
-        instructions.add(new ConstWide16(0, 0));
-        instructions.add(new ReturnWide(0));
-      } else {
-        instructions.add(new Const4(0, 0));
-        instructions.add(new com.android.tools.r8.code.Return(0));
-      }
-      for (Instruction instruction : instructions) {
-        instruction.setOffset(offset);
-        offset += instruction.getSize();
-        dexInstructions.add(instruction);
-      }
+      // Generating a throw with the right type makes some Art constant propagation
+      // implementations crash. Therefore, since this is dead code anyway, we do not
+      // generate a return of the right type. Instead we just generate an unreachable
+      // return-void. See b/121355317.
+      Instruction returnVoid = new ReturnVoid();
+      returnVoid.setOffset(offset);
+      offset += returnVoid.getSize();
+      dexInstructions.add(returnVoid);
     }
 
     // Compute switch payloads.
