@@ -422,6 +422,10 @@ public class PrintUses {
 
     @Override
     public void printMethod(DexEncodedMethod encodedMethod, String typeName) {
+      // Static initializers do not require keep rules - it is kept by keeping the class.
+      if (encodedMethod.accessFlags.isConstructor() && encodedMethod.accessFlags.isStatic()) {
+        return;
+      }
       append("  ");
       if (encodedMethod.isPublicMethod()) {
         append("public ");
