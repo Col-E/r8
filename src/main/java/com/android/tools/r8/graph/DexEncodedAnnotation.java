@@ -5,7 +5,9 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.utils.ArrayUtils;
 import java.util.Arrays;
+import java.util.function.Function;
 
 public class DexEncodedAnnotation extends DexItem {
 
@@ -71,5 +73,20 @@ public class DexEncodedAnnotation extends DexItem {
   private int sortedHashCode() {
     int hashCode = hashCode();
     return hashCode == UNSORTED ? 1 : hashCode;
+  }
+
+  public DexEncodedAnnotation rewrite(
+      Function<DexType, DexType> typeRewriter,
+      Function<DexAnnotationElement, DexAnnotationElement> elementRewriter) {
+    DexType rewrittenType = typeRewriter.apply(type);
+    DexAnnotationElement[] rewrittenElements =
+        ArrayUtils.map(DexAnnotationElement[].class, elements, elementRewriter);
+    if (rewrittenType == type && rewrittenElements == elements) {
+      return this;
+    }
+    if (rewrittenElements.length == 0) {
+      return null;
+    }
+    return new DexEncodedAnnotation(rewrittenType, rewrittenElements);
   }
 }

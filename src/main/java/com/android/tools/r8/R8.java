@@ -315,7 +315,7 @@ public class R8 {
           new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
         }
 
-        new AnnotationRemover(appView.appInfo().withLiveness(), options)
+        new AnnotationRemover(appView.appInfo().withLiveness(), appView.graphLense(), options)
             .ensureValid(compatibility)
             .run();
 
@@ -551,7 +551,8 @@ public class R8 {
               }
             }
             // Remove annotations that refer to types that no longer exist.
-            new AnnotationRemover(appView.appInfo().withLiveness(), options).run();
+            new AnnotationRemover(appView.appInfo().withLiveness(), appView.graphLense(), options)
+                .run();
             if (!mainDexClasses.isEmpty()) {
               // Remove types that no longer exists from the computed main dex list.
               mainDexClasses = mainDexClasses.prunedCopy(appView.appInfo().withLiveness());

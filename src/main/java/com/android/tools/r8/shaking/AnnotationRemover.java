@@ -5,26 +5,32 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
 import java.util.List;
 
 public class AnnotationRemover {
 
   private final AppInfoWithLiveness appInfo;
+  private final GraphLense lense;
   private final ProguardKeepAttributes keep;
   private final InternalOptions options;
 
-  public AnnotationRemover(AppInfoWithLiveness appInfo, InternalOptions options) {
+  public AnnotationRemover(AppInfoWithLiveness appInfo, GraphLense lense, InternalOptions options) {
     this.appInfo = appInfo;
+    this.lense = lense;
     this.keep = options.getProguardConfiguration().getKeepAttributes();
     this.options = options;
   }
@@ -37,7 +43,7 @@ public class AnnotationRemover {
         annotation, isAnnotationTypeLive(annotation), appInfo.dexItemFactory, options);
   }
 
-  public static boolean shouldKeepAnnotation(
+  static boolean shouldKeepAnnotation(
       DexAnnotation annotation,
       boolean isAnnotationTypeLive,
       DexItemFactory dexItemFactory,
@@ -99,7 +105,7 @@ public class AnnotationRemover {
   private boolean isAnnotationTypeLive(DexAnnotation annotation) {
     DexType annotationType = annotation.annotation.type.toBaseType(appInfo.dexItemFactory);
     DexClass definition = appInfo.definitionFor(annotationType);
-    // TODO(73102187): How to handle annotations without definition.
+    // TODO(b/73102187): How to handle annotations without definition.
     if (options.enableTreeShaking && definition == null) {
       return false;
     }
@@ -138,20 +144,49 @@ public class AnnotationRemover {
   public void run() {
     for (DexProgramClass clazz : appInfo.classes()) {
       stripAttributes(clazz);
-      clazz.annotations = clazz.annotations.keepIf(this::filterAnnotations);
+      clazz.annotations = clazz.annotations.rewrite(this::rewriteAnnotation);
       clazz.forEachMethod(this::processMethod);
       clazz.forEachField(this::processField);
     }
   }
 
   private void processMethod(DexEncodedMethod method) {
-    method.annotations = method.annotations.keepIf(this::filterAnnotations);
+    method.annotations = method.annotations.rewrite(this::rewriteAnnotation);
     method.parameterAnnotationsList =
         method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
   }
 
   private void processField(DexEncodedField field) {
-    field.annotations = field.annotations.keepIf(this::filterAnnotations);
+    field.annotations = field.annotations.rewrite(this::rewriteAnnotation);
+  }
+
+  private DexAnnotation rewriteAnnotation(DexAnnotation original) {
+    // Check if we should keep this annotation first.
+    if (!filterAnnotations(original)) {
+      return null;
+    }
+    // Then, filter out values that refer to dead definitions.
+    return original.rewrite(this::rewriteEncodedAnnotation);
+  }
+
+  private DexEncodedAnnotation rewriteEncodedAnnotation(DexEncodedAnnotation original) {
+    DexType annotationType = original.type.toBaseType(appInfo.dexItemFactory);
+    return original.rewrite(
+        lense::lookupType,
+        element -> rewriteAnnotationElement(lense.lookupType(annotationType), element));
+  }
+
+  private DexAnnotationElement rewriteAnnotationElement(
+      DexType annotationType, DexAnnotationElement original) {
+    DexClass definition = appInfo.definitionFor(annotationType);
+    // TODO(b/73102187): How to handle annotations without definition.
+    if (definition == null) {
+      return original;
+    }
+    assert definition.isInterface();
+    boolean liveGetter = Arrays.stream(definition.virtualMethods())
+        .anyMatch(method -> method.method.name == original.name);
+    return liveGetter ? original : null;
   }
 
   private boolean enclosingMethodPinned(DexClass clazz) {

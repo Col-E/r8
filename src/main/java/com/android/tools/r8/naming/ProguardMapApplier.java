@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 public class ProguardMapApplier {
 
@@ -385,32 +386,15 @@ public class ProguardMapApplier {
     }
 
     private DexAnnotationSet substituteTypesIn(DexAnnotationSet annotations) {
-      if (annotations.isEmpty()) {
-        return annotations;
-      }
-      DexAnnotation[] result = substituteTypesIn(annotations.annotations);
-      return result == null ? annotations : new DexAnnotationSet(result);
-    }
-
-    private DexAnnotation[] substituteTypesIn(DexAnnotation[] annotations) {
-      Map<Integer, DexAnnotation> changed = new Int2ObjectArrayMap<>();
-      for (int i = 0; i < annotations.length; i++) {
-        DexAnnotation applied = substituteTypesIn(annotations[i]);
-        if (applied != annotations[i]) {
-          changed.put(i, applied);
-        }
-      }
-      return changed.isEmpty()
-          ? null
-          : ArrayUtils.copyWithSparseChanges(DexAnnotation[].class, annotations, changed);
+      return annotations.rewrite(this::substituteTypesIn);
     }
 
     private DexAnnotation substituteTypesIn(DexAnnotation annotation) {
-      return new DexAnnotation(annotation.visibility, substituteTypesIn(annotation.annotation));
+      return annotation.rewrite(this::substituteTypesIn);
     }
 
     private DexEncodedAnnotation substituteTypesIn(DexEncodedAnnotation annotation) {
-      return new DexEncodedAnnotation(substituteType(annotation.type, null), annotation.elements);
+      return annotation.rewrite(type -> substituteType(type, null), Function.identity());
     }
 
     private DexTypeList substituteTypesIn(DexTypeList types) {
