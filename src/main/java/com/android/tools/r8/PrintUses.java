@@ -22,7 +22,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -46,19 +45,20 @@ import java.util.Set;
 public class PrintUses {
 
   private static final String USAGE =
-      "Arguments: <rt.jar> <r8.jar> <sample.jar>\n"
+      "Arguments: [--keeprules] <rt.jar> <r8.jar> <sample.jar>\n"
           + "\n"
           + "PrintUses prints the classes, interfaces, methods and fields used by <sample.jar>,\n"
           + "restricted to classes and interfaces in <r8.jar> that are not in <sample.jar>.\n"
           + "<rt.jar> and <r8.jar> should point to libraries used by <sample.jar>.\n"
           + "\n"
           + "The output is in the same format as what is printed when specifying -printseeds in\n"
-          + "a ProGuard configuration file. See also the "
+          + "a ProGuard configuration file. Use --keeprules for outputting proguard keep rules. "
+          + "See also the "
           + PrintSeeds.class.getSimpleName()
           + " program in R8.";
 
   private final Set<String> descriptors;
-  private final PrintStream out;
+  private final Printer printer;
   private Set<DexType> types = Sets.newIdentityHashSet();
   private Map<DexType, Set<DexMethod>> methods = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexField>> fields = Maps.newIdentityHashMap();
@@ -210,21 +210,28 @@ public class PrintUses {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    if (args.length != 3) {
+  public static void main(String... args) throws Exception {
+    if (args.length != 3 && args.length != 4) {
       System.out.println(USAGE.replace("\n", System.lineSeparator()));
       return;
     }
+    int argumentIndex = 0;
+    boolean printKeep = false;
+    if (args[0].equals("--keeprules")) {
+      printKeep = true;
+      argumentIndex++;
+    }
     AndroidApp.Builder builder = AndroidApp.builder();
-    Path rtJar = Paths.get(args[0]);
+    Path rtJar = Paths.get(args[argumentIndex++]);
     builder.addLibraryFile(rtJar);
-    Path r8Jar = Paths.get(args[1]);
+    Path r8Jar = Paths.get(args[argumentIndex++]);
     builder.addLibraryFile(r8Jar);
-    Path sampleJar = Paths.get(args[2]);
+    Path sampleJar = Paths.get(args[argumentIndex++]);
     builder.addProgramFile(sampleJar);
     Set<String> descriptors = new HashSet<>(getDescriptors(r8Jar));
     descriptors.removeAll(getDescriptors(sampleJar));
-    PrintUses printUses = new PrintUses(descriptors, builder.build(), System.out);
+    Printer printer = printKeep ? new KeepPrinter() : new DefaultPrinter();
+    PrintUses printUses = new PrintUses(descriptors, builder.build(), printer);
     printUses.analyze();
     printUses.print();
     if (printUses.errors > 0) {
@@ -237,10 +244,10 @@ public class PrintUses {
     return new ArchiveClassFileProvider(path).getClassDescriptors();
   }
 
-  private PrintUses(Set<String> descriptors, AndroidApp inputApp, PrintStream out)
+  private PrintUses(Set<String> descriptors, AndroidApp inputApp, Printer printer)
       throws Exception {
     this.descriptors = descriptors;
-    this.out = out;
+    this.printer = printer;
     InternalOptions options = new InternalOptions();
     application =
         new ApplicationReader(inputApp, options, new Timing("PrintUses")).read().toDirect();
@@ -260,69 +267,178 @@ public class PrintUses {
   }
 
   private void print() {
-    List<DexType> types = new ArrayList<>(this.types);
-    types.sort(Comparator.comparing(DexType::toSourceString));
-    for (DexType type : types) {
-      String typeName = type.toSourceString();
-      DexClass dexClass = application.definitionFor(type);
-      if (dexClass == null) {
-        error("Could not find definition for type " + type.toSourceString());
-        continue;
+    errors = printer.print(application, types, methods, fields);
+  }
+
+  private abstract static class Printer {
+
+    void append(String string) {
+      System.out.print(string);
+    }
+
+    void appendLine(String string) {
+      System.out.println(string);
+    }
+
+    void printArguments(DexMethod method) {
+      append("(");
+      for (int i = 0; i < method.getArity(); i++) {
+        if (i != 0) {
+          append(",");
+        }
+        append(method.proto.parameters.values[i].toSourceString());
       }
-      out.println(typeName);
-      List<DexMethod> methods = new ArrayList<>(this.methods.get(type));
-      List<String> methodDefinitions = new ArrayList<>(methods.size());
-      for (DexMethod method : methods) {
-        DexEncodedMethod encodedMethod = dexClass.lookupMethod(method);
-        if (encodedMethod == null) {
-          error("Could not find definition for method " + method.toSourceString());
+      append(")");
+    }
+
+    abstract void printConstructorName(DexEncodedMethod encodedMethod);
+
+    void printError(String message) {
+      appendLine("# Error: " + message);
+    }
+
+    abstract void printField(DexClass dexClass, DexField field);
+
+    abstract void printMethod(DexEncodedMethod encodedMethod, String typeName);
+
+    void printNameAndReturn(DexEncodedMethod encodedMethod) {
+      if (encodedMethod.accessFlags.isConstructor()) {
+        printConstructorName(encodedMethod);
+      } else {
+        DexMethod method = encodedMethod.method;
+        append(method.proto.returnType.toSourceString());
+        append(" ");
+        append(method.name.toSourceString());
+      }
+    }
+
+    abstract void printTypeHeader(DexClass dexClass);
+
+    abstract void printTypeFooter();
+
+    int print(
+        DexApplication application,
+        Set<DexType> types,
+        Map<DexType, Set<DexMethod>> methods,
+        Map<DexType, Set<DexField>> fields) {
+      int errors = 0;
+      List<DexType> sortedTypes = new ArrayList<>(types);
+      sortedTypes.sort(Comparator.comparing(DexType::toSourceString));
+      for (DexType type : sortedTypes) {
+        DexClass dexClass = application.definitionFor(type);
+        if (dexClass == null) {
+          printError("Could not find definition for type " + type.toSourceString());
+          errors++;
           continue;
         }
-        methodDefinitions.add(getMethodSourceString(encodedMethod));
+        printTypeHeader(dexClass);
+        List<DexEncodedMethod> methodDefinitions = new ArrayList<>(methods.size());
+        for (DexMethod method : methods.get(type)) {
+          DexEncodedMethod encodedMethod = dexClass.lookupMethod(method);
+          if (encodedMethod == null) {
+            printError("Could not find definition for method " + method.toSourceString());
+            errors++;
+            continue;
+          }
+          methodDefinitions.add(encodedMethod);
+        }
+        methodDefinitions.sort(Comparator.comparing(x -> x.method.name.toSourceString()));
+        for (DexEncodedMethod encodedMethod : methodDefinitions) {
+          printMethod(encodedMethod, dexClass.type.toSourceString());
+        }
+        List<DexField> sortedFields = new ArrayList<>(fields.get(type));
+        sortedFields.sort(Comparator.comparing(DexField::toSourceString));
+        for (DexField field : sortedFields) {
+          printField(dexClass, field);
+        }
+        printTypeFooter();
       }
-      methodDefinitions.sort(Comparator.naturalOrder());
-      for (String encodedMethod : methodDefinitions) {
-        out.println(typeName + ": " + encodedMethod);
-      }
-      List<DexField> fields = new ArrayList<>(this.fields.get(type));
-      fields.sort(Comparator.comparing(DexField::toSourceString));
-      for (DexField field : fields) {
-        out.println(
-            typeName + ": " + field.type.toSourceString() + " " + field.name.toSourceString());
-      }
+      return errors;
     }
   }
 
-  private void error(String message) {
-    out.println("# Error: " + message);
-    errors += 1;
-  }
+  private static class DefaultPrinter extends Printer {
 
-  private static String getMethodSourceString(DexEncodedMethod encodedMethod) {
-    DexMethod method = encodedMethod.method;
-    StringBuilder builder = new StringBuilder();
-    if (encodedMethod.accessFlags.isConstructor()) {
+    @Override
+    public void printConstructorName(DexEncodedMethod encodedMethod) {
       if (encodedMethod.accessFlags.isStatic()) {
-        builder.append("<clinit>");
+        append("<clinit>");
       } else {
-        String holderName = method.holder.toSourceString();
+        String holderName = encodedMethod.method.holder.toSourceString();
         String constructorName = holderName.substring(holderName.lastIndexOf('.') + 1);
-        builder.append(constructorName);
+        append(constructorName);
       }
-    } else {
-      builder
-          .append(method.proto.returnType.toSourceString())
-          .append(" ")
-          .append(method.name.toSourceString());
     }
-    builder.append("(");
-    for (int i = 0; i < method.getArity(); i++) {
-      if (i != 0) {
-        builder.append(",");
+
+    @Override
+    void printMethod(DexEncodedMethod encodedMethod, String typeName) {
+      append(typeName + ": ");
+      printNameAndReturn(encodedMethod);
+      printArguments(encodedMethod.method);
+      appendLine("");
+    }
+
+    @Override
+    void printTypeHeader(DexClass dexClass) {
+      appendLine(dexClass.type.toSourceString());
+    }
+
+    @Override
+    void printTypeFooter() {}
+
+    @Override
+    void printField(DexClass dexClass, DexField field) {
+      appendLine(
+          dexClass.type.toSourceString()
+              + ": "
+              + field.type.toSourceString()
+              + " "
+              + field.name.toString());
+    }
+  }
+
+  private static class KeepPrinter extends Printer {
+
+    @Override
+    public void printTypeHeader(DexClass dexClass) {
+      if (dexClass.isInterface()) {
+        append("-keep interface " + dexClass.type.toSourceString() + " {\n");
+      } else if (dexClass.accessFlags.isEnum()) {
+        append("-keep enum " + dexClass.type.toSourceString() + " {\n");
+      } else {
+        append("-keep class " + dexClass.type.toSourceString() + " {\n");
       }
-      builder.append(method.proto.parameters.values[i].toSourceString());
     }
-    builder.append(")");
-    return builder.toString();
+
+    @Override
+    public void printConstructorName(DexEncodedMethod encodedMethod) {
+      append("<init>");
+    }
+
+    @Override
+    public void printField(DexClass dexClass, DexField field) {
+      append("  " + field.type.toSourceString() + " " + field.name.toString() + ";\n");
+    }
+
+    @Override
+    public void printMethod(DexEncodedMethod encodedMethod, String typeName) {
+      append("  ");
+      if (encodedMethod.isPublicMethod()) {
+        append("public ");
+      } else if (encodedMethod.isPrivateMethod()) {
+        append("private ");
+      }
+      if (encodedMethod.isStatic()) {
+        append("static ");
+      }
+      printNameAndReturn(encodedMethod);
+      printArguments(encodedMethod.method);
+      appendLine(";");
+    }
+
+    @Override
+    public void printTypeFooter() {
+      appendLine("}");
+    }
   }
 }
