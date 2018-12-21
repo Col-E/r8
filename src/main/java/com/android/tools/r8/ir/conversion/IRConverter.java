@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
@@ -119,6 +120,7 @@ public class IRConverter {
   private final LambdaRewriter lambdaRewriter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final TwrCloseResourceRewriter twrCloseResourceRewriter;
+  private final Java8MethodRewriter java8MethodRewriter;
   private final LambdaMerger lambdaMerger;
   private final ClassInliner classInliner;
   private final ClassStaticizer classStaticizer;
@@ -183,6 +185,8 @@ public class IRConverter {
     this.twrCloseResourceRewriter =
         (options.enableDesugaring && enableTwrCloseResourceDesugaring())
             ? new TwrCloseResourceRewriter(this) : null;
+    this.java8MethodRewriter =
+        options.enableDesugaring ? new Java8MethodRewriter(this) : null;
     this.lambdaMerger =
         options.enableLambdaMerging ? new LambdaMerger(appInfo, options.reporter) : null;
     this.covariantReturnTypeAnnotationTransformer =
@@ -367,6 +371,12 @@ public class IRConverter {
     }
   }
 
+  private void synthesizeJava8UtilityClass(Builder<?> builder) {
+    if (java8MethodRewriter != null) {
+      java8MethodRewriter.synthesizeUtilityClass(builder, options);
+    }
+  }
+
   private void processCovariantReturnTypeAnnotations(Builder<?> builder) {
     if (covariantReturnTypeAnnotationTransformer != null) {
       covariantReturnTypeAnnotationTransformer.process(builder);
@@ -387,6 +397,7 @@ public class IRConverter {
     synthesizeLambdaClasses(builder, executor);
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     synthesizeTwrCloseResourceUtilityClass(builder);
+    synthesizeJava8UtilityClass(builder);
     processCovariantReturnTypeAnnotations(builder);
 
     handleSynthesizedClassMapping(builder);
@@ -573,11 +584,10 @@ public class IRConverter {
 
     printPhase("Interface method desugaring");
     desugarInterfaceMethods(builder, IncludeAllResources, executorService);
-
     printPhase("Twr close resource utility class synthesis");
     synthesizeTwrCloseResourceUtilityClass(builder);
+    synthesizeJava8UtilityClass(builder);
     handleSynthesizedClassMapping(builder);
-
     printPhase("Lambda merging finalization");
     finalizeLambdaMerging(application, feedback, builder, executorService);
 
@@ -1009,6 +1019,9 @@ public class IRConverter {
 
     if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
+    }
+    if (java8MethodRewriter != null) {
+      java8MethodRewriter.desugar(code);
     }
 
     stringConcatRewriter.desugarStringConcats(method.method, code);
