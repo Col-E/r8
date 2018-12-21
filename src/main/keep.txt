@@ -4,6 +4,8 @@
 
 -keep @com.android.tools.r8.Keep class * { public *; }
 -keep @com.android.tools.r8.KeepForSubclassing class * { public *; protected *; }
+-keep class * extends @com.android.tools.r8.KeepSubclassesForCodeGeneration * { public *; }
+
 
 -keep public class com.android.tools.r8.D8 { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.R8 { public static void main(java.lang.String[]); }
