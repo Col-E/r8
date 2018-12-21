@@ -26,6 +26,7 @@ APPS = {
   #     'app_module': ... (default app)
   #     'archives_base_name': ... (default same as app_module)
   #     'flavor': ... (default no flavor)
+  #     'releaseTarget': ... (default <app_module>:assemble<flavor>Release
   # },
   'AnExplorer': {
       'app_id': 'dev.dworks.apps.anexplorer.pro',
@@ -73,6 +74,7 @@ APPS = {
       'app_id': 'eu.kanade.tachiyomi',
       'git_repo': 'https://github.com/sgjesse/tachiyomi.git',
       'flavor': 'standard',
+      'releaseTarget': 'app:assembleRelease',
   },
   # This does not build yet.
   'muzei': {
@@ -225,8 +227,10 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   env = os.environ.copy()
   env['ANDROID_HOME'] = android_home
   env['JAVA_OPTS'] = '-ea'
-  releaseTarget = app_module + ':' + 'assemble' + (
-      flavor.capitalize() if flavor else '') + 'Release'
+  releaseTarget = config.get('releaseTarget')
+  if not releaseTarget:
+    releaseTarget = app_module + ':' + 'assemble' + (
+        flavor.capitalize() if flavor else '') + 'Release'
 
   cmd = ['./gradlew', '--no-daemon', 'clean', releaseTarget, '--stacktrace']
   utils.PrintCmd(cmd)
