@@ -1119,11 +1119,21 @@ public class RootSetBuilder {
       for (DexProgramClass clazz : application.classes()) {
         Set<DexDefinition> requiredDefinitions =
             requiredDefinitionsPerType.getOrDefault(clazz.type, ImmutableSet.of());
+
+        Set<DexField> fields = null;
+        Set<DexMethod> methods = null;
+
         for (DexDefinition requiredDefinition : requiredDefinitions) {
           if (requiredDefinition.isDexEncodedField()) {
             DexEncodedField requiredField = requiredDefinition.asDexEncodedField();
-            assert Streams.stream(clazz.fields())
-                .anyMatch(field -> field.field == requiredField.field);
+            if (fields == null) {
+              // Create a Set of the fields to avoid quadratic behavior.
+              fields =
+                  Streams.stream(clazz.fields())
+                      .map(DexEncodedField::getKey)
+                      .collect(Collectors.toSet());
+            }
+            assert fields.contains(requiredField.field);
           } else if (requiredDefinition.isDexEncodedMethod()) {
             DexEncodedMethod requiredMethod = requiredDefinition.asDexEncodedMethod();
             if (isInterfaceMethodDesugaringEnabled) {
@@ -1133,8 +1143,14 @@ public class RootSetBuilder {
                 continue;
               }
             }
-            assert Streams.stream(clazz.methods())
-                .anyMatch(method -> method.method == requiredMethod.method);
+            if (methods == null) {
+              // Create a Set of the methods to avoid quadratic behavior.
+              methods =
+                  Streams.stream(clazz.methods())
+                      .map(DexEncodedMethod::getKey)
+                      .collect(Collectors.toSet());
+            }
+            assert methods.contains(requiredMethod.method);
           } else {
             assert false;
           }
