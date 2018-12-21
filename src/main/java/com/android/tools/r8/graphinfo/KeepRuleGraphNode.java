@@ -16,6 +16,7 @@ public final class KeepRuleGraphNode extends GraphNode {
   private final ProguardKeepRule rule;
 
   public KeepRuleGraphNode(ProguardKeepRule rule) {
+    super(false);
     assert rule != null;
     this.rule = rule;
   }
@@ -49,7 +50,7 @@ public final class KeepRuleGraphNode extends GraphNode {
    * {@code <keep-rule-file>:<keep-rule-start-line>:<keep-rule-start-column>}.
    */
   @Override
-  public String identity() {
+  public String toString() {
     return (getOrigin() == Origin.unknown() ? getContent() : getOrigin())
         + ":"
         + shortPositionInfo(getPosition());

@@ -43,13 +43,13 @@ public final class Reference {
   private final ConcurrentMap<String, ArrayReference> arrays =
       new MapMaker().weakValues().makeMap();
 
-  // Weak set (via map) of method references. Both keys and values are weak.
+  // Weak map of method references. Keys are strong and must not be identical to the value.
   private final ConcurrentMap<MethodReference, MethodReference> methods =
-      new MapMaker().weakKeys().weakValues().makeMap();
+      new MapMaker().weakValues().makeMap();
 
-  // Weak set (via map) of field references. Both keys and values are weak.
+  // Weak map of field references. Keys are strong and must not be identical to the value.
   private final ConcurrentMap<FieldReference, FieldReference> fields =
-      new MapMaker().weakKeys().weakValues().makeMap();
+      new MapMaker().weakValues().makeMap();
 
   private Reference() {
     // Intentionally hidden.
@@ -122,12 +122,13 @@ public final class Reference {
       ImmutableList<TypeReference> formalTypes,
       TypeReference returnType) {
     MethodReference key = new MethodReference(holderClass, methodName, formalTypes, returnType);
-    MethodReference reference = getInstance().methods.get(key);
-    if (reference != null) {
-      return reference;
-    }
-    getInstance().methods.put(key, key);
-    return key;
+    return getInstance().methods.computeIfAbsent(key,
+        // Allocate a distinct value for the canonical reference so the key is not a strong pointer.
+        k -> new MethodReference(
+            k.getHolderClass(),
+            k.getMethodName(),
+            (ImmutableList<TypeReference>) k.getFormalTypes(),
+            k.getReturnType()));
   }
 
   /** Get a method reference from a Java reflection method. */
@@ -141,19 +142,19 @@ public final class Reference {
       builder.add(typeFromClass(parameterType));
     }
     return method(
-        classFromClass(holderClass), methodName, builder.build(), typeFromClass(returnType));
+        classFromClass(holderClass),
+        methodName,
+        builder.build(),
+        returnType == Void.TYPE ? null : typeFromClass(returnType));
   }
 
   /** Get a field reference from its full reference specification. */
   public static FieldReference field(
       ClassReference holderClass, String fieldName, TypeReference fieldType) {
     FieldReference key = new FieldReference(holderClass, fieldName, fieldType);
-    FieldReference reference = getInstance().fields.get(key);
-    if (reference != null) {
-      return reference;
-    }
-    getInstance().fields.put(key, key);
-    return key;
+    return getInstance().fields.computeIfAbsent(key,
+        // Allocate a distinct value for the canonical reference so the key is not a strong pointer.
+        k -> new FieldReference(k.getHolderClass(), k.getFieldName(), k.getFieldType()));
   }
 
   /** Get a field reference from a Java reflection field. */

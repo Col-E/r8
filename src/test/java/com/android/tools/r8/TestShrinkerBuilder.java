@@ -5,6 +5,8 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
@@ -70,5 +72,32 @@ public abstract class TestShrinkerBuilder<
             "-keep class " + mainClass + " {",
             "  public static void main(java.lang.String[]);",
             "}"));
+  }
+
+  public T addKeepMethodRules(MethodReference... methods) {
+    for (MethodReference method : methods) {
+      addKeepRules(
+          "-keep class "
+              + method.getHolderClass().getTypeName()
+              + " { "
+              + getMethodLine(method)
+              + " }");
+    }
+    return self();
+  }
+
+  private static String getMethodLine(MethodReference method) {
+    // Should we encode modifiers in method references?
+    StringBuilder builder = new StringBuilder();
+    builder.append(method.getMethodName()).append("(");
+    boolean first = true;
+    for (TypeReference parameterType : method.getFormalTypes()) {
+      if (!first) {
+        builder.append(", ");
+      }
+      builder.append(parameterType.getTypeName());
+      first = false;
+    }
+    return builder.append(");").toString();
   }
 }

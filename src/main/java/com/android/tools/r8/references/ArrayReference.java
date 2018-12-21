@@ -48,7 +48,7 @@ public final class ArrayReference implements TypeReference {
   }
 
   @Override
-  public String toDescriptor() {
+  public String getDescriptor() {
     return descriptor;
   }
 

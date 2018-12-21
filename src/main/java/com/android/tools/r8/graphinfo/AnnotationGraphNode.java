@@ -4,41 +4,35 @@
 package com.android.tools.r8.graphinfo;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.graph.DexItem;
 
 @Keep
 public final class AnnotationGraphNode extends GraphNode {
 
-  private final DexItem annotatedItem;
+  private final GraphNode annotatedNode;
 
-  public AnnotationGraphNode(DexItem annotatedItem) {
-    assert annotatedItem != null;
-    this.annotatedItem = annotatedItem;
+  public AnnotationGraphNode(GraphNode annotatedNode) {
+    super(annotatedNode.isLibraryNode());
+    this.annotatedNode = annotatedNode;
+  }
+
+  public GraphNode getAnnotatedNode() {
+    return annotatedNode;
   }
 
   @Override
   public boolean equals(Object o) {
     return this == o
         || (o instanceof AnnotationGraphNode
-            && ((AnnotationGraphNode) o).annotatedItem == annotatedItem);
+            && ((AnnotationGraphNode) o).annotatedNode.equals(annotatedNode));
   }
 
   @Override
   public int hashCode() {
-    return annotatedItem.hashCode();
+    return 7 * annotatedNode.hashCode();
   }
 
-  public String getDescriptor() {
-    return annotatedItem.toSourceString();
-  }
-
-  /**
-   * Get a unique identity string determining this annotated-item node.
-   *
-   * <p>This is the descriptor of the concrete node type.
-   */
   @Override
-  public String identity() {
-    return getDescriptor();
+  public String toString() {
+    return "annotated " + annotatedNode.toString();
   }
 }

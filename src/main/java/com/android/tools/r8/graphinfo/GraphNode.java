@@ -8,7 +8,15 @@ import com.android.tools.r8.Keep;
 @Keep
 public abstract class GraphNode {
 
-  public abstract String identity();
+  private final boolean isLibraryNode;
+
+  public GraphNode(boolean isLibraryNode) {
+    this.isLibraryNode = isLibraryNode;
+  }
+
+  public boolean isLibraryNode() {
+    return isLibraryNode;
+  }
 
   @Override
   public abstract boolean equals(Object o);
@@ -17,7 +25,5 @@ public abstract class GraphNode {
   public abstract int hashCode();
 
   @Override
-  public String toString() {
-    return identity();
-  }
+  public abstract String toString();
 }

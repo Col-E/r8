@@ -9,6 +9,7 @@ import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotatio
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -52,6 +53,8 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.IfRuleEvaluator;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -59,6 +62,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -2757,7 +2761,11 @@ public class Enqueuer {
   }
 
   private void registerEdge(GraphNode target, KeepReason reason) {
-    keptGraphConsumer.acceptEdge(getSourceNode(reason), target, getEdgeInfo(reason));
+    GraphNode sourceNode = getSourceNode(reason);
+    // TODO(b/120959039): Make sure we do have edges to nodes deriving library nodes!
+    if (!sourceNode.isLibraryNode()) {
+      keptGraphConsumer.acceptEdge(sourceNode, target, getEdgeInfo(reason));
+    }
   }
 
   private GraphNode getSourceNode(KeepReason reason) {
@@ -2782,19 +2790,52 @@ public class Enqueuer {
   }
 
   AnnotationGraphNode getAnnotationGraphNode(DexItem type) {
-    return annotationNodes.computeIfAbsent(type, AnnotationGraphNode::new);
+    return annotationNodes.computeIfAbsent(type, t -> {
+      if (t instanceof DexType) {
+        return new AnnotationGraphNode(getClassGraphNode(((DexType) t)));
+      }
+      throw new Unimplemented("Incomplete support for annotation node on item: " + type.getClass());
+    });
   }
 
   ClassGraphNode getClassGraphNode(DexType type) {
-    return classNodes.computeIfAbsent(type, ClassGraphNode::new);
+    return classNodes.computeIfAbsent(type,
+        t -> new ClassGraphNode(
+            appInfo.definitionFor(type).isLibraryClass(),
+            Reference.classFromDescriptor(t.toDescriptorString())));
   }
 
   MethodGraphNode getMethodGraphNode(DexMethod context) {
-    return methodNodes.computeIfAbsent(context, MethodGraphNode::new);
+    return methodNodes.computeIfAbsent(
+        context,
+        m -> {
+          boolean isLibraryNode = appInfo.definitionFor(context.holder).isLibraryClass();
+          Builder<TypeReference> builder = ImmutableList.builder();
+          for (DexType param : m.proto.parameters.values) {
+            builder.add(Reference.typeFromDescriptor(param.toDescriptorString()));
+          }
+          return new MethodGraphNode(
+              isLibraryNode,
+              Reference.method(
+                  Reference.classFromDescriptor(m.holder.toDescriptorString()),
+                  m.name.toString(),
+                  builder.build(),
+                  m.proto.returnType.isVoidType()
+                      ? null
+                      : Reference.typeFromDescriptor(m.proto.returnType.toDescriptorString())));
+        });
   }
 
   FieldGraphNode getFieldGraphNode(DexField context) {
-    return fieldNodes.computeIfAbsent(context, FieldGraphNode::new);
+    return fieldNodes.computeIfAbsent(
+        context,
+        f ->
+            new FieldGraphNode(
+                appInfo.definitionFor(context.getHolder()).isLibraryClass(),
+                Reference.field(
+                    Reference.classFromDescriptor(f.getHolder().toDescriptorString()),
+                    f.name.toString(),
+                    Reference.typeFromDescriptor(f.type.toDescriptorString()))));
   }
 
   KeepRuleGraphNode getKeepRuleGraphNode(ProguardKeepRule rule) {

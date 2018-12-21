@@ -4,6 +4,7 @@
 package com.android.tools.r8.references;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.utils.DescriptorUtils;
 
 @Keep
 public interface TypeReference {
@@ -13,7 +14,7 @@ public interface TypeReference {
    *
    * @return The descriptor for the type.
    */
-  String toDescriptor();
+  String getDescriptor();
 
   /** Predicate that is true iff the TypeReference is an instance of ClassTypeReference. */
   default boolean isClass() {
@@ -28,5 +29,9 @@ public interface TypeReference {
   /** Predicate that is true iff the TypeReference is an instance of PrimitiveTypeReference. */
   default boolean isPrimitive() {
     return false;
+  }
+
+  default String getTypeName() {
+    return DescriptorUtils.descriptorToJavaType(getDescriptor());
   }
 }

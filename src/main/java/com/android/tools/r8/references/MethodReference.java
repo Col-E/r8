@@ -4,6 +4,9 @@
 package com.android.tools.r8.references;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
@@ -29,7 +32,6 @@ public final class MethodReference {
     assert holderClass != null;
     assert methodName != null;
     assert formalTypes != null;
-    assert returnType != null;
     this.holderClass = holderClass;
     this.methodName = methodName;
     this.formalTypes = formalTypes;
@@ -73,5 +75,16 @@ public final class MethodReference {
   @Override
   public int hashCode() {
     return Objects.hash(holderClass, methodName, formalTypes, returnType);
+  }
+
+  public String toDescriptor() {
+    return StringUtils.join(
+            ListUtils.map(getFormalTypes(), TypeReference::getDescriptor), "", BraceType.PARENS)
+        + (getReturnType() == null ? "V" : getReturnType().getDescriptor());
+  }
+
+  @Override
+  public String toString() {
+    return getHolderClass().toString() + getMethodName() + toDescriptor();
   }
 }

@@ -12,28 +12,35 @@ import com.android.tools.r8.graphinfo.GraphEdgeInfo.EdgeKind;
 import com.android.tools.r8.graphinfo.GraphNode;
 import com.android.tools.r8.graphinfo.KeepRuleGraphNode;
 import com.android.tools.r8.graphinfo.MethodGraphNode;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class WhyAreYouKeepingConsumer implements GraphConsumer {
+/**
+ * Implementation of the whyareyoukeeping rule using an R8 kept-graph consumer.
+ *
+ * <p>This class is not intended for public use and clients should define their own consumer
+ * instead.
+ */
+public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
 
   // Single-linked path description when BF searching for a path.
   private static class GraphPath {
@@ -47,37 +54,50 @@ public class WhyAreYouKeepingConsumer implements GraphConsumer {
     }
   }
 
-  // Possible sub-consumer that is also inspecting the kept-graph.
-  private final GraphConsumer subConsumer;
-
-  // Directional map backwards from targets to direct sources.
-  private final Map<GraphNode, Map<GraphNode, Set<GraphEdgeInfo>>> target2sources =
-      new IdentityHashMap<>();
-
   public WhyAreYouKeepingConsumer(GraphConsumer subConsumer) {
-    this.subConsumer = subConsumer;
+    super(subConsumer);
   }
 
-  @Override
-  public void acceptEdge(GraphNode source, GraphNode target, GraphEdgeInfo info) {
-    target2sources
-        .computeIfAbsent(target, k -> new IdentityHashMap<>())
-        .computeIfAbsent(source, k -> new HashSet<>())
-        .add(info);
-    if (subConsumer != null) {
-      subConsumer.acceptEdge(source, target, info);
-    }
-  }
-
-  /** Print the shortest path from a root to a node in the graph. */
-  public void printWhyAreYouKeeping(ClassReference clazz, PrintStream out) {
-    for (GraphNode node : target2sources.keySet()) {
-      if (node.identity().equals(clazz.toDescriptor())) {
-        printWhyAreYouKeeping(node, out);
-        return;
+  public ClassGraphNode getClassNode(ClassReference clazz) {
+    for (GraphNode node : getTargets()) {
+      if (node instanceof ClassGraphNode && ((ClassGraphNode) node).getReference() == clazz) {
+        return (ClassGraphNode) node;
       }
     }
-    printNothingKeeping(clazz, out);
+    return null;
+  }
+
+  public MethodGraphNode getMethodNode(MethodReference method) {
+    for (GraphNode node : getTargets()) {
+      if (node instanceof MethodGraphNode && ((MethodGraphNode) node).getReference() == method) {
+        return (MethodGraphNode) node;
+      }
+    }
+    return null;
+  }
+
+  public FieldGraphNode getFieldNode(FieldReference field) {
+    for (GraphNode node : getTargets()) {
+      if (node instanceof FieldGraphNode && ((FieldGraphNode) node).getReference() == field) {
+        return (FieldGraphNode) node;
+      }
+    }
+    return null;
+  }
+
+  public void printWhyAreYouKeeping(ClassReference reference, PrintStream out) {
+    ClassGraphNode node = getClassNode(reference);
+    printWhyAreYouKeeping(node != null ? node : new ClassGraphNode(false, reference), out);
+  }
+
+  public void printWhyAreYouKeeping(MethodReference reference, PrintStream out) {
+    MethodGraphNode node = getMethodNode(reference);
+    printWhyAreYouKeeping(node != null ? node : new MethodGraphNode(false, reference), out);
+  }
+
+  public void printWhyAreYouKeeping(FieldReference reference, PrintStream out) {
+    FieldGraphNode node = getFieldNode(reference);
+    printWhyAreYouKeeping(node != null ? node : new FieldGraphNode(false, reference), out);
   }
 
   public void printWhyAreYouKeeping(GraphNode node, PrintStream out) {
@@ -102,13 +122,16 @@ public class WhyAreYouKeepingConsumer implements GraphConsumer {
 
   private void printNothingKeeping(ClassReference clazz, PrintStream out) {
     out.print("Nothing is keeping ");
-    out.println(DescriptorUtils.descriptorToJavaType(clazz.toDescriptor()));
+    out.println(DescriptorUtils.descriptorToJavaType(clazz.getDescriptor()));
   }
 
-  private List<Pair<GraphNode, GraphEdgeInfo>> findShortestPathTo(final GraphNode node) {
+  public List<Pair<GraphNode, GraphEdgeInfo>> findShortestPathTo(final GraphNode node) {
+    if (node == null) {
+      return null;
+    }
     Deque<GraphPath> queue;
     {
-      Map<GraphNode, Set<GraphEdgeInfo>> sources = target2sources.get(node);
+      Map<GraphNode, Set<GraphEdgeInfo>> sources = getSourcesTargeting(node);
       if (sources == null) {
         // The node is not targeted at all (it is not reachable).
         return null;
@@ -121,7 +144,7 @@ public class WhyAreYouKeepingConsumer implements GraphConsumer {
     Map<GraphNode, GraphNode> seen = new IdentityHashMap<>();
     while (!queue.isEmpty()) {
       GraphPath path = queue.removeFirst();
-      Map<GraphNode, Set<GraphEdgeInfo>> sources = target2sources.get(path.node);
+      Map<GraphNode, Set<GraphEdgeInfo>> sources = getSourcesTargeting(path.node);
       if (sources == null) {
         return getCanonicalPath(path, node);
       }
@@ -144,11 +167,11 @@ public class WhyAreYouKeepingConsumer implements GraphConsumer {
     while (path.path != null) {
       GraphNode source = path.node;
       GraphNode target = path.path.node;
-      Set<GraphEdgeInfo> infos = target2sources.get(target).get(source);
+      Set<GraphEdgeInfo> infos = getSourcesTargeting(target).get(source);
       canonical.add(new Pair<>(source, getCanonicalInfo(infos)));
       path = path.path;
     }
-    Set<GraphEdgeInfo> infos = target2sources.get(endTarget).get(path.node);
+    Set<GraphEdgeInfo> infos = getSourcesTargeting(endTarget).get(path.node);
     canonical.add(new Pair<>(path.node, getCanonicalInfo(infos)));
     return canonical;
   }
@@ -201,27 +224,28 @@ public class WhyAreYouKeepingConsumer implements GraphConsumer {
 
   private String getNodeString(GraphNode node) {
     if (node instanceof ClassGraphNode) {
-      return DescriptorUtils.descriptorToJavaType(((ClassGraphNode) node).getDescriptor());
+      return DescriptorUtils.descriptorToJavaType(
+          ((ClassGraphNode) node).getReference().getDescriptor());
     }
     if (node instanceof MethodGraphNode) {
-      MethodGraphNode methodNode = (MethodGraphNode) node;
-      MethodSignature signature =
-          MethodSignature.fromSignature(
-              methodNode.getMethodName(), methodNode.getMethodDescriptor());
-      return signature.type
+      MethodReference method = ((MethodGraphNode) node).getReference();
+      return (method.getReturnType() == null ? "void" : method.getReturnType().getTypeName())
           + ' '
-          + DescriptorUtils.descriptorToJavaType(methodNode.getHolderDescriptor())
+          + method.getHolderClass().getTypeName()
           + '.'
-          + methodNode.getMethodName()
-          + StringUtils.join(Arrays.asList(signature.parameters), ",", BraceType.PARENS);
+          + method.getMethodName()
+          + StringUtils.join(
+              ListUtils.map(method.getFormalTypes(), TypeReference::getTypeName),
+              ",",
+              BraceType.PARENS);
     }
     if (node instanceof FieldGraphNode) {
-      FieldGraphNode fieldNode = (FieldGraphNode) node;
-      return DescriptorUtils.descriptorToJavaType(fieldNode.getFieldDescriptor())
+      FieldReference field = ((FieldGraphNode) node).getReference();
+      return field.getFieldType().getTypeName()
           + ' '
-          + DescriptorUtils.descriptorToJavaType(fieldNode.getHolderDescriptor())
+          + field.getHolderClass().getTypeName()
           + '.'
-          + fieldNode.getFieldName();
+          + field.getFieldName();
     }
     if (node instanceof KeepRuleGraphNode) {
       KeepRuleGraphNode keepRuleNode = (KeepRuleGraphNode) node;

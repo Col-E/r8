@@ -25,7 +25,7 @@ public final class ClassReference implements TypeReference {
   }
 
   @Override
-  public String toDescriptor() {
+  public String getDescriptor() {
     return descriptor;
   }
 
@@ -37,5 +37,10 @@ public final class ClassReference implements TypeReference {
   @Override
   public int hashCode() {
     return System.identityHashCode(this);
+  }
+
+  @Override
+  public String toString() {
+    return getDescriptor();
   }
 }

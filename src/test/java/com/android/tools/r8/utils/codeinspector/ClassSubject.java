@@ -6,7 +6,10 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.smali.SmaliBuilder;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -21,6 +24,13 @@ public abstract class ClassSubject extends Subject {
     ImmutableList.Builder<FoundMethodSubject> builder = ImmutableList.builder();
     forAllMethods(builder::add);
     return builder.build();
+  }
+
+  public MethodSubject method(MethodReference method) {
+    return method(
+        (method.getReturnType() == null ? "void" : method.getReturnType().getTypeName()),
+        method.getMethodName(),
+        ListUtils.map(method.getFormalTypes(), TypeReference::getTypeName));
   }
 
   public MethodSubject method(Method method) {

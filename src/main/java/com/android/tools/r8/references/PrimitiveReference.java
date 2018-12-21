@@ -12,7 +12,7 @@ public abstract class PrimitiveReference implements TypeReference {
   static final PrimitiveReference BOOL =
       new PrimitiveReference() {
         @Override
-        public String toDescriptor() {
+        public String getDescriptor() {
           return "Z";
         }
       };
@@ -20,7 +20,7 @@ public abstract class PrimitiveReference implements TypeReference {
   static final PrimitiveReference BYTE =
       new PrimitiveReference() {
         @Override
-        public String toDescriptor() {
+        public String getDescriptor() {
           return "B";
         }
       };
@@ -28,7 +28,7 @@ public abstract class PrimitiveReference implements TypeReference {
   static final PrimitiveReference CHAR =
       new PrimitiveReference() {
         @Override
-        public String toDescriptor() {
+        public String getDescriptor() {
           return "C";
         }
       };
@@ -36,7 +36,7 @@ public abstract class PrimitiveReference implements TypeReference {
   static final PrimitiveReference SHORT =
       new PrimitiveReference() {
         @Override
-        public String toDescriptor() {
+        public String getDescriptor() {
           return "S";
         }
       };
@@ -44,7 +44,7 @@ public abstract class PrimitiveReference implements TypeReference {
   static final PrimitiveReference INT =
       new PrimitiveReference() {
         @Override
-        public String toDescriptor() {
+        public String getDescriptor() {
           return "I";
         }
       };
@@ -52,7 +52,7 @@ public abstract class PrimitiveReference implements TypeReference {
   static final PrimitiveReference FLOAT =
       new PrimitiveReference() {
         @Override
-        public String toDescriptor() {
+        public String getDescriptor() {
           return "F";
         }
       };
@@ -60,7 +60,7 @@ public abstract class PrimitiveReference implements TypeReference {
   static final PrimitiveReference LONG =
       new PrimitiveReference() {
         @Override
-        public String toDescriptor() {
+        public String getDescriptor() {
           return "J";
         }
       };
@@ -68,7 +68,7 @@ public abstract class PrimitiveReference implements TypeReference {
   static final PrimitiveReference DOUBLE =
       new PrimitiveReference() {
         @Override
-        public String toDescriptor() {
+        public String getDescriptor() {
           return "D";
         }
       };
@@ -88,6 +88,8 @@ public abstract class PrimitiveReference implements TypeReference {
         return SHORT;
       case 'I':
         return INT;
+      case 'F':
+        return FLOAT;
       case 'J':
         return LONG;
       case 'D':
@@ -103,7 +105,7 @@ public abstract class PrimitiveReference implements TypeReference {
   }
 
   @Override
-  public abstract String toDescriptor();
+  public abstract String getDescriptor();
 
   @Override
   public boolean equals(Object o) {

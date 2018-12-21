@@ -4,39 +4,36 @@
 package com.android.tools.r8.graphinfo;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.references.ClassReference;
 
 @Keep
 public final class ClassGraphNode extends GraphNode {
 
-  private final DexType clazz;
+  private final ClassReference reference;
 
-  public ClassGraphNode(DexType clazz) {
-    assert clazz != null;
-    this.clazz = clazz;
+  public ClassGraphNode(boolean isLibraryNode, ClassReference reference) {
+    super(isLibraryNode);
+    assert reference != null;
+    this.reference = reference;
+  }
+
+  public ClassReference getReference() {
+    return reference;
   }
 
   @Override
   public boolean equals(Object o) {
-    return this == o || (o instanceof ClassGraphNode && ((ClassGraphNode) o).clazz == clazz);
+    return this == o
+        || (o instanceof ClassGraphNode && ((ClassGraphNode) o).reference == reference);
   }
 
   @Override
   public int hashCode() {
-    return clazz.hashCode();
+    return reference.hashCode();
   }
 
-  public String getDescriptor() {
-    return clazz.toDescriptorString();
-  }
-
-  /**
-   * Get a unique identity string determining this clazz node.
-   *
-   * <p>This is just the class descriptor.
-   */
   @Override
-  public String identity() {
-    return getDescriptor();
+  public String toString() {
+    return reference.getDescriptor();
   }
 }

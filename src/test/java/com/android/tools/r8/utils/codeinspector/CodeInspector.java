@@ -27,6 +27,9 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -223,11 +226,17 @@ public class CodeInspector {
   }
 
   public ClassSubject clazz(Class clazz) {
-    return clazz(clazz.getTypeName());
+    return clazz(Reference.classFromClass(clazz));
   }
 
   /** Lookup a class by name. This allows both original and obfuscated names. */
   public ClassSubject clazz(String name) {
+    return clazz(Reference.classFromTypeName(name));
+  }
+
+  public ClassSubject clazz(ClassReference reference) {
+    String descriptor = reference.getDescriptor();
+    String name = DescriptorUtils.descriptorToJavaType(descriptor);
     ClassNamingForNameMapper naming = null;
     if (mapping != null) {
       String obfuscated = originalToObfuscatedMapping.get(name);
@@ -266,8 +275,14 @@ public class CodeInspector {
     return builder.build();
   }
 
+
+
   public MethodSubject method(Method method) {
-    ClassSubject clazz = clazz(method.getDeclaringClass());
+    return method(Reference.methodFromMethod(method));
+  }
+
+  public MethodSubject method(MethodReference method) {
+    ClassSubject clazz = clazz(method.getHolderClass());
     if (!clazz.isPresent()) {
       return new AbsentMethodSubject();
     }

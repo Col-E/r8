@@ -4,64 +4,36 @@
 package com.android.tools.r8.graphinfo;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.references.MethodReference;
 
 @Keep
 public final class MethodGraphNode extends GraphNode {
 
-  private final DexMethod method;
+  private final MethodReference reference;
 
-  public MethodGraphNode(DexMethod method) {
-    assert method != null;
-    this.method = method;
+  public MethodGraphNode(boolean isLibraryNode, MethodReference reference) {
+    super(isLibraryNode);
+    assert reference != null;
+    this.reference = reference;
+  }
+
+  public MethodReference getReference() {
+    return reference;
   }
 
   @Override
   public boolean equals(Object o) {
-    return this == o || (o instanceof MethodGraphNode && ((MethodGraphNode) o).method == method);
+    return this == o
+        || (o instanceof MethodGraphNode && ((MethodGraphNode) o).reference == reference);
   }
 
   @Override
   public int hashCode() {
-    return method.hashCode();
+    return reference.hashCode();
   }
 
-  /**
-   * Get the class descriptor for the method holder as defined by the JVM specification.
-   *
-   * <p>For the method {@code void a.b.C.foo(x.y.Z arg)}, this would be {@code La/b/C;}.
-   */
-  public String getHolderDescriptor() {
-    return method.holder.toDescriptorString();
-  }
-
-  /**
-   * Get the method descriptor as defined by the JVM specification.
-   *
-   * <p>For the method {@code void a.b.C.foo(x.y.Z arg)}, this would be {@code (Lx/y/Z;)V}.
-   */
-  public String getMethodDescriptor() {
-    return method.proto.toDescriptorString();
-  }
-
-  /**
-   * Get the (unqualified) method name.
-   *
-   * <p>For the method {@code void a.b.C.foo(x.y.Z arg)} this would be {@code foo}.
-   */
-  public String getMethodName() {
-    return method.name.toString();
-  }
-
-  /**
-   * Get a unique identity string determining this method node.
-   *
-   * <p>The identity string follows the CF encoding of a method reference:
-   * {@code <holder-descriptor><method-name><method-descriptor>}, e.g., for
-   * {@code void a.b.C.foo(x.y.Z arg)} this will be {@code La/b/C;foo(Lx/y/Z;)V}.
-   */
   @Override
-  public String identity() {
-    return getHolderDescriptor() + getMethodName() + getMethodDescriptor();
+  public String toString() {
+    return reference.toString();
   }
 }
