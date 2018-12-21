@@ -40,6 +40,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -47,6 +48,12 @@ import java.util.function.Function;
  * Basic block abstraction.
  */
 public class BasicBlock {
+
+  public interface BasicBlockChangeListener {
+    void onSuccessorsMayChange(BasicBlock block);
+
+    void onPredecessorsMayChange(BasicBlock block);
+  }
 
   private Int2ReferenceMap<DebugLocalInfo> localsAtEntry;
 
@@ -130,6 +137,8 @@ public class BasicBlock {
   private final List<BasicBlock> successors = new ArrayList<>();
   private final List<BasicBlock> predecessors = new ArrayList<>();
 
+  private Set<BasicBlockChangeListener> onControlFlowEdgesMayChangeListeners = null;
+
   // Catch handler information about which successors are catch handlers and what their guards are.
   private CatchHandlers<Integer> catchHandlers = CatchHandlers.EMPTY_INDICES;
 
@@ -159,12 +168,28 @@ public class BasicBlock {
   // Map of registers to current SSA value. Used during SSA numbering and cleared once filled.
   private Map<Integer, Value> currentDefinitions = new HashMap<>();
 
+  public void addControlFlowEdgesMayChangeListener(BasicBlockChangeListener listener) {
+    if (onControlFlowEdgesMayChangeListeners == null) {
+      // WeakSet to allow the listeners to be garbage collected.
+      onControlFlowEdgesMayChangeListeners = Collections.newSetFromMap(new WeakHashMap<>());
+    }
+    onControlFlowEdgesMayChangeListeners.add(listener);
+  }
+
   public List<BasicBlock> getSuccessors() {
     return Collections.unmodifiableList(successors);
   }
 
   public List<BasicBlock> getMutableSuccessors() {
+    assert notifySuccessorsMayChangeListeners();
     return successors;
+  }
+
+  private boolean notifySuccessorsMayChangeListeners() {
+    if (onControlFlowEdgesMayChangeListeners != null) {
+      onControlFlowEdgesMayChangeListeners.forEach(l -> l.onSuccessorsMayChange(this));
+    }
+    return true;
   }
 
   public List<BasicBlock> getNormalSuccessors() {
@@ -186,7 +211,15 @@ public class BasicBlock {
   }
 
   public List<BasicBlock> getMutablePredecessors() {
+    assert notifyPredecessorsMayChangeListeners();
     return predecessors;
+  }
+
+  private boolean notifyPredecessorsMayChangeListeners() {
+    if (onControlFlowEdgesMayChangeListeners != null) {
+      onControlFlowEdgesMayChangeListeners.forEach(l -> l.onPredecessorsMayChange(this));
+    }
+    return true;
   }
 
   public List<BasicBlock> getNormalPredecessors() {
@@ -208,7 +241,7 @@ public class BasicBlock {
   public void removePredecessor(BasicBlock block) {
     int index = predecessors.indexOf(block);
     assert index >= 0 : "removePredecessor did not find the predecessor to remove";
-    predecessors.remove(index);
+    getMutablePredecessors().remove(index);
     if (phis != null) {
       for (Phi phi : getPhis()) {
         phi.removeOperand(index);
@@ -249,6 +282,7 @@ public class BasicBlock {
       }
       catchHandlers = new CatchHandlers<>(catchHandlers.getGuards(), targets);
     }
+    List<BasicBlock> successors = getMutableSuccessors();
     BasicBlock tmp = successors.get(index1);
     successors.set(index1, successors.get(index2));
     successors.set(index2, tmp);
@@ -335,14 +369,14 @@ public class BasicBlock {
       }
 
       // Remove the replaced successor.
-      boolean removed = successors.remove(block);
+      boolean removed = getMutableSuccessors().remove(block);
       assert removed;
     } else {
       // If the new block is not a successor we don't have to rewrite indices or instructions
       // and we can just replace the old successor with the new one.
       for (int i = 0; i < successors.size(); i++) {
         if (successors.get(i) == block) {
-          successors.set(i, newBlock);
+          getMutableSuccessors().set(i, newBlock);
           return;
         }
       }
@@ -366,7 +400,8 @@ public class BasicBlock {
   public void replacePredecessor(BasicBlock block, BasicBlock newBlock) {
     for (int i = 0; i < predecessors.size(); i++) {
       if (predecessors.get(i) == block) {
-        predecessors.set(i, newBlock);
+        assert notifyPredecessorsMayChangeListeners();
+        getMutablePredecessors().set(i, newBlock);
         return;
       }
     }
@@ -378,6 +413,7 @@ public class BasicBlock {
       return;
     }
     assert ListUtils.verifyListIsOrdered(successorsToRemove);
+    List<BasicBlock> successors = getMutableSuccessors();
     List<BasicBlock> copy = new ArrayList<>(successors);
     successors.clear();
     int current = 0;
@@ -426,6 +462,7 @@ public class BasicBlock {
     if (predecessorsToRemove.isEmpty()) {
       return;
     }
+    List<BasicBlock> predecessors = getMutablePredecessors();
     List<BasicBlock> copy = new ArrayList<>(predecessors);
     predecessors.clear();
     int current = 0;
@@ -592,24 +629,16 @@ public class BasicBlock {
   public void link(BasicBlock successor) {
     assert !successors.contains(successor);
     assert !successor.predecessors.contains(this);
-    successors.add(successor);
-    successor.predecessors.add(this);
-  }
-
-  private static boolean allPredecessorsDominated(BasicBlock block, DominatorTree dominator) {
-    for (BasicBlock pred : block.predecessors) {
-      if (!dominator.dominatedBy(pred, block)) {
-        return false;
-      }
-    }
-    return true;
+    getMutableSuccessors().add(successor);
+    successor.getMutablePredecessors().add(this);
   }
 
   private static boolean blocksClean(List<BasicBlock> blocks) {
-    blocks.forEach((b) -> {
-      assert b.predecessors.size() == 0;
-      assert b.successors.size() == 0;
-    });
+    blocks.forEach(
+        b -> {
+          assert b.predecessors.size() == 0;
+          assert b.successors.size() == 0;
+        });
     return true;
   }
 
@@ -622,8 +651,8 @@ public class BasicBlock {
     assert predecessors.size() == 1;
     assert predecessors.get(0).successors.size() == 1;
     BasicBlock unlinkedBlock = predecessors.get(0);
-    unlinkedBlock.successors.clear();
-    predecessors.clear();
+    unlinkedBlock.getMutableSuccessors().clear();
+    getMutablePredecessors().clear();
     return unlinkedBlock;
   }
 
@@ -631,8 +660,9 @@ public class BasicBlock {
   public void unlinkSinglePredecessorSiblingsAllowed() {
     assert predecessors.size() == 1; // There are no critical edges.
     assert predecessors.get(0).successors.contains(this);
-    predecessors.get(0).successors.remove(this);
-    predecessors.clear();
+    List<BasicBlock> predecessors = getMutablePredecessors();
+    predecessors.get(0).getMutableSuccessors().remove(this);
+    getMutablePredecessors().clear();
   }
 
   /**
@@ -645,8 +675,8 @@ public class BasicBlock {
     assert successors.size() == 1;
     assert successors.get(0).predecessors.size() == 1;
     BasicBlock unlinkedBlock = successors.get(0);
-    unlinkedBlock.predecessors.clear();
-    successors.clear();
+    unlinkedBlock.getMutablePredecessors().clear();
+    getMutableSuccessors().clear();
     return unlinkedBlock;
   }
 
@@ -659,7 +689,7 @@ public class BasicBlock {
   public void unlinkCatchHandler() {
     assert predecessors.size() == 1;
     predecessors.get(0).removeSuccessor(this);
-    predecessors.clear();
+    getMutablePredecessors().clear();
   }
 
   /**
@@ -691,7 +721,7 @@ public class BasicBlock {
       catchHandlers = catchHandlers.removeGuard(guard);
       if (getCatchHandlers().getAllTargets().stream()
           .noneMatch(target -> target == successors.get(successorIndex))) {
-        successors.remove(successorIndex);
+        getMutableSuccessors().remove(successorIndex);
       }
       assert consistentCatchHandlers();
     }
@@ -712,9 +742,9 @@ public class BasicBlock {
 
   public void detachAllSuccessors() {
     for (BasicBlock successor : successors) {
-      successor.predecessors.remove(this);
+      successor.getMutablePredecessors().remove(this);
     }
-    successors.clear();
+    getMutableSuccessors().clear();
   }
 
   public List<BasicBlock> unlink(BasicBlock successor, DominatorTree dominator) {
@@ -735,11 +765,11 @@ public class BasicBlock {
     for (BasicBlock block : successors) {
       block.removePredecessor(this);
     }
-    successors.clear();
+    getMutableSuccessors().clear();
     for (BasicBlock block : predecessors) {
       block.removeSuccessor(this);
     }
-    predecessors.clear();
+    getMutablePredecessors().clear();
     for (Phi phi : getPhis()) {
       affectValuesBuilder.addAll(phi.affectedValues());
       for (Value operand : phi.getOperands()) {
@@ -778,7 +808,7 @@ public class BasicBlock {
 
   public void addCatchHandler(BasicBlock rethrowBlock, DexType guard) {
     assert !hasCatchHandlers();
-    successors.add(0, rethrowBlock);
+    getMutableSuccessors().add(0, rethrowBlock);
     rethrowBlock.getMutablePredecessors().add(this);
     catchHandlers = new CatchHandlers<>(ImmutableList.of(guard), ImmutableList.of(0));
   }
@@ -1449,11 +1479,11 @@ public class BasicBlock {
     newBlock.setNumber(blockNumber);
 
     // Copy all successors including catch handlers to the new block, and update predecessors.
-    newBlock.successors.addAll(successors);
+    newBlock.getMutableSuccessors().addAll(successors);
     for (BasicBlock successor : newBlock.getSuccessors()) {
       successor.replacePredecessor(this, newBlock);
     }
-    successors.clear();
+    getMutableSuccessors().clear();
     newBlock.catchHandlers = catchHandlers;
     catchHandlers = CatchHandlers.EMPTY_INDICES;
 
@@ -1478,7 +1508,7 @@ public class BasicBlock {
   public void moveCatchHandlers(BasicBlock fromBlock) {
     List<BasicBlock> catchSuccessors = appendCatchHandlers(fromBlock);
     for (BasicBlock successor : catchSuccessors) {
-      fromBlock.successors.remove(successor);
+      fromBlock.getMutableSuccessors().remove(successor);
       successor.removePredecessor(fromBlock);
     }
     fromBlock.catchHandlers = CatchHandlers.EMPTY_INDICES;
@@ -1651,6 +1681,7 @@ public class BasicBlock {
     }
 
     // Create the new successors list and link things up.
+    List<BasicBlock> successors = getMutableSuccessors();
     List<BasicBlock> formerSuccessors = new ArrayList<>(successors);
     successors.clear();
     List<BasicBlock> sharedCatchSuccessors = new ArrayList<>();

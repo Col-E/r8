@@ -6,11 +6,14 @@ package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
+import com.android.tools.r8.ir.code.BasicBlock.BasicBlockChangeListener;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
-public class DominatorTree {
+public class DominatorTree implements BasicBlockChangeListener {
 
   public enum Assumption {
     NO_UNREACHABLE_BLOCKS,
@@ -22,6 +25,8 @@ public class DominatorTree {
   private final BasicBlock normalExitBlock = new BasicBlock();
 
   private final int unreachableStartIndex;
+
+  private boolean obsolete = false;
 
   public DominatorTree(IRCode code) {
     this(code, Assumption.NO_UNREACHABLE_BLOCKS);
@@ -68,12 +73,17 @@ public class DominatorTree {
     }
     numberBlocks();
     build();
+
+    // This is intentionally implemented via an `assert` so that we do not attach listeners to all
+    // basic blocks when running without assertions.
+    assert recordChangesToControlFlowEdges(code.blocks);
   }
 
   /**
    * Get the immediate dominator block for a block.
    */
   public BasicBlock immediateDominator(BasicBlock block) {
+    assert !obsolete;
     return doms[block.getNumber()];
   }
 
@@ -85,6 +95,7 @@ public class DominatorTree {
    * @return wether {@code subject} is dominated by {@code dominator}
    */
   public boolean dominatedBy(BasicBlock subject, BasicBlock dominator) {
+    assert !obsolete;
     if (subject == dominator) {
       return true;
     }
@@ -99,6 +110,7 @@ public class DominatorTree {
    * @return wether {@code subject} is strictly dominated by {@code dominator}
    */
   public boolean strictlyDominatedBy(BasicBlock subject, BasicBlock dominator) {
+    assert !obsolete;
     if (subject.getNumber() == 0 || subject == normalExitBlock) {
       return false;
     }
@@ -121,6 +133,7 @@ public class DominatorTree {
    * @return the closest dominator for the collection of blocks
    */
   public BasicBlock closestDominator(Collection<BasicBlock> blocks) {
+    assert !obsolete;
     if (blocks.size() == 0) {
       return null;
     }
@@ -132,31 +145,17 @@ public class DominatorTree {
     return dominator;
   }
 
-  /** Returns an iterator over all blocks dominated by dominator, including dominator itself. */
-  public Iterable<BasicBlock> dominatedBlocks(BasicBlock dominator) {
-    return () ->
-        new Iterator<BasicBlock>() {
-          private int current = dominator.getNumber();
-
-          @Override
-          public boolean hasNext() {
-            boolean found = false;
-            while (current < unreachableStartIndex
-                && !(found = dominatedBy(sorted[current], dominator))) {
-              current++;
-            }
-            return found && current < unreachableStartIndex;
-          }
-
-          @Override
-          public BasicBlock next() {
-            if (!hasNext()) {
-              return null;
-            } else {
-              return sorted[current++];
-            }
-          }
-        };
+  /** Returns the blocks dominated by dominator, including dominator itself. */
+  public List<BasicBlock> dominatedBlocks(BasicBlock dominator) {
+    assert !obsolete;
+    List<BasicBlock> dominatedBlocks = new ArrayList<>();
+    for (int i = dominator.getNumber(); i < unreachableStartIndex; ++i) {
+      BasicBlock block = sorted[i];
+      if (dominatedBy(block, dominator)) {
+        dominatedBlocks.add(block);
+      }
+    }
+    return dominatedBlocks;
   }
 
   /**
@@ -166,6 +165,7 @@ public class DominatorTree {
    * iteration starts by returning <code>dominated</code>.
    */
   public Iterable<BasicBlock> dominatorBlocks(BasicBlock dominated) {
+    assert !obsolete;
     return () -> new Iterator<BasicBlock>() {
       private BasicBlock current = dominated;
 
@@ -193,6 +193,7 @@ public class DominatorTree {
   }
 
   public Iterable<BasicBlock> normalExitDominatorBlocks() {
+    assert !obsolete;
     return dominatorBlocks(normalExitBlock);
   }
 
@@ -278,5 +279,22 @@ public class DominatorTree {
       builder.append("\n");
     }
     return builder.toString();
+  }
+
+  private boolean recordChangesToControlFlowEdges(List<BasicBlock> blocks) {
+    for (BasicBlock block : blocks) {
+      block.addControlFlowEdgesMayChangeListener(this);
+    }
+    return true;
+  }
+
+  @Override
+  public void onSuccessorsMayChange(BasicBlock block) {
+    obsolete = true;
+  }
+
+  @Override
+  public void onPredecessorsMayChange(BasicBlock block) {
+    obsolete = true;
   }
 }
