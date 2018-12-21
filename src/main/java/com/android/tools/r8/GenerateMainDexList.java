@@ -4,12 +4,12 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graphinfo.GraphConsumer;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;

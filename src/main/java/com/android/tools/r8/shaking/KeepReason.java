@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
+import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo.EdgeKind;
+import com.android.tools.r8.experimental.graphinfo.GraphNode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graphinfo.GraphEdgeInfo;
-import com.android.tools.r8.graphinfo.GraphEdgeInfo.EdgeKind;
-import com.android.tools.r8.graphinfo.GraphNode;
 
 // TODO(herhut): Canonicalize reason objects.
 public abstract class KeepReason {

@@ -4,11 +4,11 @@
 package com.android.tools.r8.utils.graphinspector;
 
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.graphinfo.ClassGraphNode;
-import com.android.tools.r8.graphinfo.FieldGraphNode;
-import com.android.tools.r8.graphinfo.GraphEdgeInfo;
-import com.android.tools.r8.graphinfo.GraphNode;
-import com.android.tools.r8.graphinfo.MethodGraphNode;
+import com.android.tools.r8.experimental.graphinfo.ClassGraphNode;
+import com.android.tools.r8.experimental.graphinfo.FieldGraphNode;
+import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
+import com.android.tools.r8.experimental.graphinfo.GraphNode;
+import com.android.tools.r8.experimental.graphinfo.MethodGraphNode;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;

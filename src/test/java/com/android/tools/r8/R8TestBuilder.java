@@ -6,7 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestBase.R8Mode;
-import com.android.tools.r8.graphinfo.GraphConsumer;
+import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;

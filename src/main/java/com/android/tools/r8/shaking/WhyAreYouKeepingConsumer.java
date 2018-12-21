@@ -4,14 +4,14 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graphinfo.ClassGraphNode;
-import com.android.tools.r8.graphinfo.FieldGraphNode;
-import com.android.tools.r8.graphinfo.GraphConsumer;
-import com.android.tools.r8.graphinfo.GraphEdgeInfo;
-import com.android.tools.r8.graphinfo.GraphEdgeInfo.EdgeKind;
-import com.android.tools.r8.graphinfo.GraphNode;
-import com.android.tools.r8.graphinfo.KeepRuleGraphNode;
-import com.android.tools.r8.graphinfo.MethodGraphNode;
+import com.android.tools.r8.experimental.graphinfo.ClassGraphNode;
+import com.android.tools.r8.experimental.graphinfo.FieldGraphNode;
+import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
+import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo.EdgeKind;
+import com.android.tools.r8.experimental.graphinfo.GraphNode;
+import com.android.tools.r8.experimental.graphinfo.KeepRuleGraphNode;
+import com.android.tools.r8.experimental.graphinfo.MethodGraphNode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;

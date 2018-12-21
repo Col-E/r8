@@ -5,8 +5,8 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
+import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.origin.StandardOutOrigin;

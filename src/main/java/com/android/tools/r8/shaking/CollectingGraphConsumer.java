@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graphinfo.GraphConsumer;
-import com.android.tools.r8.graphinfo.GraphEdgeInfo;
-import com.android.tools.r8.graphinfo.GraphNode;
+import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
+import com.android.tools.r8.experimental.graphinfo.GraphNode;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
