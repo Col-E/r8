@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.ConstWide16;
 import com.android.tools.r8.code.FillArrayData;
 import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.code.Format31t;
@@ -35,7 +33,6 @@ import com.android.tools.r8.code.MoveWide16;
 import com.android.tools.r8.code.MoveWideFrom16;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.code.ReturnWide;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
