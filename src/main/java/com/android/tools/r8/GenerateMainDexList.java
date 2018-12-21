@@ -44,7 +44,8 @@ public class GenerateMainDexList {
       DexApplication application =
           new ApplicationReader(app, options, timing).read(executor).toDirect();
       AppView<? extends AppInfoWithSubtyping> appView =
-          new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
+          new AppView<>(
+              new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
       RootSet mainDexRootSet =
           new RootSetBuilder(appView, application, options.mainDexKeepRules, options).run(executor);
 

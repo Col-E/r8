@@ -21,6 +21,7 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OffOrAuto;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
@@ -226,12 +227,23 @@ public class JarCode extends Code {
 
   public ConstraintWithTarget computeInliningConstraint(
       DexEncodedMethod encodedMethod,
-      AppInfoWithLiveness appInfo,
+      AppView<? extends AppInfoWithLiveness> appView,
       GraphLense graphLense,
       DexType invocationContext) {
     InliningConstraintVisitor visitor =
         new InliningConstraintVisitor(
-            application, appInfo, graphLense, encodedMethod, invocationContext);
+            application, appView.appInfo(), graphLense, encodedMethod, invocationContext);
+
+    if (appView.options().enableDesugaring
+        && appView.options().interfaceMethodDesugaring == OffOrAuto.Auto
+        && !appView.options().canUseDefaultAndStaticInterfaceMethods()) {
+      // TODO(b/120130831): Conservatively need to say "no" at this point if there are invocations
+      // to static interface methods. This should be fixed by making sure that the desugared
+      // versions of default and static interface methods are present in the application during
+      // IR processing.
+      visitor.disallowStaticInterfaceMethodCalls();
+    }
+
     AbstractInsnNode insn = node.instructions.getFirst();
     while (insn != null) {
       insn.accept(visitor);

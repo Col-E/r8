@@ -32,7 +32,8 @@ public abstract class NonNullTrackerTestBase extends TestBase {
     DexApplication dexApplication =
         new ApplicationReader(app, TEST_OPTIONS, timing).read().toDirect();
     AppView<AppInfoWithSubtyping> appView =
-        new AppView<>(new AppInfoWithSubtyping(dexApplication), GraphLense.getIdentityLense());
+        new AppView<>(
+            new AppInfoWithSubtyping(dexApplication), GraphLense.getIdentityLense(), TEST_OPTIONS);
     ExecutorService executorService = ThreadUtils.getExecutorService(TEST_OPTIONS);
     RootSet rootSet =
         new RootSetBuilder(

@@ -24,6 +24,8 @@ public class InliningConstraints {
 
   private AppInfoWithLiveness appInfo;
 
+  private boolean allowStaticInterfaceMethodCalls = true;
+
   // Currently used only by the vertical class merger (in all other cases this is the identity).
   //
   // When merging a type A into its subtype B we need to inline A.<init>() into B.<init>().
@@ -44,6 +46,10 @@ public class InliningConstraints {
     assert graphLense.isContextFreeForMethods();
     this.appInfo = appInfo;
     this.graphLense = graphLense;
+  }
+
+  public void disallowStaticInterfaceMethodCalls() {
+    allowStaticInterfaceMethodCalls = false;
   }
 
   public ConstraintWithTarget forAlwaysMaterializingUser() {
@@ -280,6 +286,11 @@ public class InliningConstraints {
       DexType methodHolder = graphLense.lookupType(target.method.holder);
       DexClass methodClass = appInfo.definitionFor(methodHolder);
       if (methodClass != null) {
+        if (!allowStaticInterfaceMethodCalls && methodClass.isInterface() && target.hasCode()) {
+          // See b/120121170.
+          return ConstraintWithTarget.NEVER;
+        }
+
         ConstraintWithTarget methodConstraintWithTarget =
             ConstraintWithTarget.deriveConstraint(
                 invocationContext, methodHolder, target.accessFlags, appInfo);

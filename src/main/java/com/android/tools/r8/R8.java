@@ -250,7 +250,8 @@ public class R8 {
       inputApp.closeInternalArchiveProviders();
 
       AppView<AppInfoWithSubtyping> appView =
-          new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
+          new AppView<>(
+              new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
       RootSet rootSet;
       String proguardSeedsData = null;
       timing.begin("Strip unused code");

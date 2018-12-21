@@ -44,7 +44,6 @@ abstract class NamingTestBase {
 
   private DexApplication program;
   DexItemFactory dexItemFactory;
-  private AppView<AppInfoWithSubtyping> appView;
 
   NamingTestBase(
       String test,
@@ -61,7 +60,6 @@ abstract class NamingTestBase {
   public void readApp() throws IOException, ExecutionException {
     program = ToolHelper.buildApplication(ImmutableList.of(appFileName));
     dexItemFactory = program.dexItemFactory;
-    appView = new AppView<>(new AppInfoWithSubtyping(program), GraphLense.getIdentityLense());
   }
 
   NamingLens runMinifier(List<Path> configPaths) throws ExecutionException {
@@ -71,6 +69,8 @@ abstract class NamingTestBase {
 
     ExecutorService executor = ThreadUtils.getExecutorService(1);
 
+    AppView<AppInfoWithSubtyping> appView =
+        new AppView<>(new AppInfoWithSubtyping(program), GraphLense.getIdentityLense(), options);
     RootSet rootSet =
         new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
 

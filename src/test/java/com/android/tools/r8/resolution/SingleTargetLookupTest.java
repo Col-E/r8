@@ -105,7 +105,8 @@ public class SingleTargetLookupTest extends AsmTestBase {
     AndroidApp app = readClassesAndAsmDump(CLASSES, ASM_CLASSES);
     DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
     AppView<? extends AppInfoWithSubtyping> appView =
-        new AppView<>(new AppInfoWithSubtyping(application), GraphLense.getIdentityLense());
+        new AppView<>(
+            new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
 
     ExecutorService executor = Executors.newSingleThreadExecutor();
     RootSet rootSet =

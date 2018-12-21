@@ -6,18 +6,21 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
+import com.android.tools.r8.utils.InternalOptions;
 
 public class AppView<T extends AppInfo> {
 
   private T appInfo;
   private final DexItemFactory dexItemFactory;
   private GraphLense graphLense;
+  private final InternalOptions options;
   private VerticallyMergedClasses verticallyMergedClasses;
 
-  public AppView(T appInfo, GraphLense graphLense) {
+  public AppView(T appInfo, GraphLense graphLense, InternalOptions options) {
     this.appInfo = appInfo;
     this.dexItemFactory = appInfo != null ? appInfo.dexItemFactory : null;
     this.graphLense = graphLense;
+    this.options = options;
   }
 
   public T appInfo() {
@@ -46,6 +49,10 @@ public class AppView<T extends AppInfo> {
     this.graphLense = graphLense;
   }
 
+  public InternalOptions options() {
+    return options;
+  }
+
   // Get the result of vertical class merging. Returns null if vertical class merging has not been
   // run.
   public VerticallyMergedClasses verticallyMergedClasses() {
@@ -63,7 +70,7 @@ public class AppView<T extends AppInfo> {
   private class AppViewWithLiveness extends AppView<AppInfoWithLiveness> {
 
     private AppViewWithLiveness() {
-      super(null, null);
+      super(null, null, null);
     }
 
     @Override
@@ -91,6 +98,11 @@ public class AppView<T extends AppInfo> {
     @Override
     public void setGraphLense(GraphLense graphLense) {
       AppView.this.setGraphLense(graphLense);
+    }
+
+    @Override
+    public InternalOptions options() {
+      return AppView.this.options();
     }
 
     @Override
