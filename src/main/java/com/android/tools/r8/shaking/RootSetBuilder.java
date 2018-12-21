@@ -1021,6 +1021,24 @@ public class RootSetBuilder {
           .unmodifiableMap(dependentNoShrinking.getOrDefault(item, Collections.emptyMap()));
     }
 
+    public boolean verifyKeptFieldsAreAccessedAndLive(AppInfoWithLiveness appInfo) {
+      for (DexDefinition definition : noShrinking.keySet()) {
+        if (definition.isDexEncodedField()) {
+          DexEncodedField field = definition.asDexEncodedField();
+          if (field.isStatic() || isKeptDirectlyOrIndirectly(field.field.clazz, appInfo)) {
+            // TODO(b/121354886): Enable asserts for reads and writes.
+            /*assert appInfo.fieldsRead.contains(field.field)
+                : "Expected kept field `" + field.field.toSourceString() + "` to be read";
+            assert appInfo.fieldsWritten.contains(field.field)
+                : "Expected kept field `" + field.field.toSourceString() + "` to be written";*/
+            assert appInfo.liveFields.contains(field.field)
+                : "Expected kept field `" + field.field.toSourceString() + "` to be live";
+          }
+        }
+      }
+      return true;
+    }
+
     public boolean verifyKeptMethodsAreTargetedAndLive(AppInfoWithLiveness appInfo) {
       for (DexDefinition definition : noShrinking.keySet()) {
         if (definition.isDexEncodedMethod()) {
@@ -1035,6 +1053,17 @@ public class RootSetBuilder {
                     + method.method.toSourceString()
                     + "` to be live";
           }
+        }
+      }
+      return true;
+    }
+
+    public boolean verifyKeptTypesAreLive(AppInfoWithLiveness appInfo) {
+      for (DexDefinition definition : noShrinking.keySet()) {
+        if (definition.isDexClass()) {
+          DexClass clazz = definition.asDexClass();
+          assert appInfo.liveTypes.contains(clazz.type)
+              : "Expected kept type `" + clazz.type.toSourceString() + "` to be live";
         }
       }
       return true;
