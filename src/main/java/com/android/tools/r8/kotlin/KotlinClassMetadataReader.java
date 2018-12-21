@@ -77,7 +77,7 @@ final class KotlinClassMetadataReader {
     KotlinClassMetadata kMetadata = KotlinClassMetadata.read(header);
 
     if (kMetadata instanceof KotlinClassMetadata.Class) {
-      return KotlinClass.fromKotlinClassMetadata(kMetadata);
+      return KotlinClass.fromKotlinClassMetadata(kMetadata, clazz);
     } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
       return KotlinFile.fromKotlinClassMetadata(kMetadata);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {

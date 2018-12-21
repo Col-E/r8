@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 
 import static kotlinx.metadata.Flag.Type.IS_NULLABLE;
 
+import com.android.tools.r8.graph.DexClass;
 import com.google.common.collect.HashBasedTable;
 import java.util.BitSet;
 import kotlinx.metadata.KmConstructorExtensionVisitor;
@@ -94,8 +95,18 @@ class NonNullParameterHintCollector {
     private final String name = "<init>";
     private String descriptor = "";
 
-    ConstructorVisitor(HashBasedTable<String, String, BitSet> paramHints) {
+    ConstructorVisitor(HashBasedTable<String, String, BitSet> paramHints, DexClass clazz) {
       this.paramHints = paramHints;
+      // Enum constructor has two synthetic arguments to java.lang.Enum's sole constructor:
+      // https://docs.oracle.com/javase/8/docs/api/java/lang/Enum.html#Enum-java.lang.String-int-
+      // whereas Kotlin @Metadata is still based on constructor signature, not descriptor.
+      if (clazz != null && clazz.isEnum()) {
+        // name - The name of this enum constant, which is the identifier used to declare it.
+        paramIndex++;
+        // ordinal - The ordinal of this enumeration constant (its position in the enum declaration,
+        // where the initial constant is assigned an ordinal of zero).
+        paramIndex++;
+      }
     }
 
     @Override

@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 
 import static kotlinx.metadata.Flag.Property.IS_VAR;
 
+import com.android.tools.r8.graph.DexClass;
 import kotlinx.metadata.KmClassVisitor;
 import kotlinx.metadata.KmConstructorVisitor;
 import kotlinx.metadata.KmFunctionVisitor;
@@ -14,14 +15,15 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
 
-  static KotlinClass fromKotlinClassMetadata(KotlinClassMetadata kotlinClassMetadata) {
+  static KotlinClass fromKotlinClassMetadata(
+      KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {
     assert kotlinClassMetadata instanceof KotlinClassMetadata.Class;
     KotlinClassMetadata.Class kClass = (KotlinClassMetadata.Class) kotlinClassMetadata;
-    return new KotlinClass(kClass);
+    return new KotlinClass(kClass, clazz);
   }
 
-  private KotlinClass(KotlinClassMetadata.Class metadata) {
-    super(metadata);
+  private KotlinClass(KotlinClassMetadata.Class metadata, DexClass clazz) {
+    super(metadata, clazz);
   }
 
   @Override
@@ -38,7 +40,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
 
     @Override
     public KmConstructorVisitor visitConstructor(int ctorFlags) {
-      return new NonNullParameterHintCollector.ConstructorVisitor(nonNullparamHints);
+      return new NonNullParameterHintCollector.ConstructorVisitor(nonNullparamHints, clazz);
     }
 
     @Override
