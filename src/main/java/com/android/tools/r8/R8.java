@@ -289,7 +289,9 @@ public class R8 {
                 options.getProguardConfiguration().getDontWarnPatterns(),
                 executorService,
                 timing));
-        // assert rootSet.verifyKeptMethodsAreTargetedAndLive(appView.appInfo().withLiveness());
+        assert rootSet.verifyKeptFieldsAreAccessedAndLive(appView.appInfo().withLiveness());
+        assert rootSet.verifyKeptMethodsAreTargetedAndLive(appView.appInfo().withLiveness());
+        assert rootSet.verifyKeptTypesAreLive(appView.appInfo().withLiveness());
 
         if (options.getProguardConfiguration().isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();

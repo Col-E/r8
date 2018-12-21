@@ -1153,9 +1153,9 @@ public class Enqueuer {
   private void markDirectStaticOrConstructorMethodAsLive(
       DexEncodedMethod encodedMethod, KeepReason reason) {
     assert encodedMethod != null;
+    markMethodAsTargeted(encodedMethod, reason);
     if (!liveMethods.contains(encodedMethod)) {
       markTypeAsLive(encodedMethod.method.holder);
-      markMethodAsTargeted(encodedMethod, reason);
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Method `%s` has become live due to direct invoke",
             encodedMethod.method);
