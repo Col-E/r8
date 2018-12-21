@@ -8,6 +8,7 @@ import os
 import optparse
 import subprocess
 import sys
+import time
 import utils
 import zipfile
 
@@ -27,39 +28,49 @@ APPS = {
   #     'flavor': ... (default no flavor)
   # },
   'AnExplorer': {
+      'app_id': 'dev.dworks.apps.anexplorer.pro',
       'git_repo': 'https://github.com/1hakr/AnExplorer',
       'flavor': 'googleMobilePro',
       'signed-apk-name': 'AnExplorer-googleMobileProRelease-4.0.3.apk',
   },
   'AntennaPod': {
+      'app_id': 'de.danoeh.antennapod',
       'git_repo': 'https://github.com/AntennaPod/AntennaPod.git',
       'flavor': 'play',
   },
   'apps-android-wikipedia': {
+      'app_id': 'org.wikipedia',
       'git_repo': 'https://github.com/wikimedia/apps-android-wikipedia',
       'flavor': 'prod',
       'signed-apk-name': 'app-prod-universal-release.apk'
   },
   'friendlyeats-android': {
+      'app_id': 'com.google.firebase.example.fireeats',
       'git_repo': 'https://github.com/firebase/friendlyeats-android.git'
   },
   'KISS': {
+      'app_id': 'fr.neamar.kiss',
       'git_repo': 'https://github.com/Neamar/KISS',
   },
   'materialistic': {
+      'app_id': 'io.github.hidroh.materialistic',
       'git_repo': 'https://github.com/hidroh/materialistic',
   },
   'Minimal-Todo': {
+      'app_id': 'com.avjindersinghsekhon.minimaltodo',
       'git_repo': 'https://github.com/avjinder/Minimal-Todo',
   },
   'NewPipe': {
+      'app_id': 'org.schabi.newpipe',
       'git_repo': 'https://github.com/TeamNewPipe/NewPipe',
   },
   'Simple-Calendar': {
+      'app_id': 'com.simplemobiletools.calendar.pro',
       'git_repo': 'https://github.com/SimpleMobileTools/Simple-Calendar',
       'signed-apk-name': 'calendar-release.apk'
   },
   'tachiyomi': {
+      'app_id': 'eu.kanade.tachiyomi',
       'git_repo': 'https://github.com/sgjesse/tachiyomi.git',
       'flavor': 'standard',
   },
@@ -78,6 +89,9 @@ android_home = os.path.join(user_home, 'Android', 'Sdk')
 android_build_tools_version = '28.0.3'
 android_build_tools = os.path.join(
     android_home, 'build-tools', android_build_tools_version)
+
+# TODO(christofferqa): Do not rely on 'emulator-5554' name
+emulator_id = 'emulator-5554'
 
 def ComputeSizeOfDexFilesInApk(apk):
   dex_size = 0
@@ -110,6 +124,30 @@ def MoveApkToDest(apk, apk_dest):
     os.remove(apk_dest)
   os.rename(apk, apk_dest)
 
+def InstallApkOnEmulator(apk_dest):
+  subprocess.check_call(
+      ['adb', '-s', emulator_id, 'install', '-r', '-d', apk_dest])
+
+def WaitForEmulator():
+  stdout = subprocess.check_output(['adb', 'devices'])
+  if '{}\tdevice'.format(emulator_id) in stdout:
+    return
+
+  print('Emulator \'{}\' not connected; waiting for connection'.format(
+      emulator_id))
+
+  time_waited = 0
+  while True:
+    time.sleep(10)
+    time_waited += 10
+    stdout = subprocess.check_output(['adb', 'devices'])
+    if '{}\tdevice'.format(emulator_id) not in stdout:
+      print('... still waiting for connection')
+      if time_waited >= 5 * 60:
+        raise Exception('No emulator connected for 5 minutes')
+    else:
+      return
+
 def BuildAppWithSelectedShrinkers(app, config, options):
   git_repo = config['git_repo']
 
@@ -128,23 +166,37 @@ def BuildAppWithSelectedShrinkers(app, config, options):
   else:
     as_utils.remove_r8_dependency(checkout_dir)
 
-  dex_size_per_shrinker = {}
+  result_per_shrinker = {}
 
   with utils.ChangedWorkingDirectory(checkout_dir):
     for shrinker in SHRINKERS:
       if options.shrinker is not None and shrinker != options.shrinker:
         continue
 
-      apk_dest = BuildAppWithShrinker(
-        app, config, shrinker, checkout_dir, options)
+      apk_dest = None
+      result = {}
+      try:
+        apk_dest = BuildAppWithShrinker(
+          app, config, shrinker, checkout_dir, options)
+        dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
+        result['apk_dest'] = apk_dest,
+        result['build_status'] = 'success'
+        result['dex_size'] = dex_size
+      except:
+        warn('Failed to build {} with {}'.format(app, shrinker))
+        result['build_status'] = 'failed'
 
-      dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
-      dex_size_per_shrinker[shrinker] = dex_size
+      if options.monkey:
+        if result.get('build_status') == 'success':
+          result['monkey_status'] = 'success' if RunMonkey(
+              app, config, apk_dest) else 'failed'
+
+      result_per_shrinker[shrinker] = result
 
     if IsTrackedByGit('gradle.properties'):
       GitCheckout('gradle.properties')
 
-  return dex_size_per_shrinker
+  return result_per_shrinker
 
 def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   print('Building {} with {}'.format(app, shrinker))
@@ -219,26 +271,52 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
 
   return apk_dest
 
-def LogResults(dex_size_per_shrinker_per_app):
-  for app, dex_size_per_shrinker in dex_size_per_shrinker_per_app.iteritems():
+def RunMonkey(app, config, apk_dest):
+  WaitForEmulator()
+  InstallApkOnEmulator(apk_dest)
+
+  app_id = config.get('app_id')
+  number_of_events_to_generate = 50
+
+  stdout = subprocess.check_output(['adb', 'shell', 'monkey', '-p', app_id,
+      str(number_of_events_to_generate)])
+  return 'Events injected: {}'.format(number_of_events_to_generate) in stdout
+
+def LogResults(result_per_shrinker_per_app, options):
+  for app, result_per_shrinker in result_per_shrinker_per_app.iteritems():
     print(app + ':')
-    baseline = dex_size_per_shrinker.get('proguard', -1)
-    for shrinker, dex_size in dex_size_per_shrinker.iteritems():
-      if dex_size != baseline and baseline >= 0:
-        if dex_size < baseline:
-          success('  {}: {} ({})'.format(
-            shrinker, dex_size, dex_size - baseline))
-        elif dex_size > baseline:
-          warn('  {}: {} ({})'.format(
-            shrinker, dex_size, dex_size - baseline))
+    baseline = result_per_shrinker.get('proguard', {}).get('dex_size', -1)
+    for shrinker, result in result_per_shrinker.iteritems():
+      build_status = result.get('build_status')
+      if build_status != 'success':
+        warn('  {}: {}'.format(shrinker, build_status))
       else:
-        print('  {}: {}'.format(shrinker, dex_size))
+        print('  {}:'.format(shrinker))
+        dex_size = result.get('dex_size')
+        if dex_size != baseline and baseline >= 0:
+          if dex_size < baseline:
+            success('    dex size: {} ({})'.format(
+              dex_size, dex_size - baseline))
+          elif dex_size > baseline:
+            warn('    dex size: {} ({})'.format(dex_size, dex_size - baseline))
+        else:
+          print('    dex size: {}'.format(dex_size))
+        if options.monkey:
+          monkey_status = result.get('monkey_status')
+          if monkey_status != 'success':
+            warn('    monkey: {}'.format(monkey_status))
+          else:
+            success('    monkey: {}'.format(monkey_status))
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
   result.add_option('--app',
                     help='What app to run on',
                     choices=APPS.keys())
+  result.add_option('--monkey',
+                    help='Whether to install and run app(s) with monkey',
+                    default=False,
+                    action='store_true')
   result.add_option('--sign_apks',
                     help='Whether the APKs should be signed',
                     default=False,
@@ -247,9 +325,9 @@ def ParseOptions(argv):
                     help='The shrinker to use (by default, all are run)',
                     choices=SHRINKERS)
   result.add_option('--use_tot',
-                    help='Whether to use the ToT version of R8',
-                    default=False,
-                    action='store_true')
+                    help='Whether to disable the use of the ToT version of R8',
+                    default=True,
+                    action='store_false')
   return result.parse_args(argv)
 
 def main(argv):
@@ -257,18 +335,18 @@ def main(argv):
   assert not options.use_tot or os.path.isfile(utils.R8_JAR), (
       'Cannot build from ToT without r8.jar')
 
-  dex_size_per_shrinker_per_app = {}
+  result_per_shrinker_per_app = {}
 
   if options.app:
-    dex_size_per_shrinker_per_app[options.app] = BuildAppWithSelectedShrinkers(
+    result_per_shrinker_per_app[options.app] = BuildAppWithSelectedShrinkers(
         options.app, APPS.get(options.app), options)
   else:
     for app, config in APPS.iteritems():
       if not config.get('skip', False):
-        dex_size_per_shrinker_per_app[app] = BuildAppWithSelectedShrinkers(
+        result_per_shrinker_per_app[app] = BuildAppWithSelectedShrinkers(
             app, config, options)
 
-  LogResults(dex_size_per_shrinker_per_app)
+  LogResults(result_per_shrinker_per_app, options)
 
 def success(message):
   CGREEN = '\033[32m'
