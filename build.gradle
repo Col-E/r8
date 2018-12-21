@@ -254,8 +254,9 @@ dependencies {
     apt "com.google.auto.value:auto-value:$autoValueVersion"
 }
 
-def r8LibPath = "build/libs/r8lib.jar"
-def r8LibClassesPath = "build/classes/r8lib"
+def r8LibPath = "$buildDir/libs/r8lib.jar"
+def r8LibClassesPath = "$buildDir/classes/r8lib"
+def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
 
 def osString = OperatingSystem.current().isLinux() ? "linux" :
         OperatingSystem.current().isMacOsX() ? "mac" : "windows"
@@ -637,26 +638,53 @@ task CompatProguard(type: ShadowJar) {
     }
 }
 
+def baseR8CommandLine(args = []) {
+    return ["java", "-ea", "-jar", R8.outputs.files[0]] + args
+}
+
 def r8CfCommandLine(input, output, pgconf, args = [], libs = []) {
-    return [
-        "java", "-ea", "-jar", R8.outputs.files[0],
-        "--classfile", "--release",
-        input,
-        "--output", output,
-        "--pg-conf", pgconf,
-        "--pg-map-output", output + ".map",
-        "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar"
-    ] + args + libs.collectMany { ["--lib", it] }
+    return baseR8CommandLine([
+            "--classfile", "--release",
+            input,
+            "--output", output,
+            "--pg-conf", pgconf,
+            "--pg-map-output", output + ".map",
+            "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar"
+        ] + args + libs.collectMany { ["--lib", it] })
 }
 
 def r8LibCreateTask(name, pgConf, r8Task, output, args = [], libs = []) {
     return tasks.create("r8Lib${name}", Exec) {
-        inputs.files ([pgConf, R8.outputs] + [r8Task.outputs])
+        inputs.files ([pgConf, R8.outputs, r8Task.outputs])
         outputs.file output
         dependsOn downloadOpenJDKrt
         commandLine r8CfCommandLine(r8Task.outputs.files[0], output, pgConf, args, libs)
         workingDir = projectDir
     }
+}
+
+task testJar(type: Jar, dependsOn: testClasses) {
+    baseName = "r8tests"
+    from sourceSets.test.output
+}
+
+task generateR8LibKeepRules(type: Exec) {
+    doFirst {
+        standardOutput new FileOutputStream(r8LibGeneratedKeepRulesPath)
+    }
+    dependsOn R8
+    dependsOn r8WithoutDeps
+    dependsOn testJar
+    dependsOn downloadOpenJDKrt
+    inputs.files ([R8.outputs, r8WithoutDeps.outputs, testJar.outputs])
+    outputs.file r8LibGeneratedKeepRulesPath
+    commandLine baseR8CommandLine([
+            "printuses",
+            "--keeprules",
+            "third_party/openjdk/openjdk-rt-1.8/rt.jar",
+            r8WithoutDeps.outputs.files[0],
+            testJar.outputs.files[0]])
+    workingDir = projectDir
 }
 
 task R8LibNoDeps {
@@ -665,9 +693,9 @@ task R8LibNoDeps {
             "src/main/keep.txt",
             r8WithoutDeps,
             r8LibPath,
-            ["--no-tree-shaking", "--no-minification"],
+            ["--pg-conf", generateR8LibKeepRules.outputs.files[0]],
             repackageDepsNoRelocate.outputs.files
-    ).dependsOn(repackageDepsNoRelocate, r8WithoutDeps)
+    ).dependsOn(repackageDepsNoRelocate, r8WithoutDeps, generateR8LibKeepRules)
 }
 
 task R8Lib {
