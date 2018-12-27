@@ -1851,6 +1851,30 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void parse_dump_withoutFile() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-dump"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    checkDiagnostics(handler.warnings, proguardConfig, 1, 1,
+        "Ignoring", "-dump");
+  }
+
+  @Test
+  public void parse_dump_withFile() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-dump class_files.txt"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    checkDiagnostics(handler.warnings, proguardConfig, 1, 1,
+        "Ignoring", "-dump");
+  }
+
+  @Test
   public void parse_android() throws Exception {
     Path proguardConfig = writeTextToTempFile(
         "-android"

@@ -81,6 +81,10 @@ public class ProguardConfigurationParser {
       // TODO(b/37137994): -outjars should be reported as errors, not just as warnings!
       "outjars");
 
+  private static final List<String> WARNED_OPTIONAL_SINGLE_ARG_OPTIONS = ImmutableList.of(
+      // TODO(b/121340442): we may support this later.
+      "dump");
+
   private static final List<String> WARNED_FLAG_OPTIONS = ImmutableList.of(
       // TODO(b/73707846): add support -addconfigurationdebugging
       "addconfigurationdebugging");
@@ -416,7 +420,11 @@ public class ProguardConfigurationParser {
         if (option == null) {
           option = Iterables.find(WARNED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg, null);
           if (option == null) {
-            return false;
+            option = Iterables.find(
+                WARNED_OPTIONAL_SINGLE_ARG_OPTIONS, this::skipOptionWithOptionalSingleArg, null);
+            if (option == null) {
+              return false;
+            }
           }
         }
       }
