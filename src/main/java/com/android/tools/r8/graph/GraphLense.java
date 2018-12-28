@@ -424,14 +424,30 @@ public abstract class GraphLense {
     return this == getIdentityLense();
   }
 
-  public <T extends DexDefinition> boolean assertDefinitionNotModified(Iterable<T> items) {
-    for (DexDefinition item : items) {
-      DexReference dexReference = item.toReference();
-      DexReference lookupedReference = lookupReference(dexReference);
+  public <T extends DexDefinition> boolean assertDefinitionsNotModified(Iterable<T> definitions) {
+    for (DexDefinition definition : definitions) {
+      DexReference reference = definition.toReference();
       // We allow changes to bridge methods as these get retargeted even if they are kept.
       boolean isBridge =
-          item.isDexEncodedMethod() && item.asDexEncodedMethod().accessFlags.isBridge();
-      assert isBridge || dexReference == lookupedReference;
+          definition.isDexEncodedMethod() && definition.asDexEncodedMethod().accessFlags.isBridge();
+      assert isBridge || lookupReference(reference) == reference;
+    }
+    return true;
+  }
+
+  public <T extends DexReference> boolean assertReferencesNotModified(Iterable<T> references) {
+    for (DexReference reference : references) {
+      if (reference.isDexField()) {
+        DexField field = reference.asDexField();
+        assert getRenamedFieldSignature(field) == field;
+      } else if (reference.isDexMethod()) {
+        DexMethod method = reference.asDexMethod();
+        assert getRenamedMethodSignature(method) == method;
+      } else {
+        assert reference.isDexType();
+        DexType type = reference.asDexType();
+        assert lookupType(type) == type;
+      }
     }
     return true;
   }
