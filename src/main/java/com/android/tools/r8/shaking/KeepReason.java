@@ -50,7 +50,7 @@ public abstract class KeepReason {
   }
 
   public static KeepReason fieldReferencedIn(DexEncodedMethod method) {
-    return new ReferenedFrom(method);
+    return new ReferencedFrom(method);
   }
 
   public static KeepReason referencedInAnnotation(DexItem holder) {
@@ -219,9 +219,9 @@ public abstract class KeepReason {
     }
   }
 
-  private static class ReferenedFrom extends BasedOnOtherMethod {
+  private static class ReferencedFrom extends BasedOnOtherMethod {
 
-    private ReferenedFrom(DexEncodedMethod method) {
+    private ReferencedFrom(DexEncodedMethod method) {
       super(method);
     }
 
