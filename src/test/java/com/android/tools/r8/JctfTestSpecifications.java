@@ -283,7 +283,7 @@ public class JctfTestSpecifications {
           .put(
               "lang.ClassLoader.getSystemResourceAsStreamLjava_lang_String.ClassLoader_getSystemResourceAsStream_A01",
               anyDexVm())
-          .put("lang.ClassLoader.getPackages.ClassLoader_getPackages_A01", any())
+          .put("lang.ClassLoader.getPackages.ClassLoader_getPackages_A01", anyDexVm())
           .put(
               "lang.ClassLoader.setClassAssertionStatusLjava_lang_StringZ.ClassLoader_setClassAssertionStatus_A01",
               any())
