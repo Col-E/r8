@@ -2111,26 +2111,32 @@ public class Enqueuer {
       this.callSites = previous.callSites;
       this.brokenSuperInvokes = lense.rewriteMethodsConservatively(previous.brokenSuperInvokes);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
-      assert lense.assertDefinitionNotModified(previous.noSideEffects.keySet());
+      assert lense.assertDefinitionsNotModified(previous.noSideEffects.keySet());
       this.noSideEffects = previous.noSideEffects;
-      assert lense.assertDefinitionNotModified(previous.assumedValues.keySet());
+      assert lense.assertDefinitionsNotModified(previous.assumedValues.keySet());
       this.assumedValues = previous.assumedValues;
-      assert lense.assertDefinitionNotModified(
-          previous.alwaysInline.stream().map(this::definitionFor).filter(Objects::nonNull)
+      assert lense.assertDefinitionsNotModified(
+          previous.alwaysInline.stream()
+              .map(this::definitionFor)
+              .filter(Objects::nonNull)
               .collect(Collectors.toList()));
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = lense.rewriteMethodsWithRenamedSignature(previous.forceInline);
       this.neverInline = lense.rewriteMethodsWithRenamedSignature(previous.neverInline);
-      assert lense.assertDefinitionNotModified(
-          previous.neverMerge.stream().map(this::definitionFor).filter(Objects::nonNull)
+      assert lense.assertDefinitionsNotModified(
+          previous.neverMerge.stream()
+              .map(this::definitionFor)
+              .filter(Objects::nonNull)
               .collect(Collectors.toList()));
       this.neverClassInline = rewriteItems(previous.neverClassInline, lense::lookupType);
       this.neverMerge = previous.neverMerge;
       this.identifierNameStrings =
           lense.rewriteReferencesConservatively(previous.identifierNameStrings);
       // Switchmap classes should never be affected by renaming.
-      assert lense.assertDefinitionNotModified(
-          previous.switchMaps.keySet().stream().map(this::definitionFor).filter(Objects::nonNull)
+      assert lense.assertDefinitionsNotModified(
+          previous.switchMaps.keySet().stream()
+              .map(this::definitionFor)
+              .filter(Objects::nonNull)
               .collect(Collectors.toList()));
       this.switchMaps = previous.switchMaps;
       this.ordinalsMaps = rewriteKeys(previous.ordinalsMaps, lense::lookupType);

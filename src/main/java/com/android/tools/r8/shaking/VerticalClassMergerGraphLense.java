@@ -222,14 +222,30 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
         Map<DexType, DexType> mergedClasses,
         DexItemFactory dexItemFactory,
         Map<DexProto, DexProto> cache) {
+      assert !signature.holder.isArrayType();
       DexType newHolder = mergedClasses.getOrDefault(signature.holder, signature.holder);
       DexProto newProto =
           dexItemFactory.applyClassMappingToProto(
-              signature.proto, type -> mergedClasses.getOrDefault(type, type), cache);
+              signature.proto,
+              type -> getTypeAfterClassMerging(type, mergedClasses, dexItemFactory),
+              cache);
       if (signature.holder.equals(newHolder) && signature.proto.equals(newProto)) {
         return signature;
       }
       return dexItemFactory.createMethod(newHolder, newProto, signature.name);
+    }
+
+    private static DexType getTypeAfterClassMerging(
+        DexType type, Map<DexType, DexType> mergedClasses, DexItemFactory dexItemFactory) {
+      if (type.isArrayType()) {
+        DexType baseType = type.toBaseType(dexItemFactory);
+        DexType newBaseType = mergedClasses.getOrDefault(baseType, baseType);
+        if (newBaseType != baseType) {
+          return type.replaceBaseType(newBaseType, dexItemFactory);
+        }
+        return type;
+      }
+      return mergedClasses.getOrDefault(type, type);
     }
 
     public boolean hasMappingForSignatureInContext(DexType context, DexMethod signature) {

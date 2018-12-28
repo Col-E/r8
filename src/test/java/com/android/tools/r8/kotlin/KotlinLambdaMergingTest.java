@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
@@ -455,7 +454,6 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     });
   }
 
-  @Ignore("b/121107286: assertion failure in VerticalClassMerger#verifyGraphLense")
   @Test
   public void testSingleton() throws Exception {
     final String mainClassName = "lambdas_singleton.MainKt";

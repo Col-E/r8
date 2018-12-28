@@ -608,28 +608,67 @@ public class VerticalClassMerger {
     timing.begin("fixup");
     GraphLense result = new TreeFixer().fixupTypeReferences(mergingGraphLense);
     timing.end();
-    assert result.assertDefinitionNotModified(
-        appInfo
-            .alwaysInline
-            .stream()
+    assert result.assertDefinitionsNotModified(
+        appInfo.alwaysInline.stream()
             .map(appInfo::definitionFor)
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
-    assert result.assertDefinitionNotModified(appInfo.noSideEffects.keySet());
-    // TODO(christofferqa): Enable this assert.
-    // assert result.assertNotModified(appInfo.pinnedItems);
-    assert verifyGraphLense(graphLense);
+    assert verifyGraphLense(result);
     return result;
   }
 
   private boolean verifyGraphLense(GraphLense graphLense) {
+    assert graphLense.assertDefinitionsNotModified(appInfo.noSideEffects.keySet());
+
+    // Note that the method assertReferencesNotModified() relies on getRenamedFieldSignature() and
+    // getRenamedMethodSignature() instead of lookupField() and lookupMethod(). This is important
+    // for this check to succeed, since it is not guaranteed that calling lookupMethod() with a
+    // pinned method will return the method itself.
+    //
+    // Consider the following example.
+    //
+    //   class A {
+    //     public void method() {}
+    //   }
+    //   class B extends A {
+    //     @Override
+    //     public void method() {}
+    //   }
+    //   class C extends B {
+    //     @Override
+    //     public void method() {}
+    //   }
+    //
+    // If A.method() is pinned, then A cannot be merged into B, but B can still be merged into C.
+    // Now, if there is an invoke-super instruction in C that hits B.method(), then this needs to
+    // be rewritten into an invoke-direct instruction. In particular, there could be an instruction
+    // `invoke-super A.method` in C. This would hit B.method(). Therefore, the graph lens records
+    // that `invoke-super A.method` instructions, which are in one of the methods from C, needs to
+    // be rewritten to `invoke-direct C.method$B`. This is valid even though A.method() is actually
+    // pinned, because this rewriting does not affect A.method() in any way.
+    assert graphLense.assertReferencesNotModified(appInfo.pinnedItems);
+
     for (DexProgramClass clazz : appInfo.classes()) {
       for (DexEncodedMethod encodedMethod : clazz.methods()) {
         DexMethod method = encodedMethod.method;
         DexMethod originalMethod = graphLense.getOriginalMethodSignature(method);
+        DexMethod renamedMethod = graphLense.getRenamedMethodSignature(originalMethod);
 
-        // Must be able to map back.
-        assert method == graphLense.getRenamedMethodSignature(originalMethod);
+        // Must be able to map back and forth.
+        if (encodedMethod.hasCode() && encodedMethod.getCode() instanceof SynthesizedBridgeCode) {
+          // For virtual methods, the vertical class merger creates two methods in the sub class
+          // in order to deal with invoke-super instructions (one that is private and one that is
+          // virtual). Therefore, it is not possible to go back and forth. Instead, we check that
+          // the two methods map back to the same original method, and that the original method
+          // can be mapped to the implementation method.
+          DexMethod implementationMethod =
+              ((SynthesizedBridgeCode) encodedMethod.getCode()).invocationTarget;
+          DexMethod originalImplementationMethod = graphLense.getOriginalMethodSignature(method);
+          assert originalMethod == originalImplementationMethod;
+          assert implementationMethod == renamedMethod;
+        } else {
+          assert method == renamedMethod;
+        }
 
         // Verify that all types are up-to-date. After vertical class merging, there should be no
         // more references to types that have been merged into another type.
