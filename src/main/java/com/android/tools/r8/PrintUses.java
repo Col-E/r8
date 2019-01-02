@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -15,6 +16,9 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexValueArray;
+import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -192,6 +196,14 @@ public class PrintUses {
       }
       for (DexType type : method.method.proto.parameters.values) {
         registerTypeReference(type);
+      }
+      for (DexAnnotation annotation : method.annotations.annotations) {
+        if (annotation.annotation.type == appInfo.dexItemFactory.annotationThrows) {
+          DexValueArray dexValues = (DexValueArray) annotation.annotation.elements[0].value;
+          for (DexValue dexValType : dexValues.getValues()) {
+            registerTypeReference(((DexValueType) dexValType).value);
+          }
+        }
       }
       registerTypeReference(method.method.proto.returnType);
       method.registerCodeReferences(this);
