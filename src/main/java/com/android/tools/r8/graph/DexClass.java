@@ -482,6 +482,12 @@ public abstract class DexClass extends DexDefinition {
     enclosingMethod = null;
   }
 
+  public void removeEnclosingMethod(Predicate<EnclosingMethodAttribute> predicate) {
+    if (enclosingMethod != null && predicate.test(enclosingMethod)) {
+      enclosingMethod = null;
+    }
+  }
+
   public void clearInnerClasses() {
     innerClasses.clear();
   }

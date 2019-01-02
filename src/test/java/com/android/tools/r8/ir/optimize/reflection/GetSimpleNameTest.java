@@ -124,7 +124,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
       "Inner",
       "Inner"
   );
-  private static final String OUTPUT_WITH_SHRUNK_ATTRIBUTE = StringUtils.lines(
+  private static final String OUTPUT_WITH_SHRUNK_ATTRIBUTES = StringUtils.lines(
       "Local_t03",
       "InnerLocal",
       "$",
@@ -211,7 +211,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
         .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
-      builder.addKeepRules("-dontobfuscate");
+      builder.noMinification();
     }
     TestRunResult result =
         builder
@@ -231,12 +231,12 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .addKeepRules("-keep,allowobfuscation class **.ClassGetSimpleName*")
         // See b/119471127: some old VMs are not resilient to broken attributes.
         // Comment out the following line to reproduce b/120130435
-        // then use OUTPUT_WITH_SHRUNK_ATTRIBUTE
+        // then use OUTPUT_WITH_SHRUNK_ATTRIBUTES
         .addKeepRules("-keep,allowobfuscation class **.Outer*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
         .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
-      builder.addKeepRules("-dontobfuscate");
+      builder.noMinification();
     }
     R8TestRunResult result =
         builder

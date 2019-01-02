@@ -49,6 +49,8 @@ public class EnclosingMethodTest extends TestBase {
   private final boolean enableMinification;
   private Collection<Path> classPaths;
   private static final String JAVA_OUTPUT = "-Returned-null-" + System.lineSeparator();
+  private static final String OUTPUT_WITH_SHRUNK_ATTRIBUTES =
+      "com.android.tools.r8.shaking.GetNameClass$1" + System.lineSeparator();
   private static final Class<?> MAIN = GetNameMain.class;
 
   @Parameterized.Parameters(name = "Backend: {0} minification: {1}")
@@ -88,18 +90,10 @@ public class EnclosingMethodTest extends TestBase {
         .addKeepRules("-keep class **.GetName*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod");
     if (!enableMinification) {
-      builder.addKeepRules("-dontobfuscate");
+      builder.noMinification();
     }
 
     R8TestRunResult result = builder.run(MAIN);
-    if (backend == Backend.DEX) {
-      if (ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4)
-          && ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V6_0_1)) {
-        result.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
-        return;
-      }
-    }
-
-    result.assertSuccessWithOutput(JAVA_OUTPUT);
+    result.assertSuccessWithOutput(OUTPUT_WITH_SHRUNK_ATTRIBUTES);
   }
 }

@@ -8,8 +8,10 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
@@ -102,15 +104,44 @@ public class TreePruner {
         clazz.setInstanceFields(reachableFields(clazz.instanceFields()));
         clazz.setStaticFields(reachableFields(clazz.staticFields()));
         clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
+        clazz.removeEnclosingMethod(this::isAttributeReferencingPrunedItem);
         usagePrinter.visited();
       }
     }
     return newClasses;
   }
 
+  private boolean isAttributeReferencingPrunedItem(EnclosingMethodAttribute attr) {
+    return
+        (attr.getEnclosingClass() != null
+            && !appInfo.liveTypes.contains(attr.getEnclosingClass()))
+        || (attr.getEnclosingMethod() != null
+            && !appInfo.liveMethods.contains(attr.getEnclosingMethod()));
+  }
+
   private boolean isAttributeReferencingPrunedType(InnerClassAttribute attr) {
-    return (attr.getInner() != null && !appInfo.liveTypes.contains(attr.getInner()))
-        || (attr.getOuter() != null && !appInfo.liveTypes.contains(attr.getOuter()));
+    if (!appInfo.liveTypes.contains(attr.getInner())) {
+      return true;
+    }
+    DexType context = attr.getOuter();
+    if (context == null) {
+      DexClass inner = appInfo.definitionFor(attr.getInner());
+      if (inner != null && inner.getEnclosingMethod() != null) {
+        EnclosingMethodAttribute enclosingMethodAttribute = inner.getEnclosingMethod();
+        if (enclosingMethodAttribute.getEnclosingClass() != null) {
+          context = enclosingMethodAttribute.getEnclosingClass();
+        } else {
+          DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();
+          if (!appInfo.liveMethods.contains(enclosingMethod)) {
+            // EnclosingMethodAttribute will be pruned as it references the pruned method.
+            // Hence, removal of the current InnerClassAttribute too.
+            return true;
+          }
+          context = enclosingMethod.getHolder();
+        }
+      }
+    }
+    return context == null || !appInfo.liveTypes.contains(context);
   }
 
   private <S extends PresortedComparable<S>, T extends KeyedDexItem<S>> int firstUnreachableIndex(
