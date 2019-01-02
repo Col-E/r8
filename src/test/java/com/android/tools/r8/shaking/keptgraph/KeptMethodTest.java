@@ -19,6 +19,9 @@ import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 class Main {
 
@@ -37,9 +40,19 @@ class Main {
   }
 }
 
+@RunWith(Parameterized.class)
 public class KeptMethodTest extends TestBase {
 
-  final Backend backend = Backend.DEX;
+  private final Backend backend;
+
+  @Parameters(name = "{0}")
+  public static Backend[] data() {
+    return Backend.values();
+  }
+
+  public KeptMethodTest(Backend backend) {
+    this.backend = backend;
+  }
 
   @Test
   public void testKeptMethod()
