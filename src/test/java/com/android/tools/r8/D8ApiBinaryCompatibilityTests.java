@@ -49,13 +49,16 @@ public class D8ApiBinaryCompatibilityTests {
     Path mainDexList = temp.getRoot().toPath().resolve("maindexlist.txt");
     FileUtils.writeTextFile(mainDexList, "desugaringwithmissingclasstest1/Main.class");
 
+    // It is important to place the api usage sample jar after the current classpath because we want
+    // to find D8/R8 classes before the ones in the jar, otherwise renamed classes and fields cannot
+    // be found.
+    String classPath = System.getProperty("java.class.path") + File.pathSeparator + jar.toString();
     List<String> command =
         ImmutableList.<String>builder()
             .addAll(
                 ImmutableList.of(
                     ToolHelper.getJavaExecutable(),
-                    "-cp",
-                    jar.toString() + File.pathSeparator + System.getProperty("java.class.path"),
+                    "-cp", classPath,
                     main,
                     // Compiler arguments.
                     "--output",
