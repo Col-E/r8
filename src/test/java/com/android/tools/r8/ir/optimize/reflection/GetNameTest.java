@@ -263,7 +263,7 @@ public class GetNameTest extends GetNameTestBase {
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
         .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
-      builder.addKeepRules("-dontobfuscate");
+      builder.noMinification();
     }
     TestRunResult result =
         builder
@@ -284,7 +284,7 @@ public class GetNameTest extends GetNameTestBase {
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
         .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
     if (!enableMinification) {
-      builder.addKeepRules("-dontobfuscate");
+      builder.noMinification();
     }
     TestRunResult result =
         builder
