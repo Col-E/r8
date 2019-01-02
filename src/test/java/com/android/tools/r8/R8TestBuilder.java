@@ -10,6 +10,7 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -70,6 +71,12 @@ public class R8TestBuilder
 
   public R8TestBuilder addDataResources(List<DataEntryResource> resources) {
     resources.forEach(builder.getAppBuilder()::addDataResource);
+    return self();
+  }
+
+  @Override
+  public R8TestBuilder addKeepRuleFiles(List<Path> files) {
+    builder.addProguardConfigurationFiles(files);
     return self();
   }
 

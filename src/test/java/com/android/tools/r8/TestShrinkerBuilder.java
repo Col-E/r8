@@ -7,12 +7,12 @@ package com.android.tools.r8;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 public abstract class TestShrinkerBuilder<
         C extends BaseCompilerCommand,
@@ -30,8 +30,10 @@ public abstract class TestShrinkerBuilder<
 
   public abstract T noMinification();
 
-  public T addKeepRules(Path path) throws IOException {
-    return addKeepRules(FileUtils.readAllLines(path));
+  public abstract T addKeepRuleFiles(List<Path> files);
+
+  public T addKeepRuleFiles(Path... files) throws IOException {
+    return addKeepRuleFiles(Arrays.asList(files));
   }
 
   public abstract T addKeepRules(Collection<String> rules);

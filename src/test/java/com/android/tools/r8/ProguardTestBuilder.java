@@ -202,6 +202,18 @@ public class ProguardTestBuilder
   }
 
   @Override
+  public ProguardTestBuilder addKeepRuleFiles(List<Path> files) {
+    try {
+      for (Path file : files) {
+        config.addAll(FileUtils.readAllLines(file));
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return self();
+  }
+
+  @Override
   public ProguardTestBuilder addKeepRules(Collection<String> rules) {
     config.addAll(rules);
     return self();

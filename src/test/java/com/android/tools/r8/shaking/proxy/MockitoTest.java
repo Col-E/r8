@@ -48,7 +48,7 @@ public class MockitoTest extends TestBase {
     Path flagToKeepTestRunner = Paths.get(ToolHelper.EXAMPLES_DIR, M_I_PKG, "keep-rules.txt");
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(MOCKITO_INTERFACE_JAR)
-        .addKeepRules(flagToKeepTestRunner);
+        .addKeepRuleFiles(flagToKeepTestRunner);
     if (!minify) {
       builder.noMinification();
     }
@@ -65,7 +65,7 @@ public class MockitoTest extends TestBase {
         Paths.get(ToolHelper.EXAMPLES_DIR, M_I_PKG, "keep-rules-conditional-on-mock.txt");
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(MOCKITO_INTERFACE_JAR)
-        .addKeepRules(flagToKeepInterfaceConditionally);
+        .addKeepRuleFiles(flagToKeepInterfaceConditionally);
     if (!minify) {
       builder.noMinification();
     }
