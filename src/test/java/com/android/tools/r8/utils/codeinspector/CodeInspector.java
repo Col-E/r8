@@ -28,6 +28,7 @@ import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApp;
@@ -275,7 +276,13 @@ public class CodeInspector {
     return builder.build();
   }
 
-
+  public FieldSubject field(FieldReference field) {
+    ClassSubject clazz = clazz(field.getHolderClass());
+    if (!clazz.isPresent()) {
+      return new AbsentFieldSubject();
+    }
+    return clazz.field(field.getFieldType().getTypeName(), field.getFieldName());
+  }
 
   public MethodSubject method(Method method) {
     return method(Reference.methodFromMethod(method));

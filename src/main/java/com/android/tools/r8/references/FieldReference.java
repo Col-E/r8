@@ -60,4 +60,9 @@ public final class FieldReference {
   public int hashCode() {
     return Objects.hash(holderClass, fieldName, fieldType);
   }
+
+  @Override
+  public String toString() {
+    return getHolderClass().toString() + getFieldName() + ":" + getFieldType().getDescriptor();
+  }
 }

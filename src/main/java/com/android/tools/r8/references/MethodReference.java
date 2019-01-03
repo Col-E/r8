@@ -77,7 +77,7 @@ public final class MethodReference {
     return Objects.hash(holderClass, methodName, formalTypes, returnType);
   }
 
-  public String toDescriptor() {
+  public String getMethodDescriptor() {
     return StringUtils.join(
             ListUtils.map(getFormalTypes(), TypeReference::getDescriptor), "", BraceType.PARENS)
         + (getReturnType() == null ? "V" : getReturnType().getDescriptor());
@@ -85,6 +85,6 @@ public final class MethodReference {
 
   @Override
   public String toString() {
-    return getHolderClass().toString() + getMethodName() + toDescriptor();
+    return getHolderClass().toString() + getMethodName() + getMethodDescriptor();
   }
 }
