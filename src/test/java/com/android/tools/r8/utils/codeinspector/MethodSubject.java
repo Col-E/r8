@@ -35,6 +35,15 @@ public abstract class MethodSubject extends MemberSubject {
     return null;
   }
 
+  public Iterator<TryCatchSubject> iterateTryCatches() {
+    return null;
+  }
+
+  public <T extends TryCatchSubject> Iterator<T> iterateTryCatches(
+      Predicate<TryCatchSubject> filter) {
+    return null;
+  }
+
   public boolean hasLineNumberTable() {
     return getLineNumberTable() != null;
   }

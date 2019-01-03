@@ -132,7 +132,14 @@ public class ConstantRemovalTest {
     AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
     IRCode code =
         new IRCode(
-            options, null, blocks, new ValueNumberGenerator(), false, false, Origin.unknown());
+            options,
+            null,
+            blocks,
+            new ValueNumberGenerator(),
+            false,
+            false,
+            false,
+            Origin.unknown());
     PeepholeOptimizer.optimize(code, new MockLinearScanRegisterAllocator(appInfo, code, options));
 
     // Check that all four constant number instructions remain.

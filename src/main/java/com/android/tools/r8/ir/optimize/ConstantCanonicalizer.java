@@ -60,6 +60,12 @@ public class ConstantCanonicalizer {
         if (!current.isConstNumber() && !current.isConstString()) {
           continue;
         }
+        // Do not canonicalize ConstString instructions if there are monitor operations in the code.
+        // That could lead to unbalanced locking and could lead to situations where OOM exceptions
+        // could leave a synchronized method without unlocking the monitor.
+        if (current.isConstString() && code.hasMonitorInstruction) {
+          continue;
+        }
         // Constants with local info must not be canonicalized and must be filtered.
         if (current.outValue().hasLocalInfo()) {
           continue;

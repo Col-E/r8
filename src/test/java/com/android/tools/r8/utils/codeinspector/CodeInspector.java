@@ -7,15 +7,20 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.graph.DexCode.Try;
+import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
@@ -343,6 +348,26 @@ public class CodeInspector {
       return new CfInstructionIterator(this, method);
     } else {
       throw new Unimplemented("InstructionIterator is implemented for DexCode and CfCode only.");
+    }
+  }
+
+  TryCatchSubject createTryCatchSubject(DexCode code, Try tryElement, TryHandler tryHandler) {
+    return new DexTryCatchSubject(code, tryElement, tryHandler);
+  }
+
+  TryCatchSubject createTryCatchSubject(CfCode code, CfTryCatch tryCatch) {
+    return new CfTryCatchSubject(code, tryCatch);
+  }
+
+  TryCatchIterator createTryCatchIterator(MethodSubject method) {
+    Code code = method.getMethod().getCode();
+    assert code != null;
+    if (code.isDexCode()) {
+      return new DexTryCatchIterator(this, method);
+    } else if (code.isCfCode()) {
+      return new CfTryCatchIterator(this, method);
+    } else {
+      throw new Unimplemented("TryCatchIterator is implemented for DexCode and CfCode only.");
     }
   }
 
