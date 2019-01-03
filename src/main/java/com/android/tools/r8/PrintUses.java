@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -20,6 +21,7 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -226,6 +228,27 @@ public class PrintUses {
               addMethod(dexEncodedMethod.method);
             }
           });
+    }
+
+    @Override
+    public void registerCallSite(DexCallSite callSite) {
+      super.registerCallSite(callSite);
+
+      // For Lambda's, in order to find the correct use, we need to register the method for the
+      // functional interface.
+      List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
+      if (directInterfaces != null) {
+        for (DexType directInterface : directInterfaces) {
+          DexClass clazz = appInfo.definitionFor(directInterface);
+          if (clazz != null) {
+            for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
+              if (encodedMethod.method.name.equals(callSite.methodName)) {
+                registerMethod(encodedMethod);
+              }
+            }
+          }
+        }
+      }
     }
   }
 
