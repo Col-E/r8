@@ -7,7 +7,6 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ProgramResourceProvider;
-import com.android.tools.r8.graph.LazyLoadedDexApplication.AllClasses;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
@@ -22,11 +21,9 @@ import java.util.Map;
 
 public class DirectMappedDexApplication extends DexApplication {
 
-  private final AllClasses allClasses;
   private final ImmutableMap<DexType, DexLibraryClass> libraryClasses;
 
   private DirectMappedDexApplication(ClassNameMapper proguardMap,
-      AllClasses allClasses,
       ProgramClassCollection programClasses,
       ImmutableList<ProgramResourceProvider> programResourceProviders,
       ImmutableMap<DexType, DexLibraryClass> libraryClasses,
@@ -35,7 +32,6 @@ public class DirectMappedDexApplication extends DexApplication {
       Timing timing) {
     super(proguardMap, programClasses, programResourceProviders, mainDexList, deadCode,
         dexItemFactory, highestSortingString, timing);
-    this.allClasses = allClasses;
     this.libraryClasses = libraryClasses;
   }
 
@@ -96,21 +92,17 @@ public class DirectMappedDexApplication extends DexApplication {
 
   public static class Builder extends DexApplication.Builder<Builder> {
 
-    private final AllClasses allClasses;
     private final List<DexLibraryClass> libraryClasses = new ArrayList<>();
 
     Builder(LazyLoadedDexApplication application) {
       super(application);
       // As a side-effect, this will force-load all classes.
-      this.allClasses = application.loadAllClasses();
-      Map<DexType, DexClass> allClasses = this.allClasses.getClasses();
-      // TODO(120884788): This filter will only add library classes which are not program classes.
+      Map<DexType, DexClass> allClasses = application.getFullClassMap();
       Iterables.filter(allClasses.values(), DexLibraryClass.class).forEach(libraryClasses::add);
     }
 
     private Builder(DirectMappedDexApplication application) {
       super(application);
-      this.allClasses = application.allClasses;
       this.libraryClasses.addAll(application.libraryClasses.values());
     }
 
@@ -124,7 +116,6 @@ public class DirectMappedDexApplication extends DexApplication {
       // Rebuild the map. This will fail if keys are not unique.
       return new DirectMappedDexApplication(
           proguardMap,
-          allClasses,
           ProgramClassCollection.create(
               programClasses, ProgramClassCollection::resolveClassConflictImpl),
           ImmutableList.copyOf(programResourceProviders),
