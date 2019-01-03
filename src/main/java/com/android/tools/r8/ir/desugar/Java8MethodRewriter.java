@@ -135,7 +135,6 @@ public final class Java8MethodRewriter {
     }
   }
 
-
   private MethodGenerator getMethodGeneratorOrNull(IRConverter converter, DexMethod method) {
     DexMethod original = converter.graphLense().getOriginalMethodSignature(method);
     assert original != null;
@@ -145,47 +144,173 @@ public final class Java8MethodRewriter {
 
 
   private static final class IntegerMethods extends TemplateMethodCode {
-    IntegerMethods(InternalOptions options, DexMethod method, String methodName, String desc) {
-      super(options, method, methodName, desc);
+    IntegerMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
     }
 
     public static IntegerMethods hashCodeCode(InternalOptions options, DexMethod method) {
-      return new IntegerMethods(options, method, "hashCodeImpl", "(I)I");
+      return new IntegerMethods(options, method, "hashCodeImpl");
     }
 
     public static IntegerMethods maxCode(InternalOptions options, DexMethod method) {
-      return new IntegerMethods(options, method, "maxImpl", "(II)I");
+      return new IntegerMethods(options, method, "maxImpl");
     }
 
-    public static int hashCodeImpl(int value) {
-      return Integer.valueOf(value).hashCode();
+    public static IntegerMethods minCode(InternalOptions options, DexMethod method) {
+      return new IntegerMethods(options, method, "minImpl");
     }
 
-     public static int maxImpl(int a, int b) {
-       return java.lang.Math.max(a, b);
-     }
+    public static IntegerMethods sumCode(InternalOptions options, DexMethod method) {
+      return new IntegerMethods(options, method, "sumImpl");
+    }
+
+    public static int hashCodeImpl(int i) {
+      return Integer.valueOf(i).hashCode();
+    }
+
+    public static int maxImpl(int a, int b) {
+      return java.lang.Math.max(a, b);
+    }
+
+    public static int minImpl(int a, int b) {
+      return java.lang.Math.min(a, b);
+    }
+
+    public static int sumImpl(int a, int b) {
+      return a + b;
+    }
   }
 
   private static final class DoubleMethods extends TemplateMethodCode {
-    DoubleMethods(InternalOptions options, DexMethod method, String methodName, String desc) {
-      super(options, method, methodName, desc);
+    DoubleMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
     }
 
     public static DoubleMethods hashCodeCode(InternalOptions options, DexMethod method) {
-      return new DoubleMethods(options, method, "hashCodeImpl", "(D)I");
+      return new DoubleMethods(options, method, "hashCodeImpl");
     }
 
     public static DoubleMethods maxCode(InternalOptions options, DexMethod method) {
-      return new DoubleMethods(options, method, "maxImpl", "(DD)D");
+      return new DoubleMethods(options, method, "maxImpl");
     }
 
-    public static int hashCodeImpl(double value) {
-      return Double.valueOf(value).hashCode();
+    public static DoubleMethods minCode(InternalOptions options, DexMethod method) {
+      return new DoubleMethods(options, method, "minImpl");
     }
 
-     public static double maxImpl(double a, double b) {
-       return java.lang.Math.max(a, b);
-     }
+    public static DoubleMethods sumCode(InternalOptions options, DexMethod method) {
+      return new DoubleMethods(options, method, "sumImpl");
+    }
+
+    public static DoubleMethods isFiniteCode(InternalOptions options, DexMethod method) {
+      return new DoubleMethods(options, method, "isFiniteImpl");
+    }
+
+    public static int hashCodeImpl(double d) {
+      return Double.valueOf(d).hashCode();
+    }
+
+    public static double maxImpl(double a, double b) {
+      return java.lang.Math.max(a, b);
+    }
+
+    public static double minImpl(double a, double b) {
+      return java.lang.Math.min(a, b);
+    }
+
+    public static double sumImpl(double a, double b) {
+      return a + b;
+    }
+
+    public static boolean isFiniteImpl(double d) {
+      Double boxed = Double.valueOf(d);
+      return !boxed.isInfinite() && !boxed.isNaN();
+    }
+  }
+
+  private static final class FloatMethods extends TemplateMethodCode {
+    FloatMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
+    }
+
+    public static FloatMethods hashCodeCode(InternalOptions options, DexMethod method) {
+      return new FloatMethods(options, method, "hashCodeImpl");
+    }
+
+    public static FloatMethods maxCode(InternalOptions options, DexMethod method) {
+      return new FloatMethods(options, method, "maxImpl");
+    }
+
+    public static FloatMethods minCode(InternalOptions options, DexMethod method) {
+      return new FloatMethods(options, method, "minImpl");
+    }
+
+    public static FloatMethods sumCode(InternalOptions options, DexMethod method) {
+      return new FloatMethods(options, method, "sumImpl");
+    }
+
+    public static FloatMethods isFiniteCode(InternalOptions options, DexMethod method) {
+      return new FloatMethods(options, method, "isFiniteImpl");
+    }
+
+    public static int hashCodeImpl(float d) {
+      return Float.valueOf(d).hashCode();
+    }
+
+    public static float maxImpl(float a, float b) {
+      return java.lang.Math.max(a, b);
+    }
+
+    public static float minImpl(float a, float b) {
+      return java.lang.Math.min(a, b);
+    }
+
+    public static float sumImpl(float a, float b) {
+      return a + b;
+    }
+
+    public static boolean isFiniteImpl(float d) {
+      Float boxed = Float.valueOf(d);
+      return !boxed.isInfinite() && !boxed.isNaN();
+    }
+  }
+
+  private static final class BooleanMethods extends TemplateMethodCode {
+    BooleanMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
+    }
+
+    public static BooleanMethods hashCodeCode(InternalOptions options, DexMethod method) {
+      return new BooleanMethods(options, method, "hashCodeImpl");
+    }
+
+    public static BooleanMethods logicalAndCode(InternalOptions options, DexMethod method) {
+      return new BooleanMethods(options, method, "logicalAndImpl");
+    }
+
+    public static BooleanMethods logicalOrCode(InternalOptions options, DexMethod method) {
+      return new BooleanMethods(options, method, "logicalOrImpl");
+    }
+
+    public static BooleanMethods logicalXorCode(InternalOptions options, DexMethod method) {
+      return new BooleanMethods(options, method, "logicalXorImpl");
+    }
+
+    public static int hashCodeImpl(boolean b) {
+      return Boolean.valueOf(b).hashCode();
+    }
+
+    public static boolean logicalAndImpl(boolean a, boolean b) {
+      return a && b;
+    }
+
+    public static boolean logicalOrImpl(boolean a, boolean b) {
+      return a || b;
+    }
+
+    public static boolean logicalXorImpl(boolean a, boolean b) {
+      return a ^ b;
+    }
   }
 
   public static final class RewritableMethods {
@@ -197,8 +322,8 @@ public final class Java8MethodRewriter {
       rewritable = new HashMap<>();
       // Integer
       DexString clazz = factory.boxedIntDescriptor;
-      // int Integer.hashCode(int i)
 
+      // int Integer.hashCode(int i)
       DexString method = factory.createString("hashCode");
       DexProto proto = factory.createProto(factory.intType, factory.intType);
       addOrGetMethod(clazz, method)
@@ -210,8 +335,21 @@ public final class Java8MethodRewriter {
       addOrGetMethod(clazz, method)
           .put(proto, new MethodGenerator(IntegerMethods::maxCode, clazz, method, proto));
 
+      // int Integer.min(int a, int b)
+      method = factory.createString("min");
+      proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(IntegerMethods::minCode, clazz, method, proto));
+
+      // int Integer.sum(int a, int b)
+      method = factory.createString("sum");
+      proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(IntegerMethods::sumCode, clazz, method, proto));
+
       // Double
       clazz = factory.boxedDoubleDescriptor;
+
       // int Double.hashCode(double d)
       method = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.doubleType);
@@ -224,6 +362,83 @@ public final class Java8MethodRewriter {
       addOrGetMethod(clazz, method)
           .put(proto, new MethodGenerator(DoubleMethods::maxCode, clazz, method, proto));
 
+      // double Double.min(double a, double b)
+      method = factory.createString("min");
+      proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(DoubleMethods::minCode, clazz, method, proto));
+
+      // double Double.sum(double a, double b)
+      method = factory.createString("sum");
+      proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(DoubleMethods::sumCode, clazz, method, proto));
+
+      // boolean Double.isFinite(double a)
+      method = factory.createString("isFinite");
+      proto = factory.createProto(factory.booleanType, factory.doubleType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(DoubleMethods::isFiniteCode, clazz, method, proto));
+
+      // Float
+      clazz = factory.boxedFloatDescriptor;
+
+      // int Float.hashCode(float d)
+      method = factory.createString("hashCode");
+      proto = factory.createProto(factory.intType, factory.floatType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(FloatMethods::hashCodeCode, clazz, method, proto));
+
+      // float Float.max(float a, float b)
+      method = factory.createString("max");
+      proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(FloatMethods::maxCode, clazz, method, proto));
+
+      // float Float.min(float a, float b)
+      method = factory.createString("min");
+      proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(FloatMethods::minCode, clazz, method, proto));
+
+      // float Float.sum(float a, float b)
+      method = factory.createString("sum");
+      proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(FloatMethods::sumCode, clazz, method, proto));
+
+      // boolean Float.isFinite(float a)
+      method = factory.createString("isFinite");
+      proto = factory.createProto(factory.booleanType, factory.floatType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(FloatMethods::isFiniteCode, clazz, method, proto));
+
+      // Boolean
+      clazz = factory.boxedBooleanDescriptor;
+
+      // int Boolean.hashCode(boolean b)
+      method = factory.createString("hashCode");
+      proto = factory.createProto(factory.intType, factory.booleanType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(BooleanMethods::hashCodeCode, clazz, method, proto));
+
+      // boolean Boolean.logicalAnd(boolean a, boolean b)
+      method = factory.createString("logicalAnd");
+      proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(BooleanMethods::logicalAndCode, clazz, method, proto));
+
+      // boolean Boolean.logicalOr(boolean a, boolean b)
+      method = factory.createString("logicalOr");
+      proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(BooleanMethods::logicalOrCode, clazz, method, proto));
+
+      // boolean Boolean.logicalXor(boolean a, boolean b)
+      method = factory.createString("logicalXor");
+      proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(BooleanMethods::logicalXorCode, clazz, method, proto));
     }
 
     private Map<DexString, Map<DexProto, MethodGenerator>> addOrGetClass(DexString clazz) {
