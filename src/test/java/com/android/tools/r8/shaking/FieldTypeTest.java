@@ -131,13 +131,12 @@ public class FieldTypeTest extends TestBase {
 
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
-    assertNotEquals(0, artResult.exitCode);
-    assertThat(artResult.stderr, containsString("java.lang.NullPointerException"));
+    assertEquals(0, artResult.exitCode);
     assertThat(artResult.stderr, not(containsString("DoFieldPut")));
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject itf1Subject = inspector.clazz(itf1.name);
-    assertThat(itf1Subject, not(isPresent()));
+    assertThat(itf1Subject, isPresent());
   }
 
   @Test

@@ -44,6 +44,5 @@ public class R8GMSCoreFixedPointTest extends GMSCoreCompilationTestBase {
 
   private void configure(InternalOptions options) {
     options.ignoreMissingClasses = true;
-    options.testing.allowTypeErrors = true;
   }
 }

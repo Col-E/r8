@@ -191,8 +191,15 @@ public class ProguardTestBuilder
 
   @Override
   public ProguardTestBuilder addProgramFiles(Collection<Path> files) {
-    throw new Unimplemented(
-        "No support for adding paths directly (we need to compute the descriptor)");
+    for (Path file : files) {
+      if (FileUtils.isJarFile(file)) {
+        injars.add(file);
+      } else {
+        throw new Unimplemented(
+            "No support for adding paths directly (we need to compute the descriptor)");
+      }
+    }
+    return self();
   }
 
   @Override

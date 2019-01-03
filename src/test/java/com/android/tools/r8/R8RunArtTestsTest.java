@@ -904,9 +904,6 @@ public abstract class R8RunArtTestsTest {
   // Tests that are invalid dex files and on which R8/D8 fails and that is OK.
   private static final Multimap<String, TestCondition> expectedToFailWithCompiler =
       new ImmutableListMultimap.Builder<String, TestCondition>()
-          // Test uses separate compilation to generate an input program where an object of
-          // type X is stored in a field that has static type Y, and X is not a subtype of Y.
-          .put("069-field-type", TestCondition.match(TestCondition.R8_COMPILER))
           // When starting from the Jar frontend we see the A$B class both from the Java source
           // code and from the smali dex code. We reject that because there are then two definitions
           // of the same class in the application. When running from the final dex files there is
