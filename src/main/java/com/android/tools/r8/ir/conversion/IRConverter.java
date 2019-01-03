@@ -1155,26 +1155,6 @@ public class IRConverter {
 
   private void computeKotlinNonNullParamHints(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    DexMethod originalSignature = graphLense().getOriginalMethodSignature(method.method);
-    DexClass originalHolder = definitionFor(originalSignature.holder);
-    if (!originalHolder.hasKotlinInfo()) {
-      return;
-    }
-
-    // Use non-null parameter hints in Kotlin metadata if available.
-    KotlinInfo kotlinInfo = originalHolder.getKotlinInfo();
-    if (kotlinInfo.hasNonNullParameterHints()) {
-      BitSet hintFromMetadata =
-          kotlinInfo.lookupNonNullParameterHint(
-              originalSignature.name.toString(), originalSignature.proto.toDescriptorString());
-      if (hintFromMetadata != null) {
-        if (hintFromMetadata.length() > 0) {
-          feedback.setNonNullParamOrThrow(method, hintFromMetadata);
-        }
-        return;
-      }
-    }
-    // Otherwise, fall back to inspecting the code.
     List<Value> arguments = code.collectArguments(true);
     BitSet paramsCheckedForNull = new BitSet();
     DexMethod checkParameterIsNotNull =
@@ -1194,17 +1174,40 @@ public class IRConverter {
         }
         InvokeMethod invoke = user.asInvokeMethod();
         DexMethod invokedMethod =
-            appView.graphLense().getOriginalMethodSignature(invoke.getInvokedMethod());
+            graphLense().getOriginalMethodSignature(invoke.getInvokedMethod());
+        // TODO(b/121377154): Make sure there is no other side-effect before argument's null check.
+        // E.g., is this the first method invocation inside the method?
         if (invokedMethod == checkParameterIsNotNull && user.inValues().indexOf(argument) == 0) {
           paramsCheckedForNull.set(index);
         }
       }
     }
     if (paramsCheckedForNull.length() > 0) {
+      // Check if collected information conforms to non-null parameter hints in Kotlin metadata.
+      DexMethod originalSignature = graphLense().getOriginalMethodSignature(method.method);
+      DexClass originalHolder = definitionFor(originalSignature.holder);
+      if (originalHolder.hasKotlinInfo()) {
+        KotlinInfo kotlinInfo = originalHolder.getKotlinInfo();
+        if (kotlinInfo.hasNonNullParameterHints()) {
+          BitSet hintFromMetadata =
+              kotlinInfo.lookupNonNullParameterHint(
+                  originalSignature.name.toString(), originalSignature.proto.toDescriptorString());
+          if (hintFromMetadata != null && hintFromMetadata.length() > 0) {
+            if (!paramsCheckedForNull.equals(hintFromMetadata) && Log.ENABLED) {
+              Log.debug(getClass(), "Mismatching non-null param hints for %s: %s v.s. %s\n%s",
+                  paramsCheckedForNull.toString(),
+                  hintFromMetadata.toString(),
+                  method.toSourceString(),
+                  logCode(options, method));
+            }
+          }
+        }
+      }
       feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
     }
   }
 
+  // TODO(b/121377154): Consider merging compute(Kotlin)?NonNullParamHints into one.
   private void computeNonNullParamHints(
     OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     List<Value> arguments = code.collectArguments(true);
