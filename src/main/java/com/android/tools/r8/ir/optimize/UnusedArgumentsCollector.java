@@ -104,14 +104,22 @@ public class UnusedArgumentsCollector {
     private final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
     private final Set<Wrapper<DexMethod>> usedSignatures = new HashSet<>();
 
-    private DexProto protoWithRemovedArguments(DexMethod method, RemovedArgumentsInfo unused) {
-      DexType[] parameters =
-          new DexType[method.proto.parameters.size() - unused.numberOfRemovedArguments()];
-      if (parameters.length > 0) {
+    private DexProto protoWithRemovedArguments(
+        DexEncodedMethod encodedMethod, RemovedArgumentsInfo unused) {
+      DexMethod method = encodedMethod.method;
+
+      int firstArgumentIndex = encodedMethod.isStatic() ? 0 : 1;
+      int numberOfParameters = method.proto.parameters.size() - unused.numberOfRemovedArguments();
+      if (!encodedMethod.isStatic() && unused.isArgumentRemoved(0)) {
+        numberOfParameters++;
+      }
+
+      DexType[] parameters = new DexType[numberOfParameters];
+      if (numberOfParameters > 0) {
         int newIndex = 0;
-        for (int j = 0; j < method.proto.parameters.size(); j++) {
-          if (!unused.isArgumentRemoved(j)) {
-            parameters[newIndex++] = method.proto.parameters.values[j];
+        for (int oldIndex = 0; oldIndex < method.proto.parameters.size(); oldIndex++) {
+          if (!unused.isArgumentRemoved(oldIndex + firstArgumentIndex)) {
+            parameters[newIndex++] = method.proto.parameters.values[oldIndex];
           }
         }
         assert newIndex == parameters.length;
@@ -128,19 +136,26 @@ public class UnusedArgumentsCollector {
     }
 
     DexEncodedMethod removeArguments(DexEncodedMethod method, RemovedArgumentsInfo unused) {
+      if (unused == null) {
+        return null;
+      }
+
       boolean removed = usedSignatures.remove(equivalence.wrap(method.method));
       assert removed;
-      DexProto newProto = protoWithRemovedArguments(method.method, unused);
+      DexProto newProto = protoWithRemovedArguments(method, unused);
       DexMethod newSignature;
       int count = 0;
       DexString newName = null;
       do {
-        newName =
-            newName == null
-                ? method.method.name
-                : appView
-                    .dexItemFactory()
-                    .createString(method.method.name.toSourceString() + count);
+        if (newName == null) {
+          newName = method.method.name;
+        } else if (method.method.name != appView.dexItemFactory().initMethodName) {
+          newName =
+              appView.dexItemFactory().createString(method.method.name.toSourceString() + count);
+        } else {
+          // Constructors must be named `<init>`.
+          return null;
+        }
         newSignature =
             appView.dexItemFactory().createMethod(method.method.holder, newProto, newName);
         count++;
@@ -158,8 +173,8 @@ public class UnusedArgumentsCollector {
     for (int i = 0; i < clazz.directMethods().length; i++) {
       DexEncodedMethod method = clazz.directMethods()[i];
       RemovedArgumentsInfo unused = collectUnusedArguments(method);
-      if (unused != null) {
-        DexEncodedMethod newMethod = signatures.removeArguments(method, unused);
+      DexEncodedMethod newMethod = signatures.removeArguments(method, unused);
+      if (newMethod != null) {
         clazz.directMethods()[i] = newMethod;
         methodMapping.put(method.method, newMethod.method);
         removedArguments.put(newMethod.method, unused);
@@ -178,21 +193,25 @@ public class UnusedArgumentsCollector {
     assert method.getCode().getOwner() == method;
     int argumentCount =
         method.method.proto.parameters.size() + (method.accessFlags.isStatic() ? 0 : 1);
-    // TODO(65810338): Implement for private and virtual as well.
-    if (!method.accessFlags.isStatic()) {
-      return null;
-    }
-    CollectUsedArguments collector = new CollectUsedArguments();
-    method.getCode().registerArgumentReferences(collector);
-    BitSet used = collector.getUsedArguments();
-    if (used.cardinality() < argumentCount) {
-      List<RemovedArgumentInfo> unused = new ArrayList<>();
-      for (int i = 0; i < argumentCount; i++) {
-        if (!used.get(i)) {
-          unused.add(RemovedArgumentInfo.builder().setArgumentIndex(i).build());
-        }
+    // TODO(65810338): Implement for virtual methods as well.
+    if (method.accessFlags.isPrivate() || method.accessFlags.isStatic()) {
+      CollectUsedArguments collector = new CollectUsedArguments();
+      if (!method.accessFlags.isStatic()) {
+        // TODO(65810338): The receiver cannot be removed without transforming the method to being
+        // static.
+        collector.register(0);
       }
-      return new RemovedArgumentsInfo(unused);
+      method.getCode().registerArgumentReferences(collector);
+      BitSet used = collector.getUsedArguments();
+      if (used.cardinality() < argumentCount) {
+        List<RemovedArgumentInfo> unused = new ArrayList<>();
+        for (int i = 0; i < argumentCount; i++) {
+          if (!used.get(i)) {
+            unused.add(RemovedArgumentInfo.builder().setArgumentIndex(i).build());
+          }
+        }
+        return new RemovedArgumentsInfo(unused);
+      }
     }
     return null;
   }
