@@ -142,6 +142,12 @@ public class ProguardTestBuilder
       command.add(outJar.toString());
       command.add("-printmapping");
       command.add(mapFile.toString());
+      if (!enableTreeShaking) {
+        command.add("-dontshrink");
+      }
+      if (!enableMinification) {
+        command.add("-dontobfuscate");
+      }
       ProcessBuilder pbuilder = new ProcessBuilder(command);
       ProcessResult result = ToolHelper.runProcess(pbuilder);
       if (result.exitCode != 0) {
@@ -155,18 +161,6 @@ public class ProguardTestBuilder
     } catch (IOException e) {
       throw new CompilationFailedException(e);
     }
-  }
-
-  @Override
-  public ProguardTestBuilder noTreeShaking() {
-    addKeepRules("-dontshrink");
-    return self();
-  }
-
-  @Override
-  public ProguardTestBuilder noMinification() {
-    addKeepRules("-dontobfuscate");
-    return self();
   }
 
   @Override

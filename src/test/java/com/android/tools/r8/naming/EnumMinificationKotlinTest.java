@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.KotlinTestBase;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -44,14 +43,13 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
 
   @Test
   public void b121221542() throws Exception {
-    R8TestBuilder builder = testForR8(backend)
+    CodeInspector inspector = testForR8(backend)
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addProgramFiles(getJavaJarFile(FOLDER))
-        .addKeepMainRule(MAIN_CLASS_NAME);
-    if (!minify) {
-      builder.noMinification();
-    }
-    CodeInspector inspector = builder.run(MAIN_CLASS_NAME).inspector();
+        .addKeepMainRule(MAIN_CLASS_NAME)
+        .minification(minify)
+        .run(MAIN_CLASS_NAME)
+        .inspector();
     ClassSubject enumClass = inspector.clazz(ENUM_CLASS_NAME);
     assertThat(enumClass, isPresent());
     assertEquals(minify, enumClass.isRenamed());

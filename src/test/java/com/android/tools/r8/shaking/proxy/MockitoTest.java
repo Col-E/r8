@@ -48,10 +48,8 @@ public class MockitoTest extends TestBase {
     Path flagToKeepTestRunner = Paths.get(ToolHelper.EXAMPLES_DIR, M_I_PKG, "keep-rules.txt");
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(MOCKITO_INTERFACE_JAR)
-        .addKeepRuleFiles(flagToKeepTestRunner);
-    if (!minify) {
-      builder.noMinification();
-    }
+        .addKeepRuleFiles(flagToKeepTestRunner)
+        .minification(minify);
     CodeInspector inspector = builder.compile().inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());
@@ -65,10 +63,8 @@ public class MockitoTest extends TestBase {
         Paths.get(ToolHelper.EXAMPLES_DIR, M_I_PKG, "keep-rules-conditional-on-mock.txt");
     R8TestBuilder builder = testForR8(backend)
         .addProgramFiles(MOCKITO_INTERFACE_JAR)
-        .addKeepRuleFiles(flagToKeepInterfaceConditionally);
-    if (!minify) {
-      builder.noMinification();
-    }
+        .addKeepRuleFiles(flagToKeepInterfaceConditionally)
+        .minification(minify);
     CodeInspector inspector = builder.compile().inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());

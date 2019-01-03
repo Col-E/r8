@@ -54,22 +54,12 @@ public class R8TestBuilder
       ToolHelper.allowTestProguardOptions(builder);
     }
     StringBuilder proguardMapBuilder = new StringBuilder();
+    builder.setDisableTreeShaking(!enableTreeShaking);
+    builder.setDisableMinification(!enableMinification);
     builder.setProguardMapConsumer((string, ignore) -> proguardMapBuilder.append(string));
     ToolHelper.runR8WithoutResult(builder.build(), optionsConsumer);
     return new R8TestCompileResult(
         getState(), backend, app.get(), proguardMapBuilder.toString(), graphConsumer);
-  }
-
-  @Override
-  public R8TestBuilder noTreeShaking() {
-    builder.setDisableTreeShaking(true);
-    return self();
-  }
-
-  @Override
-  public R8TestBuilder noMinification() {
-    builder.setDisableMinification(true);
-    return self();
   }
 
   public R8TestBuilder addDataResources(List<DataEntryResource> resources) {
