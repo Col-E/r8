@@ -17,11 +17,6 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
 
   public void runR8AndCheckVerification(CompilationMode mode, String input) throws Exception {
     runAndCheckVerification(
-        CompilerUnderTest.R8,
-        mode,
-        BASE + APK,
-        null,
-        options -> options.testing.allowTypeErrors = true,
-        ImmutableList.of(BASE + input));
+        CompilerUnderTest.R8, mode, BASE + APK, null, null, ImmutableList.of(BASE + input));
   }
 }

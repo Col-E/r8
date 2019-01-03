@@ -10,7 +10,6 @@ public class R8GMSCoreV8VerificationTest extends GMSCoreCompilationTestBase {
 
   @Test
   public void verify() throws Exception {
-    runR8AndCheckVerification(
-        CompilationMode.RELEASE, GMSCORE_V8_DIR, options -> options.testing.allowTypeErrors = true);
+    runR8AndCheckVerification(CompilationMode.RELEASE, GMSCORE_V8_DIR);
   }
 }
