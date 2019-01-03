@@ -5,8 +5,10 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
@@ -14,11 +16,18 @@ public class R8TestCompileResult extends TestCompileResult<R8TestRunResult> {
 
   private final Backend backend;
   private final String proguardMap;
+  private final CollectingGraphConsumer graphConsumer;
 
-  R8TestCompileResult(TestState state, Backend backend, AndroidApp app, String proguardMap) {
+  R8TestCompileResult(
+      TestState state,
+      Backend backend,
+      AndroidApp app,
+      String proguardMap,
+      CollectingGraphConsumer graphConsumer) {
     super(state, app);
     this.backend = backend;
     this.proguardMap = proguardMap;
+    this.graphConsumer = graphConsumer;
   }
 
   @Override
@@ -36,8 +45,13 @@ public class R8TestCompileResult extends TestCompileResult<R8TestRunResult> {
     return new CodeInspector(app, proguardMap);
   }
 
+  public GraphInspector graphInspector() throws IOException, ExecutionException {
+    assert graphConsumer != null;
+    return new GraphInspector(graphConsumer, inspector());
+  }
+
   @Override
   public R8TestRunResult createRunResult(AndroidApp app, ProcessResult result) {
-    return new R8TestRunResult(app, result, proguardMap);
+    return new R8TestRunResult(app, result, proguardMap, this::graphInspector);
   }
 }

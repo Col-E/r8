@@ -8,6 +8,7 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestBase.R8Mode;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.file.Path;
@@ -38,6 +39,7 @@ public class R8TestBuilder
   private boolean enableInliningAnnotations = false;
   private boolean enableClassInliningAnnotations = false;
   private boolean enableMergeAnnotations = false;
+  private CollectingGraphConsumer graphConsumer = null;
 
   @Override
   R8TestBuilder self() {
@@ -54,7 +56,8 @@ public class R8TestBuilder
     StringBuilder proguardMapBuilder = new StringBuilder();
     builder.setProguardMapConsumer((string, ignore) -> proguardMapBuilder.append(string));
     ToolHelper.runR8WithoutResult(builder.build(), optionsConsumer);
-    return new R8TestCompileResult(getState(), backend, app.get(), proguardMapBuilder.toString());
+    return new R8TestCompileResult(
+        getState(), backend, app.get(), proguardMapBuilder.toString(), graphConsumer);
   }
 
   @Override
@@ -140,7 +143,15 @@ public class R8TestBuilder
     return self();
   }
 
+  public R8TestBuilder enableGraphInspector() {
+    CollectingGraphConsumer consumer = new CollectingGraphConsumer(null);
+    setKeptGraphConsumer(consumer);
+    graphConsumer = consumer;
+    return self();
+  }
+
   public R8TestBuilder setKeptGraphConsumer(GraphConsumer graphConsumer) {
+    assert this.graphConsumer == null;
     builder.setKeptGraphConsumer(graphConsumer);
     return self();
   }

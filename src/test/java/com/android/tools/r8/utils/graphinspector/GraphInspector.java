@@ -252,19 +252,6 @@ public class GraphInspector {
     }
   }
 
-  public boolean isRenamed(MethodReference method) {
-    assert isPresent(method);
-    return inspector.method(method).isRenamed();
-  }
-
-  public boolean isPresent(MethodReference method) {
-    if (methods.containsKey(method)) {
-      assert inspector.method(method).isPresent();
-      return true;
-    }
-    return false;
-  }
-
   public Set<GraphNode> getRoots() {
     return Collections.unmodifiableSet(roots);
   }

@@ -16,10 +16,10 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class KeptByAnnotatedClassTestRunner extends TestBase {
+public class KeptMethodTestRunner extends TestBase {
 
-  private static final Class<KeptByAnnotatedClassTest> CLASS = KeptByAnnotatedClassTest.class;
-  private final String EXPECTED = StringUtils.lines("called bar");
+  private static final Class<KeptMethodTest> CLASS = KeptMethodTest.class;
+  private static final String EXPECTED = StringUtils.lines("called bar");
 
   private final Backend backend;
 
@@ -28,7 +28,7 @@ public class KeptByAnnotatedClassTestRunner extends TestBase {
     return Backend.values();
   }
 
-  public KeptByAnnotatedClassTestRunner(Backend backend) {
+  public KeptMethodTestRunner(Backend backend) {
     this.backend = backend;
   }
 
@@ -43,12 +43,12 @@ public class KeptByAnnotatedClassTestRunner extends TestBase {
             .enableGraphInspector()
             .enableInliningAnnotations()
             .addProgramClasses(CLASS)
-            .addKeepRules("-keep @com.android.tools.r8.Keep class * { public *; }")
+            .addKeepMethodRules(mainMethod)
             .run(CLASS)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();
 
-    // The only root should be the keep annotation rule.
+    // The only root should be the keep main-method rule.
     assertEquals(1, inspector.getRoots().size());
 
     // Check that the call chain goes from root -> main(unchanged) -> bar(renamed).
