@@ -186,7 +186,8 @@ public class IRConverter {
         (options.enableDesugaring && enableTwrCloseResourceDesugaring())
             ? new TwrCloseResourceRewriter(this) : null;
     this.java8MethodRewriter =
-        options.enableDesugaring ? new Java8MethodRewriter(this) : null;
+        (options.enableDesugaring && !options.canUseJava8Methods())
+            ? new Java8MethodRewriter(this) : null;
     this.lambdaMerger =
         options.enableLambdaMerging ? new LambdaMerger(appInfo, options.reporter) : null;
     this.covariantReturnTypeAnnotationTransformer =
