@@ -568,6 +568,10 @@ public class InternalOptions {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
   }
 
+  public boolean canUseJava8Methods() {
+    return hasMinApi(AndroidApiLevel.N);
+  }
+
   public boolean canUsePrivateInterfaceMethods() {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
   }
