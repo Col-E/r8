@@ -142,6 +142,34 @@ public final class Java8MethodRewriter {
         original.holder.descriptor, original.name, original.proto);
   }
 
+  private static final class ByteMethods extends TemplateMethodCode {
+    ByteMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
+    }
+
+    public static ByteMethods hashCodeCode(InternalOptions options, DexMethod method) {
+      return new ByteMethods(options, method, "hashCodeImpl");
+    }
+
+    public static int hashCodeImpl(byte i) {
+      return Byte.valueOf(i).hashCode();
+    }
+  }
+
+
+  private static final class ShortMethods extends TemplateMethodCode {
+    ShortMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
+    }
+
+    public static ShortMethods hashCodeCode(InternalOptions options, DexMethod method) {
+      return new ShortMethods(options, method, "hashCodeImpl");
+    }
+
+    public static int hashCodeImpl(short i) {
+      return Short.valueOf(i).hashCode();
+    }
+  }
 
   private static final class IntegerMethods extends TemplateMethodCode {
     IntegerMethods(InternalOptions options, DexMethod method, String methodName) {
@@ -320,12 +348,28 @@ public final class Java8MethodRewriter {
 
     public RewritableMethods(DexItemFactory factory) {
       rewritable = new HashMap<>();
+      // Byte
+      DexString clazz = factory.boxedByteDescriptor;
+      // int Byte.hashCode(byte i)
+      DexString method = factory.createString("hashCode");
+      DexProto proto = factory.createProto(factory.intType, factory.byteType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ByteMethods::hashCodeCode, clazz, method, proto));
+
+      // Short
+      clazz = factory.boxedShortDescriptor;
+      // int Short.hashCode(short i)
+      method = factory.createString("hashCode");
+      proto = factory.createProto(factory.intType, factory.shortType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ShortMethods::hashCodeCode, clazz, method, proto));
+
       // Integer
-      DexString clazz = factory.boxedIntDescriptor;
+      clazz = factory.boxedIntDescriptor;
 
       // int Integer.hashCode(int i)
-      DexString method = factory.createString("hashCode");
-      DexProto proto = factory.createProto(factory.intType, factory.intType);
+      method = factory.createString("hashCode");
+      proto = factory.createProto(factory.intType, factory.intType);
       addOrGetMethod(clazz, method)
           .put(proto, new MethodGenerator(IntegerMethods::hashCodeCode, clazz, method, proto));
 

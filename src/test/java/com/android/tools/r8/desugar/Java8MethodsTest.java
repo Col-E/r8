@@ -28,6 +28,16 @@ public class Java8MethodsTest extends TestBase {
 
   static class Java8Methods {
     public static void main(String[] args) {
+      byte[] aBytes = new byte[]{42, 1, -1, Byte.MAX_VALUE, Byte.MIN_VALUE};
+      for (byte aByte : aBytes) {
+        System.out.println(Byte.hashCode(aByte));
+      }
+
+      short[] aShorts = new short[]{42, 1, -1, Short.MAX_VALUE, Short.MIN_VALUE};
+      for (short aShort : aShorts) {
+        System.out.println(Short.hashCode(aShort));
+      }
+
       int[] aInts = new int[]{42, 1, -1, Integer.MAX_VALUE, Integer.MIN_VALUE};
       int[] bInts = new int[]{43, 1, -1, Integer.MAX_VALUE, Integer.MIN_VALUE};
       for (int aInt : aInts) {
