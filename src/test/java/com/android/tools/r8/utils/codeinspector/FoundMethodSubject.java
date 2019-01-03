@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.code.Instruction;
@@ -162,6 +165,17 @@ public class FoundMethodSubject extends MethodSubject {
   public <T extends InstructionSubject> Iterator<T> iterateInstructions(
       Predicate<InstructionSubject> filter) {
     return new FilteredInstructionIterator<>(codeInspector, this, filter);
+  }
+
+  @Override
+  public Iterator<TryCatchSubject> iterateTryCatches() {
+    return codeInspector.createTryCatchIterator(this);
+  }
+
+  @Override
+  public <T extends TryCatchSubject> Iterator<T> iterateTryCatches(
+      Predicate<TryCatchSubject> filter) {
+    return new FilteredTryCatchIterator<>(codeInspector, this, filter);
   }
 
   @Override

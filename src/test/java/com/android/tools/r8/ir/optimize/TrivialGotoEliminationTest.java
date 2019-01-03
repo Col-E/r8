@@ -79,6 +79,7 @@ public class TrivialGotoEliminationTest {
             new ValueNumberGenerator(),
             false,
             false,
+            false,
             Origin.unknown());
     CodeRewriter.collapseTrivialGotos(null, code);
     assertTrue(code.blocks.get(0).isTrivialGoto());
@@ -160,6 +161,7 @@ public class TrivialGotoEliminationTest {
             null,
             blocks,
             new ValueNumberGenerator(),
+            false,
             false,
             false,
             Origin.unknown());

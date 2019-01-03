@@ -79,4 +79,12 @@ public interface InstructionSubject {
   boolean isSparseSwitch();
 
   boolean isMultiplication();
+
+  boolean isMonitorEnter();
+
+  boolean isMonitorExit();
+
+  int size();
+
+  InstructionOffsetSubject getOffset(MethodSubject methodSubject);
 }

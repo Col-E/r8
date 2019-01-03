@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstClass;
@@ -20,6 +22,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfPosition;
@@ -28,8 +31,10 @@ import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.Monitor.Type;
 import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.Opcodes;
 
@@ -251,6 +256,36 @@ public class CfInstructionSubject implements InstructionSubject {
     }
     int opcode = ((CfArithmeticBinop) instruction).getAsmOpcode();
     return Opcodes.IMUL <= opcode && opcode <= Opcodes.DMUL;
+  }
+
+  @Override
+  public boolean isMonitorEnter() {
+    if (!(instruction instanceof CfMonitor)) {
+      return false;
+    }
+    CfMonitor monitor = (CfMonitor) instruction;
+    return monitor.getType() == Type.ENTER;
+  }
+
+  @Override
+  public boolean isMonitorExit() {
+    if (!(instruction instanceof CfMonitor)) {
+      return false;
+    }
+    CfMonitor monitor = (CfMonitor) instruction;
+    return monitor.getType() == Type.EXIT;
+  }
+
+  @Override
+  public int size() {
+    // TODO(b/122302789): CfInstruction#getSize()
+    throw new UnsupportedOperationException("CfInstruction doesn't have size yet.");
+  }
+
+  @Override
+  public InstructionOffsetSubject getOffset(MethodSubject methodSubject) {
+    // TODO(b/122302789): CfInstruction#getOffset()
+    throw new UnsupportedOperationException("CfInstruction doesn't have offset yet.");
   }
 
   @Override

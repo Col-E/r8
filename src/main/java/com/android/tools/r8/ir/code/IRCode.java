@@ -98,10 +98,10 @@ public class IRCode {
   // If this is the case, which holds for javac code, then we want to ensure that it remains so.
   private boolean allThrowingInstructionsHavePositions;
 
+  // TODO(b/122257895): Update OptimizationInfo to capture instruction kinds of interest.
   public final boolean hasDebugPositions;
-
-  // TODO(jsjeon): maybe making similar to DexEncodedMethod.OptimizationInfo?
   public boolean hasConstString;
+  public final boolean hasMonitorInstruction;
 
   public final InternalOptions options;
 
@@ -113,6 +113,7 @@ public class IRCode {
       LinkedList<BasicBlock> blocks,
       ValueNumberGenerator valueNumberGenerator,
       boolean hasDebugPositions,
+      boolean hasMonitorInstruction,
       boolean hasConstString,
       Origin origin) {
     assert options != null;
@@ -121,6 +122,7 @@ public class IRCode {
     this.blocks = blocks;
     this.valueNumberGenerator = valueNumberGenerator;
     this.hasDebugPositions = hasDebugPositions;
+    this.hasMonitorInstruction = hasMonitorInstruction;
     this.hasConstString = hasConstString;
     this.origin = origin;
     // TODO(zerny): Remove or update this property now that all instructions have positions.
@@ -128,6 +130,7 @@ public class IRCode {
   }
 
   public void copyMetadataFromInlinee(IRCode inlinee) {
+    assert !inlinee.hasMonitorInstruction;
     this.hasConstString |= inlinee.hasConstString;
   }
 

@@ -1,22 +1,23 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.utils.codeinspector;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
-class FilteredInstructionIterator<T extends InstructionSubject> implements Iterator<T> {
+class FilteredTryCatchIterator<T extends TryCatchSubject> implements Iterator<T> {
 
-  private final InstructionIterator iterator;
-  private final Predicate<InstructionSubject> predicate;
-  private InstructionSubject pendingNext = null;
+  private final TryCatchIterator iterator;
+  private final Predicate<TryCatchSubject> predicate;
+  private TryCatchSubject pendingNext = null;
 
-  FilteredInstructionIterator(
-      CodeInspector codeInspector, MethodSubject method, Predicate<InstructionSubject> predicate) {
-    this.iterator = codeInspector.createInstructionIterator(method);
+  FilteredTryCatchIterator(
+      CodeInspector codeInspector,
+      MethodSubject methodSubject,
+      Predicate<TryCatchSubject> predicate) {
+    this.iterator = codeInspector.createTryCatchIterator(methodSubject);
     this.predicate = predicate;
   }
 

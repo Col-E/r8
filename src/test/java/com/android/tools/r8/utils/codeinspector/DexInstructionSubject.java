@@ -55,6 +55,8 @@ import com.android.tools.r8.code.IputChar;
 import com.android.tools.r8.code.IputObject;
 import com.android.tools.r8.code.IputShort;
 import com.android.tools.r8.code.IputWide;
+import com.android.tools.r8.code.MonitorEnter;
+import com.android.tools.r8.code.MonitorExit;
 import com.android.tools.r8.code.MulDouble;
 import com.android.tools.r8.code.MulDouble2Addr;
 import com.android.tools.r8.code.MulFloat;
@@ -349,6 +351,26 @@ public class DexInstructionSubject implements InstructionSubject {
         || instruction instanceof MulLong2Addr
         || instruction instanceof MulDouble
         || instruction instanceof MulDouble2Addr;
+  }
+
+  @Override
+  public boolean isMonitorEnter() {
+    return instruction instanceof MonitorEnter;
+  }
+
+  @Override
+  public boolean isMonitorExit() {
+    return instruction instanceof MonitorExit;
+  }
+
+  @Override
+  public int size() {
+    return instruction.getSize();
+  }
+
+  @Override
+  public InstructionOffsetSubject getOffset(MethodSubject methodSubject) {
+    return new InstructionOffsetSubject(instruction.getOffset());
   }
 
   @Override

@@ -419,6 +419,9 @@ public class IRBuilder {
   // Flag indicating if a const string is ever loaded.
   private boolean hasConstString = false;
 
+  // Flag indicating if the code has a monitor instruction.
+  private boolean hasMonitorInstruction = false;
+
   public IRBuilder(
       DexEncodedMethod method,
       AppInfo appInfo,
@@ -613,6 +616,7 @@ public class IRBuilder {
             blocks,
             valueNumberGenerator,
             hasDebugPositions,
+            hasMonitorInstruction,
             hasConstString,
             origin);
 
@@ -1133,6 +1137,7 @@ public class IRBuilder {
     Value in = readRegister(monitor, ValueTypeConstraint.OBJECT);
     Monitor monitorEnter = new Monitor(type, in);
     add(monitorEnter);
+    hasMonitorInstruction = true;
     return monitorEnter;
   }
 

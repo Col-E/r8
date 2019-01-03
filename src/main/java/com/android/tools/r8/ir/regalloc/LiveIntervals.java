@@ -599,7 +599,12 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
       isRematerializable = true;
       return;
     }
-    // TODO(ager): rematerialize const string as well.
+
+    // TODO(ager): rematerialize const string as well. However, in that case we have to be very
+    // careful with methods with synchronization. If we rematerialize in a block that has no
+    // other throwing instructions we can end up with lock-level verification issues. The
+    // rematerialized throwing const-string instruction is not covered by the catch range going
+    // to the monitor-exit instruction and we can leave the method without unlocking the monitor.
     if (!value.isConstNumber()) {
       return;
     }
