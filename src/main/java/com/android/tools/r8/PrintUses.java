@@ -119,13 +119,13 @@ public class PrintUses {
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      addField(field);
+      addField(field, false);
       return false;
     }
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      addField(field);
+      addField(field, false);
       return false;
     }
 
@@ -137,13 +137,13 @@ public class PrintUses {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      addField(field);
+      addField(field, true);
       return false;
     }
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      addField(field);
+      addField(field, true);
       return false;
     }
 
@@ -164,8 +164,15 @@ public class PrintUses {
       return descriptors.contains(type.toDescriptorString());
     }
 
-    private void addField(DexField field) {
+    private void addField(DexField field, boolean isStatic) {
       addType(field.type);
+      DexEncodedField baseField =
+          isStatic
+              ? appInfo.lookupStaticTarget(field.clazz, field)
+              : appInfo.lookupInstanceTarget(field.clazz, field);
+      if (baseField != null && baseField.field.clazz != field.clazz) {
+        field = baseField.field;
+      }
       addType(field.clazz);
       Set<DexField> typeFields = fields.get(field.clazz);
       if (typeFields != null) {
