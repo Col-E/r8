@@ -255,7 +255,6 @@ dependencies {
 }
 
 def r8LibPath = "$buildDir/libs/r8lib.jar"
-def r8LibClassesPath = "$buildDir/classes/r8lib"
 def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
 def r8LibTestPath = "$buildDir/classes/r8libtest"
 
@@ -686,10 +685,6 @@ task generateR8LibKeepRules(type: Exec) {
             r8WithoutDeps.outputs.files[0],
             testJar.outputs.files[0]])
     workingDir = projectDir
-    // TODO(b/121350534) Keep this until we have proper generation of keep rules for r8lib.
-    doLast {
-        new File(r8LibGeneratedKeepRulesPath).append("\n-keep class ** { *; }\n")
-    }
 }
 
 task R8LibNoDeps {
@@ -1389,26 +1384,20 @@ def getR8LibTask() {
     return null
 }
 
-task copyR8LibForTests(type: Copy) {
-    def r8LibTask = getR8LibTask()
-    if (r8LibTask != null) {
-        dependsOn r8LibTask
-        from(zipTree(r8LibPath))
-        into(r8LibClassesPath)
-    }
-    outputs.dir r8LibClassesPath
-}
-
 task configureTestForR8Lib(type: Copy) {
     dependsOn testClasses
-    dependsOn copyR8LibForTests
     // Setting classpath triggers a scan for test files in $buildDir/classes/test that finds all
     // tests and not just the ones under $test/com/android/tools/r8. That is generally not
     // something we want so we just copy the desired test files to $r8LibTestPath.
+    // Note, we cannot use sourceSets.test.output here since it will copy all tests.
+    def sourcePath = "$buildDir/classes/test/com/android/tools/r8"
+    inputs.file sourcePath
     if (getR8LibTask() != null) {
-        // Cannot use sourceSets.test.output here since it will copy all tests.
-        from("$buildDir/classes/test/com/android/tools/r8")
-        into(r8LibTestPath + "/com/android/tools/r8")
+        dependsOn getR8LibTask()
+        def destPath = r8LibTestPath + "/com/android/tools/r8"
+        delete destPath
+        from(sourcePath)
+        into(destPath)
     }
     outputs.dir r8LibTestPath
 }
@@ -1510,9 +1499,7 @@ test {
     }
     if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
         dependsOn configureTestForR8Lib
-        classpath =
-                (sourceSets.test.runtimeClasspath - sourceSets.main.output) +
-                        files(r8LibClassesPath)
+        classpath = files([r8LibPath]) + (sourceSets.test.runtimeClasspath - sourceSets.main.output)
         testClassesDir = new File(r8LibTestPath)
     }
     if (OperatingSystem.current().isLinux()
