@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutionException;
 import org.hamcrest.Matcher;
 
 public abstract class TestCompileResult<RR extends TestRunResult> {
+
   final TestState state;
   public final AndroidApp app;
 

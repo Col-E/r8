@@ -7,6 +7,8 @@ package com.android.tools.r8.naming.retrace;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import java.util.function.BiConsumer;
 import org.junit.Before;
 
@@ -20,6 +22,10 @@ public abstract class RetraceTestBase extends TestBase {
   }
 
   public StackTrace expectedStackTrace;
+
+  public Collection<Class<?>> getClasses() {
+    return ImmutableList.of(getMainClass());
+  }
 
   public abstract Class<?> getMainClass();
 
@@ -42,7 +48,7 @@ public abstract class RetraceTestBase extends TestBase {
             .setMode(mode)
             .enableProguardTestOptions()
             .enableInliningAnnotations()
-            .addProgramClasses(getMainClass())
+            .addProgramClasses(getClasses())
             .addKeepMainRule(getMainClass())
             .addKeepRules(keepRule)
             .run(getMainClass())

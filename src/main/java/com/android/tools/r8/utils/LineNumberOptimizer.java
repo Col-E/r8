@@ -146,12 +146,6 @@ public class LineNumberOptimizer {
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
-
-      // TODO(tamaskenez) fix b/69356670 and remove the conditional skipping.
-      if (!clazz.getSynthesizedFrom().isEmpty()) {
-        continue;
-      }
-
       IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
           groupMethodsByRenamedName(namingLens, clazz);
 
