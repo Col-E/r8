@@ -9,7 +9,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ForceInline;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
@@ -255,41 +254,33 @@ public class GetNameTest extends GetNameTestBase {
   @Test
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
-    R8TestBuilder builder = testForR8(backend)
+    TestRunResult result = testForR8(backend)
         .addProgramFiles(classPaths)
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.GetName0*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
-        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
-    if (!enableMinification) {
-      builder.noMinification();
-    }
-    TestRunResult result =
-        builder
-            .addOptionsModification(this::configure)
-            .run(MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
+        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
+        .minification(enableMinification)
+        .addOptionsModification(this::configure)
+        .run(MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2);
   }
 
   @Test
   public void testR8_shallow_pinning() throws Exception {
     // Shallow pinning the test class.
-    R8TestBuilder builder = testForR8(backend)
+    TestRunResult result = testForR8(backend)
         .addProgramFiles(classPaths)
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep,allowobfuscation class **.GetName0*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
-        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
-    if (!enableMinification) {
-      builder.noMinification();
-    }
-    TestRunResult result =
-        builder
-            .addOptionsModification(this::configure)
-            .run(MAIN);
+        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
+        .minification(enableMinification)
+        .addOptionsModification(this::configure)
+        .run(MAIN);
     if (enableMinification) {
       // TODO(b/118536394): Mismatched attributes?
       if (backend == Backend.CF) {

@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.JvmTestRunResult;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
@@ -135,23 +134,17 @@ public class InnerClassNameTestRunner extends TestBase {
     JvmTestRunResult runResult =
         testForJvm().addProgramClassFileData(InnerClassNameTestDump.dump(config)).run(MAIN_CLASS);
 
-    R8TestBuilder r8TestBuilder =
+    R8TestCompileResult r8CompileResult;
+    try {
+      r8CompileResult =
         testForR8(backend)
             .addKeepMainRule(MAIN_CLASS)
             .addKeepRules("-keep,allowobfuscation class * { *; }")
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
-            .addProgramClassFileData(InnerClassNameTestDump.dump(config));
-
-    if (!minify) {
-      r8TestBuilder.noMinification();
-    }
-
-    R8TestCompileResult r8CompileResult;
-    try {
-      r8CompileResult =
-          r8TestBuilder
-              .addOptionsModification(o -> o.testing.allowFailureOnInnerClassErrors = true)
-              .compile();
+            .addProgramClassFileData(InnerClassNameTestDump.dump(config))
+            .minification(minify)
+            .addOptionsModification(o -> o.testing.allowFailureOnInnerClassErrors = true)
+            .compile();
     } catch (CompilationFailedException e) {
       // TODO(b/120639028) R8 does not keep the structure of inner classes.
       assertTrue(

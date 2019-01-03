@@ -3,14 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -82,18 +78,15 @@ public class EnclosingMethodTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    R8TestBuilder builder = testForR8(backend)
+    testForR8(backend)
         .addProgramFiles(classPaths)
         .enableInliningAnnotations()
         .addOptionsModification(this::configure)
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.GetName*")
-        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod");
-    if (!enableMinification) {
-      builder.noMinification();
-    }
-
-    R8TestRunResult result = builder.run(MAIN);
-    result.assertSuccessWithOutput(OUTPUT_WITH_SHRUNK_ATTRIBUTES);
+        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+        .minification(enableMinification)
+        .run(MAIN)
+        .assertSuccessWithOutput(OUTPUT_WITH_SHRUNK_ATTRIBUTES);
   }
 }

@@ -11,7 +11,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
@@ -202,29 +201,25 @@ public class GetSimpleNameTest extends GetNameTestBase {
   @Test
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
-    R8TestBuilder builder = testForR8(backend)
+    TestRunResult result = testForR8(backend)
         .addProgramFiles(classPaths)
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.ClassGetSimpleName*")
         .addKeepRules("-keep class **.Outer*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
-        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
-    if (!enableMinification) {
-      builder.noMinification();
-    }
-    TestRunResult result =
-        builder
-            .addOptionsModification(this::configure)
-            .run(MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
+        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
+        .minification(enableMinification)
+        .addOptionsModification(this::configure)
+        .run(MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0);
   }
 
   @Test
   public void testR8_shallow_pinning() throws Exception {
     // Shallow pinning the test class.
-    R8TestBuilder builder = testForR8(backend)
+    R8TestRunResult result = testForR8(backend)
         .addProgramFiles(classPaths)
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
@@ -234,14 +229,10 @@ public class GetSimpleNameTest extends GetNameTestBase {
         // then use OUTPUT_WITH_SHRUNK_ATTRIBUTES
         .addKeepRules("-keep,allowobfuscation class **.Outer*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
-        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString());
-    if (!enableMinification) {
-      builder.noMinification();
-    }
-    R8TestRunResult result =
-        builder
-            .addOptionsModification(this::configure)
-            .run(MAIN);
+        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
+        .minification(enableMinification)
+        .addOptionsModification(this::configure)
+        .run(MAIN);
     if (enableMinification) {
       if (backend == Backend.CF) {
         // TODO(b/120639028): Incorrect inner-class structure fails on JVM.

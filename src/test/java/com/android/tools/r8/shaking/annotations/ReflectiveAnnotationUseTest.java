@@ -12,7 +12,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestBase;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.utils.AndroidApp;
@@ -84,7 +83,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_keepAll() throws Exception {
-    R8TestBuilder builder = testForR8(backend)
+    CodeInspector inspector = testForR8(backend)
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addProgramFiles(getJavaJarFile(FOLDER))
         .addKeepMainRule(MAIN_CLASS_NAME)
@@ -93,13 +92,10 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             "-keep @interface " + ANNOTATION_NAME + " {",
             "  *;",
             "}"
-        );
-    if (!minify) {
-      builder.noMinification();
-    }
-
-    CodeInspector inspector =
-        builder.run(MAIN_CLASS_NAME).assertSuccessWithOutput(JAVA_OUTPUT).inspector();
+        )
+        .minification(minify)
+        .run(MAIN_CLASS_NAME)
+        .assertSuccessWithOutput(JAVA_OUTPUT).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertThat(clazz, not(isRenamed()));
@@ -125,7 +121,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_partiallyKeep() throws Exception {
-    R8TestBuilder builder = testForR8(backend)
+    CodeInspector inspector = testForR8(backend)
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addProgramFiles(getJavaJarFile(FOLDER))
         .addKeepMainRule(MAIN_CLASS_NAME)
@@ -134,13 +130,10 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             "-keep,allowobfuscation @interface " + ANNOTATION_NAME + " {",
             "  java.lang.String *f2();",
             "}"
-        );
-    if (!minify) {
-      builder.noMinification();
-    }
-
-    CodeInspector inspector =
-        builder.run(MAIN_CLASS_NAME).assertSuccessWithOutput(JAVA_OUTPUT).inspector();
+        )
+        .minification(minify)
+        .run(MAIN_CLASS_NAME)
+        .assertSuccessWithOutput(JAVA_OUTPUT).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
@@ -164,17 +157,14 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_keepAnnotation() throws Exception {
-    R8TestBuilder builder = testForR8(backend)
+    CodeInspector inspector = testForR8(backend)
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addProgramFiles(getJavaJarFile(FOLDER))
         .addKeepMainRule(MAIN_CLASS_NAME)
-        .addKeepRules(KEEP_ANNOTATIONS);
-    if (!minify) {
-      builder.noMinification();
-    }
-
-    CodeInspector inspector =
-        builder.run(MAIN_CLASS_NAME).assertSuccessWithOutput(JAVA_OUTPUT).inspector();
+        .addKeepRules(KEEP_ANNOTATIONS)
+        .minification(minify)
+        .run(MAIN_CLASS_NAME)
+        .assertSuccessWithOutput(JAVA_OUTPUT).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
@@ -198,16 +188,13 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_noKeep() throws Exception {
-    R8TestBuilder builder = testForR8(backend)
+    CodeInspector inspector = testForR8(backend)
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addProgramFiles(getJavaJarFile(FOLDER))
-        .addKeepMainRule(MAIN_CLASS_NAME);
-    if (!minify) {
-      builder.noMinification();
-    }
-
-    CodeInspector inspector =
-        builder.run(MAIN_CLASS_NAME).assertSuccessWithOutput(OUTPUT_WITHOUT_ANNOTATION).inspector();
+        .addKeepMainRule(MAIN_CLASS_NAME)
+        .minification(minify)
+        .run(MAIN_CLASS_NAME)
+        .assertSuccessWithOutput(OUTPUT_WITHOUT_ANNOTATION).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());

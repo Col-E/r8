@@ -22,13 +22,30 @@ public abstract class TestShrinkerBuilder<
         T extends TestCompilerBuilder<C, B, CR, RR, T>>
     extends TestCompilerBuilder<C, B, CR, RR, T> {
 
+  protected boolean enableMinification = true;
+  protected boolean enableTreeShaking = true;
+
   TestShrinkerBuilder(TestState state, B builder, Backend backend) {
     super(state, builder, backend);
   }
 
-  public abstract T noTreeShaking();
+  public T treeShaking(boolean enable) {
+    enableTreeShaking = enable;
+    return self();
+  }
 
-  public abstract T noMinification();
+  public T noTreeShaking() {
+    return treeShaking(false);
+  }
+
+  public T minification(boolean enable) {
+    enableMinification = enable;
+    return self();
+  }
+
+  public T noMinification() {
+    return minification(false);
+  }
 
   public abstract T addKeepRuleFiles(List<Path> files);
 
