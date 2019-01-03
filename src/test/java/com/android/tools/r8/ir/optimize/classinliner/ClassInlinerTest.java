@@ -5,12 +5,13 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -327,19 +328,20 @@ public class ClassInlinerTest extends TestBase {
     ClassSubject clazz = inspector.clazz(main);
 
     assertEquals(
-        Sets.newHashSet(prefix + "InvalidRootsTestClass$NeverReturnsNormally"),
+        Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
         collectTypes(clazz, "testExtraNeverReturnsNormally", "void"));
 
     assertEquals(
-        Sets.newHashSet(prefix + "InvalidRootsTestClass$NeverReturnsNormally"),
+        Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
         collectTypes(clazz, "testDirectNeverReturnsNormally", "void"));
 
     assertEquals(
-        Sets.newHashSet(prefix + "InvalidRootsTestClass$InitNeverReturnsNormally"),
+        Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
         collectTypes(clazz, "testInitNeverReturnsNormally", "void"));
 
-    assertTrue(inspector.clazz(InvalidRootsTestClass.NeverReturnsNormally.class).isPresent());
-    assertTrue(inspector.clazz(InvalidRootsTestClass.InitNeverReturnsNormally.class).isPresent());
+    assertThat(inspector.clazz(InvalidRootsTestClass.NeverReturnsNormally.class), isPresent());
+    assertThat(
+        inspector.clazz(InvalidRootsTestClass.InitNeverReturnsNormally.class), not(isPresent()));
 
     assertEquals(
         Sets.newHashSet(

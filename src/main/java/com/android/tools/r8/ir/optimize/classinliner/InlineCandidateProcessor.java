@@ -541,12 +541,6 @@ final class InlineCandidateProcessor {
       return null;
     }
 
-    // Don't inline code w/o normal returns into block with catch handlers (b/64432527).
-    if (invoke.getBlock().hasCatchHandlers()
-        && singleTarget.getOptimizationInfo().neverReturnsNormally()) {
-      return null;
-    }
-
     if (isDesugaredLambda) {
       // Lambda desugaring synthesizes eligible constructors.
       markSizeForInlining(singleTarget);
@@ -681,11 +675,6 @@ final class InlineCandidateProcessor {
       return null;
     }
 
-    // Don't inline code w/o normal returns into block with catch handlers (b/64432527).
-    if (!allowMethodsWithoutNormalReturns && optimizationInfo.neverReturnsNormally()) {
-      return null;
-    }
-
     markSizeForInlining(singleTarget);
     return new InliningInfo(singleTarget, eligibleClass);
   }
@@ -740,11 +729,6 @@ final class InlineCandidateProcessor {
     }
 
     OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
-
-    // Don't inline code w/o normal returns into block with catch handlers (b/64432527).
-    if (invoke.getBlock().hasCatchHandlers() && optimizationInfo.neverReturnsNormally()) {
-      return false;
-    }
 
     // Go through all arguments, see if all usages of eligibleInstance are good.
     if (!isEligibleParameterUsages(invoke, arguments, singleTarget, defaultOracle)) {
