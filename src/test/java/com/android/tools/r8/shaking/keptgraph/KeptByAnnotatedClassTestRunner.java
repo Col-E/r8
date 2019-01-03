@@ -7,9 +7,11 @@ import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
+import com.android.tools.r8.utils.graphinspector.GraphInspector.QueryNode;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -50,10 +52,11 @@ public class KeptByAnnotatedClassTestRunner extends TestBase {
 
     // The only root should be the keep annotation rule.
     assertEquals(1, inspector.getRoots().size());
+    QueryNode root = inspector.rule(Origin.unknown(), 1, 1).assertRoot();
 
     // Check that the call chain goes from root -> main(unchanged) -> bar(renamed).
     inspector.method(barMethod).assertRenamed().assertInvokedFrom(mainMethod);
-    inspector.method(mainMethod).assertNotRenamed().assertKeptByRootRule();
+    inspector.method(mainMethod).assertNotRenamed().assertKeptBy(root);
 
     // Check baz is removed.
     inspector.method(bazMethod).assertAbsent();

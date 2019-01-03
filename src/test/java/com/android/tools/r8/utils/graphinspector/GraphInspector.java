@@ -13,7 +13,12 @@ import com.android.tools.r8.experimental.graphinfo.FieldGraphNode;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo.EdgeKind;
 import com.android.tools.r8.experimental.graphinfo.GraphNode;
+import com.android.tools.r8.experimental.graphinfo.KeepRuleGraphNode;
 import com.android.tools.r8.experimental.graphinfo.MethodGraphNode;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
+import com.android.tools.r8.position.TextPosition;
+import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -53,19 +58,21 @@ public class GraphInspector {
     }
   }
 
-  public interface QueryNode {
-    boolean isPresent();
+  public abstract static class QueryNode {
 
-    boolean isRenamed();
+    abstract boolean isPresent();
 
-    boolean isInvokedFrom(MethodReference method);
+    abstract boolean isRoot();
 
-    // TODO(b/120959039): Add support for referencing keep rules.
-    boolean isKeptByRootRule();
+    abstract boolean isRenamed();
 
-    String getNodeDescription();
+    abstract boolean isInvokedFrom(MethodReference method);
 
-    default String errorMessage(String expected, String actual) {
+    abstract boolean isKeptBy(QueryNode node);
+
+    abstract String getNodeDescription();
+
+    protected String errorMessage(String expected, String actual) {
       return "Failed query on "
           + getNodeDescription()
           + ", expected: "
@@ -74,40 +81,46 @@ public class GraphInspector {
           + actual;
     }
 
-    default QueryNode assertPresent() {
+    public QueryNode assertPresent() {
       assertTrue(errorMessage("present", "absent"), isPresent());
       return this;
     }
 
-    default QueryNode assertAbsent() {
+    public QueryNode assertAbsent() {
       assertTrue(errorMessage("absent", "present"), !isPresent());
       return this;
     }
 
-    default QueryNode assertRenamed() {
+    public QueryNode assertRoot() {
+      assertTrue(errorMessage("root", "non-root"), isRoot());
+      return this;
+    }
+
+    public QueryNode assertRenamed() {
       assertTrue(errorMessage("renamed", "not-renamed"), isRenamed());
       return this;
     }
 
-    default QueryNode assertNotRenamed() {
+    public QueryNode assertNotRenamed() {
       assertTrue(errorMessage("not-renamed", "renamed"), !isRenamed());
       return this;
     }
 
-    default QueryNode assertInvokedFrom(MethodReference method) {
+    public QueryNode assertInvokedFrom(MethodReference method) {
       assertTrue(
           errorMessage("invokation from " + method.toString(), "none"), isInvokedFrom(method));
       return this;
     }
 
-    // TODO(b/120959039): Add support for referencing keep rules.
-    default QueryNode assertKeptByRootRule() {
-      assertTrue(errorMessage("kept by a root rule", "none"), isKeptByRootRule());
+    public QueryNode assertKeptBy(QueryNode node) {
+      assertTrue("Invalid call to assertKeptBy with: " + node.getNodeDescription(),
+          node.isPresent());
+      assertTrue(errorMessage("kept by " + getNodeDescription(), "none"), isKeptBy(node));
       return this;
     }
   }
 
-  private static class AbsentQueryNode implements QueryNode {
+  private static class AbsentQueryNode extends QueryNode {
     private final String failedQueryNodeDescription;
 
     public AbsentQueryNode(String failedQueryNodeDescription) {
@@ -125,6 +138,12 @@ public class GraphInspector {
     }
 
     @Override
+    boolean isRoot() {
+      fail("Invalid call to isRoot on " + getNodeDescription());
+      throw new Unreachable();
+    }
+
+    @Override
     public boolean isRenamed() {
       fail("Invalid call to isRenamed on " + getNodeDescription());
       throw new Unreachable();
@@ -137,8 +156,8 @@ public class GraphInspector {
     }
 
     @Override
-    public boolean isKeptByRootRule() {
-      fail("Invalid call to isKeptByRule on " + getNodeDescription());
+    public boolean isKeptBy(QueryNode node) {
+      fail("Invalid call to isKeptBy on " + getNodeDescription());
       throw new Unreachable();
     }
   }
@@ -146,7 +165,7 @@ public class GraphInspector {
   // Class representing a point in the kept-graph structure.
   // The purpose of this class is to tersely specify what relationships are expected between nodes,
   // thus most methods will throw assertion errors if the predicate is false.
-  private static class QueryNodeImpl implements QueryNode {
+  private static class QueryNodeImpl extends QueryNode {
 
     private final GraphInspector inspector;
     private final GraphNode graphNode;
@@ -164,6 +183,11 @@ public class GraphInspector {
     @Override
     public boolean isPresent() {
       return true;
+    }
+
+    @Override
+    boolean isRoot() {
+      return inspector.roots.contains(graphNode);
     }
 
     @Override
@@ -196,12 +220,12 @@ public class GraphInspector {
     }
 
     @Override
-    public boolean isKeptByRootRule() {
-      return filterSources(
-              (node, infos) ->
-                  inspector.getRoots().contains(node) && EdgeKindPredicate.keepRule.test(infos))
-          .findFirst()
-          .isPresent();
+    public boolean isKeptBy(QueryNode node) {
+      if (!(node instanceof QueryNodeImpl)) {
+        return false;
+      }
+      QueryNodeImpl impl = (QueryNodeImpl) node;
+      return filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent();
     }
 
     private Stream<GraphNode> filterSources(BiPredicate<GraphNode, Set<GraphEdgeInfo>> test) {
@@ -217,6 +241,7 @@ public class GraphInspector {
   private final CodeInspector inspector;
 
   private final Set<GraphNode> roots = new HashSet<>();
+  private final Set<KeepRuleGraphNode> rules = new HashSet<>();
   private final Map<ClassReference, ClassGraphNode> classes;
   private final Map<MethodReference, MethodGraphNode> methods;
   private final Map<FieldReference, FieldGraphNode> fields;
@@ -240,6 +265,9 @@ public class GraphInspector {
       } else if (target instanceof FieldGraphNode) {
         FieldGraphNode node = (FieldGraphNode) target;
         fields.put(node.getReference(), node);
+      } else if (target instanceof KeepRuleGraphNode) {
+        KeepRuleGraphNode node = (KeepRuleGraphNode) target;
+        rules.add(node);
       } else {
         throw new Unimplemented("Incomplet support for graph node type: " + target.getClass());
       }
@@ -248,12 +276,45 @@ public class GraphInspector {
         if (!targets.contains(source)) {
           roots.add(source);
         }
+        if (source instanceof KeepRuleGraphNode) {
+          rules.add((KeepRuleGraphNode) source);
+        }
       }
     }
   }
 
   public Set<GraphNode> getRoots() {
     return Collections.unmodifiableSet(roots);
+  }
+
+  public QueryNode rule(Origin origin, int line, int column) {
+    String ruleReferenceString = getReferenceStringForRule(origin, line, column);
+    KeepRuleGraphNode found = null;
+    for (KeepRuleGraphNode rule : rules) {
+      if (rule.getOrigin().equals(origin)) {
+        Position position = rule.getPosition();
+        if (position instanceof TextRange) {
+          TextRange range = (TextRange) position;
+          if (range.getStart().getLine() == line && range.getStart().getColumn() == column) {
+            if (found != null) {
+              fail(
+                  "Found two matching rules at "
+                      + ruleReferenceString
+                      + ": "
+                      + found
+                      + " and "
+                      + rule);
+            }
+            found = rule;
+          }
+        }
+      }
+    }
+    return getQueryNode(found, ruleReferenceString);
+  }
+
+  private static String getReferenceStringForRule(Origin origin, int line, int column) {
+    return "rule@" + origin + ":" + new TextPosition(0, line, column);
   }
 
   public QueryNode method(MethodReference method) {
