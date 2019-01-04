@@ -63,7 +63,9 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
             // Check the frame from the lambda class.
             StackTrace lambdaFrames = retracedStackTrace.filter(this::isSynthesizedLambdaFrame);
             assertEquals(1, lambdaFrames.size());
-            assertEquals(mode == CompilationMode.RELEASE ? 0 : 2, lambdaFrames.get(0).lineNumber);
+            if (lambdaFrames.get(0).hasLineNumber()) {
+              assertEquals(mode == CompilationMode.RELEASE ? 0 : 2, lambdaFrames.get(0).lineNumber);
+            }
             // Proguard retrace will take the class name until the first $ to construct the file
             // name, so for "-$$Lambda$...", the file name becomes "-.java".
             assertEquals("-.java", lambdaFrames.get(0).fileName);

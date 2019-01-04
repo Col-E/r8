@@ -45,6 +45,10 @@ class StackTrace {
       this.lineNumber = lineNumber;
     }
 
+    public boolean hasLineNumber() {
+      return lineNumber >= 0;
+    }
+
     public static StackTraceLine parse(String line) {
       String originalLine = line;
 
@@ -53,7 +57,7 @@ class StackTrace {
         line = line.substring(AT_PREFIX.length());
       }
 
-      // Expect only one '(', and only one ')' with a ':' in between.
+      // Expect only one '(', and only one ')' with an optional ':' in between.
       int parenBeginIndex = line.indexOf('(');
       assertTrue(parenBeginIndex > 0);
       assertEquals(parenBeginIndex, line.lastIndexOf('('));
@@ -61,15 +65,17 @@ class StackTrace {
       assertTrue(parenBeginIndex < parenEndIndex);
       assertEquals(parenEndIndex, line.lastIndexOf(')'));
       int colonIndex = line.indexOf(':');
-      assertTrue(parenBeginIndex < colonIndex && colonIndex < parenEndIndex);
+      assertTrue(colonIndex == -1 || (parenBeginIndex < colonIndex && colonIndex < parenEndIndex));
       assertEquals(parenEndIndex, line.lastIndexOf(')'));
       String classAndMethod = line.substring(0, parenBeginIndex);
       int lastDotIndex = classAndMethod.lastIndexOf('.');
       assertTrue(lastDotIndex > 0);
       String className = classAndMethod.substring(0, lastDotIndex);
-      String methodName = classAndMethod.substring(lastDotIndex + 1, classAndMethod.length());
-      String fileName = line.substring(parenBeginIndex + 1, colonIndex);
-      int lineNumber = Integer.parseInt(line.substring(colonIndex + 1, parenEndIndex));
+      String methodName = classAndMethod.substring(lastDotIndex + 1);
+      int fileNameEnd = colonIndex > 0 ? colonIndex : parenEndIndex;
+      String fileName = line.substring(parenBeginIndex + 1, fileNameEnd);
+      int lineNumber =
+          colonIndex > 0 ? Integer.parseInt(line.substring(colonIndex + 1, parenEndIndex)) : -1;
       StackTraceLine result =
           new StackTraceLine(originalLine, className, methodName, fileName, lineNumber);
       assertEquals(line, result.toString());
@@ -101,7 +107,8 @@ class StackTrace {
 
     @Override
     public String toString() {
-      return className + '.' + methodName + '(' + fileName + ':' + lineNumber + ')';
+      String lineNumberPart = lineNumber >= 0 ? ":" + lineNumber : "";
+      return className + '.' + methodName + '(' + fileName + lineNumberPart + ')';
     }
   }
 
