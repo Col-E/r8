@@ -14,6 +14,8 @@ import com.android.tools.r8.DXTestRunResult;
 import com.android.tools.r8.ProguardTestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -279,8 +281,21 @@ public class InvalidTypesTest extends JasminTestBase {
       } else if (compiler == Compiler.PROGUARD) {
         return StringUtils.joinLines("Hello!", "Unexpected outcome of checkcast", "Goodbye!", "");
       } else if (compiler == Compiler.DX || compiler == Compiler.D8) {
-        return StringUtils.joinLines("Hello!", "Unexpected outcome of checkcast", "Goodbye!", "");
+        if (ToolHelper.getDexVm().getVersion() == Version.V4_0_4
+            || ToolHelper.getDexVm().getVersion() == Version.V4_4_4) {
+          return StringUtils.joinLines("Hello!", "Goodbye!", "");
+        } else if (ToolHelper.getDexVm().getVersion() == Version.V7_0_0) {
+          return StringUtils.joinLines(
+              "Hello!",
+              "Unexpected outcome of checkcast",
+              "Unexpected outcome of instanceof",
+              "Goodbye!",
+              "");
+        } else {
+          return StringUtils.joinLines("Hello!", "Unexpected outcome of checkcast", "Goodbye!", "");
+        }
       } else {
+        assert compiler == Compiler.JAVAC;
         return StringUtils.joinLines("Hello!", "Goodbye!", "");
       }
     } else {
