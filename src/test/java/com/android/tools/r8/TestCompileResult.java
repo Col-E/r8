@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import org.hamcrest.Matcher;
@@ -122,6 +123,15 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
       }
     }
     return this;
+  }
+
+  public TestCompileResult<RR> disassemble(PrintStream ps) throws IOException, ExecutionException {
+    ToolHelper.disassemble(app, ps);
+    return this;
+  }
+
+  public TestCompileResult<RR> disassemble() throws IOException, ExecutionException {
+    return disassemble(System.out);
   }
 
   public DebugTestConfig debugConfig() {

@@ -12,6 +12,7 @@ import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AssemblyWriter;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLense;
@@ -42,6 +43,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
@@ -1756,5 +1758,12 @@ public class ToolHelper {
     public String getFolderName() {
       return folderName;
     }
+  }
+
+  public static void disassemble(AndroidApp app, PrintStream ps)
+      throws IOException, ExecutionException {
+    DexApplication application =
+        new ApplicationReader(app, new InternalOptions(), new Timing()).read().toDirect();
+    new AssemblyWriter(application, new InternalOptions(), true, false).write(ps);
   }
 }
