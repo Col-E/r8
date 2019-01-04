@@ -92,6 +92,8 @@ public class ProguardConfigurationUtils {
   }
 
   public static ProguardKeepRule buildMethodKeepRule(DexClass clazz, DexEncodedMethod method) {
+    // TODO(b/122295241): These generated rules should be linked into the graph, eg, the method
+    // using identified reflection should be the source keeping the target alive.
     assert clazz.type == method.method.getHolder();
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
     builder.setOrigin(proguardCompatOrigin);

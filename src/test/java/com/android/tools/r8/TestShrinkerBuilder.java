@@ -7,7 +7,6 @@ package com.android.tools.r8;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -87,10 +86,7 @@ public abstract class TestShrinkerBuilder<
 
   public T addKeepMainRule(String mainClass) {
     return addKeepRules(
-        StringUtils.joinLines(
-            "-keep class " + mainClass + " {",
-            "  public static void main(java.lang.String[]);",
-            "}"));
+        "-keep class " + mainClass + " { public static void main(java.lang.String[]); }");
   }
 
   public T addKeepMethodRules(MethodReference... methods) {

@@ -40,6 +40,7 @@ public class R8TestBuilder
   private boolean enableClassInliningAnnotations = false;
   private boolean enableMergeAnnotations = false;
   private CollectingGraphConsumer graphConsumer = null;
+  private List<String> keepRules = new ArrayList<>();
 
   @Override
   R8TestBuilder self() {
@@ -52,6 +53,9 @@ public class R8TestBuilder
       throws CompilationFailedException {
     if (enableInliningAnnotations || enableClassInliningAnnotations || enableMergeAnnotations) {
       ToolHelper.allowTestProguardOptions(builder);
+    }
+    if (!keepRules.isEmpty()) {
+      builder.addProguardConfiguration(keepRules, Origin.unknown());
     }
     StringBuilder proguardMapBuilder = new StringBuilder();
     builder.setDisableTreeShaking(!enableTreeShaking);
@@ -75,7 +79,9 @@ public class R8TestBuilder
 
   @Override
   public R8TestBuilder addKeepRules(Collection<String> rules) {
-    builder.addProguardConfiguration(new ArrayList<>(rules), Origin.unknown());
+    // Delay adding the actual rules so that we only associate a single origin and unique lines to
+    // each actual rule.
+    keepRules.addAll(rules);
     return self();
   }
 
@@ -104,7 +110,7 @@ public class R8TestBuilder
   public R8TestBuilder enableInliningAnnotations() {
     if (!enableInliningAnnotations) {
       enableInliningAnnotations = true;
-      addKeepRules(
+      addInternalKeepRules(
           "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
           "-neverinline class * { @com.android.tools.r8.NeverInline *; }");
     }
@@ -114,7 +120,7 @@ public class R8TestBuilder
   public R8TestBuilder enableClassInliningAnnotations() {
     if (!enableClassInliningAnnotations) {
       enableClassInliningAnnotations = true;
-      addKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *");
+      addInternalKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *");
     }
     return self();
   }
@@ -122,8 +128,7 @@ public class R8TestBuilder
   public R8TestBuilder enableMergeAnnotations() {
     if (!enableMergeAnnotations) {
       enableMergeAnnotations = true;
-      addKeepRules(
-          "-nevermerge @com.android.tools.r8.NeverMerge class *");
+      addInternalKeepRules("-nevermerge @com.android.tools.r8.NeverMerge class *");
     }
     return self();
   }
@@ -149,5 +154,10 @@ public class R8TestBuilder
   public R8TestBuilder setMainDexKeptGraphConsumer(GraphConsumer graphConsumer) {
     builder.setMainDexKeptGraphConsumer(graphConsumer);
     return self();
+  }
+
+  private void addInternalKeepRules(String... rules) {
+    // We don't add these to the keep-rule set for other test provided rules.
+    builder.addProguardConfiguration(Arrays.asList(rules), Origin.unknown());
   }
 }

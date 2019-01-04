@@ -108,14 +108,21 @@ public class GraphInspector {
 
     public QueryNode assertInvokedFrom(MethodReference method) {
       assertTrue(
-          errorMessage("invokation from " + method.toString(), "none"), isInvokedFrom(method));
+          errorMessage("invocation from " + method.toString(), "none"), isInvokedFrom(method));
+      return this;
+    }
+
+    public QueryNode assertNotInvokedFrom(MethodReference method) {
+      assertTrue(
+          errorMessage("no invocation from " + method.toString(), "invoke"),
+          !isInvokedFrom(method));
       return this;
     }
 
     public QueryNode assertKeptBy(QueryNode node) {
       assertTrue("Invalid call to assertKeptBy with: " + node.getNodeDescription(),
           node.isPresent());
-      assertTrue(errorMessage("kept by " + getNodeDescription(), "none"), isKeptBy(node));
+      assertTrue(errorMessage("kept by " + node.getNodeDescription(), "none"), isKeptBy(node));
       return this;
     }
   }
@@ -287,6 +294,19 @@ public class GraphInspector {
     return Collections.unmodifiableSet(roots);
   }
 
+  public QueryNode rule(String ruleContent) {
+    KeepRuleGraphNode found = null;
+    for (KeepRuleGraphNode rule : rules) {
+      if (rule.getContent().equals(ruleContent)) {
+        if (found != null) {
+          fail("Found two matching rules matching " + ruleContent + ": " + found + " and " + rule);
+        }
+        found = rule;
+      }
+    }
+    return getQueryNode(found, ruleContent);
+  }
+
   public QueryNode rule(Origin origin, int line, int column) {
     String ruleReferenceString = getReferenceStringForRule(origin, line, column);
     KeepRuleGraphNode found = null;
@@ -315,6 +335,10 @@ public class GraphInspector {
 
   private static String getReferenceStringForRule(Origin origin, int line, int column) {
     return "rule@" + origin + ":" + new TextPosition(0, line, column);
+  }
+
+  public QueryNode clazz(ClassReference clazz) {
+    return getQueryNode(classes.get(clazz), clazz.toString());
   }
 
   public QueryNode method(MethodReference method) {
