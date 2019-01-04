@@ -20,11 +20,13 @@ import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.Remov
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
@@ -32,6 +34,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 public class UnusedArgumentsCollector {
 
@@ -80,9 +84,12 @@ public class UnusedArgumentsCollector {
     this.appView = appView;
   }
 
-  public GraphLense run() {
-    // TODO(65810338): Do this is parallel.
-    appView.appInfo().classes().forEach(this::processClass);
+  public GraphLense run(ExecutorService executorService) throws ExecutionException {
+    ThreadUtils.awaitFutures(
+        Streams.stream(appView.appInfo().classes())
+            .map(this::runnableForClass)
+            .map(executorService::submit)
+            .iterator());
 
     if (!methodMapping.isEmpty()) {
       return new UnusedArgumentsGraphLense(
@@ -165,6 +172,10 @@ public class UnusedArgumentsCollector {
     }
   }
 
+  private Runnable runnableForClass(DexProgramClass clazz) {
+    return () -> this.processClass(clazz);
+  }
+
   private void processClass(DexProgramClass clazz) {
     UsedSignatures signatures = new UsedSignatures();
     for (DexEncodedMethod method : clazz.methods()) {
@@ -176,8 +187,10 @@ public class UnusedArgumentsCollector {
       DexEncodedMethod newMethod = signatures.removeArguments(method, unused);
       if (newMethod != null) {
         clazz.directMethods()[i] = newMethod;
-        methodMapping.put(method.method, newMethod.method);
-        removedArguments.put(newMethod.method, unused);
+        synchronized (this) {
+          methodMapping.put(method.method, newMethod.method);
+          removedArguments.put(newMethod.method, unused);
+        }
       }
     }
   }

@@ -15,10 +15,14 @@ public class ThreadUtils {
 
   public static void awaitFutures(Iterable<? extends Future<?>> futures)
       throws ExecutionException {
-    Iterator<? extends Future<?>> it = futures.iterator();
+    awaitFutures(futures.iterator());
+  }
+
+  public static void awaitFutures(Iterator<? extends Future<?>> futureIterator)
+      throws ExecutionException {
     try {
-      while (it.hasNext()) {
-        it.next().get();
+      while (futureIterator.hasNext()) {
+        futureIterator.next().get();
       }
     } catch (InterruptedException e) {
       throw new RuntimeException("Interrupted while waiting for future.", e);
@@ -26,9 +30,9 @@ public class ThreadUtils {
       // In case we get interrupted or one of the threads throws an exception, still wait for all
       // further work to make sure synchronization guarantees are met. Calling cancel unfortunately
       // does not guarantee that the task at hand actually terminates before cancel returns.
-      while (it.hasNext()) {
+      while (futureIterator.hasNext()) {
         try {
-          it.next().get();
+          futureIterator.next().get();
         } catch (Throwable t) {
           // Ignore any new Exception.
         }

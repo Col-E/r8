@@ -418,7 +418,8 @@ public class R8 {
         if (options.enableArgumentRemoval) {
           if (options.enableUnusedArgumentRemoval) {
             timing.begin("UnusedArgumentRemoval");
-            appView.setGraphLense(new UnusedArgumentsCollector(appViewWithLiveness).run());
+            appView.setGraphLense(
+                new UnusedArgumentsCollector(appViewWithLiveness).run(executorService));
             application = application.asDirect().rewrittenWithLense(appView.graphLense());
             timing.end();
             appViewWithLiveness.setAppInfo(
