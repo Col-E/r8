@@ -242,6 +242,12 @@ public class ProguardConfigurationParser {
       } else if (acceptString("keepdirectories")) {
         configurationBuilder.enableKeepDirectories();
         parsePathFilter(configurationBuilder::addKeepDirectories);
+      } else if (allowTestOptions && acceptString("keepconstantarguments")) {
+        ConstantArgumentRule rule = parseConstantArgumentRule(optionStart);
+        configurationBuilder.addRule(rule);
+      } else if (allowTestOptions && acceptString("keepunusedarguments")) {
+        UnusedArgumentRule rule = parseUnusedArgumentRule(optionStart);
+        configurationBuilder.addRule(rule);
       } else if (acceptString("keep")) {
         ProguardKeepRule rule = parseKeepRule(optionStart);
         configurationBuilder.addRule(rule);
@@ -681,6 +687,28 @@ public class ProguardConfigurationParser {
       }
       throw reporter.fatalError(new StringDiagnostic(
           "Expecting '-keep' option after '-if' option.", origin, getPosition(optionStart)));
+    }
+
+    private ConstantArgumentRule parseConstantArgumentRule(Position start)
+        throws ProguardRuleParserException {
+      ConstantArgumentRule.Builder keepRuleBuilder =
+          ConstantArgumentRule.builder().setOrigin(origin).setStart(start);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
+    }
+
+    private UnusedArgumentRule parseUnusedArgumentRule(Position start)
+        throws ProguardRuleParserException {
+      UnusedArgumentRule.Builder keepRuleBuilder =
+          UnusedArgumentRule.builder().setOrigin(origin).setStart(start);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
     }
 
     void verifyAndLinkBackReferences(Iterable<ProguardWildcard> wildcards) {

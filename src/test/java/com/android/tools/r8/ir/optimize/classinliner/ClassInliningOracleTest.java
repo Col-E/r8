@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.classinliner;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertThat;
 
+import com.android.tools.r8.KeepUnusedArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
@@ -26,6 +27,7 @@ public class ClassInliningOracleTest extends TestBase {
             .enableInliningAnnotations()
             .enableClassInliningAnnotations()
             .enableMergeAnnotations()
+            .enableUnusedArgumentAnnotations()
             .compile()
             .inspector();
     assertThat(inspector.clazz(Builder.class), isPresent());
@@ -55,12 +57,10 @@ public class ClassInliningOracleTest extends TestBase {
   @NeverClassInline
   static class Helper extends HelperBase {
 
+    @KeepUnusedArguments
     @NeverInline
     public void help(Builder builder) {
-      // TODO(b/120959040): To avoid unused argument removal; should be replaced by a testing rule).
-      if (builder != null) {
-        super.hello();
-      }
+      super.hello();
     }
   }
 

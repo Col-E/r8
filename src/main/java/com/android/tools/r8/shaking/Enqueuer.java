@@ -1941,6 +1941,10 @@ public class Enqueuer {
      * All methods that *must* never be inlined due to a configuration directive (testing only).
      */
     public final Set<DexMethod> neverInline;
+    /** All methods that may not have any parameters with a constant value removed. */
+    public final Set<DexMethod> keepConstantArguments;
+    /** All methods that may not have any unused arguments removed. */
+    public final Set<DexMethod> keepUnusedArguments;
     /**
      * All types that *must* never be inlined due to a configuration directive (testing only).
      */
@@ -2015,6 +2019,8 @@ public class Enqueuer {
       this.alwaysInline = enqueuer.rootSet.alwaysInline;
       this.forceInline = enqueuer.rootSet.forceInline;
       this.neverInline = enqueuer.rootSet.neverInline;
+      this.keepConstantArguments = enqueuer.rootSet.keepConstantArguments;
+      this.keepUnusedArguments = enqueuer.rootSet.keepUnusedArguments;
       this.neverClassInline = enqueuer.rootSet.neverClassInline;
       this.neverMerge = enqueuer.rootSet.neverMerge;
       this.identifierNameStrings = joinIdentifierNameStrings(
@@ -2062,6 +2068,8 @@ public class Enqueuer {
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = previous.forceInline;
       this.neverInline = previous.neverInline;
+      this.keepConstantArguments = previous.keepConstantArguments;
+      this.keepUnusedArguments = previous.keepUnusedArguments;
       this.neverClassInline = previous.neverClassInline;
       this.neverMerge = previous.neverMerge;
       this.identifierNameStrings = previous.identifierNameStrings;
@@ -2123,6 +2131,10 @@ public class Enqueuer {
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = lense.rewriteMethodsWithRenamedSignature(previous.forceInline);
       this.neverInline = lense.rewriteMethodsWithRenamedSignature(previous.neverInline);
+      this.keepConstantArguments =
+          lense.rewriteMethodsWithRenamedSignature(previous.keepConstantArguments);
+      this.keepUnusedArguments =
+          lense.rewriteMethodsWithRenamedSignature(previous.keepUnusedArguments);
       assert lense.assertDefinitionsNotModified(
           previous.neverMerge.stream()
               .map(this::definitionFor)
@@ -2178,6 +2190,8 @@ public class Enqueuer {
       this.alwaysInline = previous.alwaysInline;
       this.forceInline = previous.forceInline;
       this.neverInline = previous.neverInline;
+      this.keepConstantArguments = previous.keepConstantArguments;
+      this.keepUnusedArguments = previous.keepUnusedArguments;
       this.neverClassInline = previous.neverClassInline;
       this.neverMerge = previous.neverMerge;
       this.identifierNameStrings = previous.identifierNameStrings;

@@ -196,7 +196,8 @@ public class UnusedArgumentsCollector {
   }
 
   private RemovedArgumentsInfo collectUnusedArguments(DexEncodedMethod method) {
-    if (ArgumentRemovalUtils.isPinned(method, appView)) {
+    if (ArgumentRemovalUtils.isPinned(method, appView)
+        || appView.appInfo().keepUnusedArguments.contains(method.method)) {
       return null;
     }
     // Only process JAR code.

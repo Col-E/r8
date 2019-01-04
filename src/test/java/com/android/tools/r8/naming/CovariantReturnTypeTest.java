@@ -9,17 +9,14 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,18 +37,6 @@ public class CovariantReturnTypeTest extends TestBase {
     JasminBuilder appBuilder = new JasminBuilder();
     ClassBuilder classBuilder = appBuilder.addClass("package.TestClass");
 
-    // TODO(b/120959040): Use a testing rule to disable relevant optimizations instead.
-    // Add a main method that instantiates A and B to make sure that the return type of the methods
-    // below are not changed to void by the uninstantiated type optimization.
-    classBuilder.addMainMethod(
-        ".limit stack 1",
-        ".limit locals 1",
-        "new package/A",
-        "invokespecial package/A/<init>()V",
-        "new package/B",
-        "invokespecial package/B/<init>()V",
-        "return");
-
     classBuilder.addVirtualMethod("method1", "Ljava/lang/Object;", returnNullByteCode);
     classBuilder.addVirtualMethod("method1", "Lpackage/A;", returnNullByteCode);
     classBuilder.addVirtualMethod("method1", "Lpackage/B;", returnNullByteCode);
@@ -70,17 +55,18 @@ public class CovariantReturnTypeTest extends TestBase {
     classBuilder = appBuilder.addClass("package.B");
     classBuilder.addDefaultConstructor();
 
-    Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
-    AndroidApp output =
-        compileWithR8(
-            appBuilder.build(),
-            keepMainProguardConfiguration("package.TestClass"),
-            options -> {
-              options.enableTreeShaking = false;
-              options.proguardMapConsumer = new FileConsumer(proguardMapPath);
-            });
+    Path inputJar = writeToJar(appBuilder);
 
-    CodeInspector inspector = new CodeInspector(output, proguardMapPath);
+    CodeInspector inspector =
+        testForR8(Backend.DEX)
+            .addProgramFiles(inputJar)
+            .addKeepMainRule("package.TestClass")
+            .addKeepRules("-keepconstantarguments class * { *; }")
+            .enableConstantArgumentAnnotations()
+            .treeShaking(false)
+            .compile()
+            .inspector();
+
     ClassSubject clazz = inspector.clazz("package.TestClass");
     assertThat(clazz, isPresent());
 

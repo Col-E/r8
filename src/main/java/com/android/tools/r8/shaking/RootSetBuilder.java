@@ -72,6 +72,8 @@ public class RootSetBuilder {
   private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
+  private final Set<DexMethod> keepParametersWithConstantValue = Sets.newIdentityHashSet();
+  private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
   private final Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking =
@@ -185,7 +187,9 @@ public class RootSetBuilder {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
           markClass(clazz, rule);
         }
-      } else if (rule instanceof InlineRule) {
+      } else if (rule instanceof InlineRule
+          || rule instanceof ConstantArgumentRule
+          || rule instanceof UnusedArgumentRule) {
         markMatchingMethods(clazz, memberKeepRules, rule, null);
       } else if (rule instanceof ClassInlineRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
@@ -261,6 +265,8 @@ public class RootSetBuilder {
         alwaysInline,
         forceInline,
         neverInline,
+        keepParametersWithConstantValue,
+        keepUnusedArguments,
         neverClassInline,
         neverMerge,
         noSideEffects,
@@ -951,6 +957,14 @@ public class RootSetBuilder {
       } else if (item.isDexEncodedMethod()) {
         identifierNameStrings.add(item.asDexEncodedMethod().method);
       }
+    } else if (context instanceof ConstantArgumentRule) {
+      if (item.isDexEncodedMethod()) {
+        keepParametersWithConstantValue.add(item.asDexEncodedMethod().method);
+      }
+    } else if (context instanceof UnusedArgumentRule) {
+      if (item.isDexEncodedMethod()) {
+        keepUnusedArguments.add(item.asDexEncodedMethod().method);
+      }
     }
   }
 
@@ -965,6 +979,8 @@ public class RootSetBuilder {
     public final Set<DexMethod> alwaysInline;
     public final Set<DexMethod> forceInline;
     public final Set<DexMethod> neverInline;
+    public final Set<DexMethod> keepConstantArguments;
+    public final Set<DexMethod> keepUnusedArguments;
     public final Set<DexType> neverClassInline;
     public final Set<DexType> neverMerge;
     public final Map<DexDefinition, ProguardMemberRule> noSideEffects;
@@ -983,6 +999,8 @@ public class RootSetBuilder {
         Set<DexMethod> alwaysInline,
         Set<DexMethod> forceInline,
         Set<DexMethod> neverInline,
+        Set<DexMethod> keepConstantArguments,
+        Set<DexMethod> keepUnusedArguments,
         Set<DexType> neverClassInline,
         Set<DexType> neverMerge,
         Map<DexDefinition, ProguardMemberRule> noSideEffects,
@@ -999,6 +1017,8 @@ public class RootSetBuilder {
       this.alwaysInline = Collections.unmodifiableSet(alwaysInline);
       this.forceInline = Collections.unmodifiableSet(forceInline);
       this.neverInline = neverInline;
+      this.keepConstantArguments = keepConstantArguments;
+      this.keepUnusedArguments = keepUnusedArguments;
       this.neverClassInline = neverClassInline;
       this.neverMerge = Collections.unmodifiableSet(neverMerge);
       this.noSideEffects = Collections.unmodifiableMap(noSideEffects);
