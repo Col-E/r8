@@ -9,9 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public abstract class KotlinTestBase extends TestBase {
-  // It is important that Kotlin is capitalized, otherwise the string will be relocated when
-  // building tests for r8lib with relocated dependencies.
-  private static final String RSRC = "r8KotlinTestResources";
+  private static final String RSRC = "kotlinR8TestResources";
 
   protected final KotlinTargetVersion targetVersion;
 
@@ -19,21 +17,18 @@ public abstract class KotlinTestBase extends TestBase {
     this.targetVersion = targetVersion;
   }
 
-  protected static Path getKotlinJarFile(String folder, KotlinTargetVersion targetVersion) {
+  protected Path getKotlinJarFile(String folder) {
     return Paths.get(ToolHelper.TESTS_BUILD_DIR, RSRC,
         targetVersion.getFolderName(), folder + FileUtils.JAR_EXTENSION);
   }
 
-  protected Path getKotlinJarFile(String folder) {
-    return getKotlinJarFile(folder, targetVersion);
-  }
-
-  protected static Path getJavaJarFile(String folder, KotlinTargetVersion targetVersion) {
+  protected Path getJavaJarFile(String folder) {
     return Paths.get(ToolHelper.TESTS_BUILD_DIR, RSRC,
         targetVersion.getFolderName(), folder + ".java" + FileUtils.JAR_EXTENSION);
   }
 
-  protected Path getJavaJarFile(String folder) {
-    return getJavaJarFile(folder, targetVersion);
+  protected Path getMappingfile(String folder, String mappingFileName) {
+    return Paths.get(ToolHelper.TESTS_DIR, RSRC, folder, mappingFileName);
   }
+
 }
