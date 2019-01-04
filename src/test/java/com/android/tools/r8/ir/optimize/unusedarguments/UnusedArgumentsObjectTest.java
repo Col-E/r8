@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.unusedarguments;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
@@ -40,6 +41,7 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
     }
   }
 
+  @NeverClassInline
   static class TestClass {
 
     @NeverInline
@@ -57,10 +59,29 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
       return a;
     }
 
+    @NeverInline
+    private Object b(Object a) {
+      return a;
+    }
+
+    @NeverInline
+    private Object b(Object a, Object b) {
+      return a;
+    }
+
+    @NeverInline
+    private Object b(Object a, Object b, Object c) {
+      return a;
+    }
+
     public static void main(String[] args) {
+      TestClass instance = new TestClass();
       System.out.print(a(new TestObject("1")));
       System.out.print(a(new TestObject("2"), new TestObject("3")));
       System.out.print(a(new TestObject("4"), new TestObject("5"), new TestObject("6")));
+      System.out.print(instance.b(new TestObject("1")));
+      System.out.print(instance.b(new TestObject("2"), new TestObject("3")));
+      System.out.print(instance.b(new TestObject("4"), new TestObject("5"), new TestObject("6")));
     }
   }
 
@@ -76,18 +97,18 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
 
   @Override
   public String getExpectedResult() {
-    return "124";
+    return "124124";
   }
 
   @Override
   public void inspectTestClass(ClassSubject clazz) {
-    assertEquals(4, clazz.allMethods().size());
+    assertEquals(8, clazz.allMethods().size());
     clazz.forAllMethods(
-        method -> {
-          Assert.assertTrue(
-              method.getFinalName().equals("main")
-                  || (method.getFinalSignature().parameters.length == 1
-                      && method.getFinalSignature().parameters[0].equals("java.lang.Object")));
-        });
+        method ->
+            Assert.assertTrue(
+                method.getFinalName().equals("main")
+                    || method.getFinalName().equals("<init>")
+                    || (method.getFinalSignature().parameters.length == 1
+                        && method.getFinalSignature().parameters[0].equals("java.lang.Object"))));
   }
 }
