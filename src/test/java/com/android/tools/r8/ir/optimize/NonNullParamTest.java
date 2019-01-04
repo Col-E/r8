@@ -10,7 +10,16 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ir.optimize.nonnull.IntrinsicsDeputy;
-import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvoke;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvokeDirect;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvokeInterface;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvokeInterfaceMain;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvokeStatic;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvokeVirtual;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvokeVirtualMain;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullParamInterface;
+import com.android.tools.r8.ir.optimize.nonnull.NonNullParamInterfaceImpl;
+import com.android.tools.r8.ir.optimize.nonnull.NotPinnedClass;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -18,6 +27,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.Collection;
+import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,22 +46,35 @@ public class NonNullParamTest extends TestBase {
     this.backend = backend;
   }
 
-  CodeInspector buildAndRun(Class<?> mainClass, Collection<Class<?>> classes) throws Exception {
+  private void noModification(InternalOptions options) {}
+
+  private void disableDevirtualization(InternalOptions options) {
+    options.enableDevirtualization = false;
+  }
+
+  CodeInspector buildAndRun(
+      Class<?> mainClass,
+      Collection<Class<?>> classes,
+      Consumer<InternalOptions> optionsModification)
+      throws Exception {
     String javaOutput = runOnJava(mainClass);
 
     return testForR8(backend)
         .addProgramClasses(classes)
         .enableProguardTestOptions()
         .enableInliningAnnotations()
+        .enableClassInliningAnnotations()
+        .enableMergeAnnotations()
         .addKeepMainRule(mainClass)
         .addKeepRules(
             ImmutableList.of(
-                "-keepattributes InnerClasses,Signature,EnclosingMethod",
-                "-dontobfuscate"))
-        .addOptionsModification(options -> {
-          // Need to increase a little bit to inline System.out.println
-          options.inliningInstructionLimit = 4;
-        })
+                "-keepattributes InnerClasses,Signature,EnclosingMethod", "-dontobfuscate"))
+        .addOptionsModification(
+            options -> {
+              // Need to increase a little bit to inline System.out.println
+              options.inliningInstructionLimit = 4;
+            })
+        .addOptionsModification(optionsModification)
         .run(mainClass)
         .assertSuccessWithOutput(javaOutput)
         .inspector();
@@ -60,8 +83,9 @@ public class NonNullParamTest extends TestBase {
   @Test
   public void testIntrinsics() throws Exception {
     Class mainClass = IntrinsicsDeputy.class;
-    CodeInspector inspector = buildAndRun(mainClass,
-        ImmutableList.of(NeverInline.class, mainClass));
+    CodeInspector inspector =
+        buildAndRun(
+            mainClass, ImmutableList.of(NeverInline.class, mainClass), this::noModification);
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
@@ -92,21 +116,23 @@ public class NonNullParamTest extends TestBase {
   }
 
   @Test
-  public void testNonNullParamAfterInvoke() throws Exception {
-    Class mainClass = NonNullParamAfterInvoke.class;
-    CodeInspector inspector = buildAndRun(mainClass, ImmutableList.of(
-        NeverInline.class,
-        IntrinsicsDeputy.class,
-        NonNullParamAfterInvoke.NotPinnedClass.class,
-        mainClass));
+  public void testNonNullParamAfterInvokeStatic() throws Exception {
+    Class<?> mainClass = NonNullParamAfterInvokeStatic.class;
+    CodeInspector inspector =
+        buildAndRun(
+            mainClass,
+            ImmutableList.of(
+                NeverInline.class, IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
+            this::noModification);
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
 
-    String argTypeName = NonNullParamAfterInvoke.NotPinnedClass.class.getName();
+    String argTypeName = NotPinnedClass.class.getName();
     MethodSubject checkViaCall =
         mainSubject.method("void", "checkViaCall", ImmutableList.of(argTypeName, argTypeName));
     assertThat(checkViaCall, isPresent());
+    assertEquals(0, countActCall(checkViaCall));
     assertEquals(2, countPrintCall(checkViaCall));
 
     MethodSubject checkViaIntrinsic =
@@ -122,12 +148,117 @@ public class NonNullParamTest extends TestBase {
     assertEquals(0, countThrow(checkAtOneLevelHigher));
   }
 
+  @Test
+  public void testNonNullParamAfterInvokeDirect() throws Exception {
+    Class<?> mainClass = NonNullParamAfterInvokeDirect.class;
+    CodeInspector inspector =
+        buildAndRun(
+            mainClass,
+            ImmutableList.of(
+                NeverInline.class, IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
+            this::noModification);
+
+    ClassSubject mainSubject = inspector.clazz(mainClass);
+    assertThat(mainSubject, isPresent());
+
+    String argTypeName = NotPinnedClass.class.getName();
+    MethodSubject checkViaCall =
+        mainSubject.method("void", "checkViaCall", ImmutableList.of(argTypeName, argTypeName));
+    assertThat(checkViaCall, isPresent());
+    assertEquals(0, countActCall(checkViaCall));
+    assertEquals(2, countPrintCall(checkViaCall));
+
+    MethodSubject checkViaIntrinsic =
+        mainSubject.method("void", "checkViaIntrinsic", ImmutableList.of(argTypeName));
+    assertThat(checkViaIntrinsic, isPresent());
+    assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
+    assertEquals(1, countPrintCall(checkViaIntrinsic));
+
+    MethodSubject checkAtOneLevelHigher =
+        mainSubject.method("void", "checkAtOneLevelHigher", ImmutableList.of(argTypeName));
+    assertThat(checkAtOneLevelHigher, isPresent());
+    assertEquals(1, countPrintCall(checkAtOneLevelHigher));
+    assertEquals(0, countThrow(checkAtOneLevelHigher));
+  }
+
+  @Test
+  public void testNonNullParamAfterInvokeVirtual() throws Exception {
+    Class<?> mainClass = NonNullParamAfterInvokeVirtualMain.class;
+    CodeInspector inspector =
+        buildAndRun(
+            mainClass,
+            ImmutableList.of(
+                NeverInline.class,
+                IntrinsicsDeputy.class,
+                NonNullParamAfterInvokeVirtual.class,
+                NotPinnedClass.class,
+                mainClass),
+            this::noModification);
+
+    ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeVirtual.class);
+    assertThat(mainSubject, isPresent());
+
+    String argTypeName = NotPinnedClass.class.getName();
+    MethodSubject checkViaCall =
+        mainSubject.method("void", "checkViaCall", ImmutableList.of(argTypeName, argTypeName));
+    assertThat(checkViaCall, isPresent());
+    assertEquals(0, countActCall(checkViaCall));
+    assertEquals(2, countPrintCall(checkViaCall));
+
+    MethodSubject checkViaIntrinsic =
+        mainSubject.method("void", "checkViaIntrinsic", ImmutableList.of(argTypeName));
+    assertThat(checkViaIntrinsic, isPresent());
+    assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
+    assertEquals(1, countPrintCall(checkViaIntrinsic));
+
+    MethodSubject checkAtOneLevelHigher =
+        mainSubject.method("void", "checkAtOneLevelHigher", ImmutableList.of(argTypeName));
+    assertThat(checkAtOneLevelHigher, isPresent());
+    assertEquals(1, countPrintCall(checkAtOneLevelHigher));
+    assertEquals(0, countThrow(checkAtOneLevelHigher));
+  }
+
+  @Test
+  public void testNonNullParamAfterInvokeInterface() throws Exception {
+    Class<?> mainClass = NonNullParamAfterInvokeInterfaceMain.class;
+    CodeInspector inspector =
+        buildAndRun(
+            mainClass,
+            ImmutableList.of(
+                NeverInline.class,
+                IntrinsicsDeputy.class,
+                NonNullParamInterface.class,
+                NonNullParamInterfaceImpl.class,
+                NonNullParamAfterInvokeInterface.class,
+                NotPinnedClass.class,
+                mainClass),
+            this::disableDevirtualization);
+
+    ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeInterface.class);
+    assertThat(mainSubject, isPresent());
+
+    String argTypeName = NotPinnedClass.class.getName();
+    MethodSubject checkViaCall =
+        mainSubject.method(
+            "void",
+            "checkViaCall",
+            ImmutableList.of(NonNullParamInterface.class.getName(), argTypeName, argTypeName));
+    assertThat(checkViaCall, isPresent());
+    assertEquals(0, countActCall(checkViaCall));
+    // The DEX backend reuses the System.out.println invoke.
+    assertEquals(backend == Backend.CF ? 2 : 1, countPrintCall(checkViaCall));
+  }
+
   private long countCallToParamNullCheck(MethodSubject method) {
     return countCall(method, IntrinsicsDeputy.class.getSimpleName(), "checkParameterIsNotNull");
   }
 
   private long countPrintCall(MethodSubject method) {
     return countCall(method, "PrintStream", "print");
+  }
+
+  private long countActCall(MethodSubject method) {
+    return countCall(method, NotPinnedClass.class.getSimpleName(), "act");
   }
 
   private long countThrow(MethodSubject method) {

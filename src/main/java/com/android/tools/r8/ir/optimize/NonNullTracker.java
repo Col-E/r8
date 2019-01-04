@@ -119,7 +119,7 @@ public class NonNullTracker {
             knownToBeNonNullValues.add(knownToBeNonNullValue);
           }
         }
-        if (current.isInvokeMethod()) {
+        if (current.isInvokeMethod() && !current.isInvokePolymorphic()) {
           DexEncodedMethod singleTarget =
               current.asInvokeMethod().lookupSingleTarget(appInfo, code.method.method.getHolder());
           if (singleTarget != null
@@ -350,11 +350,12 @@ public class NonNullTracker {
         && typeLattice.isReference();
   }
 
-  public void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
+  public void computeNonNullParamOnNormalExits(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     Set<BasicBlock> normalExits = Sets.newIdentityHashSet();
     normalExits.addAll(code.computeNormalExitBlocks());
     DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-    List<Value> arguments = code.collectArguments(true);
+    List<Value> arguments = code.collectArguments();
     BitSet facts = new BitSet();
     Set<BasicBlock> nullCheckedBlocks = Sets.newIdentityHashSet();
     for (int index = 0; index < arguments.size(); index++) {
@@ -362,6 +363,10 @@ public class NonNullTracker {
       // Consider reference-type parameter only.
       if (!argument.getTypeLattice().isReference()) {
         continue;
+      }
+      if (index == 0 && !method.accessFlags.isStatic()) {
+        // The receiver is always non-null after an invocation;
+        facts.set(index);
       }
       // Collect basic blocks that check nullability of the parameter.
       nullCheckedBlocks.clear();

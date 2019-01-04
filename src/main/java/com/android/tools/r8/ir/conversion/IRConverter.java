@@ -943,10 +943,16 @@ public class IRConverter {
     if (options.disableAssertions) {
       codeRewriter.disableAssertions(appInfo, method, code, feedback);
     }
+
+    previous = printMethod(code, "IR after disable assertions (SSA)", previous);
+
     if (options.enableNonNullTracking && nonNullTracker != null) {
       nonNullTracker.addNonNull(code);
       assert code.isConsistentSSA();
     }
+
+    previous = printMethod(code, "IR after null tracking (SSA)", previous);
+
     if (!isDebugMode && options.enableInlining && inliner != null) {
       // TODO(zerny): Should we support inlining in debug mode? b/62937285
       inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
@@ -1000,7 +1006,7 @@ public class IRConverter {
 
     if (options.enableNonNullTracking && nonNullTracker != null) {
       // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
-      nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
+      nonNullTracker.computeNonNullParamOnNormalExits(feedback, method, code);
       nonNullTracker.cleanupNonNull(code);
       assert code.isConsistentSSA();
     }
