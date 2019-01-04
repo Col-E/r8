@@ -445,9 +445,6 @@ public class R8 {
         appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness, options).run());
         appViewWithLiveness.setAppInfo(
             new EnumOrdinalMapCollector(appViewWithLiveness, options).run());
-
-        // TODO(b/79143143): re-enable once fixed.
-        // graphLense = new BridgeMethodAnalysis(graphLense, appInfo.withLiveness()).run();
       }
 
       timing.begin("Create IR");
