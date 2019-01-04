@@ -297,11 +297,11 @@ public class Enqueuer {
     this.options = options;
   }
 
-  private void enqueueRootItems(Map<DexDefinition, ProguardKeepRule> items) {
+  private void enqueueRootItems(Map<DexDefinition, Set<ProguardKeepRule>> items) {
     items.entrySet().forEach(this::enqueueRootItem);
   }
 
-  private void enqueueRootItem(Entry<DexDefinition, ProguardKeepRule> root) {
+  private void enqueueRootItem(Entry<DexDefinition, Set<ProguardKeepRule>> root) {
     enqueueRootItem(root.getKey(), root.getValue());
   }
 
@@ -309,7 +309,26 @@ public class Enqueuer {
     enqueueRootItem(item, KeepReason.dueToKeepRule(rule));
   }
 
+  private void enqueueRootItem(DexDefinition item, Set<ProguardKeepRule> rules) {
+    assert !rules.isEmpty();
+    if (keptGraphConsumer != null) {
+      GraphNode node = getGraphNode(item);
+      for (ProguardKeepRule rule : rules) {
+        registerEdge(node, KeepReason.dueToKeepRule(rule));
+      }
+    }
+    internalEnqueueRootItem(item, KeepReason.dueToKeepRule(rules.iterator().next()));
+  }
+
   private void enqueueRootItem(DexDefinition item, KeepReason reason) {
+    if (keptGraphConsumer != null) {
+      registerEdge(getGraphNode(item), reason);
+    }
+    internalEnqueueRootItem(item, reason);
+  }
+
+  private void internalEnqueueRootItem(DexDefinition item, KeepReason reason) {
+    // TODO(b/120959039): do we need to propagate the reason to the action now?
     if (item.isDexClass()) {
       DexClass clazz = item.asDexClass();
       workList.add(Action.markInstantiated(clazz, reason));
@@ -349,11 +368,11 @@ public class Enqueuer {
   }
 
   private void enqueueHolderIfDependentNonStaticMember(
-      DexClass holder, Map<DexDefinition, ProguardKeepRule> dependentItems) {
+      DexClass holder, Map<DexDefinition, Set<ProguardKeepRule>> dependentItems) {
     // Check if any dependent members are not static, and in that case enqueue the class as well.
     // Having a dependent rule like -keepclassmembers with non static items indicates that class
     // instances will be present even if tracing do not find any instantiation. See b/115867670.
-    for (Entry<DexDefinition, ProguardKeepRule> entry : dependentItems.entrySet()) {
+    for (Entry<DexDefinition, Set<ProguardKeepRule>> entry : dependentItems.entrySet()) {
       DexDefinition dependentItem = entry.getKey();
       if (dependentItem.isDexClass()) {
         continue;
@@ -791,7 +810,7 @@ public class Enqueuer {
         annotations.forEach(this::handleAnnotationOfLiveType);
       }
 
-      Map<DexDefinition, ProguardKeepRule> dependentItems = rootSet.getDependentItems(holder);
+      Map<DexDefinition, Set<ProguardKeepRule>> dependentItems = rootSet.getDependentItems(holder);
       enqueueHolderIfDependentNonStaticMember(holder, dependentItems);
       // Add all dependent members to the workqueue.
       enqueueRootItems(dependentItems);

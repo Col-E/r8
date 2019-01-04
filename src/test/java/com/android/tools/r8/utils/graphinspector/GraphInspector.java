@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.graphinspector;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -113,16 +114,26 @@ public class GraphInspector {
     }
 
     public QueryNode assertNotInvokedFrom(MethodReference method) {
-      assertTrue(
-          errorMessage("no invocation from " + method.toString(), "invoke"),
-          !isInvokedFrom(method));
+      assertFalse(
+          errorMessage("no invocation from " + method.toString(), "invoke"), isInvokedFrom(method));
       return this;
     }
 
     public QueryNode assertKeptBy(QueryNode node) {
-      assertTrue("Invalid call to assertKeptBy with: " + node.getNodeDescription(),
-          node.isPresent());
-      assertTrue(errorMessage("kept by " + node.getNodeDescription(), "none"), isKeptBy(node));
+      assertTrue(
+          "Invalid call to assertKeptBy with: " + node.getNodeDescription(), node.isPresent());
+      assertTrue(
+          errorMessage("kept by " + node.getNodeDescription(), "was not kept by it"),
+          isKeptBy(node));
+      return this;
+    }
+
+    public QueryNode assertNotKeptBy(QueryNode node) {
+      assertTrue(
+          "Invalid call to assertNotKeptBy with: " + node.getNodeDescription(), node.isPresent());
+      assertFalse(
+          errorMessage("not kept by " + node.getNodeDescription(), "was kept by it"),
+          isKeptBy(node));
       return this;
     }
   }

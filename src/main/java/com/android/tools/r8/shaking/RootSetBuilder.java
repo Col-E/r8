@@ -61,7 +61,7 @@ public class RootSetBuilder {
   private final AppView<? extends AppInfo> appView;
   private final DirectMappedDexApplication application;
   private final Collection<ProguardConfigurationRule> rules;
-  private final Map<DexDefinition, ProguardKeepRule> noShrinking = new IdentityHashMap<>();
+  private final Map<DexDefinition, Set<ProguardKeepRule>> noShrinking = new IdentityHashMap<>();
   private final Set<DexDefinition> noOptimization = Sets.newIdentityHashSet();
   private final Set<DexDefinition> noObfuscation = Sets.newIdentityHashSet();
   private final LinkedHashMap<DexDefinition, DexDefinition> reasonAsked = new LinkedHashMap<>();
@@ -76,7 +76,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
-  private final Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking =
+  private final Map<DexDefinition, Map<DexDefinition, Set<ProguardKeepRule>>> dependentNoShrinking =
       new IdentityHashMap<>();
   private final Map<DexDefinition, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
   private final Map<DexDefinition, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
@@ -854,8 +854,10 @@ public class RootSetBuilder {
       return;
     }
     // Keep the type if the item is also kept.
-    dependentNoShrinking.computeIfAbsent(item, x -> new IdentityHashMap<>())
-        .put(definition, context);
+    dependentNoShrinking
+        .computeIfAbsent(item, x -> new IdentityHashMap<>())
+        .computeIfAbsent(definition, k -> new HashSet<>())
+        .add(context);
     // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
     noObfuscation.add(definition);
   }
@@ -890,10 +892,12 @@ public class RootSetBuilder {
       ProguardKeepRuleModifiers modifiers = keepRule.getModifiers();
       if (!modifiers.allowsShrinking) {
         if (precondition != null) {
-          dependentNoShrinking.computeIfAbsent(precondition, x -> new IdentityHashMap<>())
-              .put(item, keepRule);
+          dependentNoShrinking
+              .computeIfAbsent(precondition, x -> new IdentityHashMap<>())
+              .computeIfAbsent(item, i -> new HashSet<>())
+              .add(keepRule);
         } else {
-          noShrinking.put(item, keepRule);
+          noShrinking.computeIfAbsent(item, i -> new HashSet<>()).add(keepRule);
         }
       }
       if (!modifiers.allowsOptimization) {
@@ -970,7 +974,7 @@ public class RootSetBuilder {
 
   public static class RootSet {
 
-    public final Map<DexDefinition, ProguardKeepRule> noShrinking;
+    public final Map<DexDefinition, Set<ProguardKeepRule>> noShrinking;
     public final Set<DexDefinition> noOptimization;
     public final Set<DexDefinition> noObfuscation;
     public final ImmutableList<DexDefinition> reasonAsked;
@@ -985,12 +989,13 @@ public class RootSetBuilder {
     public final Set<DexType> neverMerge;
     public final Map<DexDefinition, ProguardMemberRule> noSideEffects;
     public final Map<DexDefinition, ProguardMemberRule> assumedValues;
-    private final Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking;
+    private final Map<DexDefinition, Map<DexDefinition, Set<ProguardKeepRule>>>
+        dependentNoShrinking;
     public final Set<DexReference> identifierNameStrings;
     public final Set<ProguardIfRule> ifRules;
 
     private RootSet(
-        Map<DexDefinition, ProguardKeepRule> noShrinking,
+        Map<DexDefinition, Set<ProguardKeepRule>> noShrinking,
         Set<DexDefinition> noOptimization,
         Set<DexDefinition> noObfuscation,
         ImmutableList<DexDefinition> reasonAsked,
@@ -1005,7 +1010,7 @@ public class RootSetBuilder {
         Set<DexType> neverMerge,
         Map<DexDefinition, ProguardMemberRule> noSideEffects,
         Map<DexDefinition, ProguardMemberRule> assumedValues,
-        Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking,
+        Map<DexDefinition, Map<DexDefinition, Set<ProguardKeepRule>>> dependentNoShrinking,
         Set<DexReference> identifierNameStrings,
         Set<ProguardIfRule> ifRules) {
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
@@ -1030,7 +1035,7 @@ public class RootSetBuilder {
 
     // Add dependent items that depend on -if rules.
     void addDependentItems(
-        Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentItems) {
+        Map<DexDefinition, Map<DexDefinition, Set<ProguardKeepRule>>> dependentItems) {
       dependentItems.forEach(
           (def, dependence) ->
               dependentNoShrinking
@@ -1038,7 +1043,7 @@ public class RootSetBuilder {
                   .putAll(dependence));
     }
 
-    Map<DexDefinition, ProguardKeepRule> getDependentItems(DexDefinition item) {
+    Map<DexDefinition, Set<ProguardKeepRule>> getDependentItems(DexDefinition item) {
       return Collections
           .unmodifiableMap(dependentNoShrinking.getOrDefault(item, Collections.emptyMap()));
     }
@@ -1224,18 +1229,18 @@ public class RootSetBuilder {
   static class ConsequentRootSet {
     final Set<DexMethod> neverInline;
     final Set<DexType> neverClassInline;
-    final Map<DexDefinition, ProguardKeepRule> noShrinking;
+    final Map<DexDefinition, Set<ProguardKeepRule>> noShrinking;
     final Set<DexDefinition> noOptimization;
     final Set<DexDefinition> noObfuscation;
-    final Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking;
+    final Map<DexDefinition, Map<DexDefinition, Set<ProguardKeepRule>>> dependentNoShrinking;
 
     private ConsequentRootSet(
         Set<DexMethod> neverInline,
         Set<DexType> neverClassInline,
-        Map<DexDefinition, ProguardKeepRule> noShrinking,
+        Map<DexDefinition, Set<ProguardKeepRule>> noShrinking,
         Set<DexDefinition> noOptimization,
         Set<DexDefinition> noObfuscation,
-        Map<DexDefinition, Map<DexDefinition, ProguardKeepRule>> dependentNoShrinking) {
+        Map<DexDefinition, Map<DexDefinition, Set<ProguardKeepRule>>> dependentNoShrinking) {
       this.neverInline = Collections.unmodifiableSet(neverInline);
       this.neverClassInline = Collections.unmodifiableSet(neverClassInline);
       this.noShrinking = Collections.unmodifiableMap(noShrinking);

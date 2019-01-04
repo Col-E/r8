@@ -86,7 +86,7 @@ public class KeptByAnnotatedMethodTestRunner extends TestBase {
         .method(fooMethod)
         .assertNotRenamed()
         .assertNotInvokedFrom(mainMethod)
-        // TODO(b/122297131): keepAnnotatedMethods should also be keeping foo alive!
+        .assertKeptBy(keepAnnotatedMethods)
         .assertKeptBy(keepClassesOfAnnotatedMethods);
 
     // Check baz is removed.
