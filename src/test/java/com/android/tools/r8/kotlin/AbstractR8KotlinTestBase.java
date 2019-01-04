@@ -10,9 +10,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.Code;
@@ -24,7 +24,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -32,7 +31,6 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,7 +44,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public abstract class AbstractR8KotlinTestBase extends TestBase {
+public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
 
   // This is the name of the Jasmin-generated class which contains the "main" method which will
   // invoke the tested method.
@@ -61,6 +59,10 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
   @Parameters(name = "allowAccessModification: {0} target: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(BooleanUtils.values(), KotlinTargetVersion.values());
+  }
+
+  public AbstractR8KotlinTestBase() {
+    super(KotlinTargetVersion.JAVA_6);
   }
 
   protected void addExtraClasspath(Path path) {
@@ -230,8 +232,8 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
 
     // Build classpath for compilation (and java execution)
     classpath.clear();
-    classpath.add(getKotlinJarFile(folder));
-    classpath.add(getJavaJarFile(folder));
+    classpath.add(getKotlinJarFile(folder, targetVersion));
+    classpath.add(getJavaJarFile(folder, targetVersion));
     classpath.addAll(extraClasspath);
 
     // Build with R8
@@ -294,16 +296,6 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
               + " in input class " + className + " but is expected to be "
               + (isPresent ? "present" : "absent"));
     }
-  }
-
-  private Path getKotlinJarFile(String folder) {
-    return Paths.get(ToolHelper.TESTS_BUILD_DIR, "kotlinR8TestResources",
-        targetVersion.getFolderName(), folder + FileUtils.JAR_EXTENSION);
-  }
-
-  private Path getJavaJarFile(String folder) {
-    return Paths.get(ToolHelper.TESTS_BUILD_DIR, "kotlinR8TestResources",
-        targetVersion.getFolderName(), folder + ".java" + FileUtils.JAR_EXTENSION);
   }
 
   @FunctionalInterface

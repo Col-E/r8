@@ -1199,10 +1199,10 @@ task buildKotlinR8TestResources {
         kotlin.Kotlinc.KotlinTargetVersion.values().each { kotlinTargetVersion ->
             def name = dir.getName()
             def taskName = "jar_kotlinR8TestResources_${name}_${kotlinTargetVersion}"
-            def outputFile = "build/test/kotlinR8TestResources/${kotlinTargetVersion}/${name}.jar"
-            def javaOutput = "build/test/kotlinR8TestResources/${kotlinTargetVersion}/${name}/java"
+            def outputFile = "build/test/r8KotlinTestResources/${kotlinTargetVersion}/${name}.jar"
+            def javaOutput = "build/test/r8KotlinTestResources/${kotlinTargetVersion}/${name}/java"
             def javaOutputJarName = "${name}.java.jar"
-            def javaOutputJarDir = "build/test/kotlinR8TestResources/${kotlinTargetVersion}"
+            def javaOutputJarDir = "build/test/r8KotlinTestResources/${kotlinTargetVersion}"
             task "${taskName}Kotlin"(type: kotlin.Kotlinc) {
                 source = fileTree(dir: file("${examplesDir}/${name}"),
                         include: ['**/*.kt', '**/*.java'])
