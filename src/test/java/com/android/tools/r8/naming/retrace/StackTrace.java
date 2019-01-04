@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -181,6 +182,10 @@ class StackTrace {
         stackTraceFile,
         stackTraceLines.stream().map(line -> line.originalLine).collect(Collectors.toList()));
     return StackTrace.extractFromJvm(ToolHelper.runRetrace(mapFile, stackTraceFile));
+  }
+
+  public StackTrace filter(Predicate<StackTraceLine> filter) {
+    return new StackTrace(stackTraceLines.stream().filter(filter).collect(Collectors.toList()));
   }
 
   @Override
