@@ -115,7 +115,12 @@ public class PrintUses {
 
     @Override
     public boolean registerInvokeSuper(DexMethod method) {
-      addMethod(method);
+      DexEncodedMethod superTarget = appInfo.lookupSuperTarget(method, method.holder);
+      if (superTarget != null) {
+        addMethod(superTarget.method);
+      } else {
+        addMethod(method);
+      }
       return false;
     }
 
@@ -201,7 +206,7 @@ public class PrintUses {
     private void registerMethod(DexEncodedMethod method) {
       DexEncodedMethod superTarget = appInfo.lookupSuperTarget(method.method, method.method.holder);
       if (superTarget != null) {
-        registerInvokeSuper(superTarget.method);
+        addMethod(superTarget.method);
       }
       for (DexType type : method.method.proto.parameters.values) {
         registerTypeReference(type);
