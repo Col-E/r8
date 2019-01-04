@@ -88,6 +88,15 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
     return self();
   }
 
+  public RR disassemble(PrintStream ps) throws IOException, ExecutionException {
+    ToolHelper.disassemble(app, ps);
+    return self();
+  }
+
+  public RR disassemble() throws IOException, ExecutionException {
+    return disassemble(System.out);
+  }
+
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();

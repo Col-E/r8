@@ -21,6 +21,10 @@ public class Timing {
 
   private final Stack<Node> stack;
 
+  public Timing() {
+    this("<no title>");
+  }
+
   public Timing(String title) {
     stack = new Stack<>();
     stack.push(new Node("Recorded timings for " + title));
