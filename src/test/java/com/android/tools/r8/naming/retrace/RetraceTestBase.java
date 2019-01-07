@@ -9,6 +9,7 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.BiConsumer;
 import org.junit.Before;
 
@@ -40,7 +41,7 @@ public abstract class RetraceTestBase extends TestBase {
             .map(StackTrace::extractFromJvm);
   }
 
-  public void runTest(String keepRule, BiConsumer<StackTrace, StackTrace> checker)
+  public void runTest(List<String> keepRules, BiConsumer<StackTrace, StackTrace> checker)
       throws Exception {
 
     R8TestRunResult result =
@@ -50,7 +51,7 @@ public abstract class RetraceTestBase extends TestBase {
             .enableInliningAnnotations()
             .addProgramClasses(getClasses())
             .addKeepMainRule(getMainClass())
-            .addKeepRules(keepRule)
+            .addKeepRules(keepRules)
             .run(getMainClass())
             .assertFailure();
 

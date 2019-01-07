@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileName;
+import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -47,54 +48,114 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
     return line.className.contains("-$$Lambda$");
   }
 
+  private void checkLambdaFrame(StackTrace retracedStackTrace) {
+    StackTrace lambdaFrames = retracedStackTrace.filter(this::isSynthesizedLambdaFrame);
+    assertEquals(1, lambdaFrames.size());
+    if (lambdaFrames.get(0).hasLineNumber()) {
+      assertEquals(mode == CompilationMode.RELEASE ? 0 : 2, lambdaFrames.get(0).lineNumber);
+    }
+    // Proguard retrace will take the class name until the first $ to construct the file
+    // name, so for "-$$Lambda$...", the file name becomes "-.java".
+    assertEquals("-.java", lambdaFrames.get(0).fileName);
+  }
+
+  private void checkIsSameExceptForFileName(
+      StackTrace actualStackTrace, StackTrace retracedStackTrace) {
+    // Even when SourceFile is present retrace replaces the file name in the stack trace.
+    if (backend == Backend.CF) {
+      // TODO(122440196): Additional code to locate issue.
+      if (!isSameExceptForFileName(expectedStackTrace).matches(retracedStackTrace)) {
+        System.out.println("Expected original:");
+        System.out.println(expectedStackTrace.getOriginalStderr());
+        System.out.println("Actual original:");
+        System.out.println(retracedStackTrace.getOriginalStderr());
+        System.out.println("Parsed original:");
+        System.out.println(expectedStackTrace);
+        System.out.println("Parsed retraced:");
+        System.out.println(retracedStackTrace);
+      }
+      assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
+    } else {
+      // TODO(122440196): Additional code to locate issue.
+      if (!isSameExceptForFileName(expectedStackTrace)
+          .matches(retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)))) {
+        System.out.println("Expected original:");
+        System.out.println(expectedStackTrace.getOriginalStderr());
+        System.out.println("Actual original:");
+        System.out.println(retracedStackTrace.getOriginalStderr());
+        System.out.println("Parsed original:");
+        System.out.println(expectedStackTrace);
+        System.out.println("Parsed retraced:");
+        System.out.println(retracedStackTrace);
+      }
+      // With the frame from the lambda class filtered out the stack trace is the same.
+      assertThat(
+          retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
+          isSameExceptForFileName(expectedStackTrace));
+      // Check the frame from the lambda class.
+      checkLambdaFrame(retracedStackTrace);
+    }
+    assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+  }
+
+  private void checkIsSameExceptForFileNameAndLineNumber(
+      StackTrace actualStackTrace, StackTrace retracedStackTrace) {
+    // Even when SourceFile is present retrace replaces the file name in the stack trace.
+    if (backend == Backend.CF) {
+      // TODO(122440196): Additional code to locate issue.
+      if (!isSameExceptForFileNameAndLineNumber(expectedStackTrace).matches(retracedStackTrace)) {
+        System.out.println("Expected original:");
+        System.out.println(expectedStackTrace.getOriginalStderr());
+        System.out.println("Actual original:");
+        System.out.println(retracedStackTrace.getOriginalStderr());
+        System.out.println("Parsed original:");
+        System.out.println(expectedStackTrace);
+        System.out.println("Parsed retraced:");
+        System.out.println(retracedStackTrace);
+      }
+      assertThat(retracedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
+    } else {
+      // TODO(122440196): Additional code to locate issue.
+      if (!isSameExceptForFileNameAndLineNumber(expectedStackTrace)
+          .matches(retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)))) {
+        System.out.println("Expected original:");
+        System.out.println(expectedStackTrace.getOriginalStderr());
+        System.out.println("Actual original:");
+        System.out.println(retracedStackTrace.getOriginalStderr());
+        System.out.println("Parsed original:");
+        System.out.println(expectedStackTrace);
+        System.out.println("Parsed retraced:");
+        System.out.println(retracedStackTrace);
+      }
+      // With the frame from the lambda class filtered out the stack trace is the same.
+      assertThat(
+          retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
+          isSameExceptForFileNameAndLineNumber(expectedStackTrace));
+      // Check the frame from the lambda class.
+      checkLambdaFrame(retracedStackTrace);
+    }
+    assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+  }
+
   @Test
   public void testSourceFileAndLineNumberTable() throws Exception {
     runTest(
-        "-keepattributes SourceFile,LineNumberTable\n-printmapping",
-        (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
-          // Even when SourceFile is present retrace replaces the file name in the stack trace.
-          if (backend == Backend.CF) {
-            // TODO(122440196): Additional code to locate issue.
-            if (isSameExceptForFileName(expectedStackTrace).matches(retracedStackTrace)) {
-              System.out.println("Expected original:");
-              System.out.println(expectedStackTrace.getOriginalStderr());
-              System.out.println("Actual original:");
-              System.out.println(retracedStackTrace.getOriginalStderr());
-              System.out.println("Parsed original:");
-              System.out.println(expectedStackTrace);
-              System.out.println("Parsed retraced:");
-              System.out.println(retracedStackTrace);
-            }
-            assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
-          } else {
-            // TODO(122440196): Additional code to locate issue.
-            if (isSameExceptForFileName(expectedStackTrace)
-                .matches(retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)))) {
-              System.out.println("Expected original:");
-              System.out.println(expectedStackTrace.getOriginalStderr());
-              System.out.println("Actual original:");
-              System.out.println(retracedStackTrace.getOriginalStderr());
-              System.out.println("Parsed original:");
-              System.out.println(expectedStackTrace);
-              System.out.println("Parsed retraced:");
-              System.out.println(retracedStackTrace);
-            }
-            // With the frame from the lambda class filtered out the stack trace is teh same.
-            assertThat(
-                retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
-                isSameExceptForFileName(expectedStackTrace));
-            // Check the frame from the lambda class.
-            StackTrace lambdaFrames = retracedStackTrace.filter(this::isSynthesizedLambdaFrame);
-            assertEquals(1, lambdaFrames.size());
-            if (lambdaFrames.get(0).hasLineNumber()) {
-              assertEquals(mode == CompilationMode.RELEASE ? 0 : 2, lambdaFrames.get(0).lineNumber);
-            }
-            // Proguard retrace will take the class name until the first $ to construct the file
-            // name, so for "-$$Lambda$...", the file name becomes "-.java".
-            assertEquals("-.java", lambdaFrames.get(0).fileName);
-          }
-          assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
-        });
+        ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
+        this::checkIsSameExceptForFileName);
+  }
+
+  @Test
+  public void testLineNumberTableOnly() throws Exception {
+    runTest(
+        ImmutableList.of("-keepattributes LineNumberTable"),
+        this::checkIsSameExceptForFileName);
+  }
+
+  @Test
+  public void testNoLineNumberTable() throws Exception {
+    runTest(
+        ImmutableList.of(),
+        this::checkIsSameExceptForFileNameAndLineNumber);
   }
 }
 

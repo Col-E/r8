@@ -11,6 +11,7 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,7 +42,7 @@ public class InliningRetraceTest extends RetraceTestBase {
   @Test
   public void testSourceFileAndLineNumberTable() throws Exception {
     runTest(
-        "-keepattributes SourceFile,LineNumberTable",
+        ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           // Even when SourceFile is present retrace replaces the file name in the stack trace.
           assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
@@ -52,7 +53,7 @@ public class InliningRetraceTest extends RetraceTestBase {
   @Test
   public void testLineNumberTableOnly() throws Exception {
     runTest(
-        "-keepattributes LineNumberTable",
+        ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
@@ -62,7 +63,7 @@ public class InliningRetraceTest extends RetraceTestBase {
   @Test
   public void testNoLineNumberTable() throws Exception {
     runTest(
-        "",
+        ImmutableList.of(),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           assertThat(retracedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
