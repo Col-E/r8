@@ -395,7 +395,9 @@ class StackTrace {
 
     @Override
     public void describeMismatchSafely(final StackTrace stackTrace, Description description) {
-      description.appendText("stacktrace was " + stackTrace);
+      description.appendText("stacktrace was");
+      description.appendText(System.lineSeparator());
+      description.appendText(stackTrace.toString());
       description.appendText(System.lineSeparator());
       if (expected.size() != stackTrace.size()) {
         description.appendText("They have different sizes.");
