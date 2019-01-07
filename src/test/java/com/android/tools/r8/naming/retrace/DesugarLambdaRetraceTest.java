@@ -54,8 +54,31 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           // Even when SourceFile is present retrace replaces the file name in the stack trace.
           if (backend == Backend.CF) {
+            // TODO(122440196): Additional code to locate issue.
+            if (isSameExceptForFileName(expectedStackTrace).matches(retracedStackTrace)) {
+              System.out.println("Expected original:");
+              System.out.println(expectedStackTrace.getOriginalStderr());
+              System.out.println("Actual original:");
+              System.out.println(retracedStackTrace.getOriginalStderr());
+              System.out.println("Parsed original:");
+              System.out.println(expectedStackTrace);
+              System.out.println("Parsed retraced:");
+              System.out.println(retracedStackTrace);
+            }
             assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
           } else {
+            // TODO(122440196): Additional code to locate issue.
+            if (isSameExceptForFileName(expectedStackTrace)
+                .matches(retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)))) {
+              System.out.println("Expected original:");
+              System.out.println(expectedStackTrace.getOriginalStderr());
+              System.out.println("Actual original:");
+              System.out.println(retracedStackTrace.getOriginalStderr());
+              System.out.println("Parsed original:");
+              System.out.println(expectedStackTrace);
+              System.out.println("Parsed retraced:");
+              System.out.println(retracedStackTrace);
+            }
             // With the frame from the lambda class filtered out the stack trace is teh same.
             assertThat(
                 retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
