@@ -43,13 +43,13 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public boolean isNull() {
+  public boolean isNullType() {
     return type == DexItemFactory.nullValueType;
   }
 
   @Override
   public TypeLatticeElement asNullable() {
-    assert isNull();
+    assert isNullType();
     return this;
   }
 
@@ -88,7 +88,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public int hashCode() {
-    assert isNull();
+    assert isNullType();
     return System.identityHashCode(this);
   }
 }

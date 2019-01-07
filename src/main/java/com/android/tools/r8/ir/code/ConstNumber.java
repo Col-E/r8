@@ -302,7 +302,7 @@ public class ConstNumber extends ConstInstruction {
     assert super.verifyTypes(appInfo, graphLense);
     assert !isZero()
         || outValue().getTypeLattice().isPrimitive()
-        || outValue().getTypeLattice().isConstantNull();
+        || outValue().getTypeLattice().isNullType();
     return true;
   }
 

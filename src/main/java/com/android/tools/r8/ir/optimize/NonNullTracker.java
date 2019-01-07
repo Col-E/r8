@@ -343,7 +343,7 @@ public class NonNullTracker {
         // redundant
         !knownToBeNonNullValue.isNeverNull()
         // v <- non-null NULL ?!
-        && !typeLattice.isConstantNull()
+        && !typeLattice.isNullType()
         // v <- non-null known-to-be-non-null // redundant
         && typeLattice.isNullable()
         // e.g., v <- non-null INT ?!

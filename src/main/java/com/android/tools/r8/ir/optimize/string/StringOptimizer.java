@@ -305,7 +305,7 @@ public class StringOptimizer {
           continue;
         }
         TypeLatticeElement inType = in.getTypeLattice();
-        if (inType.isConstantNull()) {
+        if (inType.isNullType()) {
           Value nullStringValue =
               code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
           ConstString nullString = new ConstString(

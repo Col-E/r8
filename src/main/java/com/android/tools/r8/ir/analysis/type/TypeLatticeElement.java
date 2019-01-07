@@ -29,7 +29,6 @@ public abstract class TypeLatticeElement {
   public static final ReferenceTypeLatticeElement NULL =
       ReferenceTypeLatticeElement.getNullTypeLatticeElement();
 
-
   // TODO(b/72693244): Switch to NullLatticeElement.
   private final boolean isNullable;
 
@@ -42,7 +41,7 @@ public abstract class TypeLatticeElement {
   }
 
   public NullLatticeElement nullElement() {
-    if (isNull()) {
+    if (isNullType()) {
       return NullLatticeElement.definitelyNull();
     }
     if (!isNullable()) {
@@ -91,10 +90,10 @@ public abstract class TypeLatticeElement {
     if (isTop() || other.isTop()) {
       return TOP;
     }
-    if (isNull()) {
+    if (isNullType()) {
       return other.asNullable();
     }
-    if (other.isNull()) {
+    if (other.isNullType()) {
       return asNullable();
     }
     if (isPrimitive()) {
@@ -270,7 +269,7 @@ public abstract class TypeLatticeElement {
   public boolean isPreciseType() {
     return isArrayType()
         || isClassType()
-        || isNull()
+        || isNullType()
         || isInt()
         || isFloat()
         || isLong()
@@ -286,21 +285,13 @@ public abstract class TypeLatticeElement {
   }
 
   /**
-   * Should use {@link #isConstantNull()} or {@link #isDefinitelyNull()} instead.
-   */
-  @Deprecated
-  public boolean isNull() {
-    return false;
-  }
-
-  /**
    * Determines if this type only includes null values that are defined by a const-number
    * instruction in the same enclosing method.
    *
    * These null values can be assigned to any type.
    */
-  public boolean isConstantNull() {
-    return isNull();
+  public boolean isNullType() {
+    return false;
   }
 
   /**
