@@ -148,7 +148,7 @@ public class CheckCast extends Instruction {
       assert inType.nullElement().lessThanOrEqual(outType.nullElement());
 
       // Since we cannot remove the cast the in-value must be different from null.
-      assert !inType.isNull();
+      assert !inType.isNullType();
 
       // TODO(b/72693244): Consider checking equivalence. This requires that the types are always
       // as precise as possible, though, meaning that almost all changes to the IR must be followed
