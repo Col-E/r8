@@ -242,7 +242,7 @@ public class ClassNameMapper implements ProguardMap {
     return classNaming.originalName + " " + memberNaming.signature.toString();
   }
 
-  public Signature originalSignatureOf(DexMethod method) {
+  public MethodSignature originalSignatureOf(DexMethod method) {
     String decoded = descriptorToJavaType(method.holder.descriptor.toString());
     MethodSignature memberSignature = getRenamedMethodSignature(method);
     ClassNaming classNaming = getClassNaming(decoded);
@@ -253,7 +253,7 @@ public class ClassNameMapper implements ProguardMap {
     if (memberNaming == null) {
       return memberSignature;
     }
-    return memberNaming.signature;
+    return (MethodSignature) memberNaming.signature;
   }
 
   public FieldSignature originalSignatureOf(DexField field) {
