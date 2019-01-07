@@ -12,7 +12,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.Collections;
@@ -520,51 +519,6 @@ public abstract class GraphLense {
       }
     }
     return builder.build();
-  }
-
-  public boolean verifyMappingToOriginalProgram(
-      Iterable<DexProgramClass> classes,
-      DexApplication originalApplication,
-      DexItemFactory dexItemFactory) {
-    // Collect all original fields and methods for efficient querying.
-    Set<DexField> originalFields = Sets.newIdentityHashSet();
-    Set<DexMethod> originalMethods = Sets.newIdentityHashSet();
-    for (DexProgramClass clazz : originalApplication.classes()) {
-      for (DexEncodedField field : clazz.fields()) {
-        originalFields.add(field.field);
-      }
-      for (DexEncodedMethod method : clazz.methods()) {
-        originalMethods.add(method.method);
-      }
-    }
-
-    // Check that all fields and methods in the generated program can be mapped back to one of the
-    // original fields or methods.
-    for (DexProgramClass clazz : classes) {
-      if (clazz.type.isD8R8SynthesizedClassType()) {
-        continue;
-      }
-      for (DexEncodedField field : clazz.fields()) {
-        DexField originalField = getOriginalFieldSignature(field.field);
-        assert originalFields.contains(originalField)
-            : "Unable to map field `" + field.field.toSourceString() + "` back to original program";
-      }
-      for (DexEncodedMethod method : clazz.methods()) {
-        if (method.accessFlags.isSynthetic()) {
-          // This could be a bridge that has been inserted, for example, as a result of member
-          // rebinding. Consider only skipping the check below for methods that have been
-          // synthesized by R8.
-          continue;
-        }
-        DexMethod originalMethod = getOriginalMethodSignature(method.method);
-        assert originalMethods.contains(originalMethod)
-            : "Unable to map method `"
-                + originalMethod.toSourceString()
-                + "` back to original program";
-      }
-    }
-
-    return true;
   }
 
   private static class IdentityGraphLense extends GraphLense {

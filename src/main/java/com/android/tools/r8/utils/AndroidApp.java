@@ -279,19 +279,6 @@ public class AndroidApp {
     return mainDexClasses;
   }
 
-  /** Returns a copy of this AndroidApp that does not have a main dex list. */
-  public AndroidApp withoutMainDexList() {
-    return new AndroidApp(
-        programResourceProviders,
-        programResourcesMainDescriptor,
-        classpathResourceProviders,
-        libraryResourceProviders,
-        archiveProvidersToClose,
-        proguardMapOutputData,
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
   /**
    * Write the dex program resources and proguard resource to @code{output}.
    */

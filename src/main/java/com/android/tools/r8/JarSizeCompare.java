@@ -332,7 +332,7 @@ public class JarSizeCompare {
             MethodSignature originalSignature =
                 proguardMap == null
                     ? null
-                    : proguardMap.originalSignatureOf(dexEncodedMethod.method);
+                    : ((MethodSignature) proguardMap.originalSignatureOf(dexEncodedMethod.method));
             MethodSignature signature = MethodSignature.fromDexMethod(dexEncodedMethod.method);
             consumer.accept(
                 originalSignature == null ? signature : originalSignature, dexEncodedMethod);
