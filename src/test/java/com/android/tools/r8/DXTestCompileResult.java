@@ -29,7 +29,7 @@ public class DXTestCompileResult extends TestCompileResult<DXTestCompileResult, 
   }
 
   @Override
-  public DXTestRunResult createRunResult(AndroidApp app, ProcessResult result) {
+  public DXTestRunResult createRunResult(ProcessResult result) {
     return new DXTestRunResult(app, result);
   }
 }

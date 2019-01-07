@@ -83,6 +83,10 @@ public class TestBase {
     return R8TestBuilder.create(new TestState(temp), backend, R8Mode.Compat);
   }
 
+  public static ExternalR8TestBuilder testForExternalR8(TemporaryFolder temp, Backend backend) {
+    return ExternalR8TestBuilder.create(new TestState(temp), backend);
+  }
+
   public static D8TestBuilder testForD8(TemporaryFolder temp) {
     return D8TestBuilder.create(new TestState(temp));
   }
@@ -105,6 +109,10 @@ public class TestBase {
 
   public R8TestBuilder testForR8Compat(Backend backend) {
     return testForR8Compat(temp, backend);
+  }
+
+  public ExternalR8TestBuilder testForExternalR8(Backend backend) {
+    return testForExternalR8(temp, backend);
   }
 
   public D8TestBuilder testForD8() {

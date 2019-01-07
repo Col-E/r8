@@ -32,7 +32,7 @@ public class ProguardTestCompileResult
 
   @Override
   public TestDiagnosticMessages getDiagnosticMessages() {
-    throw new UnsupportedOperationException("No diagnostics messages from dx");
+    throw new UnsupportedOperationException("No diagnostics messages from Proguard");
   }
 
   @Override
@@ -41,7 +41,7 @@ public class ProguardTestCompileResult
   }
 
   @Override
-  public ProguardTestRunResult createRunResult(AndroidApp app, ProcessResult result) {
+  public ProguardTestRunResult createRunResult(ProcessResult result) {
     return new ProguardTestRunResult(app, result, proguardMap);
   }
 }

@@ -28,7 +28,7 @@ public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, 
   }
 
   @Override
-  public D8TestRunResult createRunResult(AndroidApp app, ProcessResult result) {
+  public D8TestRunResult createRunResult(ProcessResult result) {
     return new D8TestRunResult(app, result);
   }
 }

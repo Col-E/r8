@@ -56,7 +56,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   }
 
   @Override
-  public R8TestRunResult createRunResult(AndroidApp app, ProcessResult result) {
+  public R8TestRunResult createRunResult(ProcessResult result) {
     return new R8TestRunResult(app, result, proguardMap, this::graphInspector);
   }
 }
