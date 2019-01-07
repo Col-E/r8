@@ -41,6 +41,8 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   }
 
   private int expectedActualStackTraceHeight() {
+    // In debug mode the expected stack trace height differs since there is no lambda desugaring
+    // for CF.
     return mode == CompilationMode.RELEASE ? 2 : (backend == Backend.CF ? 4 : 5);
   }
 
