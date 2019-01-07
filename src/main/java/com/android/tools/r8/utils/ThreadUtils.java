@@ -15,11 +15,7 @@ public class ThreadUtils {
 
   public static void awaitFutures(Iterable<? extends Future<?>> futures)
       throws ExecutionException {
-    awaitFutures(futures.iterator());
-  }
-
-  public static void awaitFutures(Iterator<? extends Future<?>> futureIterator)
-      throws ExecutionException {
+    Iterator<? extends Future<?>> futureIterator = futures.iterator();
     try {
       while (futureIterator.hasNext()) {
         futureIterator.next().get();
