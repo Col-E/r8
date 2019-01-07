@@ -22,8 +22,9 @@ import chrome_data
 
 TYPES = ['dex', 'deploy', 'proguarded']
 APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome']
-COMPILERS = ['d8', 'r8', 'r8lib-r8', 'r8lib-d8']
-R8_COMPILERS = ['r8', 'r8lib-r8']
+COMPILERS = ['d8', 'r8']
+COMPILER_BUILDS = ['full', 'lib']
+
 # We use this magic exit code to signal that the program OOM'ed
 OOM_EXIT_CODE = 42
 
@@ -32,6 +33,10 @@ def ParseOptions(argv):
   result.add_option('--compiler',
                     help='The compiler to use',
                     choices=COMPILERS)
+  result.add_option('--compiler-build',
+                    help='Compiler build to use',
+                    choices=COMPILER_BUILDS,
+                    default='lib')
   result.add_option('--app',
                     help='What app to run on',
                     choices=APPS)
@@ -152,18 +157,20 @@ def run_all(options, args):
   assert len(args) == 0
   for name, version, type, use_r8lib in get_permutations():
     compiler = 'r8' if type == 'deploy' else 'd8'
-    if use_r8lib:
-      compiler = 'r8lib-' + compiler
-    print('Executing %s with %s %s %s' % (compiler, name, version, type))
+    compiler_build = 'lib' if use_r8lib else 'full'
+    print('Executing %s/%s with %s %s %s' % (compiler, compiler_build, name,
+      version, type))
 
     fixed_options = copy.copy(options)
     fixed_options.app = name
     fixed_options.version = version
     fixed_options.compiler = compiler
+    fixed_options.compiler_build = compiler_build
     fixed_options.type = type
     exit_code = run_with_options(fixed_options, [])
     if exit_code != 0:
-      print('Failed %s %s %s with %s' % (name, version, type, compiler))
+      print('Failed %s %s %s with %s/%s' % (name, version, type, compiler,
+        compiler_build))
       exit(exit_code)
 
 def find_min_xmx(options, args):
@@ -208,7 +215,9 @@ def main(argv):
     return find_min_xmx(options, args)
   return run_with_options(options, args)
 
-def run_with_options(options, args, extra_args=[]):
+def run_with_options(options, args, extra_args=None):
+  if extra_args is None:
+    extra_args = []
   app_provided_pg_conf = False;
   # todo(121018500): remove when memory is under control
   extra_args.append('-Xmx8G')
@@ -239,6 +248,10 @@ def run_with_options(options, args, extra_args=[]):
     raise Exception("You need to specify '--compiler={}'"
         .format('|'.join(COMPILERS)))
 
+  if options.compiler_build not in COMPILER_BUILDS:
+    raise Exception("You need to specify '--compiler-build={}'"
+        .format('|'.join(COMPILER_BUILDS)))
+
   if not options.version in data.VERSIONS.keys():
     print('No version {} for application {}'
         .format(options.version, options.app))
@@ -248,7 +261,7 @@ def run_with_options(options, args, extra_args=[]):
   version = data.VERSIONS[options.version]
 
   if not options.type:
-    options.type = 'deploy' if options.compiler in R8_COMPILERS \
+    options.type = 'deploy' if options.compiler == 'r8' \
         else 'proguarded'
 
   if options.type not in version:
@@ -260,7 +273,7 @@ def run_with_options(options, args, extra_args=[]):
   # For R8 'deploy' the JAR is located using the Proguard configuration
   # -injars option. For chrome and nest we don't have the injars in the
   # proguard files.
-  if 'inputs' in values and (options.compiler not in R8_COMPILERS
+  if 'inputs' in values and (options.compiler != 'r8'
                              or options.type != 'deploy'
                              or options.app == 'chrome'
                              or options.app == 'nest'):
@@ -273,7 +286,7 @@ def run_with_options(options, args, extra_args=[]):
   if 'main-dex-list' in values:
     args.extend(['--main-dex-list', values['main-dex-list']])
 
-  if options.compiler in R8_COMPILERS:
+  if options.compiler == 'r8':
     if 'pgconf' in values and not options.k:
       for pgconf in values['pgconf']:
         args.extend(['--pg-conf', pgconf])
@@ -297,7 +310,7 @@ def run_with_options(options, args, extra_args=[]):
   # Additional flags for the compiler from the configuration file.
   if 'flags' in values:
     args.extend(values['flags'].split(' '))
-  if options.compiler in R8_COMPILERS:
+  if options.compiler == 'r8':
     if 'r8-flags' in values:
       args.extend(values['r8-flags'].split(' '))
 
@@ -319,7 +332,7 @@ def run_with_options(options, args, extra_args=[]):
       if options.print_memoryuse and not options.track_memory_to_file:
         options.track_memory_to_file = os.path.join(temp,
             utils.MEMORY_USE_TMP_FILE)
-      if options.compiler in R8_COMPILERS and app_provided_pg_conf:
+      if options.compiler == 'r8' and app_provided_pg_conf:
         # Ensure that output of -printmapping and -printseeds go to the output
         # location and not where the app Proguard configuration places them.
         if outdir.endswith('.zip') or outdir.endswith('.jar'):
@@ -332,7 +345,12 @@ def run_with_options(options, args, extra_args=[]):
       build = not options.no_build and not options.golem
       stderr_path = os.path.join(temp, 'stderr')
       with open(stderr_path, 'w') as stderr:
-        exit_code = toolhelper.run(options.compiler, args,
+        if options.compiler_build == 'full':
+          tool = options.compiler
+        else:
+          assert(options.compiler_build == 'lib')
+          tool = 'r8lib-' + options.compiler
+        exit_code = toolhelper.run(tool, args,
             build=build,
             debug=not options.no_debug,
             profile=options.profile,
