@@ -1902,6 +1902,7 @@ task javadocR8(type: Javadoc) {
 
 task copyMavenDeps(type: Copy) {
     from configurations.compile into "$buildDir/deps"
+    from configurations.compileClasspath into "$buildDir/deps"
     from configurations.testCompile into "$buildDir/deps"
 }
 
