@@ -10,14 +10,13 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.ExternalR8TestCompileResult;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.FileUtils;
-import com.google.common.base.Charsets;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -34,36 +33,17 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * This test relies on a freshly built builds/libs/r8lib_with_deps.jar. If this test fails
- * remove build directory and rebuild r8lib_with_deps by calling test.py or gradle r8libWithdeps.
+ * This test relies on a freshly built build/libs/r8lib_with_deps.jar. If this test fails remove
+ * build directory and rebuild r8lib_with_deps by calling test.py or gradle r8libWithdeps.
  */
 public class BootstrapCurrentEqualityTest extends TestBase {
 
-  private static final String R8_NAME = "com.android.tools.r8.R8";
   private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
 
   private static final String HELLO_NAME = "hello.Hello";
   private static final String[] KEEP_HELLO = {
     "-keep class " + HELLO_NAME + " {", "  public static void main(...);", "}",
   };
-
-  private static class R8Result {
-
-    final ProcessResult processResult;
-    final Path outputJar;
-    final String pgMap;
-
-    R8Result(ProcessResult processResult, Path outputJar, String pgMap) {
-      this.processResult = processResult;
-      this.outputJar = outputJar;
-      this.pgMap = pgMap;
-    }
-
-    @Override
-    public String toString() {
-      return processResult.toString() + "\n\n" + pgMap;
-    }
-  }
 
   private static Path r8R8Debug;
   private static Path r8R8Release;
@@ -74,22 +54,22 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @BeforeClass
   public static void beforeAll() throws Exception {
-    r8R8Debug = compileR8("--debug");
-    r8R8Release = compileR8("--release");
+    r8R8Debug = compileR8(CompilationMode.DEBUG);
+    r8R8Release = compileR8(CompilationMode.RELEASE);
   }
 
-  private static Path compileR8(String mode) throws Exception {
+  private static Path compileR8(CompilationMode mode) throws Exception {
     // Run R8 on r8.jar.
     Path jar;
     if (testExternal) {
-      R8Result output =
-          runExternalR8(
-              ToolHelper.R8_WITH_RELOCATED_DEPS_JAR,
-              ToolHelper.R8_WITH_RELOCATED_DEPS_JAR,
-              testFolder.newFolder().toPath(),
-              MAIN_KEEP,
-              mode);
-      jar = output.outputJar;
+      jar =
+          testForExternalR8(newTempFolder(), Backend.CF)
+              .useR8WithRelocatedDeps()
+              .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+              .addKeepRuleFiles(MAIN_KEEP)
+              .setMode(mode)
+              .compile()
+              .outputJar();
     } else {
       jar = testFolder.newFolder().toPath().resolve("out.zip");
       R8.run(
@@ -124,66 +104,48 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   private void compareR8(Path program, ProcessResult runResult, String[] keep, String... args)
       throws Exception {
-    R8Result runR8Debug =
-        runExternalR8(
-            ToolHelper.R8_WITH_RELOCATED_DEPS_JAR,
-            program,
-            temp.newFolder().toPath(),
-            keep,
-            "--debug");
-    assertEquals(runResult.toString(), ToolHelper.runJava(runR8Debug.outputJar, args).toString());
-    R8Result runR8Release =
-        runExternalR8(
-            ToolHelper.R8_WITH_RELOCATED_DEPS_JAR,
-            program,
-            temp.newFolder().toPath(),
-            keep,
-            "--release");
-    assertEquals(runResult.toString(), ToolHelper.runJava(runR8Release.outputJar, args).toString());
-    RunR8AndCheck(r8R8Debug, program, runR8Debug, keep, "--debug");
-    RunR8AndCheck(r8R8Debug, program, runR8Release, keep, "--release");
-    RunR8AndCheck(r8R8Release, program, runR8Debug, keep, "--debug");
-    RunR8AndCheck(r8R8Release, program, runR8Release, keep, "--release");
+    ExternalR8TestCompileResult runR8Debug =
+        testForExternalR8(newTempFolder(), Backend.CF)
+            .useR8WithRelocatedDeps()
+            .addProgramFiles(program)
+            .addKeepRules(keep)
+            .setMode(CompilationMode.DEBUG)
+            .compile();
+    assertEquals(runResult.toString(), ToolHelper.runJava(runR8Debug.outputJar(), args).toString());
+    ExternalR8TestCompileResult runR8Release =
+        testForExternalR8(newTempFolder(), Backend.CF)
+            .useR8WithRelocatedDeps()
+            .addProgramFiles(program)
+            .addKeepRules(keep)
+            .setMode(CompilationMode.RELEASE)
+            .compile();
+    assertEquals(
+        runResult.toString(), ToolHelper.runJava(runR8Release.outputJar(), args).toString());
+    RunR8AndCheck(r8R8Debug, program, runR8Debug, keep, CompilationMode.DEBUG);
+    RunR8AndCheck(r8R8Debug, program, runR8Release, keep, CompilationMode.RELEASE);
+    RunR8AndCheck(r8R8Release, program, runR8Debug, keep, CompilationMode.DEBUG);
+    RunR8AndCheck(r8R8Release, program, runR8Release, keep, CompilationMode.RELEASE);
   }
 
-  private void RunR8AndCheck(Path r8, Path program, R8Result result, String[] keep, String mode)
+  private void RunR8AndCheck(
+      Path r8,
+      Path program,
+      ExternalR8TestCompileResult result,
+      String[] keep,
+      CompilationMode mode)
       throws Exception {
-    R8Result runR8R8 = runExternalR8(r8, program, temp.newFolder().toPath(), keep, mode);
+    ExternalR8TestCompileResult runR8R8 =
+        testForExternalR8(newTempFolder(), Backend.CF)
+            .useProvidedR8(r8)
+            .addProgramFiles(program)
+            .addKeepRules(keep)
+            .setMode(mode)
+            .compile();
     // Check that the process outputs (exit code, stdout, stderr) are the same.
-    assertEquals(result.toString(), runR8R8.toString());
+    assertEquals(result.stdout(), runR8R8.stdout());
+    assertEquals(result.stderr(), runR8R8.stderr());
     // Check that the output jars are the same.
-    assertProgramsEqual(result.outputJar, runR8R8.outputJar);
-  }
-
-  private static R8Result runExternalR8(
-      Path r8Jar, Path inputJar, Path output, String[] keepRules, String mode) throws Exception {
-    Path pgConfigFile = output.resolve("keep.rules");
-    FileUtils.writeTextFile(pgConfigFile, keepRules);
-    return runExternalR8(r8Jar, inputJar, output, pgConfigFile, mode);
-  }
-
-  private static R8Result runExternalR8(
-      Path r8Jar, Path inputJar, Path output, Path keepRules, String mode) throws Exception {
-    Path outputJar = output.resolve("output.jar");
-    Path pgMapFile = output.resolve("output.jar.map");
-    ProcessResult processResult =
-        ToolHelper.runJava(
-            r8Jar,
-            R8_NAME,
-            "--lib",
-            ToolHelper.JAVA_8_RUNTIME,
-            "--classfile",
-            inputJar.toString(),
-            "--output",
-            outputJar.toString(),
-            "--pg-conf",
-            keepRules.toString(),
-            mode,
-            "--pg-map-output",
-            pgMapFile.toString());
-    assertEquals(processResult.stderr, 0, processResult.exitCode);
-    String pgMap = FileUtils.readTextFile(pgMapFile, Charsets.UTF_8);
-    return new R8Result(processResult, outputJar, pgMap);
+    assertProgramsEqual(result.outputJar(), runR8R8.outputJar());
   }
 
   private static void assertProgramsEqual(Path expectedJar, Path actualJar) throws Exception {
@@ -233,5 +195,11 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   private static byte[] getClassAsBytes(ArchiveClassFileProvider inputJar, String descriptor)
       throws Exception {
     return toByteArray(inputJar.getProgramResource(descriptor).getByteStream());
+  }
+
+  private static TemporaryFolder newTempFolder() throws IOException {
+    TemporaryFolder tempFolder = new TemporaryFolder(testFolder.newFolder());
+    tempFolder.create();
+    return tempFolder;
   }
 }

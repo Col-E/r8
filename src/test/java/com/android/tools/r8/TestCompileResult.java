@@ -38,7 +38,7 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
 
   public abstract TestDiagnosticMessages getDiagnosticMessages();
 
-  protected abstract RR createRunResult(AndroidApp add, ProcessResult result);
+  protected abstract RR createRunResult(ProcessResult result);
 
   public RR run(Class<?> mainClass) throws IOException {
     return run(mainClass.getTypeName());
@@ -162,14 +162,14 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.ClassFile);
     ProcessResult result = ToolHelper.runJava(out, mainClass);
-    return createRunResult(app, result);
+    return createRunResult(result);
   }
 
   private RR runArt(String mainClass) throws IOException {
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.DexIndexed);
     ProcessResult result = ToolHelper.runArtRaw(out.toString(), mainClass);
-    return createRunResult(app, result);
+    return createRunResult(result);
   }
 
   public Dex2OatTestRunResult runDex2Oat() throws IOException {
