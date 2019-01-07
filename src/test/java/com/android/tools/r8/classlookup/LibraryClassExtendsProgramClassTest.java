@@ -9,9 +9,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
@@ -45,7 +44,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
 
   @Test
   public void testCompatibilityModeWarning() throws Exception {
-    TestCompileResult<R8TestRunResult> result = testForR8Compat(Backend.DEX)
+    R8TestCompileResult result = testForR8Compat(Backend.DEX)
         .setMinApi(AndroidApiLevel.O)
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()

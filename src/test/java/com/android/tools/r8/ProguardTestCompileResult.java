@@ -10,13 +10,19 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-public class ProguardTestCompileResult extends TestCompileResult<ProguardTestRunResult> {
+public class ProguardTestCompileResult
+    extends TestCompileResult<ProguardTestCompileResult, ProguardTestRunResult> {
 
   private final String proguardMap;
 
   ProguardTestCompileResult(TestState state, AndroidApp app, String proguardMap) {
     super(state, app);
     this.proguardMap = proguardMap;
+  }
+
+  @Override
+  public ProguardTestCompileResult self() {
+    return this;
   }
 
   @Override

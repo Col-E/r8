@@ -24,7 +24,8 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import org.hamcrest.Matcher;
 
-public abstract class TestCompileResult<RR extends TestRunResult> {
+public abstract class TestCompileResult<
+    CR extends TestCompileResult<CR, RR>, RR extends TestRunResult> {
 
   final TestState state;
   public final AndroidApp app;
@@ -33,6 +34,8 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
     this.state = state;
     this.app = app;
   }
+
+  public abstract CR self();
 
   public abstract Backend getBackend();
 
@@ -55,47 +58,46 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
     }
   }
 
-  public TestCompileResult writeToZip(Path file) throws IOException {
+  public CR writeToZip(Path file) throws IOException {
     app.writeToZip(file, getBackend() == DEX ? OutputMode.DexIndexed : OutputMode.ClassFile);
-    return this;
+    return self();
   }
 
   public CodeInspector inspector() throws IOException, ExecutionException {
     return new CodeInspector(app);
   }
 
-  public TestCompileResult<RR> inspect(Consumer<CodeInspector> consumer)
-      throws IOException, ExecutionException {
+  public CR inspect(Consumer<CodeInspector> consumer) throws IOException, ExecutionException {
     consumer.accept(inspector());
-    return this;
+    return self();
   }
 
-  public TestCompileResult<RR> assertNoMessages() {
+  public CR assertNoMessages() {
     assertEquals(0, getDiagnosticMessages().getInfos().size());
     assertEquals(0, getDiagnosticMessages().getWarnings().size());
     assertEquals(0, getDiagnosticMessages().getErrors().size());
-    return this;
+    return self();
   }
 
-  public TestCompileResult<RR> assertOnlyInfos() {
+  public CR assertOnlyInfos() {
     assertNotEquals(0, getDiagnosticMessages().getInfos().size());
     assertEquals(0, getDiagnosticMessages().getWarnings().size());
     assertEquals(0, getDiagnosticMessages().getErrors().size());
-    return this;
+    return self();
   }
 
-  public TestCompileResult<RR> assertOnlyWarnings() {
+  public CR assertOnlyWarnings() {
     assertEquals(0, getDiagnosticMessages().getInfos().size());
     assertNotEquals(0, getDiagnosticMessages().getWarnings().size());
     assertEquals(0, getDiagnosticMessages().getErrors().size());
-    return this;
+    return self();
   }
 
-  public TestCompileResult<RR> assertWarningMessageThatMatches(Matcher<String> matcher) {
+  public CR assertWarningMessageThatMatches(Matcher<String> matcher) {
     assertNotEquals(0, getDiagnosticMessages().getWarnings().size());
     for (int i = 0; i < getDiagnosticMessages().getWarnings().size(); i++) {
       if (matcher.matches(getDiagnosticMessages().getWarnings().get(i).getDiagnosticMessage())) {
-        return this;
+        return self();
       }
     }
     StringBuilder builder = new StringBuilder("No warning matches " + matcher.toString());
@@ -111,10 +113,10 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
       }
     }
     fail(builder.toString());
-    return this;
+    return self();
   }
 
-  public TestCompileResult<RR> assertNoWarningMessageThatMatches(Matcher<String> matcher) {
+  public CR assertNoWarningMessageThatMatches(Matcher<String> matcher) {
     assertNotEquals(0, getDiagnosticMessages().getWarnings().size());
     for (int i = 0; i < getDiagnosticMessages().getWarnings().size(); i++) {
       String message = getDiagnosticMessages().getWarnings().get(i).getDiagnosticMessage();
@@ -122,15 +124,15 @@ public abstract class TestCompileResult<RR extends TestRunResult> {
         fail("The warning: \"" + message + "\" + matches " + matcher + ".");
       }
     }
-    return this;
+    return self();
   }
 
-  public TestCompileResult<RR> disassemble(PrintStream ps) throws IOException, ExecutionException {
+  public CR disassemble(PrintStream ps) throws IOException, ExecutionException {
     ToolHelper.disassemble(app, ps);
-    return this;
+    return self();
   }
 
-  public TestCompileResult<RR> disassemble() throws IOException, ExecutionException {
+  public CR disassemble() throws IOException, ExecutionException {
     return disassemble(System.out);
   }
 

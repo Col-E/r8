@@ -12,7 +12,7 @@ import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-public class R8TestCompileResult extends TestCompileResult<R8TestRunResult> {
+public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, R8TestRunResult> {
 
   private final Backend backend;
   private final String proguardMap;
@@ -28,6 +28,11 @@ public class R8TestCompileResult extends TestCompileResult<R8TestRunResult> {
     this.backend = backend;
     this.proguardMap = proguardMap;
     this.graphConsumer = graphConsumer;
+  }
+
+  @Override
+  public R8TestCompileResult self() {
+    return this;
   }
 
   @Override

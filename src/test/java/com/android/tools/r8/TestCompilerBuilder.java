@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 public abstract class TestCompilerBuilder<
         C extends BaseCompilerCommand,
         B extends BaseCompilerCommand.Builder<C, B>,
-        CR extends TestCompileResult<RR>,
+        CR extends TestCompileResult<CR, RR>,
         RR extends TestRunResult,
         T extends TestCompilerBuilder<C, B, CR, RR, T>>
     extends TestBuilder<RR, T> {
