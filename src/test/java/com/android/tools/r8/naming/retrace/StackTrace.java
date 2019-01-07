@@ -113,10 +113,12 @@ class StackTrace {
   }
 
   private final List<StackTraceLine> stackTraceLines;
+  private final String originalStderr;
 
-  private StackTrace(List<StackTraceLine> stackTraceLines) {
+  private StackTrace(List<StackTraceLine> stackTraceLines, String originalStderr) {
     assert stackTraceLines.size() > 0;
     this.stackTraceLines = stackTraceLines;
+    this.originalStderr = originalStderr;
   }
 
   public int size() {
@@ -125,6 +127,10 @@ class StackTrace {
 
   public StackTraceLine get(int index) {
     return stackTraceLines.get(index);
+  }
+
+  public String getOriginalStderr() {
+    return originalStderr;
   }
 
   public static StackTrace extractFromArt(String stderr) {
@@ -165,15 +171,18 @@ class StackTrace {
     for (int i = first; i < last; i++) {
       stackTraceLines.add(StackTraceLine.parse(stderrLines.get(i)));
     }
-    return new StackTrace(stackTraceLines);
+    return new StackTrace(stackTraceLines, stderr);
+  }
+
+  private static List<StackTraceLine> internalExtractFromJvm(String stderr) {
+    return StringUtils.splitLines(stderr).stream()
+        .filter(s -> s.startsWith(TAB_AT_PREFIX))
+        .map(StackTraceLine::parse)
+        .collect(Collectors.toList());
   }
 
   public static StackTrace extractFromJvm(String stderr) {
-    return new StackTrace(
-        StringUtils.splitLines(stderr).stream()
-            .filter(s -> s.startsWith(TAB_AT_PREFIX))
-            .map(StackTraceLine::parse)
-            .collect(Collectors.toList()));
+    return new StackTrace(internalExtractFromJvm(stderr), stderr);
   }
 
   public static StackTrace extractFromJvm(TestRunResult result) {
@@ -188,11 +197,15 @@ class StackTrace {
     FileUtils.writeTextFile(
         stackTraceFile,
         stackTraceLines.stream().map(line -> line.originalLine).collect(Collectors.toList()));
-    return StackTrace.extractFromJvm(ToolHelper.runRetrace(mapFile, stackTraceFile));
+    // Keep the original stderr in the retraced stacktrace.
+    return new StackTrace(
+        internalExtractFromJvm(ToolHelper.runRetrace(mapFile, stackTraceFile)), originalStderr);
   }
 
   public StackTrace filter(Predicate<StackTraceLine> filter) {
-    return new StackTrace(stackTraceLines.stream().filter(filter).collect(Collectors.toList()));
+    return new StackTrace(
+        stackTraceLines.stream().filter(filter).collect(Collectors.toList()),
+        originalStderr);
   }
 
   @Override
