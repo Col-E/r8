@@ -55,31 +55,67 @@ public class LazyLoadedDexApplication extends DexApplication {
     return clazz;
   }
 
-  private Map<DexType, DexClass> forceLoadAllClasses() {
-    Map<DexType, DexClass> loaded = new IdentityHashMap<>();
+  static class AllClasses {
+    private Map<DexType, DexClass> libraryClasses;
+    private Map<DexType, DexClass> classpathClasses;
+    private Map<DexType, DexClass> programClasses;
+    private Map<DexType, DexClass> classes;
 
-    // Program classes are supposed to be loaded, but force-loading them is no-op.
-    programClasses.forceLoad(type -> true);
-    programClasses.getAllClasses().forEach(clazz -> loaded.put(clazz.type, clazz));
+    AllClasses(
+        LibraryClassCollection libraryClasses,
+        ClasspathClassCollection classpathClasses,
+        ProgramClassCollection programClasses) {
+      load(libraryClasses, classpathClasses, programClasses);
 
-    if (classpathClasses != null) {
-      classpathClasses.forceLoad(type -> !loaded.containsKey(type));
-      classpathClasses.getAllClasses().forEach(clazz -> loaded.putIfAbsent(clazz.type, clazz));
+      // Collect loaded classes in the precedence order program classes, class path classes and
+      // library classes.
+      // TODO(b/120884788): Change this.
+      classes = new IdentityHashMap<>();
+      classes.putAll(this.programClasses);
+      if (classpathClasses != null) {
+        classpathClasses.getAllClasses().forEach(clazz -> classes.putIfAbsent(clazz.type, clazz));
+      }
+      if (libraryClasses != null) {
+        libraryClasses.getAllClasses().forEach(clazz -> classes.putIfAbsent(clazz.type, clazz));
+      }
     }
 
-    if (libraryClasses != null) {
-      libraryClasses.forceLoad(type -> !loaded.containsKey(type));
-      libraryClasses.getAllClasses().forEach(clazz -> loaded.putIfAbsent(clazz.type, clazz));
+    public Map<DexType, DexClass> getLibraryClasses() {
+      return libraryClasses;
     }
 
-    return loaded;
+    public Map<DexType, DexClass> getClasspathClasses() {
+      return classpathClasses;
+    }
+
+    public Map<DexType, DexClass> getClasses() {
+      return classes;
+    }
+
+    private void load(
+        LibraryClassCollection libraryClasses,
+        ClasspathClassCollection classpathClasses,
+        ProgramClassCollection programClasses) {
+      if (libraryClasses != null) {
+        libraryClasses.forceLoad(type -> true);
+        this.libraryClasses = libraryClasses.getAllClassesInMap();
+      }
+      if (classpathClasses != null) {
+        classpathClasses.forceLoad(type -> true);
+        this.classpathClasses = classpathClasses.getAllClassesInMap();
+      }
+      assert programClasses != null;
+      // Program classes are supposed to be loaded, but force-loading them is no-op.
+      programClasses.forceLoad(type -> true);
+      this.programClasses = programClasses.getAllClassesInMap();
+    }
   }
 
   /**
    * Force load all classes and return type -> class map containing all the classes.
    */
-  public Map<DexType, DexClass> getFullClassMap() {
-    return forceLoadAllClasses();
+  public AllClasses loadAllClasses() {
+    return new AllClasses(libraryClasses, classpathClasses, programClasses);
   }
 
   public static class Builder extends DexApplication.Builder<Builder> {

@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -132,6 +133,18 @@ public abstract class ClassMap<T extends DexClass> {
       loadedClasses.add(clazz);
     }
     return loadedClasses;
+  }
+
+  public Map<DexType, DexClass> getAllClassesInMap() {
+    if (classProvider.get() != null) {
+      throw new Unreachable("Getting all classes from not fully loaded collection.");
+    }
+    ImmutableMap.Builder<DexType, DexClass> builder = ImmutableMap.builder();
+    // This is fully loaded, so the class map will no longer change.
+    for (Map.Entry<DexType, Supplier<T>> entry : classes.entrySet()) {
+      builder.put(entry.getKey(), entry.getValue().get());
+    }
+    return builder.build();
   }
 
   public Iterable<DexType> getAllTypes() {
