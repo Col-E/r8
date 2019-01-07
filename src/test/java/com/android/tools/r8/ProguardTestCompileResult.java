@@ -8,16 +8,23 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 
 public class ProguardTestCompileResult
     extends TestCompileResult<ProguardTestCompileResult, ProguardTestRunResult> {
 
+  private final Path outputJar;
   private final String proguardMap;
 
-  ProguardTestCompileResult(TestState state, AndroidApp app, String proguardMap) {
-    super(state, app);
+  ProguardTestCompileResult(TestState state, Path outputJar, String proguardMap) {
+    super(state, AndroidApp.builder().addProgramFiles(outputJar).build());
+    this.outputJar = outputJar;
     this.proguardMap = proguardMap;
+  }
+
+  public Path outputJar() {
+    return outputJar;
   }
 
   @Override
