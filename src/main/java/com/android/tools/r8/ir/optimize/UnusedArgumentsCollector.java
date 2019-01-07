@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 public class UnusedArgumentsCollector {
 
@@ -89,7 +90,9 @@ public class UnusedArgumentsCollector {
         Streams.stream(appView.appInfo().classes())
             .map(this::runnableForClass)
             .map(executorService::submit)
-            .iterator());
+            // Materialize list such that all runnables are submitted to the executor service
+            // before calling awaitFutures().
+            .collect(Collectors.toList()));
 
     if (!methodMapping.isEmpty()) {
       return new UnusedArgumentsGraphLense(
