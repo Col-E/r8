@@ -12,7 +12,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 
-public class ExternalR8TestCompileResult extends TestCompileResult<ExternalR8TestRunResult> {
+public class ExternalR8TestCompileResult
+    extends TestCompileResult<ExternalR8TestCompileResult, ExternalR8TestRunResult> {
 
   private final Path outputJar;
   private final ProcessResult processResult;
@@ -37,6 +38,11 @@ public class ExternalR8TestCompileResult extends TestCompileResult<ExternalR8Tes
 
   public String stderr() {
     return processResult.stdout;
+  }
+
+  @Override
+  public ExternalR8TestCompileResult self() {
+    return this;
   }
 
   @Override
