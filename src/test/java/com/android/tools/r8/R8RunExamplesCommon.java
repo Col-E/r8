@@ -13,6 +13,7 @@ import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
@@ -80,8 +81,8 @@ public abstract class R8RunExamplesCommon {
   private final CompilationMode mode;
   private final String pkg;
   private final String mainClass;
-  private final Frontend frontend;
-  private final Output output;
+  protected final Frontend frontend;
+  protected final Output output;
 
   public R8RunExamplesCommon(
       String pkg,
@@ -174,20 +175,20 @@ public abstract class R8RunExamplesCommon {
                   .setDisableMinification(true)
                   .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
                   .build();
-          ToolHelper.runR8(
-              command,
-              options -> {
-                options.lineNumberOptimization = LineNumberOptimization.OFF;
-                options.enableCfFrontend = frontend == Frontend.CF;
-                if (output == Output.CF) {
-                  // Class inliner is not supported with CF backend yet.
-                  options.enableClassInlining = false;
-                }
-              });
+          ToolHelper.runR8(command, this::configure);
         break;
       }
       default:
         throw new Unreachable();
+    }
+  }
+
+  protected void configure(InternalOptions options) {
+    options.lineNumberOptimization = LineNumberOptimization.OFF;
+    options.enableCfFrontend = frontend == Frontend.CF;
+    if (output == Output.CF) {
+      // Class inliner is not supported with CF backend yet.
+      options.enableClassInlining = false;
     }
   }
 

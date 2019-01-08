@@ -92,7 +92,7 @@ public class NonNullParamTest extends TestBase {
 
     MethodSubject selfCheck = mainSubject.method("void", "selfCheck", ImmutableList.of());
     assertThat(selfCheck, isPresent());
-    assertEquals(0, countCallToParamNullCheck(selfCheck));
+    assertEquals(1, countCallToParamNullCheck(selfCheck));
     assertEquals(1, countPrintCall(selfCheck));
     assertEquals(0, countThrow(selfCheck));
 

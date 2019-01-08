@@ -16,7 +16,6 @@ fun main(args: Array<String>) {
     testStateful3()
 }
 
-@Synchronized
 fun testStateless() {
     SamIface.Consumer.consume { "123" }
     SamIface.Consumer.consume { "ABC" }
@@ -31,7 +30,6 @@ fun testStateless() {
     }
 }
 
-@Synchronized
 fun testStateful() {
     var someVariable = 0
 
@@ -62,7 +60,6 @@ fun testStateful() {
     }
 }
 
-@Synchronized
 fun testStateful2() {
     var someVariable = 0
     SamIface.Consumer.consumeBig {
@@ -80,7 +77,6 @@ fun testStateful2() {
     }
 }
 
-@Synchronized
 fun testStateful3() {
     var someVariable = 0
     SamIface.Consumer.consumeBig {

@@ -17,14 +17,12 @@ fun main(args: Array<String>) {
 
 data class Record(val foo: String, val good: Boolean)
 
-@Synchronized
 fun testKotlinSequencesStateless(strings: Sequence<String>) {
     useRecord()
     // Stateless k-style lambda
     strings.map { Record(it, false) }.forEach { println(it) }
 }
 
-@Synchronized
 fun testKotlinSequencesStateful(a: Int, b: Int, strings: Sequence<String>) {
     useRecord()
     // Big stateful k-style lambda
@@ -40,7 +38,6 @@ fun testKotlinSequencesStateful(a: Int, b: Int, strings: Sequence<String>) {
     }
 }
 
-@Synchronized
 fun testBigExtraMethod() {
     useRecord()
     bigUserWithNotNullChecksAndTwoCalls(next()) { next() }
@@ -62,7 +59,6 @@ fun bigUserWithNotNullChecksAndTwoCalls(id: String, lambda: () -> String): Strin
     return "$id: ${lambda()}"
 }
 
-@Synchronized
 fun testBigExtraMethodReturningLambda() {
     useRecord()
     bigUserReturningLambda(next()) { next() } // Not used

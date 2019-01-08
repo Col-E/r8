@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -16,6 +17,15 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
+
+  @Override
+  protected void configure(InternalOptions options) {
+    options.enableCfFrontend = frontend == Frontend.CF;
+    if (output == Output.CF) {
+      // Class inliner is not supported with CF backend yet.
+      options.enableClassInlining = false;
+    }
+  }
 
   @Parameters(name = "{0}_{1}_{2}_{3}_{5}_{6}")
   public static Collection<String[]> data() {
