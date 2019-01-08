@@ -10,14 +10,12 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent;
-import com.android.tools.r8.graph.DexDebugEvent.AdvanceLine;
 import com.android.tools.r8.graph.DexDebugEvent.AdvancePC;
 import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugEvent.EndLocal;
 import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
 import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
-import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
@@ -401,55 +399,44 @@ public class LineNumberOptimizer {
         new PositionEventEmitter(application.dexItemFactory, method.method, processedEvents);
 
     // Debug event visitor to map line numbers.
-    // TODO(117268618): Cleanup the duplicate pc tracking.
     DexDebugEventVisitor visitor =
-        new DexDebugEventVisitor() {
-          DexDebugPositionState state =
-              new DexDebugPositionState(debugInfo.startLine, method.method);
-          int currentPc = 0;
+        new DexDebugPositionState(debugInfo.startLine, method.method) {
 
+          // Keep track of what PC has been emitted.
+          private int emittedPc = 0;
+
+          // Force the current PC to emitted.
           private void flushPc() {
-            if (currentPc != state.getCurrentPc()) {
-              positionEventEmitter.emitAdvancePc(state.getCurrentPc());
-              currentPc = state.getCurrentPc();
+            if (emittedPc != getCurrentPc()) {
+              positionEventEmitter.emitAdvancePc(getCurrentPc());
+              emittedPc = getCurrentPc();
             }
           }
 
-          @Override
-          public void visit(AdvancePC advancePC) {
-            state.visit(advancePC);
-          }
-
-          @Override
-          public void visit(AdvanceLine advanceLine) {
-            state.visit(advanceLine);
-          }
-
-          @Override
-          public void visit(SetInlineFrame setInlineFrame) {
-            state.visit(setInlineFrame);
-          }
-
+          // A default event denotes a line table entry and must always be emitted. Remap its line.
           @Override
           public void visit(Default defaultEvent) {
-            state.visit(defaultEvent);
-            int currentLine = state.getCurrentLine();
-            assert currentLine >= 0;
+            super.visit(defaultEvent);
+            assert getCurrentLine() >= 0;
             Position position =
                 positionRemapper.createRemappedPosition(
-                    state.getCurrentLine(),
-                    state.getCurrentFile(),
-                    state.getCurrentMethod(),
-                    state.getCurrentCallerPosition());
+                    getCurrentLine(),
+                    getCurrentFile(),
+                    getCurrentMethod(),
+                    getCurrentCallerPosition());
             mappedPositions.add(
                 new MappedPosition(
-                    state.getCurrentMethod(),
-                    currentLine,
-                    state.getCurrentCallerPosition(),
+                    getCurrentMethod(),
+                    getCurrentLine(),
+                    getCurrentCallerPosition(),
                     position.line));
-            positionEventEmitter.emitPositionEvents(state.getCurrentPc(), position);
-            currentPc = state.getCurrentPc();
+            positionEventEmitter.emitPositionEvents(getCurrentPc(), position);
+            emittedPc = getCurrentPc();
           }
+
+          // Non-materializing events use super, ie, AdvancePC, AdvanceLine and SetInlineFrame.
+
+          // Materializing events are just amended to the stream.
 
           @Override
           public void visit(SetFile setFile) {
@@ -465,6 +452,8 @@ public class LineNumberOptimizer {
           public void visit(SetEpilogueBegin setEpilogueBegin) {
             processedEvents.add(setEpilogueBegin);
           }
+
+          // Local changes must force flush the PC ensuing they pertain to the correct point.
 
           @Override
           public void visit(StartLocal startLocal) {
