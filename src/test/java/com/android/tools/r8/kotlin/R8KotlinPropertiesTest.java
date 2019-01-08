@@ -735,10 +735,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
       MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
       MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
 
-      // Getter and setter cannot be inlined when we don't know if null check semantic is
-      // preserved.
-      checkMethodIsKept(objectClass, getter);
-      checkMethodIsKept(objectClass, setter);
+      checkMethodIsRemoved(objectClass, getter);
+      checkMethodIsRemoved(objectClass, setter);
       assertTrue(fieldSubject.getField().accessFlags.isPublic());
     });
   }
@@ -758,10 +756,8 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
       MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
       MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
 
-      // Getter and setter cannot be inlined when we don't know if null check semantic is
-      // preserved.
-      checkMethodIsKept(objectClass, getter);
-      checkMethodIsKept(objectClass, setter);
+      checkMethodIsRemoved(objectClass, getter);
+      checkMethodIsRemoved(objectClass, setter);
       assertTrue(fieldSubject.getField().accessFlags.isPublic());
     });
   }

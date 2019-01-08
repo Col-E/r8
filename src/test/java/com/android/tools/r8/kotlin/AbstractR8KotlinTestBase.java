@@ -146,16 +146,16 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
   protected MethodSubject checkMethodIsKept(ClassSubject classSubject,
       MethodSignature methodSignature) {
     checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
-    return checkMethodisKeptOrRemoved(classSubject, methodSignature, true);
+    return checkMethodIsKeptOrRemoved(classSubject, methodSignature, true);
   }
 
   protected void checkMethodIsRemoved(ClassSubject classSubject,
       MethodSignature methodSignature) {
     checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
-    checkMethodisKeptOrRemoved(classSubject, methodSignature, false);
+    checkMethodIsKeptOrRemoved(classSubject, methodSignature, false);
   }
 
-  protected MethodSubject checkMethodisKeptOrRemoved(ClassSubject classSubject,
+  protected MethodSubject checkMethodIsKeptOrRemoved(ClassSubject classSubject,
       MethodSignature methodSignature, boolean isPresent) {
     checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
     return checkMethodPresenceInOutput(classSubject, methodSignature, isPresent);

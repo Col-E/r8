@@ -250,20 +250,23 @@ public class MemberValuePropagation {
             // in class initializer and is never null.
             //
             DexClass holderDefinition = appInfo.definitionFor(field.getHolder());
-            if (holderDefinition != null &&
-                holderDefinition.accessFlags.isFinal() &&
-                !appInfo.canTriggerStaticInitializer(field.getHolder(), true)) {
-
+            if (holderDefinition != null
+                && holderDefinition.accessFlags.isFinal()
+                && !appInfo.canTriggerStaticInitializer(field.getHolder(), true)) {
               Value outValue = staticGet.dest();
               DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
               if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
                 TrivialInitializer info =
                     classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
-                if (info != null &&
-                    ((TrivialClassInitializer) info).field == field &&
-                    !appInfo.isPinned(field) &&
-                    outValue.canBeNull()) {
+                if (info != null
+                    && ((TrivialClassInitializer) info).field == field
+                    && !appInfo.isPinned(field)
+                    && outValue.canBeNull()) {
                   outValue.markNeverNull();
+                  TypeLatticeElement typeLattice = outValue.getTypeLattice();
+                  assert typeLattice.isNullable() && typeLattice.isReference();
+                  outValue.narrowing(appInfo, typeLattice.asNonNullable());
+                  affectedValues.addAll(outValue.affectedValues());
                 }
               }
             }

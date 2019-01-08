@@ -49,8 +49,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
       // Getters should be removed after inlining, which is possible only if access is relaxed.
       final boolean areGetterPresent = !allowAccessModification;
-      checkMethodisKeptOrRemoved(dataClass, NAME_GETTER_METHOD, areGetterPresent);
-      checkMethodisKeptOrRemoved(dataClass, AGE_GETTER_METHOD, areGetterPresent);
+      checkMethodIsKeptOrRemoved(dataClass, NAME_GETTER_METHOD, areGetterPresent);
+      checkMethodIsKeptOrRemoved(dataClass, AGE_GETTER_METHOD, areGetterPresent);
 
       // No use of componentN functions.
       checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);
@@ -85,8 +85,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       // ComponentN functions should be removed after inlining, which is possible only if access
       // is relaxed.
       final boolean areComponentMethodsPresent = !allowAccessModification;
-      checkMethodisKeptOrRemoved(dataClass, COMPONENT1_METHOD, areComponentMethodsPresent);
-      checkMethodisKeptOrRemoved(dataClass, COMPONENT2_METHOD, areComponentMethodsPresent);
+      checkMethodIsKeptOrRemoved(dataClass, COMPONENT1_METHOD, areComponentMethodsPresent);
+      checkMethodIsKeptOrRemoved(dataClass, COMPONENT2_METHOD, areComponentMethodsPresent);
 
       // No use of getter.
       checkMethodIsRemoved(dataClass, NAME_GETTER_METHOD);
@@ -118,7 +118,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       ClassSubject dataClass = checkClassIsKept(codeInspector, TEST_DATA_CLASS.getClassName());
 
       boolean component2IsPresent = !allowAccessModification;
-      checkMethodisKeptOrRemoved(dataClass, COMPONENT2_METHOD, component2IsPresent);
+      checkMethodIsKeptOrRemoved(dataClass, COMPONENT2_METHOD, component2IsPresent);
 
       // Function component1 is not used.
       checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);
