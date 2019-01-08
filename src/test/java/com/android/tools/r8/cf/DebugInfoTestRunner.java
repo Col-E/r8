@@ -3,42 +3,53 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
-import static org.junit.Assert.fail;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import java.nio.file.Path;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class DebugInfoTestRunner extends TestBase {
   private static final Class<?> CLASS = DebugInfoTest.class;
   private static final String EXPECTED = "";
 
+  @Parameters(name = "{0}")
+  public static Backend[] data() {
+    return Backend.values();
+  }
+
+  private final Backend backend;
+
+  public DebugInfoTestRunner(Backend backend) {
+    this.backend = backend;
+  }
+
   @Test
   public void test() throws Exception {
-    testForJvm().addProgramClasses(CLASS).run(CLASS).assertSuccessWithOutput(EXPECTED);
+    if (backend == Backend.CF) {
+      testForJvm().addProgramClasses(CLASS).run(CLASS).assertSuccessWithOutput(EXPECTED);
+    }
 
-    Path out1 = temp.getRoot().toPath().resolve("out1.zip");
+    // Compile the input with R8 and run.
+    Path out = temp.getRoot().toPath().resolve("out.zip");
     builder()
         .addProgramClasses(CLASS)
         .compile()
-        .writeToZip(out1)
+        .writeToZip(out)
         .run(CLASS)
         .assertSuccessWithOutput(EXPECTED);
 
-    try {
-      builder().addProgramFiles(out1).run(CLASS).assertSuccessWithOutput(EXPECTED);
-      // TODO(b/77522100): Remove once fixed.
-      fail();
-    } catch (CompilationFailedException e) {
-      // TODO(b/77522100): Remove one fixed.
-      assert e.getCause().getMessage().contains("Invalid debug info");
+    if (backend == Backend.CF) {
+      // If first compilation was to CF, then compile and run it again.
+      builder().addProgramFiles(out).run(CLASS).assertSuccessWithOutput(EXPECTED);
     }
   }
 
   private R8TestBuilder builder() {
-    return testForR8(Backend.CF)
+    return testForR8(backend)
         .debug()
         .noTreeShaking()
         .noMinification()

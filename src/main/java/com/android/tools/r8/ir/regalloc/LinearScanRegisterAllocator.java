@@ -423,14 +423,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         // Compute the final change in locals and insert it before nextInstruction.
         boolean localsChanged = !ending.isEmpty() || !starting.isEmpty();
         if (localsChanged) {
-          boolean skipChange =
-              nextInstruction == nextInstruction.getBlock().exit() && nextInstruction.isGoto();
-          if (!skipChange) {
-            DebugLocalsChange change = createLocalsChange(ending, starting);
-            if (change != null) {
-              // Insert the DebugLocalsChange instruction before nextInstruction.
-              instructionIterator.add(change);
-            }
+          DebugLocalsChange change = createLocalsChange(ending, starting);
+          if (change != null) {
+            // Insert the DebugLocalsChange instruction before nextInstruction.
+            instructionIterator.add(change);
           }
           // Create new maps for the next DebugLocalsChange instruction.
           ending = new Int2ReferenceOpenHashMap<>();
