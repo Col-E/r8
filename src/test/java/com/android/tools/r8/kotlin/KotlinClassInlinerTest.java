@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -212,7 +213,13 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   protected void runTest(String folder, String mainClass,
       boolean enabled, AndroidAppInspector inspector) throws Exception {
     runTest(
-        folder, mainClass, null,
+        folder, mainClass,
+        // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
+        StringUtils.lines(
+            "-neverinline class * { void test*State*(...); }",
+            "-neverinline class * { void testBigExtraMethod(...); }",
+            "-neverinline class * { void testBigExtraMethodReturningLambda(...); }"
+        ),
         options -> {
           options.enableInlining = true;
           options.enableClassInlining = enabled;

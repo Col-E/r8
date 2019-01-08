@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
-import static com.android.tools.r8.ir.optimize.CodeRewriter.checksNullReceiverBeforeSideEffect;
+import static com.android.tools.r8.ir.optimize.CodeRewriter.checksNullBeforeSideEffect;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -35,7 +35,6 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
@@ -880,10 +879,6 @@ public class IRConverter {
     printC1VisualizerHeader(method);
     String previous = printMethod(code, "Initial IR (SSA)", null);
 
-    if (method.getCode() != null && method.getCode().isJarCode()) {
-      computeKotlinNonNullParamHints(feedback, method, code);
-    }
-
     if (options.canHaveArtStringNewInitBug()) {
       CodeRewriter.ensureDirectStringNewToInit(code);
     }
@@ -1110,11 +1105,10 @@ public class IRConverter {
 
     codeRewriter.identifyReturnsArgument(method, code, feedback);
     if (options.enableInlining && inliner != null) {
-      codeRewriter.identifyInvokeSemanticsForInlining(method, code, feedback);
+      codeRewriter.identifyInvokeSemanticsForInlining(method, code, graphLense(), feedback);
     }
 
-    // If hints from Kotlin metadata or use of Kotlin Intrinsics were not available, track usage of
-    // parameters and compute their nullability and possibility of NPE.
+    // Track usage of parameters and compute their nullability and possibility of NPE.
     if (method.getOptimizationInfo().getNonNullParamOrThrow() == null) {
       computeNonNullParamHints(feedback, method, code);
     }
@@ -1159,33 +1153,25 @@ public class IRConverter {
     finalizeIR(method, code, feedback);
   }
 
-  private void computeKotlinNonNullParamHints(
-      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+  private void computeNonNullParamHints(
+    OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     List<Value> arguments = code.collectArguments(true);
     BitSet paramsCheckedForNull = new BitSet();
-    DexMethod checkParameterIsNotNull =
-        code.options.itemFactory.kotlin.intrinsics.checkParameterIsNotNull;
     for (int index = 0; index < arguments.size(); index++) {
       Value argument = arguments.get(index);
-      for (Instruction user : argument.uniqueUsers()) {
-        // To enforce parameter non-null requirement Kotlin uses intrinsic:
-        //    kotlin.jvm.internal.Intrinsics.checkParameterIsNotNull(param, message)
-        //
-        // with the following we simply look if the parameter is ever passed
-        // to the mentioned intrinsic as the first argument. We do it only for
-        // code coming from Java classfile, since after the method is rewritten
-        // by R8 this call gets inlined.
-        if (!user.isInvokeStatic()) {
-          continue;
-        }
-        InvokeMethod invoke = user.asInvokeMethod();
-        DexMethod invokedMethod =
-            graphLense().getOriginalMethodSignature(invoke.getInvokedMethod());
-        // TODO(b/121377154): Make sure there is no other side-effect before argument's null check.
-        // E.g., is this the first method invocation inside the method?
-        if (invokedMethod == checkParameterIsNotNull && user.inValues().indexOf(argument) == 0) {
-          paramsCheckedForNull.set(index);
-        }
+      // This handles cases where the parameter is checked via Kotlin Intrinsics:
+      //
+      //   kotlin.jvm.internal.Intrinsics.checkParameterIsNotNull(param, message)
+      //
+      // or its inlined version:
+      //
+      //   if (param != null) return;
+      //   invoke-static throwParameterIsNullException(msg)
+      //
+      // or some other variants, e.g., throw null or NPE after the direct null check.
+      if (argument.isUsed()
+          && checksNullBeforeSideEffect(code, appInfo, graphLense(), argument)) {
+        paramsCheckedForNull.set(index);
       }
     }
     if (paramsCheckedForNull.length() > 0) {
@@ -1209,28 +1195,6 @@ public class IRConverter {
           }
         }
       }
-      feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
-    }
-  }
-
-  // TODO(b/121377154): Consider merging compute(Kotlin)?NonNullParamHints into one.
-  private void computeNonNullParamHints(
-    OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    List<Value> arguments = code.collectArguments(true);
-    BitSet paramsCheckedForNull = new BitSet();
-    for (int index = 0; index < arguments.size(); index++) {
-      Value argument = arguments.get(index);
-      if (argument.isUsed()
-          && checksNullReceiverBeforeSideEffect(code, appInfo.dexItemFactory, argument)) {
-        paramsCheckedForNull.set(index);
-      }
-      // The above one only catches something like:
-      //   if (param != null) return;
-      //   invoke-static throwParameterIsNullException(msg)
-      // This is good enough to handle checkParameterIsNotNull(param, msg), which is generated by
-      // kotlinc for arguments that are not nullable.
-    }
-    if (paramsCheckedForNull.length() > 0) {
       feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
     }
   }

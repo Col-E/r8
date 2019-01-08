@@ -38,6 +38,7 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsageBuilder;
@@ -1003,7 +1004,7 @@ public class CodeRewriter {
   }
 
   public void identifyInvokeSemanticsForInlining(
-      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+      DexEncodedMethod method, IRCode code, GraphLense graphLense, OptimizationFeedback feedback) {
     if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
       feedback.markTriggerClassInitBeforeAnySideEffect(method,
@@ -1013,7 +1014,7 @@ public class CodeRewriter {
       final Value receiver = code.getThis();
       feedback.markCheckNullReceiverBeforeAnySideEffect(method,
           receiver.isUsed()
-              && checksNullReceiverBeforeSideEffect(code, appInfo.dexItemFactory, receiver));
+              && checksNullBeforeSideEffect(code, appInfo, graphLense, receiver));
     }
   }
 
@@ -1342,55 +1343,66 @@ public class CodeRewriter {
   }
 
   /**
-   * Returns true if the given code unconditionally throws if receiver is null before any other
-   * side effect instruction.
+   * Returns true if the given code unconditionally throws if value is null before any other side
+   * effect instruction.
    *
    * Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
-  public static boolean checksNullReceiverBeforeSideEffect(
-      IRCode code, DexItemFactory factory, Value receiver) {
-    Wrapper<DexMethod> throwParamIsNullException =
-        MethodSignatureEquivalence.get()
-            .wrap(factory.kotlin.intrinsics.throwParameterIsNullException);
+  public static boolean checksNullBeforeSideEffect(
+      IRCode code, AppInfo appInfo, GraphLense graphLense, Value value) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instr, it) -> {
           BasicBlock currentBlock = instr.getBlock();
-          // If the code explicitly checks the nullability of receiver, we should visit the next
-          // block that corresponds to the null receiver where NPE semantic could be preserved.
-          if (!currentBlock.hasCatchHandlers() && isNullCheck(instr, receiver)) {
+          // If the code explicitly checks the nullability of the value, we should visit the next
+          // block that corresponds to the null value where NPE semantic could be preserved.
+          if (!currentBlock.hasCatchHandlers() && isNullCheck(instr, value)) {
             return InstructionEffect.CONDITIONAL_EFFECT;
           }
-          // Kotlin specific way of throwing NPE: throwParameterIsNullException.
-          // Similarly, combined with the above CONDITIONAL_EFFECT, the code checks on NPE on
-          // receiver.
-          if (instr.isInvokeStatic()) {
-            DexMethod method = instr.asInvokeStatic().getInvokedMethod();
-            if (MethodSignatureEquivalence.get().wrap(method).equals(throwParamIsNullException)) {
+          if (isKotlinNullCheck(appInfo, graphLense, instr, value)) {
+            DexMethod invokedMethod = instr.asInvokeStatic().getInvokedMethod();
+            // Kotlin specific way of throwing NPE: throwParameterIsNullException.
+            // Similarly, combined with the above CONDITIONAL_EFFECT, the code checks on NPE on
+            // the value.
+            if (invokedMethod.name
+                == appInfo.dexItemFactory.kotlin.intrinsics.throwParameterIsNullException.name) {
               // We found a NPE (or similar exception) throwing code.
-              // Combined with the above CONDITIONAL_EFFECT, the code checks NPE on receiver.
+              // Combined with the above CONDITIONAL_EFFECT, the code checks NPE on the value.
               for (BasicBlock predecessor : currentBlock.getPredecessors()) {
                 Instruction last =
                     predecessor.listIterator(predecessor.getInstructions().size()).previous();
-                if (isNullCheck(last, receiver)) {
+                if (isNullCheck(last, value)) {
                   return InstructionEffect.DESIRED_EFFECT;
                 }
               }
+              // Hitting here means that this call might be used for other parameters. If we don't
+              // bail out, it will be regarded as side effects for the current value.
+              return InstructionEffect.NO_EFFECT;
+            } else {
+              // Kotlin specific way of checking parameter nullness: checkParameterIsNotNull.
+              assert invokedMethod.name
+                  == appInfo.dexItemFactory.kotlin.intrinsics.checkParameterIsNotNull.name;
+              return InstructionEffect.DESIRED_EFFECT;
             }
           }
-          if (isInstantiationOfNullPointerException(instr, it, factory)) {
+          if (isInstantiationOfNullPointerException(instr, it, appInfo.dexItemFactory)) {
             it.next(); // Skip call to NullPointerException.<init>.
             return InstructionEffect.NO_EFFECT;
-          } else if (instr.throwsNpeIfValueIsNull(receiver, factory)) {
+          } else if (instr.throwsNpeIfValueIsNull(value, appInfo.dexItemFactory)) {
             // In order to preserve NPE semantic, the exception must not be caught by any handler.
             // Therefore, we must ignore this instruction if it is covered by a catch handler.
             // Note: this is a conservative approach where we consider that any catch handler could
             // catch the exception, even if it cannot catch a NullPointerException.
             if (!currentBlock.hasCatchHandlers()) {
-              // We found a NPE check on receiver.
+              // We found a NPE check on the value.
               return InstructionEffect.DESIRED_EFFECT;
             }
           } else if (instructionHasSideEffects(instr)) {
+            // If the current instruction is const-string, this could load the parameter name.
+            // Just make sure it is indeed not throwing.
+            if (instr.isConstString() && !instr.instructionInstanceCanThrow()) {
+              return InstructionEffect.NO_EFFECT;
+            }
             // We found a side effect before a NPE check.
             return InstructionEffect.OTHER_EFFECT;
           }
@@ -1398,9 +1410,36 @@ public class CodeRewriter {
         });
   }
 
-  private static boolean isNullCheck(Instruction instr, Value receiver) {
+  // Note that this method may have false positives, since the application could in principle
+  // declare a method called checkParameterIsNotNull(parameter, message) or
+  // throwParameterIsNullException(parameterName) in a package that starts with "kotlin".
+  private static boolean isKotlinNullCheck(
+      AppInfo appInfo, GraphLense graphLense, Instruction instr, Value value) {
+    if (!instr.isInvokeStatic()) {
+      return false;
+    }
+    // We need to strip the holder, since Kotlin adds different versions of null-check machinery,
+    // e.g., kotlin.collections.ArraysKt___ArraysKt... or kotlin.jvm.internal.ArrayIteratorKt...
+    MethodSignatureEquivalence wrapper = MethodSignatureEquivalence.get();
+    Wrapper<DexMethod> checkParameterIsNotNull =
+        wrapper.wrap(appInfo.dexItemFactory.kotlin.intrinsics.checkParameterIsNotNull);
+    Wrapper<DexMethod> throwParamIsNullException =
+        wrapper.wrap(appInfo.dexItemFactory.kotlin.intrinsics.throwParameterIsNullException);
+    DexMethod invokedMethod =
+        graphLense.getOriginalMethodSignature(instr.asInvokeStatic().getInvokedMethod());
+    Wrapper<DexMethod> methodWrap = wrapper.wrap(invokedMethod);
+    if (methodWrap.equals(throwParamIsNullException)
+        || (methodWrap.equals(checkParameterIsNotNull) && instr.inValues().get(0).equals(value))) {
+      if (invokedMethod.getHolder().getPackageDescriptor().startsWith("kotlin")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean isNullCheck(Instruction instr, Value value) {
     return instr.isIf() && instr.asIf().isZeroTest()
-        && instr.inValues().get(0).equals(receiver)
+        && instr.inValues().get(0).equals(value)
         && (instr.asIf().getType() == Type.EQ || instr.asIf().getType() == Type.NE);
   }
 
