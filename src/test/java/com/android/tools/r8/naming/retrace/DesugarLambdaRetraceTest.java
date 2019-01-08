@@ -13,6 +13,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -140,6 +141,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   }
 
   @Test
+  @Ignore("b/122440196")
   public void testSourceFileAndLineNumberTable() throws Exception {
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
@@ -147,6 +149,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   }
 
   @Test
+  @Ignore("b/122440196")
   public void testLineNumberTableOnly() throws Exception {
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"),
@@ -154,6 +157,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   }
 
   @Test
+  @Ignore("b/122440196")
   public void testNoLineNumberTable() throws Exception {
     runTest(
         ImmutableList.of(),
