@@ -7,7 +7,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 
 /**
@@ -344,24 +343,6 @@ public abstract class TypeLatticeElement {
       return PrimitiveTypeLatticeElement.fromDexType(type, asArrayElementType);
     }
     return appInfo.dexItemFactory.createReferenceTypeLatticeElement(type, isNullable, appInfo);
-  }
-
-  public static TypeLatticeElement fromNumericType(NumericType type) {
-    switch (type) {
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-        return INT;
-      case LONG:
-        return LONG;
-      case FLOAT:
-        return FLOAT;
-      case DOUBLE:
-        return DOUBLE;
-      default:
-        throw new Unreachable("Unexpected numeric type: " + type);
-    }
   }
 
   public boolean isValueTypeCompatible(TypeLatticeElement other) {
