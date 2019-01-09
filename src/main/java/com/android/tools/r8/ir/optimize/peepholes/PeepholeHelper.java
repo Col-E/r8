@@ -8,6 +8,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Value;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class PeepholeHelper {
@@ -17,18 +18,6 @@ public class PeepholeHelper {
         predicate.test(t)
             && !t.hasInValueWithLocalInfo()
             && (t.outValue() == null || !t.outValue().hasLocalInfo());
-  }
-
-  public static void swapNextTwoInstructions(InstructionListIterator it) {
-    assert it.hasNext();
-    Instruction moveForward = it.next();
-    Instruction moveBack = it.next();
-    it.set(moveForward);
-    // Two calls to previous is needed because the iterator moves between elements.
-    it.previous();
-    it.previous();
-    it.set(moveBack);
-    it.next();
   }
 
   public static void resetNext(InstructionListIterator it, int count) {
@@ -61,5 +50,24 @@ public class PeepholeHelper {
       }
     }
     return count;
+  }
+
+  public static void moveInstructionsUpToCurrentPosition(
+      InstructionListIterator it, List<Instruction> instructions) {
+    assert !instructions.isEmpty();
+    for (Instruction instruction : instructions) {
+      for (Value inValue : instruction.inValues()) {
+        inValue.addUser(instruction);
+      }
+      it.add(instruction);
+    }
+    Instruction current = it.nextUntil(i -> i == instructions.get(0));
+    for (int i = 0; i < instructions.size(); i++) {
+      assert current == instructions.get(i);
+      it.removeOrReplaceByDebugLocalRead();
+      current = it.next();
+    }
+    it.previousUntil(i -> i == instructions.get(instructions.size() - 1));
+    it.next();
   }
 }

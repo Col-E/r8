@@ -35,7 +35,6 @@ import org.junit.Test;
  * If we produce something like this, the JVM verifier will throw a VerifyError on @bci: 3 since we
  * have not stored CloserTest in locals[1] (that happens in @bci 5), as described in the
  * StackMapTable. This is because the exception handler starts at @bci 3 and not later.
- * TODO(b/122445224)
  */
 public class CloserTestRunner extends TestBase {
 
@@ -50,6 +49,6 @@ public class CloserTestRunner extends TestBase {
         .enableInliningAnnotations()
         .compile()
         .run(CloserTest.class)
-        .assertFailure();
+        .assertSuccess();
   }
 }
