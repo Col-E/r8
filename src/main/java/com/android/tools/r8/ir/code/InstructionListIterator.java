@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.function.Predicate;
 
 public interface InstructionListIterator
     extends ListIterator<Instruction>,
@@ -44,23 +43,6 @@ public interface InstructionListIterator
       previous();
     }
     return next;
-  }
-
-  /**
-   * Continue to call {@link #next} while {@code predicate} tests {@code false}.
-   *
-   * @return the instruction that matched the predicate or {@code null} if all instructions fails
-   * the predicate test
-   */
-  @Override
-  default Instruction nextUntil(Predicate<Instruction> predicate) {
-    while (hasNext()) {
-      Instruction instruction = next();
-      if (predicate.test(instruction)) {
-        return instruction;
-      }
-    }
-    return null;
   }
 
   default void setInsertionPosition(Position position) {

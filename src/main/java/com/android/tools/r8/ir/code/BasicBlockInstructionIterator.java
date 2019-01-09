@@ -29,17 +29,17 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   protected Instruction current;
   protected Position position = null;
 
-  protected BasicBlockInstructionIterator(BasicBlock block) {
+  BasicBlockInstructionIterator(BasicBlock block) {
     this.block = block;
     this.listIterator = block.getInstructions().listIterator();
   }
 
-  protected BasicBlockInstructionIterator(BasicBlock block, int index) {
+  BasicBlockInstructionIterator(BasicBlock block, int index) {
     this.block = block;
     this.listIterator = block.getInstructions().listIterator(index);
   }
 
-  protected BasicBlockInstructionIterator(BasicBlock block, Instruction instruction) {
+  BasicBlockInstructionIterator(BasicBlock block, Instruction instruction) {
     this(block);
     nextUntil((x) -> x == instruction);
   }
@@ -134,6 +134,8 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       Value value = current.inValues().get(i);
       value.removeUser(current);
     }
+    // These needs to stay to ensure that an optimization incorrectly not taking debug info into
+    // account still produces valid code when run without enabled assertions.
     for (Value value : current.getDebugValues()) {
       value.removeDebugUser(current);
     }
@@ -302,11 +304,8 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       blocksIterator.previous();
     }
     assert IteratorUtils.peekNext(blocksIterator) == inlinee.blocks.getFirst();
-
     // Iterate through the inlined blocks.
-    Iterator<BasicBlock> inlinedBlocksIterator = inlinee.blocks.iterator();
-    while (inlinedBlocksIterator.hasNext()) {
-      BasicBlock inlinedBlock = inlinedBlocksIterator.next();
+    for (BasicBlock inlinedBlock : inlinee.blocks) {
       BasicBlock expected = blocksIterator.next();
       assert inlinedBlock == expected; // Iterators must be in sync.
       if (inlinedBlock.hasCatchHandlers()) {
