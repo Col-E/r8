@@ -956,6 +956,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // This info is used by {@link UninstantiatedTypeOptimization#rewriteInvoke} that replaces an
     // invocation with null throwing code if an always-null argument is passed. Also used by Inliner
     // to give a credit to null-safe code, e.g., Kotlin's null safe argument.
+    // Note that this bit set takes into account the receiver for instance methods.
     private BitSet nonNullParamOrThrow = null;
     // Stores information about nullability facts per parameter. If set, that means, the method
     // somehow (e.g., null check, such as arg != null, or NPE-throwing instructions such as array
@@ -963,6 +964,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // guaranteed until the normal exits. That is, if the invocation of this method is finished
     // normally, the recorded parameter is definitely not null. These facts are used to propagate
     // non-null information through {@link NonNullTracker}.
+    // Note that this bit set takes into account the receiver for instance methods.
     private BitSet nonNullParamOnNormalExits = null;
     private boolean reachabilitySensitive = false;
 

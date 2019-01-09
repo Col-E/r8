@@ -498,22 +498,17 @@ public class UninstantiatedTypeOptimization {
       return;
     }
 
-    BitSet nonNullParamHints = target.getOptimizationInfo().getNonNullParamOrThrow();
-    if (nonNullParamHints != null) {
-      int argumentIndex = target.isStatic() ? 0 : 1;
-      int nonNullParamHintIndex = 0;
-      while (argumentIndex < invoke.arguments().size()) {
-        Value argument = invoke.arguments().get(argumentIndex);
-        if (isAlwaysNull(argument) && nonNullParamHints.get(nonNullParamHintIndex)) {
+    BitSet facts = target.getOptimizationInfo().getNonNullParamOrThrow();
+    if (facts != null) {
+      for (int i = 0; i < invoke.arguments().size(); i++) {
+        Value argument = invoke.arguments().get(i);
+        if (isAlwaysNull(argument) && facts.get(i)) {
           replaceCurrentInstructionWithThrowNull(
               invoke, blockIterator, instructionIterator, code, blocksToBeRemoved);
           ++numberOfInvokesWithNullArgument;
           return;
         }
-        argumentIndex++;
-        nonNullParamHintIndex++;
       }
-      assert argumentIndex == nonNullParamHintIndex + (target.isStatic() ? 0 : 1);
     }
   }
 

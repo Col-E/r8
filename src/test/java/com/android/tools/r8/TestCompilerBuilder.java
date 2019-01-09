@@ -58,7 +58,9 @@ public abstract class TestCompilerBuilder<
       throws CompilationFailedException;
 
   public T addOptionsModification(Consumer<InternalOptions> optionsConsumer) {
-    this.optionsConsumer = this.optionsConsumer.andThen(optionsConsumer);
+    if (optionsConsumer != null) {
+      this.optionsConsumer = this.optionsConsumer.andThen(optionsConsumer);
+    }
     return self();
   }
 

@@ -1001,7 +1001,7 @@ public class IRConverter {
 
     if (options.enableNonNullTracking && nonNullTracker != null) {
       // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
-      nonNullTracker.computeNonNullParamOnNormalExits(feedback, method, code);
+      nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
       nonNullTracker.cleanupNonNull(code);
       assert code.isConsistentSSA();
     }
@@ -1155,7 +1155,7 @@ public class IRConverter {
 
   private void computeNonNullParamHints(
     OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    List<Value> arguments = code.collectArguments(true);
+    List<Value> arguments = code.collectArguments();
     BitSet paramsCheckedForNull = new BitSet();
     for (int index = 0; index < arguments.size(); index++) {
       Value argument = arguments.get(index);
