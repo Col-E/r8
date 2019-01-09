@@ -211,7 +211,8 @@ def main(argv):
 def run_with_options(options, args, extra_args=[]):
   app_provided_pg_conf = False;
   # todo(121018500): remove when memory is under control
-  extra_args.append('-Xmx8G')
+  if not any('-Xmx' in arg for arg in extra_args):
+    extra_args.append('-Xmx8G')
   if options.golem:
     golem.link_third_party()
     options.out = os.getcwd()
