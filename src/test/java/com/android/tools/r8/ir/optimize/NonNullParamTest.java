@@ -46,8 +46,6 @@ public class NonNullParamTest extends TestBase {
     this.backend = backend;
   }
 
-  private void noModification(InternalOptions options) {}
-
   private void disableDevirtualization(InternalOptions options) {
     options.enableDevirtualization = false;
   }
@@ -67,8 +65,9 @@ public class NonNullParamTest extends TestBase {
         .enableMergeAnnotations()
         .addKeepMainRule(mainClass)
         .addKeepRules(
-            ImmutableList.of(
-                "-keepattributes InnerClasses,Signature,EnclosingMethod", "-dontobfuscate"))
+            ImmutableList.of("-keepattributes InnerClasses,Signature,EnclosingMethod"))
+        // All tests are checking if invocations to certain null-check utils are gone.
+        .noMinification()
         .addOptionsModification(
             options -> {
               // Need to increase a little bit to inline System.out.println
@@ -82,34 +81,31 @@ public class NonNullParamTest extends TestBase {
 
   @Test
   public void testIntrinsics() throws Exception {
-    Class mainClass = IntrinsicsDeputy.class;
+    Class<?> mainClass = IntrinsicsDeputy.class;
     CodeInspector inspector =
-        buildAndRun(
-            mainClass, ImmutableList.of(NeverInline.class, mainClass), this::noModification);
+        buildAndRun(mainClass, ImmutableList.of(NeverInline.class, mainClass), null);
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
 
-    MethodSubject selfCheck = mainSubject.method("void", "selfCheck", ImmutableList.of());
+    MethodSubject selfCheck = mainSubject.uniqueMethodWithName("selfCheck");
     assertThat(selfCheck, isPresent());
     assertEquals(1, countCallToParamNullCheck(selfCheck));
     assertEquals(1, countPrintCall(selfCheck));
     assertEquals(0, countThrow(selfCheck));
 
-    MethodSubject checkNull = mainSubject.method("void", "checkNull", ImmutableList.of());
+    MethodSubject checkNull = mainSubject.uniqueMethodWithName("checkNull");
     assertThat(checkNull, isPresent());
     assertEquals(1, countCallToParamNullCheck(checkNull));
     assertEquals(1, countPrintCall(checkNull));
     assertEquals(0, countThrow(checkNull));
 
-    MethodSubject paramCheck =
-        mainSubject.method("void", "nonNullAfterParamCheck", ImmutableList.of());
+    MethodSubject paramCheck = mainSubject.uniqueMethodWithName("nonNullAfterParamCheck");
     assertThat(paramCheck, isPresent());
     assertEquals(1, countPrintCall(paramCheck));
     assertEquals(0, countThrow(paramCheck));
 
-    paramCheck = mainSubject.method(
-        "void", "nonNullAfterParamCheckDifferently", ImmutableList.of());
+    paramCheck = mainSubject.uniqueMethodWithName("nonNullAfterParamCheckDifferently");
     assertThat(paramCheck, isPresent());
     assertEquals(1, countPrintCall(paramCheck));
     assertEquals(0, countThrow(paramCheck));
@@ -123,26 +119,22 @@ public class NonNullParamTest extends TestBase {
             mainClass,
             ImmutableList.of(
                 NeverInline.class, IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
-            this::noModification);
+            null);
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
 
-    String argTypeName = NotPinnedClass.class.getName();
-    MethodSubject checkViaCall =
-        mainSubject.method("void", "checkViaCall", ImmutableList.of(argTypeName, argTypeName));
+    MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
     assertEquals(2, countPrintCall(checkViaCall));
 
-    MethodSubject checkViaIntrinsic =
-        mainSubject.method("void", "checkViaIntrinsic", ImmutableList.of(argTypeName));
+    MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithName("checkViaIntrinsic");
     assertThat(checkViaIntrinsic, isPresent());
     assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
     assertEquals(1, countPrintCall(checkViaIntrinsic));
 
-    MethodSubject checkAtOneLevelHigher =
-        mainSubject.method("void", "checkAtOneLevelHigher", ImmutableList.of(argTypeName));
+    MethodSubject checkAtOneLevelHigher = mainSubject.uniqueMethodWithName("checkAtOneLevelHigher");
     assertThat(checkAtOneLevelHigher, isPresent());
     assertEquals(1, countPrintCall(checkAtOneLevelHigher));
     assertEquals(0, countThrow(checkAtOneLevelHigher));
@@ -156,26 +148,22 @@ public class NonNullParamTest extends TestBase {
             mainClass,
             ImmutableList.of(
                 NeverInline.class, IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
-            this::noModification);
+            null);
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
 
-    String argTypeName = NotPinnedClass.class.getName();
-    MethodSubject checkViaCall =
-        mainSubject.method("void", "checkViaCall", ImmutableList.of(argTypeName, argTypeName));
+    MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
     assertEquals(2, countPrintCall(checkViaCall));
 
-    MethodSubject checkViaIntrinsic =
-        mainSubject.method("void", "checkViaIntrinsic", ImmutableList.of(argTypeName));
+    MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithName("checkViaIntrinsic");
     assertThat(checkViaIntrinsic, isPresent());
     assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
     assertEquals(1, countPrintCall(checkViaIntrinsic));
 
-    MethodSubject checkAtOneLevelHigher =
-        mainSubject.method("void", "checkAtOneLevelHigher", ImmutableList.of(argTypeName));
+    MethodSubject checkAtOneLevelHigher = mainSubject.uniqueMethodWithName("checkAtOneLevelHigher");
     assertThat(checkAtOneLevelHigher, isPresent());
     assertEquals(1, countPrintCall(checkAtOneLevelHigher));
     assertEquals(0, countThrow(checkAtOneLevelHigher));
@@ -193,26 +181,22 @@ public class NonNullParamTest extends TestBase {
                 NonNullParamAfterInvokeVirtual.class,
                 NotPinnedClass.class,
                 mainClass),
-            this::noModification);
+            null);
 
     ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeVirtual.class);
     assertThat(mainSubject, isPresent());
 
-    String argTypeName = NotPinnedClass.class.getName();
-    MethodSubject checkViaCall =
-        mainSubject.method("void", "checkViaCall", ImmutableList.of(argTypeName, argTypeName));
+    MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
     assertEquals(2, countPrintCall(checkViaCall));
 
-    MethodSubject checkViaIntrinsic =
-        mainSubject.method("void", "checkViaIntrinsic", ImmutableList.of(argTypeName));
+    MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithName("checkViaIntrinsic");
     assertThat(checkViaIntrinsic, isPresent());
     assertEquals(0, countCallToParamNullCheck(checkViaIntrinsic));
     assertEquals(1, countPrintCall(checkViaIntrinsic));
 
-    MethodSubject checkAtOneLevelHigher =
-        mainSubject.method("void", "checkAtOneLevelHigher", ImmutableList.of(argTypeName));
+    MethodSubject checkAtOneLevelHigher = mainSubject.uniqueMethodWithName("checkAtOneLevelHigher");
     assertThat(checkAtOneLevelHigher, isPresent());
     assertEquals(1, countPrintCall(checkAtOneLevelHigher));
     assertEquals(0, countThrow(checkAtOneLevelHigher));
@@ -237,12 +221,7 @@ public class NonNullParamTest extends TestBase {
     ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeInterface.class);
     assertThat(mainSubject, isPresent());
 
-    String argTypeName = NotPinnedClass.class.getName();
-    MethodSubject checkViaCall =
-        mainSubject.method(
-            "void",
-            "checkViaCall",
-            ImmutableList.of(NonNullParamInterface.class.getName(), argTypeName, argTypeName));
+    MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
     // The DEX backend reuses the System.out.println invoke.

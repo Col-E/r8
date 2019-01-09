@@ -124,9 +124,9 @@ public class NonNullTracker {
               current.asInvokeMethod().lookupSingleTarget(appInfo, code.method.method.getHolder());
           if (singleTarget != null
               && singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits() != null) {
-            BitSet hints = singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits();
+            BitSet facts = singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits();
             for (int i = 0; i < current.inValues().size(); i++) {
-              if (hints.get(i)) {
+              if (facts.get(i)) {
                 Value knownToBeNonNullValue = current.inValues().get(i);
                 if (isNonNullCandidate(knownToBeNonNullValue)) {
                   knownToBeNonNullValues.add(knownToBeNonNullValue);
@@ -350,8 +350,7 @@ public class NonNullTracker {
         && typeLattice.isReference();
   }
 
-  public void computeNonNullParamOnNormalExits(
-      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+  public void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
     Set<BasicBlock> normalExits = Sets.newIdentityHashSet();
     normalExits.addAll(code.computeNormalExitBlocks());
     DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
@@ -364,9 +363,10 @@ public class NonNullTracker {
       if (!argument.getTypeLattice().isReference()) {
         continue;
       }
-      if (index == 0 && !method.accessFlags.isStatic()) {
-        // The receiver is always non-null after an invocation;
+      // The receiver is always non-null on normal exits.
+      if (argument.isThis()) {
         facts.set(index);
+        continue;
       }
       // Collect basic blocks that check nullability of the parameter.
       nullCheckedBlocks.clear();
