@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -273,7 +274,7 @@ public class Outliner {
         inValues.add(
             builder.readRegister(register, ValueTypeConstraint.fromNumericType(numericType)));
       }
-      TypeLatticeElement latticeElement = TypeLatticeElement.fromNumericType(numericType);
+      TypeLatticeElement latticeElement = PrimitiveTypeLatticeElement.fromNumericType(numericType);
       Value outValue =
           builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       Instruction newInstruction = null;
