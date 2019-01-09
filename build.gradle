@@ -257,7 +257,6 @@ dependencies {
 def r8LibPath = "$buildDir/libs/r8lib.jar"
 def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
 def r8LibTestPath = "$buildDir/classes/r8libtest"
-def r8TestsJarPath = "$buildDir/libs/r8tests.jar"
 
 def osString = OperatingSystem.current().isLinux() ? "linux" :
         OperatingSystem.current().isMacOsX() ? "mac" : "windows"
@@ -566,7 +565,9 @@ task r8WithRelocatedDeps(type: ShadowJar) {
     }
     from repackageSources.outputs.files
     from repackageDeps.outputs.files
-    configureRelocations(it)
+    doLast {
+        configureRelocations(it)
+    }
 }
 
 task r8WithoutDeps(type: ShadowJar) {
@@ -596,14 +597,6 @@ task R8(type: ShadowJar) {
     } else {
         from sourceSets.main.output
     }
-}
-
-task R8NoManifestNoDeps(type: ShadowJar) {
-    from consolidatedLicense.outputs.files
-    baseName 'r8nomanifest'
-    classifier = null
-    version = null
-    from sourceSets.main.output
 }
 
 task R8NoManifest(type: ShadowJar) {
@@ -646,8 +639,7 @@ task CompatProguard(type: ShadowJar) {
 }
 
 def baseR8CommandLine(args = []) {
-    // Execute r8 commands against a stable r8 with relocated dependencies.
-    return ["java", "-ea", "-jar", r8WithRelocatedDeps.outputs.files[0]] + args
+    return ["java", "-ea", "-jar", R8.outputs.files[0]] + args
 }
 
 def r8CfCommandLine(input, output, pgconf, args = [], libs = []) {
@@ -663,42 +655,34 @@ def r8CfCommandLine(input, output, pgconf, args = [], libs = []) {
 
 def r8LibCreateTask(name, pgConf, r8Task, output, args = [], libs = []) {
     return tasks.create("r8Lib${name}", Exec) {
-        inputs.files ([pgConf, r8WithRelocatedDeps.outputs, r8Task.outputs])
+        inputs.files ([pgConf, R8.outputs, r8Task.outputs])
         outputs.file output
         dependsOn downloadOpenJDKrt
-        dependsOn r8WithRelocatedDeps
-        dependsOn r8Task
         commandLine r8CfCommandLine(r8Task.outputs.files[0], output, pgConf, args, libs)
         workingDir = projectDir
     }
 }
 
-task testJar(type: ShadowJar, dependsOn: testClasses) {
-    outputs.upToDateWhen { false }
+task testJar(type: Jar, dependsOn: testClasses) {
     baseName = "r8tests"
     from sourceSets.test.output
-    if (!project.hasProperty('exclude_deps')) {
-        relocate('com.google.common', 'com.android.tools.r8.com.google.common')
-        relocate('org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm')
-    }
 }
 
 task generateR8LibKeepRules(type: Exec) {
     doFirst {
         standardOutput new FileOutputStream(r8LibGeneratedKeepRulesPath)
     }
-    def libSourceTask = project.hasProperty('exclude_deps') ? R8NoManifestNoDeps : R8NoManifest
-    dependsOn r8WithRelocatedDeps
-    dependsOn libSourceTask
+    dependsOn R8
+    dependsOn r8WithoutDeps
     dependsOn testJar
     dependsOn downloadOpenJDKrt
-    inputs.files ([r8WithRelocatedDeps.outputs, libSourceTask.outputs, testJar.outputs])
+    inputs.files ([R8.outputs, r8WithoutDeps.outputs, testJar.outputs])
     outputs.file r8LibGeneratedKeepRulesPath
     commandLine baseR8CommandLine([
             "printuses",
             "--keeprules",
             "third_party/openjdk/openjdk-rt-1.8/rt.jar",
-            libSourceTask.outputs.files[0],
+            r8WithoutDeps.outputs.files[0],
             testJar.outputs.files[0]])
     workingDir = projectDir
 }
@@ -707,23 +691,15 @@ task R8LibNoDeps {
     dependsOn r8LibCreateTask(
             "NoDeps",
             "src/main/keep.txt",
-            R8NoManifestNoDeps,
+            r8WithoutDeps,
             r8LibPath,
             ["--pg-conf", generateR8LibKeepRules.outputs.files[0]],
             repackageDepsNoRelocate.outputs.files
-    ).dependsOn(repackageDepsNoRelocate, generateR8LibKeepRules)
-    outputs.file r8LibPath
+    ).dependsOn(repackageDepsNoRelocate, r8WithoutDeps, generateR8LibKeepRules)
 }
 
 task R8Lib {
-    dependsOn r8LibCreateTask(
-            "Main",
-            "src/main/keep.txt",
-            R8NoManifest,
-            r8LibPath,
-            ["--pg-conf", generateR8LibKeepRules.outputs.files[0]],
-            repackageDeps.outputs.files
-    ).dependsOn(repackageDeps, generateR8LibKeepRules)
+    dependsOn r8LibCreateTask("Main", "src/main/keep.txt", R8NoManifest, r8LibPath)
     outputs.file r8LibPath
 }
 
@@ -1409,15 +1385,19 @@ def getR8LibTask() {
 }
 
 task configureTestForR8Lib(type: Copy) {
-    dependsOn testJar
-    inputs.file r8TestsJarPath
+    dependsOn testClasses
+    // Setting classpath triggers a scan for test files in $buildDir/classes/test that finds all
+    // tests and not just the ones under $test/com/android/tools/r8. That is generally not
+    // something we want so we just copy the desired test files to $r8LibTestPath.
+    // Note, we cannot use sourceSets.test.output here since it will copy all tests.
+    def sourcePath = "$buildDir/classes/test/com/android/tools/r8"
+    inputs.file sourcePath
     if (getR8LibTask() != null) {
         dependsOn getR8LibTask()
-        delete r8LibTestPath
-        from zipTree(testJar.outputs.files[0])
-        into r8LibTestPath
-        include "com/android/tools/r8/**"
-        include "dalvik/**"
+        def destPath = r8LibTestPath + "/com/android/tools/r8"
+        delete destPath
+        from(sourcePath)
+        into(destPath)
     }
     outputs.dir r8LibTestPath
 }
@@ -1519,12 +1499,7 @@ test {
     }
     if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
         dependsOn configureTestForR8Lib
-        // We remove build/classes/test from classpath and rely on configureTestForR8Lib to provide
-        // all needed tests in r8LibTestPath.
-        classpath = files([r8LibPath, r8LibTestPath]) +
-                sourceSets.test.runtimeClasspath -
-                sourceSets.main.output -
-                files(['build/classes/test'])
+        classpath = files([r8LibPath]) + (sourceSets.test.runtimeClasspath - sourceSets.main.output)
         testClassesDir = new File(r8LibTestPath)
     }
     if (OperatingSystem.current().isLinux()
