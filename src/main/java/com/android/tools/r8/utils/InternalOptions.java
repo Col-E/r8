@@ -529,6 +529,7 @@ public class InternalOptions {
     public boolean allowFailureOnInnerClassErrors = false;
     public boolean noLocalsTableOnInput = false;
     public boolean forceNameReflectionOptimization = false;
+    public boolean disallowLoadStoreOptimization = false;
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {
