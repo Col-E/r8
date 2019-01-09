@@ -76,6 +76,7 @@ public class ExternalR8TestBuilder
       Collections.addAll(
           command,
           getJavaExecutable(),
+          "-ea",
           "-cp",
           r8jar.toAbsolutePath().toString(),
           R8.class.getTypeName(),
