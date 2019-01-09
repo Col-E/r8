@@ -98,8 +98,12 @@ public class ProguardTestBuilder
 
   // Ordered list of injar entries.
   private List<Path> injars = new ArrayList<>();
+
   // Proguard configuration file lines.
   private List<String> config = new ArrayList<>();
+
+  // Additional Proguard configuration files.
+  private List<Path> proguardConfigFiles = new ArrayList<>();
 
   private ProguardTestBuilder(TestState state, Builder builder, Backend backend) {
     super(state, builder, backend);
@@ -138,6 +142,10 @@ public class ProguardTestBuilder
       command.add(ToolHelper.getJava8RuntimeJar().toString());
       command.add("-include");
       command.add(configFile.toString());
+      for (Path proguardConfigFile : proguardConfigFiles) {
+        command.add("-include");
+        command.add(proguardConfigFile.toAbsolutePath().toString());
+      }
       command.add("-outjar");
       command.add(outJar.toString());
       command.add("-printmapping");
@@ -153,11 +161,9 @@ public class ProguardTestBuilder
       if (result.exitCode != 0) {
         throw new CompilationFailedException(result.toString());
       }
-      AndroidApp.Builder aaabuilder = AndroidApp.builder();
-      aaabuilder.addProgramFiles(outJar);
       String proguardMap =
           Files.exists(mapFile) ? FileUtils.readTextFile(mapFile, Charsets.UTF_8) : "";
-      return new ProguardTestCompileResult(getState(), aaabuilder.build(), proguardMap);
+      return new ProguardTestCompileResult(getState(), outJar, proguardMap);
     } catch (IOException e) {
       throw new CompilationFailedException(e);
     }
@@ -203,14 +209,8 @@ public class ProguardTestBuilder
   }
 
   @Override
-  public ProguardTestBuilder addKeepRuleFiles(List<Path> files) {
-    try {
-      for (Path file : files) {
-        config.addAll(FileUtils.readAllLines(file));
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  public ProguardTestBuilder addKeepRuleFiles(List<Path> proguardConfigFiles) {
+    this.proguardConfigFiles.addAll(proguardConfigFiles);
     return self();
   }
 

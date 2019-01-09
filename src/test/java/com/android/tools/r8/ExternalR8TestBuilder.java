@@ -47,6 +47,9 @@ public class ExternalR8TestBuilder
   // Proguard configuration file lines.
   private final List<String> config = new ArrayList<>();
 
+  // Additional Proguard configuration files.
+  private List<Path> proguardConfigFiles = new ArrayList<>();
+
   private ExternalR8TestBuilder(TestState state, Builder builder, Backend backend) {
     super(state, builder, backend);
   }
@@ -67,10 +70,7 @@ public class ExternalR8TestBuilder
     try {
       Path outputFolder = getState().getNewTempFolder();
       Path outputJar = outputFolder.resolve("output.jar");
-      Path proguardConfigFile = outputFolder.resolve("proguard-config.txt");
       Path proguardMapFile = outputFolder.resolve("output.jar.map");
-
-      FileUtils.writeTextFile(proguardConfigFile, config);
 
       List<String> command = new ArrayList<>();
       Collections.addAll(
@@ -81,12 +81,20 @@ public class ExternalR8TestBuilder
           R8.class.getTypeName(),
           "--output",
           outputJar.toAbsolutePath().toString(),
-          "--pg-conf",
-          proguardConfigFile.toAbsolutePath().toString(),
           "--pg-map-output",
           proguardMapFile.toString(),
           backend == Backend.CF ? "--classfile" : "--dex",
           builder.getMode() == CompilationMode.DEBUG ? "--debug" : "--release");
+      if (!config.isEmpty()) {
+        Path proguardConfigFile = outputFolder.resolve("proguard-config.txt");
+        FileUtils.writeTextFile(proguardConfigFile, config);
+        command.add("--pg-conf");
+        command.add(proguardConfigFile.toAbsolutePath().toString());
+      }
+      for (Path proguardConfigFile : proguardConfigFiles) {
+        command.add("--pg-conf");
+        command.add(proguardConfigFile.toAbsolutePath().toString());
+      }
       if (libJars.isEmpty()) {
         command.add("--lib");
         command.add(TestBase.runtimeJar(backend).toAbsolutePath().toString());
@@ -154,14 +162,8 @@ public class ExternalR8TestBuilder
   }
 
   @Override
-  public ExternalR8TestBuilder addKeepRuleFiles(List<Path> files) {
-    try {
-      for (Path file : files) {
-        config.addAll(FileUtils.readAllLines(file));
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  public ExternalR8TestBuilder addKeepRuleFiles(List<Path> proguardConfigFiles) {
+    this.proguardConfigFiles.addAll(proguardConfigFiles);
     return self();
   }
 
