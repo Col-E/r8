@@ -92,9 +92,10 @@ def Main():
     raise Exception('You are not a bot, don\'t archive builds')
 
   # Generate an r8-ed build without dependencies.
-  # Note: build_r8lib does a gradle-clean, this must be the first command.
-  build_r8lib('r8nomanifest', True, True, utils.R8LIB_KEEP_RULES,
-    utils.R8LIB_EXCLUDE_DEPS_JAR)
+  # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
+  gradle.RunGradleExcludeDeps([utils.R8LIB_NO_DEPS, '-Pno_internal'])
+  shutil.copyfile(utils.R8LIB_JAR, utils.R8LIB_EXCLUDE_DEPS_JAR)
+  shutil.copyfile(utils.R8LIB_JAR + '.map', utils.R8LIB_EXCLUDE_DEPS_JAR + '.map')
 
   # Create maven release which uses a build that exclude dependencies.
   create_maven_release.main(["--out", utils.LIBS])
@@ -106,6 +107,7 @@ def Main():
   # Ensure all archived artifacts has been built before archiving.
   # The target tasks postfixed by 'lib' depend on the actual target task so
   # building it invokes the original task first.
+  # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
   gradle.RunGradle([
     utils.R8,
     utils.D8,
@@ -114,6 +116,7 @@ def Main():
     utils.R8LIB,
     utils.COMPATDXLIB,
     utils.COMPATPROGUARDLIB,
+    '-Pno_internal'
   ])
   version = GetVersion()
   is_master = IsMaster(version)

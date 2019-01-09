@@ -30,6 +30,7 @@ SRC_ROOT = os.path.join(REPO_ROOT, 'src', 'main', 'java')
 D8 = 'd8'
 R8 = 'r8'
 R8LIB = 'r8lib'
+R8LIB_NO_DEPS = 'r8LibNoDeps'
 R8_SRC = 'sourceJar'
 COMPATDX = 'compatdx'
 COMPATDXLIB = 'compatdxlib'
