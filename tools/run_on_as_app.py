@@ -14,7 +14,7 @@ import zipfile
 
 import as_utils
 
-SHRINKERS = ['r8', 'r8full', 'proguard']
+SHRINKERS = ['r8', 'r8full', 'r8-minified', 'r8full-minified', 'proguard']
 WORKING_DIR = utils.BUILD
 
 if 'R8_BENCHMARK_DIR' in os.environ and os.path.isdir(os.environ['R8_BENCHMARK_DIR']):
@@ -107,6 +107,9 @@ def IsBuiltWithR8(apk):
   script = os.path.join(utils.TOOLS_DIR, 'extractmarker.py')
   return '~~R8' in subprocess.check_output(['python', script, apk]).strip()
 
+def IsMinifiedR8(shrinker):
+  return shrinker == 'r8-minified' or shrinker == 'r8full-minified'
+
 def IsTrackedByGit(file):
   return subprocess.check_output(['git', 'ls-files', file]).strip() != ''
 
@@ -163,11 +166,6 @@ def BuildAppWithSelectedShrinkers(app, config, options):
     with utils.ChangedWorkingDirectory(checkout_dir):
       GitPull()
 
-  if options.use_tot:
-    as_utils.add_r8_dependency(checkout_dir)
-  else:
-    as_utils.remove_r8_dependency(checkout_dir)
-
   result_per_shrinker = {}
 
   with utils.ChangedWorkingDirectory(checkout_dir):
@@ -203,6 +201,11 @@ def BuildAppWithSelectedShrinkers(app, config, options):
 def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   print('Building {} with {}'.format(app, shrinker))
 
+  if options.disable_tot:
+    as_utils.remove_r8_dependency(checkout_dir)
+  else:
+    as_utils.add_r8_dependency(checkout_dir, IsMinifiedR8(shrinker))
+
   app_module = config.get('app_module', 'app')
   archives_base_name = config.get(' archives_base_name', app_module)
   flavor = config.get('flavor')
@@ -214,7 +217,7 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   with open("gradle.properties", "a") as gradle_properties:
     if 'r8' in shrinker:
       gradle_properties.write('\nandroid.enableR8=true\n')
-      if shrinker == 'r8full':
+      if shrinker == 'r8full' or shrinker == 'r8full-minified':
         gradle_properties.write('android.enableR8.fullMode=true\n')
     else:
       assert shrinker == 'proguard'
@@ -328,16 +331,26 @@ def ParseOptions(argv):
   result.add_option('--shrinker',
                     help='The shrinker to use (by default, all are run)',
                     choices=SHRINKERS)
-  result.add_option('--use_tot',
+  result.add_option('--disable_tot',
                     help='Whether to disable the use of the ToT version of R8',
-                    default=True,
-                    action='store_false')
+                    default=False,
+                    action='store_true')
   return result.parse_args(argv)
 
 def main(argv):
+  global SHRINKERS
+
   (options, args) = ParseOptions(argv)
-  assert not options.use_tot or os.path.isfile(utils.R8_JAR), (
+  assert options.disable_tot or os.path.isfile(utils.R8_JAR), (
       'Cannot build from ToT without r8.jar')
+  assert options.disable_tot or os.path.isfile(utils.R8LIB_JAR), (
+      'Cannot build from ToT without r8lib.jar')
+
+  if options.disable_tot:
+    # Cannot run r8 lib without adding r8lib.jar as an dependency
+    SHRINKERS = [
+        shrinker for shrinker in SHRINKERS
+        if 'minified' not in shrinker]
 
   result_per_shrinker_per_app = {}
 

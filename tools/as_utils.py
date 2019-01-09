@@ -8,7 +8,7 @@ import os
 
 import utils
 
-def add_r8_dependency(checkout_dir):
+def add_r8_dependency(checkout_dir, minified):
   build_file = os.path.join(checkout_dir, 'build.gradle')
   assert os.path.isfile(build_file), 'Expected a file to be present at {}'.format(build_file)
 
@@ -27,12 +27,21 @@ def add_r8_dependency(checkout_dir):
         is_inside_dependencies = True
       if is_inside_dependencies:
         if utils.R8_JAR in stripped:
+          if minified:
+            # Skip line to avoid dependency on r8.jar
+            continue
+          added_r8_dependency = True
+        elif utils.R8LIB_JAR in stripped:
+          if not minified:
+            # Skip line to avoid dependency on r8lib.jar
+            continue
           added_r8_dependency = True
         elif 'com.android.tools.build:gradle:' in stripped:
           gradle_version = stripped[stripped.rindex(':')+1:-1]
           if not added_r8_dependency:
             indent = ''.ljust(line.index('classpath'))
-            f.write('{}classpath files(\'{}\')\n'.format(indent, utils.R8_JAR))
+            jar = utils.R8LIB_JAR if minified else utils.R8_JAR
+            f.write('{}classpath files(\'{}\')\n'.format(indent, jar))
             added_r8_dependency = True
         elif stripped == '}':
           is_inside_dependencies = False
@@ -51,5 +60,5 @@ def remove_r8_dependency(checkout_dir):
     lines = f.readlines()
   with open(build_file, 'w') as f:
     for line in lines:
-      if utils.R8_JAR not in line:
+      if (utils.R8_JAR not in line) and (utils.R8LIB_JAR not in line):
         f.write(line)
