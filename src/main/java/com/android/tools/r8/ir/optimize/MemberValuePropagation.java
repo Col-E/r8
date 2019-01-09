@@ -95,15 +95,11 @@ public class MemberValuePropagation {
 
   private static ConstNumber createConstNumberReplacement(
       IRCode code, long constant, TypeLatticeElement typeLattice, DebugLocalInfo debugLocalInfo) {
-    ConstNumber replacement;
-    if (typeLattice.isReference()) {
-      assert constant == 0;
-      replacement = code.createConstNull();
-    } else {
-      Value returnedValue = code.createValue(typeLattice, debugLocalInfo);
-      replacement = new ConstNumber(returnedValue, constant);
-    }
-    return replacement;
+    assert !typeLattice.isReference() || constant == 0;
+    Value returnedValue =
+        code.createValue(
+            typeLattice.isReference() ? TypeLatticeElement.NULL : typeLattice, debugLocalInfo);
+    return new ConstNumber(returnedValue, constant);
   }
 
   private void setValueRangeFromProguardRule(ProguardMemberRule rule, Value value) {
