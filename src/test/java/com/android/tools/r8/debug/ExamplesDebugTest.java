@@ -106,8 +106,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testFloatingPointValuedAnnotation() throws Exception {
-    // TODO(b/79671093): DEX stepping enters java.lang.reflect with no source file.
-    testDebuggingJvmOnly("floating_point_annotations", "FloatingPointValuedAnnotationTest");
+    testDebugging("floating_point_annotations", "FloatingPointValuedAnnotationTest");
   }
 
   @Test
@@ -195,8 +194,8 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testThrowing() throws Exception {
-    // TODO(b/79671093): We don't match JVM's behavior on this example.
-    testDebuggingJvmOutputOnly("throwing", "Throwing");
+    // TODO(b/79671093): D8 has unexpected variables (this in throwing.c <init>).
+    testDebuggingJvmOnly("throwing", "Throwing");
   }
 
   @Test
@@ -256,8 +255,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testRegress62300145() throws Exception {
-    // TODO(b/79671093): DEX execution enters java.lang with no source file.
-    testDebuggingJvmOnly("regress_62300145", "Regress");
+    testDebugging("regress_62300145", "Regress");
   }
 
   @Test
@@ -334,6 +332,8 @@ public class ExamplesDebugTest extends DebugTestBase {
         .add("R8/CfSourceCode", r8cf())
         .add("R8/JarSourceCode", r8jar())
         .add("D8", d8())
+        // When running on CF and DEX runtimes, filter down to states within the test package.
+        .setFilter(state -> state.getClassName().startsWith(pkg))
         .compare();
   }
 
