@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
+import com.android.tools.r8.debug.DebugTestConfig.RuntimeKind;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
@@ -288,8 +289,10 @@ public class DebugStreamComparator {
     String sig = reference.getMethodSignature();
     List<Variable> variables = reference.getVisibleVariables();
     int frameDepth = reference.getFrameDepth();
+    RuntimeKind referenceRuntime = reference.getConfig().getRuntimeKind();
     for (int i = 1; i < states.size(); i++) {
       DebuggeeState state = states.get(i);
+      RuntimeKind stateRuntime = state.getConfig().getRuntimeKind();
       if (verifyFiles) {
         assertEquals("source file mismatch", file, state.getSourceFile());
       }
@@ -304,7 +307,11 @@ public class DebugStreamComparator {
             "method mismatch", method + sig, state.getMethodName() + state.getMethodSignature());
       }
       if (verifyVariables) {
-        verifyVariablesEqual(variables, state.getVisibleVariables());
+        verifyVariablesEqual(
+            referenceRuntime,
+            reference.getVisibleVariables(),
+            stateRuntime,
+            state.getVisibleVariables());
       }
       if (verifyStack) {
         assertEquals(frameDepth, state.getFrameDepth());
@@ -312,20 +319,33 @@ public class DebugStreamComparator {
           FrameInspector referenceInspector = reference.getFrame(j);
           FrameInspector stateInspector = state.getFrame(j);
           verifyVariablesEqual(
-              referenceInspector.getVisibleVariables(), stateInspector.getVisibleVariables());
+              referenceRuntime,
+              referenceInspector.getVisibleVariables(),
+              stateRuntime,
+              stateInspector.getVisibleVariables());
         }
       }
     }
   }
 
-  private static void verifyVariablesEqual(List<Variable> xs, List<Variable> ys) {
+  private static boolean shouldIgnoreVariable(Variable variable, RuntimeKind runtime) {
+    return runtime == RuntimeKind.DEX && variable.getName().isEmpty();
+  }
+
+  private static void verifyVariablesEqual(
+      RuntimeKind xRuntime, List<Variable> xs, RuntimeKind yRuntime, List<Variable> ys) {
     Map<String, Variable> map = new HashMap<>(xs.size());
     for (Variable x : xs) {
-      map.put(x.getName(), x);
+      if (!shouldIgnoreVariable(x, xRuntime)) {
+        map.put(x.getName(), x);
+      }
     }
     List<Variable> unexpected = new ArrayList<>(ys.size());
     List<Pair<Variable, Variable>> different = new ArrayList<>(Math.min(xs.size(), ys.size()));
     for (Variable y : ys) {
+      if (shouldIgnoreVariable(y, yRuntime)) {
+        continue;
+      }
       Variable x = map.remove(y.getName());
       if (x == null) {
         unexpected.add(y);

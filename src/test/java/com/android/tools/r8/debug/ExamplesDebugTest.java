@@ -81,8 +81,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testBridgeMethod() throws Exception {
-    // TODO(b/79671093): D8 has local variables with empty names.
-    testDebuggingJvmOnly("bridge", "BridgeMethod");
+    testDebugging("bridge", "BridgeMethod");
   }
 
   @Test
@@ -107,7 +106,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testFloatingPointValuedAnnotation() throws Exception {
-    // D8 has no source file.
+    // TODO(b/79671093): DEX stepping enters java.lang.reflect with no source file.
     testDebuggingJvmOnly("floating_point_annotations", "FloatingPointValuedAnnotationTest");
   }
 
@@ -190,7 +189,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testSync() throws Exception {
-    // D8 has two local variables with empty names.
+    // TODO(b/79671093): Line number mismatch in D8.
     testDebuggingJvmOnly("sync", "Sync");
   }
 
@@ -205,11 +204,9 @@ public class ExamplesDebugTest extends DebugTestBase {
     testDebugging("trivial", "Trivial");
   }
 
-  @Ignore("TODO(mathiasr): InvalidDebugInfoException in CfSourceCode")
   @Test
   public void testTryCatch() throws Exception {
-    // TODO(b/79671093): We don't match JVM's behavior on this example.
-    testDebuggingJvmOutputOnly("trycatch", "TryCatch");
+    testDebugging("trycatch", "TryCatch");
   }
 
   @Test
@@ -259,7 +256,7 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testRegress62300145() throws Exception {
-    // D8 has no source file.
+    // TODO(b/79671093): DEX execution enters java.lang with no source file.
     testDebuggingJvmOnly("regress_62300145", "Regress");
   }
 
@@ -281,21 +278,17 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testRegress70736958() throws Exception {
-    // D8 has a local variable with empty name.
-    testDebuggingJvmOnly("regress_70736958", "Test");
+    testDebugging("regress_70736958", "Test");
   }
 
-  @Ignore("TODO(mathiasr): Different behavior CfSourceCode vs JarSourceCode")
   @Test
   public void testRegress70737019() throws Exception {
-    // TODO(b/79671093): We don't match JVM's behavior on this example.
-    testDebuggingJvmOutputOnly("regress_70737019", "Test");
+    testDebugging("regress_70737019", "Test");
   }
 
   @Test
   public void testRegress72361252() throws Exception {
-    // D8 output has variable with empty name.
-    testDebuggingJvmOnly("regress_72361252", "Test");
+    testDebugging("regress_72361252", "Test");
   }
 
   @Test
