@@ -8,7 +8,6 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.ExternalR8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -50,11 +49,10 @@ public class PrintConfigurationTest extends TestBase {
             "-printconfiguration proguard-config-out.txt");
     FileUtils.writeTextFile(proguardConfigFile, proguardConfig.trim());
 
-    ExternalR8TestCompileResult result =
-        testForExternalR8(Backend.DEX)
-            .addProgramClasses(PrintConfigurationTestClass.class)
-            .addKeepRuleFiles(proguardConfigFile)
-            .compile();
+    testForExternalR8(Backend.DEX)
+        .addProgramClasses(PrintConfigurationTestClass.class)
+        .addKeepRuleFiles(proguardConfigFile)
+        .compile();
 
     assertEquals(proguardConfig, FileUtils.readTextFile(proguardConfigOutFile, Charsets.UTF_8));
   }
@@ -86,7 +84,7 @@ public class PrintConfigurationTest extends TestBase {
                 "}")));
     assertThat(
         proguardConfigOut,
-        containsString("-printconfiguration " + proguardConfigOutFile.toString()));
+        containsString("-printconfiguration " + proguardConfigOutFile.toAbsolutePath().toString()));
   }
 
   @Test
