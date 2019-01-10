@@ -93,6 +93,7 @@ import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
+import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
@@ -1430,7 +1431,7 @@ public class CodeRewriter {
     Wrapper<DexMethod> methodWrap = wrapper.wrap(invokedMethod);
     if (methodWrap.equals(throwParamIsNullException)
         || (methodWrap.equals(checkParameterIsNotNull) && instr.inValues().get(0).equals(value))) {
-      if (invokedMethod.getHolder().getPackageDescriptor().startsWith("kotlin")) {
+      if (invokedMethod.getHolder().getPackageDescriptor().startsWith(Kotlin.NAME)) {
         return true;
       }
     }
