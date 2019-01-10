@@ -117,7 +117,7 @@ def GitClone(git_url):
   return subprocess.check_output(['git', 'clone', git_url]).strip()
 
 def GitPull():
-  return subprocess.check_output(['git', 'pull']).strip()
+  return subprocess.call(['git', 'pull']) == 0
 
 def GitCheckout(file):
   return subprocess.check_output(['git', 'checkout', file]).strip()
@@ -153,19 +153,34 @@ def WaitForEmulator():
     else:
       return
 
-def BuildAppWithSelectedShrinkers(app, config, options):
+def GetResultsForApp(app, config, options):
   git_repo = config['git_repo']
 
   # Checkout and build in the build directory.
   checkout_dir = os.path.join(WORKING_DIR, app)
+
+  result = {}
 
   if not os.path.exists(checkout_dir):
     with utils.ChangedWorkingDirectory(WORKING_DIR):
       GitClone(git_repo)
   else:
     with utils.ChangedWorkingDirectory(checkout_dir):
-      GitPull()
+      if not GitPull():
+        result['status'] = 'failed'
+        result['error_message'] = 'Unable to pull from remote'
+        return result
 
+  result['status'] = 'success'
+
+  result_per_shrinker = BuildAppWithSelectedShrinkers(
+      app, config, options, checkout_dir)
+  for shrinker, shrinker_result in result_per_shrinker.iteritems():
+    result[shrinker] = shrinker_result
+
+  return result
+
+def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
   result_per_shrinker = {}
 
   with utils.ChangedWorkingDirectory(checkout_dir):
@@ -292,6 +307,12 @@ def RunMonkey(app, config, apk_dest):
 def LogResults(result_per_shrinker_per_app, options):
   for app, result_per_shrinker in result_per_shrinker_per_app.iteritems():
     print(app + ':')
+
+    if result_per_shrinker.get('status') != 'success':
+      error_message = result_per_shrinker.get('error_message')
+      print('  skipped ({})'.format(error_message))
+      continue
+
     baseline = result_per_shrinker.get('proguard', {}).get('dex_size', -1)
     for shrinker, result in result_per_shrinker.iteritems():
       build_status = result.get('build_status')
@@ -355,12 +376,12 @@ def main(argv):
   result_per_shrinker_per_app = {}
 
   if options.app:
-    result_per_shrinker_per_app[options.app] = BuildAppWithSelectedShrinkers(
+    result_per_shrinker_per_app[options.app] = GetResultsForApp(
         options.app, APPS.get(options.app), options)
   else:
     for app, config in APPS.iteritems():
       if not config.get('skip', False):
-        result_per_shrinker_per_app[app] = BuildAppWithSelectedShrinkers(
+        result_per_shrinker_per_app[app] = GetResultsForApp(
             app, config, options)
 
   LogResults(result_per_shrinker_per_app, options)
