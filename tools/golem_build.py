@@ -8,8 +8,8 @@
 import gradle
 import sys
 
-GRADLE_ARGS = ['--no-daemon', '-Pno_internal']
-BUILD_TARGETS = ['R8', 'D8', 'R8Lib', 'buildExampleJars', 'CompatDx',
+GRADLE_ARGS = ['--no-daemon']
+BUILD_TARGETS = ['R8', 'D8', 'R8LibApiOnly', 'buildExampleJars', 'CompatDx',
                  'downloadAndroidCts', 'downloadDx']
 
 def Main():

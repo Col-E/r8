@@ -702,6 +702,11 @@ task generateR8LibKeepRules(type: Exec) {
     workingDir = projectDir
 }
 
+task R8LibApiOnly {
+    dependsOn r8LibCreateTask("Api", "src/main/keep.txt", R8NoManifest, r8LibPath)
+    outputs.file r8LibPath
+}
+
 task R8LibNoDeps {
     dependsOn r8LibCreateTask(
             "NoDeps",
