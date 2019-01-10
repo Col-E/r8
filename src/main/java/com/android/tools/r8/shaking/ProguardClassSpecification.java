@@ -80,8 +80,9 @@ public abstract class ProguardClassSpecification {
       return memberRules;
     }
 
-    public void setMemberRules(List<ProguardMemberRule> memberRules) {
+    public B setMemberRules(List<ProguardMemberRule> memberRules) {
       this.memberRules = memberRules;
+      return self();
     }
 
     public boolean getInheritanceIsExtends() {
@@ -116,16 +117,18 @@ public abstract class ProguardClassSpecification {
       return classNames;
     }
 
-    public void setClassNames(ProguardClassNameList classNames) {
+    public B setClassNames(ProguardClassNameList classNames) {
       this.classNames = classNames;
+      return self();
     }
 
     public ProguardClassType getClassType() {
       return classType;
     }
 
-    public void setClassType(ProguardClassType classType) {
+    public B setClassType(ProguardClassType classType) {
       this.classType = classType;
+      return self();
     }
 
     public boolean getClassTypeNegated() {

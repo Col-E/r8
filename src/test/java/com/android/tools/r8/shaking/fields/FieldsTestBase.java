@@ -6,12 +6,12 @@ package com.android.tools.r8.shaking.fields;
 
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 
 public abstract class FieldsTestBase extends TestBase {
 

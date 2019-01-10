@@ -15,13 +15,17 @@ import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
 public abstract class TestCompileResult<
@@ -29,6 +33,7 @@ public abstract class TestCompileResult<
 
   final TestState state;
   public final AndroidApp app;
+  final List<Path> additionalRunClassPath = new ArrayList<>();
 
   TestCompileResult(TestState state, AndroidApp app) {
     this.state = state;
@@ -50,12 +55,17 @@ public abstract class TestCompileResult<
   public RR run(String mainClass) throws IOException {
     switch (getBackend()) {
       case DEX:
-        return runArt(mainClass);
+        return runArt(additionalRunClassPath, mainClass);
       case CF:
-        return runJava(mainClass);
+        return runJava(additionalRunClassPath, mainClass);
       default:
         throw new Unreachable();
     }
+  }
+
+  public CR addRunClasspath(List<Path> classpath) {
+    additionalRunClassPath.addAll(classpath);
+    return self();
   }
 
   public CR writeToZip(Path file) throws IOException {
@@ -160,17 +170,25 @@ public abstract class TestCompileResult<
     }
   }
 
-  private RR runJava(String mainClass) throws IOException {
+  private RR runJava(List<Path> additionalClassPath, String mainClass) throws IOException {
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.ClassFile);
-    ProcessResult result = ToolHelper.runJava(out, mainClass);
+    List<Path> classPath = ImmutableList.<Path>builder()
+        .addAll(additionalClassPath)
+        .add(out)
+        .build();
+    ProcessResult result = ToolHelper.runJava(classPath, mainClass);
     return createRunResult(result);
   }
 
-  private RR runArt(String mainClass) throws IOException {
+  private RR runArt(List<Path> additionalClassPath, String mainClass) throws IOException {
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.DexIndexed);
-    ProcessResult result = ToolHelper.runArtRaw(out.toString(), mainClass);
+    List<String> classPath = ImmutableList.<String>builder()
+        .addAll(additionalClassPath.stream().map(Path::toString).collect(Collectors.toList()))
+        .add(out.toString())
+        .build();
+    ProcessResult result = ToolHelper.runArtRaw(classPath, mainClass, dummy -> {});
     return createRunResult(result);
   }
 
