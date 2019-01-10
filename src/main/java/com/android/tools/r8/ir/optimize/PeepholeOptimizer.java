@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
@@ -46,7 +45,7 @@ public class PeepholeOptimizer {
       IRCode code, RegisterAllocator allocator, int overhead) {
     Collection<BasicBlock> blocks = code.blocks;
     BasicBlock normalExit = null;
-    ImmutableList<BasicBlock> normalExits = code.computeNormalExitBlocks();
+    List<BasicBlock> normalExits = code.computeNormalExitBlocks();
     if (normalExits.size() > 1) {
       normalExit = new BasicBlock();
       normalExit.getMutablePredecessors().addAll(normalExits);

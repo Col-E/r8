@@ -779,7 +779,7 @@ public abstract class DebugTestBase extends TestBase {
       public String getObfuscatedClassName(String originalClassName) {
         // TODO(tamaskenez) Watch for inline methods (we can be in a different class).
         String obfuscatedClassName =
-            classNameMapper.getObfuscatedToOriginalMapping().inverse().get(originalClassName);
+            classNameMapper.getObfuscatedToOriginalMapping().inverse.get(originalClassName);
         return obfuscatedClassName == null ? originalClassName : obfuscatedClassName;
       }
 
@@ -788,7 +788,7 @@ public abstract class DebugTestBase extends TestBase {
           String originalClassName, String originalMethodName, String methodSignatureOrNull) {
         ClassNamingForNameMapper naming;
         String obfuscatedClassName =
-            classNameMapper.getObfuscatedToOriginalMapping().inverse().get(originalClassName);
+            classNameMapper.getObfuscatedToOriginalMapping().inverse.get(originalClassName);
         if (obfuscatedClassName != null) {
           naming = classNameMapper.getClassNaming(obfuscatedClassName);
         } else {

@@ -83,7 +83,7 @@ public class FoundFieldSubject extends FieldSubject {
     // whereas the final signature is for X.a is "a a"
     String obfuscatedType = signature.type;
     String originalType =
-        codeInspector.mapType(codeInspector.originalToObfuscatedMapping.inverse(), obfuscatedType);
+        codeInspector.mapType(codeInspector.obfuscatedToOriginalMapping, obfuscatedType);
     String fieldType = originalType != null ? originalType : obfuscatedType;
     FieldSignature lookupSignature = new FieldSignature(signature.name, fieldType);
 

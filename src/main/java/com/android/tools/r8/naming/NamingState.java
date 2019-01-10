@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
@@ -24,13 +23,13 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
   private final NamingState<ProtoType, KeyType> parent;
   private final Map<KeyType, InternalState> usedNames = new HashMap<>();
   private final DexItemFactory itemFactory;
-  private final ImmutableList<String> dictionary;
+  private final List<String> dictionary;
   private final Function<ProtoType, KeyType> keyTransform;
   private final boolean useUniqueMemberNames;
 
   static <S, T extends CachedHashValueDexItem> NamingState<T, S> createRoot(
       DexItemFactory itemFactory,
-      ImmutableList<String> dictionary,
+      List<String> dictionary,
       Function<T, S> keyTransform,
       boolean useUniqueMemberNames) {
     return new NamingState<>(null, itemFactory, dictionary, keyTransform, useUniqueMemberNames);
@@ -39,7 +38,7 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
   private NamingState(
       NamingState<ProtoType, KeyType> parent,
       DexItemFactory itemFactory,
-      ImmutableList<String> dictionary,
+      List<String> dictionary,
       Function<ProtoType, KeyType> keyTransform,
       boolean useUniqueMemberNames) {
     this.parent = parent;

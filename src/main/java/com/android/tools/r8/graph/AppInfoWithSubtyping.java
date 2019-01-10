@@ -57,7 +57,7 @@ public class AppInfoWithSubtyping extends AppInfo {
     return Collections.unmodifiableSet(missingClasses);
   }
 
-  public ImmutableSet<DexType> subtypes(DexType type) {
+  public Set<DexType> subtypes(DexType type) {
     assert type.isClassType();
     ImmutableSet<DexType> subtypes = subtypeMap.get(type);
     return subtypes == null ? ImmutableSet.of() : subtypes;

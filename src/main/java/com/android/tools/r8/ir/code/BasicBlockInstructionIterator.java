@@ -427,7 +427,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     BasicBlock inlineEntry = inlinee.blocks.getFirst();
 
     BasicBlock inlineExit = null;
-    ImmutableList<BasicBlock> normalExits = inlinee.computeNormalExitBlocks();
+    List<BasicBlock> normalExits = inlinee.computeNormalExitBlocks();
     if (!normalExits.isEmpty()) {
       // Ensure and locate the single return instruction of the inlinee.
       InstructionListIterator inlineeIterator =
@@ -516,9 +516,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   }
 
   private InstructionListIterator ensureSingleReturnInstruction(
-      AppInfo appInfo,
-      IRCode code,
-      ImmutableList<BasicBlock> normalExits) {
+      AppInfo appInfo, IRCode code, List<BasicBlock> normalExits) {
     if (normalExits.size() == 1) {
       InstructionListIterator it = normalExits.get(0).listIterator();
       it.nextUntil(Instruction::isReturn);

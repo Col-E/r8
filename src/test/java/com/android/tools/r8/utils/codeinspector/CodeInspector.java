@@ -37,11 +37,11 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
-import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -61,7 +61,8 @@ public class CodeInspector {
   private final DexApplication application;
   final DexItemFactory dexItemFactory;
   private final ClassNameMapper mapping;
-  final BiMap<String, String> originalToObfuscatedMapping;
+  final Map<String, String> originalToObfuscatedMapping;
+  final Map<String, String> obfuscatedToOriginalMapping;
 
   public static MethodSignature MAIN =
       new MethodSignature("main", "void", new String[] {"java.lang.String[]"});
@@ -83,10 +84,13 @@ public class CodeInspector {
       throws IOException, ExecutionException {
     if (mappingFile != null) {
       this.mapping = ClassNameMapper.mapperFromFile(Paths.get(mappingFile));
-      originalToObfuscatedMapping = this.mapping.getObfuscatedToOriginalMapping().inverse();
+      BiMapContainer<String, String> nameMapping = this.mapping.getObfuscatedToOriginalMapping();
+      obfuscatedToOriginalMapping = nameMapping.original;
+      originalToObfuscatedMapping = nameMapping.inverse;
     } else {
       this.mapping = null;
       originalToObfuscatedMapping = null;
+      obfuscatedToOriginalMapping = null;
     }
     Timing timing = new Timing("CodeInspector");
     InternalOptions options = new InternalOptions();
@@ -97,7 +101,7 @@ public class CodeInspector {
     dexItemFactory = options.itemFactory;
     AndroidApp input = AndroidApp.builder().addProgramFiles(files).build();
     application = new ApplicationReader(input, options, timing).read();
-    }
+  }
 
   public CodeInspector(AndroidApp app) throws IOException, ExecutionException {
     this(
@@ -139,8 +143,14 @@ public class CodeInspector {
     dexItemFactory = application.dexItemFactory;
     this.application = application;
     this.mapping = application.getProguardMap();
-    originalToObfuscatedMapping =
-        mapping == null ? null : mapping.getObfuscatedToOriginalMapping().inverse();
+    if (mapping == null) {
+      originalToObfuscatedMapping = null;
+      obfuscatedToOriginalMapping = null;
+    } else {
+      BiMapContainer<String, String> nameMapping = mapping.getObfuscatedToOriginalMapping();
+      obfuscatedToOriginalMapping = nameMapping.original;
+      originalToObfuscatedMapping = nameMapping.inverse;
+    }
   }
 
   public DexItemFactory getFactory() {
@@ -251,7 +261,7 @@ public class CodeInspector {
         name = obfuscated;
       } else {
         // Figure out if the name is an already obfuscated name.
-        String original = originalToObfuscatedMapping.inverse().get(name);
+        String original = obfuscatedToOriginalMapping.get(name);
         if (original != null) {
           naming = mapping.getClassNaming(name);
         }
@@ -393,8 +403,8 @@ public class CodeInspector {
     @Override
     public String parsedTypeName(String name) {
       String type = name;
-      if (originalToObfuscatedMapping != null) {
-        String original = mapType(originalToObfuscatedMapping.inverse(), name);
+      if (obfuscatedToOriginalMapping != null) {
+        String original = mapType(obfuscatedToOriginalMapping, name);
         type = original != null ? original : name;
       }
       signature.append(type);
@@ -409,7 +419,7 @@ public class CodeInspector {
         String minifiedEnclosing = originalToObfuscatedMapping.get(enclosingType);
         if (minifiedEnclosing != null) {
           assert !minifiedEnclosing.contains("[");
-          type = mapType(originalToObfuscatedMapping.inverse(), minifiedEnclosing + "$" + name);
+          type = mapType(obfuscatedToOriginalMapping, minifiedEnclosing + "$" + name);
           if (type != null) {
             assert type.startsWith(enclosingType + "$");
             name = type.substring(enclosingType.length() + 1);

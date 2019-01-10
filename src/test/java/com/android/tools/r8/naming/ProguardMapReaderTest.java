@@ -60,7 +60,7 @@ public class ProguardMapReaderTest {
   @Test
   public void parseMapWithPackageInfo() throws IOException {
     ClassNameMapper mapper = ClassNameMapper.mapperFromString(EXAMPLE_MAP_WITH_PACKAGE_INFO);
-    Assert.assertTrue(mapper.getObfuscatedToOriginalMapping().isEmpty());
+    Assert.assertTrue(mapper.getObfuscatedToOriginalMapping().original.isEmpty());
   }
 
   @Test

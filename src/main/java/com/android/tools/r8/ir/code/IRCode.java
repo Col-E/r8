@@ -711,7 +711,7 @@ public class IRCode {
     return new IRCodeInstructionsIterator(this);
   }
 
-  public ImmutableList<BasicBlock> computeNormalExitBlocks() {
+  public List<BasicBlock> computeNormalExitBlocks() {
     ImmutableList.Builder<BasicBlock> builder = ImmutableList.builder();
     for (BasicBlock block : blocks) {
       if (block.exit().isReturn()) {

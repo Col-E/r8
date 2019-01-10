@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * Implements class path filtering as per
@@ -21,9 +22,9 @@ public class FilteredClassPath {
   private final Path path;
   private final ImmutableList<String> pattern;
 
-  public FilteredClassPath(Path path, ImmutableList<String> pattern) {
+  public FilteredClassPath(Path path, List<String> pattern) {
     this.path = path;
-    this.pattern = pattern;
+    this.pattern = ImmutableList.copyOf(pattern);
   }
 
   private FilteredClassPath(Path path) {

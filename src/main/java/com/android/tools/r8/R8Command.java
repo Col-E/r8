@@ -357,7 +357,7 @@ public final class R8Command extends BaseCompilerCommand {
     private R8Command makeR8Command() {
       Reporter reporter = getReporter();
       DexItemFactory factory = new DexItemFactory();
-      ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
+      List<ProguardConfigurationRule> mainDexKeepRules;
       if (this.mainDexRules.isEmpty()) {
         mainDexKeepRules = ImmutableList.of();
       } else {
@@ -510,7 +510,7 @@ public final class R8Command extends BaseCompilerCommand {
 
   static final String USAGE_MESSAGE = R8CommandParser.USAGE_MESSAGE;
 
-  private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
+  private final List<ProguardConfigurationRule> mainDexKeepRules;
   private final ProguardConfiguration proguardConfiguration;
   private final boolean enableTreeShaking;
   private final boolean enableMinification;
@@ -571,7 +571,7 @@ public final class R8Command extends BaseCompilerCommand {
   private R8Command(
       AndroidApp inputApp,
       ProgramConsumer programConsumer,
-      ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
+      List<ProguardConfigurationRule> mainDexKeepRules,
       StringConsumer mainDexListConsumer,
       ProguardConfiguration proguardConfiguration,
       CompilationMode mode,

@@ -466,11 +466,11 @@ public class ProguardConfiguration {
     return dexItemFactory;
   }
 
-  public ImmutableList<FilteredClassPath> getInjars() {
+  public List<FilteredClassPath> getInjars() {
     return injars;
   }
 
-  public ImmutableList<FilteredClassPath> getLibraryjars() {
+  public List<FilteredClassPath> getLibraryjars() {
     return libraryjars;
   }
 
@@ -554,7 +554,7 @@ public class ProguardConfiguration {
     return dontNotePatterns;
   }
 
-  public ImmutableList<ProguardConfigurationRule> getRules() {
+  public List<ProguardConfigurationRule> getRules() {
     return rules;
   }
 
@@ -562,15 +562,15 @@ public class ProguardConfiguration {
     return overloadAggressively && !useUniqueClassMemberNames;
   }
 
-  public ImmutableList<String> getObfuscationDictionary() {
+  public List<String> getObfuscationDictionary() {
     return obfuscationDictionary;
   }
 
-  public ImmutableList<String> getClassObfuscationDictionary() {
+  public List<String> getClassObfuscationDictionary() {
     return classObfuscationDictionary;
   }
 
-  public ImmutableList<String> getPackageObfuscationDictionary() {
+  public List<String> getPackageObfuscationDictionary() {
     return packageObfuscationDictionary;
   }
 

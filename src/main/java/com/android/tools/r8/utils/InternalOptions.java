@@ -261,7 +261,7 @@ public class InternalOptions {
   public boolean debug = false;
   public final TestingOptions testing = new TestingOptions();
 
-  public ImmutableList<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
+  public List<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
   public boolean minimalMainDex;
   /**
    * Enable usage of InheritanceClassInDexDistributor for multidex legacy builds.
