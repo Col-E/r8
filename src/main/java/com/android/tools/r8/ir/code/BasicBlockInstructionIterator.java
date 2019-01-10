@@ -370,8 +370,9 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     int i = 0;
     if (downcast != null) {
       Value receiver = invoke.inValues().get(0);
-      TypeLatticeElement castTypeLattice = TypeLatticeElement.fromDexType(
-          downcast, receiver.getTypeLattice().isNullable(), appInfo);
+      TypeLatticeElement castTypeLattice =
+          TypeLatticeElement.fromDexType(
+              downcast, receiver.getTypeLattice().nullability(), appInfo);
       CheckCast castInstruction =
           new CheckCast(code.createValue(castTypeLattice), receiver, downcast);
       castInstruction.setPosition(invoke.getPosition());

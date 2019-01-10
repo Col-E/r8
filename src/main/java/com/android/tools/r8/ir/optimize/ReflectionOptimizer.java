@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.utils.DescriptorUtils.getCanonicalNameFromDescriptor;
 import static com.android.tools.r8.utils.DescriptorUtils.getClassNameFromDescriptor;
 import static com.android.tools.r8.utils.DescriptorUtils.getSimpleClassNameFromDescriptor;
@@ -124,7 +125,8 @@ public class ReflectionOptimizer {
         if (constraints == ConstraintWithTarget.NEVER) {
           continue;
         }
-        TypeLatticeElement typeLattice = TypeLatticeElement.classClassType(appInfo);
+        TypeLatticeElement typeLattice =
+            TypeLatticeElement.classClassType(appInfo, definitelyNotNull());
         Value value = code.createValue(typeLattice, invoke.getLocalInfo());
         ConstClass constClass = new ConstClass(value, type);
         it.replaceCurrentInstruction(constClass);

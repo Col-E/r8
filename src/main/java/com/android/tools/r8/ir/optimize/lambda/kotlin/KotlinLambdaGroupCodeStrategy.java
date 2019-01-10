@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -115,7 +118,8 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     NewInstance patchedNewInstance = new NewInstance(
         group.getGroupClassType(),
         context.code.createValue(
-            TypeLatticeElement.fromDexType(newInstance.clazz, false, context.appInfo)));
+            TypeLatticeElement.fromDexType(
+                newInstance.clazz, definitelyNotNull(), context.appInfo)));
     context.instructions().replaceCurrentInstruction(patchedNewInstance);
   }
 
@@ -162,7 +166,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     // Since all captured values of non-primitive types are stored in fields of type
     // java.lang.Object, we need to cast them to appropriate type to satisfy the verifier.
     TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(fieldType, false, context.appInfo);
+        TypeLatticeElement.fromDexType(fieldType, definitelyNotNull(), context.appInfo);
     Value newValue = context.code.createValue(castTypeLattice, newInstanceGet.getLocalInfo());
     newInstanceGet.outValue().replaceUsers(newValue);
     CheckCast cast = new CheckCast(newValue, newInstanceGet.outValue(), fieldType);
@@ -188,7 +192,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     context.instructions().replaceCurrentInstruction(
         new StaticGet(
             context.code.createValue(
-                TypeLatticeElement.fromDexType(staticGet.getField().type, true, context.appInfo)),
+                TypeLatticeElement.fromDexType(staticGet.getField().type, maybeNull(), context.appInfo)),
             mapSingletonInstanceField(context.factory, staticGet.getField())));
   }
 
@@ -223,7 +227,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
   private Value createValueForType(CodeProcessor context, DexType returnType) {
     return returnType == context.factory.voidType ? null :
         context.code.createValue(
-            TypeLatticeElement.fromDexType(returnType, true, context.appInfo));
+            TypeLatticeElement.fromDexType(returnType, maybeNull(), context.appInfo));
   }
 
   private List<Value> mapInitializerArgs(

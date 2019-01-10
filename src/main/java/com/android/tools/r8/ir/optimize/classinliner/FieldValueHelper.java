@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -92,7 +94,7 @@ final class FieldValueHelper {
           new Phi(
               code.valueNumberGenerator.next(),
               block,
-              TypeLatticeElement.fromDexType(field.type, true, appInfo),
+              TypeLatticeElement.fromDexType(field.type, maybeNull(), appInfo),
               null,
               RegisterReadType.NORMAL);
       ins.put(block, phi);
@@ -140,7 +142,8 @@ final class FieldValueHelper {
     assert root == valueProducingInsn;
     if (defaultValue == null) {
       // If we met newInstance it means that default value is supposed to be used.
-      defaultValue = code.createValue(TypeLatticeElement.fromDexType(field.type, true, appInfo));
+      defaultValue = code.createValue(
+          TypeLatticeElement.fromDexType(field.type, maybeNull(), appInfo));
       ConstNumber defaultValueInsn = new ConstNumber(defaultValue, 0);
       defaultValueInsn.setPosition(root.getPosition());
       LinkedList<Instruction> instructions = block.getInstructions();

@@ -11,27 +11,75 @@ import java.util.Set;
 
 public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   private static final ReferenceTypeLatticeElement NULL_INSTANCE =
-      new ReferenceTypeLatticeElement(true, DexItemFactory.nullValueType);
+      new ReferenceTypeLatticeElement(
+          Nullability.definitelyNull(), DexItemFactory.nullValueType);
 
   // TODO(b/72693244): Consider moving this to ClassTypeLatticeElement.
   final DexType type;
 
-  // Link between maybe-null and definitely-not-null reference type lattices.
-  ReferenceTypeLatticeElement dual;
+  final Nullability nullability;
+  // On-demand link between maybe-null (primary) and definitely-null reference type lattices.
+  private ReferenceTypeLatticeElement primaryOrNullVariant;
+  // On-demand link between maybe-null (primary) and definitely-not-null reference type lattices.
+  // This link will be null for non-primary variants.
+  private ReferenceTypeLatticeElement nonNullVariant;
 
-  public ReferenceTypeLatticeElement getOrCreateDualLattice() {
-    throw new Unreachable("Should be defined/used by class/array types.");
-  }
-
-  static void linkDualLattice(ReferenceTypeLatticeElement t1, ReferenceTypeLatticeElement t2) {
-    assert t1.dual == null && t2.dual == null;
-    t1.dual = t2;
-    t2.dual = t1;
-  }
-
-  ReferenceTypeLatticeElement(boolean isNullable, DexType type) {
-    super(isNullable);
+  ReferenceTypeLatticeElement(Nullability nullability, DexType type) {
+    this.nullability = nullability;
     this.type = type;
+  }
+
+  public ReferenceTypeLatticeElement getOrCreateVariant(Nullability variantNullability) {
+    if (nullability == variantNullability) {
+      return this;
+    }
+    ReferenceTypeLatticeElement primary = nullability.isMaybeNull() ? this : primaryOrNullVariant;
+    synchronized (this) {
+      // If the link towards the factory-created, canonicalized MAYBE_NULL variant doesn't exist,
+      // we are in the middle of join() computation.
+      if (primary == null) {
+        primary = createVariant(Nullability.maybeNull());
+        linkVariant(primary, this);
+      }
+    }
+    if (variantNullability.isMaybeNull()) {
+      return primary;
+    }
+    synchronized (primary) {
+      ReferenceTypeLatticeElement variant =
+          variantNullability.isDefinitelyNull()
+              ? primary.primaryOrNullVariant
+              : primary.nonNullVariant;
+      if (variant == null) {
+        variant = createVariant(variantNullability);
+        linkVariant(primary, variant);
+      }
+      return variant;
+    }
+  }
+
+  ReferenceTypeLatticeElement createVariant(Nullability nullability) {
+    throw new Unreachable("Should be defined by class/array type lattice element");
+  }
+
+  private static void linkVariant(
+      ReferenceTypeLatticeElement primary, ReferenceTypeLatticeElement variant) {
+    assert primary.nullability().isMaybeNull();
+    assert variant.primaryOrNullVariant == null && variant.nonNullVariant == null;
+    variant.primaryOrNullVariant = primary;
+    if (variant.nullability().isDefinitelyNotNull()) {
+      assert primary.nonNullVariant == null;
+      primary.nonNullVariant = variant;
+    } else {
+      assert variant.nullability().isDefinitelyNull();
+      assert primary.primaryOrNullVariant == null;
+      primary.primaryOrNullVariant = variant;
+    }
+  }
+
+  @Override
+  public Nullability nullability() {
+    return nullability;
   }
 
   static ReferenceTypeLatticeElement getNullTypeLatticeElement() {
@@ -60,7 +108,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public String toString() {
-    return isNullableString() + type.toString();
+    return nullability.toString() + " " + type.toString();
   }
 
   @Override
@@ -72,7 +120,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
       return false;
     }
     ReferenceTypeLatticeElement other = (ReferenceTypeLatticeElement) o;
-    if (this.isNullable() != other.isNullable()) {
+    if (nullability() != other.nullability()) {
       return false;
     }
     if (!type.equals(other.type)) {

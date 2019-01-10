@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -99,7 +100,8 @@ public class ConstMethodHandle extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.methodHandleType, false, appInfo);
+    return TypeLatticeElement.fromDexType(
+        appInfo.dexItemFactory.methodHandleType, Nullability.definitelyNotNull(), appInfo);
   }
 
   @Override

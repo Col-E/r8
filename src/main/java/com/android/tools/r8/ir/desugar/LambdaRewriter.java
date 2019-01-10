@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -283,7 +284,8 @@ public class LambdaRewriter {
     if (lambdaInstanceValue == null) {
       // The out value might be empty in case it was optimized out.
       lambdaInstanceValue = code.createValue(
-          TypeLatticeElement.fromDexType(lambdaClass.type, true, appInfo));
+          TypeLatticeElement.fromDexType(
+              lambdaClass.type, Nullability.maybeNull(), appInfo));
     }
 
     // For stateless lambdas we replace InvokeCustom instruction with StaticGet

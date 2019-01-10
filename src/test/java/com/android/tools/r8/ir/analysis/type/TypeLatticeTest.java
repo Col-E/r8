@@ -76,7 +76,7 @@ public class TypeLatticeTest extends TestBase {
   }
 
   private TypeLatticeElement element(DexType type) {
-    return TypeLatticeElement.fromDexType(type, true, appInfo);
+    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appInfo);
   }
 
   private ArrayTypeLatticeElement array(int nesting, DexType base) {
@@ -506,7 +506,8 @@ public class TypeLatticeTest extends TestBase {
   @Test
   public void testSelfOrderWithoutSubtypingInfo() {
     DexType type = appInfo.dexItemFactory.createType("Lmy/Type;");
-    TypeLatticeElement nonNullType = fromDexType(type, false, appInfo);
+    TypeLatticeElement nonNullType =
+        fromDexType(type, Nullability.definitelyNotNull(), appInfo);
     TypeLatticeElement nullableType = nonNullType.asNullable();
     // TODO(zerny): Once the null lattice is used for null info check that the class-type null is
     // also more specific that the nullableType.

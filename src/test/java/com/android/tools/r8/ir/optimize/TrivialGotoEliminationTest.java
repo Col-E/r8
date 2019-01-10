@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -129,7 +130,12 @@ public class TrivialGotoEliminationTest {
     block0.setNumber(0);
     Value value =
         new Value(
-            0, TypeLatticeElement.fromDexType(DexItemFactory.catchAllType, false, appInfo), null);
+            0,
+            TypeLatticeElement.fromDexType(
+                DexItemFactory.catchAllType,
+                Nullability.definitelyNotNull(),
+                appInfo),
+            null);
     instruction = new Argument(value);
     instruction.setPosition(position);
     block0.add(instruction);

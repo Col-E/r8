@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
 
 import com.android.tools.r8.graph.AppInfo;
@@ -94,10 +96,10 @@ public class TypeAnalysis {
           // Receiver
           derived = fromDexType(encodedMethod.method.holder,
               // Now we try inlining even when the receiver could be null.
-              encodedMethod != context, appInfo);
+              encodedMethod == context ? definitelyNotNull() : maybeNull(), appInfo);
         } else {
           DexType argType = encodedMethod.method.proto.parameters.values[argumentsSeen];
-          derived = fromDexType(argType, true, appInfo);
+          derived = fromDexType(argType, maybeNull(), appInfo);
         }
         argumentsSeen++;
         updateTypeOfValue(outValue, derived);

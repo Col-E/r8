@@ -9,13 +9,9 @@ import com.android.tools.r8.graph.DexType;
 public class TopTypeLatticeElement extends TypeLatticeElement {
   private static final TopTypeLatticeElement INSTANCE = new TopTypeLatticeElement();
 
-  private TopTypeLatticeElement() {
-    super(true);
-  }
-
   @Override
-  public TypeLatticeElement asNullable() {
-    return this;
+  public Nullability nullability() {
+    return Nullability.maybeNull();
   }
 
   static TopTypeLatticeElement getInstance() {

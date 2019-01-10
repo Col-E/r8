@@ -775,7 +775,7 @@ public class Value {
   public boolean isNeverNull() {
     return neverNull
         || (definition != null && definition.isNonNull())
-        || (typeLattice.isReference() && typeLattice.nullElement().isDefinitelyNotNull());
+        || (typeLattice.isReference() && typeLattice.nullability().isDefinitelyNotNull());
   }
 
   public boolean canBeNull() {

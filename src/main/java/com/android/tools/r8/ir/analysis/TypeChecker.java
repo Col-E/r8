@@ -73,7 +73,7 @@ public class TypeChecker {
             : instruction.asStaticPut().inValue();
     TypeLatticeElement valueType = value.getTypeLattice();
     TypeLatticeElement fieldType = TypeLatticeElement.fromDexType(
-        instruction.getField().type, valueType.isNullable(), appInfo);
+        instruction.getField().type, valueType.nullability(), appInfo);
     if (isSubtypeOf(valueType, fieldType)) {
       return true;
     }
@@ -91,13 +91,14 @@ public class TypeChecker {
   public boolean check(Throw instruction) {
     TypeLatticeElement valueType = instruction.exception().getTypeLattice();
     TypeLatticeElement throwableType = TypeLatticeElement.fromDexType(
-        appInfo.dexItemFactory.throwableType, valueType.isNullable(), appInfo);
+        appInfo.dexItemFactory.throwableType, valueType.nullability(), appInfo);
     return isSubtypeOf(valueType, throwableType);
   }
 
   private boolean isSubtypeOf(
       TypeLatticeElement expectedSubtype, TypeLatticeElement expectedSupertype) {
-    return expectedSubtype.lessThanOrEqual(expectedSupertype, appInfo)
+    return (expectedSubtype.isNullType() && expectedSupertype.isReference())
+        || expectedSubtype.lessThanOrEqual(expectedSupertype, appInfo)
         || expectedSubtype.isBasedOnMissingClass(appInfo);
   }
 }

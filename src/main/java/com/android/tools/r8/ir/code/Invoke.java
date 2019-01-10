@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.List;
@@ -266,6 +267,6 @@ public abstract class Invoke extends Instruction {
     if (returnType.isVoidType()) {
       throw new Unreachable("void methods have no type.");
     }
-    return TypeLatticeElement.fromDexType(returnType, true, appInfo);
+    return TypeLatticeElement.fromDexType(returnType, Nullability.maybeNull(), appInfo);
   }
 }

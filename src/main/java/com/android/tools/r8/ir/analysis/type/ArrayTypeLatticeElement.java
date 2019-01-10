@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -11,8 +14,9 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   private final TypeLatticeElement memberTypeLattice;
 
-  public ArrayTypeLatticeElement(TypeLatticeElement memberTypeLattice, boolean isNullable) {
-    super(isNullable, null);
+  public ArrayTypeLatticeElement(
+      TypeLatticeElement memberTypeLattice, Nullability nullability) {
+    super(nullability, null);
     this.memberTypeLattice = memberTypeLattice;
   }
 
@@ -55,28 +59,21 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public ReferenceTypeLatticeElement getOrCreateDualLattice() {
-    if (dual != null) {
-      return dual;
+  ReferenceTypeLatticeElement createVariant(Nullability nullability) {
+    if (this.nullability == nullability) {
+      return this;
     }
-    synchronized (this) {
-      if (dual == null) {
-        ArrayTypeLatticeElement dual =
-            new ArrayTypeLatticeElement(memberTypeLattice, !isNullable());
-        linkDualLattice(this, dual);
-      }
-    }
-    return this.dual;
+    return new ArrayTypeLatticeElement(memberTypeLattice, nullability);
   }
 
   @Override
   public TypeLatticeElement asNullable() {
-    return isNullable() ? this : getOrCreateDualLattice();
+    return nullability.isNullable() ? this : getOrCreateVariant(maybeNull());
   }
 
   @Override
   public TypeLatticeElement asNonNullable() {
-    return !isNullable() ? this : getOrCreateDualLattice();
+    return nullability.isDefinitelyNotNull() ? this : getOrCreateVariant(definitelyNotNull());
   }
 
   @Override
@@ -108,7 +105,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
       return false;
     }
     ArrayTypeLatticeElement other = (ArrayTypeLatticeElement) o;
-    if (isNullable() != other.isNullable()) {
+    if (nullability() != other.nullability()) {
       return false;
     }
     if (type != null && other.type != null && !type.equals(other.type)) {
@@ -129,21 +126,21 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
       // Return null indicating the join is the same as the member to avoid object allocation.
       return null;
     }
-    boolean isNullable = isNullable() || other.isNullable();
+    Nullability nullability = nullability().join(other.nullability());
     if (aMember.isArrayType() && bMember.isArrayType()) {
       ReferenceTypeLatticeElement join =
           aMember.asArrayTypeLatticeElement().join(bMember.asArrayTypeLatticeElement(), appInfo);
-      return join == null ? null : new ArrayTypeLatticeElement(join, isNullable);
+      return join == null ? null : new ArrayTypeLatticeElement(join, nullability);
     }
     if (aMember.isClassType() && bMember.isClassType()) {
       ClassTypeLatticeElement join =
           aMember.asClassTypeLatticeElement().join(bMember.asClassTypeLatticeElement(), appInfo);
-      return join == null ? null : new ArrayTypeLatticeElement(join, isNullable);
+      return join == null ? null : new ArrayTypeLatticeElement(join, nullability);
     }
     if (aMember.isPrimitive() || bMember.isPrimitive()) {
-      return objectClassType(appInfo, isNullable);
+      return objectClassType(appInfo, nullability);
     }
-    return objectArrayType(appInfo, isNullable);
+    return objectArrayType(appInfo, nullability);
   }
 
 }

@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -80,7 +81,8 @@ public class MemberValuePropagation {
     if (replacement == null && rule != null
         && rule.hasReturnValue() && rule.getReturnValue().isField()) {
       DexField field = rule.getReturnValue().getField();
-      assert TypeLatticeElement.fromDexType(field.type, true, appInfo) == typeLattice;
+      assert typeLattice
+          == TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appInfo);
       DexEncodedField staticField = appInfo.lookupStaticTarget(field.clazz, field);
       if (staticField != null) {
         Value value = code.createValue(typeLattice, instruction.getLocalInfo());

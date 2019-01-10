@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -20,17 +23,22 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   private Set<DexType> lazyInterfaces;
   private AppInfo appInfoForLazyInterfacesComputation;
 
-  public ClassTypeLatticeElement(DexType classType, boolean isNullable, Set<DexType> interfaces) {
-    this(classType, isNullable, interfaces, null);
+  public ClassTypeLatticeElement(
+      DexType classType, Nullability nullability, Set<DexType> interfaces) {
+    this(classType, nullability, interfaces, null);
   }
 
-  public ClassTypeLatticeElement(DexType classType, boolean isNullable, AppInfo appInfo) {
-    this(classType, isNullable, null, appInfo);
+  public ClassTypeLatticeElement(
+      DexType classType, Nullability nullability, AppInfo appInfo) {
+    this(classType, nullability, null, appInfo);
   }
 
   private ClassTypeLatticeElement(
-      DexType classType, boolean isNullable, Set<DexType> interfaces, AppInfo appInfo) {
-    super(isNullable, classType);
+      DexType classType,
+      Nullability nullability,
+      Set<DexType> interfaces,
+      AppInfo appInfo) {
+    super(nullability, classType);
     assert classType.isClassType();
     appInfoForLazyInterfacesComputation = appInfo;
     lazyInterfaces = interfaces;
@@ -57,29 +65,22 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public ReferenceTypeLatticeElement getOrCreateDualLattice() {
-    if (dual != null) {
-      return dual;
+  ReferenceTypeLatticeElement createVariant(Nullability nullability) {
+    if (this.nullability == nullability) {
+      return this;
     }
-    synchronized (this) {
-      if (dual == null) {
-        ClassTypeLatticeElement dual =
-            new ClassTypeLatticeElement(
-                type, !isNullable(), lazyInterfaces, appInfoForLazyInterfacesComputation);
-        linkDualLattice(this, dual);
-      }
-    }
-    return this.dual;
+    return new ClassTypeLatticeElement(
+        type, nullability, lazyInterfaces, appInfoForLazyInterfacesComputation);
   }
 
   @Override
   public TypeLatticeElement asNullable() {
-    return isNullable() ? this : getOrCreateDualLattice();
+    return nullability.isNullable() ? this : getOrCreateVariant(maybeNull());
   }
 
   @Override
   public TypeLatticeElement asNonNullable() {
-    return !isNullable() ? this : getOrCreateDualLattice();
+    return nullability.isDefinitelyNotNull() ? this : getOrCreateVariant(definitelyNotNull());
   }
 
   @Override
@@ -126,8 +127,8 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     if (lubItfs == null) {
       lubItfs = computeLeastUpperBoundOfInterfaces(appInfo, c1lubItfs, c2lubItfs);
     }
-    boolean isNullable = isNullable() || other.isNullable();
-    return new ClassTypeLatticeElement(lubType, isNullable, lubItfs);
+    Nullability nullability = nullability().join(other.nullability());
+    return new ClassTypeLatticeElement(lubType, nullability, lubItfs);
   }
 
   private enum InterfaceMarker {

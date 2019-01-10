@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.DexDebugEvent.AdvanceLine;
@@ -17,6 +19,7 @@ import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.ReferenceTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Position;
@@ -993,40 +996,43 @@ public class DexItemFactory {
   }
 
   public ReferenceTypeLatticeElement createReferenceTypeLatticeElement(
-      DexType type, boolean isNullable, AppInfo appInfo) {
-    ReferenceTypeLatticeElement typeLattice = referenceTypeLatticeElements.get(type);
-    if (typeLattice != null) {
-      return isNullable == typeLattice.isNullable() ? typeLattice
-          : typeLattice.getOrCreateDualLattice();
+      DexType type, Nullability nullability, AppInfo appInfo) {
+    ReferenceTypeLatticeElement primary = referenceTypeLatticeElements.get(type);
+    if (primary != null) {
+      return nullability == primary.nullability()
+          ? primary
+          : primary.getOrCreateVariant(nullability);
     }
     synchronized (type) {
-      typeLattice = referenceTypeLatticeElements.get(type);
-      if (typeLattice == null) {
+      primary = referenceTypeLatticeElements.get(type);
+      if (primary == null) {
         if (type.isClassType()) {
           if (!type.isUnknown() && type.isInterface()) {
-            typeLattice = new ClassTypeLatticeElement(
-                appInfo.dexItemFactory.objectType, isNullable, ImmutableSet.of(type));
+            primary = new ClassTypeLatticeElement(objectType, maybeNull(), ImmutableSet.of(type));
           } else {
             // In theory, `interfaces` is the least upper bound of implemented interfaces.
             // It is expensive to walk through type hierarchy; collect implemented interfaces; and
             // compute the least upper bound of two interface sets. Hence, lazy computations.
             // Most likely during lattice join. See {@link ClassTypeLatticeElement#getInterfaces}.
-            typeLattice = new ClassTypeLatticeElement(type, isNullable, appInfo);
+            primary = new ClassTypeLatticeElement(type, maybeNull(), appInfo);
           }
         } else {
           assert type.isArrayType();
           DexType elementType = type.toArrayElementType(this);
           TypeLatticeElement elementTypeLattice =
-              TypeLatticeElement.fromDexType(elementType, true, appInfo, true);
-          typeLattice = new ArrayTypeLatticeElement(elementTypeLattice, isNullable);
+              TypeLatticeElement.fromDexType(elementType, maybeNull(), appInfo, true);
+          primary = new ArrayTypeLatticeElement(elementTypeLattice, maybeNull());
         }
-        referenceTypeLatticeElements.put(type, typeLattice);
+        referenceTypeLatticeElements.put(type, primary);
       }
+      // Make sure that canonicalized version is MAYBE_NULL variant.
+      assert primary.nullability().isMaybeNull();
     }
-    // The call to getOrCreateDualLattice can't be under the DexType synchronized block, since that
+    // The call to getOrCreateVariant can't be under the DexType synchronized block, since that
     // can create deadlocks with ClassTypeLatticeElement::getInterfaces (both lock on the lattice).
-    return isNullable == typeLattice.isNullable() ? typeLattice
-        : typeLattice.getOrCreateDualLattice();
+    return nullability == primary.nullability()
+        ? primary
+        : primary.getOrCreateVariant(nullability);
   }
 
   private static <S extends PresortedComparable<S>> void assignSortedIndices(Collection<S> items,

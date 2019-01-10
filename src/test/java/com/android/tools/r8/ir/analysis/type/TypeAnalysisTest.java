@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -282,9 +284,9 @@ public class TypeAnalysisTest extends SmaliTestBase {
     DexType test = appInfo.dexItemFactory.createType("LTest;");
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
         ArrayLength.class, INT,
-        ConstString.class, TypeLatticeElement.stringClassType(appInfo),
-        CheckCast.class, TypeLatticeElement.fromDexType(test, true, appInfo),
-        NewInstance.class, TypeLatticeElement.fromDexType(test, false, appInfo));
+        ConstString.class, TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
+        CheckCast.class, TypeLatticeElement.fromDexType(test, maybeNull(), appInfo),
+        NewInstance.class, TypeLatticeElement.fromDexType(test, definitelyNotNull(), appInfo));
     IRCode irCode =
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
@@ -313,9 +315,9 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .getMethod();
     DexType test = appInfo.dexItemFactory.createType("LTest;");
     Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-      ConstString.class, TypeLatticeElement.stringClassType(appInfo),
+      ConstString.class, TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
       InstanceOf.class, INT,
-      StaticGet.class, TypeLatticeElement.fromDexType(test, true, appInfo));
+      StaticGet.class, TypeLatticeElement.fromDexType(test, maybeNull(), appInfo));
     IRCode irCode =
         method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
     TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
