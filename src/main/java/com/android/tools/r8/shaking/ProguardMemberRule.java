@@ -42,8 +42,9 @@ public class ProguardMemberRule {
       return accessFlags;
     }
 
-    public void setAccessFlags(ProguardAccessFlags flags) {
+    public Builder setAccessFlags(ProguardAccessFlags flags) {
       accessFlags = flags;
+      return this;
     }
 
     public ProguardAccessFlags getNegatedAccessFlags() {
@@ -54,28 +55,32 @@ public class ProguardMemberRule {
       negatedAccessFlags = flags;
     }
 
-    public void setRuleType(ProguardMemberType ruleType) {
+    public Builder setRuleType(ProguardMemberType ruleType) {
       this.ruleType = ruleType;
+      return this;
     }
 
     public ProguardTypeMatcher getTypeMatcher() {
       return type;
     }
 
-    public void setTypeMatcher(ProguardTypeMatcher type) {
+    public Builder setTypeMatcher(ProguardTypeMatcher type) {
       this.type = type;
+      return this;
     }
 
-    public void setName(IdentifierPatternWithWildcards identifierPatternWithWildcards) {
+    public Builder setName(IdentifierPatternWithWildcards identifierPatternWithWildcards) {
       this.name = ProguardNameMatcher.create(identifierPatternWithWildcards);
+      return this;
     }
 
     public void setArguments(List<ProguardTypeMatcher> arguments) {
       this.arguments = arguments;
     }
 
-    public void setReturnValue(ProguardMemberRuleReturnValue value) {
+    public Builder setReturnValue(ProguardMemberRuleReturnValue value) {
       returnValue = value;
+      return this;
     }
 
     public boolean isValid() {

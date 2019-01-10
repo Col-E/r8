@@ -79,6 +79,7 @@ public final class R8Command extends BaseCompilerCommand {
 
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private Consumer<ProguardConfiguration.Builder> proguardConfigurationConsumer = null;
+    private Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer = null;
     private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
     private boolean disableTreeShaking = false;
     private boolean disableMinification = false;
@@ -453,6 +454,7 @@ public final class R8Command extends BaseCompilerCommand {
               proguardCompatibilityRulesOutput,
               keptGraphConsumer,
               mainDexKeptGraphConsumer,
+              syntheticProguardRulesConsumer,
               isOptimizeMultidexForLinearAlloc());
 
       return command;
@@ -468,6 +470,15 @@ public final class R8Command extends BaseCompilerCommand {
             }
             c.accept(builder);
           };
+    }
+
+    void addSyntheticProguardRulesConsumerForTesting(
+        Consumer<List<ProguardConfigurationRule>> consumer) {
+      syntheticProguardRulesConsumer =
+          syntheticProguardRulesConsumer == null
+              ? consumer
+              : syntheticProguardRulesConsumer.andThen(consumer);
+
     }
 
     // Internal for-testing method to add post-processors of the proguard configuration.
@@ -520,6 +531,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final Path proguardCompatibilityRulesOutput;
   private final GraphConsumer keptGraphConsumer;
   private final GraphConsumer mainDexKeptGraphConsumer;
+  private final Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -586,6 +598,7 @@ public final class R8Command extends BaseCompilerCommand {
       Path proguardCompatibilityRulesOutput,
       GraphConsumer keptGraphConsumer,
       GraphConsumer mainDexKeptGraphConsumer,
+      Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer,
       boolean optimizeMultidexForLinearAlloc) {
     super(inputApp, mode, programConsumer, mainDexListConsumer, minApiLevel, reporter,
         enableDesugaring, optimizeMultidexForLinearAlloc);
@@ -601,6 +614,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
     this.keptGraphConsumer = keptGraphConsumer;
     this.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
+    this.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -615,6 +629,7 @@ public final class R8Command extends BaseCompilerCommand {
     proguardCompatibilityRulesOutput = null;
     keptGraphConsumer = null;
     mainDexKeptGraphConsumer = null;
+    syntheticProguardRulesConsumer = null;
   }
 
   /** Get the enable-tree-shaking state. */
@@ -722,6 +737,8 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
     internal.dataResourceConsumer = internal.programConsumer.getDataResourceConsumer();
+
+    internal.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
 
     // Default is to remove Java assertion code as Dalvik and Art does not reliable support
     // Java assertions. When generation class file output always keep the Java assertions code.

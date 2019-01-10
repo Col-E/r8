@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 
 public class InternalOptions {
 
@@ -355,6 +356,7 @@ public class InternalOptions {
   public GraphConsumer mainDexKeptGraphConsumer = null;
 
   public Path proguardCompatibilityRulesOutput = null;
+  public Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer = null;
 
   public static boolean assertionsEnabled() {
     boolean assertionsEnabled = false;

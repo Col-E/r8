@@ -6,15 +6,21 @@ package com.android.tools.r8;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
+import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, R8TestRunResult> {
 
   private final Backend backend;
+  private final ProguardConfiguration proguardConfiguration;
+  private final List<ProguardConfigurationRule> syntheticProguardRules;
   private final String proguardMap;
   private final CollectingGraphConsumer graphConsumer;
 
@@ -22,10 +28,14 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
       TestState state,
       Backend backend,
       AndroidApp app,
+      ProguardConfiguration proguardConfiguration,
+      List<ProguardConfigurationRule> syntheticProguardRules,
       String proguardMap,
       CollectingGraphConsumer graphConsumer) {
     super(state, app);
     this.backend = backend;
+    this.proguardConfiguration = proguardConfiguration;
+    this.syntheticProguardRules = syntheticProguardRules;
     this.proguardMap = proguardMap;
     this.graphConsumer = graphConsumer;
   }
@@ -53,6 +63,26 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   public GraphInspector graphInspector() throws IOException, ExecutionException {
     assert graphConsumer != null;
     return new GraphInspector(graphConsumer, inspector());
+  }
+
+  public ProguardConfiguration getProguardConfiguration() {
+    return proguardConfiguration;
+  }
+
+  public R8TestCompileResult inspectProguardConfiguration(
+      Consumer<ProguardConfiguration> consumer) {
+    consumer.accept(getProguardConfiguration());
+    return self();
+  }
+
+  public List<ProguardConfigurationRule> getSyntheticProguardRules() {
+    return syntheticProguardRules;
+  }
+
+  public R8TestCompileResult inspectSyntheticProguardRules(
+      Consumer<List<ProguardConfigurationRule>> consumer) {
+    consumer.accept(getSyntheticProguardRules());
+    return self();
   }
 
   @Override

@@ -20,6 +20,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
+import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -1692,6 +1693,12 @@ public class ToolHelper {
   public static R8Command.Builder addProguardConfigurationConsumer(
       R8Command.Builder builder, Consumer<ProguardConfiguration.Builder> consumer) {
     builder.addProguardConfigurationConsumerForTesting(consumer);
+    return builder;
+  }
+
+  public static R8Command.Builder addSyntheticProguardRulesConsumerForTesting(
+      R8Command.Builder builder, Consumer<List<ProguardConfigurationRule>> consumer) {
+    builder.addSyntheticProguardRulesConsumerForTesting(consumer);
     return builder;
   }
 

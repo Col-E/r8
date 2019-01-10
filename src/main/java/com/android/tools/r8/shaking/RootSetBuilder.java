@@ -60,7 +60,7 @@ public class RootSetBuilder {
 
   private final AppView<? extends AppInfo> appView;
   private final DirectMappedDexApplication application;
-  private final Collection<ProguardConfigurationRule> rules;
+  private final Iterable<? extends ProguardConfigurationRule> rules;
   private final Map<DexDefinition, Set<ProguardKeepRule>> noShrinking = new IdentityHashMap<>();
   private final Set<DexDefinition> noOptimization = Sets.newIdentityHashSet();
   private final Set<DexDefinition> noObfuscation = Sets.newIdentityHashSet();
@@ -89,11 +89,11 @@ public class RootSetBuilder {
   public RootSetBuilder(
       AppView<? extends AppInfo> appView,
       DexApplication application,
-      Collection<? extends ProguardConfigurationRule> rules,
+      Iterable<? extends ProguardConfigurationRule> rules,
       InternalOptions options) {
     this.appView = appView;
     this.application = application.asDirect();
-    this.rules = rules == null ? null : Collections.unmodifiableCollection(rules);
+    this.rules = rules;
     this.options = options;
   }
 

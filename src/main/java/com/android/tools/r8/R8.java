@@ -48,12 +48,15 @@ import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.shaking.ProguardConfigurationUtils;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.StaticClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.VerticalClassMerger;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -67,6 +70,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.VersionProperties;
+import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import java.io.ByteArrayOutputStream;
@@ -77,8 +81,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -252,6 +258,7 @@ public class R8 {
       AppView<AppInfoWithSubtyping> appView =
           new AppView<>(
               new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
+      List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       RootSet rootSet;
       String proguardSeedsData = null;
       timing.begin("Strip unused code");
@@ -278,10 +285,26 @@ public class R8 {
         ProguardConfiguration.Builder compatibility =
             ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
 
+        // Add synthesized -assumevalues from min api if relevant.
+        if (options.isGeneratingDex()) {
+          if (!ProguardConfigurationUtils.hasExplicitAssumeValuesRuleForMinSdk(
+              options.itemFactory,
+              options.getProguardConfiguration().getRules())) {
+            synthesizedProguardRules.add(
+                ProguardConfigurationUtils.buildAssumeValuesForApiLevel(
+                    options.itemFactory,
+                    AndroidApiLevel.getAndroidApiLevel(options.minApiLevel)));
+          }
+        }
+
         rootSet =
             new RootSetBuilder(
-                    appView, application, options.getProguardConfiguration().getRules(), options)
-                .run(executorService);
+                appView,
+                application,
+                Iterables.concat(
+                    options.getProguardConfiguration().getRules(), synthesizedProguardRules),
+                options
+            ).run(executorService);
 
         Enqueuer enqueuer = new Enqueuer(appView, options, null, compatibility);
         appView.setAppInfo(
@@ -607,6 +630,12 @@ public class R8 {
       // Validity checks.
       assert application.classes().stream().allMatch(DexClass::isValid);
       assert rootSet.verifyKeptItemsAreKept(application, appView.appInfo(), options);
+
+      // Report synthetic rules (only for testing).
+      // TODO(b/120959039): Move this to being reported through the graph consumer.
+      if (options.syntheticProguardRulesConsumer != null) {
+        options.syntheticProguardRulesConsumer.accept(synthesizedProguardRules);
+      }
 
       // Generate the resulting application resources.
       writeApplication(

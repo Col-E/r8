@@ -9,6 +9,8 @@ import com.android.tools.r8.TestBase.R8Mode;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
+import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.file.Path;
@@ -67,9 +69,26 @@ public class R8TestBuilder
     builder.setDisableTreeShaking(!enableTreeShaking);
     builder.setDisableMinification(!enableMinification);
     builder.setProguardMapConsumer((string, ignore) -> proguardMapBuilder.append(string));
-    ToolHelper.runR8WithoutResult(builder.build(), optionsConsumer);
+
+    class Box {
+      private List<ProguardConfigurationRule> syntheticProguardRules;
+      private ProguardConfiguration proguardConfiguration;
+    }
+    Box box = new Box();
+    ToolHelper.addSyntheticProguardRulesConsumerForTesting(
+        builder, rules -> box.syntheticProguardRules = rules);
+    ToolHelper.runR8WithoutResult(
+        builder.build(),
+        optionsConsumer.andThen(
+            options -> box.proguardConfiguration = options.getProguardConfiguration()));
     return new R8TestCompileResult(
-        getState(), backend, app.get(), proguardMapBuilder.toString(), graphConsumer);
+        getState(),
+        backend,
+        app.get(),
+        box.proguardConfiguration,
+        box.syntheticProguardRules,
+        proguardMapBuilder.toString(),
+        graphConsumer);
   }
 
   public R8TestBuilder addDataResources(List<DataEntryResource> resources) {
