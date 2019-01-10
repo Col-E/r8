@@ -165,8 +165,12 @@ def GetResultsForApp(app, config, options):
   if not os.path.exists(checkout_dir):
     with utils.ChangedWorkingDirectory(WORKING_DIR):
       GitClone(git_repo)
-  else:
+  elif options.pull:
     with utils.ChangedWorkingDirectory(checkout_dir):
+      # Checkout build.gradle to avoid merge conflicts.
+      if IsTrackedByGit('build.gradle'):
+        GitCheckout('build.gradle')
+
       if not GitPull():
         result['status'] = 'failed'
         result['error_message'] = 'Unable to pull from remote'
@@ -186,7 +190,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
 
   with utils.ChangedWorkingDirectory(checkout_dir):
     for shrinker in SHRINKERS:
-      if options.shrinker is not None and shrinker != options.shrinker:
+      if options.shrinker and shrinker not in options.shrinker:
         continue
 
       apk_dest = None
@@ -314,8 +318,12 @@ def LogResults(result_per_shrinker_per_app, options):
       print('  skipped ({})'.format(error_message))
       continue
 
-    baseline = result_per_shrinker.get('proguard', {}).get('dex_size', -1)
-    for shrinker, result in result_per_shrinker.iteritems():
+    baseline = float(
+        result_per_shrinker.get('proguard', {}).get('dex_size', -1))
+    for shrinker in SHRINKERS:
+      if shrinker not in result_per_shrinker:
+        continue
+      result = result_per_shrinker.get(shrinker)
       build_status = result.get('build_status')
       if build_status != 'success':
         warn('  {}: {}'.format(shrinker, build_status))
@@ -324,10 +332,13 @@ def LogResults(result_per_shrinker_per_app, options):
         dex_size = result.get('dex_size')
         if dex_size != baseline and baseline >= 0:
           if dex_size < baseline:
-            success('    dex size: {} ({})'.format(
-              dex_size, dex_size - baseline))
-          elif dex_size > baseline:
-            warn('    dex size: {} ({})'.format(dex_size, dex_size - baseline))
+            success('    dex size: {} ({}, -{}%)'.format(
+              dex_size, dex_size - baseline,
+              round((1.0 - dex_size / baseline) * 100), 1))
+          elif dex_size >= baseline:
+            warn('    dex size: {} ({}, +{}%)'.format(
+              dex_size, dex_size - baseline,
+              round((baseline - dex_size) / dex_size * 100, 1)))
         else:
           print('    dex size: {}'.format(dex_size))
         if options.monkey:
@@ -346,18 +357,26 @@ def ParseOptions(argv):
                     help='Whether to install and run app(s) with monkey',
                     default=False,
                     action='store_true')
+  result.add_option('--pull',
+                    help='Whether to pull the latest version of each app',
+                    default=False,
+                    action='store_true')
   result.add_option('--sign_apks',
                     help='Whether the APKs should be signed',
                     default=False,
                     action='store_true')
   result.add_option('--shrinker',
-                    help='The shrinker to use (by default, all are run)',
-                    choices=SHRINKERS)
+                    help='The shrinkers to use (by default, all are run)',
+                    action='append')
   result.add_option('--disable_tot',
                     help='Whether to disable the use of the ToT version of R8',
                     default=False,
                     action='store_true')
-  return result.parse_args(argv)
+  (options, args) = result.parse_args(argv)
+  if options.shrinker:
+    for shrinker in options.shrinker:
+      assert shrinker in SHRINKERS
+  return (options, args)
 
 def main(argv):
   global SHRINKERS
