@@ -471,7 +471,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
         break;
     }
     if (typeName != null) {
-      String renamedName = mapper.getObfuscatedToOriginalMapping().inverse().get(typeName);
+      String renamedName = mapper.getObfuscatedToOriginalMapping().inverse.get(typeName);
       assertNotNull(renamedName);
       assertNotEquals(typeName, renamedName);
       return renamedName.replace('.', '/') + suffix;
@@ -506,7 +506,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
         break;
     }
     if (samePackageAsType != null) {
-      String renamedName = mapper.getObfuscatedToOriginalMapping().inverse().get(samePackageAsType);
+      String renamedName = mapper.getObfuscatedToOriginalMapping().inverse.get(samePackageAsType);
       assertNotNull(renamedName);
       assertNotEquals(samePackageAsType, renamedName);
       if (renamedName.contains(".")) {

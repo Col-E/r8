@@ -9,8 +9,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableList;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -19,7 +19,7 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   protected final AppInfoWithLiveness appInfo;
   protected final RootSet rootSet;
   protected final InternalOptions options;
-  protected final ImmutableList<String> dictionary;
+  protected final List<String> dictionary;
 
   protected final Map<MemberType, DexString> renaming = new IdentityHashMap<>();
   protected final Map<DexType, NamingState<StateType, ?>> states = new IdentityHashMap<>();

@@ -678,7 +678,6 @@ task testJar(type: ShadowJar, dependsOn: testClasses) {
     baseName = "r8tests"
     from sourceSets.test.output
     if (!project.hasProperty('exclude_deps')) {
-        relocate('com.google.common', 'com.android.tools.r8.com.google.common')
         relocate('org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm')
     }
 }

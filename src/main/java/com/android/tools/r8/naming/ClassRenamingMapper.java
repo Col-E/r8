@@ -4,10 +4,11 @@
 
 package com.android.tools.r8.naming;
 
-import com.google.common.collect.BiMap;
+import com.android.tools.r8.utils.BiMapContainer;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.Map;
 
 /**
  * Provides a translation between class names based on a source and target proguard map.
@@ -28,10 +29,11 @@ public class ClassRenamingMapper {
     ImmutableBiMap.Builder<String, String> translationBuilder = ImmutableBiMap.builder();
     ImmutableSet.Builder<String> newClasses = ImmutableSet.builder();
 
-    BiMap<String, String> sourceObfuscatedToOriginal = originalMap.getObfuscatedToOriginalMapping();
-    BiMap<String, String> sourceOriginalToObfuscated = sourceObfuscatedToOriginal.inverse();
-    BiMap<String, String> targetObfuscatedToOriginal = targetMap.getObfuscatedToOriginalMapping();
-    BiMap<String, String> targetOriginalToObfuscated = targetObfuscatedToOriginal.inverse();
+    Map<String, String> sourceOriginalToObfuscated =
+        originalMap.getObfuscatedToOriginalMapping().inverse;
+
+    BiMapContainer<String, String> targetMapping = targetMap.getObfuscatedToOriginalMapping();
+    Map<String, String> targetOriginalToObfuscated = targetMapping.inverse;
 
     for (String originalName : sourceOriginalToObfuscated.keySet()) {
       String sourceObfuscatedName = sourceOriginalToObfuscated.get(originalName);
@@ -44,8 +46,8 @@ public class ClassRenamingMapper {
     }
 
     ImmutableBiMap<String, String> translation = translationBuilder.build();
-    ImmutableSet<String> unusedNames = ImmutableSet
-        .copyOf(Sets.difference(targetObfuscatedToOriginal.keySet(), translation.values()));
+    ImmutableSet<String> unusedNames =
+        ImmutableSet.copyOf(Sets.difference(targetMapping.original.keySet(), translation.values()));
 
     return new ClassRenamingMapper(translation, newClasses.build(), unusedNames);
   }

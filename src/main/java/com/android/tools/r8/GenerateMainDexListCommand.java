@@ -25,7 +25,7 @@ import java.util.List;
 @Keep
 public class GenerateMainDexListCommand extends BaseCommand {
 
-  private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
+  private final List<ProguardConfigurationRule> mainDexKeepRules;
   private final StringConsumer mainDexListConsumer;
   private final GraphConsumer mainDexKeptGraphConsumer;
   private final DexItemFactory factory;
@@ -108,7 +108,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
         return new GenerateMainDexListCommand(isPrintHelp(), isPrintVersion());
       }
 
-      ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
+      List<ProguardConfigurationRule> mainDexKeepRules;
       if (this.mainDexRules.isEmpty()) {
         mainDexKeepRules = ImmutableList.of();
       } else {
@@ -199,7 +199,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
   private GenerateMainDexListCommand(
       DexItemFactory factory,
       AndroidApp inputApp,
-      ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
+      List<ProguardConfigurationRule> mainDexKeepRules,
       StringConsumer mainDexListConsumer,
       GraphConsumer mainDexKeptGraphConsumer,
       Reporter reporter) {

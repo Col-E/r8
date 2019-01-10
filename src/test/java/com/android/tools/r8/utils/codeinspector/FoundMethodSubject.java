@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.code.Instruction;
@@ -125,12 +122,11 @@ public class FoundMethodSubject extends MethodSubject {
     String[] OriginalParameters = new String[signature.parameters.length];
     for (int i = 0; i < OriginalParameters.length; i++) {
       String obfuscated = signature.parameters[i];
-      String original = codeInspector.originalToObfuscatedMapping.inverse().get(obfuscated);
+      String original = codeInspector.obfuscatedToOriginalMapping.get(obfuscated);
       OriginalParameters[i] = original != null ? original : obfuscated;
     }
     String obfuscatedReturnType = signature.type;
-    String originalReturnType =
-        codeInspector.originalToObfuscatedMapping.inverse().get(obfuscatedReturnType);
+    String originalReturnType = codeInspector.obfuscatedToOriginalMapping.get(obfuscatedReturnType);
     String returnType = originalReturnType != null ? originalReturnType : obfuscatedReturnType;
 
     MethodSignature lookupSignature =

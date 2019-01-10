@@ -67,7 +67,7 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
   private String pathForThisPackage(AndroidApp app) throws Exception {
     ClassNameMapper mapper =
         ClassNameMapper.mapperFromString(app.getProguardMapOutputData().getString());
-    String x = mapper.getObfuscatedToOriginalMapping().inverse().get(Main.class.getCanonicalName());
+    String x = mapper.getObfuscatedToOriginalMapping().inverse.get(Main.class.getCanonicalName());
     return x.substring(0, x.lastIndexOf('.')).replace('.', '/');
   }
 

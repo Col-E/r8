@@ -33,7 +33,6 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -41,6 +40,7 @@ import java.lang.reflect.GenericSignatureFormatError;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -60,8 +60,8 @@ class ClassNameMinifier {
 
   private final Map<DexType, DexString> renaming = Maps.newIdentityHashMap();
   private final Map<String, Namespace> states = new HashMap<>();
-  private final ImmutableList<String> packageDictionary;
-  private final ImmutableList<String> classDictionary;
+  private final List<String> packageDictionary;
+  private final List<String> classDictionary;
   private final boolean keepInnerClassStructure;
 
   private final Set<DexType> noObfuscationTypes;

@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -17,7 +18,7 @@ public class DexDebugEntry {
   public final DexString sourceFile;
   public final boolean prologueEnd;
   public final boolean epilogueBegin;
-  public final ImmutableMap<Integer, DebugLocalInfo> locals;
+  public final Map<Integer, DebugLocalInfo> locals;
   public final DexMethod method;
   public final Position callerPosition;
 

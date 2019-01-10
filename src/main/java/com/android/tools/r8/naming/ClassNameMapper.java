@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.utils.BiMapContainer;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
@@ -96,7 +97,7 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   private final ImmutableMap<String, ClassNamingForNameMapper> classNameMappings;
-  private ImmutableBiMap<String, String> nameMapping;
+  private BiMapContainer<String, String> nameMapping;
 
   private final Map<Signature, Signature> signatureMap = new HashMap<>();
 
@@ -195,13 +196,14 @@ public class ClassNameMapper implements ProguardMap {
     }
   }
 
-  public BiMap<String, String> getObfuscatedToOriginalMapping() {
+  public BiMapContainer<String, String> getObfuscatedToOriginalMapping() {
     if (nameMapping == null) {
       ImmutableBiMap.Builder<String, String> builder = ImmutableBiMap.builder();
       for (String name : classNameMappings.keySet()) {
         builder.put(name, classNameMappings.get(name).originalName);
       }
-      nameMapping = builder.build();
+      BiMap<String, String> classNameMappings = builder.build();
+      nameMapping = new BiMapContainer<>(classNameMappings, classNameMappings.inverse());
     }
     return nameMapping;
   }
