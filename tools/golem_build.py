@@ -9,7 +9,7 @@ import gradle
 import sys
 
 GRADLE_ARGS = ['--no-daemon']
-BUILD_TARGETS = ['R8', 'D8', 'buildExampleJars', 'CompatDx',
+BUILD_TARGETS = ['R8', 'D8', 'R8Lib', 'buildExampleJars', 'CompatDx',
                  'downloadAndroidCts', 'downloadDx']
 
 def Main():
