@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Charsets;
@@ -84,7 +85,11 @@ public class PrintConfigurationTest extends TestBase {
                 "}")));
     assertThat(
         proguardConfigOut,
-        containsString("-printconfiguration " + proguardConfigOutFile.toAbsolutePath().toString()));
+        containsString(
+            "-printconfiguration "
+                + (ToolHelper.isWindows()
+                    ? ("'" + proguardConfigOutFile.toAbsolutePath().toString() + "'")
+                    : proguardConfigOutFile.toAbsolutePath().toString())));
   }
 
   @Test
