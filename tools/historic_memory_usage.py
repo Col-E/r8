@@ -16,6 +16,7 @@ import subprocess
 import sys
 import utils
 
+MASTER_COMMITS = 'gs://r8-releases/raw/master'
 APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome']
 COMPILERS = ['d8', 'r8']
 
@@ -41,8 +42,9 @@ def ParseOptions(argv):
 
 
 class GitCommit(object):
-  def __init__(self, git_hash, destination, timestamp):
+  def __init__(self, git_hash, destination_dir, destination, timestamp):
     self.git_hash = git_hash
+    self.destination_dir = destination_dir
     self.destination = destination
     self.timestamp = timestamp
 
@@ -56,8 +58,9 @@ def git_commit_from_hash(hash):
   commit_timestamp = subprocess.check_output(['git', 'show', '--no-patch',
                                          '--no-notes', '--pretty=\'%ct\'',
                                          hash]).strip().strip('\'')
-  destination = 'gs://r8-releases/raw/master/%s/r8.jar' % hash
-  commit = GitCommit(hash, destination, commit_timestamp)
+  destination_dir = '%s/%s/' % (MASTER_COMMITS, hash)
+  destination = '%s%s' % (destination_dir, 'r8.jar')
+  commit = GitCommit(hash, destination_dir, destination, commit_timestamp)
   return commit
 
 def enumerate_git_commits(options):
@@ -79,9 +82,10 @@ def enumerate_git_commits(options):
   return commits
 
 def get_available_commits(commits):
+  cloud_commits = subprocess.check_output(['gsutil.py', 'ls', MASTER_COMMITS]).splitlines()
   available_commits = []
   for commit in commits:
-    if utils.cloud_storage_exists(commit.destination):
+    if commit.destination_dir in cloud_commits:
       available_commits.append(commit)
   return available_commits
 
@@ -119,7 +123,7 @@ def run_on_app(options, commit):
   app = options.app
   compiler = options.compiler
   cmd = ['tools/run_on_app.py', '--app', app, '--compiler', compiler,
-         '--find-min-xmx']
+         '--no-build', '--find-min-xmx']
   stdout = subprocess.check_output(cmd)
   output_path = options.output or 'build'
   time_commit = '%s_%s' % (commit.timestamp, commit.git_hash)
@@ -134,8 +138,14 @@ def run_on_app(options, commit):
 
 def benchmark(commits, options):
   commit_permutations = permutate(len(commits))
+  count = 0
   for index in commit_permutations:
+    count += 1
+    print('Running commit %s out of %s' % (count, len(commits)))
     commit = commits[index]
+    if not utils.cloud_storage_exists(commit.destination):
+      # We may have a directory, but no r8.jar
+      continue
     pull_r8_from_cloud(commit)
     print('Running for commit: %s' % commit.git_hash)
     run_on_app(options, commit)
@@ -148,7 +158,6 @@ def main(argv):
   available_commits = get_available_commits(commits)
   print('Running for:')
   print_commits(available_commits)
-  print('')
   benchmark(available_commits, options)
 
 if __name__ == '__main__':
