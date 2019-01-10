@@ -4,22 +4,18 @@
 
 package com.android.tools.r8.regress.b120164595;
 
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.matchers.JUnitMatchers.containsString;
+
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.D8Command;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.concurrent.ExecutionException;
-import org.junit.Assume;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 
 /**
  * Regression test for art issue with multi catch-handlers.
@@ -49,30 +45,35 @@ class TestClass {
   }
 }
 
-public class B120164595 {
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
+public class B120164595 extends TestBase {
+  @Test
+  public void testD8()
+      throws IOException, CompilationFailedException {
+    TestCompileResult d8Result = testForD8().addProgramClasses(TestClass.class).compile();
+    checkArt(d8Result);
+  }
 
   @Test
-  public void regress()
-      throws IOException, CompilationFailedException, ExecutionException {
-     AndroidApp app =
-        ToolHelper.runD8(
-            D8Command.builder()
-                .addClassProgramData(ToolHelper.getClassAsBytes(
-                    TestClass.class), Origin.unknown()));
-    TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
-    temp.create();
-    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    app.writeToZip(outDex, OutputMode.DexIndexed);
-    // TODO(120164595): Remove when workaround lands.
-    thrown.expect(Throwable.class);
-    ToolHelper.runArtNoVerificationErrors(
-        ImmutableList.of(outDex.toString()),
+  public void testR8()
+      throws IOException, CompilationFailedException {
+    TestCompileResult r8Result = testForR8(Backend.DEX)
+        .addProgramClasses(TestClass.class)
+        .addKeepClassAndMembersRules(TestClass.class)
+        .compile();
+    checkArt(r8Result);
+  }
+
+  private void checkArt(TestCompileResult result) throws IOException {
+    ProcessResult artResult = runOnArtRaw(
+        result.app,
         TestClass.class.getCanonicalName(),
         builder -> {
           builder.appendArtOption("-Xusejit:true");
         },
-        DexVm.ART_9_0_0_HOST);
+        DexVm.ART_9_0_0_HOST
+    );
+    // TODO(120164595): Remove when workaround lands.
+    assertNotEquals(artResult.exitCode, 0);
+    assertTrue(artResult.stderr.contains("Expected NullPointerException"));
   }
 }
