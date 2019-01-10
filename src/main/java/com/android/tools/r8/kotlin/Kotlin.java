@@ -16,7 +16,11 @@ import java.util.Set;
 
 /** Class provides basic information about symbols related to Kotlin support. */
 public final class Kotlin {
-  // Simply "Lkotlin/", but to avoid being renamed by Shadow.relocate
+
+  // Simply "kotlin", but to avoid being renamed by Shadow.relocate in build.gradle.
+  public static final String NAME = String.join("", ImmutableList.of("k", "o", "t", "l", "i", "n"));
+
+  // Simply "Lkotlin/", but to avoid being renamed by Shadow.relocate in build.gradle.
   private static final String KOTLIN =
       String.join("", ImmutableList.of("L", "k", "o", "t", "l", "i", "n", "/"));
 
