@@ -4,16 +4,14 @@
 
 package com.android.tools.r8.regress.b120164595;
 
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.matchers.JUnitMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import org.junit.Test;
 
@@ -72,8 +70,7 @@ public class B120164595 extends TestBase {
         },
         DexVm.ART_9_0_0_HOST
     );
-    // TODO(120164595): Remove when workaround lands.
-    assertNotEquals(artResult.exitCode, 0);
-    assertTrue(artResult.stderr.contains("Expected NullPointerException"));
+    assertEquals(0, artResult.exitCode);
+    assertFalse(artResult.stderr.contains("Expected NullPointerException"));
   }
 }

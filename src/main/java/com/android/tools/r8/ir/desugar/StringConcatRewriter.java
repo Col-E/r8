@@ -394,7 +394,7 @@ public class StringConcatRewriter {
       }
       // Copy catch handlers after all blocks are split.
       for (BasicBlock newBlock : newBlocks) {
-        newBlock.copyCatchHandlers(code, blocks, currentBlock);
+        newBlock.copyCatchHandlers(code, blocks, currentBlock, code.options);
       }
     }
 

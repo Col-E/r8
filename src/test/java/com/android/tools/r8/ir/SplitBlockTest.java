@@ -201,7 +201,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
   public void runCatchHandlerTest(boolean codeThrows, boolean twoGuards) throws Exception {
     final int secondBlockInstructions = 4;
-    final int initialBlockCount = 6;
+    final int initialBlockCount = twoGuards ? 7 : 6;
     // Try split between all instructions in second block.
     for (int i = 1; i < secondBlockInstructions; i++) {
       TestApplication test = codeWithCatchHandlers(codeThrows, twoGuards);
@@ -240,7 +240,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
   public void runCatchHandlerSplitThreeTest(boolean codeThrows, boolean twoGuards)
       throws Exception {
     final int secondBlockInstructions = 4;
-    final int initialBlockCount = 6;
+    final int initialBlockCount = twoGuards ? 7 : 6;
     // Try split out all instructions in second block.
     for (int i = 1; i < secondBlockInstructions - 1; i++) {
       TestApplication test = codeWithCatchHandlers(codeThrows, twoGuards);
