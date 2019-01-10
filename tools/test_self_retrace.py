@@ -12,13 +12,6 @@ import subprocess
 import sys
 import utils
 
-RETRACE_JAR = os.path.join(
-  utils.THIRD_PARTY,
-  'proguard',
-  'proguard6.0.1',
-  'lib',
-  'retrace.jar')
-
 EXCEPTION_LINE = 'Intentional exception for testing retrace.'
 EXPECTED_LINES = [
   'com.android.tools.r8.utils.SelfRetraceTest.foo3(SelfRetraceTest.java:13)',
@@ -55,7 +48,7 @@ def main():
   assert('SelfRetraceTest' not in stacktrace)
 
   # Run the retrace tool.
-  cmd = ['java', '-jar', RETRACE_JAR, r8lib + ".map"]
+  cmd = ['java', '-jar', utils.RETRACE_JAR, r8lib + ".map"]
   utils.PrintCmd(cmd)
   p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
   retrace_stdout, _ = p.communicate(stacktrace)
