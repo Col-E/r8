@@ -51,6 +51,7 @@ MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
+RETRACE_JAR = os.path.join(THIRD_PARTY, 'proguard', 'proguard6.0.1', 'lib', 'retrace.jar')
 
 def PrintCmd(s):
   if type(s) is list:

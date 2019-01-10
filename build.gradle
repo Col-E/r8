@@ -1421,6 +1421,30 @@ task configureTestForR8Lib(type: Copy) {
     outputs.dir r8LibTestPath
 }
 
+def printStackTrace(TestResult result) {
+    if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
+        def out = new StringBuffer()
+        def err = new StringBuffer()
+        def command = "tools/retrace.py"
+        out.append("\n--------------------------------------\n")
+        out.append("RETRACED STACKTRACE\n")
+        out.append("--------------------------------------\n")
+        Process process = command.execute()
+        def processIn = new PrintStream(process.getOut())
+        process.consumeProcessOutput(out, err)
+        result.exception.printStackTrace(processIn)
+        processIn.flush()
+        processIn.close()
+        process.waitFor()
+        out.append("\n\n--------------------------------------\n")
+        out.append("OBFUSCATED STACKTRACE\n")
+        out.append("--------------------------------------\n")
+        result.exceptions.add(0, new Exception(out.toString()))
+    } else {
+        result.exception.printStackTrace()
+    }
+}
+
 test {
     if (project.hasProperty('generate_golden_files_to')) {
         systemProperty 'generate_golden_files_to', project.property('generate_golden_files_to')
@@ -1459,7 +1483,7 @@ test {
         }
         afterTest { desc, result ->
             if (result.resultType == TestResult.ResultType.FAILURE) {
-                 result.exception.printStackTrace()
+                printStackTrace(result)
             }
             if (project.hasProperty('update_test_timestamp')) {
                 file(project.getProperty('update_test_timestamp')).text = new Date().getTime()
@@ -1469,7 +1493,7 @@ test {
     } else {
         afterTest { desc, result ->
             if (result.resultType == TestResult.ResultType.FAILURE) {
-                 result.exception.printStackTrace()
+                printStackTrace(result)
             }
         }
     }
