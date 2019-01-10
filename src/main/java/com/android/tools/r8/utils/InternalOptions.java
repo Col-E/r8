@@ -875,4 +875,17 @@ public class InternalOptions {
     // Marshmallow and Nougat arm64 devices and they do not have the bug.
     return minApiLevel < AndroidApiLevel.M.getLevel();
   }
+
+  // The Art VM for Android N through P has a bug in the JIT that means that if the same
+  // exception block with a move-exception instruction is targeted with more than one type
+  // of exception the JIT will incorrectly assume that the exception object has one of these
+  // types and will optimize based on that one type instead of taking all the types into account.
+  //
+  // In order to workaround that, we always generate distinct move-exception instructions for
+  // distinct dex types.
+  //
+  // See b/120164595.
+  public boolean canHaveExceptionTypeBug() {
+    return minApiLevel < AndroidApiLevel.Q.getLevel();
+  }
 }

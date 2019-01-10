@@ -7,21 +7,22 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.android.tools.r8.utils.InternalOptions;
 
 public class MoveException extends Instruction {
+  private final DexType exceptionType;
+  private final InternalOptions options;
 
-  public MoveException(Value dest) {
+  public MoveException(Value dest, DexType exceptionType, InternalOptions options) {
     super(dest);
+    this.exceptionType = exceptionType;
+    this.options = options;
     dest.markNeverNull();
   }
 
@@ -48,7 +49,13 @@ public class MoveException extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.isMoveException();
+    if (!other.isMoveException()) {
+      return false;
+    }
+    if (options.canHaveExceptionTypeBug()) {
+      return other.asMoveException().exceptionType == exceptionType;
+    }
+    return true;
   }
 
   @Override
@@ -88,34 +95,17 @@ public class MoveException extends Instruction {
     return true;
   }
 
-  public static Set<DexType> collectExceptionTypes(
-      BasicBlock currentBlock, DexItemFactory dexItemFactory) {
-    Set<DexType> exceptionTypes = new HashSet<>(currentBlock.getPredecessors().size());
-    for (BasicBlock block : currentBlock.getPredecessors()) {
-      int size = block.getCatchHandlers().size();
-      List<BasicBlock> targets = block.getCatchHandlers().getAllTargets();
-      List<DexType> guards = block.getCatchHandlers().getGuards();
-      for (int i = 0; i < size; i++) {
-        if (targets.get(i) == currentBlock) {
-          DexType guard = guards.get(i);
-          exceptionTypes.add(
-              guard == DexItemFactory.catchAllType
-                  ? dexItemFactory.throwableType
-                  : guard);
-        }
-      }
-    }
-    return exceptionTypes;
-  }
-
   @Override
   public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return helper.join(collectExceptionTypes(getBlock(), helper.getFactory()));
+    return exceptionType;
   }
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    Set<DexType> exceptionTypes = collectExceptionTypes(getBlock(), appInfo.dexItemFactory);
-    return TypeLatticeElement.joinTypes(exceptionTypes, false, appInfo);
+    return TypeLatticeElement.fromDexType(exceptionType, false, appInfo);
+  }
+
+  public DexType getExceptionType() {
+    return exceptionType;
   }
 }

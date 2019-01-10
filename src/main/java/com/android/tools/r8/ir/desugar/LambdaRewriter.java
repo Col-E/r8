@@ -332,6 +332,6 @@ public class LambdaRewriter {
     BasicBlock currentBlock = newInstance.getBlock();
     BasicBlock nextBlock = instructions.split(code, blocks);
     assert !instructions.hasNext();
-    nextBlock.copyCatchHandlers(code, blocks, currentBlock);
+    nextBlock.copyCatchHandlers(code, blocks, currentBlock, code.options);
   }
 }

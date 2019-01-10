@@ -101,6 +101,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Pair;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -116,7 +117,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -193,11 +193,14 @@ public class IRBuilder {
   }
 
   private static class MoveExceptionWorklistItem extends WorklistItem {
+    private final DexType guard;
     private final int sourceOffset;
     private final int targetOffset;
 
-    private MoveExceptionWorklistItem(BasicBlock block, int sourceOffset, int targetOffset) {
+    private MoveExceptionWorklistItem(
+        BasicBlock block, DexType guard, int sourceOffset, int targetOffset) {
       super(block, -1);
+      this.guard = guard;
       this.sourceOffset = sourceOffset;
       this.targetOffset = targetOffset;
     }
@@ -707,12 +710,9 @@ public class IRBuilder {
     // construction and prior to building the IR.
     for (BlockInfo info : targets.values()) {
       if (info != null && info.block == block) {
-        assert info.predecessorCount() == block.getPredecessors().size();
+        assert info.predecessorCount() == nonSplitPredecessorCount(block);
         assert info.normalSuccessors.size() == block.getNormalSuccessors().size();
-        if (block.hasCatchHandlers()) {
-          assert info.exceptionalSuccessors.size()
-              == block.getCatchHandlers().getUniqueTargets().size();
-        } else {
+        if (!block.hasCatchHandlers()) {
           assert !block.canThrow()
               || info.exceptionalSuccessors.isEmpty()
               || (info.exceptionalSuccessors.size() == 1
@@ -723,6 +723,38 @@ public class IRBuilder {
     }
     // There are places where we add in new blocks that we do not represent in the initial CFG.
     // TODO(zerny): Should we maintain the initial CFG after instruction building?
+    return true;
+  }
+
+  private int nonSplitPredecessorCount(BasicBlock block) {
+    Set<BasicBlock> set = Sets.newIdentityHashSet();
+    for (BasicBlock predecessor : block.getPredecessors()) {
+      if (offsets.containsKey(predecessor)) {
+        set.add(predecessor);
+      } else {
+        assert predecessor.getSuccessors().size() == 1;
+        assert predecessor.getPredecessors().size() == 1;
+        assert trivialGotoBlockPotentiallyWithMoveException(predecessor);
+        // Combine the exceptional edges to just one, for normal edges that have been split
+        // record them separately. That means that we are checking that there are the expected
+        // number of normal edges and some number of exceptional edges (which we count as one edge).
+        if (predecessor.getPredecessors().get(0).hasCatchSuccessor(predecessor)) {
+          set.add(predecessor.getPredecessors().get(0));
+        } else {
+          set.add(predecessor);
+        }
+      }
+    }
+    return set.size();
+  }
+
+  // Check that all instructions are either move-exception, goto or debug instructions.
+  private boolean trivialGotoBlockPotentiallyWithMoveException(BasicBlock block) {
+    for (Instruction instruction : block.getInstructions()) {
+      assert instruction.isMoveException()
+          || instruction.isGoto()
+          || instruction.isDebugInstruction();
+    }
     return true;
   }
 
@@ -782,10 +814,10 @@ public class IRBuilder {
     int moveExceptionDest = source.getMoveExceptionRegister(targetIndex);
     Position position = source.getCanonicalDebugPositionAtOffset(moveExceptionItem.targetOffset);
     if (moveExceptionDest >= 0) {
-      Set<DexType> exceptionTypes = MoveException.collectExceptionTypes(currentBlock, getFactory());
-      TypeLatticeElement typeLattice = TypeLatticeElement.joinTypes(exceptionTypes, false, appInfo);
+      TypeLatticeElement typeLattice =
+          TypeLatticeElement.fromDexType(moveExceptionItem.guard, false, appInfo);
       Value out = writeRegister(moveExceptionDest, typeLattice, ThrowingInfo.NO_THROW, null);
-      MoveException moveException = new MoveException(out);
+      MoveException moveException = new MoveException(out, moveExceptionItem.guard, options);
       moveException.setPosition(position);
       currentBlock.add(moveException);
     }
@@ -2196,21 +2228,22 @@ public class IRBuilder {
         assert !throwingInstructionInCurrentBlock;
         throwingInstructionInCurrentBlock = true;
         List<BasicBlock> targets = new ArrayList<>(catchHandlers.getAllTargets().size());
-        // Construct unique move-exception header blocks for each unique target.
-        Map<BasicBlock, BasicBlock> moveExceptionHeaders =
-            new IdentityHashMap<>(catchHandlers.getUniqueTargets().size());
-        for (int targetOffset : catchHandlers.getAllTargets()) {
-          BasicBlock target = getTarget(targetOffset);
-          BasicBlock header = moveExceptionHeaders.get(target);
-          if (header == null) {
-            header = new BasicBlock();
-            header.incrementUnfilledPredecessorCount();
-            moveExceptionHeaders.put(target, header);
-            ssaWorklist.add(
-                new MoveExceptionWorklistItem(header, currentInstructionOffset, targetOffset));
-          }
+        Set<BasicBlock> moveExceptionTargets = Sets.newIdentityHashSet();
+        catchHandlers.forEach((type, targetOffset) -> {
+          DexType exceptionType = type == options.itemFactory.catchAllType
+              ? options.itemFactory.throwableType
+              : type;
+          BasicBlock header = new BasicBlock();
+          header.incrementUnfilledPredecessorCount();
+          ssaWorklist.add(
+              new MoveExceptionWorklistItem(
+                  header, exceptionType, currentInstructionOffset, targetOffset));
           targets.add(header);
-        }
+          BasicBlock target = getTarget(targetOffset);
+          if (!moveExceptionTargets.add(target)) {
+            target.incrementUnfilledPredecessorCount();
+          }
+        });
         currentBlock.linkCatchSuccessors(catchHandlers.getGuards(), targets);
       }
     }

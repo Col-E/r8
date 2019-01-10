@@ -278,7 +278,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
         } else {
           nextBlock = null;
         }
-        currentBlock.copyCatchHandlers(code, blocksIterator, invokeBlock);
+        currentBlock.copyCatchHandlers(code, blocksIterator, invokeBlock, code.options);
         if (nextBlock != null) {
           BasicBlock b = blocksIterator.next();
           assert b == nextBlock;
@@ -311,7 +311,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       if (inlinedBlock.hasCatchHandlers()) {
         // The block already has catch handlers, so it has only one throwing instruction, and no
         // splitting is required.
-        inlinedBlock.copyCatchHandlers(code, blocksIterator, invokeBlock);
+        inlinedBlock.copyCatchHandlers(code, blocksIterator, invokeBlock, code.options);
       } else {
         // The block does not have catch handlers, so it can have several throwing instructions.
         // Therefore the block must be split after each throwing instruction, and the catch

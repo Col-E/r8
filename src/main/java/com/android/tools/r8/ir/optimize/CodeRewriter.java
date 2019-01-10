@@ -321,7 +321,9 @@ public class CodeRewriter {
       BasicBlock rethrowBlock = BasicBlock.createRethrowBlock(
           code,
           lastSelfRecursiveCall.getPosition(),
-          TypeLatticeElement.fromDexType(guard, true, appInfo));
+          guard,
+          appInfo,
+          options);
       code.blocks.add(rethrowBlock);
       // Add catch handler to the block containing the last recursive call.
       newBlock.addCatchHandler(rethrowBlock, guard);
