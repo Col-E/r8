@@ -117,7 +117,8 @@ def GitClone(git_url):
   return subprocess.check_output(['git', 'clone', git_url]).strip()
 
 def GitPull():
-  return subprocess.call(['git', 'pull']) == 0
+  # Use --no-edit to accept the auto-generated merge message, if any.
+  return subprocess.call(['git', 'pull', '--no-edit']) == 0
 
 def GitCheckout(file):
   return subprocess.check_output(['git', 'checkout', file]).strip()
