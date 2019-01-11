@@ -91,12 +91,6 @@ def Main():
   if not utils.is_bot() and not options.dry_run:
     raise Exception('You are not a bot, don\'t archive builds')
 
-  # Generate an r8-ed build without dependencies.
-  # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
-  gradle.RunGradleExcludeDeps([utils.R8LIB_NO_DEPS, '-Pno_internal'])
-  shutil.copyfile(utils.R8LIB_JAR, utils.R8LIB_EXCLUDE_DEPS_JAR)
-  shutil.copyfile(utils.R8LIB_JAR + '.map', utils.R8LIB_EXCLUDE_DEPS_JAR + '.map')
-
   # Create maven release which uses a build that exclude dependencies.
   create_maven_release.main(["--out", utils.LIBS])
 
@@ -114,6 +108,7 @@ def Main():
     utils.COMPATDX,
     utils.COMPATPROGUARD,
     utils.R8LIB,
+    utils.R8LIB_NO_DEPS,
     utils.COMPATDXLIB,
     utils.COMPATPROGUARDLIB,
     '-Pno_internal'
