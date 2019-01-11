@@ -61,6 +61,10 @@ public abstract class KeepReason {
     return false;
   }
 
+  public boolean isDueToReflectiveUse() {
+    return false;
+  }
+
   public boolean isDueToProguardCompatibility() {
     return false;
   }
@@ -71,6 +75,14 @@ public abstract class KeepReason {
 
   public static KeepReason targetedBySuperFrom(DexEncodedMethod from) {
     return new TargetedBySuper(from);
+  }
+
+  public static KeepReason reflectiveUseIn(DexEncodedMethod method) {
+    return new ReflectiveUseFrom(method);
+  }
+
+  public static KeepReason methodHandleReferencedIn(DexEncodedMethod method) {
+    return new MethodHandleReferencedFrom(method);
   }
 
   private static class DueToKeepRule extends KeepReason {
@@ -287,6 +299,45 @@ public abstract class KeepReason {
     @Override
     public GraphNode getSourceNode(Enqueuer enqueuer) {
       return enqueuer.getAnnotationGraphNode(holder);
+    }
+  }
+
+  private static class ReflectiveUseFrom extends BasedOnOtherMethod {
+
+    private ReflectiveUseFrom(DexEncodedMethod method) {
+      super(method);
+    }
+
+    @Override
+    public boolean isDueToReflectiveUse() {
+      return true;
+    }
+
+    @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.ReflectiveUseFrom;
+    }
+
+    @Override
+    String getKind() {
+      return "reflective use in";
+    }
+  }
+
+  private static class MethodHandleReferencedFrom extends BasedOnOtherMethod {
+
+    private MethodHandleReferencedFrom(DexEncodedMethod method) {
+      super(method);
+    }
+
+    @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.MethodHandleUseFrom;
+    }
+
+    @Override
+    String getKind() {
+      return "method handle referenced from";
     }
   }
 }
