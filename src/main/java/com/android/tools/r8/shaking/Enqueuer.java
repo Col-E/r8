@@ -604,7 +604,7 @@ public class Enqueuer {
       if (methodHandle.isMethodHandle() && use != MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY) {
         DexClass holder = appInfo.definitionFor(methodHandle.asMethod().holder);
         if (holder != null) {
-          markClassAsInstantiatedWithMethodHandleRule(holder);
+          markInstantiated(holder.type, KeepReason.methodHandleReferencedIn(currentMethod));
         }
       }
     }
@@ -1189,8 +1189,10 @@ public class Enqueuer {
 
   private void markVirtualMethodAsLive(DexEncodedMethod method, KeepReason reason) {
     assert method != null;
-    // Only explicit keep rules should make abstract methods live.
-    assert !method.accessFlags.isAbstract() || reason.isDueToKeepRule();
+    // Only explicit keep rules or reflective use should make abstract methods live.
+    assert !method.accessFlags.isAbstract()
+        || reason.isDueToKeepRule()
+        || reason.isDueToReflectiveUse();
     if (!liveMethods.contains(method)) {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Adding virtual method `%s` to live set.", method.method);
@@ -1662,16 +1664,8 @@ public class Enqueuer {
             collectReachedFields(staticFields, this::tryLookupStaticField)));
   }
 
-  private void markClassAsInstantiatedWithMethodHandleRule(DexClass clazz) {
-    ProguardKeepRule rule =
-        ProguardConfigurationUtils.buildMethodHandleKeepRule(clazz);
-    proguardCompatibilityWorkList.add(
-        Action.markInstantiated(clazz, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
-  }
-
   private void markClassAsInstantiatedWithCompatRule(DexClass clazz) {
-    ProguardKeepRule rule =
-        ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
+    ProguardKeepRule rule = ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
     proguardCompatibilityWorkList.add(
         Action.markInstantiated(clazz, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
     if (clazz.hasDefaultInitializer()) {
@@ -1679,19 +1673,6 @@ public class Enqueuer {
           Action.markMethodLive(
               clazz.getDefaultInitializer(), KeepReason.dueToProguardCompatibilityKeepRule(rule)));
     }
-  }
-
-  private void markFieldAsKeptWithCompatRule(DexEncodedField field, boolean keepClass) {
-    DexClass holderClass = appInfo.definitionFor(field.field.getHolder());
-    ProguardKeepRule rule =
-        ProguardConfigurationUtils.buildFieldKeepRule(holderClass, field, keepClass);
-    if (keepClass) {
-      proguardCompatibilityWorkList.add(
-          Action.markInstantiated(
-              holderClass, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
-    }
-    proguardCompatibilityWorkList.add(
-        Action.markFieldKept(field, KeepReason.dueToProguardCompatibilityKeepRule(rule)));
   }
 
   private void markMethodAsKeptWithCompatRule(DexEncodedMethod method) {
@@ -1733,7 +1714,11 @@ public class Enqueuer {
     if (identifierItem.isDexType()) {
       DexClass clazz = appInfo.definitionFor(identifierItem.asDexType());
       if (clazz != null) {
-        markClassAsInstantiatedWithCompatRule(clazz);
+        markInstantiated(clazz.type, KeepReason.reflectiveUseIn(method));
+        if (clazz.hasDefaultInitializer()) {
+          markDirectStaticOrConstructorMethodAsLive(
+              clazz.getDefaultInitializer(), KeepReason.reflectiveUseIn(method));
+        }
       }
     } else if (identifierItem.isDexField()) {
       DexEncodedField encodedField = appInfo.definitionFor(identifierItem.asDexField());
@@ -1746,13 +1731,22 @@ public class Enqueuer {
         boolean keepClass =
             !encodedField.accessFlags.isStatic()
                 && appInfo.dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod);
-        markFieldAsKeptWithCompatRule(encodedField, keepClass);
+        if (keepClass) {
+          DexClass holderClass = appInfo.definitionFor(encodedField.field.getHolder());
+          markInstantiated(holderClass.type, KeepReason.reflectiveUseIn(method));
+        }
+        markFieldAsKept(encodedField, KeepReason.reflectiveUseIn(method));
       }
     } else {
       assert identifierItem.isDexMethod();
       DexEncodedMethod encodedMethod = appInfo.definitionFor(identifierItem.asDexMethod());
       if (encodedMethod != null) {
-        markMethodAsKeptWithCompatRule(encodedMethod);
+        if (encodedMethod.accessFlags.isStatic() || encodedMethod.accessFlags.isConstructor()) {
+          markDirectStaticOrConstructorMethodAsLive(
+              encodedMethod, KeepReason.reflectiveUseIn(method));
+        } else {
+          markVirtualMethodAsLive(encodedMethod, KeepReason.reflectiveUseIn(method));
+        }
       }
     }
   }

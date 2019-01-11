@@ -16,9 +16,11 @@ public class GraphEdgeInfo {
     InvokedFrom,
     InvokedFromLambdaCreatedIn,
     ReferencedFrom,
+    ReflectiveUseFrom,
     ReachableFromLiveType,
     ReferencedInAnnotation,
     IsLibraryMethod,
+    MethodHandleUseFrom
   }
 
   private final EdgeKind kind;
