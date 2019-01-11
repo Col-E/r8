@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -1299,7 +1300,8 @@ public class BasicBlock {
 
   public static BasicBlock createRethrowBlock(
       IRCode code, Position position, DexType guard, AppInfo appInfo, InternalOptions options) {
-    TypeLatticeElement guardTypeLattice = TypeLatticeElement.fromDexType(guard, false, appInfo);
+    TypeLatticeElement guardTypeLattice =
+        TypeLatticeElement.fromDexType(guard, Nullability.definitelyNotNull(), appInfo);
     BasicBlock block = new BasicBlock();
     MoveException moveException = new MoveException(
         new Value(code.valueNumberGenerator.next(), guardTypeLattice, null),

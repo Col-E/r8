@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
@@ -338,7 +340,8 @@ public class StringConcatRewriter {
 
       // new-instance v0, StringBuilder
       TypeLatticeElement stringBuilderTypeLattice =
-          TypeLatticeElement.fromDexType(factory.stringBuilderType, false, appInfo);
+          TypeLatticeElement.fromDexType(
+              factory.stringBuilderType, definitelyNotNull(), appInfo);
       Value sbInstance = code.createValue(stringBuilderTypeLattice);
       appendInstruction(new NewInstance(factory.stringBuilderType, sbInstance));
 
@@ -360,7 +363,8 @@ public class StringConcatRewriter {
       Value concatValue = invokeCustom.outValue();
       if (concatValue == null) {
         // The out value might be empty in case it was optimized out.
-        concatValue = code.createValue(TypeLatticeElement.stringClassType(appInfo));
+        concatValue =
+            code.createValue(TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()));
       }
 
       // Replace the instruction.
@@ -438,7 +442,8 @@ public class StringConcatRewriter {
 
       @Override
       Value getOrCreateValue() {
-        Value value = code.createValue(TypeLatticeElement.stringClassType(appInfo));
+        Value value =
+            code.createValue(TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()));
         ThrowingInfo throwingInfo =
             code.options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
         appendInstruction(new ConstString(value, factory.createString(str), throwingInfo));

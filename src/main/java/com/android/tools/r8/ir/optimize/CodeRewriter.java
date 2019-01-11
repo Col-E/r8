@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.CANONICAL_NAME;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.NAME;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.SIMPLE_NAME;
@@ -2100,9 +2101,9 @@ public class CodeRewriter {
     TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
     TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
     TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(castType, inTypeLattice.isNullable(), appInfo);
+        TypeLatticeElement.fromDexType(castType, inTypeLattice.nullability(), appInfo);
 
-    assert inTypeLattice.nullElement().lessThanOrEqual(outTypeLattice.nullElement());
+    assert inTypeLattice.nullability().lessThanOrEqual(outTypeLattice.nullability());
 
     if (inTypeLattice.lessThanOrEqual(castTypeLattice, appInfo)) {
       // 1) Trivial cast.
@@ -2152,7 +2153,7 @@ public class CodeRewriter {
     Value inValue = instanceOf.value();
     TypeLatticeElement inType = inValue.getTypeLattice();
     TypeLatticeElement instanceOfType =
-        TypeLatticeElement.fromDexType(instanceOf.type(), inType.isNullable(), appInfo);
+        TypeLatticeElement.fromDexType(instanceOf.type(), inType.nullability(), appInfo);
 
     InstanceOfResult result = InstanceOfResult.UNKNOWN;
     if (inType.isDefinitelyNull()) {
@@ -3177,13 +3178,12 @@ public class CodeRewriter {
         InstructionListIterator throwNullInsnIterator = throwNullBlock.listIterator();
 
         // Insert 'null' constant.
-        Value nullValue = code.createValue(TypeLatticeElement.NULL, gotoInsn.getLocalInfo());
-        ConstNumber nullConstant = new ConstNumber(nullValue, 0);
+        ConstNumber nullConstant = code.createConstNull(gotoInsn.getLocalInfo());
         nullConstant.setPosition(insn.getPosition());
         throwNullInsnIterator.add(nullConstant);
 
         // Replace Goto with Throw.
-        Throw notReachableThrow = new Throw(nullValue);
+        Throw notReachableThrow = new Throw(nullConstant.outValue());
         Instruction insnGoto = throwNullInsnIterator.next();
         assert insnGoto.isGoto();
         throwNullInsnIterator.replaceCurrentInstruction(notReachableThrow);
@@ -3486,7 +3486,8 @@ public class CodeRewriter {
   }
 
   private Value addConstString(IRCode code, InstructionListIterator iterator, String s) {
-    TypeLatticeElement typeLattice = TypeLatticeElement.stringClassType(appInfo);
+    TypeLatticeElement typeLattice =
+        TypeLatticeElement.stringClassType(appInfo, definitelyNotNull());
     Value value = code.createValue(typeLattice);
     ThrowingInfo throwingInfo =
         options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
@@ -3519,7 +3520,7 @@ public class CodeRewriter {
     DexType javaLangSystemType = dexItemFactory.createType("Ljava/lang/System;");
     DexType javaIoPrintStreamType = dexItemFactory.createType("Ljava/io/PrintStream;");
     Value out = code.createValue(
-        TypeLatticeElement.fromDexType(javaIoPrintStreamType, false, appInfo));
+        TypeLatticeElement.fromDexType(javaIoPrintStreamType, definitelyNotNull(), appInfo));
 
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     DexMethod print = dexItemFactory.createMethod(javaIoPrintStreamType, proto, "print");
@@ -3584,7 +3585,7 @@ public class CodeRewriter {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, nul)));
         iterator = isNotNullBlock.listIterator();
         iterator.setInsertionPosition(position);
-        value = code.createValue(TypeLatticeElement.classClassType(appInfo));
+        value = code.createValue(TypeLatticeElement.classClassType(appInfo, definitelyNotNull()));
         iterator.add(new InvokeVirtual(dexItemFactory.objectMethods.getClass, value,
             ImmutableList.of(arguments.get(i))));
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));

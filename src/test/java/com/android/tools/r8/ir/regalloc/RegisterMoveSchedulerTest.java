@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -328,7 +329,8 @@ public class RegisterMoveSchedulerTest {
     InternalOptions options = new InternalOptions();
     AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
     TypeLatticeElement objectType =
-        TypeLatticeElement.fromDexType(options.itemFactory.objectType, true, appInfo);
+        TypeLatticeElement.fromDexType(
+            options.itemFactory.objectType, Nullability.maybeNull(), appInfo);
     CollectMovesIterator moves = new CollectMovesIterator();
     int temp = 42;
     RegisterMoveScheduler scheduler = new RegisterMoveScheduler(moves, temp);

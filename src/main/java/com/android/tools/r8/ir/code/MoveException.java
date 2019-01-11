@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -102,7 +103,8 @@ public class MoveException extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(exceptionType, false, appInfo);
+    return TypeLatticeElement.fromDexType(
+        exceptionType, Nullability.definitelyNotNull(), appInfo);
   }
 
   public DexType getExceptionType() {

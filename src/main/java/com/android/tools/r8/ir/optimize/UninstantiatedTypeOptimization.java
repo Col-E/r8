@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -455,7 +456,8 @@ public class UninstantiatedTypeOptimization {
                 : instruction.asStaticPut().inValue();
 
         TypeLatticeElement fieldLatticeType =
-            TypeLatticeElement.fromDexType(fieldType, true, appView.appInfo());
+            TypeLatticeElement.fromDexType(
+                fieldType, Nullability.maybeNull(), appView.appInfo());
         if (!value.getTypeLattice().lessThanOrEqual(fieldLatticeType, appView.appInfo())) {
           // Broken type hierarchy. See FieldTypeTest#test_brokenTypeHierarchy.
           assert options.testing.allowTypeErrors;
@@ -532,15 +534,14 @@ public class UninstantiatedTypeOptimization {
 
     // Insert constant null before the instruction.
     instructionIterator.previous();
-    Value nullValue = new Value(code.valueNumberGenerator.next(), TypeLatticeElement.NULL, null);
-    ConstNumber constNumberInstruction = new ConstNumber(nullValue, 0);
+    ConstNumber constNumberInstruction = code.createConstNull();
     // Note that we only keep position info for throwing instructions in release mode.
     constNumberInstruction.setPosition(options.debug ? instruction.getPosition() : Position.none());
     instructionIterator.add(constNumberInstruction);
     instructionIterator.next();
 
     // Replace the instruction by throw.
-    Throw throwInstruction = new Throw(nullValue);
+    Throw throwInstruction = new Throw(constNumberInstruction.outValue());
     for (Value inValue : instruction.inValues()) {
       if (inValue.hasLocalInfo()) {
         // Add this value as a debug value to avoid changing its live range.

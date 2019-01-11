@@ -14,13 +14,9 @@ import com.android.tools.r8.ir.code.NumericType;
  */
 public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
 
-  PrimitiveTypeLatticeElement() {
-    super(false);
-  }
-
   @Override
-  public TypeLatticeElement asNullable() {
-    return TypeLatticeElement.TOP;
+  public Nullability nullability() {
+    return Nullability.definitelyNotNull();
   }
 
   @Override

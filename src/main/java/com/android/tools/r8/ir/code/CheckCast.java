@@ -128,7 +128,7 @@ public class CheckCast extends Instruction {
 
     TypeLatticeElement outType = outValue().getTypeLattice();
     TypeLatticeElement castType =
-        TypeLatticeElement.fromDexType(getType(), inType.isNullable(), appInfo);
+        TypeLatticeElement.fromDexType(getType(), inType.nullability(), appInfo);
 
     if (inType.lessThanOrEqual(castType, appInfo)) {
       // Cast can be removed. Check that it is sound to replace all users of the out-value by the
@@ -145,7 +145,7 @@ public class CheckCast extends Instruction {
       assert castType.asNullable().equals(outType.asNullable());
 
       // Check soundness of null information.
-      assert inType.nullElement().lessThanOrEqual(outType.nullElement());
+      assert inType.nullability().lessThanOrEqual(outType.nullability());
 
       // Since we cannot remove the cast the in-value must be different from null.
       assert !inType.isNullType();

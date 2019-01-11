@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -357,7 +360,7 @@ public class Outliner {
     @Override
     public int createInstruction(IRBuilder builder, Outline outline, int argumentMapIndex) {
       TypeLatticeElement latticeElement =
-          TypeLatticeElement.fromDexType(clazz, false, builder.getAppInfo());
+          TypeLatticeElement.fromDexType(clazz, definitelyNotNull(), builder.getAppInfo());
       Value outValue =
           builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       Instruction newInstruction = new NewInstance(clazz, outValue);
@@ -493,7 +496,8 @@ public class Outliner {
       Value outValue = null;
       if (hasOutValue) {
         TypeLatticeElement latticeElement =
-            TypeLatticeElement.fromDexType(method.proto.returnType, true, builder.getAppInfo());
+            TypeLatticeElement.fromDexType(
+                method.proto.returnType, maybeNull(), builder.getAppInfo());
         outValue =
             builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       }
@@ -1398,7 +1402,7 @@ public class Outliner {
       // Fill in the Argument instructions in the argument block.
       for (int i = 0; i < outline.argumentTypes.size(); i++) {
         TypeLatticeElement typeLattice =
-            TypeLatticeElement.fromDexType(outline.argumentTypes.get(i), true, appInfo);
+            TypeLatticeElement.fromDexType(outline.argumentTypes.get(i), maybeNull(), appInfo);
         builder.addNonThisArgument(i, typeLattice);
       }
       builder.flushArgumentInstructions();

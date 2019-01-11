@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -219,7 +220,7 @@ public class TypeVerificationHelper {
   }
 
   private TypeLatticeElement getLatticeElement(DexType type) {
-    return TypeLatticeElement.fromDexType(type, true, appInfo);
+    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appInfo);
   }
 
   public Map<Value, TypeInfo> computeVerificationTypes() {

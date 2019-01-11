@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -187,7 +188,8 @@ public abstract class SyntheticSourceCode implements SourceCode {
       receiverValue =
           builder.writeRegister(
               receiverRegister,
-              TypeLatticeElement.fromDexType(receiver, false, builder.getAppInfo()),
+              TypeLatticeElement.fromDexType(
+                  receiver, Nullability.definitelyNotNull(), builder.getAppInfo()),
               NO_THROW);
       builder.add(new Argument(receiverValue));
       receiverValue.markAsThis(false);
@@ -198,7 +200,8 @@ public abstract class SyntheticSourceCode implements SourceCode {
     for (int i = 0; i < parameters.length; i++) {
       // TODO(zerny): Why does this not call builder.addNonThisArgument?
       TypeLatticeElement typeLattice =
-          TypeLatticeElement.fromDexType(parameters[i], true, builder.getAppInfo());
+          TypeLatticeElement.fromDexType(
+              parameters[i], Nullability.maybeNull(), builder.getAppInfo());
       Value paramValue = builder.writeRegister(paramRegisters[i], typeLattice, NO_THROW);
       paramValues[i] = paramValue;
       builder.add(new Argument(paramValue));

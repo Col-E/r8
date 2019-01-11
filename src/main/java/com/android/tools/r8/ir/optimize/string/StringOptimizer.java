@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.string;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.optimize.CodeRewriter.removeOrReplaceByDebugLocalWrite;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.CANONICAL_NAME;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.NAME;
@@ -242,7 +243,9 @@ public class StringOptimizer {
       }
       if (name != null) {
         Value stringValue =
-            code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
+            code.createValue(
+                TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
+                invoke.getLocalInfo());
         ConstString constString =
             new ConstString(stringValue, factory.createString(name), throwingInfo);
         it.replaceCurrentInstruction(constString);
@@ -307,11 +310,13 @@ public class StringOptimizer {
         TypeLatticeElement inType = in.getTypeLattice();
         if (inType.isNullType()) {
           Value nullStringValue =
-              code.createValue(TypeLatticeElement.stringClassType(appInfo), invoke.getLocalInfo());
+              code.createValue(
+                  TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
+                  invoke.getLocalInfo());
           ConstString nullString = new ConstString(
               nullStringValue, factory.createString("null"), throwingInfo);
           it.replaceCurrentInstruction(nullString);
-        } else if (inType.nullElement().isDefinitelyNotNull()
+        } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
           Value out = invoke.outValue();
@@ -330,7 +335,7 @@ public class StringOptimizer {
         assert invoke.inValues().size() == 1;
         Value in = invoke.getReceiver();
         TypeLatticeElement inType = in.getTypeLattice();
-        if (inType.nullElement().isDefinitelyNotNull()
+        if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
           Value out = invoke.outValue();

@@ -143,7 +143,7 @@ public class Devirtualizer {
           TypeLatticeElement receiverTypeLattice = receiver.getTypeLattice();
           TypeLatticeElement castTypeLattice =
               TypeLatticeElement.fromDexType(
-                  holderType, receiverTypeLattice.isNullable(), appView.appInfo());
+                  holderType, receiverTypeLattice.nullability(), appView.appInfo());
           // Avoid adding trivial cast and up-cast.
           // We should not use strictlyLessThan(castType, receiverType), which detects downcast,
           // due to side-casts, e.g., A (unused) < I, B < I, and cast from A to B.

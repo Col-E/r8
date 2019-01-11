@@ -10,6 +10,7 @@ import com.android.tools.r8.code.FilledNewArrayRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -97,7 +98,7 @@ public class InvokeNewArray extends Invoke {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(type, false, appInfo);
+    return TypeLatticeElement.fromDexType(type, Nullability.definitelyNotNull(), appInfo);
   }
 
   @Override

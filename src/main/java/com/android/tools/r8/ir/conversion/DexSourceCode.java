@@ -41,6 +41,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -312,7 +313,7 @@ public class DexSourceCode implements SourceCode {
   private List<TypeLatticeElement> computeArgumentTypes(AppInfo appInfo) {
     List<TypeLatticeElement> types = new ArrayList<>(proto.parameters.size());
     for (DexType type : proto.parameters.values) {
-      types.add(TypeLatticeElement.fromDexType(type, true, appInfo));
+      types.add(TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appInfo));
     }
     return types;
   }

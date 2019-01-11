@@ -811,6 +811,11 @@ public class IRCode {
     return new ConstNumber(out, 0);
   }
 
+  public ConstNumber createConstNull(DebugLocalInfo local) {
+    Value out = createValue(TypeLatticeElement.NULL, local);
+    return new ConstNumber(out, 0);
+  }
+
   public boolean doAllThrowingInstructionsHavePositions() {
     return allThrowingInstructionsHavePositions;
   }

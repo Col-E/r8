@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.JarApplicationReader;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Cmp.Bias;
@@ -373,7 +374,8 @@ public class JarSourceCode implements SourceCode {
       builder.addThisArgument(slot.register);
     }
     for (Type type : parameterTypes) {
-      TypeLatticeElement typeLattice = builder.getTypeLattice(application.getType(type), true);
+      TypeLatticeElement typeLattice =
+          builder.getTypeLattice(application.getType(type), Nullability.maybeNull());
       Slot slot = state.readLocal(argumentRegister, type);
       if (type == Type.BOOLEAN_TYPE) {
         builder.addBooleanNonThisArgument(slot.register);

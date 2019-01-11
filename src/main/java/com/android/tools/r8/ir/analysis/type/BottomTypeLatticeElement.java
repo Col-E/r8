@@ -9,13 +9,9 @@ import com.android.tools.r8.graph.DexType;
 public class BottomTypeLatticeElement extends TypeLatticeElement {
   private static final BottomTypeLatticeElement INSTANCE = new BottomTypeLatticeElement();
 
-  private BottomTypeLatticeElement() {
-    super(true);
-  }
-
   @Override
-  public TypeLatticeElement asNullable() {
-    return this;
+  public Nullability nullability() {
+    return Nullability.maybeNull();
   }
 
   static BottomTypeLatticeElement getInstance() {

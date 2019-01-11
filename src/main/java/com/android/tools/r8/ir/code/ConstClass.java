@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -112,7 +113,7 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.classType, false, appInfo);
+    return TypeLatticeElement.classClassType(appInfo, Nullability.definitelyNotNull());
   }
 
   @Override

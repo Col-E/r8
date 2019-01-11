@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -133,6 +134,6 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(appInfo.dexItemFactory.stringType, false, appInfo);
+    return TypeLatticeElement.stringClassType(appInfo, Nullability.definitelyNotNull());
   }
 }

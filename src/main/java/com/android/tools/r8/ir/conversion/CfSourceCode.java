@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -358,7 +359,8 @@ public class CfSourceCode implements SourceCode {
         builder.addBooleanNonThisArgument(argumentRegister++);
       } else {
         TypeLatticeElement typeLattice =
-            TypeLatticeElement.fromDexType(type, true, builder.getAppInfo());
+            TypeLatticeElement.fromDexType(
+                type, Nullability.maybeNull(), builder.getAppInfo());
         builder.addNonThisArgument(argumentRegister, typeLattice);
         argumentRegister += typeLattice.requiredRegisters();
       }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.regalloc;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -44,8 +45,7 @@ class SpillMoveSet {
   public SpillMoveSet(LinearScanRegisterAllocator allocator, IRCode code, AppInfo appInfo) {
     this.allocator = allocator;
     this.code = code;
-    this.objectType =
-        TypeLatticeElement.fromDexType(appInfo.dexItemFactory.objectType, true, appInfo);
+    this.objectType = TypeLatticeElement.objectClassType(appInfo, Nullability.maybeNull());
     for (BasicBlock block : code.blocks) {
       blockStartMap.put(block.entry().getNumber(), block);
     }
