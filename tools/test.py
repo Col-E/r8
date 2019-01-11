@@ -185,7 +185,6 @@ def Main():
     gradle_args.append('-Pr8lib')
   if options.r8lib_no_deps:
     gradle_args.append('-Pr8lib_no_deps')
-    gradle_args.append('-Pexclude_deps')
 
   # Add Gradle tasks
   gradle_args.append('cleanTest')
