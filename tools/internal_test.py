@@ -293,8 +293,7 @@ def run_once(archive):
   git_hash = utils.get_HEAD_sha1()
   log('Running once with hash %s' % git_hash)
   # Run test.py internal testing.
-  # TODO(mkrogh) Change this to --r8lib when we have it working with dependencies relocated.
-  cmd = ['tools/test.py', '--only_internal', '--r8lib_no_deps']
+  cmd = ['tools/test.py', '--only_internal', '--r8lib']
   env = os.environ.copy()
   # Bot does not have a lot of memory.
   env['R8_GRADLE_CORES_PER_FORK'] = '8'
