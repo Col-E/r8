@@ -123,13 +123,6 @@ def GitPull():
 def GitCheckout(file):
   return subprocess.check_output(['git', 'checkout', file]).strip()
 
-def MoveApkToDest(apk, apk_dest):
-  print('Moving `{}` to `{}`'.format(apk, apk_dest))
-  assert os.path.isfile(apk)
-  if os.path.isfile(apk_dest):
-    os.remove(apk_dest)
-  os.rename(apk, apk_dest)
-
 def InstallApkOnEmulator(apk_dest):
   subprocess.check_call(
       ['adb', '-s', emulator_id, 'install', '-r', '-d', apk_dest])
@@ -196,14 +189,17 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
       apk_dest = None
       result = {}
       try:
-        apk_dest = BuildAppWithShrinker(
+        (apk_dest, profile_dest_dir) = BuildAppWithShrinker(
           app, config, shrinker, checkout_dir, options)
         dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
         result['apk_dest'] = apk_dest,
         result['build_status'] = 'success'
         result['dex_size'] = dex_size
-      except:
+        result['profile_dest_dir'] = profile_dest_dir
+      except Exception as e:
         warn('Failed to build {} with {}'.format(app, shrinker))
+        if e:
+          print('Error: ' + str(e))
         result['build_status'] = 'failed'
 
       if options.monkey:
@@ -255,9 +251,20 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
     releaseTarget = app_module + ':' + 'assemble' + (
         flavor.capitalize() if flavor else '') + 'Release'
 
-  cmd = ['./gradlew', '--no-daemon', 'clean', releaseTarget, '--stacktrace']
+  cmd = ['./gradlew', '--no-daemon', 'clean', releaseTarget, '--profile',
+      '--stacktrace']
+
   utils.PrintCmd(cmd)
-  subprocess.check_call(cmd, env=env)
+  build_process = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
+  stdout = []
+  while True:
+    line = build_process.stdout.readline()
+    if line != b'':
+      stripped = line.rstrip()
+      stdout.append(stripped)
+      print(stripped)
+    else:
+      break
 
   apk_base_name = (archives_base_name
       + (('-' + flavor) if flavor else '') + '-release')
@@ -288,15 +295,18 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
 
   if os.path.isfile(signed_apk):
     apk_dest = os.path.join(out, signed_apk_name)
-    MoveApkToDest(signed_apk, apk_dest)
+    as_utils.MoveFile(signed_apk, apk_dest)
   else:
     apk_dest = os.path.join(out, unsigned_apk_name)
-    MoveApkToDest(unsigned_apk, apk_dest)
+    as_utils.MoveFile(unsigned_apk, apk_dest)
 
   assert IsBuiltWithR8(apk_dest) == ('r8' in shrinker), (
       'Unexpected marker in generated APK for {}'.format(shrinker))
 
-  return apk_dest
+  profile_dest_dir = os.path.join(out, 'profile')
+  as_utils.MoveProfileReportTo(profile_dest_dir, stdout)
+
+  return (apk_dest, profile_dest_dir)
 
 def RunMonkey(app, config, apk_dest):
   WaitForEmulator()

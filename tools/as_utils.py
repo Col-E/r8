@@ -5,6 +5,7 @@
 
 from distutils.version import LooseVersion
 import os
+import shutil
 
 import utils
 
@@ -62,3 +63,43 @@ def remove_r8_dependency(checkout_dir):
     for line in lines:
       if (utils.R8_JAR not in line) and (utils.R8LIB_JAR not in line):
         f.write(line)
+
+def Move(src, dst):
+  print('Moving `{}` to `{}`'.format(src, dst))
+  dst_parent = os.path.dirname(dst)
+  if not os.path.isdir(dst_parent):
+    os.makedirs(dst_parent)
+  elif os.path.isdir(dst):
+    shutil.rmtree(dst)
+  elif os.path.isfile(dst):
+    os.remove(dst)
+  os.rename(src, dst)
+
+def MoveDir(src, dst):
+  assert os.path.isdir(src)
+  Move(src, dst)
+
+def MoveFile(src, dst):
+  assert os.path.isfile(src)
+  Move(src, dst)
+
+def MoveProfileReportTo(dest_dir, build_stdout):
+  html_file = None
+  profile_message = 'See the profiling report at: '
+  for line in build_stdout:
+    if profile_message in line:
+      html_file = line[len(profile_message):]
+      if html_file.startswith('file://'):
+        html_file = html_file[len('file://'):]
+      break
+
+  if not html_file:
+    return
+
+  assert os.path.isfile(html_file), 'Expected to find HTML file at {}'.format(
+      html_file)
+  MoveFile(html_file, os.path.join(dest_dir, 'index.html'))
+
+  html_dir = os.path.dirname(html_file)
+  for dir_name in ['css', 'js']:
+    MoveDir(os.path.join(html_dir, dir_name), os.path.join(dest_dir, dir_name))
