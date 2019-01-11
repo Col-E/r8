@@ -674,6 +674,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
                   registry.registerInvokeSuper(method);
                 }
               }));
+      builder.accessFlags.setBridge();
     }
     builder.accessFlags.setSynthetic();
     // Note that we are not marking this instance obsolete, since it is not: the newly synthesized

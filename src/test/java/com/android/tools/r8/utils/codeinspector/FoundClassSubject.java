@@ -40,6 +40,11 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isSynthetic() {
+    return dexClass.accessFlags.isSynthetic();
+  }
+
+  @Override
   public void forAllMethods(Consumer<FoundMethodSubject> inspection) {
     CodeInspector.forAll(
         dexClass.directMethods(),

@@ -9,4 +9,6 @@ public abstract class Subject {
   public abstract boolean isPresent();
 
   public abstract boolean isRenamed();
+
+  public abstract boolean isSynthetic();
 }

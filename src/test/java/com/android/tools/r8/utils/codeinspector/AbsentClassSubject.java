@@ -108,6 +108,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isSynthetic() {
+    throw new Unreachable("Cannot determine if an absent class is synthetic");
+  }
+
+  @Override
   public boolean isSynthesizedJavaLambdaClass() {
     throw new Unreachable("Cannot determine if an absent class is a synthesized lambda class");
   }
