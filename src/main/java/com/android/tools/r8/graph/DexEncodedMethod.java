@@ -684,9 +684,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public DexEncodedMethod toStaticMethodWithoutThis() {
     checkIfObsolete();
     assert !accessFlags.isStatic();
-    Builder builder = builder(this);
-    builder.setStatic();
-    builder.withoutThisParameter();
+    Builder builder = builder(this).setStatic().unsetOptimizationInfo().withoutThisParameter();
     setObsolete();
     return builder.build();
   }
@@ -1256,17 +1254,24 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       this.method = method;
     }
 
-    public void setStatic() {
+    public Builder setStatic() {
       this.accessFlags.setStatic();
+      return this;
     }
 
-    public void withoutThisParameter() {
+    public Builder unsetOptimizationInfo() {
+      optimizationInfo = DefaultOptimizationInfoImpl.DEFAULT_INSTANCE;
+      return this;
+    }
+
+    public Builder withoutThisParameter() {
       assert code != null;
       if (code.isDexCode()) {
         code = code.asDexCode().withoutThisParameter();
       } else {
         throw new Unreachable("Code " + code.getClass().getSimpleName() + " is not supported.");
       }
+      return this;
     }
 
     public void setCode(Code code) {
