@@ -214,7 +214,7 @@ public class ProguardMapApplier {
               applyClassMappingOnTheFly(originalField.clazz),
               applyClassMappingOnTheFly(originalField.type),
               appInfo.dexItemFactory.createString(appliedSignature.name));
-      lenseBuilder.map(originalField, appliedField);
+      lenseBuilder.move(originalField, appliedField);
     }
 
     private void applyMethodMapping(DexMethod originalMethod, MemberNaming memberNaming) {
@@ -224,7 +224,7 @@ public class ProguardMapApplier {
               applyClassMappingOnTheFly(originalMethod.holder),
               applyClassMappingOnTheFly(originalMethod.proto),
               appInfo.dexItemFactory.createString(appliedSignature.name));
-      lenseBuilder.map(originalMethod, appliedMethod);
+      lenseBuilder.move(originalMethod, appliedMethod);
     }
 
     private DexType applyClassMappingOnTheFly(DexType from) {
@@ -336,7 +336,7 @@ public class ProguardMapApplier {
         if (newHolderType != appliedMethod.holder || newProto != appliedMethod.proto) {
           newMethod = appInfo.dexItemFactory.createMethod(
               substituteType(newHolderType, encodedMethod), newProto, appliedMethod.name);
-          lenseBuilder.map(encodedMethod.method, newMethod);
+          lenseBuilder.move(encodedMethod.method, newMethod);
         } else {
           newMethod = appliedMethod;
         }
@@ -359,7 +359,7 @@ public class ProguardMapApplier {
         if (newHolderType != appliedField.clazz || newFieldType != appliedField.type) {
           newField = appInfo.dexItemFactory.createField(
               substituteType(newHolderType, null), newFieldType, appliedField.name);
-          lenseBuilder.map(encodedField.field, newField);
+          lenseBuilder.move(encodedField.field, newField);
         } else {
           newField = appliedField;
         }

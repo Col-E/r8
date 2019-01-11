@@ -71,12 +71,13 @@ public class BootstrapCurrentEqualityTest extends TestBase {
               .compile()
               .outputJar();
     } else {
-      jar = testFolder.newFolder().toPath().resolve("out.zip");
+      jar = testFolder.newFolder().toPath().resolve("out.jar");
       R8.run(
           R8Command.builder()
-              .setMode(CompilationMode.RELEASE)
-              .addLibraryFiles(runtimeJar(Backend.CF))
+              .setMode(mode)
               .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+              .addProguardConfigurationFiles(MAIN_KEEP)
+              .addLibraryFiles(runtimeJar(Backend.CF))
               .setOutput(jar, OutputMode.ClassFile)
               .build());
     }

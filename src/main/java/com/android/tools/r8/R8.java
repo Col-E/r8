@@ -630,6 +630,13 @@ public class R8 {
       // Validity checks.
       assert application.classes().stream().allMatch(DexClass::isValid);
       assert rootSet.verifyKeptItemsAreKept(application, appView.appInfo(), options);
+      assert appView
+          .graphLense()
+          .verifyMappingToOriginalProgram(
+              application.classesWithDeterministicOrder(),
+              new ApplicationReader(inputApp.withoutMainDexList(), options, timing)
+                  .read(executorService),
+              appView.dexItemFactory());
 
       // Report synthetic rules (only for testing).
       // TODO(b/120959039): Move this to being reported through the graph consumer.
