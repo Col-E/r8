@@ -364,8 +364,7 @@ x20Dependencies.each { entry ->
             def outputDir = "${entry.key}/${entryFile}"
             def gzFile = "${outputDir}.tar.gz"
             def sha1File = "${gzFile}.sha1"
-            inputs.file sha1File
-            outputs.file gzFile
+            inputs.files files(sha1File, gzFile)
             outputs.dir outputDir
             executable "bash"
             args "-c", "tools/download_from_x20.py ${sha1File}"
