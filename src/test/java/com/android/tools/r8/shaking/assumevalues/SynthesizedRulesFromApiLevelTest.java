@@ -15,6 +15,8 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.shaking.ProguardAssumeValuesRule;
@@ -27,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -230,6 +233,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testNoExplicitAssumeValuesRuleNative() throws Exception {
+    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
     runTest(
         AndroidApiLevel.O_MR1,
         AndroidApiLevel.O_MR1,
@@ -240,6 +244,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testNoExplicitAssumeValuesRuleCompatPresent() throws Exception {
+    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
     runTest(
         AndroidApiLevel.O,
         AndroidApiLevel.O_MR1,
@@ -250,6 +255,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testNoExplicitAssumeValuesRuleCompatUsed() throws Exception {
+    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
     runTest(
         AndroidApiLevel.O,
         AndroidApiLevel.O,
@@ -260,6 +266,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testExplicitAssumeValuesRuleWhichMatchAndDontKeepCompat() throws Exception {
+    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
     runTest(
         AndroidApiLevel.O_MR1,
         AndroidApiLevel.O_MR1,
@@ -274,6 +281,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testExplicitAssumeValuesRulesWhichMatchAndKeepCompat() throws Exception {
+    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
     String[] rules = new String[] {
         "-assumevalues class * { int SDK_INT return 1..1000; }",
         "-assumevalues class * { % SDK_INT return 1..1000; }",
@@ -297,6 +305,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Test
   public void testExplicitAssumeValuesRulesWhichDoesNotMatch() throws Exception {
+    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
     String[] rules = new String[] {
         "-assumevalues class * { !public int SDK_INT return 1..1000; }",
         "-assumevalues class * { !static int SDK_INT return 1..1000; }",
