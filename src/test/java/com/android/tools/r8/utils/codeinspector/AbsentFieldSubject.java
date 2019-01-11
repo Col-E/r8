@@ -52,6 +52,11 @@ public class AbsentFieldSubject extends FieldSubject {
   }
 
   @Override
+  public boolean isSynthetic() {
+    throw new Unreachable("Cannot determine if an absent field is synthetic");
+  }
+
+  @Override
   public Signature getOriginalSignature() {
     return null;
   }

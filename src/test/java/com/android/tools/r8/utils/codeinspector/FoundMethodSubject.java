@@ -76,6 +76,11 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
+  public boolean isSynthetic() {
+    return dexMethod.accessFlags.isSynthetic();
+  }
+
+  @Override
   public boolean isFinal() {
     return dexMethod.accessFlags.isFinal();
   }

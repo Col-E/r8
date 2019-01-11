@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 
 public class AbsentAnnotationSubject extends AnnotationSubject {
@@ -15,7 +16,12 @@ public class AbsentAnnotationSubject extends AnnotationSubject {
 
   @Override
   public boolean isRenamed() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent annotation has been renamed");
+  }
+
+  @Override
+  public boolean isSynthetic() {
+    throw new Unreachable("Cannot determine if an absent annotation is synthetic");
   }
 
   @Override

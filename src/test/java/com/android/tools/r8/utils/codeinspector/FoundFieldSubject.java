@@ -63,6 +63,11 @@ public class FoundFieldSubject extends FieldSubject {
     return clazz.naming != null && !getFinalSignature().name.equals(getOriginalSignature().name);
   }
 
+  @Override
+  public boolean isSynthetic() {
+    return dexField.accessFlags.isSynthetic();
+  }
+
   public TypeSubject type() {
     return new TypeSubject(codeInspector, dexField.field.type);
   }

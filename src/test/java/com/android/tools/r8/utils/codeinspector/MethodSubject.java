@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
 import java.util.function.Predicate;
@@ -19,6 +20,9 @@ public abstract class MethodSubject extends MemberSubject {
   public abstract boolean isInstanceInitializer();
 
   public abstract boolean isClassInitializer();
+
+  @Override
+  public abstract MethodSignature getOriginalSignature();
 
   public abstract String getOriginalSignatureAttribute();
 

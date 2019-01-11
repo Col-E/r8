@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 
@@ -23,6 +24,11 @@ public class FoundAnnotationSubject extends AnnotationSubject {
   @Override
   public boolean isRenamed() {
     return false;
+  }
+
+  @Override
+  public boolean isSynthetic() {
+    throw new Unreachable("Cannot determine if an annotation is synthetic");
   }
 
   @Override

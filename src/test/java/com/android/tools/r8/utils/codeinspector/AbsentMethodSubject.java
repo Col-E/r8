@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 
 public class AbsentMethodSubject extends MethodSubject {
@@ -46,6 +47,11 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
+  public boolean isSynthetic() {
+    throw new Unreachable("Cannot determine if an absent method is synthetic");
+  }
+
+  @Override
   public boolean isFinal() {
     throw new Unreachable("Cannot determine if an absent method is final");
   }
@@ -76,7 +82,7 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
-  public Signature getOriginalSignature() {
+  public MethodSignature getOriginalSignature() {
     return null;
   }
 

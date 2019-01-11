@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 
 public class TypeSubject extends Subject {
@@ -23,7 +24,12 @@ public class TypeSubject extends Subject {
 
   @Override
   public boolean isRenamed() {
-    return false;
+    throw new Unreachable("Cannot determine if a type is renamed");
+  }
+
+  @Override
+  public boolean isSynthetic() {
+    throw new Unreachable("Cannot determine if a type is synthetic");
   }
 
   public boolean is(String type) {
