@@ -14,6 +14,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -155,6 +156,7 @@ public class CodeRewriter {
 
   public final IRConverter converter;
   private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
   private final DexItemFactory dexItemFactory;
   private final Set<DexMethod> libraryMethodsReturningReceiver;
   private final InternalOptions options;
@@ -165,6 +167,7 @@ public class CodeRewriter {
       InternalOptions options) {
     this.converter = converter;
     this.appInfo = converter.appInfo;
+    this.appView = converter.appView;
     this.options = options;
     this.dexItemFactory = appInfo.dexItemFactory;
     this.libraryMethodsReturningReceiver = libraryMethodsReturningReceiver;
@@ -1571,18 +1574,27 @@ public class CodeRewriter {
     }
   }
 
-  private boolean checkArgumentType(InvokeMethod invoke, DexMethod target, int argumentIndex) {
-    DexType returnType = invoke.getInvokedMethod().proto.returnType;
+  private boolean checkArgumentType(InvokeMethod invoke, int argumentIndex) {
     // TODO(sgjesse): Insert cast if required.
-    if (invoke.isInvokeStatic()) {
-      return invoke.getInvokedMethod().proto.parameters.values[argumentIndex] == returnType;
+    TypeLatticeElement returnType =
+        TypeLatticeElement.fromDexType(invoke.getInvokedMethod().proto.returnType, false, appInfo);
+    TypeLatticeElement argumentType =
+        TypeLatticeElement.fromDexType(getArgumentType(invoke, argumentIndex), false, appInfo);
+    if (appView != null && appView.enableWholeProgramOptimizations()) {
+      return argumentType.lessThanOrEqual(returnType, appInfo);
     } else {
-      if (argumentIndex == 0) {
-        return invoke.getInvokedMethod().getHolder() == returnType;
-      } else {
-        return invoke.getInvokedMethod().proto.parameters.values[argumentIndex - 1] == returnType;
-      }
+      return argumentType.equals(returnType);
     }
+  }
+
+  private DexType getArgumentType(InvokeMethod invoke, int argumentIndex) {
+    if (invoke.isInvokeStatic()) {
+      return invoke.getInvokedMethod().proto.parameters.values[argumentIndex];
+    }
+    if (argumentIndex == 0) {
+      return invoke.getInvokedMethod().getHolder();
+    }
+    return invoke.getInvokedMethod().proto.parameters.values[argumentIndex - 1];
   }
 
   // Replace result uses for methods where something is known about what is returned.
@@ -1600,7 +1612,7 @@ public class CodeRewriter {
         InvokeMethod invoke = current.asInvokeMethod();
         if (invoke.outValue() != null && !invoke.outValue().hasLocalInfo()) {
           if (libraryMethodsReturningReceiver.contains(invoke.getInvokedMethod())) {
-            if (checkArgumentType(invoke, invoke.getInvokedMethod(), 0)) {
+            if (checkArgumentType(invoke, 0)) {
               invoke.outValue().replaceUsers(invoke.arguments().get(0));
               invoke.setOutValue(null);
             }
@@ -1614,8 +1626,7 @@ public class CodeRewriter {
               if (definition != null && definition.getOptimizationInfo().returnsArgument()) {
                 int argumentIndex = definition.getOptimizationInfo().getReturnedArgument();
                 // Replace the out value of the invoke with the argument and ignore the out value.
-                if (argumentIndex != -1
-                    && checkArgumentType(invoke, target.method, argumentIndex)) {
+                if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
                   Value outValue = invoke.outValue();
                   assert outValue.verifyCompatible(argument.outType());
