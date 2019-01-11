@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.MapMaker;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -119,15 +120,16 @@ public final class Reference {
   public static MethodReference method(
       ClassReference holderClass,
       String methodName,
-      ImmutableList<TypeReference> formalTypes,
+      List<TypeReference> formalTypes,
       TypeReference returnType) {
-    MethodReference key = new MethodReference(holderClass, methodName, formalTypes, returnType);
+    MethodReference key = new MethodReference(
+        holderClass, methodName, ImmutableList.copyOf(formalTypes), returnType);
     return getInstance().methods.computeIfAbsent(key,
         // Allocate a distinct value for the canonical reference so the key is not a strong pointer.
         k -> new MethodReference(
             k.getHolderClass(),
             k.getMethodName(),
-            (ImmutableList<TypeReference>) k.getFormalTypes(),
+            ImmutableList.copyOf(k.getFormalTypes()),
             k.getReturnType()));
   }
 
