@@ -4,6 +4,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import apk_utils
+import gradle
 import os
 import optparse
 import subprocess
@@ -371,15 +372,19 @@ def ParseOptions(argv):
                     help='Whether to pull the latest version of each app',
                     default=False,
                     action='store_true')
-  result.add_option('--sign_apks',
+  result.add_option('--sign-apks', '--sign_apks',
                     help='Whether the APKs should be signed',
                     default=False,
                     action='store_true')
   result.add_option('--shrinker',
                     help='The shrinkers to use (by default, all are run)',
                     action='append')
-  result.add_option('--disable_tot',
+  result.add_option('--disable-tot', '--disable_tot',
                     help='Whether to disable the use of the ToT version of R8',
+                    default=False,
+                    action='store_true')
+  result.add_option('--no-build', '--no_build',
+                    help='Run without building ToT first (only when using ToT)',
                     default=False,
                     action='store_true')
   (options, args) = result.parse_args(argv)
@@ -402,6 +407,9 @@ def main(argv):
     SHRINKERS = [
         shrinker for shrinker in SHRINKERS
         if 'minified' not in shrinker]
+
+  if not options.no_build and not options.disable_tot:
+    gradle.RunGradle(['r8', 'r8lib'])
 
   result_per_shrinker_per_app = {}
 
