@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
@@ -72,6 +73,11 @@ public class GenerateMainDexList {
         options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
       }
 
+      if (!mainDexRootSet.checkDiscarded.isEmpty()) {
+        new DiscardedChecker(
+            mainDexRootSet, mainDexClasses.getClasses(), appView.appInfo(), options)
+            .run();
+      }
       // Print -whyareyoukeeping results if any.
       if (whyAreYouKeepingConsumer != null) {
         for (DexDefinition definition : mainDexRootSet.reasonAsked) {
