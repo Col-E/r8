@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.CANONICAL_NAME;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.NAME;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.SIMPLE_NAME;
@@ -1577,9 +1578,11 @@ public class CodeRewriter {
   private boolean checkArgumentType(InvokeMethod invoke, int argumentIndex) {
     // TODO(sgjesse): Insert cast if required.
     TypeLatticeElement returnType =
-        TypeLatticeElement.fromDexType(invoke.getInvokedMethod().proto.returnType, false, appInfo);
+        TypeLatticeElement.fromDexType(
+            invoke.getInvokedMethod().proto.returnType, maybeNull(), appInfo);
     TypeLatticeElement argumentType =
-        TypeLatticeElement.fromDexType(getArgumentType(invoke, argumentIndex), false, appInfo);
+        TypeLatticeElement.fromDexType(
+            getArgumentType(invoke, argumentIndex), maybeNull(), appInfo);
     if (appView != null && appView.enableWholeProgramOptimizations()) {
       return argumentType.lessThanOrEqual(returnType, appInfo);
     } else {
