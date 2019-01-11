@@ -716,7 +716,7 @@ public class CfPrinter {
 
   private void appendMethod(DexMethod method) {
     if (mapper != null) {
-      MethodSignature signature = (MethodSignature) mapper.originalSignatureOf(method);
+      MethodSignature signature = mapper.originalSignatureOf(method);
       builder.append(mapper.originalNameOf(method.holder)).append('.');
       builder.append(signature.name).append(signature.toDescriptor());
       return;

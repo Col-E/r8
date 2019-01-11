@@ -1176,8 +1176,11 @@ public class IRConverter {
     }
     if (paramsCheckedForNull.length() > 0) {
       // Check if collected information conforms to non-null parameter hints in Kotlin metadata.
+      // These hints are on the original holder. To find the original holder, we first find the
+      // original method signature (this could have changed as a result of, for example, class
+      // merging). Then, we find the type that now corresponds to the the original holder.
       DexMethod originalSignature = graphLense().getOriginalMethodSignature(method.method);
-      DexClass originalHolder = definitionFor(originalSignature.holder);
+      DexClass originalHolder = definitionFor(graphLense().lookupType(originalSignature.holder));
       if (originalHolder.hasKotlinInfo()) {
         KotlinInfo kotlinInfo = originalHolder.getKotlinInfo();
         if (kotlinInfo.hasNonNullParameterHints()) {

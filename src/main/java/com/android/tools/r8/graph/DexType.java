@@ -3,10 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX;
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
+
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -439,6 +445,15 @@ public class DexType extends DexReference implements PresortedComparable<DexType
       return false;
     }
     return isPrimitiveType((char) descriptor.content[1]);
+  }
+
+  public boolean isD8R8SynthesizedClassType() {
+    String name = toSourceString();
+    return name.contains(COMPANION_CLASS_NAME_SUFFIX)
+        || name.contains(DISPATCH_CLASS_NAME_SUFFIX)
+        || name.contains(LAMBDA_CLASS_NAME_PREFIX)
+        || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX)
+        || name.contains(OutlineOptions.CLASS_NAME);
   }
 
   public int elementSizeForPrimitiveArrayType() {
