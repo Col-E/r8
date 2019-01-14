@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.Set;
 
 final class PublicizerLense extends NestedGraphLense {
@@ -63,17 +63,20 @@ final class PublicizerLense extends NestedGraphLense {
   }
 
   static class PublicizedLenseBuilder {
-    private final ImmutableSet.Builder<DexMethod> methodSetBuilder = ImmutableSet.builder();
+    private final Set<DexMethod> publicizedMethods = Sets.newIdentityHashSet();
 
     private PublicizedLenseBuilder() {
     }
 
     public GraphLense build(AppView appView) {
-      return new PublicizerLense(appView, methodSetBuilder.build());
+      if (publicizedMethods.isEmpty()) {
+        return appView.graphLense();
+      }
+      return new PublicizerLense(appView, publicizedMethods);
     }
 
     public void add(DexMethod publicizedMethod) {
-      methodSetBuilder.add(publicizedMethod);
+      publicizedMethods.add(publicizedMethod);
     }
   }
 }
