@@ -9,7 +9,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ExternalR8TestCompileResult;
 import com.android.tools.r8.OutputMode;
@@ -94,34 +93,6 @@ public class BootstrapCurrentEqualityTest extends TestBase {
                 Paths.get(ToolHelper.TOOLS_DIR, "test_self_retrace.py").toString(),
                 r8R8Release.toString()));
     assertEquals(0, result.exitCode);
-  }
-
-  @Test
-  public void testR8LibCompatibility() throws IOException, CompilationFailedException {
-    // Produce r81 = R8Lib(R8WithDeps) and r82 = R8LibNoDeps + Deps(R8WithDeps) and test that r81 is
-    // equal to r82. This test should only run if we are testing r8lib and we expect both R8libs to
-    // be built by gradle. If we are not testing with R8Lib, do not run this test.
-    if (!ToolHelper.isTestingR8Lib()) {
-      return;
-    }
-    Path runR81 =
-        testForExternalR8(Backend.CF)
-            .useProvidedR8(ToolHelper.R8LIB_JAR)
-            .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
-            .addKeepRuleFiles(MAIN_KEEP)
-            .setMode(CompilationMode.RELEASE)
-            .compile()
-            .outputJar();
-    Path runR82 =
-        testForExternalR8(Backend.CF)
-            .useProvidedR8(ToolHelper.R8LIB_EXCLUDE_DEPS_JAR)
-            .addR8ExternalDepsToClasspath()
-            .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
-            .addKeepRuleFiles(MAIN_KEEP)
-            .setMode(CompilationMode.RELEASE)
-            .compile()
-            .outputJar();
-    assert filesAreEqual(runR81, runR82);
   }
 
   @Test

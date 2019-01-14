@@ -123,6 +123,9 @@ def Main():
   if utils.is_bot():
     gradle.RunGradle(['clean'])
 
+  # Build an R8 with dependencies for bootstrapping tests before adding test sources
+  gradle.RunGradle(['r8WithRelocatedDeps'])
+
   gradle_args = ['--stacktrace']
   # Set all necessary Gradle properties and options first.
   if options.verbose:
@@ -179,14 +182,8 @@ def Main():
     exit(1)
   if not options.no_r8lib:
     gradle_args.append('-Pr8lib')
-    # Force gradle to build a version of r8lib without dependencies for
-    # BootstrapCurrentEqualityTest.
-    gradle_args.append('R8LibNoDeps')
   if options.r8lib_no_deps:
     gradle_args.append('-Pr8lib_no_deps')
-
-  # Build an R8 with dependencies for bootstrapping tests before adding test sources.
-  gradle_args.append('r8WithRelocatedDeps')
 
   # Add Gradle tasks
   gradle_args.append('cleanTest')
