@@ -363,12 +363,15 @@ public class R8 {
       }
 
       if (options.getProguardConfiguration().isAccessModificationAllowed()) {
-        appView.setGraphLense(
-            ClassAndMemberPublicizer.run(executorService, timing, application, appView, rootSet));
-        // We can now remove visibility bridges. Note that we do not need to update the
-        // invoke-targets here, as the existing invokes will simply dispatch to the now
-        // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
-        application = new VisibilityBridgeRemover(appView.appInfo(), application).run();
+        GraphLense publicizedLense =
+            ClassAndMemberPublicizer.run(executorService, timing, application, appView, rootSet);
+        if (publicizedLense != appView.graphLense()) {
+          appView.setGraphLense(publicizedLense);
+          // We can now remove visibility bridges. Note that we do not need to update the
+          // invoke-targets here, as the existing invokes will simply dispatch to the now
+          // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
+          application = new VisibilityBridgeRemover(appView.appInfo(), application).run();
+        }
       }
 
       // Build conservative main dex content before first round of tree shaking. This is used
