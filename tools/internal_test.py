@@ -55,7 +55,9 @@ EXITCODE = 'exitcode'
 TIMED_OUT = 'timed_out'
 
 TEST_COMMANDS = [
+    # Run test.py internal testing.
     ['tools/test.py', '--only_internal'],
+    # Ensure that all internal apps compile.
     ['tools/run_on_app.py', '--ignore-java-version','--run-all', '--out=out']
 ]
 
@@ -292,18 +294,10 @@ def run_once(archive):
   failed = False
   git_hash = utils.get_HEAD_sha1()
   log('Running once with hash %s' % git_hash)
-  # Run test.py internal testing.
-  cmd = ['tools/test.py', '--only_internal', '--r8lib']
   env = os.environ.copy()
   # Bot does not have a lot of memory.
   env['R8_GRADLE_CORES_PER_FORK'] = '8'
-  if execute(cmd, archive, env):
-    failed = True
-  # Ensure that all internal apps compile.
-  cmd = ['tools/run_on_app.py', '--ignore-java-version','--run-all',
-         '--out=out']
-  if execute(cmd, archive):
-    failed = True
+  failed = any([execute(cmd, archive, env) for cmd in TEST_COMMANDS])
   archive_status(1 if failed else 0)
   return failed
 
