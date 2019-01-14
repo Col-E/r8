@@ -741,8 +741,6 @@ public class JctfTestSpecifications {
               any())
           .put("lang.Long.serialization.Long_serialization_A01", anyDexVm())
           .put("lang.ThreadGroup.resume.ThreadGroup_resume_A01", anyDexVm())
-          .put("lang.ThreadGroup.resume.ThreadGroup_resume_A02", cf())
-          .put("lang.ThreadGroup.suspend.ThreadGroup_suspend_A02", cf())
           .put(
               "lang.AbstractMethodError.serialization.AbstractMethodError_serialization_A01",
               anyDexVm())
@@ -1066,7 +1064,6 @@ public class JctfTestSpecifications {
           .put(
               "lang.SecurityManager.checkAccessLjava_lang_ThreadGroup.SecurityManager_checkAccess_A01",
               anyDexVm())
-          .put("lang.ThreadGroup.interrupt.ThreadGroup_interrupt_A02", cf())
           .put(
               "lang.SecurityManager.inClassLjava_lang_String.SecurityManager_inClass_A03",
               anyDexVm())
