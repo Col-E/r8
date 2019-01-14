@@ -533,7 +533,7 @@ task repackageDepsNoRelocate(type: ShadowJar) {
     mergeServiceFiles(it)
     exclude { it.getRelativePath().getPathString() == "module-info.class" }
     exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
-    baseName 'deps'
+    baseName 'deps_not_relocated'
 }
 
 task repackageDeps(type: ShadowJar) {

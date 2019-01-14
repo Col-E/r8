@@ -118,6 +118,8 @@ public class ToolHelper {
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
+  public static final Path DEPS_NOT_RELOCATED =
+      Paths.get(LIBS_DIR, "deps_not_relocated.jar");
 
   public enum DexVm {
     ART_4_0_4_TARGET(Version.V4_0_4, Kind.TARGET),

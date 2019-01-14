@@ -50,6 +50,8 @@ public class ExternalR8TestBuilder
   // Additional Proguard configuration files.
   private List<Path> proguardConfigFiles = new ArrayList<>();
 
+  private boolean addR8ExternalDeps = false;
+
   private ExternalR8TestBuilder(TestState state, Builder builder, Backend backend) {
     super(state, builder, backend);
   }
@@ -72,13 +74,18 @@ public class ExternalR8TestBuilder
       Path outputJar = outputFolder.resolve("output.jar");
       Path proguardMapFile = outputFolder.resolve("output.jar.map");
 
+      String classPath =
+          addR8ExternalDeps
+              ? r8jar.toAbsolutePath().toString() + ":" + ToolHelper.DEPS_NOT_RELOCATED
+              : r8jar.toAbsolutePath().toString();
+
       List<String> command = new ArrayList<>();
       Collections.addAll(
           command,
           getJavaExecutable(),
           "-ea",
           "-cp",
-          r8jar.toAbsolutePath().toString(),
+          classPath,
           R8.class.getTypeName(),
           "--output",
           outputJar.toAbsolutePath().toString(),
@@ -180,6 +187,11 @@ public class ExternalR8TestBuilder
 
   public ExternalR8TestBuilder useProvidedR8(Path r8jar) {
     this.r8jar = r8jar;
+    return self();
+  }
+
+  public ExternalR8TestBuilder addR8ExternalDepsToClasspath() {
+    this.addR8ExternalDeps = true;
     return self();
   }
 }
