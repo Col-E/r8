@@ -118,8 +118,9 @@ public class ToolHelper {
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
-  public static final Path DEPS_NOT_RELOCATED =
-      Paths.get(LIBS_DIR, "deps_not_relocated.jar");
+  public static final Path R8LIB_JAR = Paths.get(LIBS_DIR, "r8lib.jar");
+  public static final Path R8LIB_EXCLUDE_DEPS_JAR = Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar");
+  public static final Path DEPS_NOT_RELOCATED = Paths.get(LIBS_DIR, "deps-not-relocated.jar");
 
   public enum DexVm {
     ART_4_0_4_TARGET(Version.V4_0_4, Kind.TARGET),
@@ -780,6 +781,10 @@ public class ToolHelper {
 
   public static boolean isJava9Runtime() {
     return System.getProperty("java.specification.version").equals("9");
+  }
+
+  public static boolean isTestingR8Lib() {
+    return System.getProperty("java.class.path").contains("r8lib.jar");
   }
 
   public static boolean artSupported() {
