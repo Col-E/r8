@@ -177,7 +177,7 @@ def Main():
     if not os.path.exists(options.use_golden_files_in):
       os.makedirs(options.use_golden_files_in)
     gradle_args.append('-PHEAD_sha1=' + utils.get_HEAD_sha1())
-  if not options.no_r8lib and options.r8lib_no_deps:
+  if (not options.no_r8lib) and options.r8lib_no_deps:
     print('Cannot run tests on r8lib with and without deps. R8lib is now default target.')
     exit(1)
   if not options.no_r8lib:
