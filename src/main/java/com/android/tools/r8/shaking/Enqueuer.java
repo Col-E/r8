@@ -2832,23 +2832,27 @@ public class Enqueuer {
   }
 
   ClassGraphNode getClassGraphNode(DexType type) {
-    return classNodes.computeIfAbsent(type,
-        t -> new ClassGraphNode(
-            appInfo.definitionFor(type).isLibraryClass(),
-            Reference.classFromDescriptor(t.toDescriptorString())));
+    return classNodes.computeIfAbsent(
+        type,
+        t -> {
+          DexClass definition = appInfo.definitionFor(t);
+          return new ClassGraphNode(
+              definition != null && definition.isLibraryClass(),
+              Reference.classFromDescriptor(t.toDescriptorString()));
+        });
   }
 
   MethodGraphNode getMethodGraphNode(DexMethod context) {
     return methodNodes.computeIfAbsent(
         context,
         m -> {
-          boolean isLibraryNode = appInfo.definitionFor(context.holder).isLibraryClass();
+          DexClass holderDefinition = appInfo.definitionFor(context.holder);
           Builder<TypeReference> builder = ImmutableList.builder();
           for (DexType param : m.proto.parameters.values) {
             builder.add(Reference.typeFromDescriptor(param.toDescriptorString()));
           }
           return new MethodGraphNode(
-              isLibraryNode,
+              holderDefinition != null && holderDefinition.isLibraryClass(),
               Reference.method(
                   Reference.classFromDescriptor(m.holder.toDescriptorString()),
                   m.name.toString(),
@@ -2862,13 +2866,15 @@ public class Enqueuer {
   FieldGraphNode getFieldGraphNode(DexField context) {
     return fieldNodes.computeIfAbsent(
         context,
-        f ->
-            new FieldGraphNode(
-                appInfo.definitionFor(context.getHolder()).isLibraryClass(),
-                Reference.field(
-                    Reference.classFromDescriptor(f.getHolder().toDescriptorString()),
-                    f.name.toString(),
-                    Reference.typeFromDescriptor(f.type.toDescriptorString()))));
+        f -> {
+          DexClass holderDefinition = appInfo.definitionFor(context.getHolder());
+          return new FieldGraphNode(
+              holderDefinition != null && holderDefinition.isLibraryClass(),
+              Reference.field(
+                  Reference.classFromDescriptor(f.getHolder().toDescriptorString()),
+                  f.name.toString(),
+                  Reference.typeFromDescriptor(f.type.toDescriptorString())));
+        });
   }
 
   KeepRuleGraphNode getKeepRuleGraphNode(ProguardKeepRule rule) {
