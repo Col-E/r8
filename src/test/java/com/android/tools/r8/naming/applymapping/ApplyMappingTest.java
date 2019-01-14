@@ -35,6 +35,7 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -75,6 +76,7 @@ public class ApplyMappingTest extends TestBase {
     out = temp.newFolder("out").toPath();
   }
 
+  @Ignore("b/121305642")
   @Test
   public void test044_obfuscate_and_apply() throws Exception {
     // keep rules that allow obfuscations while keeping everything.
@@ -110,7 +112,7 @@ public class ApplyMappingTest extends TestBase {
     AndroidApp instrApp =
         runR8(
             ToolHelper.addProguardConfigurationConsumer(
-                    getCommandForInstrumentation(instrOut, flag, NAMING044_JAR, APPLYMAPPING044_JAR)
+                    getCommandForInstrumentation(instrOut, flag, out, APPLYMAPPING044_JAR)
                         .setDisableMinification(true),
                     pgConfig -> pgConfig.setApplyMappingFile(proguardMap))
                 .build());
