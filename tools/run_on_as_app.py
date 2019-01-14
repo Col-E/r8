@@ -316,8 +316,15 @@ def RunMonkey(app, config, apk_dest):
   app_id = config.get('app_id')
   number_of_events_to_generate = 50
 
-  stdout = subprocess.check_output(['adb', 'shell', 'monkey', '-p', app_id,
-      str(number_of_events_to_generate)])
+  cmd = ['adb', 'shell', 'monkey', '-p', app_id,
+      str(number_of_events_to_generate)]
+  utils.PrintCmd(cmd)
+
+  try:
+    stdout = subprocess.check_output(cmd)
+  except subprocess.CalledProcessError as e:
+    return False
+
   return 'Events injected: {}'.format(number_of_events_to_generate) in stdout
 
 def LogResults(result_per_shrinker_per_app, options):
