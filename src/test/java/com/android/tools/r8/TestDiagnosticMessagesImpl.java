@@ -91,9 +91,9 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     StringBuilder builder = new StringBuilder("No warning matches " + matcher.toString());
     builder.append(System.lineSeparator());
     if (getWarnings().size() == 0) {
-      builder.append("There where no warnings.");
+      builder.append("There were no warnings.");
     } else {
-      builder.append("There where " + getWarnings().size() + " warnings:");
+      builder.append("There were " + getWarnings().size() + " warnings:");
       builder.append(System.lineSeparator());
       for (int i = 0; i < getWarnings().size(); i++) {
         builder.append(getWarnings().get(i).getDiagnosticMessage());
