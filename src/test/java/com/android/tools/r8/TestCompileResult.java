@@ -4,9 +4,6 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.TestBase.Backend.DEX;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -83,57 +80,27 @@ public abstract class TestCompileResult<
   }
 
   public CR assertNoMessages() {
-    assertEquals(0, getDiagnosticMessages().getInfos().size());
-    assertEquals(0, getDiagnosticMessages().getWarnings().size());
-    assertEquals(0, getDiagnosticMessages().getErrors().size());
+    getDiagnosticMessages().assertNoMessages();
     return self();
   }
 
   public CR assertOnlyInfos() {
-    assertNotEquals(0, getDiagnosticMessages().getInfos().size());
-    assertEquals(0, getDiagnosticMessages().getWarnings().size());
-    assertEquals(0, getDiagnosticMessages().getErrors().size());
+    getDiagnosticMessages().assertOnlyInfos();
     return self();
   }
 
   public CR assertOnlyWarnings() {
-    assertEquals(0, getDiagnosticMessages().getInfos().size());
-    assertNotEquals(0, getDiagnosticMessages().getWarnings().size());
-    assertEquals(0, getDiagnosticMessages().getErrors().size());
+    getDiagnosticMessages().assertOnlyWarnings();
     return self();
   }
 
   public CR assertWarningMessageThatMatches(Matcher<String> matcher) {
-    assertNotEquals(0, getDiagnosticMessages().getWarnings().size());
-    for (int i = 0; i < getDiagnosticMessages().getWarnings().size(); i++) {
-      if (matcher.matches(getDiagnosticMessages().getWarnings().get(i).getDiagnosticMessage())) {
-        return self();
-      }
-    }
-    StringBuilder builder = new StringBuilder("No warning matches " + matcher.toString());
-    builder.append(System.lineSeparator());
-    if (getDiagnosticMessages().getWarnings().size() == 0) {
-      builder.append("There where no warnings.");
-    } else {
-      builder.append("There where " + getDiagnosticMessages().getWarnings().size() + " warnings:");
-      builder.append(System.lineSeparator());
-      for (int i = 0; i < getDiagnosticMessages().getWarnings().size(); i++) {
-        builder.append(getDiagnosticMessages().getWarnings().get(i).getDiagnosticMessage());
-        builder.append(System.lineSeparator());
-      }
-    }
-    fail(builder.toString());
+    getDiagnosticMessages().assertWarningMessageThatMatches(matcher);
     return self();
   }
 
   public CR assertNoWarningMessageThatMatches(Matcher<String> matcher) {
-    assertNotEquals(0, getDiagnosticMessages().getWarnings().size());
-    for (int i = 0; i < getDiagnosticMessages().getWarnings().size(); i++) {
-      String message = getDiagnosticMessages().getWarnings().get(i).getDiagnosticMessage();
-      if (matcher.matches(message)) {
-        fail("The warning: \"" + message + "\" + matches " + matcher + ".");
-      }
-    }
+    getDiagnosticMessages().assertNoWarningMessageThatMatches(matcher);
     return self();
   }
 

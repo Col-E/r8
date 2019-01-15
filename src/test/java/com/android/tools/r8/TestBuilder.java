@@ -3,16 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
-
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.utils.ListUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
 public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilder<RR, T>> {
 
@@ -92,14 +88,6 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
   }
 
   static Collection<Path> getFilesForInnerClasses(Collection<Class<?>> classes) throws IOException {
-    Set<Path> paths = new HashSet<>();
-    for (Class clazz : classes) {
-      Path path = ToolHelper.getClassFileForTestClass(clazz);
-      String prefix = path.toString().replace(CLASS_EXTENSION, "$");
-      paths.addAll(
-          ToolHelper.getClassFilesForTestDirectory(
-              path.getParent(), p -> p.toString().startsWith(prefix)));
-    }
-    return paths;
+    return ToolHelper.getClassFilesForInnerClasses(classes);
   }
 }
