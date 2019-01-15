@@ -1214,7 +1214,6 @@ public class VerticalClassMerger {
         // The bridge is now the public method serving the role of the original method, and should
         // reflect that this method was publicized.
         assert bridge.accessFlags.isPromotedToPublic();
-        method.accessFlags.unsetPromotedToPublic();
       }
       return bridge;
     }
@@ -1409,7 +1408,6 @@ public class VerticalClassMerger {
 
   private static void makePrivate(DexEncodedMethod method) {
     assert !method.accessFlags.isAbstract();
-    method.accessFlags.unsetPromotedToPublic();
     method.accessFlags.unsetPublic();
     method.accessFlags.unsetProtected();
     method.accessFlags.setPrivate();

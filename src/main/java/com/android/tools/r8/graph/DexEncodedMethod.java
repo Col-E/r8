@@ -645,7 +645,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // for the forwarding method, as the forwarding method will copy the access flags from this,
     // and if different forwarding methods are created in different subclasses the first could be
     // final.
-    accessFlags.unsetFinal();
+    accessFlags.demoteFromFinal();
     DexMethod newMethod = itemFactory.createMethod(holder.type, method.proto, method.name);
     Invoke.Type type = accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.SUPER;
     Builder builder = builder(this);

@@ -54,12 +54,16 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
   }
 
   private MethodAccessFlags(int flags) {
-    super(flags);
+    this(flags, flags);
+  }
+
+  private MethodAccessFlags(int originalFlags, int modifiedFlags) {
+    super(originalFlags, modifiedFlags);
   }
 
   @Override
   public MethodAccessFlags copy() {
-    return new MethodAccessFlags(flags).setPromotedToPublic(isPromotedToPublic());
+    return new MethodAccessFlags(originalFlags, modifiedFlags);
   }
 
   @Override

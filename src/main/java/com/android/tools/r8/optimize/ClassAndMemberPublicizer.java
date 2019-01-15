@@ -128,7 +128,7 @@ public final class ClassAndMemberPublicizer {
         return false;
       }
       lenseBuilder.add(encodedMethod.method);
-      accessFlags.setFinal();
+      accessFlags.promoteToFinal();
       accessFlags.promoteToPublic();
       // Although the current method became public, it surely has the single virtual target.
       encodedMethod.method.setSingleVirtualMethodCache(

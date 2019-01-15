@@ -227,6 +227,28 @@ public class Matchers {
     };
   }
 
+  public static Matcher<MethodSubject> isFinal() {
+    return new TypeSafeMatcher<MethodSubject>() {
+      @Override
+      public boolean matchesSafely(final MethodSubject method) {
+        return method.isPresent() && method.isFinal();
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("is final");
+      }
+
+      @Override
+      public void describeMismatchSafely(final MethodSubject method, Description description) {
+        description
+            .appendText("method ")
+            .appendValue(method.getOriginalName())
+            .appendText(" was not");
+      }
+    };
+  }
+
   public static <T extends MemberSubject> Matcher<T> isPrivate() {
     return hasVisibility(Visibility.PRIVATE);
   }

@@ -37,12 +37,16 @@ public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
   }
 
   private FieldAccessFlags(int flags) {
-    super(flags);
+    this(flags, flags);
+  }
+
+  private FieldAccessFlags(int originalFlags, int modifiedFlags) {
+    super(originalFlags, modifiedFlags);
   }
 
   @Override
   public FieldAccessFlags copy() {
-    return new FieldAccessFlags(flags).setPromotedToPublic(isPromotedToPublic());
+    return new FieldAccessFlags(originalFlags, modifiedFlags);
   }
 
   @Override

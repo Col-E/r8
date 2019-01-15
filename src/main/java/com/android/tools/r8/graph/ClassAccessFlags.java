@@ -50,7 +50,11 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
   }
 
   private ClassAccessFlags(int flags) {
-    super(flags);
+    this(flags, flags);
+  }
+
+  private ClassAccessFlags(int originalFlags, int modifiedFlags) {
+    super(originalFlags, modifiedFlags);
   }
 
   public static ClassAccessFlags fromSharedAccessFlags(int access) {
@@ -70,7 +74,7 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
 
   @Override
   public ClassAccessFlags copy() {
-    return new ClassAccessFlags(flags).setPromotedToPublic(isPromotedToPublic());
+    return new ClassAccessFlags(originalFlags, modifiedFlags);
   }
 
   @Override
