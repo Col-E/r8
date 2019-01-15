@@ -676,9 +676,6 @@ def r8LibCreateTask(name, pgConf, r8Task, output, args = [], libs = []) {
 task testJar(type: ShadowJar, dependsOn: testClasses) {
     baseName = "r8tests"
     from sourceSets.test.output
-    if (!project.hasProperty('exclude_deps')) {
-        relocate('org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm')
-    }
 }
 
 task testJarNoDeps(type: ShadowJar, dependsOn: testClasses) {
