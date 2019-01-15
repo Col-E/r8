@@ -17,7 +17,7 @@ import zipfile
 
 import as_utils
 
-SHRINKERS = ['r8', 'r8full', 'r8-minified', 'r8full-minified', 'proguard']
+SHRINKERS = ['r8', 'r8-minified', 'r8full', 'r8full-minified', 'proguard']
 WORKING_DIR = utils.BUILD
 
 if 'R8_BENCHMARK_DIR' in os.environ and os.path.isdir(os.environ['R8_BENCHMARK_DIR']):
@@ -130,6 +130,12 @@ def InstallApkOnEmulator(apk_dest):
   subprocess.check_call(
       ['adb', '-s', emulator_id, 'install', '-r', '-d', apk_dest])
 
+def PercentageDiffAsString(before, after):
+  if after < before:
+    return '-' + str(round((1.0 - after / before) * 100)) + '%'
+  else:
+    return '+' + str(round((after - before) / before * 100)) + '%'
+
 def UninstallApkOnEmulator(app, config):
   app_id = config.get('app_id')
   process = subprocess.Popen(
@@ -218,6 +224,11 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
         result['build_status'] = 'success'
         result['dex_size'] = dex_size
         result['profile_dest_dir'] = profile_dest_dir
+
+        profile = as_utils.ParseProfileReport(profile_dest_dir)
+        result['profile'] = {
+            task_name:duration for task_name, duration in profile.iteritems()
+            if as_utils.IsGradleCompilerTask(task_name, shrinker)}
       except Exception as e:
         warn('Failed to build {} with {}'.format(app, shrinker))
         if e:
@@ -262,6 +273,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
   return result_per_shrinker
 
 def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
+  print()
   print('Building {} with {}'.format(app, shrinker))
 
   # Add/remove 'r8.jar' from top-level build.gradle.
@@ -416,8 +428,10 @@ def LogResults(result_per_shrinker_per_app, options):
       print('  skipped ({})'.format(error_message))
       continue
 
-    baseline = float(
-        result_per_shrinker.get('proguard', {}).get('dex_size', -1))
+    proguard_result = result_per_shrinker.get('proguard', {})
+    proguard_dex_size = float(proguard_result.get('dex_size', -1))
+    proguard_duration = sum(proguard_result.get('profile', {}).values())
+
     for shrinker in SHRINKERS:
       if shrinker not in result_per_shrinker:
         continue
@@ -428,17 +442,29 @@ def LogResults(result_per_shrinker_per_app, options):
       else:
         print('  {}:'.format(shrinker))
         dex_size = result.get('dex_size')
-        if dex_size != baseline and baseline >= 0:
-          if dex_size < baseline:
-            success('    dex size: {} ({}, -{}%)'.format(
-              dex_size, dex_size - baseline,
-              round((1.0 - dex_size / baseline) * 100), 1))
-          elif dex_size >= baseline:
-            warn('    dex size: {} ({}, +{}%)'.format(
-              dex_size, dex_size - baseline,
-              round((baseline - dex_size) / dex_size * 100, 1)))
+        msg = '    dex size: {}'.format(dex_size)
+        if dex_size != proguard_dex_size and proguard_dex_size >= 0:
+          msg = '{} ({}, {})'.format(
+              msg, dex_size - proguard_dex_size,
+              PercentageDiffAsString(proguard_dex_size, dex_size))
+          success(msg) if dex_size < proguard_dex_size else warn(msg)
         else:
-          print('    dex size: {}'.format(dex_size))
+          print(msg)
+
+        profile = result.get('profile')
+        duration = sum(profile.values())
+        msg = '    performance: {}s'.format(duration)
+        if duration != proguard_duration and proguard_duration > 0:
+          msg = '{} ({}s, {})'.format(
+              msg, duration - proguard_duration,
+              PercentageDiffAsString(proguard_duration, duration))
+          success(msg) if duration < proguard_duration else warn(msg)
+        else:
+          print(msg)
+        if len(profile) >= 2:
+          for task_name, task_duration in profile.iteritems():
+            print('      {}: {}s'.format(task_name, task_duration))
+
         if options.monkey:
           monkey_status = result.get('monkey_status')
           if monkey_status != 'success':

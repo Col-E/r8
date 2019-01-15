@@ -4,6 +4,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 from distutils.version import LooseVersion
+from HTMLParser import HTMLParser
 import os
 import shutil
 
@@ -64,6 +65,32 @@ def remove_r8_dependency(checkout_dir):
     for line in lines:
       if (utils.R8_JAR not in line) and (utils.R8LIB_JAR not in line):
         f.write(line)
+
+def IsGradleTaskName(x):
+  # Check that it is non-empty.
+  if not x:
+    return False
+  # Check that there is no whitespace.
+  for c in x:
+    if c.isspace():
+      return False
+  # Check that the first character following an optional ':' is a lower-case
+  # alphabetic character.
+  c = x[0]
+  if c == ':' and len(x) >= 2:
+    c = x[1]
+  return c.isalpha() and c.islower()
+
+def IsGradleCompilerTask(x, shrinker):
+  if 'r8' in shrinker:
+    assert 'transformClassesWithDexBuilderFor' not in x
+    assert 'transformDexArchiveWithDexMergerFor' not in x
+    return 'transformClassesAndResourcesWithR8For' in x
+
+  assert shrinker == 'proguard'
+  return ('transformClassesAndResourcesWithProguard' in x
+      or 'transformClassesWithDexBuilderFor' in x
+      or 'transformDexArchiveWithDexMergerFor' in x)
 
 def SetPrintConfigurationDirective(app, config, checkout_dir, destination):
   proguard_config_file = FindProguardConfigurationFile(
@@ -126,3 +153,60 @@ def MoveProfileReportTo(dest_dir, build_stdout):
   html_dir = os.path.dirname(html_file)
   for dir_name in ['css', 'js']:
     MoveDir(os.path.join(html_dir, dir_name), os.path.join(dest_dir, dir_name))
+
+def ParseProfileReport(profile_dir):
+  html_file = os.path.join(profile_dir, 'index.html')
+  assert os.path.isfile(html_file)
+
+  parser = ProfileReportParser()
+  with open(html_file) as f:
+    for line in f.readlines():
+      parser.feed(line)
+  return parser.result
+
+# A simple HTML parser that recognizes the following pattern:
+#
+# <tr>
+# <td class="indentPath">:app:transformClassesAndResourcesWithR8ForRelease</td>
+# <td class="numeric">3.490s</td>
+# <td></td>
+# </tr>
+class ProfileReportParser(HTMLParser):
+  entered_table_row = False
+  entered_task_name_cell = False
+  entered_duration_cell = False
+
+  current_task_name = None
+  current_duration = None
+
+  result = {}
+
+  def handle_starttag(self, tag, attrs):
+    entered_table_row_before = self.entered_table_row
+    entered_task_name_cell_before = self.entered_task_name_cell
+
+    self.entered_table_row = (tag == 'tr')
+    self.entered_task_name_cell = (tag == 'td' and entered_table_row_before)
+    self.entered_duration_cell = (
+        self.current_task_name
+            and tag == 'td'
+            and entered_task_name_cell_before)
+
+  def handle_endtag(self, tag):
+    if tag == 'tr':
+      if self.current_task_name and self.current_duration:
+        self.result[self.current_task_name] = self.current_duration
+      self.current_task_name = None
+      self.current_duration = None
+    self.entered_table_row = False
+
+  def handle_data(self, data):
+    stripped = data.strip()
+    if not stripped:
+      return
+    if self.entered_task_name_cell:
+      if IsGradleTaskName(stripped):
+        self.current_task_name = stripped
+    elif self.entered_duration_cell and stripped.endswith('s'):
+      self.current_duration = float(stripped[:-1])
+    self.entered_table_row = False
