@@ -85,7 +85,7 @@ final class InterfaceProcessor {
 
         MethodAccessFlags newFlags = virtual.accessFlags.copy();
         newFlags.unsetBridge();
-        newFlags.setStatic();
+        newFlags.promoteToStatic();
         DexCode dexCode = code.asDexCode();
         // We cannot name the parameter "this" because the debugger may omit it due to the method
         // actually being static. Instead we prepend it with a special character.
@@ -124,8 +124,7 @@ final class InterfaceProcessor {
       MethodAccessFlags originalFlags = direct.accessFlags;
       MethodAccessFlags newFlags = originalFlags.copy();
       if (originalFlags.isPrivate()) {
-        newFlags.unsetPrivate();
-        newFlags.setPublic();
+        newFlags.promoteToPublic();
       }
 
       DexMethod oldMethod = direct.method;
@@ -143,7 +142,7 @@ final class InterfaceProcessor {
           assert !rewriter.factory.isClassConstructor(oldMethod)
               : "Unexpected private constructor " + direct.toSourceString()
               + " in " + iface.origin;
-          newFlags.setStatic();
+          newFlags.promoteToStatic();
 
           DexMethod companionMethod = rewriter.privateAsMethodOfCompanionClass(oldMethod);
 

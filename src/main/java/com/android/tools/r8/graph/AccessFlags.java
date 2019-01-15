@@ -194,6 +194,10 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
     promote(Constants.ACC_PUBLIC);
   }
 
+  public void promoteToStatic() {
+    promote(Constants.ACC_STATIC);
+  }
+
   private boolean wasSet(int flag) {
     return (originalFlags & flag) != 0;
   }

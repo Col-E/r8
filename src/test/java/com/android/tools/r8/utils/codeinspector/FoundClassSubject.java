@@ -102,7 +102,7 @@ public class FoundClassSubject extends ClassSubject {
   public MethodSubject uniqueMethodWithName(String name) {
     MethodSubject methodSubject = null;
     for (FoundMethodSubject candidate : allMethods()) {
-      if (candidate.getOriginalName().equals(name)) {
+      if (candidate.getOriginalName(false).equals(name)) {
         assert methodSubject == null;
         methodSubject = candidate;
       }

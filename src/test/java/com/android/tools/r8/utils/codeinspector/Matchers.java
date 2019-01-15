@@ -146,6 +146,28 @@ public class Matchers {
     };
   }
 
+  public static Matcher<MemberSubject> isStatic() {
+    return new TypeSafeMatcher<MemberSubject>() {
+      @Override
+      public boolean matchesSafely(final MemberSubject subject) {
+        return subject.isPresent() && subject.isStatic();
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(" present");
+      }
+
+      @Override
+      public void describeMismatchSafely(final MemberSubject subject, Description description) {
+        description
+            .appendText(type(subject) + " ")
+            .appendValue(name(subject))
+            .appendText(" was not");
+      }
+    };
+  }
+
   public static Matcher<Subject> isSynthetic() {
     return new TypeSafeMatcher<Subject>() {
       @Override

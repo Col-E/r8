@@ -25,8 +25,22 @@ public abstract class MemberSubject extends Subject {
   public abstract Signature getFinalSignature();
 
   public String getOriginalName() {
+    return getOriginalName(true);
+  }
+
+  public String getOriginalName(boolean qualified) {
     Signature originalSignature = getOriginalSignature();
-    return originalSignature == null ? null : originalSignature.name;
+    if (originalSignature != null) {
+      String name = originalSignature.name;
+      if (!qualified) {
+        int index = name.lastIndexOf(".");
+        if (index >= 0) {
+          return name.substring(index + 1);
+        }
+      }
+      return name;
+    }
+    return null;
   }
 
   public String getFinalName() {

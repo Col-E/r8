@@ -685,7 +685,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public DexEncodedMethod toStaticMethodWithoutThis() {
     checkIfObsolete();
     assert !accessFlags.isStatic();
-    Builder builder = builder(this).setStatic().unsetOptimizationInfo().withoutThisParameter();
+    Builder builder =
+        builder(this).promoteToStatic().unsetOptimizationInfo().withoutThisParameter();
     setObsolete();
     return builder.build();
   }
@@ -1255,8 +1256,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       this.method = method;
     }
 
-    public Builder setStatic() {
-      this.accessFlags.setStatic();
+    public Builder promoteToStatic() {
+      this.accessFlags.promoteToStatic();
       return this;
     }
 
