@@ -377,8 +377,11 @@ public class DexBuilder {
             unresolvedPosition = instruction.asDebugPosition();
             localsAtUnresolvedPosition = new Int2ReferenceOpenHashMap<>(locals);
           }
-        } else if (instruction.getPosition().isSome()) {
-          if (!isNopInstruction(instruction, nextBlock)) {
+        } else {
+          assert instruction.getPosition().isSome();
+          if (instruction.isDebugLocalsChange()) {
+            instruction.asDebugLocalsChange().apply(locals);
+          } else if (!isNopInstruction(instruction, nextBlock)) {
             if (unresolvedPosition != null) {
               if (unresolvedPosition.getPosition() == instruction.getPosition()
                   && locals.equals(localsAtUnresolvedPosition)) {
@@ -388,12 +391,6 @@ public class DexBuilder {
               localsAtUnresolvedPosition = null;
             }
             currentMaterializedPosition = instruction.getPosition();
-          }
-        } else {
-          // Only local-change instructions don't have positions in debug mode but fail gracefully.
-          assert instruction.isDebugLocalsChange();
-          if (instruction.isDebugLocalsChange()) {
-            instruction.asDebugLocalsChange().apply(locals);
           }
         }
       }

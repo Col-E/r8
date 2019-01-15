@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
+import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -22,12 +23,14 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class PeepholeOptimizer {
   /**
@@ -36,8 +39,157 @@ public class PeepholeOptimizer {
   public static void optimize(IRCode code, LinearScanRegisterAllocator allocator) {
     removeIdenticalPredecessorBlocks(code, allocator);
     removeRedundantInstructions(code, allocator);
+    shareIdenticalBlockPrefix(code, allocator);
     shareIdenticalBlockSuffix(code, allocator, 0);
     assert code.isConsistentGraph();
+  }
+
+  /** Identify common prefixes in successor blocks and share them. */
+  private static void shareIdenticalBlockPrefix(IRCode code, RegisterAllocator allocator) {
+    InstructionEquivalence equivalence = new InstructionEquivalence(allocator);
+    Set<BasicBlock> blocksToBeRemoved = new HashSet<>();
+    for (BasicBlock block : code.blocks) {
+      if (blocksToBeRemoved.contains(block)) {
+        // This block has already been removed entirely.
+        continue;
+      }
+
+      List<BasicBlock> normalSuccessors = block.getNormalSuccessors();
+      if (normalSuccessors.size() != 2) {
+        continue;
+      }
+
+      // Exactly two normal successors.
+      BasicBlock normalSuccessor = normalSuccessors.get(0);
+      BasicBlock otherNormalSuccessor = normalSuccessors.get(1);
+
+      // Ensure that the current block is on all paths to the two successor blocks.
+      if (normalSuccessor.getPredecessors().size() != 1
+          || otherNormalSuccessor.getPredecessors().size() != 1) {
+        continue;
+      }
+
+      // Only try to share instructions if the two successors have the same locals state on entry.
+      if (!Objects.equals(
+          normalSuccessor.getLocalsAtEntry(), otherNormalSuccessor.getLocalsAtEntry())) {
+        continue;
+      }
+
+      // Share instructions from the two normal successors one-by-one.
+      while (true) {
+        // Check if all instructions were already removed from the two successors.
+        if (normalSuccessor.isEmpty() || otherNormalSuccessor.isEmpty()) {
+          assert blocksToBeRemoved.contains(normalSuccessor);
+          assert blocksToBeRemoved.contains(otherNormalSuccessor);
+          break;
+        }
+
+        Instruction instruction = normalSuccessor.entry();
+        Instruction otherInstruction = otherNormalSuccessor.entry();
+
+        // If the two instructions are not the same, we cannot merge them into the predecessor.
+        if (!equivalence.doEquivalent(instruction, otherInstruction)) {
+          break;
+        }
+
+        // Each block with one or more catch handlers may have at most one throwing instruction.
+        if (instruction.instructionTypeCanThrow() && block.hasCatchHandlers()) {
+          break;
+        }
+
+        // If the instruction can throw and one of the normal successor blocks has a catch handler,
+        // then we cannot merge the instruction into the predecessor, since this would change the
+        // exceptional control flow.
+        if (instruction.instructionInstanceCanThrow()
+            && (normalSuccessor.hasCatchHandlers() || otherNormalSuccessor.hasCatchHandlers())) {
+          break;
+        }
+
+        // Check for commutativity (semantics). If the instruction writes to a register, then we
+        // need to make sure that the instruction commutes with the last instruction in the
+        // predecessor. Consider the following example.
+        //
+        //                    <Block A>
+        //   if-eqz r0 then goto Block B else goto Block C
+        //           /                         \
+        //      <Block B>                  <Block C>
+        //     const r0, 1                const r0, 1
+        //       ...                        ...
+        //
+        // In the example, it is not possible to change the order of "if-eqz r0" and
+        // "const r0, 1" without changing the semantics.
+        if (instruction.outValue() != null && instruction.outValue().needsRegister()) {
+          int destinationRegister =
+              allocator.getRegisterForValue(instruction.outValue(), instruction.getNumber());
+          boolean commutative =
+              block.exit().inValues().stream()
+                  .allMatch(
+                      inValue -> {
+                        int operandRegister =
+                            allocator.getRegisterForValue(inValue, block.exit().getNumber());
+                        for (int i = 0; i < instruction.outValue().requiredRegisters(); i++) {
+                          for (int j = 0; j < inValue.requiredRegisters(); j++) {
+                            if (destinationRegister + i == operandRegister + j) {
+                              // Overlap detected, the two instructions do not commute.
+                              return false;
+                            }
+                          }
+                        }
+                        return true;
+                      });
+          if (!commutative) {
+            break;
+          }
+        }
+
+        // Check for commutativity (debug info).
+        if (!instruction.getPosition().equals(block.exit().getPosition())
+            && !(block.exit().getPosition().isNone() && !block.exit().getDebugValues().isEmpty())) {
+          break;
+        }
+
+        // Remove the instruction from the two normal successors.
+        normalSuccessor.getInstructions().removeFirst();
+        otherNormalSuccessor.getInstructions().removeFirst();
+
+        // Move the instruction into the predecessor.
+        if (instruction.isJumpInstruction()) {
+          // Replace jump instruction in predecessor with the jump instruction from the two normal
+          // successors.
+          LinkedList<Instruction> instructions = block.getInstructions();
+          instructions.removeLast();
+          instructions.add(instruction);
+          instruction.setBlock(block);
+
+          // Update successors of predecessor block.
+          block.detachAllSuccessors();
+          for (BasicBlock newNormalSuccessor : normalSuccessor.getNormalSuccessors()) {
+            block.link(newNormalSuccessor);
+          }
+
+          // Detach the two normal successors from the rest of the graph.
+          normalSuccessor.detachAllSuccessors();
+          otherNormalSuccessor.detachAllSuccessors();
+
+          // Record that the two normal successors should be removed entirely.
+          blocksToBeRemoved.add(normalSuccessor);
+          blocksToBeRemoved.add(otherNormalSuccessor);
+        } else {
+          // Insert instruction before the jump instruction in the predecessor.
+          block.getInstructions().listIterator(block.getInstructions().size() - 1).add(instruction);
+          instruction.setBlock(block);
+
+          // Update locals-at-entry if needed.
+          if (instruction.isDebugLocalsChange()) {
+            DebugLocalsChange localsChange = instruction.asDebugLocalsChange();
+            localsChange.apply(normalSuccessor.getLocalsAtEntry());
+            localsChange.apply(otherNormalSuccessor.getLocalsAtEntry());
+          }
+        }
+      }
+    }
+
+    code.blocks.removeAll(blocksToBeRemoved);
   }
 
   /** Identify common suffixes in predecessor blocks and share them. */

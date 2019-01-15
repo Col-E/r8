@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Sub;
@@ -423,7 +424,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         // Compute the final change in locals and insert it before nextInstruction.
         boolean localsChanged = !ending.isEmpty() || !starting.isEmpty();
         if (localsChanged) {
-          DebugLocalsChange change = createLocalsChange(ending, starting);
+          DebugLocalsChange change =
+              createLocalsChange(ending, starting, instruction.getPosition());
           if (change != null) {
             // Insert the DebugLocalsChange instruction before nextInstruction.
             instructionIterator.add(change);
@@ -506,36 +508,43 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         starting.put(finalLocal.getIntKey(), finalLocal.getValue());
       }
     }
-    DebugLocalsChange change = createLocalsChange(ending, starting);
+    DebugLocalsChange change = createLocalsChange(ending, starting, block.getPosition());
     if (change != null) {
       instructionIterator.add(change);
     }
   }
 
   private static DebugLocalsChange createLocalsChange(
-      Int2ReferenceMap<DebugLocalInfo> ending, Int2ReferenceMap<DebugLocalInfo> starting) {
+      Int2ReferenceMap<DebugLocalInfo> ending,
+      Int2ReferenceMap<DebugLocalInfo> starting,
+      Position position) {
+    assert position.isSome();
     if (ending.isEmpty() && starting.isEmpty()) {
       return null;
     }
+    DebugLocalsChange localsChange;
     if (ending.isEmpty() || starting.isEmpty()) {
-      return new DebugLocalsChange(ending, starting);
-    }
-    IntSet unneeded = new IntArraySet(Math.min(ending.size(), starting.size()));
-    for (Entry<DebugLocalInfo> entry : ending.int2ReferenceEntrySet()) {
-      if (starting.get(entry.getIntKey()) == entry.getValue()) {
-        unneeded.add(entry.getIntKey());
+      localsChange = new DebugLocalsChange(ending, starting);
+    } else {
+      IntSet unneeded = new IntArraySet(Math.min(ending.size(), starting.size()));
+      for (Entry<DebugLocalInfo> entry : ending.int2ReferenceEntrySet()) {
+        if (starting.get(entry.getIntKey()) == entry.getValue()) {
+          unneeded.add(entry.getIntKey());
+        }
       }
+      if (unneeded.size() == ending.size() && unneeded.size() == starting.size()) {
+        return null;
+      }
+      IntIterator iterator = unneeded.iterator();
+      while (iterator.hasNext()) {
+        int key = iterator.nextInt();
+        ending.remove(key);
+        starting.remove(key);
+      }
+      localsChange = new DebugLocalsChange(ending, starting);
     }
-    if (unneeded.size() == ending.size() && unneeded.size() == starting.size()) {
-      return null;
-    }
-    IntIterator iterator = unneeded.iterator();
-    while (iterator.hasNext()) {
-      int key = iterator.nextInt();
-      ending.remove(key);
-      starting.remove(key);
-    }
-    return new DebugLocalsChange(ending, starting);
+    localsChange.setPosition(position);
+    return localsChange;
   }
 
   private void clearState() {
