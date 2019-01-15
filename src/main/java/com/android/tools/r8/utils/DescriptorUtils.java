@@ -288,6 +288,7 @@ public class DescriptorUtils {
    * @return a class descriptor i.e. "Ljava/lang/Object;"
    */
   public static String getDescriptorFromClassBinaryName(String typeBinaryName) {
+    assert typeBinaryName != null;
     return ('L' + typeBinaryName + ';');
   }
 

@@ -214,9 +214,13 @@ public class JarCode extends Code {
     triggerDelayedParsingIfNeccessary();
     node.instructions.accept(
         new JarRegisterEffectsVisitor(method.getHolder(), registry, application));
-    node.tryCatchBlocks.forEach(tryCatchBlockNode ->
+    for (TryCatchBlockNode tryCatchBlockNode : node.tryCatchBlocks) {
+      // Exception type can be null for "catch all" used for try/finally.
+      if (tryCatchBlockNode.type != null) {
         registry.registerTypeReference(application.getTypeFromDescriptor(
-            DescriptorUtils.getDescriptorFromClassBinaryName(tryCatchBlockNode.type))));
+            DescriptorUtils.getDescriptorFromClassBinaryName(tryCatchBlockNode.type)));
+      }
+    }
   }
 
   @Override
