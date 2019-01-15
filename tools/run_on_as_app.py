@@ -131,7 +131,7 @@ def InstallApkOnEmulator(apk_dest):
 def WaitForEmulator():
   stdout = subprocess.check_output(['adb', 'devices'])
   if '{}\tdevice'.format(emulator_id) in stdout:
-    return
+    return True
 
   print('Emulator \'{}\' not connected; waiting for connection'.format(
       emulator_id))
@@ -144,9 +144,9 @@ def WaitForEmulator():
     if '{}\tdevice'.format(emulator_id) not in stdout:
       print('... still waiting for connection')
       if time_waited >= 5 * 60:
-        raise Exception('No emulator connected for 5 minutes')
+        return False
     else:
-      return
+      return True
 
 def GetResultsForApp(app, config, options):
   git_repo = config['git_repo']
@@ -206,7 +206,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
       if options.monkey:
         if result.get('build_status') == 'success':
           result['monkey_status'] = 'success' if RunMonkey(
-              app, config, apk_dest) else 'failed'
+              app, config, options, apk_dest) else 'failed'
 
       result_per_shrinker[shrinker] = result
 
@@ -309,14 +309,20 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
 
   return (apk_dest, profile_dest_dir)
 
-def RunMonkey(app, config, apk_dest):
-  WaitForEmulator()
+def RunMonkey(app, config, options, apk_dest):
+  if not WaitForEmulator():
+    return False
+
   InstallApkOnEmulator(apk_dest)
 
   app_id = config.get('app_id')
-  number_of_events_to_generate = 50
+  number_of_events_to_generate = options.monkey_events
 
-  cmd = ['adb', 'shell', 'monkey', '-p', app_id,
+  # Intentionally using a constant seed such that the monkey generates the same
+  # event sequence for each shrinker.
+  random_seed = 42
+
+  cmd = ['adb', 'shell', 'monkey', '-p', app_id, '-s', str(random_seed),
       str(number_of_events_to_generate)]
   utils.PrintCmd(cmd)
 
@@ -375,6 +381,10 @@ def ParseOptions(argv):
                     help='Whether to install and run app(s) with monkey',
                     default=False,
                     action='store_true')
+  result.add_option('--monkey_events',
+                    help='Number of events that the monkey should trigger',
+                    default=250,
+                    type=int)
   result.add_option('--pull',
                     help='Whether to pull the latest version of each app',
                     default=False,
