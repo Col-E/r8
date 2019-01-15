@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -57,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -854,6 +856,28 @@ public class ToolHelper {
     List<String> parts = getNamePartsForTestClass(clazz);
     return getClassPathForTests().resolve(
         Paths.get("", parts.toArray(new String[parts.size() - 1])));
+  }
+
+  public static Collection<Path> getClassFilesForInnerClasses(Path path) throws IOException {
+    Set<Path> paths = new HashSet<>();
+    String prefix = path.toString().replace(CLASS_EXTENSION, "$");
+    paths.addAll(
+        ToolHelper.getClassFilesForTestDirectory(
+            path.getParent(), p -> p.toString().startsWith(prefix)));
+    return paths;
+  }
+
+  public static Collection<Path> getClassFilesForInnerClasses(Collection<Class<?>> classes)
+      throws IOException {
+    Set<Path> paths = new HashSet<>();
+    for (Class clazz : classes) {
+      Path path = ToolHelper.getClassFileForTestClass(clazz);
+      String prefix = path.toString().replace(CLASS_EXTENSION, "$");
+      paths.addAll(
+          ToolHelper.getClassFilesForTestDirectory(
+              path.getParent(), p -> p.toString().startsWith(prefix)));
+    }
+    return paths;
   }
 
   public static Path getFileNameForTestClass(Class clazz) {
