@@ -56,13 +56,36 @@ def add_r8_dependency(checkout_dir, minified):
 
 def remove_r8_dependency(checkout_dir):
   build_file = os.path.join(checkout_dir, 'build.gradle')
-  assert os.path.isfile(build_file), 'Expected a file to be present at {}'.format(build_file)
+  assert os.path.isfile(build_file), (
+      'Expected a file to be present at {}'.format(build_file))
   with open(build_file) as f:
     lines = f.readlines()
   with open(build_file, 'w') as f:
     for line in lines:
       if (utils.R8_JAR not in line) and (utils.R8LIB_JAR not in line):
         f.write(line)
+
+def SetPrintConfigurationDirective(app, config, checkout_dir, destination):
+  proguard_config_file = FindProguardConfigurationFile(
+      app, config, checkout_dir)
+  with open(proguard_config_file) as f:
+    lines = f.readlines()
+  with open(proguard_config_file, 'w') as f:
+    for line in lines:
+      if '-printconfiguration' not in line:
+        f.write(line)
+    f.write('-printconfiguration {}\n'.format(destination))
+
+def FindProguardConfigurationFile(app, config, checkout_dir):
+  app_module = config.get('app_module', 'app')
+  candidates = ['proguard-rules.pro', 'proguard-rules.txt', 'proguard.cfg']
+  for candidate in candidates:
+    proguard_config_file = os.path.join(checkout_dir, app_module, candidate)
+    if os.path.isfile(proguard_config_file):
+      return proguard_config_file
+  # Currently assuming that the Proguard configuration file can be found at
+  # one of the predefined locations.
+  assert False
 
 def Move(src, dst):
   print('Moving `{}` to `{}`'.format(src, dst))

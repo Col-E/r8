@@ -3,12 +3,14 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import apk_masseur
 import apk_utils
 import gradle
 import os
 import optparse
 import subprocess
 import sys
+import tempfile
 import time
 import utils
 import zipfile
@@ -128,6 +130,25 @@ def InstallApkOnEmulator(apk_dest):
   subprocess.check_call(
       ['adb', '-s', emulator_id, 'install', '-r', '-d', apk_dest])
 
+def UninstallApkOnEmulator(app, config):
+  app_id = config.get('app_id')
+  process = subprocess.Popen(
+      ['adb', 'uninstall', app_id],
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  stdout, stderr = process.communicate()
+
+  if stdout.strip() == 'Success':
+    # Successfully uninstalled
+    return
+
+  if 'Unknown package: {}'.format(app_id) in stderr:
+    # Application not installed
+    return
+
+  raise Exception(
+      'Unexpected result from `adb uninstall {}\nStdout: {}\nStderr: {}'.format(
+          app_id, stdout, stderr))
+
 def WaitForEmulator():
   stdout = subprocess.check_output(['adb', 'devices'])
   if '{}\tdevice'.format(emulator_id) in stdout:
@@ -190,8 +211,8 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
       apk_dest = None
       result = {}
       try:
-        (apk_dest, profile_dest_dir) = BuildAppWithShrinker(
-          app, config, shrinker, checkout_dir, options)
+        (apk_dest, profile_dest_dir, proguard_config_file) = \
+            BuildAppWithShrinker(app, config, shrinker, checkout_dir, options)
         dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
         result['apk_dest'] = apk_dest,
         result['build_status'] = 'success'
@@ -203,10 +224,35 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
           print('Error: ' + str(e))
         result['build_status'] = 'failed'
 
-      if options.monkey:
-        if result.get('build_status') == 'success':
+      if result.get('build_status') == 'success':
+        if options.monkey:
           result['monkey_status'] = 'success' if RunMonkey(
               app, config, options, apk_dest) else 'failed'
+
+        if 'r8' in shrinker and options.r8_compilation_steps > 1:
+          recompilation_results = []
+          previous_apk = apk_dest
+          for i in range(1, options.r8_compilation_steps):
+            try:
+              recompiled_apk_dest = os.path.join(
+                  checkout_dir, 'out', shrinker, 'app-release-{}.apk'.format(i))
+              RebuildAppWithShrinker(
+                  previous_apk, recompiled_apk_dest, proguard_config_file, shrinker)
+              recompilation_result = {
+                'apk_dest': recompiled_apk_dest,
+                'build_status': 'success',
+                'dex_size': ComputeSizeOfDexFilesInApk(recompiled_apk_dest)
+              }
+              if options.monkey:
+                recompilation_result['monkey_status'] = 'success' if RunMonkey(
+                    app, config, options, recompiled_apk_dest) else 'failed'
+              recompilation_results.append(recompilation_result)
+              previous_apk = recompiled_apk_dest
+            except Exception as e:
+              warn('Failed to recompile {} with {}'.format(app, shrinker))
+              recompilation_results.append({ 'build_status': 'failed' })
+              break
+          result['recompilation_results'] = recompilation_results
 
       result_per_shrinker[shrinker] = result
 
@@ -218,6 +264,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
 def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   print('Building {} with {}'.format(app, shrinker))
 
+  # Add/remove 'r8.jar' from top-level build.gradle.
   if options.disable_tot:
     as_utils.remove_r8_dependency(checkout_dir)
   else:
@@ -227,7 +274,7 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   archives_base_name = config.get(' archives_base_name', app_module)
   flavor = config.get('flavor')
 
-  # Ensure that gradle.properties are not modified before modifying it to
+  # Ensure that gradle.properties is not modified before modifying it to
   # select shrinker.
   if IsTrackedByGit('gradle.properties'):
     GitCheckout('gradle.properties')
@@ -243,6 +290,12 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   out = os.path.join(checkout_dir, 'out', shrinker)
   if not os.path.exists(out):
     os.makedirs(out)
+
+  # Set -printconfiguration in Proguard rules.
+  proguard_config_dest = os.path.abspath(
+      os.path.join(out, 'proguard-rules.pro'))
+  as_utils.SetPrintConfigurationDirective(
+      app, config, checkout_dir, proguard_config_dest)
 
   env = os.environ.copy()
   env['ANDROID_HOME'] = android_home
@@ -307,12 +360,33 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   profile_dest_dir = os.path.join(out, 'profile')
   as_utils.MoveProfileReportTo(profile_dest_dir, stdout)
 
-  return (apk_dest, profile_dest_dir)
+  return (apk_dest, profile_dest_dir, proguard_config_dest)
+
+def RebuildAppWithShrinker(apk, apk_dest, proguard_config_file, shrinker):
+  assert 'r8' in shrinker
+  assert apk_dest.endswith('.apk')
+  
+  # Compile given APK with shrinker to temporary zip file.
+  api = 28 # TODO(christofferqa): Should be the one from build.gradle
+  android_jar = os.path.join(utils.REPO_ROOT, utils.ANDROID_JAR.format(api=api))
+  r8_jar = utils.R8LIB_JAR if IsMinifiedR8(shrinker) else utils.R8_JAR
+  zip_dest = apk_dest[:-3] + '.zip'
+
+  cmd = ['java', '-ea', '-jar', r8_jar, '--release', '--pg-conf',
+      proguard_config_file, '--lib', android_jar, '--output', zip_dest, apk]
+  utils.PrintCmd(cmd)
+
+  subprocess.check_output(cmd)
+
+  # Make a copy of the given APK, move the newly generated dex files into the
+  # copied APK, and then sign the APK.
+  apk_masseur.masseur(apk, dex=zip_dest, out=apk_dest)
 
 def RunMonkey(app, config, options, apk_dest):
   if not WaitForEmulator():
     return False
 
+  UninstallApkOnEmulator(app, config)
   InstallApkOnEmulator(apk_dest)
 
   app_id = config.get('app_id')
@@ -371,6 +445,21 @@ def LogResults(result_per_shrinker_per_app, options):
             warn('    monkey: {}'.format(monkey_status))
           else:
             success('    monkey: {}'.format(monkey_status))
+        recompilation_results = result.get('recompilation_results', [])
+        i = 1
+        for recompilation_result in recompilation_results:
+          build_status = recompilation_result.get('build_status')
+          if build_status != 'success':
+            print('    recompilation #{}: {}'.format(i, build_status))
+          else:
+            dex_size = recompilation_result.get('dex_size')
+            print('    recompilation #{}'.format(i))
+            print('      dex size: {}'.format(dex_size))
+            if options.monkey:
+              monkey_status = recompilation_result.get('monkey_status')
+              msg = '      monkey: {}'.format(monkey_status)
+              success(msg) if monkey_status == 'success' else warn(msg)
+          i += 1
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
@@ -396,6 +485,10 @@ def ParseOptions(argv):
   result.add_option('--shrinker',
                     help='The shrinkers to use (by default, all are run)',
                     action='append')
+  result.add_option('--r8-compilation-steps', '--r8_compilation_steps',
+                    help='Number of times R8 should be run on each app',
+                    default=2,
+                    type=int)
   result.add_option('--disable-tot', '--disable_tot',
                     help='Whether to disable the use of the ToT version of R8',
                     default=False,
@@ -405,6 +498,9 @@ def ParseOptions(argv):
                     default=False,
                     action='store_true')
   (options, args) = result.parse_args(argv)
+  if options.disable_tot:
+    # r8.jar is required for recompiling the generated APK
+    options.r8_compilation_steps = 1
   if options.shrinker:
     for shrinker in options.shrinker:
       assert shrinker in SHRINKERS

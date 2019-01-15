@@ -36,10 +36,6 @@ def parse_options():
   if len(args) != 1:
     parser.error('Expected <apk> argument, got: ' + ' '.join(args))
   apk = args[0]
-  if not options.out:
-    options.out = os.path.basename(apk)
-  if not options.keystore:
-    options.keystore = findKeystore()
   return (options, apk)
 
 def findKeystore():
@@ -81,28 +77,36 @@ def align(signed_apk, temp):
   subprocess.check_call(cmd)
   return signed_apk
 
-def main():
-  (options, apk) = parse_options()
+def masseur(
+    apk, dex=None, out=None, adb_options=None, keystore=None, install=False):
+  if not out:
+    out = os.path.basename(apk)
+  if not keystore:
+    keystore = findKeystore()
   with utils.TempDir() as temp:
     processed_apk = None
-    if options.dex:
-      processed_apk = repack(options.dex, apk, temp)
+    if dex:
+      processed_apk = repack(dex, apk, temp)
     else:
       print 'Signing original APK without modifying dex files'
       processed_apk = os.path.join(temp, 'processed.apk')
       shutil.copyfile(apk, processed_apk)
-    signed_apk = sign(processed_apk, options.keystore, temp)
+    signed_apk = sign(processed_apk, keystore, temp)
     aligned_apk = align(signed_apk, temp)
-    print 'Writing result to', options.out
-    shutil.copyfile(aligned_apk, options.out)
+    print 'Writing result to', out
+    shutil.copyfile(aligned_apk, out)
     adb_cmd = ['adb']
-    if options.adb_options:
+    if adb_options:
       adb_cmd.extend(
-          [option for option in options.adb_options.split(' ') if option])
-    if options.install:
-      adb_cmd.extend(['install', '-t', '-r', '-d', options.out]);
+          [option for option in adb_options.split(' ') if option])
+    if install:
+      adb_cmd.extend(['install', '-t', '-r', '-d', out]);
       utils.PrintCmd(adb_cmd)
       subprocess.check_call(adb_cmd)
+
+def main():
+  (options, apk) = parse_options()
+  masseur(apk, **vars(options))
   return 0
 
 if __name__ == '__main__':
