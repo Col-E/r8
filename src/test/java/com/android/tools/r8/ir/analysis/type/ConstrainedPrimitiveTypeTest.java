@@ -10,10 +10,12 @@ import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.INT;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.LONG;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Streams;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -22,6 +24,21 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
   public ConstrainedPrimitiveTypeTest() throws Exception {
     super(TestClass.class);
+  }
+
+  @Test
+  public void testOutput() throws Exception {
+    String expectedOutput =
+        StringUtils.lines("1", "2", "3", "1.0", "1.0", "2.0", "1", "1", "2", "1.0", "1.0", "2.0");
+
+    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
+
+    testForR8(Backend.DEX)
+        .addInnerClasses(ConstrainedPrimitiveTypeTest.class)
+        .addKeepMainRule(TestClass.class)
+        .enableInliningAnnotations()
+        .run(TestClass.class)
+        .assertSuccessWithOutput(expectedOutput);
   }
 
   @Test
@@ -83,26 +100,47 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
   static class TestClass {
 
-    public static void intWithInvokeUserTest() {
-      int x = 1;
-      Integer.toString(x);
+    public static void main(String[] args) {
+      boolean unknownButTrue = args.length >= 0;
+      boolean unknownButFalse = args.length < 0;
+      intWithInvokeUserTest();
+      intWithIndirectInvokeUserTest(unknownButTrue);
+      intWithIndirectInvokeUserTest(unknownButFalse);
+      floatWithInvokeUserTest();
+      floatWithIndirectInvokeUserTest(unknownButTrue);
+      floatWithIndirectInvokeUserTest(unknownButFalse);
+      longWithInvokeUserTest();
+      longWithIndirectInvokeUserTest(unknownButTrue);
+      longWithIndirectInvokeUserTest(unknownButFalse);
+      doubleWithInvokeUserTest();
+      doubleWithIndirectInvokeUserTest(unknownButTrue);
+      doubleWithIndirectInvokeUserTest(unknownButFalse);
     }
 
+    @NeverInline
+    public static void intWithInvokeUserTest() {
+      int x = 1;
+      System.out.println(Integer.toString(x));
+    }
+
+    @NeverInline
     public static void intWithIndirectInvokeUserTest(boolean unknown) {
       int x;
       if (unknown) {
-        x = 1;
-      } else {
         x = 2;
+      } else {
+        x = 3;
       }
-      Integer.toString(x);
+      System.out.println(Integer.toString(x));
     }
 
+    @NeverInline
     public static void floatWithInvokeUserTest() {
       float x = 1f;
-      Float.toString(x);
+      System.out.println(Float.toString(x));
     }
 
+    @NeverInline
     public static void floatWithIndirectInvokeUserTest(boolean unknown) {
       float x;
       if (unknown) {
@@ -110,14 +148,16 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
       } else {
         x = 2f;
       }
-      Float.toString(x);
+      System.out.println(Float.toString(x));
     }
 
+    @NeverInline
     public static void longWithInvokeUserTest() {
       long x = 1L;
-      Long.toString(x);
+      System.out.println(Long.toString(x));
     }
 
+    @NeverInline
     public static void longWithIndirectInvokeUserTest(boolean unknown) {
       long x;
       if (unknown) {
@@ -125,14 +165,16 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
       } else {
         x = 2L;
       }
-      Long.toString(x);
+      System.out.println(Long.toString(x));
     }
 
+    @NeverInline
     public static void doubleWithInvokeUserTest() {
       double x = 1.0;
-      Double.toString(x);
+      System.out.println(Double.toString(x));
     }
 
+    @NeverInline
     public static void doubleWithIndirectInvokeUserTest(boolean unknown) {
       double x;
       if (unknown) {
@@ -140,7 +182,7 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
       } else {
         x = 2f;
       }
-      Double.toString(x);
+      System.out.println(Double.toString(x));
     }
   }
 }

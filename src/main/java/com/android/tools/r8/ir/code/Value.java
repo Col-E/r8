@@ -797,7 +797,17 @@ public class Value {
   }
 
   public boolean knownToBeBoolean() {
-    return knownToBeBoolean;
+    if (knownToBeBoolean) {
+      return true;
+    }
+    if (getTypeLattice().isInt()) {
+      Value aliasedValue = getAliasedValue();
+      if (!aliasedValue.isPhi() && aliasedValue.definition.isConstNumber()) {
+        ConstNumber definition = aliasedValue.definition.asConstNumber();
+        return definition.isZero() || definition.getRawValue() == 1;
+      }
+    }
+    return false;
   }
 
   public void markAsThis(boolean receiverCanBeNull) {

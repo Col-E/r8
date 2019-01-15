@@ -58,6 +58,8 @@ public interface InstructionSubject {
 
   boolean isIfEqz();
 
+  boolean isReturn();
+
   boolean isReturnVoid();
 
   boolean isReturnObject();
