@@ -300,23 +300,38 @@ public abstract class GraphLense {
     private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
     public void map(DexType from, DexType to) {
+      if (from == to) {
+        return;
+      }
       typeMap.put(from, to);
     }
 
     public void map(DexMethod from, DexMethod to) {
+      if (from == to) {
+        return;
+      }
       methodMap.put(from, to);
     }
 
     public void map(DexField from, DexField to) {
+      if (from == to) {
+        return;
+      }
       fieldMap.put(from, to);
     }
 
     public void move(DexMethod from, DexMethod to) {
+      if (from == to) {
+        return;
+      }
       map(from, to);
       originalMethodSignatures.put(to, from);
     }
 
     public void move(DexField from, DexField to) {
+      if (from == to) {
+        return;
+      }
       fieldMap.put(from, to);
       originalFieldSignatures.put(to, from);
     }
