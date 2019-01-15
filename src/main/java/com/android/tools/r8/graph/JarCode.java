@@ -282,7 +282,6 @@ public class JarCode extends Code {
       ReparseContext context = this.context;
       parseCode(context, false);
       if (hasJsr(context)) {
-        System.out.println("JarCode: JSR encountered; reparse using JSRInlinerAdapter");
         parseCode(context, true);
         assert !hasJsr(context);
       }
