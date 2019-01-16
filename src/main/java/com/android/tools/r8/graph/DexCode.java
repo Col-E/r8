@@ -40,6 +40,7 @@ public class DexCode extends Code {
 
   public DexString highestSortingString;
   private DexDebugInfo debugInfo;
+  private DexDebugInfoForWriting debugInfoForWriting;
 
   public DexCode(
       int registerSize,
@@ -97,6 +98,9 @@ public class DexCode extends Code {
 
   public void setDebugInfo(DexDebugInfo debugInfo) {
     this.debugInfo = debugInfo;
+    if (debugInfoForWriting != null) {
+      debugInfoForWriting = null;
+    }
   }
 
   public DexDebugInfo debugInfoWithAdditionalFirstParameter(DexString name) {
@@ -382,13 +386,24 @@ public class DexCode extends Code {
       }
     }
     if (debugInfo != null) {
-      debugInfo.collectIndexedItems(indexedItems);
+      getDebugInfoForWriting().collectIndexedItems(indexedItems);
     }
     if (handlers != null) {
       for (TryHandler handler : handlers) {
         handler.collectIndexedItems(indexedItems);
       }
     }
+  }
+
+  public DexDebugInfoForWriting getDebugInfoForWriting() {
+    if (debugInfo == null) {
+      return null;
+    }
+    if (debugInfoForWriting == null) {
+      debugInfoForWriting = new DexDebugInfoForWriting(debugInfo);
+    }
+
+    return debugInfoForWriting;
   }
 
   private void updateHighestSortingString(DexString candidate) {
@@ -406,7 +421,7 @@ public class DexCode extends Code {
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     if (mixedItems.add(this)) {
       if (debugInfo != null) {
-        debugInfo.collectMixedSectionItems(mixedItems);
+        getDebugInfoForWriting().collectMixedSectionItems(mixedItems);
       }
     }
   }
