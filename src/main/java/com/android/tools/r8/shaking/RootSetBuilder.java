@@ -885,6 +885,8 @@ public class RootSetBuilder {
     if (context instanceof ProguardKeepRule) {
       if (item.isDexEncodedMethod() && item.asDexEncodedMethod().accessFlags.isSynthetic()) {
         // Don't keep synthetic methods (see b/120971047 for additional details).
+        // TODO(b/122819537): need to distinguish lambda desugared synthetic methods v.s. kotlinc
+        // synthetic methods?
         return;
       }
 
