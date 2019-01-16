@@ -163,6 +163,8 @@ public class TestBase {
 
   /**
    * Write lines of text to a temporary file.
+   *
+   * The file will include a line separator after the last line.
    */
   protected Path writeTextToTempFile(String... lines) throws IOException {
     return writeTextToTempFile(System.lineSeparator(), Arrays.asList(lines));
@@ -170,11 +172,28 @@ public class TestBase {
 
   /**
    * Write lines of text to a temporary file, along with the specified line separator.
+   *
+   * The file will include a line separator after the last line.
    */
   protected Path writeTextToTempFile(String lineSeparator, List<String> lines)
       throws IOException {
+    return writeTextToTempFile(lineSeparator, lines, true);
+  }
+
+  /**
+   * Write lines of text to a temporary file, along with the specified line separator.
+   *
+   * The argument <code>includeTerminatingLineSeparator</code> control if the file will include
+   * a line separator after the last line.
+   */
+  protected Path writeTextToTempFile(
+      String lineSeparator, List<String> lines, boolean includeTerminatingLineSeparator)
+      throws IOException {
     Path file = temp.newFile().toPath();
-    String contents = String.join(lineSeparator, lines) + lineSeparator;
+    String contents = String.join(lineSeparator, lines);
+    if (includeTerminatingLineSeparator) {
+      contents += lineSeparator;
+    }
     Files.write(file, contents.getBytes(StandardCharsets.UTF_8));
     return file;
   }

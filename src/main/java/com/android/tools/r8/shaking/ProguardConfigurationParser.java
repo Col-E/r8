@@ -401,11 +401,20 @@ public class ProguardConfigurationParser {
             && (unknownOption.equals("forceinline") || unknownOption.equals("neverinline"))) {
           devMessage = ", this option needs to be turned on explicitly if used for tests.";
         }
-        reporter.error(new StringDiagnostic(
-            "Unknown option \"-" + unknownOption + "\"" + devMessage,
-            origin, getPosition(optionStart)));
+        unknownOption(unknownOption, optionStart, devMessage);
       }
       return true;
+    }
+
+    private void unknownOption(String unknownOption, TextPosition optionStart) {
+      unknownOption(unknownOption, optionStart, "");
+    }
+
+    private void unknownOption(
+        String unknownOption, TextPosition optionStart, String additionalMessage) {
+      throw reporter.fatalError((new StringDiagnostic(
+          "Unknown option \"-" + unknownOption + "\"" + additionalMessage,
+          origin, getPosition(optionStart))));
     }
 
     private boolean parseUnsupportedOptionAndErr(TextPosition optionStart) {
@@ -768,13 +777,18 @@ public class ProguardConfigurationParser {
           TextPosition start = getPosition();
           acceptString("-");
           String unknownOption = acceptString();
-          throw reporter.fatalError(new StringDiagnostic(
-              "Unknown option \"-" + unknownOption + "\"",
-              origin,
-              start));
+          unknownOption(unknownOption, start);
         }
       } else {
         builder.setType(ProguardKeepRuleType.KEEP);
+      }
+      if (!eof() && !Character.isWhitespace(peekChar()) && peekChar() != ',') {
+        // The only path to here is through "-keep" with an unsupported suffix.
+        unacceptString("-keep");
+        TextPosition start = getPosition();
+        acceptString("-");
+        String unknownOption = acceptString();
+        unknownOption(unknownOption, start);
       }
       parseRuleModifiers(builder);
     }

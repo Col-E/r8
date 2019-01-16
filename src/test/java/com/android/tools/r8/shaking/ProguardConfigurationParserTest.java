@@ -1113,6 +1113,39 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void parseInvalidKeepOption() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-keepx public class * {       ",
+        "  native <methods>;           ",
+        "}                             "
+    );
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostics(handler.errors, proguardConfig, 1, 1,
+          "Unknown option", "-keepx");
+    }
+  }
+
+  @Test
+  public void parseKeepOptionEOF() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        System.lineSeparator(), ImmutableList.of("-keep"), false);
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(proguardConfig);
+      fail();
+    } catch (AbortException e) {
+      checkDiagnostics(handler.errors, proguardConfig, 1, 6,
+          "Expected [!]interface|@interface|class|enum");
+    }
+  }
+
+  @Test
   public void parseInvalidKeepClassOption() throws Exception {
     Path proguardConfig = writeTextToTempFile(
         "-keepclassx public class * {  ",
@@ -1493,7 +1526,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " class A { *; }")));
         fail("Expect to fail due to testing option being turned off.");
       } catch (AbortException e) {
-        assertEquals(2, handler.errors.size());
+        assertEquals(1, handler.errors.size());
         checkDiagnostics(handler.errors, 0, null, 1, 1, "Unknown option \"" + option + "\"");
       }
     }
