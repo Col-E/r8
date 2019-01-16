@@ -23,6 +23,9 @@ def parse_options():
   result = optparse.OptionParser(usage=USAGE)
   result.add_option('--temp',
                     help='Temporary directory to store extracted classes in')
+  result.add_option('--use_code_size',
+      help='Use the size of code segments instead of the full size of the dex.',
+      default=False, action='store_true')
   result.add_option('--report',
                     help='Print comparison to this location instead of stdout')
   return result.parse_args()
@@ -50,20 +53,35 @@ def extract_classes(input, output):
   if toolhelper.run('d8', args) is not 0:
     raise Exception('Failed running d8')
 
+def get_code_size(path):
+  segments = toolhelper.run('dexsegments',
+                            [path],
+                            build=False,
+                            return_stdout=True)
+  for line in segments.splitlines():
+    if 'Code' in line:
+      # The code size line looks like:
+      #  - Code: 264 / 4
+      splits = line.split(' ')
+      return int(splits[3])
+
 class FileInfo:
-  def __init__(self, path, root):
+  def __init__(self, path, root, use_code_size):
     self.path = path
     self.full_path = os.path.join(root, path)
-    self.size = os.path.getsize(self.full_path)
+    if use_code_size:
+      self.size = get_code_size(self.full_path)
+    else:
+      self.size = os.path.getsize(self.full_path)
 
-def generate_file_info(path):
+def generate_file_info(path, options):
   file_info_map = {}
   with utils.ChangedWorkingDirectory(path):
     for root, dirs, files in os.walk('.'):
       for f in files:
         assert f.endswith('dex')
         file_path = os.path.join(root, f)
-        entry = FileInfo(file_path, path)
+        entry = FileInfo(file_path, path, use_code_size=options.use_code_size)
         file_info_map[file_path] = entry
   return file_info_map
 
@@ -85,9 +103,9 @@ def print_info(app, app_files, only_in_app, bigger_in_app, output):
   output.write('\n\n')
 
 
-def compare(app1_classes_dir, app2_classes_dir, app1, app2, report):
-  app1_files = generate_file_info(app1_classes_dir)
-  app2_files = generate_file_info(app2_classes_dir)
+def compare(app1_classes_dir, app2_classes_dir, app1, app2, options):
+  app1_files = generate_file_info(app1_classes_dir, options)
+  app2_files = generate_file_info(app2_classes_dir, options)
   only_in_app1 = [k for k in app1_files if k not in app2_files]
   only_in_app2 = [k for k in app2_files if k not in app1_files]
   in_both = [k for k in app2_files if k in app1_files]
@@ -105,12 +123,12 @@ def compare(app1_classes_dir, app2_classes_dir, app1, app2, report):
       bigger_in_app2[f] = app2_entry.size - app1_entry.size
     else:
       same_size.append(f)
-  output = open(report, 'w') if report else sys.stdout
+  output = open(options.report, 'w') if options.report else sys.stdout
   print_info(app1, app1_files, only_in_app1, bigger_in_app1, output)
   print_info(app2, app2_files, only_in_app2, bigger_in_app2, output)
   output.write('Same size\n')
   output.write('\n'.join(['  %s' % x for x in same_size]))
-  if report:
+  if options.report:
     output.close()
 
 def Main():
@@ -137,7 +155,7 @@ def Main():
 
     extract_classes(app1_input, app1_classes_dir)
     extract_classes(app2_input, app2_classes_dir)
-    compare(app1_classes_dir, app2_classes_dir, app1, app2, options.report)
+    compare(app1_classes_dir, app2_classes_dir, app1, app2, options)
 
 if __name__ == '__main__':
   sys.exit(Main())
