@@ -10,7 +10,7 @@ import utils
 
 def run(tool, args, build=None, debug=True,
         profile=False, track_memory_file=None, extra_args=None,
-        stderr=None, stdout=None):
+        stderr=None, stdout=None, return_stdout=False):
   if build is None:
     build, args = extract_build_from_args(args)
   if build:
@@ -36,6 +36,8 @@ def run(tool, args, build=None, debug=True,
     cmd.extend(["--lib", lib])
   cmd.extend(args)
   utils.PrintCmd(cmd)
+  if return_stdout:
+    return subprocess.check_output(cmd)
   return subprocess.call(cmd, stdout=stdout, stderr=stderr)
 
 def run_in_tests(tool, args, build=None, debug=True, extra_args=None):
