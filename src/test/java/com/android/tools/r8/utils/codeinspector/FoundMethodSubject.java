@@ -202,8 +202,7 @@ public class FoundMethodSubject extends MethodSubject {
       return !code.asCfCode().getLocalVariables().isEmpty();
     }
     if (code.isJarCode()) {
-      return code.asJarCode().getNode().localVariables != null
-          && !code.asJarCode().getNode().localVariables.isEmpty();
+      return code.asJarCode().hasLocalVariableTable();
     }
     throw new Unreachable("Unexpected code type: " + code.getClass().getSimpleName());
   }

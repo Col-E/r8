@@ -118,6 +118,10 @@ public class JarCode extends Code {
     return true;
   }
 
+  public boolean hasLocalVariableTable() {
+    return getNode().localVariables != null && !getNode().localVariables.isEmpty();
+  }
+
   @Override
   public IRCode buildIR(
       DexEncodedMethod encodedMethod,
