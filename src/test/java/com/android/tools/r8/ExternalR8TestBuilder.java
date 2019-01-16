@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Charsets;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -76,7 +77,9 @@ public class ExternalR8TestBuilder
 
       String classPath =
           addR8ExternalDeps
-              ? r8jar.toAbsolutePath().toString() + ":" + ToolHelper.DEPS_NOT_RELOCATED
+              ? r8jar.toAbsolutePath().toString()
+                  + File.pathSeparator
+                  + ToolHelper.DEPS_NOT_RELOCATED
               : r8jar.toAbsolutePath().toString();
 
       List<String> command = new ArrayList<>();
