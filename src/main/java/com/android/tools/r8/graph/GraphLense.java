@@ -855,9 +855,11 @@ public abstract class GraphLense {
     @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();
-      for (Map.Entry<DexType, DexType> entry : typeMap.entrySet()) {
-        builder.append(entry.getKey().toSourceString()).append(" -> ");
-        builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
+      if (typeMap != null) {
+        for (Map.Entry<DexType, DexType> entry : typeMap.entrySet()) {
+          builder.append(entry.getKey().toSourceString()).append(" -> ");
+          builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
+        }
       }
       for (Map.Entry<DexMethod, DexMethod> entry : methodMap.entrySet()) {
         builder.append(entry.getKey().toSourceString()).append(" -> ");
