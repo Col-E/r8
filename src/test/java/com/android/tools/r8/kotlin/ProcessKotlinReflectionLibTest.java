@@ -25,32 +25,42 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
     return buildParameters(Backend.values(), KotlinTargetVersion.values());
   }
 
-  @Test
-  public void testDontShrinkAndDontObfuscate() throws Exception {
+  private void test(String... rules) throws Exception {
     testForR8(backend)
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), ToolHelper.getKotlinStdlibJar())
         .addProgramFiles(ToolHelper.getKotlinReflectJar())
-        .addKeepRules("-dontshrink")
-        .addKeepRules("-dontobfuscate")
+        .addKeepRules(rules)
         .compile();
+  }
+
+  @Test
+  public void testAsIs() throws Exception {
+    test("-dontshrink", "-dontoptimize", "-dontobfuscate");
+  }
+
+  @Test
+  public void testDontShrinkAndDontOptimize() throws Exception {
+    test("-dontshrink", "-dontoptimize");
+  }
+
+  @Test
+  public void testDontShrinkAndDontObfuscate() throws Exception {
+    test("-dontshrink", "-dontobfuscate");
   }
 
   @Test
   public void testDontShrink() throws Exception {
-    testForR8(backend)
-        .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(ToolHelper.getKotlinReflectJar())
-        .addKeepRules("-dontshrink")
-        .compile();
+    test("-dontshrink");
+  }
+
+  @Test
+  public void testDontOptimize() throws Exception {
+    test("-dontoptimize");
   }
 
   @Test
   public void testDontObfuscate() throws Exception {
-    testForR8(backend)
-        .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(ToolHelper.getKotlinReflectJar())
-        .addKeepRules("-dontobfuscate")
-        .compile();
+    test("-dontobfuscate");
   }
 
 }

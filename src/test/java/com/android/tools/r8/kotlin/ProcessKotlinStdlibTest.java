@@ -25,33 +25,49 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
     return buildParameters(Backend.values(), KotlinTargetVersion.values());
   }
 
-  @Test
-  public void testDontShrinkAndDontObfuscate() throws Exception {
+  private void test(String... rules) throws Exception {
     testForR8(backend)
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addKeepRules("-dontshrink")
-        .addKeepRules("-dontobfuscate")
+        .addKeepRules(rules)
         .compile();
+  }
+
+  @Test
+  public void testAsIs() throws Exception {
+    test("-dontshrink", "-dontoptimize", "-dontobfuscate");
+  }
+
+  @Test
+  public void testDontShrinkAndDontOptimize() throws Exception {
+    // TODO(b/122819537): need to trace kotlinc-generated synthetic methods.
+    if (backend == Backend.DEX) {
+      return;
+    }
+    test("-dontshrink", "-dontoptimize");
+  }
+
+  @Test
+  public void testDontShrinkAndDontObfuscate() throws Exception {
+    test("-dontshrink", "-dontobfuscate");
   }
 
   @Test
   public void testDontShrink() throws Exception {
-    // TODO(b/122819537)
+    // TODO(b/122819537): need to trace kotlinc-generated synthetic methods.
     if (backend == Backend.DEX) {
       return;
     }
-    testForR8(backend)
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addKeepRules("-dontshrink")
-        .compile();
+    test("-dontshrink");
+  }
+
+  @Test
+  public void testDontOptimize() throws Exception {
+    test("-dontoptimize");
   }
 
   @Test
   public void testDontObfuscate() throws Exception {
-    testForR8(backend)
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addKeepRules("-dontobfuscate")
-        .compile();
+    test("-dontobfuscate");
   }
 
 }
