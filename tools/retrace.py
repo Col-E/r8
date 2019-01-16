@@ -9,7 +9,7 @@ import utils
 
 def main():
   # Run the retrace tool with standard r8lib arguments.
-  subprocess.call(['java', '-jar', utils.RETRACE_JAR, '-verbose', utils.R8LIB_JAR + '.map'])
+  subprocess.call(['java', '-jar', utils.RETRACE_JAR, utils.R8LIB_JAR + '.map'])
 
 if __name__ == '__main__':
   sys.exit(main())
