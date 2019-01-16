@@ -441,7 +441,7 @@ public class FileWriter {
     dest.putShort((short) code.incomingRegisterSize);
     dest.putShort((short) code.outgoingRegisterSize);
     dest.putShort((short) code.tries.length);
-    dest.putInt(mixedSectionOffsets.getOffsetFor(code.getDebugInfo()));
+    dest.putInt(mixedSectionOffsets.getOffsetFor(code.getDebugInfoForWriting()));
     // Jump over the size.
     int insnSizeOffset = dest.position();
     dest.forward(4);
