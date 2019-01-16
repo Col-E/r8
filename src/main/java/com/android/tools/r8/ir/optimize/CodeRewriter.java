@@ -2701,6 +2701,9 @@ public class CodeRewriter {
           if (contents == null) {
             continue;
           }
+          if (block.hasCatchHandlers()) {
+            continue;
+          }
           int arraySize = newArray.size().getConstInstruction().asConstNumber().getIntValue();
           NewArrayFilledData fillArray =
               new NewArrayFilledData(newArray.outValue(), elementSize, arraySize, contents);
