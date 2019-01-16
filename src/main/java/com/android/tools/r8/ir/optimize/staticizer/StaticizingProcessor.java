@@ -291,7 +291,7 @@ final class StaticizingProcessor {
   //    invoke-virtual { s1, ... } mtd1
   //    goto Exit
   //  b2:
-  //    s2 <- static-get singleoton
+  //    s2 <- static-get singleton
   //    ...
   //    invoke-virtual { s2, ... } mtd1
   //    goto Exit
@@ -503,7 +503,7 @@ final class StaticizingProcessor {
       }
     }
 
-    if (!methodMapping.isEmpty() || fieldMapping.isEmpty()) {
+    if (!methodMapping.isEmpty() || !fieldMapping.isEmpty()) {
       classStaticizer.converter.appView.setGraphLense(
           new ClassStaticizerGraphLense(
               classStaticizer.converter.graphLense(),

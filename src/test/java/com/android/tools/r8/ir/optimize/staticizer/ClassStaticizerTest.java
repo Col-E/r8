@@ -29,11 +29,14 @@ import com.android.tools.r8.ir.optimize.staticizer.dualcallinline.Candidate;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateConflictField;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateConflictMethod;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateOk;
+import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateOkFieldOnly;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateOkSideEffects;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.HostConflictField;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.HostConflictMethod;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.HostOk;
+import com.android.tools.r8.ir.optimize.staticizer.movetohost.HostOkFieldOnly;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.HostOkSideEffects;
+import com.android.tools.r8.ir.optimize.staticizer.movetohost.MoveToHostFieldOnlyTestClass;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.MoveToHostTestClass;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.Simple;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithGetter;
@@ -147,6 +150,36 @@ public class ClassStaticizerTest extends TestBase {
         references(clazz, "testSimpleWithGetter", "void"));
 
     assertFalse(instanceMethods(inspector.clazz(SimpleWithGetter.class)).isEmpty());
+  }
+
+  @Test
+  public void testMoveToHost_fieldOnly() throws Exception {
+    assumeTrue("b/112831361", backend == Backend.DEX);
+    Class<?> main = MoveToHostFieldOnlyTestClass.class;
+    Class<?>[] classes = {
+        NeverInline.class,
+        MoveToHostFieldOnlyTestClass.class,
+        HostOkFieldOnly.class,
+        CandidateOkFieldOnly.class
+    };
+    TestRunResult result = testForR8(backend)
+        .addProgramClasses(classes)
+        .enableProguardTestOptions()
+        .enableInliningAnnotations()
+        .addKeepMainRule(main)
+        .noMinification()
+        .addKeepRules("-allowaccessmodification")
+        .addOptionsModification(this::configure)
+        .run(main);
+
+    CodeInspector inspector = result.inspector();
+    ClassSubject clazz = inspector.clazz(main);
+
+    assertEquals(
+        Lists.newArrayList(),
+        references(clazz, "testOk_fieldOnly", "void"));
+
+    assertFalse(inspector.clazz(CandidateOkFieldOnly.class).isPresent());
   }
 
   @Test
