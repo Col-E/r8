@@ -8,7 +8,6 @@ import com.android.tools.r8.code.FillArrayData;
 import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -74,9 +73,8 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
-    // Side-effects its input values.
-    return false;
+  public boolean instructionTypeCanThrow() {
+    return true;
   }
 
   @Override

@@ -1661,9 +1661,11 @@ public class IRBuilder {
   }
 
   public void addNewArrayFilledData(int arrayRef, int elementWidth, long size, short[] data) {
-    add(
+    NewArrayFilledData instruction =
         new NewArrayFilledData(
-            readRegister(arrayRef, ValueTypeConstraint.OBJECT), elementWidth, size, data));
+            readRegister(arrayRef, ValueTypeConstraint.OBJECT), elementWidth, size, data);
+    assert instruction.instructionTypeCanThrow();
+    addInstruction(instruction);
   }
 
   public void addNewInstance(int dest, DexType type) {

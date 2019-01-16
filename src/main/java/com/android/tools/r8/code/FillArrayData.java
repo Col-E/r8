@@ -44,4 +44,9 @@ public class FillArrayData extends Format31t {
   public String toSmaliString(ClassNameMapper naming) {
     return formatSmaliString("v" + AA + ", :label_" + (getOffset() + BBBBBBBB));
   }
+
+  @Override
+  public boolean canThrow() {
+    return true;
+  }
 }
