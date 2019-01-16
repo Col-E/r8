@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
+import static com.android.tools.r8.ToolHelper.CLASSPATH_SEPARATOR;
+
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.CompilationError;
@@ -29,8 +31,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class BasicTestDependenciesDesugaringTest {
-
-  private static final String CLASSPATH_SEPARATOR = File.pathSeparator;
 
   private static final String[] allLibs;
   static {
