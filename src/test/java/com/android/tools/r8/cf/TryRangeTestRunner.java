@@ -4,8 +4,14 @@
 
 package com.android.tools.r8.cf;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import java.util.ListIterator;
 import org.junit.Test;
 
 /**
@@ -18,7 +24,7 @@ import org.junit.Test;
 public class TryRangeTestRunner extends TestBase {
 
   @Test
-  public void test() throws Exception {
+  public void testRegisterAllocationLimitTrailingRange() throws Exception {
     testForR8(Backend.CF)
         .addProgramClasses(TryRangeTest.class)
         .addKeepMainRule(TryRangeTest.class)
@@ -26,8 +32,55 @@ public class TryRangeTestRunner extends TestBase {
         .minification(false)
         .noTreeShaking()
         .enableInliningAnnotations()
-        .addOptionsModification(o -> o.testing.disallowLoadStoreOptimization = true)
+        .addOptionsModification(
+            o -> {
+              o.testing.disallowLoadStoreOptimization = true;
+            })
         .run(TryRangeTest.class)
         .assertSuccess();
+  }
+
+  @Test
+  public void testRegisterAllocationLimitLeadingRange() throws Exception {
+    testForR8(Backend.CF)
+        .addProgramClasses(TryRangeTestLimitRange.class)
+        .addKeepMainRule(TryRangeTestLimitRange.class)
+        .setMode(CompilationMode.RELEASE)
+        .minification(false)
+        .noTreeShaking()
+        .enableInliningAnnotations()
+        .addOptionsModification(
+            o -> {
+              o.testing.disallowLoadStoreOptimization = true;
+              o.testing.irModifier = this::processIR;
+              // TODO(mkroghj) Remove this option entirely when splittingExceptionalEdges is moved.
+              o.testing.noSplittingExceptionalEdges = true;
+            })
+        .run(TryRangeTestLimitRange.class)
+        .assertFailure();
+  }
+
+  private void processIR(IRCode code) {
+    if (!code.method.qualifiedName().equals(TryRangeTestLimitRange.class.getName() + ".main")) {
+      return;
+    }
+    BasicBlock entryBlock = code.blocks.get(0);
+    BasicBlock tryBlock = code.blocks.get(1);
+    assertTrue(tryBlock.hasCatchHandlers());
+    ListIterator<Instruction> it = entryBlock.getInstructions().listIterator();
+    Instruction constNumber = it.next();
+    while (!constNumber.isConstNumber()) {
+      constNumber = it.next();
+    }
+    it.remove();
+    Instruction add = it.next();
+    while (!add.isAdd()) {
+      add = it.next();
+    }
+    it.remove();
+    constNumber.setBlock(tryBlock);
+    add.setBlock(tryBlock);
+    tryBlock.getInstructions().add(0, add);
+    tryBlock.getInstructions().add(0, constNumber);
   }
 }

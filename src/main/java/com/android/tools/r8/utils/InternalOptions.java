@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -532,6 +533,8 @@ public class InternalOptions {
     public boolean noLocalsTableOnInput = false;
     public boolean forceNameReflectionOptimization = false;
     public boolean disallowLoadStoreOptimization = false;
+    public Consumer<IRCode> irModifier = null;
+    public boolean noSplittingExceptionalEdges = false;
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {

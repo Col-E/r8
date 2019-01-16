@@ -149,7 +149,9 @@ public class CfBuilder {
     computeInitializers();
     typeVerificationHelper = new TypeVerificationHelper(code, factory, appInfo);
     typeVerificationHelper.computeVerificationTypes();
-    splitExceptionalBlocks();
+    if (!options.testing.noSplittingExceptionalEdges) {
+      splitExceptionalBlocks();
+    }
     rewriter.converter.deadCodeRemover.run(code);
     rewriteNots();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, typeVerificationHelper, appInfo);

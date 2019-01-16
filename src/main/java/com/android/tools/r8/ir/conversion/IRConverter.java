@@ -879,6 +879,10 @@ public class IRConverter {
     printC1VisualizerHeader(method);
     String previous = printMethod(code, "Initial IR (SSA)", null);
 
+    if (options.testing.irModifier != null) {
+      options.testing.irModifier.accept(code);
+    }
+
     if (options.canHaveArtStringNewInitBug()) {
       CodeRewriter.ensureDirectStringNewToInit(code);
     }
