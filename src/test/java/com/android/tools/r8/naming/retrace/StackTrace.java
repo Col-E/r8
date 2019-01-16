@@ -165,9 +165,27 @@ class StackTrace {
     }
     // Take all lines from the bottom starting with "\tat ".
     int first = last;
+    // TODO(122940268): Remove test code when fixed.
+    System.out.println("TOTAL STDERR LINES: " + stderrLines.size());
+    for (int i = 0; i < last; i++) {
+      System.out.print("LINE " + i + ": " + stderrLines.get(i));
+      if (stderrLines.get(i).length() > 3) {
+        System.out.print(" (" + ((int) stderrLines.get(i).charAt(0)));
+        System.out.print(", " + ((int) stderrLines.get(i).charAt(1)));
+        System.out.print(", " + ((int) stderrLines.get(i).charAt(2) + ")"));
+      } else {
+        System.out.print(" (less than three chars)");
+      }
+     if (stderrLines.get(i).startsWith(TAB_AT_PREFIX)) {
+        System.out.println(" IS STACKTRACE LINE");
+      } else {
+        System.out.println(" IS NOT STACKTRACE LINE");
+      }
+    }
     while (first - 1 >= 0 && stderrLines.get(first - 1).startsWith(TAB_AT_PREFIX)) {
       first--;
     }
+    System.out.println("STACKTRACE LINES ARE " + first + " to " + (last - 1));
     for (int i = first; i < last; i++) {
       stackTraceLines.add(StackTraceLine.parse(stderrLines.get(i)));
     }
