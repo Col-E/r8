@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.ToolHelper.CLASSPATH_SEPARATOR;
 import static com.android.tools.r8.ToolHelper.getJavaExecutable;
 import static org.junit.Assert.assertEquals;
 
@@ -16,7 +17,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Charsets;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -78,7 +78,7 @@ public class ExternalR8TestBuilder
       String classPath =
           addR8ExternalDeps
               ? r8jar.toAbsolutePath().toString()
-                  + File.pathSeparator
+                  + CLASSPATH_SEPARATOR
                   + ToolHelper.DEPS_NOT_RELOCATED
               : r8jar.toAbsolutePath().toString();
 

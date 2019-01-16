@@ -97,7 +97,8 @@ public class ToolHelper {
   public static final String SMALI_BUILD_DIR = TESTS_BUILD_DIR + "smali/";
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
-  public static final String PATH_SEPARATOR = File.pathSeparator;
+  public static final String CLASSPATH_SEPARATOR = File.pathSeparator;
+
   public static final String DEFAULT_DEX_FILENAME = "classes.dex";
   public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
 
@@ -1086,7 +1087,8 @@ public class ToolHelper {
   }
 
   public static ProcessResult runJava(List<Path> classpath, String... args) throws IOException {
-    String cp = classpath.stream().map(Path::toString).collect(Collectors.joining(PATH_SEPARATOR));
+    String cp =
+        classpath.stream().map(Path::toString).collect(Collectors.joining(CLASSPATH_SEPARATOR));
     List<String> cmdline = new ArrayList<String>(Arrays.asList(getJavaExecutable(), "-cp", cp));
     cmdline.addAll(Arrays.asList(args));
     ProcessBuilder builder = new ProcessBuilder(cmdline);
@@ -1106,7 +1108,8 @@ public class ToolHelper {
 
   public static ProcessResult runJavaNoVerify(
       List<Path> classpath, String mainClass, List<String> args) throws IOException {
-    String cp = classpath.stream().map(Path::toString).collect(Collectors.joining(PATH_SEPARATOR));
+    String cp =
+        classpath.stream().map(Path::toString).collect(Collectors.joining(CLASSPATH_SEPARATOR));
     ArrayList<String> cmdline = Lists.newArrayList(
         getJavaExecutable(), "-cp", cp, "-noverify", mainClass);
     cmdline.addAll(args);
