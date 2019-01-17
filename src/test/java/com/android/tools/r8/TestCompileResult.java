@@ -26,18 +26,16 @@ import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
 public abstract class TestCompileResult<
-    CR extends TestCompileResult<CR, RR>, RR extends TestRunResult> {
+        CR extends TestCompileResult<CR, RR>, RR extends TestRunResult>
+    extends TestBaseResult<CR, RR> {
 
-  final TestState state;
   public final AndroidApp app;
   final List<Path> additionalRunClassPath = new ArrayList<>();
 
   TestCompileResult(TestState state, AndroidApp app) {
-    this.state = state;
+    super(state);
     this.app = app;
   }
-
-  public abstract CR self();
 
   public abstract Backend getBackend();
 

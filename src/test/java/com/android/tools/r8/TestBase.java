@@ -103,6 +103,10 @@ public class TestBase {
     return ProguardTestBuilder.create(new TestState(temp));
   }
 
+  public static GenerateMainDexListTestBuilder testForMainDexListGenerator(TemporaryFolder temp) {
+    return GenerateMainDexListTestBuilder.create(new TestState(temp));
+  }
+
   public R8TestBuilder testForR8(Backend backend) {
     return testForR8(temp, backend);
   }
@@ -129,6 +133,10 @@ public class TestBase {
 
   public ProguardTestBuilder testForProguard() {
     return testForProguard(temp);
+  }
+
+  public GenerateMainDexListTestBuilder testForMainDexListGenerator() {
+    return testForMainDexListGenerator(temp);
   }
 
   public enum Backend {
