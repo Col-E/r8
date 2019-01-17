@@ -218,7 +218,7 @@ public class ProguardConfigurationParser {
       }
       TextPosition optionStart = getPosition();
       expectChar('-');
-      if (parseIgnoredOption() ||
+      if (parseIgnoredOption(optionStart) ||
           parseIgnoredOptionAndWarn(optionStart) ||
           parseUnsupportedOptionAndErr(optionStart)) {
         // Intentionally left empty.
@@ -447,13 +447,13 @@ public class ProguardConfigurationParser {
       return true;
     }
 
-    private boolean parseIgnoredOption() {
+    private boolean parseIgnoredOption(TextPosition optionStart) {
       return Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
           || Iterables.any(IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS,
                            this::skipOptionWithOptionalSingleArg)
           || Iterables.any(IGNORED_FLAG_OPTIONS, this::skipFlag)
           || Iterables.any(IGNORED_CLASS_DESCRIPTOR_OPTIONS, this::skipOptionWithClassSpec)
-          || parseOptimizationOption();
+          || parseOptimizationOption(optionStart);
     }
 
     private void parseInclude() throws ProguardRuleParserException {
@@ -542,10 +542,11 @@ public class ProguardConfigurationParser {
 
     }
 
-    private boolean parseOptimizationOption() {
+    private boolean parseOptimizationOption(TextPosition optionStart) {
       if (!acceptString("optimizations")) {
         return false;
       }
+      warnIgnoringOptions("optimizations", optionStart);
       do {
         skipWhitespace();
         skipOptimizationName();
