@@ -1053,8 +1053,10 @@ public class ProguardConfigurationParserTest extends TestBase {
             "-optimizations   !  xxx,  !  yyy",
             "-optimizations !code/simplification/advanced,code/simplification/*")) {
       reset();
-      parser.parse(createConfigurationForTesting(ImmutableList.of(option)));
-      verifyParserEndsCleanly();
+      Path proguardConfig = writeTextToTempFile(option);
+      parser.parse(proguardConfig);
+      assertEquals(1, handler.warnings.size());
+      checkDiagnostics(handler.warnings, proguardConfig, 1, 1, "Ignoring", "-optimizations");
     }
   }
 
@@ -1070,15 +1072,35 @@ public class ProguardConfigurationParserTest extends TestBase {
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(new DexItemFactory(), reporter);
       parser.parse(proguardConfig);
-      checkDiagnostics(handler.warnings, proguardConfig, 2, 1,
-          "Ignoring", "-optimizationpasses");
-      Position p = handler.warnings.get(0).getPosition();
-      assertTrue(p instanceof TextRange);
-      TextRange r = (TextRange) p;
-      assertEquals(2, r.getStart().getLine());
-      assertEquals(1, r.getStart().getColumn());
-      assertEquals(2, r.getEnd().getLine());
-      assertEquals(22, r.getEnd().getColumn());
+      assertEquals(3, handler.warnings.size());
+
+      checkDiagnostics(handler.warnings, 0, proguardConfig, 1, 1, "Ignoring", "-optimizations");
+      Position p1 = handler.warnings.get(0).getPosition();
+      assertTrue(p1 instanceof TextRange);
+      TextRange r1 = (TextRange) p1;
+      assertEquals(1, r1.getStart().getLine());
+      assertEquals(1, r1.getStart().getColumn());
+      assertEquals(1, r1.getEnd().getLine());
+      assertEquals(15, r1.getEnd().getColumn());
+
+      checkDiagnostics(
+          handler.warnings, 1, proguardConfig, 2, 1, "Ignoring", "-optimizationpasses");
+      Position p2 = handler.warnings.get(1).getPosition();
+      assertTrue(p2 instanceof TextRange);
+      TextRange r2 = (TextRange) p2;
+      assertEquals(2, r2.getStart().getLine());
+      assertEquals(1, r2.getStart().getColumn());
+      assertEquals(2, r2.getEnd().getLine());
+      assertEquals(22, r2.getEnd().getColumn());
+
+      checkDiagnostics(handler.warnings, 2, proguardConfig, 3, 1, "Ignoring", "-optimizations");
+      Position p3 = handler.warnings.get(2).getPosition();
+      assertTrue(p3 instanceof TextRange);
+      TextRange r3 = (TextRange) p3;
+      assertEquals(3, r3.getStart().getLine());
+      assertEquals(1, r3.getStart().getColumn());
+      assertEquals(3, r3.getEnd().getLine());
+      assertEquals(15, r3.getEnd().getColumn());
     }
   }
 
