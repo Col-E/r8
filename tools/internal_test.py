@@ -67,6 +67,7 @@ BOT_RUN_TIMEOUT = RUN_TIMEOUT * len(TEST_COMMANDS)
 
 def log(str):
   print("%s: %s" % (time.strftime("%c"), str))
+  sys.stdout.flush()
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -90,6 +91,9 @@ def get_own_file_content():
 
 def restart_if_new_version(original_content):
   new_content = get_own_file_content()
+  log('Lengths %s %s' % (len(original_content), len(new_content)))
+  log('is master %s ' % utils.is_master())
+  # Restart if the script got updated.
   if new_content != original_content:
     log('Restarting tools/internal_test.py, content changed')
     os.execv(sys.argv[0], sys.argv)
