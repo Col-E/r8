@@ -87,6 +87,11 @@ def get_sha1(filename):
       sha1.update(chunk)
   return sha1.hexdigest()
 
+def is_master():
+  remotes = subprocess.check_output(['git', 'branch', '-r', '--contains',
+                                     'HEAD'])
+  return 'origin/master' in remotes
+
 def get_HEAD_sha1():
   cmd = ['git', 'rev-parse', 'HEAD']
   PrintCmd(cmd)
