@@ -19,10 +19,7 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
 
   @Override
   public boolean hasNext() {
-    if (instructionIterator.hasNext()) {
-      return true;
-    }
-    return blockIterator.hasNext();
+    return instructionIterator.hasNext() || blockIterator.hasNext();
   }
 
   @Override
@@ -39,6 +36,35 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
   }
 
   @Override
+  public boolean hasPrevious() {
+    return instructionIterator.hasPrevious() || blockIterator.hasPrevious();
+  }
+
+  @Override
+  public Instruction previous() {
+    if (instructionIterator.hasPrevious()) {
+      return instructionIterator.previous();
+    }
+    if (!blockIterator.hasPrevious()) {
+      throw new NoSuchElementException();
+    }
+    BasicBlock block = blockIterator.previous();
+    instructionIterator = block.listIterator(block.getInstructions().size());
+    assert instructionIterator.hasPrevious();
+    return instructionIterator.previous();
+  }
+
+  @Override
+  public int nextIndex() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int previousIndex() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public void add(Instruction instruction) {
     instructionIterator.add(instruction);
   }
@@ -46,6 +72,11 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
   @Override
   public void remove() {
     instructionIterator.remove();
+  }
+
+  @Override
+  public void set(Instruction instruction) {
+    instructionIterator.set(instruction);
   }
 
   @Override
