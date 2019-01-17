@@ -211,7 +211,9 @@ public class UnusedArgumentsCollector {
     int argumentCount =
         method.method.proto.parameters.size() + (method.accessFlags.isStatic() ? 0 : 1);
     // TODO(65810338): Implement for virtual methods as well.
-    if (method.accessFlags.isPrivate() || method.accessFlags.isStatic()) {
+    if (method.accessFlags.isPrivate()
+        || method.accessFlags.isStatic()
+        || method.isInstanceInitializer()) {
       CollectUsedArguments collector = new CollectUsedArguments();
       if (!method.accessFlags.isStatic()) {
         // TODO(65810338): The receiver cannot be removed without transforming the method to being
