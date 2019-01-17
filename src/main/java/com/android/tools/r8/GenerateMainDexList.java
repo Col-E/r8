@@ -75,7 +75,7 @@ public class GenerateMainDexList {
 
       if (!mainDexRootSet.checkDiscarded.isEmpty()) {
         new DiscardedChecker(
-            mainDexRootSet, mainDexClasses.getClasses(), appView.appInfo(), options)
+                mainDexRootSet, mainDexClasses.getClasses(), appView.appInfo(), options)
             .run();
       }
       // Print -whyareyoukeeping results if any.

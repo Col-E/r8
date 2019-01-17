@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -24,7 +23,7 @@ public abstract class TestCompilerBuilder<
         CR extends TestCompileResult<CR, RR>,
         RR extends TestRunResult,
         T extends TestCompilerBuilder<C, B, CR, RR, T>>
-    extends TestBuilder<RR, T> {
+    extends TestBaseBuilder<C, B, CR, RR, T> {
 
   public static final Consumer<InternalOptions> DEFAULT_OPTIONS =
       new Consumer<InternalOptions>() {
@@ -32,7 +31,6 @@ public abstract class TestCompilerBuilder<
         public void accept(InternalOptions options) {}
       };
 
-  final B builder;
   final Backend backend;
 
   // Default initialized setup. Can be overwritten if needed.
@@ -44,8 +42,7 @@ public abstract class TestCompilerBuilder<
   private PrintStream stdout = null;
 
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
-    super(state);
-    this.builder = builder;
+    super(state, builder);
     this.backend = backend;
     defaultLibrary = TestBase.runtimeJar(backend);
     programConsumer = TestBase.emptyConsumer(backend);
@@ -135,30 +132,10 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
-  public T addMainDexListFiles(Collection<Path> files) {
-    builder.addMainDexListFiles(files);
-    return self();
-  }
-
-  @Override
-  public T addProgramClassFileData(Collection<byte[]> classes) {
-    for (byte[] clazz : classes) {
-      builder.addClassProgramData(clazz, Origin.unknown());
-    }
-    return self();
-  }
-
-  @Override
-  public T addProgramFiles(Collection<Path> files) {
-    builder.addProgramFiles(files);
-    return self();
-  }
-
   @Override
   public T addLibraryFiles(Collection<Path> files) {
     defaultLibrary = null;
-    builder.addLibraryFiles(files);
-    return self();
+    return super.addLibraryFiles(files);
   }
 
   public T noDesugaring() {

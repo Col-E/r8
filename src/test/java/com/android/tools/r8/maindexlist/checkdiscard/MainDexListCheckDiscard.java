@@ -5,16 +5,10 @@
 package com.android.tools.r8.maindexlist.checkdiscard;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.GenerateMainDexList;
-import com.android.tools.r8.GenerateMainDexListCommand;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Assert;
@@ -54,33 +48,24 @@ public class MainDexListCheckDiscard extends TestBase {
     this.command = command;
   }
 
-
   public void runTestWithR8(String checkDiscardRule) throws Exception {
-    R8Command command =
-        ToolHelper.prepareR8CommandBuilder(
-                readClasses(HelloWorldMain.class, MainDexClass.class, NonMainDexClass.class))
-            .addMainDexRules(
-                ImmutableList.of(keepMainProguardConfiguration(HelloWorldMain.class)),
-                Origin.unknown())
-            .addMainDexRules(ImmutableList.of(checkDiscardRule), Origin.unknown())
-            .setOutput(temp.getRoot().toPath(), OutputMode.DexIndexed)
-            .setMode(CompilationMode.RELEASE)
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .build();
-    ToolHelper.runR8(command);
+    testForR8(Backend.DEX)
+        .addProgramClasses(CLASSES)
+        .setMinApi(AndroidApiLevel.K)
+        .addMainDexRules(keepMainProguardConfiguration(HelloWorldMain.class))
+        .addMainDexRules(checkDiscardRule)
+        .noTreeShaking()
+        .noMinification()
+        .compile();
   }
 
   public void runTestWithGenerator(String checkDiscardRule) throws Exception {
-    GenerateMainDexListCommand.Builder builder =
-        GenerateMainDexListCommand.builder()
-            .addProgramFiles(ListUtils.map(CLASSES, ToolHelper::getClassFileForTestClass))
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-            .addMainDexRules(
-                ImmutableList.of(keepMainProguardConfiguration(HelloWorldMain.class)),
-                Origin.unknown())
-            .addMainDexRules(ImmutableList.of(checkDiscardRule), Origin.unknown());
-    GenerateMainDexList.run(builder.build());
+    testForMainDexListGenerator()
+        .addProgramClasses(CLASSES)
+        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+        .addMainDexRules(keepMainProguardConfiguration(HelloWorldMain.class))
+        .addMainDexRules(checkDiscardRule)
+        .run();
   }
 
   public void runTest(String checkDiscardRule, boolean shouldFail) throws Exception {
