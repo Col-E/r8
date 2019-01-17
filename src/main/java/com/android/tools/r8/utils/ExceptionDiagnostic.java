@@ -9,6 +9,8 @@ import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
 
@@ -45,6 +47,11 @@ public class ExceptionDiagnostic extends DiagnosticWithThrowable {
     if (e instanceof FileAlreadyExistsException) {
       return "File already exists: " + e.getMessage();
     }
-    return e.getMessage();
+    StringWriter stack = new StringWriter();
+    e.printStackTrace(new PrintWriter(stack));
+    String message = e.getMessage();
+    return message != null
+        ? StringUtils.joinLines(message, "Stack trace:", stack.toString())
+        : StringUtils.joinLines(stack.toString());
   }
 }
