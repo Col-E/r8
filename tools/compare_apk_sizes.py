@@ -64,6 +64,8 @@ def get_code_size(path):
       #  - Code: 264 / 4
       splits = line.split(' ')
       return int(splits[3])
+  # Some classes has no code.
+  return 0
 
 class FileInfo:
   def __init__(self, path, root, use_code_size):
