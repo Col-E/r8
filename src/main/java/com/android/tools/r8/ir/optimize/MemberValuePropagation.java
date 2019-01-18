@@ -17,11 +17,13 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
@@ -29,6 +31,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.google.common.collect.Sets;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -133,151 +136,160 @@ public class MemberValuePropagation {
   public void rewriteWithConstantValues(
       IRCode code, DexType callingContext, Predicate<DexEncodedMethod> isProcessedConcurrently) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    InstructionIterator iterator = code.instructionIterator();
-    while (iterator.hasNext()) {
-      Instruction current = iterator.next();
-      if (current.isInvokeMethod()) {
-        InvokeMethod invoke = current.asInvokeMethod();
-        DexMethod invokedMethod = invoke.getInvokedMethod();
-        DexType invokedHolder = invokedMethod.getHolder();
-        if (!invokedHolder.isClassType()) {
-          continue;
-        }
-        // TODO(70550443): Maybe check all methods here.
-        DexEncodedMethod definition = appInfo
-            .lookup(invoke.getType(), invokedMethod, callingContext);
+    ListIterator<BasicBlock> blocks = code.blocks.listIterator();
+    while (blocks.hasNext()) {
+      BasicBlock block = blocks.next();
+      InstructionListIterator iterator = block.listIterator();
+      while (iterator.hasNext()) {
+        Instruction current = iterator.next();
+        if (current.isInvokeMethod()) {
+          InvokeMethod invoke = current.asInvokeMethod();
+          DexMethod invokedMethod = invoke.getInvokedMethod();
+          DexType invokedHolder = invokedMethod.getHolder();
+          if (!invokedHolder.isClassType()) {
+            continue;
+          }
+          // TODO(70550443): Maybe check all methods here.
+          DexEncodedMethod definition = appInfo
+              .lookup(invoke.getType(), invokedMethod, callingContext);
 
-        boolean invokeReplaced = false;
-        ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
-        if (lookup != null) {
-          if (lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS
-              && (invoke.outValue() == null || !invoke.outValue().isUsed())) {
-            // Remove invoke if marked as having no side effects and the return value is not used.
-            iterator.remove();
-            invokeReplaced = true;
-          } else if (invoke.outValue() != null && invoke.outValue().isUsed()) {
-            // Check to see if a constant value can be assumed.
-            Instruction replacement =
-                constantReplacementFromProguardRule(lookup.rule, code, invoke);
-            if (replacement != null) {
-              affectedValues.add(replacement.outValue());
-              replaceInstructionFromProguardRule(lookup.type, iterator, current, replacement);
+          boolean invokeReplaced = false;
+          ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
+          if (lookup != null) {
+            if (lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS
+                && (invoke.outValue() == null || !invoke.outValue().isUsed())) {
+              // Remove invoke if marked as having no side effects and the return value is not used.
+              iterator.remove();
               invokeReplaced = true;
-            } else {
-              // Check to see if a value range can be assumed.
-              setValueRangeFromProguardRule(lookup.rule, current.outValue());
+            } else if (invoke.outValue() != null && invoke.outValue().isUsed()) {
+              // Check to see if a constant value can be assumed.
+              Instruction replacement =
+                  constantReplacementFromProguardRule(lookup.rule, code, invoke);
+              if (replacement != null) {
+                affectedValues.add(replacement.outValue());
+                replaceInstructionFromProguardRule(lookup.type, iterator, current, replacement);
+                invokeReplaced = true;
+              } else {
+                // Check to see if a value range can be assumed.
+                setValueRangeFromProguardRule(lookup.rule, current.outValue());
+              }
             }
           }
-        }
 
-        // If no Proguard rule could replace the instruction check for knowledge about the
-        // return value.
-        if (!invokeReplaced && invoke.outValue() != null) {
-          DexEncodedMethod target = invoke.lookupSingleTarget(appInfo, callingContext);
-          if (target != null) {
-            if (target.getOptimizationInfo().neverReturnsNull() && invoke.outValue().canBeNull()) {
-              Value knownToBeNonNullValue = invoke.outValue();
-              knownToBeNonNullValue.markNeverNull();
-              TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-              assert typeLattice.isNullable() && typeLattice.isReference();
-              knownToBeNonNullValue.narrowing(appInfo, typeLattice.asNonNullable());
-              affectedValues.addAll(knownToBeNonNullValue.affectedValues());
-            }
-            if (target.getOptimizationInfo().returnsConstant()) {
-              long constant = target.getOptimizationInfo().getReturnedConstant();
-              ConstNumber replacement = createConstNumberReplacement(
-                  code, constant, invoke.outValue().getTypeLattice(), invoke.getLocalInfo());
-              affectedValues.add(replacement.outValue());
-              invoke.outValue().replaceUsers(replacement.outValue());
-              invoke.setOutValue(null);
-              replacement.setPosition(invoke.getPosition());
-              invoke.moveDebugValues(replacement);
-              iterator.add(replacement);
-            }
-          }
-        }
-      } else if (current.isInstancePut()) {
-        InstancePut instancePut = current.asInstancePut();
-        DexField field = instancePut.getField();
-        DexEncodedField target = appInfo.lookupInstanceTarget(field.getHolder(), field);
-        if (target != null) {
-          // Remove writes to dead (i.e. never read) fields.
-          if (!isFieldRead(target, false) && instancePut.object().isNeverNull()) {
-            iterator.remove();
-          }
-        }
-      } else if (current.isStaticGet()) {
-        StaticGet staticGet = current.asStaticGet();
-        DexField field = staticGet.getField();
-        DexEncodedField target = appInfo.lookupStaticTarget(field.getHolder(), field);
-        ProguardMemberRuleLookup lookup = null;
-        if (target != null) {
-          // Check if a this value is known const.
-          Instruction replacement = target.valueAsConstInstruction(appInfo, staticGet.dest());
-          if (replacement == null) {
-            lookup = lookupMemberRule(target);
-            if (lookup != null) {
-              replacement = constantReplacementFromProguardRule(lookup.rule, code, staticGet);
-            }
-          }
-          if (replacement == null) {
-            // If no const replacement was found, at least store the range information.
-            if (lookup != null) {
-              setValueRangeFromProguardRule(lookup.rule, staticGet.dest());
-            }
-          }
-          if (replacement != null) {
-            affectedValues.add(replacement.outValue());
-            // Ignore assumenosideeffects for fields.
-            if (lookup != null && lookup.type == RuleType.ASSUME_VALUES) {
-              replaceInstructionFromProguardRule(lookup.type, iterator, current, replacement);
-            } else {
-              iterator.replaceCurrentInstruction(replacement);
-            }
-          } else if (staticGet.dest() != null) {
-            // In case the class holder of this static field satisfying following criteria:
-            //   -- cannot trigger other static initializer except for its own
-            //   -- is final
-            //   -- has a class initializer which is classified as trivial
-            //      (see CodeRewriter::computeClassInitializerInfo) and
-            //      initializes the field being accessed
-            //
-            // ... and the field itself is not pinned by keep rules (in which case it might
-            // be updated outside the class constructor, e.g. via reflections), it is safe
-            // to assume that the static-get instruction reads the value it initialized value
-            // in class initializer and is never null.
-            //
-            DexClass holderDefinition = appInfo.definitionFor(field.getHolder());
-            if (holderDefinition != null
-                && holderDefinition.accessFlags.isFinal()
-                && !appInfo.canTriggerStaticInitializer(field.getHolder(), true)) {
-              Value outValue = staticGet.dest();
-              DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
-              if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
-                TrivialInitializer info =
-                    classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
-                if (info != null
-                    && ((TrivialClassInitializer) info).field == field
-                    && !appInfo.isPinned(field)
-                    && outValue.canBeNull()) {
-                  outValue.markNeverNull();
-                  TypeLatticeElement typeLattice = outValue.getTypeLattice();
-                  assert typeLattice.isNullable() && typeLattice.isReference();
-                  outValue.narrowing(appInfo, typeLattice.asNonNullable());
-                  affectedValues.addAll(outValue.affectedValues());
+          // If no Proguard rule could replace the instruction check for knowledge about the
+          // return value.
+          if (!invokeReplaced && invoke.outValue() != null) {
+            DexEncodedMethod target = invoke.lookupSingleTarget(appInfo, callingContext);
+            if (target != null) {
+              if (target.getOptimizationInfo().neverReturnsNull() && invoke.outValue()
+                  .canBeNull()) {
+                Value knownToBeNonNullValue = invoke.outValue();
+                knownToBeNonNullValue.markNeverNull();
+                TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
+                assert typeLattice.isNullable() && typeLattice.isReference();
+                knownToBeNonNullValue.narrowing(appInfo, typeLattice.asNonNullable());
+                affectedValues.addAll(knownToBeNonNullValue.affectedValues());
+              }
+              if (target.getOptimizationInfo().returnsConstant()) {
+                long constant = target.getOptimizationInfo().getReturnedConstant();
+                ConstNumber replacement = createConstNumberReplacement(
+                    code, constant, invoke.outValue().getTypeLattice(), invoke.getLocalInfo());
+                affectedValues.add(replacement.outValue());
+                invoke.outValue().replaceUsers(replacement.outValue());
+                invoke.setOutValue(null);
+                replacement.setPosition(invoke.getPosition());
+                invoke.moveDebugValues(replacement);
+                if (current.getBlock().hasCatchHandlers()) {
+                  iterator.split(code, blocks).listIterator().add(replacement);
+                } else {
+                  iterator.add(replacement);
                 }
               }
             }
           }
-        }
-      } else if (current.isStaticPut()) {
-        StaticPut staticPut = current.asStaticPut();
-        DexField field = staticPut.getField();
-        DexEncodedField target = appInfo.lookupStaticTarget(field.getHolder(), field);
-        if (target != null) {
-          // Remove writes to dead (i.e. never read) fields.
-          if (!isFieldRead(target, true)) {
-            iterator.removeOrReplaceByDebugLocalRead();
+        } else if (current.isInstancePut()) {
+          InstancePut instancePut = current.asInstancePut();
+          DexField field = instancePut.getField();
+          DexEncodedField target = appInfo.lookupInstanceTarget(field.getHolder(), field);
+          if (target != null) {
+            // Remove writes to dead (i.e. never read) fields.
+            if (!isFieldRead(target, false) && instancePut.object().isNeverNull()) {
+              iterator.remove();
+            }
+          }
+        } else if (current.isStaticGet()) {
+          StaticGet staticGet = current.asStaticGet();
+          DexField field = staticGet.getField();
+          DexEncodedField target = appInfo.lookupStaticTarget(field.getHolder(), field);
+          ProguardMemberRuleLookup lookup = null;
+          if (target != null) {
+            // Check if a this value is known const.
+            Instruction replacement = target.valueAsConstInstruction(appInfo, staticGet.dest());
+            if (replacement == null) {
+              lookup = lookupMemberRule(target);
+              if (lookup != null) {
+                replacement = constantReplacementFromProguardRule(lookup.rule, code, staticGet);
+              }
+            }
+            if (replacement == null) {
+              // If no const replacement was found, at least store the range information.
+              if (lookup != null) {
+                setValueRangeFromProguardRule(lookup.rule, staticGet.dest());
+              }
+            }
+            if (replacement != null) {
+              affectedValues.add(replacement.outValue());
+              // Ignore assumenosideeffects for fields.
+              if (lookup != null && lookup.type == RuleType.ASSUME_VALUES) {
+                replaceInstructionFromProguardRule(lookup.type, iterator, current, replacement);
+              } else {
+                iterator.replaceCurrentInstruction(replacement);
+              }
+            } else if (staticGet.dest() != null) {
+              // In case the class holder of this static field satisfying following criteria:
+              //   -- cannot trigger other static initializer except for its own
+              //   -- is final
+              //   -- has a class initializer which is classified as trivial
+              //      (see CodeRewriter::computeClassInitializerInfo) and
+              //      initializes the field being accessed
+              //
+              // ... and the field itself is not pinned by keep rules (in which case it might
+              // be updated outside the class constructor, e.g. via reflections), it is safe
+              // to assume that the static-get instruction reads the value it initialized value
+              // in class initializer and is never null.
+              //
+              DexClass holderDefinition = appInfo.definitionFor(field.getHolder());
+              if (holderDefinition != null
+                  && holderDefinition.accessFlags.isFinal()
+                  && !appInfo.canTriggerStaticInitializer(field.getHolder(), true)) {
+                Value outValue = staticGet.dest();
+                DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
+                if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
+                  TrivialInitializer info =
+                      classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
+                  if (info != null
+                      && ((TrivialClassInitializer) info).field == field
+                      && !appInfo.isPinned(field)
+                      && outValue.canBeNull()) {
+                    outValue.markNeverNull();
+                    TypeLatticeElement typeLattice = outValue.getTypeLattice();
+                    assert typeLattice.isNullable() && typeLattice.isReference();
+                    outValue.narrowing(appInfo, typeLattice.asNonNullable());
+                    affectedValues.addAll(outValue.affectedValues());
+                  }
+                }
+              }
+            }
+          }
+        } else if (current.isStaticPut()) {
+          StaticPut staticPut = current.asStaticPut();
+          DexField field = staticPut.getField();
+          DexEncodedField target = appInfo.lookupStaticTarget(field.getHolder(), field);
+          if (target != null) {
+            // Remove writes to dead (i.e. never read) fields.
+            if (!isFieldRead(target, true)) {
+              iterator.removeOrReplaceByDebugLocalRead();
+            }
           }
         }
       }

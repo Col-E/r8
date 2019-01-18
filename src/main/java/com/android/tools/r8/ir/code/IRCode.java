@@ -662,12 +662,9 @@ public class IRCode {
           }
           // After the throwing instruction only debug instructions and the final jump
           // instruction is allowed.
-          // TODO(ager): For now allow const instructions due to the way consts are pushed
-          // towards their use
           if (seenThrowing) {
             assert instruction.isDebugInstruction()
                 || instruction.isJumpInstruction()
-                || instruction.isConstInstruction()
                 || instruction.isStore()
                 || instruction.isPop();
           }

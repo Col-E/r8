@@ -210,7 +210,15 @@ public class LensCodeRewriter {
             iterator.replaceCurrentInstruction(newInvoke);
 
             if (constantReturnMaterializingInstruction != null) {
-              iterator.add(constantReturnMaterializingInstruction);
+              if (block.hasCatchHandlers()) {
+                // Split the block to ensure no instructions after throwing instructions.
+                iterator
+                    .split(code, blocks)
+                    .listIterator()
+                    .add(constantReturnMaterializingInstruction);
+              } else {
+                iterator.add(constantReturnMaterializingInstruction);
+              }
             }
 
             DexType actualReturnType = actualTarget.proto.returnType;
