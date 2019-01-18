@@ -1290,6 +1290,7 @@ public class IRConverter {
       CodeRewriter.collapseTrivialGotos(method, code);
       PeepholeOptimizer.optimize(code, registerAllocator);
     }
+    CodeRewriter.removeUnneededMovesOnExitingPaths(code, registerAllocator);
     CodeRewriter.collapseTrivialGotos(method, code);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Final (non-SSA) flow graph for %s:\n%s",

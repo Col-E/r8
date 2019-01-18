@@ -108,11 +108,11 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
     return builder.toString();
   }
 
-  private String errorMessage(String message) {
+  String errorMessage(String message) {
     return errorMessage(message, null);
   }
 
-  private String errorMessage(String message, String expected) {
+  String errorMessage(String message, String expected) {
     StringBuilder builder = new StringBuilder(message).append('\n');
     if (expected != null) {
       if (expected.contains(System.lineSeparator())) {

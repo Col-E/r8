@@ -61,6 +61,7 @@ import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
+import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.Goto;
@@ -78,6 +79,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -97,6 +99,7 @@ import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
+import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -115,12 +118,18 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
@@ -3641,6 +3650,132 @@ public class CodeRewriter {
       }
     }
     assert code.isConsistentSSA();
+  }
+
+  /**
+   * Remove moves that are not actually used by instructions in exiting paths. These moves can arise
+   * due to debug local info needing a particular value and the live-interval for it then moves it
+   * back into the properly assigned register. If the register is only used for debug purposes, it
+   * is safe to just remove the move and update the local information accordingly.
+   */
+  public static void removeUnneededMovesOnExitingPaths(
+      IRCode code, LinearScanRegisterAllocator allocator) {
+    if (!code.options.debug) {
+      return;
+    }
+    for (BasicBlock block : code.blocks) {
+      // Skip non-exit blocks.
+      if (!block.getSuccessors().isEmpty()) {
+        continue;
+      }
+      // Skip blocks with no locals at entry.
+      Int2ReferenceMap<DebugLocalInfo> localsAtEntry = block.getLocalsAtEntry();
+      if (localsAtEntry == null || localsAtEntry.isEmpty()) {
+        continue;
+      }
+      // Find the locals state after spill moves.
+      DebugLocalsChange postSpillLocalsChange = null;
+      for (Instruction instruction : block.getInstructions()) {
+        if (instruction.getNumber() != -1 || postSpillLocalsChange != null) {
+          break;
+        }
+        postSpillLocalsChange = instruction.asDebugLocalsChange();
+      }
+      // Skip if the locals state did not change.
+      if (postSpillLocalsChange == null
+          || !postSpillLocalsChange.apply(new Int2ReferenceOpenHashMap<>(localsAtEntry))) {
+        continue;
+      }
+      // Collect the moves that can safely be removed.
+      Set<Move> unneededMoves = computeUnneededMoves(block, postSpillLocalsChange, allocator);
+      if (unneededMoves.isEmpty()) {
+        continue;
+      }
+      Int2IntMap previousMapping = new Int2IntOpenHashMap();
+      Int2IntMap mapping = new Int2IntOpenHashMap();
+      ListIterator<Instruction> it = block.getInstructions().listIterator();
+      while (it.hasNext()) {
+        Instruction instruction = it.next();
+        if (instruction.isMove()) {
+          Move move = instruction.asMove();
+          if (unneededMoves.contains(move)) {
+            int dst = allocator.getRegisterForValue(move.dest(), move.getNumber());
+            int src = allocator.getRegisterForValue(move.src(), move.getNumber());
+            int mappedSrc = mapping.getOrDefault(src, src);
+            mapping.put(dst, mappedSrc);
+            it.remove();
+          }
+        } else if (instruction.isDebugLocalsChange()) {
+          DebugLocalsChange change = instruction.asDebugLocalsChange();
+          updateDebugLocalsRegisterMap(previousMapping, change.getEnding());
+          updateDebugLocalsRegisterMap(mapping, change.getStarting());
+          previousMapping = mapping;
+          mapping = new Int2IntOpenHashMap(previousMapping);
+        }
+      }
+    }
+  }
+
+  private static Set<Move> computeUnneededMoves(
+      BasicBlock block,
+      DebugLocalsChange postSpillLocalsChange,
+      LinearScanRegisterAllocator allocator) {
+    Set<Move> unneededMoves = Sets.newIdentityHashSet();
+    IntSet usedRegisters = new IntOpenHashSet();
+    IntSet clobberedRegisters = new IntOpenHashSet();
+    // Backwards instruction scan collecting the registers used by actual instructions.
+    boolean inEntrySpillMoves = false;
+    InstructionListIterator it = block.listIterator(block.getInstructions().size());
+    while (it.hasPrevious()) {
+      Instruction instruction = it.previous();
+      if (instruction == postSpillLocalsChange) {
+        inEntrySpillMoves = true;
+      }
+      // If this is a move in the block-entry spill moves check if it is unneeded.
+      if (inEntrySpillMoves && instruction.isMove()) {
+        Move move = instruction.asMove();
+        int dst = allocator.getRegisterForValue(move.dest(), move.getNumber());
+        int src = allocator.getRegisterForValue(move.src(), move.getNumber());
+        if (!usedRegisters.contains(dst) && !clobberedRegisters.contains(src)) {
+          unneededMoves.add(move);
+          continue;
+        }
+      }
+      if (instruction.outValue() != null && instruction.outValue().needsRegister()) {
+        int register =
+            allocator.getRegisterForValue(instruction.outValue(), instruction.getNumber());
+        // The register is defined anew, so uses before this are on distinct values.
+        usedRegisters.remove(register);
+        // Mark it clobbered to avoid any uses in locals after this point to become invalid.
+        clobberedRegisters.add(register);
+      }
+      if (!instruction.inValues().isEmpty()) {
+        for (Value inValue : instruction.inValues()) {
+          if (inValue.needsRegister()) {
+            int register = allocator.getRegisterForValue(inValue, instruction.getNumber());
+            // Record the register as being used.
+            usedRegisters.add(register);
+          }
+        }
+      }
+    }
+    return unneededMoves;
+  }
+
+  private static void updateDebugLocalsRegisterMap(
+      Int2IntMap mapping, Int2ReferenceMap<DebugLocalInfo> locals) {
+    // If nothing is mapped nothing needs to be changed.
+    if (mapping.isEmpty()) {
+      return;
+    }
+    // Locals is final, so we copy and clear it during update.
+    Int2ReferenceMap<DebugLocalInfo> copy = new Int2ReferenceOpenHashMap<>(locals);
+    locals.clear();
+    for (Entry<DebugLocalInfo> entry : copy.int2ReferenceEntrySet()) {
+      int oldRegister = entry.getIntKey();
+      int newRegister = mapping.getOrDefault(oldRegister, oldRegister);
+      locals.put(newRegister, entry.getValue());
+    }
   }
 
   // Removes calls to Throwable.addSuppressed(Throwable) and rewrites

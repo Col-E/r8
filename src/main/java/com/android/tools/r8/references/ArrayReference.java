@@ -10,12 +10,13 @@ import com.android.tools.r8.errors.Unreachable;
 @Keep
 public final class ArrayReference implements TypeReference {
 
-  private final int dimentions;
+  private final int dimensions;
   private final TypeReference baseType;
   private String descriptor;
 
-  private ArrayReference(int dimentions, TypeReference baseType, String descriptor) {
-    this.dimentions = dimentions;
+  private ArrayReference(int dimensions, TypeReference baseType, String descriptor) {
+    assert dimensions > 0;
+    this.dimensions = dimensions;
     this.baseType = baseType;
     this.descriptor = descriptor;
   }
@@ -23,15 +24,18 @@ public final class ArrayReference implements TypeReference {
   static ArrayReference fromDescriptor(String descriptor) {
     for (int i = 0; i < descriptor.length(); i++) {
       if (descriptor.charAt(i) != '[') {
-        return new ArrayReference(
-            i, Reference.typeFromDescriptor(descriptor.substring(i)), descriptor);
+        if (i > 0) {
+          return new ArrayReference(
+              i, Reference.typeFromDescriptor(descriptor.substring(i)), descriptor);
+        }
+        break;
       }
     }
     throw new Unreachable("Invalid array type descriptor: " + descriptor);
   }
 
-  public int getDimentions() {
-    return dimentions;
+  public int getDimensions() {
+    return dimensions;
   }
 
   public TypeReference getMemberType() {
