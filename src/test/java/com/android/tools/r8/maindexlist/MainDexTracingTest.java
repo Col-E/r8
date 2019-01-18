@@ -219,6 +219,11 @@ public class MainDexTracingTest extends TestBase {
   }
 
   @Test
+  public void traceMainDexList005_8() throws Throwable {
+    doTest5(8);
+  }
+
+  @Test
   public void traceMainDexList006() throws Throwable {
     doTest(
         "traceMainDexList006",
