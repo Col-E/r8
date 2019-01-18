@@ -997,6 +997,7 @@ public class IRConverter {
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
     codeRewriter.simplifyIf(code);
+    codeRewriter.redundantConstNumberRemoval(code);
     new RedundantFieldLoadElimination(appInfo, code, enableWholeProgramOptimizations).run();
 
     if (options.testing.invertConditionals) {

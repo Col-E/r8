@@ -6,10 +6,16 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 
 public class AbsentMethodSubject extends MethodSubject {
+
+  @Override
+  public IRCode buildIR() {
+    throw new Unreachable("Cannot build IR for an absent method");
+  }
 
   @Override
   public boolean isPresent() {

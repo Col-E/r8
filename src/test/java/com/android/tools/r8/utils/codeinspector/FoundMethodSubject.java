@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
@@ -17,10 +18,14 @@ import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.JarCode;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.Arrays;
@@ -38,6 +43,19 @@ public class FoundMethodSubject extends MethodSubject {
     this.codeInspector = codeInspector;
     this.clazz = clazz;
     this.dexMethod = encoded;
+  }
+
+  @Override
+  public IRCode buildIR() {
+    DexEncodedMethod method = getMethod();
+    return method
+        .getCode()
+        .buildIR(
+            method,
+            new AppInfo(codeInspector.application),
+            GraphLense.getIdentityLense(),
+            new InternalOptions(),
+            Origin.unknown());
   }
 
   @Override

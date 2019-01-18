@@ -29,6 +29,10 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
 
   abstract RR self();
 
+  public AndroidApp app() {
+    return app;
+  }
+
   public String getStdOut() {
     return result.stdout;
   }

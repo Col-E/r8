@@ -107,7 +107,6 @@ public abstract class TypeLatticeElement {
     throw new Unreachable("unless a new type lattice is introduced.");
   }
 
-
   public static TypeLatticeElement join(
       Iterable<TypeLatticeElement> typeLattices, AppInfo appInfo) {
     TypeLatticeElement result = BOTTOM;

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfCheckCast;
@@ -31,7 +30,6 @@ import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.Monitor.Type;
@@ -164,6 +162,11 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public boolean isIfEqz() {
     return instruction instanceof CfIf && ((CfIf) instruction).getOpcode() == Opcodes.IFEQ;
+  }
+
+  @Override
+  public boolean isReturn() {
+    return instruction instanceof CfReturn;
   }
 
   @Override

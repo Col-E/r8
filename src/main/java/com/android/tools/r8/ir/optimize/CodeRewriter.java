@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialCla
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialInstanceInitializer;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexItemFactory.ThrowableMethods;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
@@ -120,6 +121,8 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
+import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -3144,6 +3147,210 @@ public class CodeRewriter {
     simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(cond));
   }
 
+  /**
+   * This optimization exploits that we can sometimes learn the constant value of an SSA value that
+   * flows into an if-eq of if-neq instruction.
+   *
+   * <p>Consider the following example:
+   *
+   * <pre>
+   * 1. if (obj != null) {
+   * 2.  return doStuff();
+   * 3. }
+   * 4. return null;
+   * </pre>
+   *
+   * <p>Since we know that `obj` is null in all blocks that are dominated by the false-target of the
+   * if-instruction in line 1, we can safely replace the null-constant in line 4 by `obj`, and
+   * thereby save a const-number instruction.
+   */
+  public void redundantConstNumberRemoval(IRCode code) {
+    Supplier<Long2ReferenceMap<List<ConstNumber>>> constantsByValue =
+        Suppliers.memoize(() -> getConstantsByValue(code));
+    Supplier<DominatorTree> dominatorTree = Suppliers.memoize(() -> new DominatorTree(code));
+
+    boolean changed = false;
+    for (BasicBlock block : code.blocks) {
+      Instruction lastInstruction = block.getInstructions().getLast();
+      if (!lastInstruction.isIf()) {
+        continue;
+      }
+
+      If ifInstruction = lastInstruction.asIf();
+      Type type = ifInstruction.getType();
+
+      Value lhs = ifInstruction.inValues().get(0);
+      Value rhs = !ifInstruction.isZeroTest() ? ifInstruction.inValues().get(1) : null;
+
+      if (!ifInstruction.isZeroTest() && !lhs.isConstNumber() && !rhs.isConstNumber()) {
+        // We can only conclude anything from an if-instruction if it is a zero-test or if one of
+        // the two operands is a constant.
+        continue;
+      }
+
+      // If the type is neither EQ nor NE, we cannot conclude anything about any of the in-values
+      // of the if-instruction from the outcome of the if-instruction.
+      if (type != Type.EQ && type != Type.NE) {
+        continue;
+      }
+
+      BasicBlock trueTarget, falseTarget;
+      if (type == Type.EQ) {
+        trueTarget = ifInstruction.getTrueTarget();
+        falseTarget = ifInstruction.fallthroughBlock();
+      } else {
+        falseTarget = ifInstruction.getTrueTarget();
+        trueTarget = ifInstruction.fallthroughBlock();
+      }
+
+      if (ifInstruction.isZeroTest()) {
+        changed |=
+            replaceDominatedConstNumbers(0, lhs, trueTarget, constantsByValue, dominatorTree);
+        if (lhs.knownToBeBoolean()) {
+          changed |=
+              replaceDominatedConstNumbers(1, lhs, falseTarget, constantsByValue, dominatorTree);
+        }
+      } else {
+        assert rhs != null;
+        if (lhs.isConstNumber()) {
+          ConstNumber lhsAsNumber = lhs.getConstInstruction().asConstNumber();
+          changed |=
+              replaceDominatedConstNumbers(
+                  lhsAsNumber.getRawValue(), rhs, trueTarget, constantsByValue, dominatorTree);
+          if (lhs.knownToBeBoolean() && rhs.knownToBeBoolean()) {
+            changed |=
+                replaceDominatedConstNumbers(
+                    negateBoolean(lhsAsNumber), rhs, falseTarget, constantsByValue, dominatorTree);
+          }
+        } else {
+          assert rhs.isConstNumber();
+          ConstNumber rhsAsNumber = rhs.getConstInstruction().asConstNumber();
+          changed |=
+              replaceDominatedConstNumbers(
+                  rhsAsNumber.getRawValue(), lhs, trueTarget, constantsByValue, dominatorTree);
+          if (lhs.knownToBeBoolean() && rhs.knownToBeBoolean()) {
+            changed |=
+                replaceDominatedConstNumbers(
+                    negateBoolean(rhsAsNumber), lhs, falseTarget, constantsByValue, dominatorTree);
+          }
+        }
+      }
+
+      if (constantsByValue.get().isEmpty()) {
+        break;
+      }
+    }
+
+    if (changed) {
+      code.removeAllTrivialPhis();
+    }
+    assert code.isConsistentSSA();
+  }
+
+  private static Long2ReferenceMap<List<ConstNumber>> getConstantsByValue(IRCode code) {
+    // A map from the raw value of constants in `code` to the const number instructions that define
+    // the given raw value (irrespective of the type of the raw value).
+    Long2ReferenceMap<List<ConstNumber>> constantsByValue = new Long2ReferenceOpenHashMap<>();
+
+    // Initialize `constantsByValue`.
+    Iterable<Instruction> instructions = code::instructionIterator;
+    for (Instruction instruction : instructions) {
+      if (instruction.isConstNumber()) {
+        ConstNumber constNumber = instruction.asConstNumber();
+        if (constNumber.outValue().hasLocalInfo()) {
+          // Not necessarily constant, because it could be changed in the debugger.
+          continue;
+        }
+        long rawValue = constNumber.getRawValue();
+        if (constantsByValue.containsKey(rawValue)) {
+          constantsByValue.get(rawValue).add(constNumber);
+        } else {
+          List<ConstNumber> list = new ArrayList<>();
+          list.add(constNumber);
+          constantsByValue.put(rawValue, list);
+        }
+      }
+    }
+    return constantsByValue;
+  }
+
+  private static int negateBoolean(ConstNumber number) {
+    assert number.outValue().knownToBeBoolean();
+    return number.getRawValue() == 0 ? 1 : 0;
+  }
+
+  private boolean replaceDominatedConstNumbers(
+      long withValue,
+      Value newValue,
+      BasicBlock dominator,
+      Supplier<Long2ReferenceMap<List<ConstNumber>>> constantsByValueSupplier,
+      Supplier<DominatorTree> dominatorTree) {
+    if (newValue.hasLocalInfo()) {
+      // We cannot replace a constant with a value that has local info, because that could change
+      // debugging behavior.
+      return false;
+    }
+
+    Long2ReferenceMap<List<ConstNumber>> constantsByValue = constantsByValueSupplier.get();
+    List<ConstNumber> constantsWithValue = constantsByValue.get(withValue);
+    if (constantsWithValue == null || constantsWithValue.isEmpty()) {
+      return false;
+    }
+
+    boolean changed = false;
+
+    ListIterator<ConstNumber> constantWithValueIterator = constantsWithValue.listIterator();
+    while (constantWithValueIterator.hasNext()) {
+      ConstNumber constNumber = constantWithValueIterator.next();
+      Value value = constNumber.outValue();
+      assert !value.hasLocalInfo();
+      assert constNumber.getRawValue() == withValue;
+
+      BasicBlock block = constNumber.getBlock();
+
+      // If the following condition does not hold, then the if-instruction does not dominate the
+      // block containing the constant, although the true or false target does.
+      if (block == dominator && block.getPredecessors().size() != 1) {
+        // This should generally not happen, but it is possible to write bytecode where it does.
+        assert false;
+        continue;
+      }
+
+      if (value.knownToBeBoolean() && !newValue.knownToBeBoolean()) {
+        // We cannot replace a boolean by a none-boolean since that can lead to verification
+        // errors. For example, the following code fails with "register v1 has type Imprecise
+        // Constant: 127 but expected Boolean return-1nr".
+        //
+        //   public boolean convertIntToBoolean(int v1) {
+        //       const/4 v0, 0x1
+        //       if-eq v1, v0, :eq_true
+        //       const/4 v1, 0x0
+        //     :eq_true
+        //       return v1
+        //   }
+        continue;
+      }
+
+      if (dominatorTree.get().dominatedBy(block, dominator)) {
+        if (newValue.getTypeLattice().lessThanOrEqual(value.getTypeLattice(), appInfo)) {
+          value.replaceUsers(newValue);
+          block.listIterator(constNumber).removeOrReplaceByDebugLocalRead();
+          constantWithValueIterator.remove();
+          changed = true;
+        } else if (value.getTypeLattice().isNullType()) {
+          // TODO(b/120257211): Need a mechanism to determine if `newValue` can be used at all of
+          // the use sites of `value` without introducing a type error.
+        }
+      }
+    }
+
+    if (constantsWithValue.isEmpty()) {
+      constantsByValue.remove(withValue);
+    }
+
+    return changed;
+  }
+
   // Find all method invocations that never returns normally, split the block
   // after each such invoke instruction and follow it with a block throwing a
   // null value (which should result in NPE). Note that this throw is not
@@ -3439,7 +3646,7 @@ public class CodeRewriter {
   // Note that addSuppressed() and getSuppressed() methods are final in
   // Throwable, so these changes don't have to worry about overrides.
   public void rewriteThrowableAddAndGetSuppressed(IRCode code) {
-    DexItemFactory.ThrowableMethods throwableMethods = dexItemFactory.throwableMethods;
+    ThrowableMethods throwableMethods = dexItemFactory.throwableMethods;
 
     for (BasicBlock block : code.blocks) {
       InstructionListIterator iterator = block.listIterator();
@@ -3579,7 +3786,7 @@ public class CodeRewriter {
       } else {
         // Insert "if (argument != null) ...".
         successor = block.unlinkSingleSuccessor();
-        If theIf = new If(If.Type.NE, argument);
+        If theIf = new If(Type.NE, argument);
         theIf.setPosition(position);
         BasicBlock ifBlock = BasicBlock.createIfBlock(code.blocks.size(), theIf);
         code.blocks.add(ifBlock);

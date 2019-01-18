@@ -142,6 +142,7 @@ public class If extends JumpInstruction {
     return super.toString()
         + " "
         + type
+        + (isZeroTest() ? "Z" : " ")
         + " block "
         + getTrueTarget().getNumberAsString()
         + " (fallthrough "

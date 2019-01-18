@@ -70,6 +70,7 @@ import com.android.tools.r8.code.MulLong2Addr;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.code.PackedSwitch;
+import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.Sget;
@@ -272,6 +273,11 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isIfEqz() {
     return instruction instanceof IfEqz;
+  }
+
+  @Override
+  public boolean isReturn() {
+    return instruction instanceof Return;
   }
 
   @Override

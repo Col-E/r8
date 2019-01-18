@@ -58,7 +58,7 @@ import java.util.function.Function;
 
 public class CodeInspector {
 
-  private final DexApplication application;
+  final DexApplication application;
   final DexItemFactory dexItemFactory;
   private final ClassNameMapper mapping;
   final Map<String, String> originalToObfuscatedMapping;
