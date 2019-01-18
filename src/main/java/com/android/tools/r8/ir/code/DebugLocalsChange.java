@@ -27,17 +27,6 @@ public class DebugLocalsChange extends Instruction {
     assert !ending.isEmpty() || !starting.isEmpty();
     this.ending = ending;
     this.starting = starting;
-    super.setPosition(Position.none());
-  }
-
-  @Override
-  public void setPosition(Position position) {
-    throw new Unreachable();
-  }
-
-  @Override
-  public boolean verifyValidPositionInfo(boolean debug) {
-    return true;
   }
 
   public Int2ReferenceMap<DebugLocalInfo> getEnding() {
