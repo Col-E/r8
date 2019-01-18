@@ -330,8 +330,7 @@ public abstract class TypeLatticeElement {
     if (type.isPrimitiveType()) {
       return PrimitiveTypeLatticeElement.fromDexType(type, asArrayElementType);
     }
-    return appInfo.dexItemFactory.createReferenceTypeLatticeElement(
-        type, nullability, appInfo);
+    return appInfo.dexItemFactory.createReferenceTypeLatticeElement(type, nullability, appInfo);
   }
 
   public boolean isValueTypeCompatible(TypeLatticeElement other) {

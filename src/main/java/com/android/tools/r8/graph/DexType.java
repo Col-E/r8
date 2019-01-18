@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class DexType extends DexReference implements PresortedComparable<DexType> {
 
@@ -119,9 +120,9 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.serializableType);
   }
 
-  public boolean classInitializationMayHaveSideEffects(AppInfo appInfo) {
+  public boolean classInitializationMayHaveSideEffects(AppInfo appInfo, Predicate<DexType> ignore) {
     DexClass clazz = appInfo.definitionFor(this);
-    return clazz == null || clazz.classInitializationMayHaveSideEffects(appInfo);
+    return clazz == null || clazz.classInitializationMayHaveSideEffects(appInfo, ignore);
   }
 
   public boolean isUnknown() {

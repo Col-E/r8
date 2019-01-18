@@ -428,7 +428,6 @@ public final class InterfaceMethodRewriter {
       converter.appView.setGraphLense(
           new InterfaceMethodDesugaringLense(
               processor.movedMethods,
-              processor.methodsWithMovedCode,
               converter.appView.graphLense(),
               factory));
     }

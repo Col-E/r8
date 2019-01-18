@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLense;
@@ -13,14 +11,11 @@ import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
-import java.util.Map;
 
 class InterfaceMethodDesugaringLense extends NestedGraphLense {
-  private final Map<DexEncodedMethod, DexEncodedMethod> methodsWithMovedCode;
 
   InterfaceMethodDesugaringLense(
       BiMap<DexMethod, DexMethod> methodMapping,
-      Map<DexEncodedMethod, DexEncodedMethod> methodsWithMovedCode,
       GraphLense previous, DexItemFactory factory) {
     super(
         ImmutableMap.of(),
@@ -30,12 +25,5 @@ class InterfaceMethodDesugaringLense extends NestedGraphLense {
         methodMapping.inverse(),
         previous,
         factory);
-    this.methodsWithMovedCode = methodsWithMovedCode;
-  }
-
-  @Override
-  public DexEncodedMethod mapDexEncodedMethod(AppInfo appInfo, DexEncodedMethod original) {
-    return super.mapDexEncodedMethod(
-        appInfo, methodsWithMovedCode.getOrDefault(original, original));
   }
 }

@@ -448,6 +448,13 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public boolean classInitializationMayHaveSideEffects(AppInfo appInfo) {
+    return classInitializationMayHaveSideEffects(appInfo, Predicates.alwaysFalse());
+  }
+
+  public boolean classInitializationMayHaveSideEffects(AppInfo appInfo, Predicate<DexType> ignore) {
+    if (ignore.test(type)) {
+      return false;
+    }
     if (hasNonTrivialClassInitializer()) {
       return true;
     }
@@ -455,11 +462,11 @@ public abstract class DexClass extends DexDefinition {
       return true;
     }
     for (DexType iface : interfaces.values) {
-      if (iface.classInitializationMayHaveSideEffects(appInfo)) {
+      if (iface.classInitializationMayHaveSideEffects(appInfo, ignore)) {
         return true;
       }
     }
-    if (superType != null && superType.classInitializationMayHaveSideEffects(appInfo)) {
+    if (superType != null && superType.classInitializationMayHaveSideEffects(appInfo, ignore)) {
       return true;
     }
     return false;
