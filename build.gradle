@@ -1443,8 +1443,13 @@ def printStackTrace(TestResult result) {
         def out = new StringBuffer()
         def err = new StringBuffer()
         def command = "tools/retrace.py"
+        def header = "RETRACED STACKTRACE";
+        if (System.getenv('BUILDBOT_BUILDERNAME') != null
+                && !System.getenv('BUILDBOT_BUILDERNAME').endsWith("_release")) {
+            header += ": (${command} --commit_hash ${System.getenv('BUILDBOT_REVISION')})";
+        }
         out.append("\n--------------------------------------\n")
-        out.append("RETRACED STACKTRACE\n")
+        out.append("${header}\n")
         out.append("--------------------------------------\n")
         Process process = command.execute()
         def processIn = new PrintStream(process.getOut())
