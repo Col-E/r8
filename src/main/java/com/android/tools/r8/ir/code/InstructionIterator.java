@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.ir.code;
 
-public interface InstructionIterator extends NextUntilIterator<Instruction> {
+import java.util.ListIterator;
+
+public interface InstructionIterator
+    extends ListIterator<Instruction>, NextUntilIterator<Instruction> {
   /**
    * Replace the current instruction (aka the {@link Instruction} returned by the previous call to
    * {@link #next} with the passed in <code>newInstruction</code>.
@@ -22,15 +25,6 @@ public interface InstructionIterator extends NextUntilIterator<Instruction> {
    */
   void replaceCurrentInstruction(Instruction newInstruction);
 
-  /**
-   * Adds an instruction. The instruction will be added just before the current
-   * cursor position.
-   *
-   * The instruction will be assigned to the block it is added to.
-   *
-   * @param instruction The instruction to add.
-   */
-  void add(Instruction instruction);
 
   /**
    * Safe removal function that will insert a DebugLocalRead to take over the debug values if any

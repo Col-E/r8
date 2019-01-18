@@ -11,9 +11,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 public interface InstructionListIterator
-    extends ListIterator<Instruction>,
-        NextUntilIterator<Instruction>,
-        PreviousUntilIterator<Instruction> {
+    extends InstructionIterator, PreviousUntilIterator<Instruction> {
 
   /**
    * Peek the previous instruction.
@@ -48,27 +46,6 @@ public interface InstructionListIterator
   default void setInsertionPosition(Position position) {
     // Intentionally empty.
   }
-
-  /**
-   * Safe removal function that will insert a DebugLocalRead to take over the debug values if any
-   * are associated with the current instruction.
-   */
-  void removeOrReplaceByDebugLocalRead();
-
-  /**
-   * Replace the current instruction (aka the {@link Instruction} returned by the previous call to
-   * {@link #next} with the passed in <code>newInstruction</code>.
-   *
-   * The current instruction will be completely detached from the instruction stream with uses
-   * of its in-values removed.
-   *
-   * If the current instruction produces an out-value the new instruction must also produce
-   * an out-value, and all uses of the current instructions out-value will be replaced by the
-   * new instructions out-value.
-   *
-   * @param newInstruction the instruction to insert instead of the current.
-   */
-  void replaceCurrentInstruction(Instruction newInstruction);
 
   /**
    * Split the block into two blocks at the point of the {@link ListIterator} cursor. The existing
