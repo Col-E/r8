@@ -15,6 +15,7 @@ import com.android.tools.r8.DataResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -65,10 +66,15 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
 
   // Return the package name in the app for this package.
   private String pathForThisPackage(AndroidApp app) throws Exception {
-    ClassNameMapper mapper =
-        ClassNameMapper.mapperFromString(app.getProguardMapOutputData().getString());
-    String x = mapper.getObfuscatedToOriginalMapping().inverse.get(Main.class.getCanonicalName());
-    return x.substring(0, x.lastIndexOf('.')).replace('.', '/');
+    String name;
+    if (app.getProguardMapOutputData() != null) {
+      ClassNameMapper mapper =
+          ClassNameMapper.mapperFromString(app.getProguardMapOutputData().getString());
+      name = mapper.getObfuscatedToOriginalMapping().inverse.get(Main.class.getCanonicalName());
+    } else {
+      name = Main.class.getTypeName();
+    }
+    return name.substring(0, name.lastIndexOf('.')).replace('.', '/');
   }
 
   private void checkResourceNames(Set<String> resourceNames, String expectedPackageName) {

@@ -5,7 +5,6 @@
 package com.android.tools.r8.optimize;
 
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLense;
@@ -47,11 +46,8 @@ public class MemberRebindingLense extends NestedGraphLense {
     return new Builder(appInfo);
   }
 
-
   @Override
-  protected Type mapInvocationType(
-      DexMethod newMethod, DexMethod originalMethod, DexEncodedMethod context, Type type) {
-    return super.mapVirtualInterfaceInvocationTypes(
-        appInfo, newMethod, originalMethod, context, type);
+  protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
+    return super.mapVirtualInterfaceInvocationTypes(appInfo, newMethod, originalMethod, type);
   }
 }

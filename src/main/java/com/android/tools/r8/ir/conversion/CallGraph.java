@@ -532,7 +532,7 @@ public class CallGraph extends CallSiteInformation {
 
     private void processInvoke(Type type, DexMethod method) {
       DexEncodedMethod source = caller.method;
-      GraphLenseLookupResult result = graphLense.lookupMethod(method, source, type);
+      GraphLenseLookupResult result = graphLense.lookupMethod(method, source.method, type);
       method = result.getMethod();
       type = result.getType();
       DexEncodedMethod definition = appInfo.lookup(type, method, source.method.holder);

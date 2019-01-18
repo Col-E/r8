@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -150,16 +151,17 @@ public class LineNumberOptimizer {
       // At this point we don't know if we really need to add this class to the builder.
       // It depends on whether any methods/fields are renamed or some methods contain positions.
       // Create a supplier which creates a new, cached ClassNaming.Builder on-demand.
+      DexType originalType = graphLense.getOriginalType(clazz.type);
       DexString renamedClassName = namingLens.lookupDescriptor(clazz.getType());
       Supplier<ClassNaming.Builder> onDemandClassNamingBuilder =
           Suppliers.memoize(
               () ->
                   classNameMapperBuilder.classNamingBuilder(
                       DescriptorUtils.descriptorToJavaType(renamedClassName.toString()),
-                      clazz.toString()));
+                      originalType.toSourceString()));
 
       // If the class is renamed add it to the classNamingBuilder.
-      addClassToClassNaming(clazz, renamedClassName, onDemandClassNamingBuilder);
+      addClassToClassNaming(originalType, renamedClassName, onDemandClassNamingBuilder);
 
       // First transfer renamed fields to classNamingBuilder.
       addFieldsToClassNaming(graphLense, namingLens, clazz, onDemandClassNamingBuilder);
@@ -306,10 +308,12 @@ public class LineNumberOptimizer {
   }
 
   @SuppressWarnings("ReturnValueIgnored")
-  private static void addClassToClassNaming(DexProgramClass clazz, DexString renamedClassName,
+  private static void addClassToClassNaming(
+      DexType originalType,
+      DexString renamedClassName,
       Supplier<Builder> onDemandClassNamingBuilder) {
     // We do know we need to create a ClassNaming.Builder if the class itself had been renamed.
-    if (!clazz.toString().equals(renamedClassName.toString())) {
+    if (originalType.descriptor != renamedClassName) {
       // Not using return value, it's registered in classNameMapperBuilder
       onDemandClassNamingBuilder.get();
     }

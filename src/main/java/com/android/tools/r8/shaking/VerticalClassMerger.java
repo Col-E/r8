@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
@@ -53,6 +52,7 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -211,13 +211,13 @@ public class VerticalClassMerger {
   private final Set<DexProgramClass> mergeCandidates = new LinkedHashSet<>();
 
   // Map from source class to target class.
-  private final Map<DexType, DexType> mergedClasses = new HashMap<>();
+  private final Map<DexType, DexType> mergedClasses = new IdentityHashMap<>();
 
   // Map from target class to the super classes that have been merged into the target class.
-  private final Map<DexType, Set<DexType>> mergedClassesInverse = new HashMap<>();
+  private final Map<DexType, Set<DexType>> mergedClassesInverse = new IdentityHashMap<>();
 
   // Set of types that must not be merged into their subtype.
-  private final Set<DexType> pinnedTypes = new HashSet<>();
+  private final Set<DexType> pinnedTypes = Sets.newIdentityHashSet();
 
   // The resulting graph lense that should be used after class merging.
   private final VerticalClassMergerGraphLense.Builder renamedMembersLense;
@@ -686,7 +686,7 @@ public class VerticalClassMerger {
     if (Log.ENABLED) {
       Log.debug(getClass(), "Merged %d classes.", mergedClasses.size());
     }
-    return renamedMembersLense.build(graphLense, mergedClasses, synthesizedBridges, appInfo);
+    return renamedMembersLense.build(graphLense, mergedClasses, appInfo);
   }
 
   private boolean methodResolutionMayChange(DexClass source, DexClass target) {
@@ -1427,40 +1427,17 @@ public class VerticalClassMerger {
       for (DexProgramClass clazz : appInfo.classes()) {
         clazz.setDirectMethods(substituteTypesIn(clazz.directMethods()));
         clazz.setVirtualMethods(substituteTypesIn(clazz.virtualMethods()));
-        clazz.setVirtualMethods(removeDupes(clazz.virtualMethods()));
         clazz.setStaticFields(substituteTypesIn(clazz.staticFields()));
         clazz.setInstanceFields(substituteTypesIn(clazz.instanceFields()));
       }
+      for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
+        synthesizedBridge.updateMethodSignatures(this::fixupMethod);
+      }
       // Record type renamings so check-cast and instance-of checks are also fixed.
       for (DexType type : mergedClasses.keySet()) {
-        DexType fixed = fixupType(type);
-        lense.map(type, fixed);
+        lense.map(type, fixupType(type));
       }
       return lense.build(application.dexItemFactory, graphLense);
-    }
-
-    private DexEncodedMethod[] removeDupes(DexEncodedMethod[] methods) {
-      if (methods == null) {
-        return null;
-      }
-      Map<DexMethod, DexEncodedMethod> filtered = new IdentityHashMap<>();
-      for (DexEncodedMethod method : methods) {
-        DexEncodedMethod previous = filtered.put(method.method, method);
-        if (previous != null) {
-          if (!previous.accessFlags.isBridge()) {
-            if (!method.accessFlags.isBridge()) {
-              throw new CompilationError(
-                  "Class merging produced invalid result on: " + previous.toSourceString());
-            } else {
-              filtered.put(previous.method, previous);
-            }
-          }
-        }
-      }
-      if (filtered.size() == methods.length) {
-        return methods;
-      }
-      return filtered.values().toArray(DexEncodedMethod.EMPTY_ARRAY);
     }
 
     private DexEncodedMethod[] substituteTypesIn(DexEncodedMethod[] methods) {
@@ -1470,12 +1447,9 @@ public class VerticalClassMerger {
       for (int i = 0; i < methods.length; i++) {
         DexEncodedMethod encodedMethod = methods[i];
         DexMethod method = encodedMethod.method;
-        DexProto newProto = getUpdatedProto(method.proto);
-        DexType newHolder = fixupType(method.holder);
-        DexMethod newMethod = application.dexItemFactory.createMethod(newHolder, newProto,
-            method.name);
-        if (newMethod != encodedMethod.method) {
-          lense.move(encodedMethod.method, newMethod);
+        DexMethod newMethod = fixupMethod(method);
+        if (newMethod != method) {
+          lense.move(method, newMethod);
           methods[i] = encodedMethod.toTypeSubstitutedMethod(newMethod);
         }
       }
@@ -1500,7 +1474,12 @@ public class VerticalClassMerger {
       return fields;
     }
 
-    private DexProto getUpdatedProto(DexProto proto) {
+    private DexMethod fixupMethod(DexMethod method) {
+      return application.dexItemFactory.createMethod(
+          fixupType(method.holder), fixupProto(method.proto), method.name);
+    }
+
+    private DexProto fixupProto(DexProto proto) {
       DexProto result = protoFixupCache.get(proto);
       if (result == null) {
         DexType returnType = fixupType(proto.returnType);
@@ -1517,12 +1496,13 @@ public class VerticalClassMerger {
         DexType fixed = fixupType(base);
         if (base == fixed) {
           return type;
-        } else {
-          return type.replaceBaseType(fixed, application.dexItemFactory);
         }
+        return type.replaceBaseType(fixed, application.dexItemFactory);
       }
-      while (mergedClasses.containsKey(type)) {
-        type = mergedClasses.get(type);
+      if (type.isClassType()) {
+        while (mergedClasses.containsKey(type)) {
+          type = mergedClasses.get(type);
+        }
       }
       return type;
     }
@@ -1675,6 +1655,11 @@ public class VerticalClassMerger {
     }
 
     @Override
+    public DexType getOriginalType(DexType type) {
+      throw new Unreachable();
+    }
+
+    @Override
     public DexField getOriginalFieldSignature(DexField field) {
       throw new Unreachable();
     }
@@ -1700,8 +1685,7 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public GraphLenseLookupResult lookupMethod(
-        DexMethod method, DexEncodedMethod context, Type type) {
+    public GraphLenseLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
       // First look up the method using the existing graph lense (for example, the type will have
       // changed if the method was publicized by ClassAndMemberPublicizer).
       GraphLenseLookupResult lookup = graphLense.lookupMethod(method, context, type);
@@ -1745,7 +1729,7 @@ public class VerticalClassMerger {
   public static class IllegalAccessDetector extends UseRegistry {
 
     private boolean foundIllegalAccess = false;
-    private DexEncodedMethod context = null;
+    private DexMethod context = null;
 
     private final AppView<? extends AppInfo> appView;
     private final DexClass source;
@@ -1761,7 +1745,7 @@ public class VerticalClassMerger {
     }
 
     public void setContext(DexEncodedMethod context) {
-      this.context = context;
+      this.context = context.method;
     }
 
     private boolean checkFieldReference(DexField field) {

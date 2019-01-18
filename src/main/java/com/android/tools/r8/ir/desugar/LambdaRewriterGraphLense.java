@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLense;
@@ -28,13 +27,12 @@ class LambdaRewriterGraphLense extends NestedGraphLense {
   }
 
   @Override
-  protected Type mapInvocationType(
-      DexMethod newMethod, DexMethod originalMethod, DexEncodedMethod context, Type type) {
+  protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
     if (methodMap.get(originalMethod) == newMethod) {
       assert type == Type.VIRTUAL || type == Type.DIRECT;
       return Type.STATIC;
     }
-    return super.mapInvocationType(newMethod, originalMethod, context, type);
+    return super.mapInvocationType(newMethod, originalMethod, type);
   }
 
 }

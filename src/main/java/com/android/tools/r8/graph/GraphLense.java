@@ -359,6 +359,8 @@ public abstract class GraphLense {
     return new Builder();
   }
 
+  public abstract DexType getOriginalType(DexType type);
+
   public abstract DexField getOriginalFieldSignature(DexField field);
 
   public abstract DexMethod getOriginalMethodSignature(DexMethod method);
@@ -391,7 +393,7 @@ public abstract class GraphLense {
   }
 
   public abstract GraphLenseLookupResult lookupMethod(
-      DexMethod method, DexEncodedMethod context, Type type);
+      DexMethod method, DexMethod context, Type type);
 
   public abstract RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method);
 
@@ -626,6 +628,11 @@ public abstract class GraphLense {
     }
 
     @Override
+    public DexType getOriginalType(DexType type) {
+      return type;
+    }
+
+    @Override
     public DexField getOriginalFieldSignature(DexField field) {
       return field;
     }
@@ -651,8 +658,7 @@ public abstract class GraphLense {
     }
 
     @Override
-    public GraphLenseLookupResult lookupMethod(
-        DexMethod method, DexEncodedMethod context, Type type) {
+    public GraphLenseLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
       return new GraphLenseLookupResult(method, type);
     }
 
@@ -673,14 +679,14 @@ public abstract class GraphLense {
   }
 
   /**
-   * GraphLense implementation with a parent lense using a simple mapping for type, method and
-   * field mapping.
+   * GraphLense implementation with a parent lense using a simple mapping for type, method and field
+   * mapping.
    *
-   * Subclasses can override the lookup methods.
+   * <p>Subclasses can override the lookup methods.
    *
-   * For method mapping where invocation type can change just override
-   * {@link #mapInvocationType(DexMethod, DexMethod, DexEncodedMethod, Type)} if
-   * the default name mapping applies, and only invocation type might need to change.
+   * <p>For method mapping where invocation type can change just override {@link
+   * #mapInvocationType(DexMethod, DexMethod, DexMethod, Type)} if the default name mapping applies,
+   * and only invocation type might need to change.
    */
   public static class NestedGraphLense extends GraphLense {
 
@@ -712,6 +718,11 @@ public abstract class GraphLense {
       this.originalMethodSignatures = originalMethodSignatures;
       this.previousLense = previousLense;
       this.dexItemFactory = dexItemFactory;
+    }
+
+    @Override
+    public DexType getOriginalType(DexType type) {
+      return previousLense.getOriginalType(type);
     }
 
     @Override
@@ -772,9 +783,12 @@ public abstract class GraphLense {
     }
 
     @Override
-    public GraphLenseLookupResult lookupMethod(
-        DexMethod method, DexEncodedMethod context, Type type) {
-      GraphLenseLookupResult previous = previousLense.lookupMethod(method, context, type);
+    public GraphLenseLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+      DexMethod previousContext =
+          originalMethodSignatures != null
+              ? originalMethodSignatures.getOrDefault(context, context)
+              : context;
+      GraphLenseLookupResult previous = previousLense.lookupMethod(method, previousContext, type);
       DexMethod newMethod = methodMap.get(previous.getMethod());
       if (newMethod == null) {
         return previous;
@@ -782,7 +796,7 @@ public abstract class GraphLense {
       // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
       // that only subclasses which are known to need it actually do it?
       return new GraphLenseLookupResult(
-          newMethod, mapInvocationType(newMethod, method, context, previous.getType()));
+          newMethod, mapInvocationType(newMethod, method, previous.getType()));
     }
 
     @Override
@@ -793,22 +807,20 @@ public abstract class GraphLense {
     /**
      * Default invocation type mapping.
      *
-     * This is an identity mapping. If a subclass need invocation type mapping either override
-     * this method or {@link #lookupMethod(DexMethod, DexEncodedMethod, Type)}
+     * <p>This is an identity mapping. If a subclass need invocation type mapping either override
+     * this method or {@link #lookupMethod(DexMethod, DexMethod, Type)}
      */
-    protected Type mapInvocationType(
-        DexMethod newMethod, DexMethod originalMethod, DexEncodedMethod context, Type type) {
+    protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
       return type;
     }
 
     /**
      * Standard mapping between interface and virtual invoke type.
      *
-     * Handle methods moved from interface to class or class to interface.
+     * <p>Handle methods moved from interface to class or class to interface.
      */
-    final protected Type mapVirtualInterfaceInvocationTypes(
-        AppInfo appInfo, DexMethod newMethod, DexMethod originalMethod,
-        DexEncodedMethod context, Type type) {
+    protected final Type mapVirtualInterfaceInvocationTypes(
+        AppInfo appInfo, DexMethod newMethod, DexMethod originalMethod, Type type) {
       if (type == Type.VIRTUAL || type == Type.INTERFACE) {
         // Get the invoke type of the actual definition.
         DexClass newTargetClass = appInfo.definitionFor(newMethod.holder);

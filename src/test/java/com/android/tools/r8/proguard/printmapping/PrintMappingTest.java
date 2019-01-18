@@ -27,14 +27,11 @@ public class PrintMappingTest extends TestBase {
   private void test(Path mapping) throws Exception {
     testForR8(Backend.DEX)
         .addInnerClasses(PrintMappingTest.class)
-        .addKeepMainRule(TestClass.class)
+        .addKeepRules("-keep,allowobfuscation class " + TestClass.class.getTypeName())
         .addKeepRules("-printmapping " + mapping)
         .compile();
     assertTrue(mapping.toFile().exists());
   }
 
-  static class TestClass {
-
-    public static void main(String[] args) {}
-  }
+  static class TestClass {}
 }

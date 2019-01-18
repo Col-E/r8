@@ -45,6 +45,7 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMo
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -82,13 +83,14 @@ public class CodeInspector {
   public CodeInspector(
       List<Path> files, String mappingFile, Consumer<InternalOptions> optionsConsumer)
       throws IOException, ExecutionException {
-    if (mappingFile != null) {
-      this.mapping = ClassNameMapper.mapperFromFile(Paths.get(mappingFile));
-      BiMapContainer<String, String> nameMapping = this.mapping.getObfuscatedToOriginalMapping();
+    Path mappingPath = mappingFile != null ? Paths.get(mappingFile) : null;
+    if (mappingPath != null && Files.exists(mappingPath)) {
+      mapping = ClassNameMapper.mapperFromFile(mappingPath);
+      BiMapContainer<String, String> nameMapping = mapping.getObfuscatedToOriginalMapping();
       obfuscatedToOriginalMapping = nameMapping.original;
       originalToObfuscatedMapping = nameMapping.inverse;
     } else {
-      this.mapping = null;
+      mapping = null;
       originalToObfuscatedMapping = null;
       obfuscatedToOriginalMapping = null;
     }

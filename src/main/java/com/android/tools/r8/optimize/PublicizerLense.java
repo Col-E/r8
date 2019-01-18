@@ -15,6 +15,7 @@ import com.google.common.collect.Sets;
 import java.util.Set;
 
 final class PublicizerLense extends NestedGraphLense {
+
   private final AppView appView;
   private final Set<DexMethod> publicizedMethods;
 
@@ -34,8 +35,7 @@ final class PublicizerLense extends NestedGraphLense {
   }
 
   @Override
-  public GraphLenseLookupResult lookupMethod(
-      DexMethod method, DexEncodedMethod context, Type type) {
+  public GraphLenseLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
     GraphLenseLookupResult previous = previousLense.lookupMethod(method, context, type);
     method = previous.getMethod();
     type = previous.getType();
@@ -46,7 +46,7 @@ final class PublicizerLense extends NestedGraphLense {
     return super.lookupMethod(method, context, type);
   }
 
-  private boolean publicizedMethodIsPresentOnHolder(DexMethod method, DexEncodedMethod context) {
+  private boolean publicizedMethodIsPresentOnHolder(DexMethod method, DexMethod context) {
     GraphLenseLookupResult lookup =
         appView.graphLense().lookupMethod(method, context, Type.VIRTUAL);
     DexMethod signatureInCurrentWorld = lookup.getMethod();

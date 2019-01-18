@@ -36,14 +36,12 @@ class ClassStaticizerGraphLense extends NestedGraphLense {
   }
 
   @Override
-  protected Type mapInvocationType(
-      DexMethod newMethod, DexMethod originalMethod,
-      DexEncodedMethod context, Type type) {
+  protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
     if (methodMap.get(originalMethod) == newMethod) {
       assert type == Type.VIRTUAL || type == Type.DIRECT;
       return Type.STATIC;
     }
-    return super.mapInvocationType(newMethod, originalMethod, context, type);
+    return super.mapInvocationType(newMethod, originalMethod, type);
   }
 
   @Override

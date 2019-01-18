@@ -260,9 +260,8 @@ public abstract class TreeShakingTest extends TestBase {
     }
 
     if (inspection != null) {
-      CodeInspector inspector = new CodeInspector(out,
-          minify.isMinify() ? proguardMap.toString()
-              : null);
+      CodeInspector inspector =
+          new CodeInspector(out, minify.isMinify() ? proguardMap.toString() : null);
       inspection.accept(inspector);
     }
   }

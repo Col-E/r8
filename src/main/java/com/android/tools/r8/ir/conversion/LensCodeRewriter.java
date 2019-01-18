@@ -156,7 +156,7 @@ public class LensCodeRewriter {
             checkInvokeDirect(method.method, invoke.asInvokeDirect());
           }
           GraphLenseLookupResult lenseLookup =
-              graphLense.lookupMethod(invokedMethod, method, invoke.getType());
+              graphLense.lookupMethod(invokedMethod, method.method, invoke.getType());
           DexMethod actualTarget = lenseLookup.getMethod();
           Invoke.Type actualInvokeType = lenseLookup.getType();
           if (actualInvokeType == Type.VIRTUAL) {
@@ -314,10 +314,11 @@ public class LensCodeRewriter {
           }
         } else if (current.isMoveException()) {
           MoveException moveException = current.asMoveException();
-          if (moveException.hasOutValue()) {
-            // Conservatively add the out-value to `newSSAValues` since the catch handler guards
-            // may have been renamed as a result of class merging.
-            newSSAValues.add(moveException.outValue());
+          DexType newExceptionType = graphLense.lookupType(moveException.getExceptionType());
+          if (newExceptionType != moveException.getExceptionType()) {
+            iterator.replaceCurrentInstruction(
+                new MoveException(
+                    makeOutValue(moveException, code, newSSAValues), newExceptionType, options));
           }
         } else if (current.isNewArrayEmpty()) {
           NewArrayEmpty newArrayEmpty = current.asNewArrayEmpty();
@@ -328,7 +329,7 @@ public class LensCodeRewriter {
             iterator.replaceCurrentInstruction(newNewArray);
           }
         } else if (current.isNewInstance()) {
-          NewInstance newInstance= current.asNewInstance();
+          NewInstance newInstance = current.asNewInstance();
           DexType newClazz = graphLense.lookupType(newInstance.clazz);
           if (newClazz != newInstance.clazz) {
             NewInstance newNewInstance = new NewInstance(
@@ -464,7 +465,7 @@ public class LensCodeRewriter {
       DexMethod invokedMethod = methodHandle.asMethod();
       MethodHandleType oldType = methodHandle.type;
       GraphLenseLookupResult lenseLookup =
-          graphLense.lookupMethod(invokedMethod, context, oldType.toInvokeType());
+          graphLense.lookupMethod(invokedMethod, context.method, oldType.toInvokeType());
       DexMethod rewrittenTarget = lenseLookup.getMethod();
       DexMethod actualTarget;
       MethodHandleType newType;

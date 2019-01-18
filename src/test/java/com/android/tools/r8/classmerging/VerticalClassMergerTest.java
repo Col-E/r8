@@ -86,16 +86,13 @@ public class VerticalClassMergerTest extends TestBase {
 
   private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws IOException, ExecutionException, CompilationFailedException {
-    ToolHelper.runR8(
-        R8Command.builder()
-            .setOutput(Paths.get(temp.getRoot().getCanonicalPath()), OutputMode.DexIndexed)
+    inspector =
+        testForR8(Backend.DEX)
             .addProgramFiles(EXAMPLE_JAR)
-            .addProguardConfigurationFiles(proguardConfig)
-            .setDisableMinification(true)
-            .build(),
-        optionsConsumer);
-    inspector = new CodeInspector(
-        Paths.get(temp.getRoot().getCanonicalPath()).resolve("classes.dex"));
+            .addKeepRuleFiles(proguardConfig)
+            .addOptionsModification(optionsConsumer)
+            .compile()
+            .inspector();
   }
 
   private CodeInspector inspector;

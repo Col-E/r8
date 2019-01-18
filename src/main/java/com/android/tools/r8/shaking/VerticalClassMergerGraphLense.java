@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -14,17 +13,14 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
-import com.android.tools.r8.shaking.VerticalClassMerger.SynthesizedBridgeCode;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 // This graph lense is instantiated during vertical class merging. The graph lense is context
 // sensitive in the enclosing class of a given invoke *and* the type of the invoke (e.g., invoke-
@@ -55,7 +51,7 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
 
   private final Map<DexType, Map<DexMethod, GraphLenseLookupResult>>
       contextualVirtualToDirectMethodMaps;
-  private final Set<DexMethod> mergedMethods;
+  private Set<DexMethod> mergedMethods;
   private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges;
 
   public VerticalClassMergerGraphLense(
@@ -83,19 +79,29 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   }
 
   @Override
+  public DexType getOriginalType(DexType type) {
+    return previousLense.getOriginalType(type);
+  }
+
+  @Override
   public DexMethod getOriginalMethodSignature(DexMethod method) {
     return super.getOriginalMethodSignature(
         originalMethodSignaturesForBridges.getOrDefault(method, method));
   }
 
   @Override
-  public GraphLenseLookupResult lookupMethod(
-      DexMethod method, DexEncodedMethod context, Type type) {
+  public GraphLenseLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
     assert isContextFreeForMethod(method) || (context != null && type != null);
-    GraphLenseLookupResult previous = previousLense.lookupMethod(method, context, type);
-    if (previous.getType() == Type.SUPER && !mergedMethods.contains(context.method)) {
+    DexMethod previousContext =
+        originalMethodSignaturesForBridges.containsKey(context)
+            ? originalMethodSignaturesForBridges.get(context)
+            : originalMethodSignatures != null
+                ? originalMethodSignatures.getOrDefault(context, context)
+                : context;
+    GraphLenseLookupResult previous = previousLense.lookupMethod(method, previousContext, type);
+    if (previous.getType() == Type.SUPER && !mergedMethods.contains(context)) {
       Map<DexMethod, GraphLenseLookupResult> virtualToDirectMethodMap =
-          contextualVirtualToDirectMethodMaps.get(context.method.holder);
+          contextualVirtualToDirectMethodMaps.get(context.holder);
       if (virtualToDirectMethodMap != null) {
         GraphLenseLookupResult lookup = virtualToDirectMethodMap.get(previous.getMethod());
         if (lookup != null) {
@@ -113,10 +119,8 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   }
 
   @Override
-  protected Type mapInvocationType(
-      DexMethod newMethod, DexMethod originalMethod, DexEncodedMethod context, Type type) {
-    return super.mapVirtualInterfaceInvocationTypes(
-        appInfo, newMethod, originalMethod, context, type);
+  protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
+    return super.mapVirtualInterfaceInvocationTypes(appInfo, newMethod, originalMethod, type);
   }
 
   @Override
@@ -170,7 +174,6 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
     public GraphLense build(
         GraphLense previousLense,
         Map<DexType, DexType> mergedClasses,
-        List<SynthesizedBridgeCode> synthesizedBridges,
         AppInfo appInfo) {
       if (fieldMap.isEmpty()
           && methodMap.isEmpty()
@@ -179,14 +182,6 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       }
       Map<DexProto, DexProto> cache = new HashMap<>();
       BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
-      // Update all synthesized bridges.
-      Function<DexMethod, DexMethod> synthesizedBridgeTransformer =
-          method ->
-              getMethodSignatureAfterClassMerging(
-                  method, mergedClasses, appInfo.dexItemFactory, cache);
-      for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
-        synthesizedBridge.updateMethodSignatures(synthesizedBridgeTransformer);
-      }
       // Build new graph lense.
       return new VerticalClassMergerGraphLense(
           appInfo,
