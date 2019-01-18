@@ -372,16 +372,16 @@ public abstract class GraphLense {
   public DexEncodedMethod mapDexEncodedMethod(
       AppInfo appInfo, DexEncodedMethod originalEncodedMethod) {
     DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method);
-    if (newMethod != originalEncodedMethod.method) {
-      // We can't directly use AppInfo#definitionFor(DexMethod) since definitions may not be
-      // updated either yet.
-      DexClass newHolder = appInfo.definitionFor(newMethod.holder);
-      assert newHolder != null;
-      DexEncodedMethod newEncodedMethod = newHolder.lookupMethod(newMethod);
-      assert newEncodedMethod != null;
-      return newEncodedMethod;
-    }
-    return originalEncodedMethod;
+    // Note that:
+    // * Even if `newMethod` is the same as `originalEncodedMethod.method`, we still need to look it
+    //   up, since `originalEncodedMethod` may be obsolete.
+    // * We can't directly use AppInfo#definitionFor(DexMethod) since definitions may not be
+    //   updated either yet.
+    DexClass newHolder = appInfo.definitionFor(newMethod.holder);
+    assert newHolder != null;
+    DexEncodedMethod newEncodedMethod = newHolder.lookupMethod(newMethod);
+    assert newEncodedMethod != null;
+    return newEncodedMethod;
   }
 
   public abstract DexType lookupType(DexType type);
