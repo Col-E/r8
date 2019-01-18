@@ -45,6 +45,7 @@ public class DirectMappedDexApplication extends DexApplication {
 
   @Override
   public DexClass definitionFor(DexType type) {
+    assert type.isClassType() : "Cannot lookup definition for type: " + type;
     DexClass result = programClasses.get(type);
     if (result == null) {
       result = libraryClasses.get(type);

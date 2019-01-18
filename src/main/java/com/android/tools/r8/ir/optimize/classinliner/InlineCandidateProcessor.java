@@ -113,6 +113,9 @@ final class InlineCandidateProcessor {
 
     eligibleClass =
         root.isNewInstance() ? root.asNewInstance().clazz : root.asStaticGet().getField().type;
+    if (!eligibleClass.isClassType()) {
+      return false;
+    }
     eligibleClassDefinition = appInfo.definitionFor(eligibleClass);
     if (eligibleClassDefinition == null && lambdaRewriter != null) {
       // Check if the class is synthesized for a desugared lambda

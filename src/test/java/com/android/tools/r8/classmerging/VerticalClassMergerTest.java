@@ -466,6 +466,29 @@ public class VerticalClassMergerTest extends TestBase {
   }
 
   @Test
+  public void testPinnedArrayParameterTypes() throws Throwable {
+    String main = "classmerging.PinnedArrayParameterTypesTest";
+    Path[] programFiles =
+        new Path[] {
+            CF_DIR.resolve("PinnedArrayParameterTypesTest.class"),
+            CF_DIR.resolve("PinnedArrayParameterTypesTest$Interface.class"),
+            CF_DIR.resolve("PinnedArrayParameterTypesTest$InterfaceImpl.class"),
+            CF_DIR.resolve("PinnedArrayParameterTypesTest$TestClass.class")
+        };
+    Set<String> preservedClassNames =
+        ImmutableSet.of(
+            "classmerging.PinnedArrayParameterTypesTest",
+            "classmerging.PinnedArrayParameterTypesTest$Interface",
+            "classmerging.PinnedArrayParameterTypesTest$InterfaceImpl",
+            "classmerging.PinnedArrayParameterTypesTest$TestClass");
+    runTest(
+        main,
+        programFiles,
+        preservedClassNames::contains,
+        getProguardConfig(EXAMPLE_KEEP, "-keepparameternames"));
+  }
+
+  @Test
   public void testProguardFieldMap() throws Throwable {
     String main = "classmerging.ProguardFieldMapTest";
     Path[] programFiles =

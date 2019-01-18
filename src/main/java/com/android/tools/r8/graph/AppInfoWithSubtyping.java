@@ -119,8 +119,10 @@ public class AppInfoWithSubtyping extends AppInfo {
 
   // For mapping invoke virtual instruction to target methods.
   public Set<DexEncodedMethod> lookupVirtualTargets(DexMethod method) {
-    Set<DexEncodedMethod> result = new HashSet<>();
-    // First add the target for receiver type method.type.
+    if (method.holder.isArrayType()) {
+      assert method.name == dexItemFactory.cloneMethodName;
+      return null;
+    }
     DexClass root = definitionFor(method.holder);
     if (root == null) {
       // type specified in method does not have a materialized class.
@@ -131,6 +133,8 @@ public class AppInfoWithSubtyping extends AppInfo {
       // This will fail at runtime.
       return null;
     }
+    // First add the target for receiver type method.type.
+    Set<DexEncodedMethod> result = new HashSet<>();
     topTargets.forEachTarget(result::add);
     // Add all matching targets from the subclass hierarchy.
     for (DexType type : subtypes(method.holder)) {

@@ -336,15 +336,16 @@ public class VerticalClassMerger {
   }
 
   private void markTypeAsPinned(DexType type, AbortReason reason) {
-    if (appInfo.isPinned(type)) {
+    DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+    if (!baseType.isClassType() || appInfo.isPinned(baseType)) {
       // We check for the case where the type is pinned according to appInfo.isPinned,
       // so we only need to add it here if it is not the case.
       return;
     }
 
-    DexClass clazz = appInfo.definitionFor(type);
+    DexClass clazz = appInfo.definitionFor(baseType);
     if (clazz != null && clazz.isProgramClass()) {
-      boolean changed = pinnedTypes.add(type);
+      boolean changed = pinnedTypes.add(baseType);
 
       if (Log.ENABLED) {
         if (changed && isMergeCandidate(clazz.asProgramClass(), ImmutableSet.of())) {
@@ -740,10 +741,6 @@ public class VerticalClassMerger {
       }
     }
     return false;
-  }
-
-  private boolean hasReferencesOutside(DexProgramClass clazz, Set<DexType> types) {
-    return MainDexDirectReferenceTracer.hasReferencesOutside(appInfo, clazz, types);
   }
 
   private void mergeClassIfPossible(DexProgramClass clazz) {

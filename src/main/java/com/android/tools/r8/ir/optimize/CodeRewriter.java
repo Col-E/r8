@@ -2147,6 +2147,9 @@ public class CodeRewriter {
 
   private boolean isTypeInaccessibleInCurrentContext(DexType type, DexEncodedMethod context) {
     DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+    if (baseType.isPrimitiveType()) {
+      return false;
+    }
     DexClass clazz = definitionFor(baseType);
     if (clazz == null) {
       // Conservatively say yes.
