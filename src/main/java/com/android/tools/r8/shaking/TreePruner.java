@@ -92,7 +92,7 @@ public class TreePruner {
             // corresponding methods in this class. This might happen if we only keep this
             // class around for its constants.
             // For now, we remove the final flag to still be able to mark it abstract.
-            clazz.accessFlags.unsetFinal();
+            clazz.accessFlags.demoteFromFinal();
           }
           clazz.accessFlags.setAbstract();
         }

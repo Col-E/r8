@@ -45,11 +45,12 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
     return NAMES;
   }
 
-  protected int flags;
-  protected boolean isPublicized = false;
+  protected int originalFlags;
+  protected int modifiedFlags;
 
-  protected AccessFlags(int flags) {
-    this.flags = flags;
+  protected AccessFlags(int originalFlags, int modifiedFlags) {
+    this.originalFlags = originalFlags;
+    this.modifiedFlags = modifiedFlags;
   }
 
   public abstract T copy();
@@ -57,10 +58,7 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
   public abstract T self();
 
   public int materialize() {
-    if (isPromotedToPublic()) {
-      return ((flags | Constants.ACC_PUBLIC) & ~Constants.ACC_PROTECTED) & ~Constants.ACC_PRIVATE;
-    }
-    return flags;
+    return modifiedFlags;
   }
 
   public abstract int getAsCfAccessFlags();
@@ -68,21 +66,21 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
   public abstract int getAsDexAccessFlags();
 
   public final int getOriginalCfAccessFlags() {
-    return flags;
+    return originalFlags;
   }
 
   @Override
   public boolean equals(Object object) {
     if (object instanceof AccessFlags) {
       AccessFlags other = (AccessFlags) object;
-      return flags == other.flags && isPublicized == other.isPublicized;
+      return originalFlags == other.originalFlags && modifiedFlags == other.modifiedFlags;
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return (flags << 1) | (isPublicized ? 1 : 0);
+    return originalFlags | modifiedFlags;
   }
 
   public boolean isMoreVisibleThan(AccessFlags other) {
@@ -109,7 +107,7 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
   }
 
   public boolean isPublic() {
-    return isSet(Constants.ACC_PUBLIC) || isPromotedToPublic();
+    return isSet(Constants.ACC_PUBLIC);
   }
 
   public void setPublic() {
@@ -122,7 +120,7 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
   }
 
   public boolean isPrivate() {
-    return isSet(Constants.ACC_PRIVATE) && !isPromotedToPublic();
+    return isSet(Constants.ACC_PRIVATE);
   }
 
   public void setPrivate() {
@@ -135,7 +133,7 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
   }
 
   public boolean isProtected() {
-    return isSet(Constants.ACC_PROTECTED) && !isPromotedToPublic();
+    return isSet(Constants.ACC_PROTECTED);
   }
 
   public void setProtected() {
@@ -179,35 +177,56 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
     unset(Constants.ACC_SYNTHETIC);
   }
 
-  public boolean isPromotedToPublic() {
-    return isPublicized;
+  public void promoteToFinal() {
+    promote(Constants.ACC_FINAL);
   }
 
-  public T setPromotedToPublic(boolean isPublicized) {
-    this.isPublicized = isPublicized;
-    return self();
+  public void demoteFromFinal() {
+    demote(Constants.ACC_FINAL);
+  }
+
+  public boolean isPromotedToPublic() {
+    return isPromoted(Constants.ACC_PUBLIC);
   }
 
   public void promoteToPublic() {
-    isPublicized = true;
+    demote(Constants.ACC_PRIVATE | Constants.ACC_PROTECTED);
+    promote(Constants.ACC_PUBLIC);
   }
 
-  public void unsetPromotedToPublic() {
-    isPublicized = false;
+  public void promoteToStatic() {
+    promote(Constants.ACC_STATIC);
+  }
+
+  private boolean wasSet(int flag) {
+    return (originalFlags & flag) != 0;
   }
 
   protected boolean isSet(int flag) {
-    return (flags & flag) != 0;
+    return (modifiedFlags & flag) != 0;
   }
 
   protected void set(int flag) {
-    flags |= flag;
+    originalFlags |= flag;
+    modifiedFlags |= flag;
   }
 
   protected void unset(int flag) {
-    flags &= ~flag;
+    originalFlags &= ~flag;
+    modifiedFlags &= ~flag;
   }
 
+  protected boolean isPromoted(int flag) {
+    return !wasSet(flag) && isSet(flag);
+  }
+
+  protected void promote(int flag) {
+    modifiedFlags |= flag;
+  }
+
+  protected void demote(int flag) {
+    modifiedFlags &= ~flag;
+  }
 
   public String toSmaliString() {
     return toStringInternal(true);
