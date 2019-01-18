@@ -1,0 +1,8 @@
+Lmultidex005/DirectlyReferenced;
+Lmultidex005/InstanceOfReference;
+Lmultidex005/Interface1;
+Lmultidex005/Interface2;
+Lmultidex005/Interface3;
+Lmultidex005/SuperClass;
+Lmultidex005/SuperInterface;
+Lmultidex005/SuperSuperClass;
