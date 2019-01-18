@@ -79,6 +79,14 @@ APPS = {
       'flavor': 'standard',
       'releaseTarget': 'app:assembleRelease',
   },
+  'tivi': {
+      'app_id': 'app.tivi',
+      # Forked from https://github.com/chrisbanes/tivi.git removing
+      # signingConfigs.
+      'git_repo': 'https://github.com/sgjesse/tivi.git',
+      # TODO(123047413): Fails with R8.
+      'skip': True,
+  },
   # This does not build yet.
   'muzei': {
       'git_repo': 'https://github.com/sgjesse/muzei.git',
@@ -267,9 +275,6 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
 
       result_per_shrinker[shrinker] = result
 
-    if IsTrackedByGit('gradle.properties'):
-      GitCheckout('gradle.properties')
-
   return result_per_shrinker
 
 def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
@@ -285,19 +290,6 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   app_module = config.get('app_module', 'app')
   archives_base_name = config.get(' archives_base_name', app_module)
   flavor = config.get('flavor')
-
-  # Ensure that gradle.properties is not modified before modifying it to
-  # select shrinker.
-  if IsTrackedByGit('gradle.properties'):
-    GitCheckout('gradle.properties')
-  with open("gradle.properties", "a") as gradle_properties:
-    if 'r8' in shrinker:
-      gradle_properties.write('\nandroid.enableR8=true\n')
-      if shrinker == 'r8full' or shrinker == 'r8full-minified':
-        gradle_properties.write('android.enableR8.fullMode=true\n')
-    else:
-      assert shrinker == 'proguard'
-      gradle_properties.write('\nandroid.enableR8=false\n')
 
   out = os.path.join(checkout_dir, 'out', shrinker)
   if not os.path.exists(out):
@@ -317,8 +309,17 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
     releaseTarget = app_module + ':' + 'assemble' + (
         flavor.capitalize() if flavor else '') + 'Release'
 
-  cmd = ['./gradlew', '--no-daemon', 'clean', releaseTarget, '--profile',
-      '--stacktrace']
+  # Value for property android.enableR8.
+  enableR8 = 'r8' in shrinker
+  # Value for property android.enableR8.fullMode.
+  enableR8FullMode = shrinker == 'r8full' or shrinker == 'r8full-minified'
+  # Build gradlew command line.
+  cmd = ['./gradlew', '--no-daemon', 'clean', releaseTarget,
+         '--profile', '--stacktrace',
+         '-Pandroid.enableR8=' + str(enableR8).lower(),
+         '-Pandroid.enableR8.fullMode=' + str(enableR8FullMode).lower()]
+  if options.gradle_flags:
+    cmd.extend(options.gradle_flags.split(' '))
 
   utils.PrintCmd(cmd)
   build_process = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
@@ -377,7 +378,7 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
 def RebuildAppWithShrinker(apk, apk_dest, proguard_config_file, shrinker):
   assert 'r8' in shrinker
   assert apk_dest.endswith('.apk')
-  
+
   # Compile given APK with shrinker to temporary zip file.
   api = 28 # TODO(christofferqa): Should be the one from build.gradle
   android_jar = os.path.join(utils.REPO_ROOT, utils.ANDROID_JAR.format(api=api))
@@ -523,6 +524,8 @@ def ParseOptions(argv):
                     help='Run without building ToT first (only when using ToT)',
                     default=False,
                     action='store_true')
+  result.add_option('--gradle-flags', '--gradle_flags',
+                    help='Flags to pass in to gradle')
   (options, args) = result.parse_args(argv)
   if options.disable_tot:
     # r8.jar is required for recompiling the generated APK
