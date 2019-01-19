@@ -4,3 +4,13 @@
 
 -keep public class com.android.tools.r8.compatproguard.CompatProguard { public static void main(java.lang.String[]); }
 -keepattributes LineNumberTable
+
+# JvmMetadataExtensions must be kept because it'll be used indirectly through java.util.ServiceLoader.
+-keep, allowobfuscation public class com.android.tools.r8.jetbrains.kotlinx.metadata.jvm.impl.JvmMetadataExtensions { public <init>(); }
+
+# For now we need to keep MetadataExtensions to avoid minifying (obfuscating) the name, because
+# '-adaptresourcefilenames' doesn't rename it (the package name is not encoded in directories).
+-keep public class com.android.tools.r8.jetbrains.kotlinx.metadata.impl.extensions.MetadataExtensions { }
+
+# The contents of this file is ...JvmMetadataExtensions, which is renamed.
+-adaptresourcefilecontents META-INF/services/com.android.tools.r8.jetbrains.kotlinx.metadata.impl.extensions.MetadataExtensions
