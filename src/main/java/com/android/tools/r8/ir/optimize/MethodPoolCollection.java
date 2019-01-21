@@ -203,6 +203,10 @@ public class MethodPoolCollection {
       return hasSeenUpwardRecursive(method) || hasSeenDownwardRecursive(method);
     }
 
+    public boolean hasSeenDirectly(Wrapper<DexMethod> method) {
+      return methodPool.contains(method);
+    }
+
     private boolean hasSeenUpwardRecursive(Wrapper<DexMethod> method) {
       return methodPool.contains(method)
           || (superType != null && superType.hasSeenUpwardRecursive(method))

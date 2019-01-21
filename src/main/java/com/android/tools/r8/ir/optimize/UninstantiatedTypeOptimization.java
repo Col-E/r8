@@ -139,11 +139,26 @@ public class UninstantiatedTypeOptimization {
         appView,
         appView.appInfo().classes(),
         clazz -> {
+          MethodPool methodPool = methodPoolCollection.get(clazz);
+
           if (clazz.isInterface()) {
+            // Do not allow changing the prototype of methods that override an interface method.
+            // This achieved by faking that there is already a method with the given signature.
+            for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
+              RewrittenPrototypeDescription prototypeChanges =
+                  new RewrittenPrototypeDescription(
+                      isAlwaysNull(virtualMethod.method.proto.returnType),
+                      getRemovedArgumentsInfo(virtualMethod, ALLOW_ARGUMENT_REMOVAL));
+              if (!prototypeChanges.isEmpty()) {
+                DexMethod newMethod = getNewMethodSignature(virtualMethod, prototypeChanges);
+                Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
+                if (!methodPool.hasSeenDirectly(wrapper)) {
+                  methodPool.seen(wrapper);
+                }
+              }
+            }
             return;
           }
-
-          MethodPool methodPool = methodPoolCollection.get(clazz);
 
           Map<DexEncodedMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
               new IdentityHashMap<>();
