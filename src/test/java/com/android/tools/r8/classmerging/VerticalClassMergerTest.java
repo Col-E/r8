@@ -209,7 +209,8 @@ public class VerticalClassMergerTest extends TestBase {
             "  public static void main(...);",
             "}",
             "-neverinline class " + main + " {",
-            "  static void method(...);",
+            "  static classmerging.A[] method(...);",
+            "  static classmerging.B[] method(...);",
             "}"));
   }
 

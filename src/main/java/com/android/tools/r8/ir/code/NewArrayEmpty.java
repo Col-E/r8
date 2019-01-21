@@ -64,6 +64,24 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
+  public boolean instructionInstanceCanThrow() {
+    return !(size().definition != null
+        && size().definition.isConstNumber()
+        && size().definition.asConstNumber().getRawValue() >= 0
+        && size().definition.asConstNumber().getRawValue() < Integer.MAX_VALUE);
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
+    if (instructionInstanceCanThrow()) {
+      return false;
+    }
+    // This would belong better in instructionInstanceCanThrow, but that is not passed an appInfo.
+    DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+    return baseType.isPrimitiveType() || appInfo.definitionFor(baseType) != null;
+  }
+
+  @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isNewArrayEmpty() && other.asNewArrayEmpty().type == type;
   }

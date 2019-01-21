@@ -67,6 +67,7 @@ import com.android.tools.r8.code.MulIntLit16;
 import com.android.tools.r8.code.MulIntLit8;
 import com.android.tools.r8.code.MulLong;
 import com.android.tools.r8.code.MulLong2Addr;
+import com.android.tools.r8.code.NewArray;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.code.PackedSwitch;
@@ -351,6 +352,11 @@ public class DexInstructionSubject implements InstructionSubject {
         || instruction instanceof MulLong2Addr
         || instruction instanceof MulDouble
         || instruction instanceof MulDouble2Addr;
+  }
+
+  @Override
+  public boolean isNewArray() {
+    return instruction instanceof NewArray;
   }
 
   @Override

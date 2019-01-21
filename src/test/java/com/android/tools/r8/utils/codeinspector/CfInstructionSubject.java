@@ -24,6 +24,7 @@ import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
@@ -274,6 +275,11 @@ public class CfInstructionSubject implements InstructionSubject {
     }
     CfMonitor monitor = (CfMonitor) instruction;
     return monitor.getType() == Type.EXIT;
+  }
+
+  @Override
+  public boolean isNewArray() {
+    return instruction instanceof CfNewArray;
   }
 
   @Override
