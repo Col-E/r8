@@ -825,7 +825,7 @@ public class InternalOptions {
   //
   // We used to insert a empty loop at the end, however, mediatek has an optimizer
   // on lollipop devices that cannot deal with an unreachable infinite loop, so we
-  // couldn't do that. See b/119895393.2
+  // couldn't do that. See b/119895393.
   public boolean canHaveTracingPastInstructionsStreamBug() {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }
