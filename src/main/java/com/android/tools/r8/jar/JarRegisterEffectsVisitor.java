@@ -39,7 +39,7 @@ public class JarRegisterEffectsVisitor extends MethodVisitor {
     if (opcode == org.objectweb.asm.Opcodes.NEW) {
       registry.registerNewInstance(type);
     } else if (opcode == Opcodes.CHECKCAST) {
-        registry.registerCheckCast(type);
+      registry.registerCheckCast(type);
     } else {
       registry.registerTypeReference(type);
     }
