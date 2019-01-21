@@ -36,7 +36,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -466,7 +465,6 @@ final class StaticizingProcessor {
 
   private Set<DexEncodedMethod> staticizeMethodSymbols() {
     BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
-    Map<DexEncodedMethod, DexEncodedMethod> encodedMethodMapping = new HashMap<>();
     BiMap<DexField, DexField> fieldMapping = HashBiMap.create();
 
     Set<DexEncodedMethod> staticizedMethods = Sets.newIdentityHashSet();
@@ -483,7 +481,6 @@ final class StaticizingProcessor {
           newDirectMethods.add(staticizedMethod);
           staticizedMethods.add(staticizedMethod);
           methodMapping.put(method.method, staticizedMethod.method);
-          encodedMethodMapping.put(method, staticizedMethod);
         }
       }
       candidateClass.setVirtualMethods(DexEncodedMethod.EMPTY_ARRAY);
@@ -509,8 +506,7 @@ final class StaticizingProcessor {
               classStaticizer.converter.graphLense(),
               classStaticizer.factory,
               fieldMapping,
-              methodMapping,
-              encodedMethodMapping));
+              methodMapping));
     }
     return staticizedMethods;
   }

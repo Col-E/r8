@@ -370,7 +370,9 @@ public abstract class GraphLense {
   public abstract DexMethod getRenamedMethodSignature(DexMethod originalMethod);
 
   public DexEncodedMethod mapDexEncodedMethod(
-      AppInfo appInfo, DexEncodedMethod originalEncodedMethod) {
+      DexEncodedMethod originalEncodedMethod,
+      AppInfo appInfo,
+      Map<DexType, DexProgramClass> synthesizedClasses) {
     DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method);
     // Note that:
     // * Even if `newMethod` is the same as `originalEncodedMethod.method`, we still need to look it
@@ -378,7 +380,14 @@ public abstract class GraphLense {
     // * We can't directly use AppInfo#definitionFor(DexMethod) since definitions may not be
     //   updated either yet.
     DexClass newHolder = appInfo.definitionFor(newMethod.holder);
+
+    // TODO(b/120130831): Need to ensure that all synthesized classes are part of the application.
+    if (newHolder == null) {
+      newHolder = synthesizedClasses.get(newMethod.holder);
+    }
+
     assert newHolder != null;
+
     DexEncodedMethod newEncodedMethod = newHolder.lookupMethod(newMethod);
     assert newEncodedMethod != null;
     return newEncodedMethod;

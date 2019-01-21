@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -18,6 +20,8 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -373,11 +377,14 @@ public final class InterfaceMethodRewriter {
   }
 
   /**
-   * Move static and default interface methods to companion classes,
-   * add missing methods to forward to moved default methods implementation.
+   * Move static and default interface methods to companion classes, add missing methods to forward
+   * to moved default methods implementation.
    */
   public void desugarInterfaceMethods(
-      Builder<?> builder, Flavor flavour, ExecutorService executorService)
+      Builder<?> builder,
+      Flavor flavour,
+      ExecutorService executorService,
+      Map<DexType, DexProgramClass> synthesizedClasses)
       throws ExecutionException {
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
@@ -387,12 +394,15 @@ public final class InterfaceMethodRewriter {
     // methods to companion class, copy default interface methods to companion classes,
     // make original default methods abstract, remove bridge methods, create dispatch
     // classes if needed.
-    Map<DexType, DexProgramClass> synthesizedClasses = processInterfaces(builder, flavour);
-
-    for (Map.Entry<DexType, DexProgramClass> entry : synthesizedClasses.entrySet()) {
+    for (Entry<DexType, DexProgramClass> entry : processInterfaces(builder, flavour).entrySet()) {
       // Don't need to optimize synthesized class since all of its methods
       // are just moved from interfaces and don't need to be re-processed.
-      builder.addSynthesizedClass(entry.getValue(), isInMainDexList(entry.getKey()));
+      DexProgramClass synthesizedClass = entry.getValue();
+      builder.addSynthesizedClass(synthesizedClass, isInMainDexList(entry.getKey()));
+
+      if (synthesizedClasses != null) {
+        synthesizedClasses.put(synthesizedClass.type, synthesizedClass);
+      }
     }
 
     converter.optimizeSynthesizedMethods(synthesizedMethods, executorService);
@@ -414,22 +424,19 @@ public final class InterfaceMethodRewriter {
   }
 
   private Map<DexType, DexProgramClass> processInterfaces(Builder<?> builder, Flavor flavour) {
+    NestedGraphLense.Builder graphLensBuilder = GraphLense.builder();
     InterfaceProcessor processor = new InterfaceProcessor(this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, true)) {
-        processor.process(clazz.asProgramClass());
+        processor.process(clazz.asProgramClass(), graphLensBuilder);
       }
     }
     for (Entry<DexLibraryClass, Set<DexProgramClass>> entry : requiredDispatchClasses.entrySet()) {
       synthesizedMethods.addAll(processor.process(entry.getKey(), entry.getValue()));
     }
-    if (converter.enableWholeProgramOptimizations &&
-        (!processor.methodsWithMovedCode.isEmpty() || !processor.movedMethods.isEmpty())) {
-      converter.appView.setGraphLense(
-          new InterfaceMethodDesugaringLense(
-              processor.movedMethods,
-              converter.appView.graphLense(),
-              factory));
+    if (converter.enableWholeProgramOptimizations) {
+      AppView<? extends AppInfoWithSubtyping> appView = converter.appView;
+      appView.setGraphLense(graphLensBuilder.build(appView.dexItemFactory(), appView.graphLense()));
     }
     return processor.syntheticClasses;
   }

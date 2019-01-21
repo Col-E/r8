@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
-import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -14,17 +12,14 @@ import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableMap;
-import java.util.Map;
 
 class ClassStaticizerGraphLense extends NestedGraphLense {
-  private final Map<DexEncodedMethod, DexEncodedMethod> staticizedMethods;
 
   ClassStaticizerGraphLense(
       GraphLense previous,
       DexItemFactory factory,
       BiMap<DexField, DexField> fieldMapping,
-      BiMap<DexMethod, DexMethod> methodMapping,
-      Map<DexEncodedMethod, DexEncodedMethod> encodedMethodMapping) {
+      BiMap<DexMethod, DexMethod> methodMapping) {
     super(ImmutableMap.of(),
         methodMapping,
         fieldMapping,
@@ -32,7 +27,6 @@ class ClassStaticizerGraphLense extends NestedGraphLense {
         methodMapping.inverse(),
         previous,
         factory);
-    staticizedMethods = encodedMethodMapping;
   }
 
   @Override
@@ -42,10 +36,5 @@ class ClassStaticizerGraphLense extends NestedGraphLense {
       return Type.STATIC;
     }
     return super.mapInvocationType(newMethod, originalMethod, type);
-  }
-
-  @Override
-  public DexEncodedMethod mapDexEncodedMethod(AppInfo appInfo, DexEncodedMethod original) {
-    return super.mapDexEncodedMethod(appInfo, staticizedMethods.getOrDefault(original, original));
   }
 }

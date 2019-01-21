@@ -89,6 +89,7 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -359,9 +360,18 @@ public class IRConverter {
       InterfaceMethodRewriter.Flavor includeAllResources,
       ExecutorService executorService)
       throws ExecutionException {
+    desugarInterfaceMethods(builder, includeAllResources, executorService, null);
+  }
+
+  private void desugarInterfaceMethods(
+      Builder<?> builder,
+      InterfaceMethodRewriter.Flavor includeAllResources,
+      ExecutorService executorService,
+      Map<DexType, DexProgramClass> synthesizedClasses)
+      throws ExecutionException {
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.desugarInterfaceMethods(
-          builder, includeAllResources, executorService);
+          builder, includeAllResources, executorService, synthesizedClasses);
     }
   }
 
@@ -583,18 +593,21 @@ public class IRConverter {
     synthesizeLambdaClasses(builder, executorService);
 
     printPhase("Interface method desugaring");
-    desugarInterfaceMethods(builder, IncludeAllResources, executorService);
+    Map<DexType, DexProgramClass> synthesizedClasses = new IdentityHashMap<>();
+    desugarInterfaceMethods(builder, IncludeAllResources, executorService, synthesizedClasses);
+
     printPhase("Twr close resource utility class synthesis");
     synthesizeTwrCloseResourceUtilityClass(builder);
     synthesizeJava8UtilityClass(builder);
     handleSynthesizedClassMapping(builder);
+
     printPhase("Lambda merging finalization");
-    finalizeLambdaMerging(application, feedback, builder, executorService);
+    finalizeLambdaMerging(application, feedback, builder, executorService, synthesizedClasses);
 
     if (outliner != null) {
       printPhase("Outlining");
       timing.begin("IR conversion phase 2");
-      if (outliner.selectMethodsForOutlining()) {
+      if (outliner.selectMethodsForOutlining(synthesizedClasses)) {
         forEachSelectedOutliningMethod(
             executorService,
             (code, method) -> {
@@ -679,11 +692,12 @@ public class IRConverter {
       DexApplication application,
       OptimizationFeedback directFeedback,
       Builder<?> builder,
-      ExecutorService executorService)
+      ExecutorService executorService,
+      Map<DexType, DexProgramClass> synthesizedClasses)
       throws ExecutionException {
     if (lambdaMerger != null) {
       lambdaMerger.applyLambdaClassMapping(
-          application, this, directFeedback, builder, executorService);
+          application, this, directFeedback, builder, executorService, synthesizedClasses);
     }
   }
 

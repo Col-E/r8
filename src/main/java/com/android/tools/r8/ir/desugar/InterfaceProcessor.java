@@ -23,14 +23,13 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,14 +51,11 @@ final class InterfaceProcessor {
   // All created companion and dispatch classes indexed by interface type.
   final Map<DexType, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
 
-  final BiMap<DexMethod, DexMethod> movedMethods = HashBiMap.create();
-  final Map<DexEncodedMethod, DexEncodedMethod> methodsWithMovedCode = new IdentityHashMap<>();
-
   InterfaceProcessor(InterfaceMethodRewriter rewriter) {
     this.rewriter = rewriter;
   }
 
-  void process(DexProgramClass iface) {
+  void process(DexProgramClass iface, NestedGraphLense.Builder graphLensBuilder) {
     assert iface.isInterface();
 
     // The list of methods to be created in companion class.
@@ -101,8 +97,7 @@ final class InterfaceProcessor {
         DexEncodedMethod implMethod = new DexEncodedMethod(
             companionMethod, newFlags, virtual.annotations, virtual.parameterAnnotationsList, code);
         companionMethods.add(implMethod);
-
-        methodsWithMovedCode.put(virtual, implMethod);
+        graphLensBuilder.move(virtual.method, implMethod.method);
       }
 
       // Remove bridge methods.
@@ -135,8 +130,7 @@ final class InterfaceProcessor {
         DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(oldMethod);
         companionMethods.add(new DexEncodedMethod(companionMethod, newFlags,
             direct.annotations, direct.parameterAnnotationsList, direct.getCode()));
-        movedMethods.put(oldMethod, companionMethod);
-
+        graphLensBuilder.move(oldMethod, companionMethod);
       } else {
         if (originalFlags.isPrivate()) {
           assert !rewriter.factory.isClassConstructor(oldMethod)
@@ -159,8 +153,7 @@ final class InterfaceProcessor {
 
           companionMethods.add(new DexEncodedMethod(companionMethod,
               newFlags, direct.annotations, direct.parameterAnnotationsList, code));
-          movedMethods.put(oldMethod, companionMethod);
-
+          graphLensBuilder.move(oldMethod, companionMethod);
         } else {
           // Since there are no interface constructors at this point,
           // this should only be class constructor.
