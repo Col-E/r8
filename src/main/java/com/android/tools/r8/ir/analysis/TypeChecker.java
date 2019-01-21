@@ -78,7 +78,7 @@ public class TypeChecker {
       return true;
     }
 
-    if (fieldType.isClassType() && valueType.isReference()) {
+    if (valueType.isReference()) {
       // Interface types are treated like Object according to the JVM spec.
       // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.10.1.2-100
       DexClass clazz = appInfo.definitionFor(instruction.getField().type);
