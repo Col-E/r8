@@ -170,7 +170,9 @@ class IdentifierMinifier {
                           appInfo.definitionFor(cnst.getItem().asDexType()),
                           cnst.getClassNameComputationInfo()))
                   : lens.lookupName(cnst.getItem(), appInfo.dexItemFactory);
-          instructions[i] = new ConstString(cnst.AA, replacement);
+          ConstString constString = new ConstString(cnst.AA, replacement);
+          constString.setOffset(instruction.getOffset());
+          instructions[i] = constString;
         }
       }
     } else {
