@@ -2414,10 +2414,6 @@ public class Enqueuer {
       // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-6.html#jvms-6.5.invokevirtual
       assert method != null;
       assert refinedReceiverType.isSubtypeOf(method.holder, this);
-      if (method.holder.isArrayType()) {
-        assert method.name == dexItemFactory.cloneMethodName;
-        return null;
-      }
       DexClass holder = definitionFor(method.holder);
       if (holder == null || holder.isLibraryClass() || holder.isInterface()) {
         return null;
