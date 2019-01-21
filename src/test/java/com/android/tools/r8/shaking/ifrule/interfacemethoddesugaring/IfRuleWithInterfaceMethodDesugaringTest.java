@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking.ifrule.interfacemethoddesugaring;
 
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
-import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DEFAULT_METHOD_PREFIX;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
@@ -63,9 +62,12 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
     MethodSubject staticMethodSubject = classSubject.uniqueMethodWithName("staticMethod");
     assertThat(staticMethodSubject, allOf(isPresent(), isPublic(), isStatic()));
 
-    // TODO(b/122867087): Should not be necessary to use `DEFAULT_METHOD_PREFIX`.
+    // TODO(b/120764902): MethodSubject.getOriginalName() not working in presence of desugaring.
     MethodSubject virtualMethodSubject =
-        classSubject.uniqueMethodWithName(DEFAULT_METHOD_PREFIX + "virtualMethod");
+        classSubject.allMethods().stream()
+            .filter(subject -> subject != staticMethodSubject)
+            .findFirst()
+            .get();
     assertThat(virtualMethodSubject, allOf(isPresent(), isPublic(), isStatic()));
 
     // TODO(b/122875545): The Unused class should be present due to the -if rule.

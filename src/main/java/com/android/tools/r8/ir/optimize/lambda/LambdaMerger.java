@@ -194,7 +194,8 @@ public final class LambdaMerger {
       IRConverter converter,
       OptimizationFeedback feedback,
       Builder<?> builder,
-      ExecutorService executorService)
+      ExecutorService executorService,
+      Map<DexType, DexProgramClass> synthesizedClasses)
       throws ExecutionException {
     if (lambdas.isEmpty()) {
       return;
@@ -218,14 +219,17 @@ public final class LambdaMerger {
 
     // Add synthesized lambda group classes to the builder.
     converter.optimizeSynthesizedClasses(lambdaGroupsClasses.values(), executorService);
+
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
-      builder.addSynthesizedClass(entry.getValue(),
-          entry.getKey().shouldAddToMainDex(converter.appInfo));
+      DexProgramClass synthesizedClass = entry.getValue();
+      synthesizedClasses.put(synthesizedClass.type, synthesizedClass);
+      builder.addSynthesizedClass(
+          synthesizedClass, entry.getKey().shouldAddToMainDex(converter.appInfo));
     }
 
     // Rewrite lambda class references into lambda group class
     // references inside methods from the processing queue.
-    rewriteLambdaReferences(converter, feedback);
+    rewriteLambdaReferences(converter, synthesizedClasses, feedback);
     this.strategyFactory = null;
   }
 
@@ -300,7 +304,10 @@ public final class LambdaMerger {
     }
   }
 
-  private void rewriteLambdaReferences(IRConverter converter, OptimizationFeedback feedback) {
+  private void rewriteLambdaReferences(
+      IRConverter converter,
+      Map<DexType, DexProgramClass> synthesizedClasses,
+      OptimizationFeedback feedback) {
     List<DexEncodedMethod> methods =
         methodsToReprocess
             .stream()
@@ -308,7 +315,7 @@ public final class LambdaMerger {
             .collect(Collectors.toList());
     for (DexEncodedMethod method : methods) {
       DexEncodedMethod mappedMethod =
-          converter.graphLense().mapDexEncodedMethod(converter.appInfo, method);
+          converter.graphLense().mapDexEncodedMethod(method, converter.appInfo, synthesizedClasses);
       converter.processMethod(mappedMethod, feedback,
           x -> false, CallSiteInformation.empty(), Outliner::noProcessing);
       assert mappedMethod.isProcessed();

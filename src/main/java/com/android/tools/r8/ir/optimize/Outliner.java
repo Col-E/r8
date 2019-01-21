@@ -1232,14 +1232,16 @@ public class Outliner {
     }
   }
 
-  public boolean selectMethodsForOutlining() {
+  public boolean selectMethodsForOutlining(Map<DexType, DexProgramClass> synthesizedClasses) {
     assert methodsSelectedForOutlining.size() == 0;
     assert outlineSites.size() == 0;
     for (List<DexEncodedMethod> outlineMethods : candidateMethodLists) {
       if (outlineMethods.size() >= options.outline.threshold) {
         for (DexEncodedMethod outlineMethod : outlineMethods) {
           methodsSelectedForOutlining.add(
-              converter.graphLense().mapDexEncodedMethod(appInfo, outlineMethod));
+              converter
+                  .graphLense()
+                  .mapDexEncodedMethod(outlineMethod, appInfo, synthesizedClasses));
         }
       }
     }
