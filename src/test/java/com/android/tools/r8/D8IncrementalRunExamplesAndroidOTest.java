@@ -14,6 +14,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -89,10 +90,11 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
         Assert.assertNotNull(mainClassDescriptor);
         for (String descriptor : descriptors) {
           // classes are either lambda classes used by the main class, companion classes of the main
-          // interface or the main class/interface
+          // interface, the main class/interface, or for JDK9, desugaring of try-with-resources.
           Assert.assertTrue(descriptor.contains(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX)
               || descriptor.endsWith(InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
               || descriptor.endsWith(InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX + ";")
+              || descriptor.equals(TwrCloseResourceRewriter.UTILITY_CLASS_DESCRIPTOR)
               || descriptor.equals(mainClassDescriptor));
         }
         String classDescriptor =

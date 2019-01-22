@@ -65,7 +65,7 @@ public final class TwrCloseResourceRewriter {
         twrUtilityClass, twrCloseResourceProto, factory.twrCloseResourceMethodName);
   }
 
-  // Rewrites calls to $closeResource() method. Can me invoked concurrently.
+  // Rewrites calls to $closeResource() method. Can be invoked concurrently.
   public void rewriteMethodCode(IRCode code) {
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
