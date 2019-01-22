@@ -33,44 +33,44 @@ APPS = {
   # },
   'AnExplorer': {
       'app_id': 'dev.dworks.apps.anexplorer.pro',
-      'git_repo': 'https://github.com/1hakr/AnExplorer',
+      'git_repo': 'https://github.com/christofferqa/AnExplorer',
       'flavor': 'googleMobilePro',
       'signed-apk-name': 'AnExplorer-googleMobileProRelease-4.0.3.apk',
   },
   'AntennaPod': {
       'app_id': 'de.danoeh.antennapod',
-      'git_repo': 'https://github.com/AntennaPod/AntennaPod.git',
+      'git_repo': 'https://github.com/christofferqa/AntennaPod.git',
       'flavor': 'play',
   },
   'apps-android-wikipedia': {
       'app_id': 'org.wikipedia',
-      'git_repo': 'https://github.com/wikimedia/apps-android-wikipedia',
+      'git_repo': 'https://github.com/christofferqa/apps-android-wikipedia',
       'flavor': 'prod',
       'signed-apk-name': 'app-prod-universal-release.apk'
   },
   'friendlyeats-android': {
       'app_id': 'com.google.firebase.example.fireeats',
-      'git_repo': 'https://github.com/firebase/friendlyeats-android.git'
+      'git_repo': 'https://github.com/christofferqa/friendlyeats-android.git'
   },
   'KISS': {
       'app_id': 'fr.neamar.kiss',
-      'git_repo': 'https://github.com/Neamar/KISS',
+      'git_repo': 'https://github.com/christofferqa/KISS',
   },
   'materialistic': {
       'app_id': 'io.github.hidroh.materialistic',
-      'git_repo': 'https://github.com/hidroh/materialistic',
+      'git_repo': 'https://github.com/christofferqa/materialistic',
   },
   'Minimal-Todo': {
       'app_id': 'com.avjindersinghsekhon.minimaltodo',
-      'git_repo': 'https://github.com/avjinder/Minimal-Todo',
+      'git_repo': 'https://github.com/christofferqa/Minimal-Todo',
   },
   'NewPipe': {
       'app_id': 'org.schabi.newpipe',
-      'git_repo': 'https://github.com/TeamNewPipe/NewPipe',
+      'git_repo': 'https://github.com/christofferqa/NewPipe',
   },
   'Simple-Calendar': {
       'app_id': 'com.simplemobiletools.calendar.pro',
-      'git_repo': 'https://github.com/SimpleMobileTools/Simple-Calendar',
+      'git_repo': 'https://github.com/christofferqa/Simple-Calendar',
       'signed-apk-name': 'calendar-release.apk'
   },
   'tachiyomi': {
