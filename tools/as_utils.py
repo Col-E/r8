@@ -66,6 +66,44 @@ def remove_r8_dependency(checkout_dir):
       if (utils.R8_JAR not in line) and (utils.R8LIB_JAR not in line):
         f.write(line)
 
+def GetMinAndCompileSdk(app, config, checkout_dir, apk_reference):
+  app_module = config.get('app_module', 'app')
+  build_gradle_file = os.path.join(checkout_dir, app_module, 'build.gradle')
+  assert os.path.isfile(build_gradle_file), (
+      'Expected to find build.gradle file at {}'.format(build_gradle_file))
+
+  compile_sdk = None
+  min_sdks = []
+  target_sdk = None
+
+  with open(build_gradle_file) as f:
+    for line in f.readlines():
+      stripped = line.strip()
+      if stripped.startswith('compileSdkVersion '):
+        assert not compile_sdk
+        compile_sdk = int(stripped[len('compileSdkVersion '):])
+      if stripped.startswith('minSdkVersion '):
+        min_sdks.append(int(stripped[len('minSdkVersion '):]))
+      elif stripped.startswith('targetSdkVersion '):
+        assert not target_sdk
+        target_sdk = int(stripped[len('targetSdkVersion '):])
+
+  if len(min_sdks) == 1:
+    min_sdk = min_sdks[0]
+  else:
+    assert 'min_sdk' in config
+    min_sdk = config.get('min_sdk')
+
+  assert min_sdk, (
+      'Expected to find `minSdkVersion` in {}'.format(build_gradle_file))
+  assert compile_sdk, (
+      'Expected to find `compileSdkVersion` in {}'.format(build_gradle_file))
+
+  assert not target_sdk or target_sdk == compile_sdk, (
+      'Expected `compileSdkVersion` and `targetSdkVersion` to be the same')
+
+  return (min_sdk, compile_sdk)
+
 def IsGradleTaskName(x):
   # Check that it is non-empty.
   if not x:

@@ -78,6 +78,7 @@ APPS = {
       'git_repo': 'https://github.com/sgjesse/tachiyomi.git',
       'flavor': 'standard',
       'releaseTarget': 'app:assembleRelease',
+      'min_sdk': 16
   },
   'tivi': {
       'app_id': 'app.tivi',
@@ -292,6 +293,10 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
             with open(proguard_config_file) as old:
               assert(sum(1 for line in new) > sum(1 for line in old))
 
+          # Extract min-sdk and target-sdk
+          (min_sdk, compile_sdk) = as_utils.GetMinAndCompileSdk(app, config,
+              checkout_dir, apk_dest)
+
           # Now rebuild generated apk.
           previous_apk = apk_dest
           for i in range(1, options.r8_compilation_steps):
@@ -300,7 +305,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
                   checkout_dir, 'out', shrinker, 'app-release-{}.apk'.format(i))
               RebuildAppWithShrinker(
                   previous_apk, recompiled_apk_dest, ext_proguard_config_file,
-                  shrinker)
+                  shrinker, min_sdk, compile_sdk)
               recompilation_result = {
                 'apk_dest': recompiled_apk_dest,
                 'build_status': 'success',
@@ -422,18 +427,24 @@ def BuildAppWithShrinker(
 
   return (apk_dest, profile_dest_dir, proguard_config_dest)
 
-def RebuildAppWithShrinker(apk, apk_dest, proguard_config_file, shrinker):
+def RebuildAppWithShrinker(
+    apk, apk_dest, proguard_config_file, shrinker, min_sdk, compile_sdk):
   assert 'r8' in shrinker
   assert apk_dest.endswith('.apk')
 
   # Compile given APK with shrinker to temporary zip file.
-  api = 28 # TODO(christofferqa): Should be the one from build.gradle
-  android_jar = os.path.join(utils.REPO_ROOT, utils.ANDROID_JAR.format(api=api))
+  android_jar = os.path.join(
+      utils.REPO_ROOT,
+      utils.ANDROID_JAR.format(api=compile_sdk))
   r8_jar = utils.R8LIB_JAR if IsMinifiedR8(shrinker) else utils.R8_JAR
   zip_dest = apk_dest[:-4] + '.zip'
 
-  cmd = ['java', '-ea:com.android.tools.r8...', '-cp', r8_jar,
-      'com.android.tools.r8.R8', '--release', '--pg-conf', proguard_config_file,
+  # TODO(christofferqa): Entry point should be CompatProguard if the shrinker
+  # is 'r8'.
+  entry_point = 'com.android.tools.r8.R8'
+
+  cmd = ['java', '-ea:com.android.tools.r8...', '-cp', r8_jar, entry_point,
+      '--release', '--min-api', str(min_sdk), '--pg-conf', proguard_config_file,
       '--lib', android_jar, '--output', zip_dest, apk]
   utils.PrintCmd(cmd)
 
