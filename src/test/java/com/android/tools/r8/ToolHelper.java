@@ -614,10 +614,6 @@ public class ToolHelper {
   }
 
   public static Path getAndroidJar(AndroidApiLevel apiLevel) {
-    if (apiLevel == AndroidApiLevel.P) {
-      // TODO(mikaelpeltier) Android P does not yet have his android.jar use the O version
-      apiLevel = AndroidApiLevel.O;
-    }
     String jar = String.format(
         ANDROID_JAR_PATTERN,
         (apiLevel == AndroidApiLevel.getDefault() ? DEFAULT_MIN_SDK : apiLevel).getLevel());
