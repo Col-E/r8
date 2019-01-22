@@ -17,17 +17,20 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.google.common.collect.Sets;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -113,7 +116,8 @@ public class MemberValuePropagation {
   private boolean tryConstantReplacementFromProguard(
       IRCode code,
       Set<Value> affectedValues,
-      InstructionIterator iterator,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
       Instruction current,
       ProguardMemberRuleLookup lookup) {
     Instruction replacement = constantReplacementFromProguardRule(lookup.rule, code, current);
@@ -132,7 +136,11 @@ public class MemberValuePropagation {
         current.outValue().replaceUsers(replacement.outValue());
       }
       replacement.setPosition(current.getPosition());
-      iterator.add(replacement);
+      if (current.getBlock().hasCatchHandlers()) {
+        iterator.split(code, blocks).listIterator().add(replacement);
+      } else {
+        iterator.add(replacement);
+      }
     }
     return true;
   }
@@ -141,7 +149,8 @@ public class MemberValuePropagation {
       IRCode code,
       DexType callingContext,
       Set<Value> affectedValues,
-      InstructionIterator iterator,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
       InvokeMethod current) {
     DexMethod invokedMethod = current.getInvokedMethod();
     DexType invokedHolder = invokedMethod.getHolder();
@@ -161,7 +170,8 @@ public class MemberValuePropagation {
       } else if (!outValueNullOrNotUsed) {
         // Check to see if a constant value can be assumed.
         invokeReplaced =
-            tryConstantReplacementFromProguard(code, affectedValues, iterator, current, lookup);
+            tryConstantReplacementFromProguard(
+                code, affectedValues, blocks, iterator, current, lookup);
       }
     }
     if (invokeReplaced || current.outValue() == null) {
@@ -190,7 +200,11 @@ public class MemberValuePropagation {
       current.setOutValue(null);
       replacement.setPosition(current.getPosition());
       current.moveDebugValues(replacement);
-      iterator.add(replacement);
+      if (current.getBlock().hasCatchHandlers()) {
+        iterator.split(code, blocks).listIterator().add(replacement);
+      } else {
+        iterator.add(replacement);
+      }
     }
   }
 
@@ -198,7 +212,8 @@ public class MemberValuePropagation {
       IRCode code,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       Set<Value> affectedValues,
-      InstructionIterator iterator,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
       StaticGet current) {
     DexField field = current.getField();
     DexEncodedField target = appInfo.lookupStaticTarget(field.getHolder(), field);
@@ -215,7 +230,8 @@ public class MemberValuePropagation {
     ProguardMemberRuleLookup lookup = lookupMemberRule(target);
     if (lookup != null
         && lookup.type == RuleType.ASSUME_VALUES
-        && tryConstantReplacementFromProguard(code, affectedValues, iterator, current, lookup)) {
+        && tryConstantReplacementFromProguard(
+            code, affectedValues, blocks, iterator, current, lookup)) {
       return;
     }
     if (current.dest() != null) {
@@ -275,17 +291,26 @@ public class MemberValuePropagation {
   public void rewriteWithConstantValues(
       IRCode code, DexType callingContext, Predicate<DexEncodedMethod> isProcessedConcurrently) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    InstructionIterator iterator = code.instructionIterator();
-    while (iterator.hasNext()) {
-      Instruction current = iterator.next();
-      if (current.isInvokeMethod()) {
-        rewriteInvokeMethodWithConstantValues(
-            code, callingContext, affectedValues, iterator, current.asInvokeMethod());
-      } else if (current.isInstancePut() || current.isStaticPut()) {
-        rewritePutWithConstantValues(iterator, current.asFieldInstruction());
-      } else if (current.isStaticGet()) {
-        rewriteStaticGetWithConstantValues(
-            code, isProcessedConcurrently, affectedValues, iterator, current.asStaticGet());
+    ListIterator<BasicBlock> blocks = code.blocks.listIterator();
+    while (blocks.hasNext()) {
+      BasicBlock block = blocks.next();
+      InstructionListIterator iterator = block.listIterator();
+      while (iterator.hasNext()) {
+        Instruction current = iterator.next();
+        if (current.isInvokeMethod()) {
+          rewriteInvokeMethodWithConstantValues(
+              code, callingContext, affectedValues, blocks, iterator, current.asInvokeMethod());
+        } else if (current.isInstancePut() || current.isStaticPut()) {
+          rewritePutWithConstantValues(iterator, current.asFieldInstruction());
+        } else if (current.isStaticGet()) {
+          rewriteStaticGetWithConstantValues(
+              code,
+              isProcessedConcurrently,
+              affectedValues,
+              blocks,
+              iterator,
+              current.asStaticGet());
+        }
       }
     }
     if (!affectedValues.isEmpty()) {
