@@ -473,6 +473,11 @@ class ClassNameMinifier {
           .toCharArray();
       this.packageDictionaryIterator = packageDictionary.iterator();
       this.classDictionaryIterator = classDictionary.iterator();
+
+      // R.class in Android, which contains constant IDs to assets, can be bundled at any time.
+      // Insert `R` immediately so that the class name minifier can skip that name by default.
+      StringBuilder rBuilder = new StringBuilder().append(packagePrefix).append("R;");
+      usedTypeNames.add(appInfo.dexItemFactory.createString(rBuilder.toString()));
     }
 
     public String getPackageName() {
