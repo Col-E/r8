@@ -95,6 +95,10 @@ APPS = {
     'releaseTarget': 'assemblePlayRelease',
     'signed-apk-name': 'Signal-play-release-4.32.7.apk',
   },
+  'chanu': {
+    'app_id': 'com.chanapps.four.activity',
+    'git_repo': 'https://github.com/mkj-gram/chanu.git',
+  },
   # This does not build yet.
   'muzei': {
       'git_repo': 'https://github.com/sgjesse/muzei.git',
