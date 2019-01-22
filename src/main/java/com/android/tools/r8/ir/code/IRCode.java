@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
@@ -34,6 +35,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class IRCode {
 
@@ -575,7 +577,10 @@ public class IRCode {
   }
 
   private boolean verifyDefinition(Value value) {
-    assert value.definition.outValue() == value;
+    Value outValue = value.definition.outValue();
+    assert outValue == value
+        || (value instanceof StackValue
+            && Arrays.asList(((StackValues) outValue).getStackValues()).contains(value));
     return true;
   }
 
@@ -662,11 +667,15 @@ public class IRCode {
           }
           // After the throwing instruction only debug instructions and the final jump
           // instruction is allowed.
+          // TODO(mkroghj) Temporarily allow stack-operations to be after throwing instructions.
           if (seenThrowing) {
             assert instruction.isDebugInstruction()
                 || instruction.isJumpInstruction()
                 || instruction.isStore()
-                || instruction.isPop();
+                || instruction.isPop()
+                || instruction.isDup()
+                || instruction.isDup2()
+                || instruction.isSwap();
           }
         }
       }
@@ -675,7 +684,7 @@ public class IRCode {
   }
 
   public boolean verifyNoImpreciseOrBottomTypes() {
-    return verifySSATypeLattice(
+    Predicate<Value> verifyValue =
         v -> {
           assert v.getTypeLattice().isPreciseType();
           assert !v.getTypeLattice().isFineGrainedType();
@@ -685,6 +694,16 @@ public class IRCode {
           assert !(v.definition instanceof ImpreciseMemberTypeInstruction)
               || ((ImpreciseMemberTypeInstruction) v.definition).getMemberType().isPrecise();
           return true;
+        };
+    return verifySSATypeLattice(
+        v -> {
+          // StackValues is an artificial type created to allow returning multiple values from an
+          // instruction.
+          if (v instanceof StackValues) {
+            return Stream.of(((StackValues) v).getStackValues()).allMatch(verifyValue);
+          } else {
+            return verifyValue(v);
+          }
         });
   }
 

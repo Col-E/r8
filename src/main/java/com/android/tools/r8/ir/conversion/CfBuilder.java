@@ -166,6 +166,7 @@ public class CfBuilder {
         reachedFixpoint = !phiOptimizations.optimize(code);
       }
     }
+    assert code.isConsistentSSA();
     registerAllocator = new CfRegisterAllocator(code, options, typeVerificationHelper);
     registerAllocator.allocateRegisters();
     loadStoreHelper.insertPhiMoves(registerAllocator);

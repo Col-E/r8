@@ -33,6 +33,7 @@ public class Swap extends Instruction {
     assert outValue == null || !outValue.hasUsersInfo() || !outValue.isUsed() ||
         value instanceof StackValues;
     this.outValue = value;
+    this.outValue.definition = this;
     for (StackValue val : ((StackValues)value).getStackValues()) {
       val.definition = this;
     }
