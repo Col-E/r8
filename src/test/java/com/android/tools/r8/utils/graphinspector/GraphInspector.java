@@ -41,6 +41,8 @@ public class GraphInspector {
   public static class EdgeKindPredicate implements Predicate<Set<GraphEdgeInfo>> {
     public static final EdgeKindPredicate keepRule = new EdgeKindPredicate(EdgeKind.KeepRule);
     public static final EdgeKindPredicate invokedFrom = new EdgeKindPredicate(EdgeKind.InvokedFrom);
+    public static final EdgeKindPredicate reflectedFrom =
+        new EdgeKindPredicate(EdgeKind.ReflectiveUseFrom);
 
     private final EdgeKind edgeKind;
 
@@ -68,6 +70,8 @@ public class GraphInspector {
     abstract boolean isRenamed();
 
     abstract boolean isInvokedFrom(MethodReference method);
+
+    abstract boolean isReflectedFrom(MethodReference method);
 
     abstract boolean isKeptBy(QueryNode node);
 
@@ -116,6 +120,19 @@ public class GraphInspector {
     public QueryNode assertNotInvokedFrom(MethodReference method) {
       assertFalse(
           errorMessage("no invocation from " + method.toString(), "invoke"), isInvokedFrom(method));
+      return this;
+    }
+
+    public QueryNode assertReflectedFrom(MethodReference method) {
+      assertTrue(
+          errorMessage("reflection from " + method.toString(), "none"), isReflectedFrom(method));
+      return this;
+    }
+
+    public QueryNode assertNotReflectedFrom(MethodReference method) {
+      assertFalse(
+          errorMessage("no reflection from " + method.toString(), "reflection"),
+          isReflectedFrom(method));
       return this;
     }
 
@@ -170,6 +187,12 @@ public class GraphInspector {
     @Override
     public boolean isInvokedFrom(MethodReference method) {
       fail("Invalid call to isInvokedFrom on " + getNodeDescription());
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean isReflectedFrom(MethodReference method) {
+      fail("Invalid call to isReflectedFrom on " + getNodeDescription());
       throw new Unreachable();
     }
 
@@ -233,6 +256,18 @@ public class GraphInspector {
       }
       return filterSources(
               (node, infos) -> node == sourceMethod && EdgeKindPredicate.invokedFrom.test(infos))
+          .findFirst()
+          .isPresent();
+    }
+
+    @Override
+    public boolean isReflectedFrom(MethodReference method) {
+      GraphNode sourceMethod = inspector.methods.get(method);
+      if (sourceMethod == null) {
+        return false;
+      }
+      return filterSources(
+              (node, infos) -> node == sourceMethod && EdgeKindPredicate.reflectedFrom.test(infos))
           .findFirst()
           .isPresent();
     }
@@ -354,6 +389,10 @@ public class GraphInspector {
 
   public QueryNode method(MethodReference method) {
     return getQueryNode(methods.get(method), method.toString());
+  }
+
+  public QueryNode field(FieldReference field) {
+    return getQueryNode(fields.get(field), field.toString());
   }
 
   private QueryNode getQueryNode(GraphNode node, String absentString) {

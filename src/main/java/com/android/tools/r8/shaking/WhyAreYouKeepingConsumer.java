@@ -211,12 +211,16 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
         return "invoked from lambda created in";
       case ReferencedFrom:
         return "referenced from";
+      case ReflectiveUseFrom:
+        return "reflected from";
       case ReachableFromLiveType:
         return "reachable from";
       case ReferencedInAnnotation:
         return "referenced in annotation";
       case IsLibraryMethod:
         return "defined in library";
+      case MethodHandleUseFrom:
+        return "referenced by method handle";
       default:
         throw new Unreachable("Unexpected edge kind: " + info.edgeKind());
     }
