@@ -1740,6 +1740,7 @@ public class JctfTestSpecifications {
               "lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
               match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
           .put("lang.Runtime.gc.Runtime_gc_A01", cf())
+          .put("lang.Runtime.runFinalizersOnExitZ.Runtime_runFinalizersOnExit_A01", cf())
           .put(
               "util.concurrent.AbstractExecutorService.invokeAllLjava_util_CollectionJLjava_util_concurrent_TimeUnit.AbstractExecutorService_invokeAll_A06",
               match(runtimes(Runtime.ART_V4_0_4)))
