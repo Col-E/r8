@@ -182,7 +182,11 @@ public class R8TestBuilder
   }
 
   public R8TestBuilder enableGraphInspector() {
-    CollectingGraphConsumer consumer = new CollectingGraphConsumer(null);
+    return enableGraphInspector(null);
+  }
+
+  public R8TestBuilder enableGraphInspector(GraphConsumer subConsumer) {
+    CollectingGraphConsumer consumer = new CollectingGraphConsumer(subConsumer);
     setKeptGraphConsumer(consumer);
     graphConsumer = consumer;
     return self();
