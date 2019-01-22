@@ -286,7 +286,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
           # Sanity check that keep rules have changed.
           with open(ext_proguard_config_file) as new:
             with open(proguard_config_file) as old:
-              assert(sum(1 for line in new) < sum(1 for line in old))
+              assert(sum(1 for line in new) > sum(1 for line in old))
 
           # Now rebuild generated apk.
           previous_apk = apk_dest
