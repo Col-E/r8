@@ -255,7 +255,8 @@ public class ExamplesDebugTest extends DebugTestBase {
 
   @Test
   public void testRegress62300145() throws Exception {
-    testDebugging("regress_62300145", "Regress");
+    // TODO(b/67936230): Executes differently for Java 8 and 9, so don't compare to DEX output.
+    testDebuggingJvmOnly("regress_62300145", "Regress");
   }
 
   @Test
