@@ -101,6 +101,9 @@ public class ProguardTestBuilder
   // Ordered list of injar entries.
   private List<Path> injars = new ArrayList<>();
 
+  // Ordered list of libraryjar entries.
+  private List<Path> libraryjars = new ArrayList<>();
+
   // Proguard configuration file lines.
   private List<String> config = new ArrayList<>();
 
@@ -138,10 +141,16 @@ public class ProguardTestBuilder
         command.add("-injars");
         command.add(injar.toString());
       }
-      command.add("-libraryjars");
-      // TODO(sgjesse): Add support for running with Android Jar.
-      // command.add(ToolHelper.getAndroidJar(AndroidApiLevel.P).toString());
-      command.add(ToolHelper.getJava8RuntimeJar().toString());
+      for (Path libraryjar : libraryjars) {
+        command.add("-libraryjars");
+        command.add(libraryjar.toString());
+      }
+      if (libraryjars.isEmpty()) {
+        command.add("-libraryjars");
+        // TODO(sgjesse): Add support for running with Android Jar.
+        // command.add(ToolHelper.getAndroidJar(AndroidApiLevel.P).toString());
+        command.add(ToolHelper.getJava8RuntimeJar().toString());
+      }
       command.add("-include");
       command.add(configFile.toString());
       for (Path proguardConfigFile : proguardConfigFiles) {
@@ -198,7 +207,7 @@ public class ProguardTestBuilder
         injars.add(file);
       } else {
         throw new Unimplemented(
-            "No support for adding paths directly (we need to compute the descriptor)");
+            "No support for adding class files directly (we need to compute the descriptor)");
       }
     }
     return self();
@@ -207,7 +216,7 @@ public class ProguardTestBuilder
   @Override
   public ProguardTestBuilder addProgramClassFileData(Collection<byte[]> classes) {
     throw new Unimplemented(
-        "No support for adding classfile data directly (we need to compute the descriptor)");
+        "No support for adding class files directly (we need to compute the descriptor)");
   }
 
   @Override
@@ -223,7 +232,15 @@ public class ProguardTestBuilder
   }
   @Override
   public ProguardTestBuilder addLibraryFiles(Collection<Path> files) {
-    throw new Unimplemented("No support for adding library files");
+    for (Path file : files) {
+      if (FileUtils.isJarFile(file)) {
+        libraryjars.add(file);
+      } else {
+        throw new Unimplemented(
+            "No support for adding class files directly (we need to compute the descriptor)");
+      }
+    }
+    return self();
   }
 
   @Override
