@@ -9,6 +9,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
@@ -63,6 +64,7 @@ public class ProguardConfiguration {
         ProguardPathFilter.builder().disable();
     private boolean forceProguardCompatibility = false;
     private boolean overloadAggressively;
+    private boolean keepRuleSynthesisForRecompilation = false;
 
     private Builder(DexItemFactory dexItemFactory, Reporter reporter) {
       this.dexItemFactory = dexItemFactory;
@@ -273,8 +275,29 @@ public class ProguardConfiguration {
       this.overloadAggressively = overloadAggressively;
     }
 
-    public ProguardConfiguration buildRaw() {
+    public void enableKeepRuleSynthesisForRecompilation() {
+      this.keepRuleSynthesisForRecompilation = true;
+    }
 
+    /**
+     * This synthesizes a set of keep rules that are necessary in order to be able to successfully
+     * recompile the generated dex files with the same keep rules.
+     */
+    public void synthesizeKeepRulesForRecompilation() {
+      List<ProguardConfigurationRule> synthesizedKeepRules = new ArrayList<>();
+      for (ProguardConfigurationRule rule : rules) {
+        ProguardConfigurationUtils.synthesizeKeepRulesForRecompilation(rule, synthesizedKeepRules);
+      }
+      if (rules.addAll(synthesizedKeepRules)) {
+        parsedConfiguration.add(
+            StringUtils.lines(
+                synthesizedKeepRules.stream()
+                    .map(ProguardClassSpecification::toString)
+                    .toArray(String[]::new)));
+      }
+    }
+
+    public ProguardConfiguration buildRaw() {
       ProguardConfiguration configuration = new ProguardConfiguration(
           String.join(System.lineSeparator(), parsedConfiguration),
           dexItemFactory,
@@ -332,6 +355,10 @@ public class ProguardConfiguration {
           modifiers.setAllowsOptimization(isOptimizing());
           modifiers.setAllowsObfuscation(isObfuscating());
         }));
+      }
+
+      if (keepRuleSynthesisForRecompilation) {
+        synthesizeKeepRulesForRecompilation();
       }
 
       return buildRaw();

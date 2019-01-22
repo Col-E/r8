@@ -172,14 +172,16 @@ def ParseProfileReport(profile_dir):
 # <td></td>
 # </tr>
 class ProfileReportParser(HTMLParser):
-  entered_table_row = False
-  entered_task_name_cell = False
-  entered_duration_cell = False
+  def __init__(self):
+    HTMLParser.__init__(self)
+    self.entered_table_row = False
+    self.entered_task_name_cell = False
+    self.entered_duration_cell = False
 
-  current_task_name = None
-  current_duration = None
+    self.current_task_name = None
+    self.current_duration = None
 
-  result = {}
+    self.result = {}
 
   def handle_starttag(self, tag, attrs):
     entered_table_row_before = self.entered_table_row
@@ -208,5 +210,13 @@ class ProfileReportParser(HTMLParser):
       if IsGradleTaskName(stripped):
         self.current_task_name = stripped
     elif self.entered_duration_cell and stripped.endswith('s'):
-      self.current_duration = float(stripped[:-1])
+      duration = stripped[:-1]
+      if 'm' in duration:
+        tmp = duration.split('m')
+        minutes = int(tmp[0])
+        seconds = float(tmp[1])
+      else:
+        minutes = 0
+        seconds = float(duration)
+      self.current_duration = 60 * minutes + seconds
     self.entered_table_row = False

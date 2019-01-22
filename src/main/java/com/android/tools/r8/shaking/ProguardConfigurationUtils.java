@@ -26,6 +26,14 @@ public class ProguardConfigurationUtils {
         }
       };
 
+  private static Origin synthesizedRecompilationOrigin =
+      new Origin(Origin.root()) {
+        @Override
+        public String part() {
+          return "<SYNTHESIZED_RECOMPILATION_RULE>";
+        }
+      };
+
   public static ProguardKeepRule buildDefaultInitializerKeepRule(DexClass clazz) {
     ProguardKeepRule.Builder builder = ProguardKeepRule.builder();
     builder.setOrigin(proguardCompatOrigin);
@@ -164,5 +172,22 @@ public class ProguardConfigurationUtils {
       }
     }
     return false;
+  }
+
+  public static void synthesizeKeepRulesForRecompilation(
+      ProguardConfigurationRule rule, List<ProguardConfigurationRule> synthesizedKeepRules) {
+    if (rule.hasInheritanceClassName()) {
+      ProguardTypeMatcher inheritanceClassName = rule.getInheritanceClassName();
+      synthesizedKeepRules.add(
+          ProguardKeepRule.builder()
+              .setOrigin(synthesizedRecompilationOrigin)
+              .setType(ProguardKeepRuleType.KEEP)
+              .setClassType(
+                  rule.getInheritanceIsExtends()
+                      ? ProguardClassType.CLASS
+                      : ProguardClassType.INTERFACE)
+              .setClassNames(ProguardClassNameList.singletonList(inheritanceClassName))
+              .build());
+    }
   }
 }

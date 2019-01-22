@@ -231,10 +231,13 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
         continue
 
       apk_dest = None
+
       result = {}
       try:
+        out_dir = os.path.join(checkout_dir, 'out', shrinker)
         (apk_dest, profile_dest_dir, proguard_config_file) = \
-            BuildAppWithShrinker(app, config, shrinker, checkout_dir, options)
+            BuildAppWithShrinker(app, config, shrinker, checkout_dir, out_dir,
+                options)
         dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
         result['apk_dest'] = apk_dest,
         result['build_status'] = 'success'
@@ -258,13 +261,42 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
 
         if 'r8' in shrinker and options.r8_compilation_steps > 1:
           recompilation_results = []
+
+          # Build app with gradle using -D...keepRuleSynthesisForRecompilation=
+          # true.
+          out_dir = os.path.join(checkout_dir, 'out', shrinker + '-1')
+          extra_env_vars = {
+            'JAVA_OPTS': ' '.join([
+              '-ea:com.android.tools.r8...',
+              '-Dcom.android.tools.r8.keepRuleSynthesisForRecompilation=true'
+            ])
+          }
+          (apk_dest, profile_dest_dir, ext_proguard_config_file) = \
+              BuildAppWithShrinker(app, config, shrinker, checkout_dir, out_dir,
+                  options, extra_env_vars)
+          dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
+          recompilation_result = {
+            'apk_dest': apk_dest,
+            'build_status': 'success',
+            'dex_size': ComputeSizeOfDexFilesInApk(apk_dest),
+            'monkey_status': 'skipped'
+          }
+          recompilation_results.append(recompilation_result)
+
+          # Sanity check that keep rules have changed.
+          with open(ext_proguard_config_file) as new:
+            with open(proguard_config_file) as old:
+              assert(sum(1 for line in new) < sum(1 for line in old))
+
+          # Now rebuild generated apk.
           previous_apk = apk_dest
           for i in range(1, options.r8_compilation_steps):
             try:
               recompiled_apk_dest = os.path.join(
                   checkout_dir, 'out', shrinker, 'app-release-{}.apk'.format(i))
               RebuildAppWithShrinker(
-                  previous_apk, recompiled_apk_dest, proguard_config_file, shrinker)
+                  previous_apk, recompiled_apk_dest, ext_proguard_config_file,
+                  shrinker)
               recompilation_result = {
                 'apk_dest': recompiled_apk_dest,
                 'build_status': 'success',
@@ -285,7 +317,8 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
 
   return result_per_shrinker
 
-def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
+def BuildAppWithShrinker(
+    app, config, shrinker, checkout_dir, out_dir, options, env_vars=None):
   print()
   print('Building {} with {}'.format(app, shrinker))
 
@@ -299,19 +332,21 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
   archives_base_name = config.get('archives_base_name', app_module)
   flavor = config.get('flavor')
 
-  out = os.path.join(checkout_dir, 'out', shrinker)
-  if not os.path.exists(out):
-    os.makedirs(out)
+  if not os.path.exists(out_dir):
+    os.makedirs(out_dir)
 
   # Set -printconfiguration in Proguard rules.
   proguard_config_dest = os.path.abspath(
-      os.path.join(out, 'proguard-rules.pro'))
+      os.path.join(out_dir, 'proguard-rules.pro'))
   as_utils.SetPrintConfigurationDirective(
       app, config, checkout_dir, proguard_config_dest)
 
   env = os.environ.copy()
   env['ANDROID_HOME'] = android_home
-  env['JAVA_OPTS'] = '-ea'
+  env['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
+  if env_vars:
+    env.update(env_vars)
+
   releaseTarget = config.get('releaseTarget')
   if not releaseTarget:
     releaseTarget = app_module + ':' + 'assemble' + (
@@ -369,16 +404,16 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
           keystore_password)
 
   if os.path.isfile(signed_apk):
-    apk_dest = os.path.join(out, signed_apk_name)
+    apk_dest = os.path.join(out_dir, signed_apk_name)
     as_utils.MoveFile(signed_apk, apk_dest)
   else:
-    apk_dest = os.path.join(out, unsigned_apk_name)
+    apk_dest = os.path.join(out_dir, unsigned_apk_name)
     as_utils.MoveFile(unsigned_apk, apk_dest)
 
   assert IsBuiltWithR8(apk_dest) == ('r8' in shrinker), (
       'Unexpected marker in generated APK for {}'.format(shrinker))
 
-  profile_dest_dir = os.path.join(out, 'profile')
+  profile_dest_dir = os.path.join(out_dir, 'profile')
   as_utils.MoveProfileReportTo(profile_dest_dir, stdout)
 
   return (apk_dest, profile_dest_dir, proguard_config_dest)
@@ -391,10 +426,11 @@ def RebuildAppWithShrinker(apk, apk_dest, proguard_config_file, shrinker):
   api = 28 # TODO(christofferqa): Should be the one from build.gradle
   android_jar = os.path.join(utils.REPO_ROOT, utils.ANDROID_JAR.format(api=api))
   r8_jar = utils.R8LIB_JAR if IsMinifiedR8(shrinker) else utils.R8_JAR
-  zip_dest = apk_dest[:-3] + '.zip'
+  zip_dest = apk_dest[:-4] + '.zip'
 
-  cmd = ['java', '-ea', '-jar', r8_jar, '--release', '--pg-conf',
-      proguard_config_file, '--lib', android_jar, '--output', zip_dest, apk]
+  cmd = ['java', '-ea:com.android.tools.r8...', '-cp', r8_jar,
+      'com.android.tools.r8.R8', '--release', '--pg-conf', proguard_config_file,
+      '--lib', android_jar, '--output', zip_dest, apk]
   utils.PrintCmd(cmd)
 
   subprocess.check_output(cmd)
@@ -423,78 +459,90 @@ def RunMonkey(app, config, options, apk_dest):
 
   try:
     stdout = subprocess.check_output(cmd)
+    succeeded = (
+        'Events injected: {}'.format(number_of_events_to_generate) in stdout)
   except subprocess.CalledProcessError as e:
-    return False
+    succeeded = False
 
-  return 'Events injected: {}'.format(number_of_events_to_generate) in stdout
+  UninstallApkOnEmulator(app, config)
 
-def LogResults(result_per_shrinker_per_app, options):
+  return succeeded
+
+def LogResultsForApps(result_per_shrinker_per_app, options):
   for app, result_per_shrinker in result_per_shrinker_per_app.iteritems():
-    print(app + ':')
+    LogResultsForApp(app, result_per_shrinker, options)
 
-    if result_per_shrinker.get('status') != 'success':
-      error_message = result_per_shrinker.get('error_message')
-      print('  skipped ({})'.format(error_message))
+def LogResultsForApp(app, result_per_shrinker, options):
+  print(app + ':')
+
+  if result_per_shrinker.get('status') != 'success':
+    error_message = result_per_shrinker.get('error_message')
+    print('  skipped ({})'.format(error_message))
+    return
+
+  proguard_result = result_per_shrinker.get('proguard', {})
+  proguard_dex_size = float(proguard_result.get('dex_size', -1))
+  proguard_duration = sum(proguard_result.get('profile', {}).values())
+
+  for shrinker in SHRINKERS:
+    if shrinker not in result_per_shrinker:
       continue
-
-    proguard_result = result_per_shrinker.get('proguard', {})
-    proguard_dex_size = float(proguard_result.get('dex_size', -1))
-    proguard_duration = sum(proguard_result.get('profile', {}).values())
-
-    for shrinker in SHRINKERS:
-      if shrinker not in result_per_shrinker:
-        continue
-      result = result_per_shrinker.get(shrinker)
-      build_status = result.get('build_status')
-      if build_status != 'success':
-        warn('  {}: {}'.format(shrinker, build_status))
+    result = result_per_shrinker.get(shrinker)
+    build_status = result.get('build_status')
+    if build_status != 'success':
+      warn('  {}: {}'.format(shrinker, build_status))
+    else:
+      print('  {}:'.format(shrinker))
+      dex_size = result.get('dex_size')
+      msg = '    dex size: {}'.format(dex_size)
+      if dex_size != proguard_dex_size and proguard_dex_size >= 0:
+        msg = '{} ({}, {})'.format(
+            msg, dex_size - proguard_dex_size,
+            PercentageDiffAsString(proguard_dex_size, dex_size))
+        success(msg) if dex_size < proguard_dex_size else warn(msg)
       else:
-        print('  {}:'.format(shrinker))
-        dex_size = result.get('dex_size')
-        msg = '    dex size: {}'.format(dex_size)
-        if dex_size != proguard_dex_size and proguard_dex_size >= 0:
-          msg = '{} ({}, {})'.format(
-              msg, dex_size - proguard_dex_size,
-              PercentageDiffAsString(proguard_dex_size, dex_size))
-          success(msg) if dex_size < proguard_dex_size else warn(msg)
-        else:
-          print(msg)
+        print(msg)
 
-        profile = result.get('profile')
-        duration = sum(profile.values())
-        msg = '    performance: {}s'.format(duration)
-        if duration != proguard_duration and proguard_duration > 0:
-          msg = '{} ({}s, {})'.format(
-              msg, duration - proguard_duration,
-              PercentageDiffAsString(proguard_duration, duration))
-          success(msg) if duration < proguard_duration else warn(msg)
-        else:
-          print(msg)
-        if len(profile) >= 2:
-          for task_name, task_duration in profile.iteritems():
-            print('      {}: {}s'.format(task_name, task_duration))
+      profile = result.get('profile')
+      duration = sum(profile.values())
+      msg = '    performance: {}s'.format(duration)
+      if duration != proguard_duration and proguard_duration > 0:
+        msg = '{} ({}s, {})'.format(
+            msg, duration - proguard_duration,
+            PercentageDiffAsString(proguard_duration, duration))
+        success(msg) if duration < proguard_duration else warn(msg)
+      else:
+        print(msg)
+      if len(profile) >= 2:
+        for task_name, task_duration in profile.iteritems():
+          print('      {}: {}s'.format(task_name, task_duration))
 
-        if options.monkey:
-          monkey_status = result.get('monkey_status')
-          if monkey_status != 'success':
-            warn('    monkey: {}'.format(monkey_status))
-          else:
-            success('    monkey: {}'.format(monkey_status))
-        recompilation_results = result.get('recompilation_results', [])
-        i = 1
-        for recompilation_result in recompilation_results:
-          build_status = recompilation_result.get('build_status')
-          if build_status != 'success':
-            print('    recompilation #{}: {}'.format(i, build_status))
-          else:
-            dex_size = recompilation_result.get('dex_size')
-            print('    recompilation #{}'.format(i))
-            print('      dex size: {}'.format(dex_size))
-            if options.monkey:
-              monkey_status = recompilation_result.get('monkey_status')
-              msg = '      monkey: {}'.format(monkey_status)
-              success(msg) if monkey_status == 'success' else warn(msg)
-          i += 1
+      if options.monkey:
+        monkey_status = result.get('monkey_status')
+        if monkey_status != 'success':
+          warn('    monkey: {}'.format(monkey_status))
+        else:
+          success('    monkey: {}'.format(monkey_status))
+      recompilation_results = result.get('recompilation_results', [])
+      i = 0
+      for recompilation_result in recompilation_results:
+        build_status = recompilation_result.get('build_status')
+        if build_status != 'success':
+          print('    recompilation #{}: {}'.format(i, build_status))
+        else:
+          dex_size = recompilation_result.get('dex_size')
+          print('    recompilation #{}'.format(i))
+          print('      dex size: {}'.format(dex_size))
+          if options.monkey:
+            monkey_status = recompilation_result.get('monkey_status')
+            msg = '      monkey: {}'.format(monkey_status)
+            if monkey_status == 'success':
+              success(msg)
+            elif monkey_status == 'skipped':
+              print(msg)
+            else:
+              warn(msg)
+        i += 1
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
@@ -572,7 +620,7 @@ def main(argv):
         result_per_shrinker_per_app[app] = GetResultsForApp(
             app, config, options)
 
-  LogResults(result_per_shrinker_per_app, options)
+  LogResultsForApps(result_per_shrinker_per_app, options)
 
 def success(message):
   CGREEN = '\033[32m'

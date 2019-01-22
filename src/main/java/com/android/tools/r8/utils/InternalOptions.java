@@ -277,6 +277,11 @@ public class InternalOptions {
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
 
+  public static boolean shouldEnableKeepRuleSynthesisForRecompilation() {
+    return Version.isDev()
+        && System.getProperty("com.android.tools.r8.keepRuleSynthesisForRecompilation") != null;
+  }
+
   private static Set<String> getExtensiveLoggingFilter() {
     String property = System.getProperty("com.android.tools.r8.extensiveLoggingFilter");
     if (property != null) {

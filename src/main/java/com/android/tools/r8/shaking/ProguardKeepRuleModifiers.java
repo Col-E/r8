@@ -21,8 +21,9 @@ public class ProguardKeepRuleModifiers {
       this.allowsOptimization = allowsOptimization;
     }
 
-    public void setAllowsObfuscation(boolean allowsObfuscation) {
+    public Builder setAllowsObfuscation(boolean allowsObfuscation) {
       this.allowsObfuscation = allowsObfuscation;
+      return this;
     }
 
     public void setIncludeDescriptorClasses(boolean includeDescriptorClasses) {

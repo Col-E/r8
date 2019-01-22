@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class ProguardKeepRuleBase extends ProguardConfigurationRule {
 
@@ -20,12 +21,18 @@ public class ProguardKeepRuleBase extends ProguardConfigurationRule {
       super();
     }
 
-    public void setType(ProguardKeepRuleType type) {
+    public B setType(ProguardKeepRuleType type) {
       this.type = type;
+      return self();
     }
 
     public ProguardKeepRuleModifiers.Builder getModifiersBuilder() {
       return modifiersBuilder;
+    }
+
+    public B updateModifiers(Consumer<ProguardKeepRuleModifiers.Builder> consumer) {
+      consumer.accept(getModifiersBuilder());
+      return self();
     }
   }
 
