@@ -423,14 +423,13 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       }
     }
 
-    // Allow the first method to consume more than the allowance to be inlined.
-    return instructionAllowance < 0;
+    return instructionAllowance < Inliner.numberOfInstructions(inlinee.code);
   }
 
   @Override
   public void markInlined(InlineeWithReason inlinee) {
     // TODO(118734615): All inlining use from the budget - should that only be SIMPLE?
-    instructionAllowance -= inliner.numberOfInstructions(inlinee.code);
+    instructionAllowance -= Inliner.numberOfInstructions(inlinee.code);
   }
 
   @Override

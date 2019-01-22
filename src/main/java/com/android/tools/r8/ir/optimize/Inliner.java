@@ -446,7 +446,7 @@ public class Inliner {
     }
   }
 
-  final int numberOfInstructions(IRCode code) {
+  static final int numberOfInstructions(IRCode code) {
     int numOfInstructions = 0;
     for (BasicBlock block : code.blocks) {
       numOfInstructions += block.getInstructions().size();
