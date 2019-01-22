@@ -6,9 +6,11 @@ package com.android.tools.r8;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -218,5 +220,49 @@ public class ProguardTestBuilder
   public ProguardTestBuilder addKeepRules(Collection<String> rules) {
     config.addAll(rules);
     return self();
+  }
+  @Override
+  public ProguardTestBuilder addLibraryFiles(Collection<Path> files) {
+    throw new Unimplemented("No support for adding library files");
+  }
+
+  @Override
+  public ProguardTestBuilder setProgramConsumer(ProgramConsumer programConsumer) {
+    throw new Unimplemented("No support for program consumer");
+  }
+
+  @Override
+  public ProguardTestBuilder setMinApi(AndroidApiLevel minApiLevel) {
+    throw new Unimplemented("No support for setting min api");
+  }
+
+  @Override
+  public ProguardTestBuilder addMainDexListFiles(Collection<Path> files) {
+    throw new Unimplemented("No support for adding main dex list files");
+  }
+
+  @Override
+  public ProguardTestBuilder setMainDexListConsumer(StringConsumer consumer) {
+    throw new Unimplemented("No support for main dex list consumer");
+  }
+
+  @Override
+  public ProguardTestBuilder setMode(CompilationMode mode) {
+    throw new Unimplemented("No support for setting compilation mode");
+  }
+
+  @Override
+  public ProguardTestBuilder noDesugaring() {
+    throw new Unimplemented("No support for disabling desugaring");
+  }
+
+  @Override
+  public DebugTestConfig debugConfig() {
+    throw new Unimplemented("No support for debug config");
+  }
+
+  @Override
+  public ProguardTestBuilder addOptionsModification(Consumer<InternalOptions> optionsConsumer) {
+    throw new Unimplemented("No support for changing internal options");
   }
 }
