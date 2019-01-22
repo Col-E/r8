@@ -11,6 +11,8 @@ import optparse
 import os
 import shutil
 import sys
+import threading
+import time
 import toolhelper
 import utils
 import zipfile
@@ -18,6 +20,8 @@ import StringIO
 
 USAGE = """%prog [options] app1 app2
   NOTE: This only makes sense if minification is disabled"""
+
+MAX_THREADS=40
 
 def parse_options():
   result = optparse.OptionParser(usage=USAGE)
@@ -68,9 +72,14 @@ def get_code_size(path):
   return 0
 
 class FileInfo:
-  def __init__(self, path, root, use_code_size):
+  def __init__(self, path, root):
     self.path = path
     self.full_path = os.path.join(root, path)
+
+  def __eq__(self, other):
+    return self.full_path == other.full_path
+
+  def set_size(self, use_code_size):
     if use_code_size:
       self.size = get_code_size(self.full_path)
     else:
@@ -83,8 +92,27 @@ def generate_file_info(path, options):
       for f in files:
         assert f.endswith('dex')
         file_path = os.path.join(root, f)
-        entry = FileInfo(file_path, path, use_code_size=options.use_code_size)
+        entry = FileInfo(file_path, path)
+        if not options.use_code_size:
+          entry.set_size()
         file_info_map[file_path] = entry
+  threads = []
+  file_infos = file_info_map.values() if options.use_code_size else []
+  while len(file_infos) > 0 or len(threads)> 0:
+    for t in threads:
+      if not t.is_alive():
+        threads.remove(t)
+    # sleep
+    if len(threads) == MAX_THREADS or len(file_infos) == 0:
+      time.sleep(0.5)
+    while len(threads) < MAX_THREADS and len(file_infos) > 0:
+      info = file_infos.pop()
+      print('Added %s for size calculation' % info.full_path)
+      t = threading.Thread(target=info.set_size, args=(options.use_code_size,))
+      threads.append(t)
+      t.start()
+    print('Missing %s files, threads=%s ' % (len(file_infos), len(threads)))
+
   return file_info_map
 
 def print_info(app, app_files, only_in_app, bigger_in_app, output):
