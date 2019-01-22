@@ -12,11 +12,11 @@ public class ArrayTypeCollisionTest {
   }
 
   private static void method(A[] obj) {
-    System.out.println("In method(A[])");
+    System.out.println("In method(A[]), length: " + obj.length);
   }
 
   private static void method(B[] obj) {
-    System.out.println("In method(B[])");
+    System.out.println("In method(B[]), length: " + obj.length);
   }
 
   // A cannot be merged into B because that would lead to a collision.

@@ -115,16 +115,15 @@ public class DeadCodeRemover {
         continue;
       }
       Value outValue = current.outValue();
-      // Instructions with no out value cannot be dead code by the current definition
-      // (unused out value). They typically side-effect input values or deals with control-flow.
-      assert outValue != null;
-      if (!outValue.isDead(appInfo)) {
+      if (outValue != null && !outValue.isDead(appInfo)) {
         continue;
       }
       updateWorklist(worklist, current);
       // All users will be removed for this instruction. Eagerly clear them so further inspection
       // of this instruction during dead code elimination will terminate here.
-      outValue.clearUsers();
+      if (outValue != null) {
+        outValue.clearUsers();
+      }
       iterator.removeOrReplaceByDebugLocalRead();
     }
   }
