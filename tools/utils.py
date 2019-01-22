@@ -13,7 +13,8 @@ import sys
 import tarfile
 import tempfile
 
-ANDROID_JAR = 'third_party/android_jar/lib-v{api}/android.jar'
+ANDROID_JAR_DIR = 'third_party/android_jar/lib-v{api}'
+ANDROID_JAR = os.path.join(ANDROID_JAR_DIR, 'android.jar')
 TOOLS_DIR = os.path.abspath(os.path.normpath(os.path.join(__file__, '..')))
 REPO_ROOT = os.path.realpath(os.path.join(TOOLS_DIR, '..'))
 THIRD_PARTY = os.path.join(REPO_ROOT, 'third_party')
@@ -308,8 +309,23 @@ def check_java_version():
   if m is not None:
     raise Exception("Do not use google JVM for benchmarking: " + version)
 
+def get_android_jar_dir(api):
+  return os.path.join(REPO_ROOT, ANDROID_JAR_DIR.format(api=api))
+
 def get_android_jar(api):
   return os.path.join(REPO_ROOT, ANDROID_JAR.format(api=api))
+
+def get_android_optional_jars(api):
+  android_optional_jars_dir = os.path.join(get_android_jar_dir(api), 'optional')
+  android_optional_jars = [
+    os.path.join(android_optional_jars_dir, 'android.test.base.jar'),
+    os.path.join(android_optional_jars_dir, 'android.test.mock.jar'),
+    os.path.join(android_optional_jars_dir, 'android.test.runner.jar'),
+    os.path.join(android_optional_jars_dir, 'org.apache.http.legacy.jar')
+  ]
+  return [
+      android_optional_jar for android_optional_jar in android_optional_jars
+      if os.path.isfile(android_optional_jar)]
 
 def is_bot():
   return 'BUILDBOT_BUILDERNAME' in os.environ

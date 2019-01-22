@@ -433,9 +433,7 @@ def RebuildAppWithShrinker(
   assert apk_dest.endswith('.apk')
 
   # Compile given APK with shrinker to temporary zip file.
-  android_jar = os.path.join(
-      utils.REPO_ROOT,
-      utils.ANDROID_JAR.format(api=compile_sdk))
+  android_jar = utils.get_android_jar(compile_sdk)
   r8_jar = utils.R8LIB_JAR if IsMinifiedR8(shrinker) else utils.R8_JAR
   zip_dest = apk_dest[:-4] + '.zip'
 
@@ -446,6 +444,11 @@ def RebuildAppWithShrinker(
   cmd = ['java', '-ea:com.android.tools.r8...', '-cp', r8_jar, entry_point,
       '--release', '--min-api', str(min_sdk), '--pg-conf', proguard_config_file,
       '--lib', android_jar, '--output', zip_dest, apk]
+
+  for android_optional_jar in utils.get_android_optional_jars(compile_sdk):
+    cmd.append('--lib')
+    cmd.append(android_optional_jar)
+
   utils.PrintCmd(cmd)
 
   subprocess.check_output(cmd)
