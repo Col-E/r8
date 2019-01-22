@@ -13,7 +13,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-// TODO(shertz) test local variables
 @RunWith(Parameterized.class)
 public class LambdaTest extends DebugTestBase {
 
@@ -47,8 +46,11 @@ public class LambdaTest extends DebugTestBase {
         run(),
         checkMethod(debuggeeClass, initialMethodName),
         checkLine(SOURCE_FILE, 12),
+        checkLocals("i"),
+        checkNoLocal("j"),
         stepInto(INTELLIJ_FILTER),
         checkLine(SOURCE_FILE, 16),
+        checkLocals("i", "j"),
         run());
   }
 
@@ -63,8 +65,10 @@ public class LambdaTest extends DebugTestBase {
         run(),
         checkMethod(debuggeeClass, initialMethodName),
         checkLine(SOURCE_FILE, 32),
+        checkLocals("i", "a", "b"),
         stepInto(INTELLIJ_FILTER),
         checkLine(SOURCE_FILE, 37),
+        checkLocals("a", "b"),
         run());
   }
 
