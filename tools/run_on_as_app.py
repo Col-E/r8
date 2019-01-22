@@ -87,6 +87,14 @@ APPS = {
       # TODO(123047413): Fails with R8.
       'skip': True,
   },
+  'Signal-Android': {
+    'app_id': 'org.thoughtcrime.securesms',
+    'app_module': '',
+    'flavor': 'play',
+    'git_repo': 'https://github.com/mkj-gram/Signal-Android.git',
+    'releaseTarget': 'assemblePlayRelease',
+    'signed-apk-name': 'Signal-play-release-4.32.7.apk',
+  },
   # This does not build yet.
   'muzei': {
       'git_repo': 'https://github.com/sgjesse/muzei.git',
@@ -288,7 +296,7 @@ def BuildAppWithShrinker(app, config, shrinker, checkout_dir, options):
     as_utils.add_r8_dependency(checkout_dir, IsMinifiedR8(shrinker))
 
   app_module = config.get('app_module', 'app')
-  archives_base_name = config.get(' archives_base_name', app_module)
+  archives_base_name = config.get('archives_base_name', app_module)
   flavor = config.get('flavor')
 
   out = os.path.join(checkout_dir, 'out', shrinker)
