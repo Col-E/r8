@@ -17,7 +17,6 @@ MASTER_BUILD_ROOT = "%smaster/" % BUILD_ROOT
 
 JAR_TARGETS_MAP = {
   'full': [
-    (utils.D8, 'd8-master'),
     (utils.R8, 'r8-master'),
     (utils.COMPATDX, 'compatdx-master'),
     (utils.COMPATPROGUARD, 'compatproguard-master'),
@@ -43,8 +42,7 @@ def parse_arguments():
     required=True,
     choices=['full', 'lib'],
     help="Use 'full' to download the full, non-optimized jars (legacy" +
-      " behaviour) and 'lib' for the R8-processed, optimized jars (this" +
-      " one omits d8.jar)",
+      " behaviour) and 'lib' for the R8-processed, optimized jars.",
   )
   parser.add_argument(
     '--maps',
