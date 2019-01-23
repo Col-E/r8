@@ -84,6 +84,10 @@ public final class Java8MethodRewriter {
     return null;
   }
 
+  public static boolean hasJava8MethodRewritePrefix(DexType clazz) {
+    return clazz.descriptor.toString().startsWith(UTILITY_CLASS_DESCRIPTOR_PREFIX);
+  }
+
   public void synthesizeUtilityClass(Builder<?> builder, InternalOptions options) {
     if (holders.isEmpty()) {
       return;
