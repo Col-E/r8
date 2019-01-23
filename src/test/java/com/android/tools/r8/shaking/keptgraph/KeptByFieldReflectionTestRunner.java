@@ -19,7 +19,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collection;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,7 +30,7 @@ public class KeptByFieldReflectionTestRunner extends TestBase {
   private static final Class<?> CLASS = KeptByFieldReflectionTest.class;
   private static final Collection<Class<?>> CLASSES = Arrays.asList(CLASS);
 
-  private final String EXPECTED_STDOUT = StringUtils.lines("got foo: 42");
+  private final String EXPECTED_STDOUT = StringUtils.lines("got foo: 0");
 
   private final String EXPECTED_WHYAREYOUKEEPING =
       StringUtils.lines(
@@ -53,7 +52,6 @@ public class KeptByFieldReflectionTestRunner extends TestBase {
   }
 
   @Test
-  @Ignore("b/123215165")
   public void test() throws Exception {
     MethodReference mainMethod = methodFromMethod(CLASS.getDeclaredMethod("main", String[].class));
     FieldReference fooField = fieldFromField(CLASS.getDeclaredField("foo"));

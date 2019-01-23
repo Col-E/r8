@@ -1736,6 +1736,14 @@ public class Enqueuer {
           markInstantiated(holderClass.type, KeepReason.reflectiveUseIn(method));
         }
         markFieldAsKept(encodedField, KeepReason.reflectiveUseIn(method));
+        // Fields accessed by reflection is marked as both read and written.
+        if (encodedField.isStatic()) {
+          registerItemWithTargetAndContext(staticFieldsRead, encodedField.field, method);
+          registerItemWithTargetAndContext(staticFieldsWritten, encodedField.field, method);
+        } else {
+          registerItemWithTargetAndContext(instanceFieldsRead, encodedField.field, method);
+          registerItemWithTargetAndContext(instanceFieldsWritten, encodedField.field, method);
+        }
       }
     } else {
       assert identifierItem.isDexMethod();
