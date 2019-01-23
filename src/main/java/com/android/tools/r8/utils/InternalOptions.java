@@ -898,4 +898,12 @@ public class InternalOptions {
   public boolean canHaveExceptionTypeBug() {
     return minApiLevel < AndroidApiLevel.Q.getLevel();
   }
+
+  // Art 4.0.4 fails with a verification error when a null-literal is being passed directly to an
+  // aget instruction. We therefore need to be careful when performing trivial check-cast
+  // elimination of check-cast instructions where the value being cast is the constant null.
+  // See b/123269162.
+  public boolean canHaveArtCheckCastVerifierBug() {
+    return minApiLevel < AndroidApiLevel.J.getLevel();
+  }
 }
