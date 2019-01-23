@@ -42,9 +42,7 @@ public class LazyLoadedDexApplication extends DexApplication {
 
   @Override
   public DexClass definitionFor(DexType type) {
-    if (type == null) {
-      return null;
-    }
+    assert type.isClassType() : "Cannot lookup definition for type: " + type;
     DexClass clazz = programClasses.get(type);
     if (clazz == null && classpathClasses != null) {
       clazz = classpathClasses.get(type);

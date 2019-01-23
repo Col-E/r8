@@ -843,6 +843,9 @@ public class RootSetBuilder {
   }
 
   private void includeDescriptor(DexDefinition item, DexType type, ProguardKeepRule context) {
+    if (type.isVoidType()) {
+      return;
+    }
     if (type.isArrayType()) {
       type = type.toBaseType(application.dexItemFactory);
     }

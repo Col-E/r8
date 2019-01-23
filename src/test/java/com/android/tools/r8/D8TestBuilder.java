@@ -3,19 +3,27 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class D8TestBuilder
     extends TestCompilerBuilder<
         D8Command, Builder, D8TestCompileResult, D8TestRunResult, D8TestBuilder> {
+
+  // Consider an in-order collection of both class and files on the classpath.
+  private List<Class<?>> classpathClasses = new ArrayList<>();
 
   private D8TestBuilder(TestState state, Builder builder) {
     super(state, builder, Backend.DEX);
@@ -34,6 +42,29 @@ public class D8TestBuilder
   D8TestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
+    if (!classpathClasses.isEmpty()) {
+      Path cp;
+      try {
+        cp = getState().getNewTempFolder().resolve("cp.jar");
+      } catch (IOException e) {
+        throw builder.getReporter().fatalError("Failed to create temp file for classpath archive");
+      }
+      ArchiveConsumer archiveConsumer = new ArchiveConsumer(cp);
+      for (Class<?> classpathClass : classpathClasses) {
+        try {
+          archiveConsumer.accept(
+              ByteDataView.of(ToolHelper.getClassAsBytes(classpathClass)),
+              DescriptorUtils.javaTypeToDescriptor(classpathClass.getTypeName()),
+              builder.getReporter());
+        } catch (IOException e) {
+          builder
+              .getReporter()
+              .error("Failed to read bytes for classpath class: " + classpathClass.getTypeName());
+        }
+      }
+      archiveConsumer.finished(builder.getReporter());
+      builder.addClasspathFiles(cp);
+    }
     ToolHelper.runD8(builder, optionsConsumer);
     return new D8TestCompileResult(getState(), app.get());
   }
@@ -43,7 +74,8 @@ public class D8TestBuilder
   }
 
   public D8TestBuilder addClasspathClasses(Collection<Class<?>> classes) {
-    return addClasspathFiles(getFilesForClasses(classes));
+    classpathClasses.addAll(classes);
+    return self();
   }
 
   public D8TestBuilder addClasspathFiles(Path... files) {

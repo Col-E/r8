@@ -91,6 +91,9 @@ public class ConstClass extends ConstInstruction {
     // A const-class instruction can be dead code only if the resulting program is known to contain
     // the class mentioned.
     DexType baseType = clazz.toBaseType(appInfo.dexItemFactory);
+    if (baseType.isPrimitiveType()) {
+      return true;
+    }
     DexClass holder = appInfo.definitionFor(baseType);
     return holder != null && holder.isProgramClass();
   }
