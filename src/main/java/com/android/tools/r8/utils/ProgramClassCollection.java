@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import java.util.List;
@@ -68,6 +69,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
 
   private static boolean assumeClassesAreEqual(DexProgramClass a) {
     return LambdaRewriter.hasLambdaClassPrefix(a.type)
+        || Java8MethodRewriter.hasJava8MethodRewritePrefix(a.type)
         || InterfaceMethodRewriter.hasDispatchClassSuffix(a.type)
         || a.type.descriptor.toString().equals(TwrCloseResourceRewriter.UTILITY_CLASS_DESCRIPTOR);
   }
