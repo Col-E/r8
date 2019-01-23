@@ -84,6 +84,8 @@ public interface InstructionSubject {
 
   boolean isNewArray();
 
+  boolean isArrayPut();
+
   boolean isMonitorEnter();
 
   boolean isMonitorExit();

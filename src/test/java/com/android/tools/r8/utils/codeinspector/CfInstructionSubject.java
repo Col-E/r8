@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
+import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfConstNull;
@@ -283,6 +284,11 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public boolean isNewArray() {
     return instruction instanceof CfNewArray;
+  }
+
+  @Override
+  public boolean isArrayPut() {
+    return instruction instanceof CfArrayStore;
   }
 
   @Override

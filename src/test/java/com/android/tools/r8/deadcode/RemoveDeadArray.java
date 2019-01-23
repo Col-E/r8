@@ -66,10 +66,9 @@ public class RemoveDeadArray extends TestBase {
             .compile();
     CodeInspector inspector = result.inspector();
     assertFalse(inspector.clazz(TestClass.class).clinit().isPresent());
-
     MethodSubject main = inspector.clazz(TestClass.class).mainMethod();
-    main.streamInstructions().noneMatch(instructionSubject -> instructionSubject.isNewArray());
-    assertFalse(main.getMethod().getCode().asDexCode().toString().contains("NewArray"));
+    assertTrue(
+        main.streamInstructions().noneMatch(instructionSubject -> instructionSubject.isNewArray()));
     runOnArt(result.app, TestClass.class.getName());
  }
 
@@ -83,10 +82,8 @@ public class RemoveDeadArray extends TestBase {
     CodeInspector inspector = result.inspector();
     MethodSubject clinit = inspector.clazz(TestClassWithCatch.class).clinit();
     assertTrue(clinit.isPresent());
-    // Ensure that our optimization does not hit, we should still have 4 Aput instructions.
-    long aPutCount = Arrays.stream(clinit.getMethod().getCode().asDexCode().instructions)
-        .filter(instruction -> instruction instanceof  Aput)
-        .count();
-    assertEquals(4, aPutCount);
+    // Ensure that our optimization does not hit, we should still have 4 ArrayPut instructions.
+    long count = clinit.streamInstructions().filter(a -> a.isArrayPut()).count();
+    assertEquals(4, count);
   }
 }

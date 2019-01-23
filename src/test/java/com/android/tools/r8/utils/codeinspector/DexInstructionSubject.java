@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.code.Aput;
 import com.android.tools.r8.code.CheckCast;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.Const16;
@@ -363,6 +364,11 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isNewArray() {
     return instruction instanceof NewArray;
+  }
+
+  @Override
+  public boolean isArrayPut() {
+    return instruction instanceof Aput;
   }
 
   @Override
