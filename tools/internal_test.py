@@ -235,6 +235,10 @@ def run_continuously():
     if get_magic_file_exists(READY_FOR_TESTING):
       git_hash = get_magic_file_content(READY_FOR_TESTING)
       checked_out = git_checkout(git_hash)
+      # If the script changed, we need to restart now to get correct commands
+      # Note that we have not removed the READY_FOR_TESTING yet, so if we
+      # execv we will pick up the same version.
+      restart_if_new_version(own_content)
       # Sanity check, if this does not succeed stop.
       if checked_out != git_hash:
         log('Inconsistent state: %s %s' % (git_hash, checked_out))
