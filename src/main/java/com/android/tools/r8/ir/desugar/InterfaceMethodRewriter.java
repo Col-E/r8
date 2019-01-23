@@ -151,6 +151,10 @@ public final class InterfaceMethodRewriter {
           InvokeStatic invokeStatic = instruction.asInvokeStatic();
           DexMethod method = invokeStatic.getInvokedMethod();
           DexClass clazz = findDefinitionFor(method.holder);
+          if (Java8MethodRewriter.hasJava8MethodRewritePrefix(method.holder)) {
+            // We did not create this code yet, but it will not require rewriting.
+            continue;
+          }
           if (clazz == null) {
             // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
             // exception but we can not report it as error since it can also be the intended
