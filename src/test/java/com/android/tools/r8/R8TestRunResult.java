@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
 
@@ -49,6 +50,13 @@ public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
     assertSuccess();
     return graphInspector.get();
   }
+
+  public R8TestRunResult  inspectGraph(Consumer<GraphInspector> consumer)
+      throws IOException, ExecutionException {
+    consumer.accept(graphInspector());
+    return self();
+  }
+
 
   public String proguardMap() {
     return proguardMap;
