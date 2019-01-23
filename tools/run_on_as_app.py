@@ -8,9 +8,9 @@ import apk_utils
 import gradle
 import os
 import optparse
+import shutil
 import subprocess
 import sys
-import tempfile
 import time
 import utils
 import zipfile
@@ -36,6 +36,7 @@ APPS = {
       'git_repo': 'https://github.com/christofferqa/AnExplorer',
       'flavor': 'googleMobilePro',
       'signed-apk-name': 'AnExplorer-googleMobileProRelease-4.0.3.apk',
+      'min_sdk': 17
   },
   'AntennaPod': {
       'app_id': 'de.danoeh.antennapod',
@@ -127,9 +128,18 @@ def ComputeSizeOfDexFilesInApk(apk):
       dex_size += z.getinfo(filename).file_size
   return dex_size
 
-def IsBuiltWithR8(apk):
-  script = os.path.join(utils.TOOLS_DIR, 'extractmarker.py')
-  return '~~R8' in subprocess.check_output(['python', script, apk]).strip()
+def IsBuiltWithR8(apk, temp_dir):
+  r8_jar = os.path.join(temp_dir, 'r8.jar')
+
+  # Use the copy of r8.jar if it is there.
+  if os.path.isfile(r8_jar):
+    cmd = ['java', '-ea', '-jar', r8_jar, 'extractmarker', apk]
+  else:
+    script = os.path.join(utils.TOOLS_DIR, 'extractmarker.py')
+    cmd = ['python', script, apk]
+
+  utils.PrintCmd(cmd)
+  return '~~R8' in subprocess.check_output(cmd).strip()
 
 def IsMinifiedR8(shrinker):
   return shrinker == 'r8-minified' or shrinker == 'r8full-minified'
@@ -196,7 +206,7 @@ def WaitForEmulator():
     else:
       return True
 
-def GetResultsForApp(app, config, options):
+def GetResultsForApp(app, config, options, temp_dir):
   git_repo = config['git_repo']
 
   # Checkout and build in the build directory.
@@ -221,13 +231,13 @@ def GetResultsForApp(app, config, options):
   result['status'] = 'success'
 
   result_per_shrinker = BuildAppWithSelectedShrinkers(
-      app, config, options, checkout_dir)
+      app, config, options, checkout_dir, temp_dir)
   for shrinker, shrinker_result in result_per_shrinker.iteritems():
     result[shrinker] = shrinker_result
 
   return result
 
-def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
+def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
   result_per_shrinker = {}
 
   with utils.ChangedWorkingDirectory(checkout_dir):
@@ -242,7 +252,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
         out_dir = os.path.join(checkout_dir, 'out', shrinker)
         (apk_dest, profile_dest_dir, proguard_config_file) = \
             BuildAppWithShrinker(app, config, shrinker, checkout_dir, out_dir,
-                options)
+                temp_dir, options)
         dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
         result['apk_dest'] = apk_dest,
         result['build_status'] = 'success'
@@ -278,7 +288,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
           }
           (apk_dest, profile_dest_dir, ext_proguard_config_file) = \
               BuildAppWithShrinker(app, config, shrinker, checkout_dir, out_dir,
-                  options, extra_env_vars)
+                  temp_dir, options, extra_env_vars)
           dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
           recompilation_result = {
             'apk_dest': apk_dest,
@@ -305,7 +315,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
                   checkout_dir, 'out', shrinker, 'app-release-{}.apk'.format(i))
               RebuildAppWithShrinker(
                   previous_apk, recompiled_apk_dest, ext_proguard_config_file,
-                  shrinker, min_sdk, compile_sdk)
+                  shrinker, min_sdk, compile_sdk, temp_dir)
               recompilation_result = {
                 'apk_dest': recompiled_apk_dest,
                 'build_status': 'success',
@@ -327,7 +337,8 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir):
   return result_per_shrinker
 
 def BuildAppWithShrinker(
-    app, config, shrinker, checkout_dir, out_dir, options, env_vars=None):
+    app, config, shrinker, checkout_dir, out_dir, temp_dir, options,
+    env_vars=None):
   print()
   print('Building {} with {}'.format(app, shrinker))
 
@@ -335,7 +346,7 @@ def BuildAppWithShrinker(
   if options.disable_tot:
     as_utils.remove_r8_dependency(checkout_dir)
   else:
-    as_utils.add_r8_dependency(checkout_dir, IsMinifiedR8(shrinker))
+    as_utils.add_r8_dependency(checkout_dir, temp_dir, IsMinifiedR8(shrinker))
 
   app_module = config.get('app_module', 'app')
   archives_base_name = config.get('archives_base_name', app_module)
@@ -419,7 +430,7 @@ def BuildAppWithShrinker(
     apk_dest = os.path.join(out_dir, unsigned_apk_name)
     as_utils.MoveFile(unsigned_apk, apk_dest)
 
-  assert IsBuiltWithR8(apk_dest) == ('r8' in shrinker), (
+  assert IsBuiltWithR8(apk_dest, temp_dir) == ('r8' in shrinker), (
       'Unexpected marker in generated APK for {}'.format(shrinker))
 
   profile_dest_dir = os.path.join(out_dir, 'profile')
@@ -428,13 +439,15 @@ def BuildAppWithShrinker(
   return (apk_dest, profile_dest_dir, proguard_config_dest)
 
 def RebuildAppWithShrinker(
-    apk, apk_dest, proguard_config_file, shrinker, min_sdk, compile_sdk):
+    apk, apk_dest, proguard_config_file, shrinker, min_sdk, compile_sdk,
+    temp_dir):
   assert 'r8' in shrinker
   assert apk_dest.endswith('.apk')
 
   # Compile given APK with shrinker to temporary zip file.
   android_jar = utils.get_android_jar(compile_sdk)
-  r8_jar = utils.R8LIB_JAR if IsMinifiedR8(shrinker) else utils.R8_JAR
+  r8_jar = os.path.join(
+      temp_dir, 'r8lib.jar' if IsMinifiedR8(shrinker) else 'r8.jar')
   zip_dest = apk_dest[:-4] + '.zip'
 
   # TODO(christofferqa): Entry point should be CompatProguard if the shrinker
@@ -613,32 +626,39 @@ def main(argv):
   global SHRINKERS
 
   (options, args) = ParseOptions(argv)
-  assert options.disable_tot or os.path.isfile(utils.R8_JAR), (
-      'Cannot build from ToT without r8.jar')
-  assert options.disable_tot or os.path.isfile(utils.R8LIB_JAR), (
-      'Cannot build from ToT without r8lib.jar')
 
-  if options.disable_tot:
-    # Cannot run r8 lib without adding r8lib.jar as an dependency
-    SHRINKERS = [
-        shrinker for shrinker in SHRINKERS
-        if 'minified' not in shrinker]
+  with utils.TempDir() as temp_dir:
+    if options.disable_tot:
+      # Cannot run r8 lib without adding r8lib.jar as an dependency
+      SHRINKERS = [
+          shrinker for shrinker in SHRINKERS
+          if 'minified' not in shrinker]
+    else:
+      if not options.no_build:
+        gradle.RunGradle(['r8', 'r8lib'])
 
-  if not options.no_build and not options.disable_tot:
-    gradle.RunGradle(['r8', 'r8lib'])
+      assert os.path.isfile(utils.R8_JAR), (
+          'Cannot build from ToT without r8.jar')
+      assert os.path.isfile(utils.R8LIB_JAR), (
+          'Cannot build from ToT without r8lib.jar')
 
-  result_per_shrinker_per_app = {}
+      # Make a copy of r8.jar and r8lib.jar such that they stay the same for
+      # the entire execution of this script.
+      shutil.copyfile(utils.R8_JAR, os.path.join(temp_dir, 'r8.jar'))
+      shutil.copyfile(utils.R8LIB_JAR, os.path.join(temp_dir, 'r8lib.jar'))
 
-  if options.app:
-    result_per_shrinker_per_app[options.app] = GetResultsForApp(
-        options.app, APPS.get(options.app), options)
-  else:
-    for app, config in APPS.iteritems():
-      if not config.get('skip', False):
-        result_per_shrinker_per_app[app] = GetResultsForApp(
-            app, config, options)
+    result_per_shrinker_per_app = {}
 
-  LogResultsForApps(result_per_shrinker_per_app, options)
+    if options.app:
+      result_per_shrinker_per_app[options.app] = GetResultsForApp(
+          options.app, APPS.get(options.app), options, temp_dir)
+    else:
+      for app, config in APPS.iteritems():
+        if not config.get('skip', False):
+          result_per_shrinker_per_app[app] = GetResultsForApp(
+              app, config, options, temp_dir)
+
+    LogResultsForApps(result_per_shrinker_per_app, options)
 
 def success(message):
   CGREEN = '\033[32m'

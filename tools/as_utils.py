@@ -10,9 +10,10 @@ import shutil
 
 import utils
 
-def add_r8_dependency(checkout_dir, minified):
+def add_r8_dependency(checkout_dir, temp_dir, minified):
   build_file = os.path.join(checkout_dir, 'build.gradle')
-  assert os.path.isfile(build_file), 'Expected a file to be present at {}'.format(build_file)
+  assert os.path.isfile(build_file), (
+      'Expected a file to be present at {}'.format(build_file))
 
   with open(build_file) as f:
     lines = f.readlines()
@@ -25,15 +26,16 @@ def add_r8_dependency(checkout_dir, minified):
     for line in lines:
       stripped = line.strip()
       if stripped == 'dependencies {':
-        assert not is_inside_dependencies, 'Unexpected line with \'dependencies {\''
+        assert not is_inside_dependencies, (
+            'Unexpected line with \'dependencies {\'')
         is_inside_dependencies = True
       if is_inside_dependencies:
-        if utils.R8_JAR in stripped:
+        if '/r8.jar' in stripped:
           if minified:
             # Skip line to avoid dependency on r8.jar
             continue
           added_r8_dependency = True
-        elif utils.R8LIB_JAR in stripped:
+        elif '/r8lib.jar' in stripped:
           if not minified:
             # Skip line to avoid dependency on r8lib.jar
             continue
@@ -42,7 +44,7 @@ def add_r8_dependency(checkout_dir, minified):
           gradle_version = stripped[stripped.rindex(':')+1:-1]
           if not added_r8_dependency:
             indent = ''.ljust(line.index('classpath'))
-            jar = utils.R8LIB_JAR if minified else utils.R8_JAR
+            jar = os.path.join(temp_dir, 'r8lib.jar' if minified else 'r8.jar')
             f.write('{}classpath files(\'{}\')\n'.format(indent, jar))
             added_r8_dependency = True
         elif stripped == '}':
@@ -63,44 +65,37 @@ def remove_r8_dependency(checkout_dir):
     lines = f.readlines()
   with open(build_file, 'w') as f:
     for line in lines:
-      if (utils.R8_JAR not in line) and (utils.R8LIB_JAR not in line):
+      if ('/r8.jar' not in line) and ('/r8lib.jar' not in line):
         f.write(line)
 
 def GetMinAndCompileSdk(app, config, checkout_dir, apk_reference):
-  app_module = config.get('app_module', 'app')
-  build_gradle_file = os.path.join(checkout_dir, app_module, 'build.gradle')
-  assert os.path.isfile(build_gradle_file), (
-      'Expected to find build.gradle file at {}'.format(build_gradle_file))
 
-  compile_sdk = None
-  min_sdks = []
-  target_sdk = None
+  compile_sdk = config.get('compile_sdk', None)
+  min_sdk = config.get('min_sdk', None)
 
-  with open(build_gradle_file) as f:
-    for line in f.readlines():
-      stripped = line.strip()
-      if stripped.startswith('compileSdkVersion '):
-        assert not compile_sdk
-        compile_sdk = int(stripped[len('compileSdkVersion '):])
-      if stripped.startswith('minSdkVersion '):
-        min_sdks.append(int(stripped[len('minSdkVersion '):]))
-      elif stripped.startswith('targetSdkVersion '):
-        assert not target_sdk
-        target_sdk = int(stripped[len('targetSdkVersion '):])
+  if not compile_sdk or not min_sdk:
+    app_module = config.get('app_module', 'app')
+    build_gradle_file = os.path.join(checkout_dir, app_module, 'build.gradle')
+    assert os.path.isfile(build_gradle_file), (
+        'Expected to find build.gradle file at {}'.format(build_gradle_file))
 
-  if len(min_sdks) == 1:
-    min_sdk = min_sdks[0]
-  else:
-    assert 'min_sdk' in config
-    min_sdk = config.get('min_sdk')
+    # Attempt to find the sdk values from build.gradle.
+    with open(build_gradle_file) as f:
+      for line in f.readlines():
+        stripped = line.strip()
+        if stripped.startswith('compileSdkVersion '):
+          if 'compile_sdk' not in config:
+            assert not compile_sdk
+            compile_sdk = int(stripped[len('compileSdkVersion '):])
+        elif stripped.startswith('minSdkVersion '):
+          if 'min_sdk' not in config:
+            assert not min_sdk
+            min_sdk = int(stripped[len('minSdkVersion '):])
 
   assert min_sdk, (
       'Expected to find `minSdkVersion` in {}'.format(build_gradle_file))
   assert compile_sdk, (
       'Expected to find `compileSdkVersion` in {}'.format(build_gradle_file))
-
-  assert not target_sdk or target_sdk == compile_sdk, (
-      'Expected `compileSdkVersion` and `targetSdkVersion` to be the same')
 
   return (min_sdk, compile_sdk)
 
