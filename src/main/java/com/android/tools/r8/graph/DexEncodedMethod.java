@@ -812,7 +812,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
     public static boolean UNKNOWN_RETURNS_CONSTANT = false;
     public static int UNKNOWN_RETURNED_CONSTANT = -1;
-    public static boolean NOT_PUBLICZED = false;
     public static boolean DOES_NOT_USE_IDNETIFIER_NAME_STRING = false;
     public static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
     public static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
@@ -932,7 +931,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NORMALLY;
     private boolean returnsConstant = DefaultOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
     private long returnedConstant = DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT;
-    private boolean publicized = DefaultOptimizationInfoImpl.NOT_PUBLICZED;
     private InlinePreference inlining = InlinePreference.Default;
     private boolean useIdentifierNameString =
         DefaultOptimizationInfoImpl.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
@@ -978,7 +976,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       neverReturnsNormally = template.neverReturnsNormally;
       returnsConstant = template.returnsConstant;
       returnedConstant = template.returnedConstant;
-      publicized = template.publicized;
       inlining = template.inlining;
       useIdentifierNameString = template.useIdentifierNameString;
       checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
@@ -1162,16 +1159,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       // For concurrent scenarios we should allow the flag to be already set
       assert inlining == InlinePreference.Default || inlining == InlinePreference.NeverInline;
       inlining = InlinePreference.NeverInline;
-    }
-
-    @Override
-    public void markPublicized() {
-      publicized = true;
-    }
-
-    @Override
-    public void unsetPublicized() {
-      publicized = false;
     }
 
     @Override

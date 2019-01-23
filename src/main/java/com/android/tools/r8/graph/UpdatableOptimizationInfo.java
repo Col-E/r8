@@ -42,8 +42,4 @@ public interface UpdatableOptimizationInfo extends OptimizationInfo {
   void unsetForceInline();
 
   void markNeverInline();
-
-  void markPublicized();
-
-  void unsetPublicized();
 }
