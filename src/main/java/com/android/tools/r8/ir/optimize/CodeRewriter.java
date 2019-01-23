@@ -2112,6 +2112,16 @@ public class CodeRewriter {
       return false;
     }
 
+    // If the in-value is `null` and the cast-type is a float-array type, then trivial check-cast
+    // elimination may lead to verification errors. See b/123269162.
+    if (options.canHaveArtCheckCastVerifierBug()) {
+      if (inValue.getTypeLattice().isNullType()
+          && castType.isArrayType()
+          && castType.toBaseType(dexItemFactory).isFloatType()) {
+        return false;
+      }
+    }
+
     // We might see chains of casts on subtypes. It suffices to cast to the lowest subtype,
     // as that will fail if a cast on a supertype would have failed.
     Predicate<Instruction> isCheckcastToSubtype =
@@ -2156,6 +2166,9 @@ public class CodeRewriter {
 
   private boolean isTypeInaccessibleInCurrentContext(DexType type, DexEncodedMethod context) {
     DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+    if (baseType.isPrimitiveType()) {
+      return false;
+    }
     DexClass clazz = definitionFor(baseType);
     if (clazz == null) {
       // Conservatively say yes.
