@@ -474,7 +474,7 @@ public abstract class DexClass extends DexDefinition {
 
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {
     return Arrays.stream(staticFields())
-        .anyMatch(field -> !field.getStaticValue().mayTriggerAllocation());
+        .anyMatch(field -> field.getStaticValue().mayTriggerAllocation());
   }
 
   public List<InnerClassAttribute> getInnerClasses() {
