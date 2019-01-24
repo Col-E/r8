@@ -42,6 +42,8 @@ APPS = {
       'app_id': 'de.danoeh.antennapod',
       'git_repo': 'https://github.com/christofferqa/AntennaPod.git',
       'flavor': 'play',
+      'min_sdk': 14,
+      'compile_sdk': 26
   },
   'apps-android-wikipedia': {
       'app_id': 'org.wikipedia',
@@ -128,7 +130,7 @@ def ComputeSizeOfDexFilesInApk(apk):
       dex_size += z.getinfo(filename).file_size
   return dex_size
 
-def IsBuiltWithR8(apk, temp_dir):
+def IsBuiltWithR8(apk, temp_dir, options):
   r8_jar = os.path.join(temp_dir, 'r8.jar')
 
   # Use the copy of r8.jar if it is there.
@@ -138,7 +140,7 @@ def IsBuiltWithR8(apk, temp_dir):
     script = os.path.join(utils.TOOLS_DIR, 'extractmarker.py')
     cmd = ['python', script, apk]
 
-  utils.PrintCmd(cmd)
+  utils.PrintCmd(cmd, quiet=options.quiet)
   return '~~R8' in subprocess.check_output(cmd).strip()
 
 def IsMinifiedR8(shrinker):
@@ -157,9 +159,13 @@ def GitPull():
 def GitCheckout(file):
   return subprocess.check_output(['git', 'checkout', file]).strip()
 
-def InstallApkOnEmulator(apk_dest):
-  subprocess.check_call(
-      ['adb', '-s', emulator_id, 'install', '-r', '-d', apk_dest])
+def InstallApkOnEmulator(apk_dest, options):
+  cmd = ['adb', '-s', emulator_id, 'install', '-r', '-d', apk_dest]
+  if options.quiet:
+    with open(os.devnull, 'w') as devnull:
+      subprocess.check_call(cmd, stdout=devnull)
+  else:
+    subprocess.check_call(cmd)
 
 def PercentageDiffAsString(before, after):
   if after < before:
@@ -167,7 +173,7 @@ def PercentageDiffAsString(before, after):
   else:
     return '+' + str(round((after - before) / before * 100)) + '%'
 
-def UninstallApkOnEmulator(app, config):
+def UninstallApkOnEmulator(app, config, options):
   app_id = config.get('app_id')
   process = subprocess.Popen(
       ['adb', 'uninstall', app_id],
@@ -215,10 +221,10 @@ def GetResultsForApp(app, config, options, temp_dir):
   result = {}
 
   if not os.path.exists(checkout_dir):
-    with utils.ChangedWorkingDirectory(WORKING_DIR):
+    with utils.ChangedWorkingDirectory(WORKING_DIR, quiet=options.quiet):
       GitClone(git_repo)
   elif options.pull:
-    with utils.ChangedWorkingDirectory(checkout_dir):
+    with utils.ChangedWorkingDirectory(checkout_dir, quiet=options.quiet):
       # Checkout build.gradle to avoid merge conflicts.
       if IsTrackedByGit('build.gradle'):
         GitCheckout('build.gradle')
@@ -240,7 +246,7 @@ def GetResultsForApp(app, config, options, temp_dir):
 def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
   result_per_shrinker = {}
 
-  with utils.ChangedWorkingDirectory(checkout_dir):
+  with utils.ChangedWorkingDirectory(checkout_dir, quiet=options.quiet):
     for shrinker in SHRINKERS:
       if options.shrinker and shrinker not in options.shrinker:
         continue
@@ -280,15 +286,9 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
           # Build app with gradle using -D...keepRuleSynthesisForRecompilation=
           # true.
           out_dir = os.path.join(checkout_dir, 'out', shrinker + '-1')
-          extra_env_vars = {
-            'JAVA_OPTS': ' '.join([
-              '-ea:com.android.tools.r8...',
-              '-Dcom.android.tools.r8.keepRuleSynthesisForRecompilation=true'
-            ])
-          }
           (apk_dest, profile_dest_dir, ext_proguard_config_file) = \
               BuildAppWithShrinker(app, config, shrinker, checkout_dir, out_dir,
-                  temp_dir, options, extra_env_vars)
+                  temp_dir, options, keepRuleSynthesisForRecompilation=True)
           dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
           recompilation_result = {
             'apk_dest': apk_dest,
@@ -314,8 +314,9 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
               recompiled_apk_dest = os.path.join(
                   checkout_dir, 'out', shrinker, 'app-release-{}.apk'.format(i))
               RebuildAppWithShrinker(
-                  previous_apk, recompiled_apk_dest, ext_proguard_config_file,
-                  shrinker, min_sdk, compile_sdk, temp_dir)
+                  app, previous_apk, recompiled_apk_dest,
+                  ext_proguard_config_file, shrinker, min_sdk, compile_sdk,
+                  options, temp_dir)
               recompilation_result = {
                 'apk_dest': recompiled_apk_dest,
                 'build_status': 'success',
@@ -334,13 +335,20 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
 
       result_per_shrinker[shrinker] = result
 
+  if not options.app:
+    print('')
+    LogResultsForApp(app, result_per_shrinker, options)
+    print('')
+
   return result_per_shrinker
 
 def BuildAppWithShrinker(
     app, config, shrinker, checkout_dir, out_dir, temp_dir, options,
-    env_vars=None):
-  print()
-  print('Building {} with {}'.format(app, shrinker))
+    keepRuleSynthesisForRecompilation=False):
+  print('Building {} with {}{}'.format(
+      app,
+      shrinker,
+      ' for recompilation' if keepRuleSynthesisForRecompilation else ''))
 
   # Add/remove 'r8.jar' from top-level build.gradle.
   if options.disable_tot:
@@ -361,11 +369,9 @@ def BuildAppWithShrinker(
   as_utils.SetPrintConfigurationDirective(
       app, config, checkout_dir, proguard_config_dest)
 
-  env = os.environ.copy()
+  env = {}
   env['ANDROID_HOME'] = android_home
   env['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
-  if env_vars:
-    env.update(env_vars)
 
   releaseTarget = config.get('releaseTarget')
   if not releaseTarget:
@@ -381,20 +387,12 @@ def BuildAppWithShrinker(
          '--profile', '--stacktrace',
          '-Pandroid.enableR8=' + str(enableR8).lower(),
          '-Pandroid.enableR8.fullMode=' + str(enableR8FullMode).lower()]
+  if keepRuleSynthesisForRecompilation:
+    cmd.append('-Dcom.android.tools.r8.keepRuleSynthesisForRecompilation=true')
   if options.gradle_flags:
     cmd.extend(options.gradle_flags.split(' '))
 
-  utils.PrintCmd(cmd)
-  build_process = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
-  stdout = []
-  while True:
-    line = build_process.stdout.readline()
-    if line != b'':
-      stripped = line.rstrip()
-      stdout.append(stripped)
-      print(stripped)
-    else:
-      break
+  stdout = utils.RunCmd(cmd, env, quiet=options.quiet)
 
   apk_base_name = (archives_base_name
       + (('-' + flavor) if flavor else '') + '-release')
@@ -425,24 +423,26 @@ def BuildAppWithShrinker(
 
   if os.path.isfile(signed_apk):
     apk_dest = os.path.join(out_dir, signed_apk_name)
-    as_utils.MoveFile(signed_apk, apk_dest)
+    as_utils.MoveFile(signed_apk, apk_dest, quiet=options.quiet)
   else:
     apk_dest = os.path.join(out_dir, unsigned_apk_name)
-    as_utils.MoveFile(unsigned_apk, apk_dest)
+    as_utils.MoveFile(unsigned_apk, apk_dest, quiet=options.quiet)
 
-  assert IsBuiltWithR8(apk_dest, temp_dir) == ('r8' in shrinker), (
+  assert IsBuiltWithR8(apk_dest, temp_dir, options) == ('r8' in shrinker), (
       'Unexpected marker in generated APK for {}'.format(shrinker))
 
   profile_dest_dir = os.path.join(out_dir, 'profile')
-  as_utils.MoveProfileReportTo(profile_dest_dir, stdout)
+  as_utils.MoveProfileReportTo(profile_dest_dir, stdout, quiet=options.quiet)
 
   return (apk_dest, profile_dest_dir, proguard_config_dest)
 
 def RebuildAppWithShrinker(
-    apk, apk_dest, proguard_config_file, shrinker, min_sdk, compile_sdk,
-    temp_dir):
+    app, apk, apk_dest, proguard_config_file, shrinker, min_sdk, compile_sdk,
+    options, temp_dir):
   assert 'r8' in shrinker
   assert apk_dest.endswith('.apk')
+
+  print('Rebuilding {} with {}'.format(app, shrinker))
 
   # Compile given APK with shrinker to temporary zip file.
   android_jar = utils.get_android_jar(compile_sdk)
@@ -462,20 +462,19 @@ def RebuildAppWithShrinker(
     cmd.append('--lib')
     cmd.append(android_optional_jar)
 
-  utils.PrintCmd(cmd)
-
-  subprocess.check_output(cmd)
+  utils.RunCmd(cmd, quiet=options.quiet)
 
   # Make a copy of the given APK, move the newly generated dex files into the
   # copied APK, and then sign the APK.
-  apk_masseur.masseur(apk, dex=zip_dest, out=apk_dest)
+  apk_masseur.masseur(
+    apk, dex=zip_dest, out=apk_dest, quiet=options.quiet)
 
 def RunMonkey(app, config, options, apk_dest):
   if not WaitForEmulator():
     return False
 
-  UninstallApkOnEmulator(app, config)
-  InstallApkOnEmulator(apk_dest)
+  UninstallApkOnEmulator(app, config, options)
+  InstallApkOnEmulator(apk_dest, options)
 
   app_id = config.get('app_id')
   number_of_events_to_generate = options.monkey_events
@@ -486,27 +485,28 @@ def RunMonkey(app, config, options, apk_dest):
 
   cmd = ['adb', 'shell', 'monkey', '-p', app_id, '-s', str(random_seed),
       str(number_of_events_to_generate)]
-  utils.PrintCmd(cmd)
 
   try:
-    stdout = subprocess.check_output(cmd)
+    stdout = utils.RunCmd(cmd, quiet=options.quiet)
     succeeded = (
         'Events injected: {}'.format(number_of_events_to_generate) in stdout)
   except subprocess.CalledProcessError as e:
     succeeded = False
 
-  UninstallApkOnEmulator(app, config)
+  UninstallApkOnEmulator(app, config, options)
 
   return succeeded
 
 def LogResultsForApps(result_per_shrinker_per_app, options):
-  for app, result_per_shrinker in result_per_shrinker_per_app.iteritems():
+  print('')
+  for app, result_per_shrinker in sorted(
+      result_per_shrinker_per_app.iteritems()):
     LogResultsForApp(app, result_per_shrinker, options)
 
 def LogResultsForApp(app, result_per_shrinker, options):
   print(app + ':')
 
-  if result_per_shrinker.get('status') != 'success':
+  if result_per_shrinker.get('status', 'success') != 'success':
     error_message = result_per_shrinker.get('error_message')
     print('  skipped ({})'.format(error_message))
     return
@@ -613,6 +613,10 @@ def ParseOptions(argv):
                     action='store_true')
   result.add_option('--gradle-flags', '--gradle_flags',
                     help='Flags to pass in to gradle')
+  result.add_option('--quiet',
+                    help='Disable verbose logging',
+                    default=False,
+                    action='store_true')
   (options, args) = result.parse_args(argv)
   if options.disable_tot:
     # r8.jar is required for recompiling the generated APK
@@ -653,7 +657,7 @@ def main(argv):
       result_per_shrinker_per_app[options.app] = GetResultsForApp(
           options.app, APPS.get(options.app), options, temp_dir)
     else:
-      for app, config in APPS.iteritems():
+      for app, config in sorted(APPS.iteritems()):
         if not config.get('skip', False):
           result_per_shrinker_per_app[app] = GetResultsForApp(
               app, config, options, temp_dir)

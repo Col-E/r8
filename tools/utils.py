@@ -54,12 +54,85 @@ RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
 RETRACE_JAR = os.path.join(THIRD_PARTY, 'proguard', 'proguard6.0.1', 'lib', 'retrace.jar')
 
-def PrintCmd(s):
-  if type(s) is list:
-    s = ' '.join(s)
-  print 'Running: %s' % s
+def Print(s, quiet=False):
+  if quiet:
+    return
+  print(s)
+
+def Warn(message):
+  CRED = '\033[91m'
+  CEND = '\033[0m'
+  print(CRED + message + CEND)
+
+def PrintCmd(cmd, env=None, quiet=False):
+  if quiet:
+    return
+  if type(cmd) is list:
+    cmd = ' '.join(cmd)
+  if env:
+    env = ' '.join(['{}=\"{}\"'.format(x, y) for x, y in env.iteritems()])
+    print('Running: {} {}'.format(env, cmd))
+  else:
+    print('Running: {}'.format(cmd))
   # I know this will hit os on windows eventually if we don't do this.
   sys.stdout.flush()
+
+class ProgressLogger(object):
+  CLEAR_LINE = '\033[K'
+  UP = '\033[F'
+
+  def __init__(self, quiet=False):
+    self._count = 0
+    self._has_printed = False
+    self._quiet = quiet
+
+  def log(self, text):
+    if self._quiet:
+      if self._has_printed:
+        sys.stdout.write(ProgressLogger.UP + ProgressLogger.CLEAR_LINE)
+      if len(text) > 140:
+        text = text[0:140] + '...'
+    print(text)
+    self._has_printed = True
+
+  def done(self):
+    if self._quiet and self._has_printed:
+      sys.stdout.write(ProgressLogger.UP + ProgressLogger.CLEAR_LINE)
+      print('')
+      sys.stdout.write(ProgressLogger.UP)
+
+def RunCmd(cmd, env_vars=None, quiet=False):
+  PrintCmd(cmd, env=env_vars, quiet=quiet)
+  env = os.environ.copy()
+  if env_vars:
+    env.update(env_vars)
+  process = subprocess.Popen(
+      cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  stdout = []
+  logger = ProgressLogger(quiet=quiet)
+  failed = False
+  while True:
+    line = process.stdout.readline()
+    if line != b'':
+      stripped = line.rstrip()
+      stdout.append(stripped)
+      logger.log(stripped)
+
+      # TODO(christofferqa): r8 should fail with non-zero exit code.
+      if ('AssertionError' in stripped
+          or 'CompilationError' in stripped
+          or 'CompilationFailedException' in stripped
+          or 'Compilation failed' in stripped):
+        failed = True
+    else:
+      logger.done()
+      exit_code = process.poll()
+      if exit_code or failed:
+        for line in stdout:
+          Warn(line)
+        raise subprocess.CalledProcessError(
+            exit_code, cmd, output='\n'.join(stdout))
+      return stdout
 
 def IsWindows():
   return os.name == 'nt'
@@ -196,16 +269,19 @@ class TempDir(object):
    shutil.rmtree(self._temp_dir, ignore_errors=True)
 
 class ChangedWorkingDirectory(object):
- def __init__(self, working_directory):
+ def __init__(self, working_directory, quiet=False):
+   self._quiet = quiet
    self._working_directory = working_directory
 
  def __enter__(self):
    self._old_cwd = os.getcwd()
-   print 'Enter directory = ', self._working_directory
+   if not self._quiet:
+     print 'Enter directory:', self._working_directory
    os.chdir(self._working_directory)
 
  def __exit__(self, *_):
-   print 'Enter directory = ', self._old_cwd
+   if not self._quiet:
+     print 'Enter directory:', self._old_cwd
    os.chdir(self._old_cwd)
 
 # Reading Android CTS test_result.xml

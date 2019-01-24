@@ -30,23 +30,15 @@ def add_r8_dependency(checkout_dir, temp_dir, minified):
             'Unexpected line with \'dependencies {\'')
         is_inside_dependencies = True
       if is_inside_dependencies:
-        if '/r8.jar' in stripped:
-          if minified:
-            # Skip line to avoid dependency on r8.jar
-            continue
-          added_r8_dependency = True
-        elif '/r8lib.jar' in stripped:
-          if not minified:
-            # Skip line to avoid dependency on r8lib.jar
-            continue
-          added_r8_dependency = True
+        if '/r8.jar' in stripped or '/r8lib.jar' in stripped:
+          # Skip line to avoid dependency on r8.jar
+          continue
         elif 'com.android.tools.build:gradle:' in stripped:
           gradle_version = stripped[stripped.rindex(':')+1:-1]
-          if not added_r8_dependency:
-            indent = ''.ljust(line.index('classpath'))
-            jar = os.path.join(temp_dir, 'r8lib.jar' if minified else 'r8.jar')
-            f.write('{}classpath files(\'{}\')\n'.format(indent, jar))
-            added_r8_dependency = True
+          indent = ''.ljust(line.index('classpath'))
+          jar = os.path.join(temp_dir, 'r8lib.jar' if minified else 'r8.jar')
+          f.write('{}classpath files(\'{}\')\n'.format(indent, jar))
+          added_r8_dependency = True
         elif stripped == '}':
           is_inside_dependencies = False
       f.write(line)
@@ -147,8 +139,9 @@ def FindProguardConfigurationFile(app, config, checkout_dir):
   # one of the predefined locations.
   assert False
 
-def Move(src, dst):
-  print('Moving `{}` to `{}`'.format(src, dst))
+def Move(src, dst, quiet=False):
+  if not quiet:
+    print('Moving `{}` to `{}`'.format(src, dst))
   dst_parent = os.path.dirname(dst)
   if not os.path.isdir(dst_parent):
     os.makedirs(dst_parent)
@@ -158,15 +151,15 @@ def Move(src, dst):
     os.remove(dst)
   os.rename(src, dst)
 
-def MoveDir(src, dst):
+def MoveDir(src, dst, quiet=False):
   assert os.path.isdir(src)
-  Move(src, dst)
+  Move(src, dst, quiet=quiet)
 
-def MoveFile(src, dst):
+def MoveFile(src, dst, quiet=False):
   assert os.path.isfile(src)
-  Move(src, dst)
+  Move(src, dst, quiet=quiet)
 
-def MoveProfileReportTo(dest_dir, build_stdout):
+def MoveProfileReportTo(dest_dir, build_stdout, quiet=False):
   html_file = None
   profile_message = 'See the profiling report at: '
   for line in build_stdout:
@@ -181,11 +174,12 @@ def MoveProfileReportTo(dest_dir, build_stdout):
 
   assert os.path.isfile(html_file), 'Expected to find HTML file at {}'.format(
       html_file)
-  MoveFile(html_file, os.path.join(dest_dir, 'index.html'))
+  MoveFile(html_file, os.path.join(dest_dir, 'index.html'), quiet=quiet)
 
   html_dir = os.path.dirname(html_file)
   for dir_name in ['css', 'js']:
-    MoveDir(os.path.join(html_dir, dir_name), os.path.join(dest_dir, dir_name))
+    MoveDir(os.path.join(html_dir, dir_name), os.path.join(dest_dir, dir_name),
+        quiet=quiet)
 
 def ParseProfileReport(profile_dir):
   html_file = os.path.join(profile_dir, 'index.html')
