@@ -7,11 +7,10 @@ import os
 import subprocess
 import utils
 
-def sign(unsigned_apk, signed_apk, keystore):
-  print 'Signing (ignore the warnings)'
+def sign(unsigned_apk, signed_apk, keystore, quiet=False):
+  utils.Print('Signing (ignore the warnings)', quiet=quiet)
   cmd = ['zip', '-d', unsigned_apk, 'META-INF/*']
-  utils.PrintCmd(cmd)
-  subprocess.call(cmd)
+  utils.RunCmd(cmd, quiet=quiet)
   cmd = [
     'jarsigner',
     '-sigalg', 'SHA1withRSA',
@@ -22,8 +21,7 @@ def sign(unsigned_apk, signed_apk, keystore):
     unsigned_apk,
     'androiddebugkey'
   ]
-  utils.PrintCmd(cmd)
-  subprocess.check_call(cmd)
+  utils.RunCmd(cmd, quiet=quiet)
 
 def sign_with_apksigner(build_tools_dir, unsigned_apk, signed_apk, keystore, password):
   cmd = [
