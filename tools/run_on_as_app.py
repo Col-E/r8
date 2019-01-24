@@ -51,6 +51,10 @@ APPS = {
       'flavor': 'prod',
       'signed-apk-name': 'app-prod-universal-release.apk'
   },
+  'chanu': {
+    'app_id': 'com.chanapps.four.activity',
+    'git_repo': 'https://github.com/mkj-gram/chanu.git',
+  },
   'friendlyeats-android': {
       'app_id': 'com.google.firebase.example.fireeats',
       'git_repo': 'https://github.com/christofferqa/friendlyeats-android.git'
@@ -71,6 +75,14 @@ APPS = {
       'app_id': 'org.schabi.newpipe',
       'git_repo': 'https://github.com/christofferqa/NewPipe',
   },
+  'Signal-Android': {
+    'app_id': 'org.thoughtcrime.securesms',
+    'app_module': '',
+    'flavor': 'play',
+    'git_repo': 'https://github.com/mkj-gram/Signal-Android.git',
+    'releaseTarget': 'assemblePlayRelease',
+    'signed-apk-name': 'Signal-play-release-4.32.7.apk',
+  },
   'Simple-Calendar': {
       'app_id': 'com.simplemobiletools.calendar.pro',
       'git_repo': 'https://github.com/christofferqa/Simple-Calendar',
@@ -90,18 +102,6 @@ APPS = {
       'git_repo': 'https://github.com/sgjesse/tivi.git',
       # TODO(123047413): Fails with R8.
       'skip': True,
-  },
-  'Signal-Android': {
-    'app_id': 'org.thoughtcrime.securesms',
-    'app_module': '',
-    'flavor': 'play',
-    'git_repo': 'https://github.com/mkj-gram/Signal-Android.git',
-    'releaseTarget': 'assemblePlayRelease',
-    'signed-apk-name': 'Signal-play-release-4.32.7.apk',
-  },
-  'chanu': {
-    'app_id': 'com.chanapps.four.activity',
-    'git_repo': 'https://github.com/mkj-gram/chanu.git',
   },
   # This does not build yet.
   'muzei': {
