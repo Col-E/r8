@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
@@ -110,6 +111,22 @@ public class JarClassFileReader {
     reader.accept(
         new CreateDexClassVisitor(origin, classKind, reader.b, application, classConsumer),
         parsingOptions);
+
+    // Read marker.
+    if (reader.getItemCount() > CfApplicationWriter.MARKER_STRING_CONSTANT_POOL_INDEX
+        && reader.getItem(CfApplicationWriter.MARKER_STRING_CONSTANT_POOL_INDEX) > 0) {
+      try {
+        Object maybeMarker =
+            reader.readConst(
+                CfApplicationWriter.MARKER_STRING_CONSTANT_POOL_INDEX,
+                new char[reader.getMaxStringLength()]);
+        if (maybeMarker instanceof String) {
+          application.getFactory().createString((String) maybeMarker);
+        }
+      } catch (IllegalArgumentException e) {
+        // Ignore if the type of the constant is not something readConst() allows.
+      }
+    }
   }
 
   private static int cleanAccessFlags(int access) {

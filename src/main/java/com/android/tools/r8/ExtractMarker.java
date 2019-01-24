@@ -70,6 +70,12 @@ public class ExtractMarker {
     return extractMarker(app);
   }
 
+  public static Collection<Marker> extractMarkerFromClassProgramData(byte[] data)
+      throws IOException, ExecutionException {
+    AndroidApp app = AndroidApp.builder().addClassProgramData(data, Origin.unknown()).build();
+    return extractMarker(app);
+  }
+
   private static void addDexResources(AndroidApp.Builder appBuilder, Path file)
       throws IOException, ResourceException {
     if (FileUtils.isVDexFile(file)) {

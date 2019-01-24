@@ -8,6 +8,7 @@ import static org.objectweb.asm.Opcodes.ASM6;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.dex.ApplicationWriter;
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.Code;
@@ -61,10 +62,15 @@ public class CfApplicationWriter {
   private static final boolean RUN_VERIFIER = false;
   private static final boolean PRINT_CF = false;
 
+  // First item inserted into the constant pool is the marker string which generates an UTF8 to
+  // pool index #1 and a String entry to #2, referencing #1.
+  public static final int MARKER_STRING_CONSTANT_POOL_INDEX = 2;
+
   private final DexApplication application;
   private final GraphLense graphLense;
   private final NamingLens namingLens;
   private final InternalOptions options;
+  private final String markerString;
 
   public final ProguardMapSupplier proguardMapSupplier;
   public final String deadCode;
@@ -73,6 +79,7 @@ public class CfApplicationWriter {
   public CfApplicationWriter(
       DexApplication application,
       InternalOptions options,
+      Marker marker,
       String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
@@ -82,6 +89,7 @@ public class CfApplicationWriter {
     this.graphLense = graphLense;
     this.namingLens = namingLens;
     this.options = options;
+    this.markerString = marker == null ? null : marker.toString();
     this.proguardMapSupplier = proguardMapSupplier;
     this.deadCode = deadCode;
     this.proguardSeedsData = proguardSeedsData;
@@ -117,6 +125,10 @@ public class CfApplicationWriter {
 
   private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer) throws IOException {
     ClassWriter writer = new ClassWriter(0);
+    if (markerString != null) {
+      int index = writer.newConst(markerString);
+      assert index == MARKER_STRING_CONSTANT_POOL_INDEX;
+    }
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, null);
     int version = getClassFileVersion(clazz);
     int access = clazz.accessFlags.getAsCfAccessFlags();

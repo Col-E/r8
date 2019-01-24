@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -15,8 +16,9 @@ import org.junit.Test;
 public class ExtractMarkerTest {
 
   @Test
-  public void extractMarkerTest() throws CompilationFailedException {
+  public void extractMarkerTestDex() throws CompilationFailedException {
     String classFile = ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
+    boolean[] testExecuted = {false};
     D8.run(
         D8Command.builder()
             .addProgramFiles(Paths.get(classFile))
@@ -42,8 +44,46 @@ public class ExtractMarkerTest {
                     assertEquals(
                         CompilationMode.DEBUG.toString().toLowerCase(),
                         marker.getCompilationMode());
+                    testExecuted[0] = true;
                   }
                 })
             .build());
+    assertTrue(testExecuted[0]);
+  }
+
+  @Test
+  public void extractMarkerTestCf() throws CompilationFailedException {
+    String classFile = ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
+    boolean[] testExecuted = {false};
+    R8.run(
+        R8Command.builder()
+            .addProgramFiles(Paths.get(classFile))
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+            .setMode(CompilationMode.DEBUG)
+            .setDisableTreeShaking(true)
+            .setProgramConsumer(
+                new ClassFileConsumer.ForwardingConsumer(null) {
+                  @Override
+                  public void accept(
+                      ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                    Marker marker;
+                    try {
+                      Collection<Marker> markers =
+                          ExtractMarker.extractMarkerFromClassProgramData(data.copyByteData());
+                      assertEquals(1, markers.size());
+                      marker = markers.iterator().next();
+                    } catch (Exception e) {
+                      throw new RuntimeException(e);
+                    }
+                    assertEquals(Tool.R8, marker.getTool());
+                    assertEquals(Version.LABEL, marker.getVersion());
+                    assertEquals(
+                        CompilationMode.DEBUG.toString().toLowerCase(),
+                        marker.getCompilationMode());
+                    testExecuted[0] = true;
+                  }
+                })
+            .build());
+    assertTrue(testExecuted[0]);
   }
 }

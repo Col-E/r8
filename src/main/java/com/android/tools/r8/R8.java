@@ -194,6 +194,7 @@ public class R8 {
         new CfApplicationWriter(
                 application,
                 options,
+                marker,
                 deadCode,
                 graphLense,
                 namingLens,
