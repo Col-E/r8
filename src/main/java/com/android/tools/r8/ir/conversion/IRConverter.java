@@ -1011,7 +1011,8 @@ public class IRConverter {
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
     codeRewriter.simplifyIf(code);
-    codeRewriter.redundantConstNumberRemoval(code);
+    // TODO(b/123284765) This produces a runtime-crash in Q. Activate again when fixed.
+    // codeRewriter.redundantConstNumberRemoval(code);
     new RedundantFieldLoadElimination(appInfo, code, enableWholeProgramOptimizations).run();
 
     if (options.testing.invertConditionals) {
