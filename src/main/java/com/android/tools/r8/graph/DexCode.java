@@ -197,7 +197,15 @@ public class DexCode extends Code {
             graphLense.getOriginalMethodSignature(encodedMethod.method),
             null,
             appInfo);
-    IRBuilder builder = new IRBuilder(encodedMethod, appInfo, source, options, origin);
+    IRBuilder builder =
+        new IRBuilder(
+            encodedMethod,
+            appInfo,
+            source,
+            options,
+            origin,
+            new ValueNumberGenerator(),
+            graphLense);
     return builder.build(encodedMethod);
   }
 
