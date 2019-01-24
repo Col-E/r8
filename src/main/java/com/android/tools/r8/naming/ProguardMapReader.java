@@ -318,7 +318,8 @@ public class ProguardMapReader implements AutoCloseable {
       throw new ParseException("Identifier expected");
     }
     nextCodePoint();
-    while (IdentifierUtils.isDexIdentifierPart(peekCodePoint())) {
+    while (IdentifierUtils.isDexIdentifierPart(peekCodePoint())
+        || IdentifierUtils.isQuestionMark(peekCodePoint())) {
       nextCodePoint();
     }
     if (isInit) {

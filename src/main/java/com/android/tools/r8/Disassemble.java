@@ -15,6 +15,8 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
@@ -88,13 +90,14 @@ public class Disassemble {
         "Usage: disasm [options] <input-files>\n"
             + " where <input-files> are dex files\n"
             + " and options are:\n"
-            + "  --all                   # Include all information in disassembly.\n"
-            + "  --smali                 # Disassemble using smali syntax.\n"
-            + "  --ir                    # Print IR before and after optimization.\n"
-            + "  --pg-map <file>         # Proguard map <file> for mapping names.\n"
-            + "  --output                # Specify a file or directory to write to.\n"
-            + "  --version               # Print the version of r8.\n"
-            + "  --help                  # Print this message.";
+            + "  --all                       # Include all information in disassembly.\n"
+            + "  --smali                     # Disassemble using smali syntax.\n"
+            + "  --ir                        # Print IR before and after optimization.\n"
+            + "  --pg-map <file>             # Proguard map <file> for mapping names.\n"
+            + "  --pg-map-charset <charset>  # Charset for Proguard map file.\n"
+            + "  --output                    # Specify a file or directory to write to.\n"
+            + "  --version                   # Print the version of r8.\n"
+            + "  --help                      # Print this message.";
 
     private final boolean allInfo;
     private final boolean useSmali;
@@ -127,6 +130,18 @@ public class Disassemble {
           builder.setUseIr(true);
         } else if (arg.equals("--pg-map")) {
           builder.setProguardMapFile(Paths.get(args[++i]));
+        } else if (arg.equals("--pg-map-charset")) {
+          String charset = args[++i];
+          try {
+            Charset.forName(charset);
+          } catch (UnsupportedCharsetException e) {
+            builder.getReporter().error(
+                new StringDiagnostic(
+                    "Unsupported charset: " + charset + "." + System.lineSeparator()
+                        + "Supported charsets are: "
+                        + String.join(", ", Charset.availableCharsets().keySet()),
+                CommandLineOrigin.INSTANCE));
+          }
         } else if (arg.equals("--output")) {
           String outputPath = args[++i];
           builder.setOutputPath(Paths.get(outputPath));
