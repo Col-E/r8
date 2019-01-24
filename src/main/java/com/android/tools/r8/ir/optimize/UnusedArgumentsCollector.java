@@ -208,8 +208,8 @@ public class UnusedArgumentsCollector {
       return null;
     }
     assert method.getCode().getOwner() == method;
-    int argumentCount =
-        method.method.proto.parameters.size() + (method.accessFlags.isStatic() ? 0 : 1);
+    int offset = method.accessFlags.isStatic() ? 0 : 1;
+    int argumentCount = method.method.proto.parameters.size() + offset;
     // TODO(65810338): Implement for virtual methods as well.
     if (method.accessFlags.isPrivate()
         || method.accessFlags.isStatic()
@@ -224,9 +224,13 @@ public class UnusedArgumentsCollector {
       BitSet used = collector.getUsedArguments();
       if (used.cardinality() < argumentCount) {
         List<RemovedArgumentInfo> unused = new ArrayList<>();
-        for (int i = 0; i < argumentCount; i++) {
-          if (!used.get(i)) {
-            unused.add(RemovedArgumentInfo.builder().setArgumentIndex(i).build());
+        for (int argumentIndex = 0; argumentIndex < argumentCount; argumentIndex++) {
+          if (!used.get(argumentIndex)) {
+            unused.add(
+                RemovedArgumentInfo.builder()
+                    .setArgumentIndex(argumentIndex)
+                    .setType(method.method.proto.parameters.values[argumentIndex - offset])
+                    .build());
           }
         }
         return new RemovedArgumentsInfo(unused);

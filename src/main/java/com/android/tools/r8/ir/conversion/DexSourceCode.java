@@ -38,9 +38,9 @@ import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentInfo;
+import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CanonicalPositions;
@@ -50,14 +50,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
 public class DexSourceCode implements SourceCode {
 
   private final DexCode code;
-  private final MethodAccessFlags accessFlags;
-  private final DexProto proto;
+  private final DexEncodedMethod method;
 
   // Mapping from instruction offset to instruction index in the DexCode instruction array.
   private final Map<Integer, Integer> offsetToInstructionIndex = new HashMap<>();
@@ -73,8 +73,6 @@ public class DexSourceCode implements SourceCode {
   private Position currentPosition = null;
   private final CanonicalPositions canonicalPositions;
 
-  private final List<TypeLatticeElement> argumentTypes;
-
   private List<DexDebugEntry> debugEntries = null;
   // In case of inlining the position of the invoke in the caller.
   private final DexMethod originalMethod;
@@ -86,11 +84,8 @@ public class DexSourceCode implements SourceCode {
       Position callerPosition,
       AppInfo appInfo) {
     this.code = code;
-    this.proto = method.method.proto;
-    this.accessFlags = method.accessFlags;
+    this.method = method;
     this.originalMethod = originalMethod;
-
-    argumentTypes = computeArgumentTypes(appInfo);
     DexDebugInfo info = code.getDebugInfo();
     if (info != null) {
       debugEntries = info.computeEntries(originalMethod);
@@ -149,16 +144,46 @@ public class DexSourceCode implements SourceCode {
     if (code.incomingRegisterSize == 0) {
       return;
     }
+
+    RemovedArgumentsInfo removedArgumentsInfo = builder.prototypeChanges.getRemovedArgumentsInfo();
+    ListIterator<RemovedArgumentInfo> removedArgumentIterator = removedArgumentsInfo.iterator();
+    RemovedArgumentInfo nextRemovedArgument =
+        removedArgumentIterator.hasNext() ? removedArgumentIterator.next() : null;
+
     // Fill in the Argument instructions (incomingRegisterSize last registers) in the argument
     // block.
+    int argumentIndex = 0;
+
     int register = code.registerSize - code.incomingRegisterSize;
-    if (!accessFlags.isStatic()) {
+    if (!method.isStatic()) {
       builder.addThisArgument(register);
+      ++argumentIndex;
       ++register;
     }
-    for (TypeLatticeElement typeLattice : argumentTypes) {
-      builder.addNonThisArgument(register, typeLattice);
-      register += typeLattice.requiredRegisters();
+
+    int numberOfArguments =
+        method.method.proto.parameters.values.length
+            + removedArgumentsInfo.numberOfRemovedArguments()
+            + (method.isStatic() ? 0 : 1);
+
+    for (int usedArgumentIndex = 0; argumentIndex < numberOfArguments; ++argumentIndex) {
+      TypeLatticeElement type;
+      if (nextRemovedArgument != null && nextRemovedArgument.getArgumentIndex() == argumentIndex) {
+        type =
+            TypeLatticeElement.fromDexType(
+                nextRemovedArgument.getType(), Nullability.maybeNull(), builder.getAppInfo());
+        builder.addConstantOrUnusedArgument(register);
+        nextRemovedArgument =
+            removedArgumentIterator.hasNext() ? removedArgumentIterator.next() : null;
+      } else {
+        type =
+            TypeLatticeElement.fromDexType(
+                method.method.proto.parameters.values[usedArgumentIndex++],
+                Nullability.maybeNull(),
+                builder.getAppInfo());
+        builder.addNonThisArgument(register, type);
+      }
+      register += type.requiredRegisters();
     }
     builder.flushArgumentInstructions();
   }
@@ -308,14 +333,6 @@ public class DexSourceCode implements SourceCode {
         arrayFilledDataPayloadResolver.getElementWidth(payloadOffset),
         arrayFilledDataPayloadResolver.getSize(payloadOffset),
         arrayFilledDataPayloadResolver.getData(payloadOffset));
-  }
-
-  private List<TypeLatticeElement> computeArgumentTypes(AppInfo appInfo) {
-    List<TypeLatticeElement> types = new ArrayList<>(proto.parameters.size());
-    for (DexType type : proto.parameters.values) {
-      types.add(TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appInfo));
-    }
-    return types;
   }
 
   private boolean isInvoke(Instruction dex) {

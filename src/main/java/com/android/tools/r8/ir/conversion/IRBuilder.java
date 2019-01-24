@@ -396,7 +396,7 @@ public class IRBuilder {
   private DexEncodedMethod context;
   private final AppInfo appInfo;
   private final Origin origin;
-  private RewrittenPrototypeDescription prototypeChanges;
+  final RewrittenPrototypeDescription prototypeChanges;
   private ListIterator<RemovedArgumentInfo> removedArgumentsIterator;
   private int argumentCount = 0;
 
@@ -894,15 +894,8 @@ public class IRBuilder {
       DebugLocalInfo local = getOutgoingLocal(register);
       Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
       addInstruction(new Argument(value));
-    } else if (removedArgumentInfo.isAlwaysNull()) {
-      if (pendingArgumentInstructions == null) {
-        pendingArgumentInstructions = new ArrayList<>();
-      }
-      DebugLocalInfo local = getOutgoingLocal(register);
-      Value value = writeRegister(register, TypeLatticeElement.NULL, ThrowingInfo.NO_THROW, local);
-      pendingArgumentInstructions.add(new ConstNumber(value, 0));
     } else {
-      assert removedArgumentInfo.isNeverUsed();
+      handleConstantOrUnusedArgument(register, removedArgumentInfo);
     }
   }
 
@@ -913,6 +906,25 @@ public class IRBuilder {
       Value value = writeRegister(register, INT, ThrowingInfo.NO_THROW, local);
       value.setKnownToBeBoolean(true);
       addInstruction(new Argument(value));
+    } else {
+      assert removedArgumentInfo.isNeverUsed();
+    }
+  }
+
+  public void addConstantOrUnusedArgument(int register) {
+    handleConstantOrUnusedArgument(register, getRemovedArgumentInfo());
+  }
+
+  private void handleConstantOrUnusedArgument(
+      int register, RemovedArgumentInfo removedArgumentInfo) {
+    assert removedArgumentInfo != null;
+    if (removedArgumentInfo.isAlwaysNull()) {
+      if (pendingArgumentInstructions == null) {
+        pendingArgumentInstructions = new ArrayList<>();
+      }
+      DebugLocalInfo local = getOutgoingLocal(register);
+      Value value = writeRegister(register, TypeLatticeElement.NULL, ThrowingInfo.NO_THROW, local);
+      pendingArgumentInstructions.add(new ConstNumber(value, 0));
     } else {
       assert removedArgumentInfo.isNeverUsed();
     }
