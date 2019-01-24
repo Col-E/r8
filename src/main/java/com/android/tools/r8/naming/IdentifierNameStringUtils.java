@@ -171,6 +171,11 @@ public final class IdentifierNameStringUtils {
         return null;
       }
       DexType holderType = classValue.getConstInstruction().asConstClass().getValue();
+      if (holderType.isArrayType()) {
+        // None of the fields or methods of an array type will be renamed, since they are all
+        // declared in the library. Hence there is no need to handle this case.
+        return null;
+      }
       DexClass holder = appInfo.definitionFor(holderType);
       if (holder == null) {
         return null;
