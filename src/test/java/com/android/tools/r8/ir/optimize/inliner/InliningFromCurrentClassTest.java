@@ -19,19 +19,25 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class InliningWithClassInitializerTest extends TestBase {
+public class InliningFromCurrentClassTest extends TestBase {
 
-  @Ignore("b/123327413")
+  @Ignore("b/123327416")
   @Test
   public void test() throws Exception {
     String expectedOutput =
-        StringUtils.lines("In A.<clinit>()", "In B.inlineable()", "In B.other()");
+        StringUtils.lines(
+            "In A.<clinit>()",
+            "In B.<clinit>()",
+            "In A.inlineable1()",
+            "In B.inlineable2()",
+            "In C.<clinit>()",
+            "In C.notInlineable()");
 
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
 
     CodeInspector inspector =
         testForR8(Backend.DEX)
-            .addInnerClasses(InliningWithClassInitializerTest.class)
+            .addInnerClasses(InliningFromCurrentClassTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableMergeAnnotations()
@@ -45,22 +51,29 @@ public class InliningWithClassInitializerTest extends TestBase {
     ClassSubject classB = inspector.clazz(B.class);
     assertThat(classB, isPresent());
 
-    MethodSubject inlineableMethod = classB.uniqueMethodWithName("inlineable");
-    assertThat(inlineableMethod, not(isPresent()));
+    ClassSubject classC = inspector.clazz(C.class);
+    assertThat(classC, isPresent());
 
-    MethodSubject otherMethod = classB.uniqueMethodWithName("other");
-    assertThat(otherMethod, isPresent());
+    MethodSubject inlineable1Method = classA.uniqueMethodWithName("inlineable1");
+    assertThat(inlineable1Method, not(isPresent()));
 
-    MethodSubject mainMethod = inspector.clazz(TestClass.class).mainMethod();
-    assertThat(mainMethod, invokesMethod(otherMethod));
+    MethodSubject inlineable2Method = classB.uniqueMethodWithName("inlineable2");
+    assertThat(inlineable2Method, not(isPresent()));
+
+    MethodSubject notInlineableMethod = classC.uniqueMethodWithName("notInlineable");
+    assertThat(notInlineableMethod, isPresent());
+
+    MethodSubject testMethod = classB.uniqueMethodWithName("test");
+    assertThat(testMethod, isPresent());
+    assertThat(testMethod, not(invokesMethod(inlineable1Method)));
+    assertThat(testMethod, not(invokesMethod(inlineable2Method)));
+    assertThat(testMethod, invokesMethod(notInlineableMethod));
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      // Should be inlined since the call to `B.other()` will ensure that the static initalizer in
-      // A will continue to be executed even after inlining.
-      B.inlineable();
+      B.test();
     }
   }
 
@@ -70,18 +83,39 @@ public class InliningWithClassInitializerTest extends TestBase {
     static {
       System.out.println("In A.<clinit>()");
     }
+
+    static void inlineable1() {
+      System.out.println("In A.inlineable1()");
+    }
   }
 
+  @NeverMerge
   static class B extends A {
 
-    static void inlineable() {
-      System.out.println("In B.inlineable()");
-      other();
+    static {
+      System.out.println("In B.<clinit>()");
     }
 
     @NeverInline
-    static void other() {
-      System.out.println("In B.other()");
+    static void test() {
+      A.inlineable1();
+      B.inlineable2();
+      C.notInlineable();
+    }
+
+    static void inlineable2() {
+      System.out.println("In B.inlineable2()");
+    }
+  }
+
+  static class C extends B {
+
+    static {
+      System.out.println("In C.<clinit>()");
+    }
+
+    static void notInlineable() {
+      System.out.println("In C.notInlineable()");
     }
   }
 }
