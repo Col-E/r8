@@ -103,6 +103,11 @@ APPS = {
       # TODO(123047413): Fails with R8.
       'skip': True,
   },
+  'Tusky': {
+    'app_id': 'com.keylesspalace.tusky',
+    'git_repo': 'https://github.com/mkj-gram/Tusky.git',
+    'flavor': 'blue'
+  },
   # This does not build yet.
   'muzei': {
       'git_repo': 'https://github.com/sgjesse/muzei.git',
