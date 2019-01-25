@@ -28,13 +28,16 @@ import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 public class InternalOptions {
@@ -62,6 +65,19 @@ public class InternalOptions {
 
   public final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
   public DataResourceConsumer dataResourceConsumer;
+
+  // Generate 11-char unique random string using the UUID generator.
+  private static String generateBuildId() {
+    UUID uuid = UUID.randomUUID();
+    return Base64.getEncoder()
+        .withoutPadding()
+        .encodeToString(
+            ByteBuffer.allocate(8)
+                .putLong(uuid.getLeastSignificantBits() ^ uuid.getMostSignificantBits())
+                .array());
+  }
+
+  public final String buildId = generateBuildId();
 
   // Constructor for testing and/or other utilities.
   public InternalOptions() {

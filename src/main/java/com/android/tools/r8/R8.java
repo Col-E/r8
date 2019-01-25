@@ -169,10 +169,14 @@ public class R8 {
     if (options.hasMarker()) {
       return options.getMarker();
     }
-    Marker marker = new Marker(Tool.R8)
-        .setVersion(Version.LABEL)
-        .setCompilationMode(options.debug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
-        .setMinApi(options.minApiLevel);
+    Marker marker =
+        new Marker(Tool.R8)
+            .setVersion(Version.LABEL)
+            .setCompilationMode(options.debug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
+            .setBuildId(options.buildId);
+    if (!options.isGeneratingClassFiles()) {
+      marker.setMinApi(options.minApiLevel);
+    }
     if (Version.isDev()) {
       marker.setSha1(VersionProperties.INSTANCE.getSha());
     }
@@ -629,8 +633,7 @@ public class R8 {
               namingLens,
               options.lineNumberOptimization == LineNumberOptimization.OFF);
       timing.end();
-      proguardMapSupplier =
-          ProguardMapSupplier.fromClassNameMapper(classNameMapper, options.minApiLevel);
+      proguardMapSupplier = ProguardMapSupplier.fromClassNameMapper(classNameMapper, options);
 
       // If a method filter is present don't produce output since the application is likely partial.
       if (options.hasMethodsFilter()) {
