@@ -5,7 +5,6 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.Version;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.VersionProperties;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,38 +18,39 @@ public class ProguardMapSupplier {
   public static final String MARKER_KEY_COMPILER_VERSION = "compiler_version";
   public static final String MARKER_KEY_COMPILER_HASH = "compiler_hash";
   public static final String MARKER_KEY_MIN_API = "min_api";
-  public static final String MARKER_KEY_BUILD_ID = "build_id";
 
   public static ProguardMapSupplier fromClassNameMapper(
-      ClassNameMapper classNameMapper, InternalOptions options) {
-    return new ProguardMapSupplier(true, classNameMapper, null, null, options);
+      ClassNameMapper classNameMapper, int minApiLevel) {
+    return new ProguardMapSupplier(classNameMapper, minApiLevel);
   }
 
   public static ProguardMapSupplier fromNamingLens(
-      NamingLens namingLens, DexApplication dexApplication, InternalOptions options) {
-    return new ProguardMapSupplier(false, null, namingLens, dexApplication, options);
+      NamingLens namingLens, DexApplication dexApplication, int minApiLevel) {
+    return new ProguardMapSupplier(namingLens, dexApplication, minApiLevel);
   }
 
-  public ProguardMapSupplier(
-      boolean useClassNameMapper,
-      ClassNameMapper classNameMapper,
-      NamingLens namingLens,
-      DexApplication application,
-      InternalOptions options) {
-    this.useClassNameMapper = useClassNameMapper;
+  private ProguardMapSupplier(ClassNameMapper classNameMapper, int minApiLevel) {
+    this.useClassNameMapper = true;
     this.classNameMapper = classNameMapper;
+    this.namingLens = null;
+    this.application = null;
+    this.minApiLevel = minApiLevel;
+  }
+
+  private ProguardMapSupplier(
+      NamingLens namingLens, DexApplication dexApplication, int minApiLevel) {
+    this.useClassNameMapper = false;
+    this.classNameMapper = null;
     this.namingLens = namingLens;
-    this.application = application;
-    this.minApiLevel = options.isGeneratingClassFiles() ? null : options.minApiLevel;
-    this.buildId = options.buildId;
+    this.application = dexApplication;
+    this.minApiLevel = minApiLevel;
   }
 
   private final boolean useClassNameMapper;
   private final ClassNameMapper classNameMapper;
   private final NamingLens namingLens;
   private final DexApplication application;
-  private final Integer minApiLevel;
-  private final String buildId;
+  private final int minApiLevel;
 
   public String get() {
     String body = getBody();
@@ -61,23 +61,23 @@ public class ProguardMapSupplier {
     if (Version.isDev()) {
       shaLine = "# " + MARKER_KEY_COMPILER_HASH + ": " + VersionProperties.INSTANCE.getSha() + "\n";
     }
-    StringBuilder builder = new StringBuilder();
-    builder.append(
-        "# "
-            + MARKER_KEY_COMPILER
-            + ": "
-            + MARKER_VALUE_COMPILER
-            + "\n"
-            + "# "
-            + MARKER_KEY_COMPILER_VERSION
-            + ": "
-            + Version.LABEL
-            + "\n");
-    if (minApiLevel != null) {
-      builder.append("# " + MARKER_KEY_MIN_API + ": " + minApiLevel + "\n");
-    }
-    builder.append(shaLine + "# " + MARKER_KEY_BUILD_ID + ": " + buildId + "\n" + body);
-    return builder.toString();
+    return "# "
+        + MARKER_KEY_COMPILER
+        + ": "
+        + MARKER_VALUE_COMPILER
+        + "\n"
+        + "# "
+        + MARKER_KEY_COMPILER_VERSION
+        + ": "
+        + Version.LABEL
+        + "\n"
+        + "# "
+        + MARKER_KEY_MIN_API
+        + ": "
+        + minApiLevel
+        + "\n"
+        + shaLine
+        + body;
   }
 
   private String getBody() {

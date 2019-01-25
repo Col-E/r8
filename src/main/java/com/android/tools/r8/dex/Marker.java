@@ -21,7 +21,6 @@ public class Marker {
   public static final String MIN_API = "min-api";
   public static final String SHA1 = "sha-1";
   public static final String COMPILATION_MODE = "compilation-mode";
-  public static final String BUILD_ID = "build-id";
 
   public enum Tool {D8, R8}
 
@@ -91,16 +90,6 @@ public class Marker {
   public Marker setCompilationMode(CompilationMode mode) {
     assert !jsonObject.has(COMPILATION_MODE);
     jsonObject.addProperty(COMPILATION_MODE, mode.toString().toLowerCase());
-    return this;
-  }
-
-  public String getBuildId() {
-    return jsonObject.get(BUILD_ID).getAsString();
-  }
-
-  public Marker setBuildId(String uuid) {
-    assert !jsonObject.has(BUILD_ID);
-    jsonObject.addProperty(BUILD_ID, uuid);
     return this;
   }
 
