@@ -277,26 +277,31 @@ public class RootSetBuilder {
   }
 
   IfRuleEvaluator getIfRuleEvaluator(
-      Set<DexEncodedMethod> liveMethods,
       Set<DexEncodedField> liveFields,
+      Set<DexEncodedMethod> liveMethods,
+      Set<DexEncodedMethod> targetedMethods,
       ExecutorService executorService) {
-    return new IfRuleEvaluator(liveMethods, liveFields, executorService);
+    return new IfRuleEvaluator(liveFields, liveMethods, targetedMethods, executorService);
   }
 
   class IfRuleEvaluator {
 
-    private final Set<DexEncodedMethod> liveMethods;
     private final Set<DexEncodedField> liveFields;
+    private final Set<DexEncodedMethod> liveMethods;
+    private final Set<DexEncodedMethod> targetedMethods;
+
     private final ExecutorService executorService;
 
     private final List<Future<?>> futures = new ArrayList<>();
 
     public IfRuleEvaluator(
-        Set<DexEncodedMethod> liveMethods,
         Set<DexEncodedField> liveFields,
+        Set<DexEncodedMethod> liveMethods,
+        Set<DexEncodedMethod> targetedMethods,
         ExecutorService executorService) {
-      this.liveMethods = liveMethods;
       this.liveFields = liveFields;
+      this.liveMethods = liveMethods;
+      this.targetedMethods = targetedMethods;
       this.executorService = executorService;
     }
 
@@ -391,7 +396,7 @@ public class RootSetBuilder {
           filteredMembers,
           targetClass.methods(
               m ->
-                  liveMethods.contains(m)
+                  (liveMethods.contains(m) || targetedMethods.contains(m))
                       && appView.graphLense().getOriginalMethodSignature(m.method).getHolder()
                           == sourceClass.type));
 
