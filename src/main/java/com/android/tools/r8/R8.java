@@ -13,6 +13,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.AppliedGraphLens;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -485,6 +486,13 @@ public class R8 {
       } finally {
         timing.end();
       }
+
+      // At this point all code has been mapped according to the graph lens. We cannot remove the
+      // graph lens entirely, though, since it is needed for mapping all field and method signatures
+      // back to the original program.
+      timing.begin("AppliedGraphLens construction");
+      appView.setGraphLense(new AppliedGraphLens(appView, application.classes()));
+      timing.end();
 
       if (options.printCfg) {
         if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {
