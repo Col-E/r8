@@ -161,7 +161,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
             String className = resource.getClassDescriptors().iterator().next();
             String entryName = getClassFileName(className);
             byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
-            ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.STORED);
+            ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.DEFLATED);
           }
         }
       }

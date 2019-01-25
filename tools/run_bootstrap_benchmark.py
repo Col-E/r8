@@ -60,11 +60,11 @@ if __name__ == '__main__':
       sys.exit(return_code)
 
     dex(r8_output, d8_r8_output)
-    print "BootstrapR8(CodeSize):", os.path.getsize(r8_output)
-    print "BootstrapR8Dex(CodeSize):", os.path.getsize(d8_r8_output)
+    print "BootstrapR8(CodeSize):", utils.uncompressed_size(r8_output)
+    print "BootstrapR8Dex(CodeSize):", utils.uncompressed_size(d8_r8_output)
 
     dex(PINNED_PGR8_JAR, d8_pg_output)
-    print "BootstrapR8PG(CodeSize):", os.path.getsize(PINNED_PGR8_JAR)
-    print "BootstrapR8PGDex(CodeSize):", os.path.getsize(d8_pg_output)
+    print "BootstrapR8PG(CodeSize):", utils.uncompressed_size(PINNED_PGR8_JAR)
+    print "BootstrapR8PGDex(CodeSize):", utils.uncompressed_size(d8_pg_output)
 
   sys.exit(0)
