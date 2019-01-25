@@ -665,10 +665,8 @@ public class IRCode {
           }
           // After the throwing instruction only debug instructions and the final jump
           // instruction is allowed.
-          // TODO(mkroghj) Temporarily allow stack-operations to be after throwing instructions.
           if (seenThrowing) {
-            assert instruction.isDebugInstruction()
-                || instruction.isJumpInstruction();
+            assert instruction.isDebugInstruction() || instruction.isGoto();
           }
         }
       }
