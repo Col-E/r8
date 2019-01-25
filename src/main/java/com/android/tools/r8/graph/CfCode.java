@@ -267,7 +267,8 @@ public class CfCode extends Code {
             encodedMethod,
             graphLense.getOriginalMethodSignature(encodedMethod.method),
             callerPosition,
-            origin);
+            origin,
+            options.getInternalOutputMode());
     return new IRBuilder(encodedMethod, appInfo, source, options, origin, generator, graphLense)
         .build(context);
   }

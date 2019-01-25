@@ -194,7 +194,7 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
             : null;
-    this.stringOptimizer = new StringOptimizer(appInfo, options);
+    this.stringOptimizer = new StringOptimizer(appInfo, options.getInternalOutputMode());
     this.enableWholeProgramOptimizations = appView != null;
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();

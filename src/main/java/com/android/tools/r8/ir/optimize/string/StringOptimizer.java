@@ -32,7 +32,7 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOutputMode;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -44,11 +44,11 @@ public class StringOptimizer {
   private final DexItemFactory factory;
   private final ThrowingInfo throwingInfo;
 
-  public StringOptimizer(AppInfo appInfo, InternalOptions options) {
+  public StringOptimizer(AppInfo appInfo, InternalOutputMode outputMode) {
     this.appInfo = appInfo;
     this.factory = appInfo.dexItemFactory;
-    throwingInfo = options.isGeneratingClassFiles()
-        ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
+    this.throwingInfo =
+        outputMode.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
   }
 
   // int String#length()
@@ -194,8 +194,12 @@ public class StringOptimizer {
       String name = null;
       if (invokedMethod == factory.classMethods.getName) {
         if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder)) {
-          deferred = new DexItemBasedConstString(
-              invoke.outValue(), baseType, new ClassNameComputationInfo(NAME, arrayDepth));
+          deferred =
+              new DexItemBasedConstString(
+                  invoke.outValue(),
+                  baseType,
+                  throwingInfo,
+                  new ClassNameComputationInfo(NAME, arrayDepth));
         } else {
           name = computeClassName(descriptor, holder, NAME, arrayDepth);
         }
@@ -218,6 +222,7 @@ public class StringOptimizer {
                 new DexItemBasedConstString(
                     invoke.outValue(),
                     baseType,
+                    throwingInfo,
                     new ClassNameComputationInfo(CANONICAL_NAME, arrayDepth));
           } else {
             name = computeClassName(descriptor, holder, CANONICAL_NAME, arrayDepth);
@@ -234,8 +239,12 @@ public class StringOptimizer {
             continue;
           }
           if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder)) {
-            deferred = new DexItemBasedConstString(
-                invoke.outValue(), baseType, new ClassNameComputationInfo(SIMPLE_NAME, arrayDepth));
+            deferred =
+                new DexItemBasedConstString(
+                    invoke.outValue(),
+                    baseType,
+                    throwingInfo,
+                    new ClassNameComputationInfo(SIMPLE_NAME, arrayDepth));
           } else {
             name = computeClassName(descriptor, holder, SIMPLE_NAME, arrayDepth);
           }
@@ -313,8 +322,8 @@ public class StringOptimizer {
               code.createValue(
                   TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
                   invoke.getLocalInfo());
-          ConstString nullString = new ConstString(
-              nullStringValue, factory.createString("null"), throwingInfo);
+          ConstString nullString =
+              new ConstString(nullStringValue, factory.createString("null"), throwingInfo);
           it.replaceCurrentInstruction(nullString);
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()

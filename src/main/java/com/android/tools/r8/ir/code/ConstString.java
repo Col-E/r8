@@ -98,6 +98,9 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public boolean instructionInstanceCanThrow() {
+    if (throwingInfo == ThrowingInfo.NO_THROW) {
+      return false;
+    }
     // The const-string instruction can be a throwing instruction in DEX, if decode() fails.
     try {
       value.toString();

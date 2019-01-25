@@ -243,7 +243,7 @@ public class LoadStoreHelper {
             stackValue, constant.asConstString().getValue(), ThrowingInfo.NO_THROW);
       } else if (constant.isDexItemBasedConstString()) {
         return new DexItemBasedConstString(
-            stackValue, constant.asDexItemBasedConstString().getItem());
+            stackValue, constant.asDexItemBasedConstString().getItem(), ThrowingInfo.NO_THROW);
       } else if (constant.isConstClass()) {
         return new ConstClass(stackValue, constant.asConstClass().getValue());
       } else {

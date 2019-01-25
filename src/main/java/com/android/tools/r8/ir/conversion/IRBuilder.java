@@ -1147,11 +1147,14 @@ public class IRBuilder {
     add(instruction);
   }
 
+  private ThrowingInfo throwingInfoForConstStrings() {
+    return options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
+  }
+
   public void addConstString(int dest, DexString string) {
     TypeLatticeElement typeLattice =
         TypeLatticeElement.stringClassType(appInfo, definitelyNotNull());
-    ThrowingInfo throwingInfo =
-        options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
+    ThrowingInfo throwingInfo = throwingInfoForConstStrings();
     add(new ConstString(writeRegister(dest, typeLattice, throwingInfo), string, throwingInfo));
   }
 
@@ -1159,8 +1162,9 @@ public class IRBuilder {
     assert method.getOptimizationInfo().useIdentifierNameString();
     TypeLatticeElement typeLattice =
         TypeLatticeElement.stringClassType(appInfo, definitelyNotNull());
-    Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
-    DexItemBasedConstString instruction = new DexItemBasedConstString(out, item);
+    ThrowingInfo throwingInfo = throwingInfoForConstStrings();
+    Value out = writeRegister(dest, typeLattice, throwingInfo);
+    DexItemBasedConstString instruction = new DexItemBasedConstString(out, item, throwingInfo);
     add(instruction);
   }
 

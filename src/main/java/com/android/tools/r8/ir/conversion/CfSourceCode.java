@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.CfState.Snapshot;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.InternalOutputMode;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -196,13 +197,15 @@ public class CfSourceCode implements SourceCode {
   private Int2ObjectMap<DebugLocalInfo> outgoingLocals;
   private Int2ReferenceMap<CfState.Snapshot> incomingState = new Int2ReferenceOpenHashMap<>();
   private final CanonicalPositions canonicalPositions;
+  private final InternalOutputMode internalOutputMode;
 
   public CfSourceCode(
       CfCode code,
       DexEncodedMethod method,
       DexMethod originalMethod,
       Position callerPosition,
-      Origin origin) {
+      Origin origin,
+      InternalOutputMode internalOutputMode) {
     this.code = code;
     this.method = method;
     this.origin = origin;
@@ -218,6 +221,7 @@ public class CfSourceCode implements SourceCode {
     }
     this.state = new CfState(origin);
     canonicalPositions = new CanonicalPositions(callerPosition, cfPositionCount, originalMethod);
+    this.internalOutputMode = internalOutputMode;
   }
 
   @Override
@@ -249,8 +253,9 @@ public class CfSourceCode implements SourceCode {
   // Utility method that treats constant strings as not throwing in the case of having CF output.
   // This is the only instruction that differ in throwing between DEX and CF. If we find more
   // consider rewriting CfInstruction.canThrow to take in options.
-  private boolean canThrowHelper(IRBuilder builder, CfInstruction instruction) {
-    if (builder.isGeneratingClassFiles() && instruction.isConstString()) {
+  private boolean canThrowHelper(CfInstruction instruction) {
+    if (internalOutputMode.isGeneratingClassFiles()
+        && (instruction.isConstString() || instruction.isDexItemBasedConstString())) {
       return false;
     }
     return instruction.canThrow();
@@ -259,7 +264,8 @@ public class CfSourceCode implements SourceCode {
   @Override
   public int traceInstruction(int instructionIndex, IRBuilder builder) {
     CfInstruction instruction = code.getInstructions().get(instructionIndex);
-    if (canThrowHelper(builder, instruction)) {
+    assert builder.isGeneratingClassFiles() == internalOutputMode.isGeneratingClassFiles();
+    if (canThrowHelper(instruction)) {
       TryHandlerList tryHandlers = getTryHandlers(instructionIndex);
       if (!tryHandlers.isEmpty()) {
         // Ensure the block starts at the start of the try-range (don't enqueue, not a target).
@@ -433,7 +439,7 @@ public class CfSourceCode implements SourceCode {
     assert currentBlockInfo != null;
     setLocalVariableLists();
 
-    if (canThrowHelper(builder, instruction)) {
+    if (canThrowHelper(instruction)) {
       Snapshot exceptionTransfer =
           state.getSnapshot().exceptionTransfer(builder.getFactory().throwableType);
       for (int target : currentBlockInfo.exceptionalSuccessors) {
@@ -632,7 +638,7 @@ public class CfSourceCode implements SourceCode {
 
   @Override
   public boolean verifyCurrentInstructionCanThrow() {
-    return code.getInstructions().get(currentInstructionIndex).canThrow();
+    return canThrowHelper(code.getInstructions().get(currentInstructionIndex));
   }
 
   @Override

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
@@ -20,22 +21,27 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   private final DexReference item;
   private final ClassNameComputationInfo classNameComputationInfo;
+  private final ThrowingInfo throwingInfo;
 
-  public DexItemBasedConstString(Value dest, DexReference item) {
-    this(dest, item, ClassNameComputationInfo.none());
+  public DexItemBasedConstString(Value dest, DexReference item, ThrowingInfo throwingInfo) {
+    this(dest, item, throwingInfo, ClassNameComputationInfo.none());
   }
 
   public DexItemBasedConstString(
-      Value dest, DexReference item, ClassNameComputationInfo classNameComputationInfo) {
+      Value dest,
+      DexReference item,
+      ThrowingInfo throwingInfo,
+      ClassNameComputationInfo classNameComputationInfo) {
     super(dest);
     dest.markNeverNull();
     this.item = item;
     this.classNameComputationInfo = classNameComputationInfo;
+    this.throwingInfo = throwingInfo;
   }
 
   public static DexItemBasedConstString copyOf(Value newValue, DexItemBasedConstString original) {
     return new DexItemBasedConstString(
-        newValue, original.getItem(), original.classNameComputationInfo);
+        newValue, original.getItem(), original.throwingInfo, original.classNameComputationInfo);
   }
 
   public DexReference getItem() {
@@ -88,7 +94,7 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   @Override
   public boolean instructionTypeCanThrow() {
-    return true;
+    return throwingInfo == ThrowingInfo.CAN_THROW;
   }
 
   @Override

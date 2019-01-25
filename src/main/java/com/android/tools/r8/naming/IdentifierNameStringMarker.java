@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -87,6 +88,8 @@ public class IdentifierNameStringMarker {
     if (!code.hasConstString) {
       return;
     }
+    final ThrowingInfo throwingInfo =
+        options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.NO_THROW;
     DexType originHolder = code.method.method.getHolder();
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
@@ -131,7 +134,8 @@ public class IdentifierNameStringMarker {
           iterator.previous();
           // Prepare $decoupled just before $fieldPut
           Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
-          DexItemBasedConstString decoupled = new DexItemBasedConstString(newIn, itemBasedString);
+          DexItemBasedConstString decoupled =
+              new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
           decoupled.setPosition(fieldPut.getPosition());
           // If the current block has catch handler, split into two blocks.
           // Because const-string we're about to add is also a throwing instr, we need to split
@@ -191,7 +195,8 @@ public class IdentifierNameStringMarker {
             iterator.previous();
             // Prepare $decoupled just before $invoke
             Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
-            DexItemBasedConstString decoupled = new DexItemBasedConstString(newIn, itemBasedString);
+            DexItemBasedConstString decoupled =
+                new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
             decoupled.setPosition(invoke.getPosition());
             changes[positionOfIdentifier] = newIn;
             // If the current block has catch handler, split into two blocks.
@@ -238,7 +243,7 @@ public class IdentifierNameStringMarker {
               // Prepare $decoupled just before $invoke
               Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
               DexItemBasedConstString decoupled =
-                  new DexItemBasedConstString(newIn, itemBasedString);
+                  new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
               decoupled.setPosition(invoke.getPosition());
               changes[i] = newIn;
               // If the current block has catch handler, split into two blocks.

@@ -57,7 +57,7 @@ public class CfDexItemBasedConstString extends CfInstruction {
 
   @Override
   public boolean canThrow() {
-    // The ldc instruction may throw in Java bytecode.
+    // const-string* may throw in dex. (Not in CF, see CfSourceCode.canThrowHelper)
     return true;
   }
 
