@@ -1460,7 +1460,10 @@ public class Enqueuer {
               new RootSetBuilder(appView, rootSet.ifRules, options);
           IfRuleEvaluator ifRuleEvaluator =
               consequentSetBuilder.getIfRuleEvaluator(
-                  liveMethods.getItems(), liveFields.getItems(), executorService);
+                  liveFields.getItems(),
+                  liveMethods.getItems(),
+                  targetedMethods.getItems(),
+                  executorService);
           ConsequentRootSet consequentRootSet = ifRuleEvaluator.run(liveTypes);
           enqueueRootItems(consequentRootSet.noShrinking);
           rootSet.neverInline.addAll(consequentRootSet.neverInline);
