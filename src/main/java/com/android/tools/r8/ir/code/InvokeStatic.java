@@ -105,8 +105,8 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public InlineAction computeInlining(InliningOracle decider, DexType inocationContext) {
-    return decider.computeForInvokeStatic(this, inocationContext);
+  public InlineAction computeInlining(InliningOracle decider, DexType invocationContext) {
+    return decider.computeForInvokeStatic(this, invocationContext);
   }
 
   @Override
