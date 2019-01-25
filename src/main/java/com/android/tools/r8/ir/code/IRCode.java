@@ -668,10 +668,7 @@ public class IRCode {
           // TODO(mkroghj) Temporarily allow stack-operations to be after throwing instructions.
           if (seenThrowing) {
             assert instruction.isDebugInstruction()
-                || instruction.isJumpInstruction()
-                || instruction.isDup()
-                || instruction.isDup2()
-                || instruction.isSwap();
+                || instruction.isJumpInstruction();
           }
         }
       }
