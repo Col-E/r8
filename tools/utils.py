@@ -119,9 +119,9 @@ def RunCmd(cmd, env_vars=None, quiet=False):
       logger.log(stripped)
 
       # TODO(christofferqa): r8 should fail with non-zero exit code.
-      if ('AssertionError' in stripped
-          or 'CompilationError' in stripped
-          or 'CompilationFailedException' in stripped
+      if ('AssertionError:' in stripped
+          or 'CompilationError:' in stripped
+          or 'CompilationFailedException:' in stripped
           or 'Compilation failed' in stripped):
         failed = True
     else:
