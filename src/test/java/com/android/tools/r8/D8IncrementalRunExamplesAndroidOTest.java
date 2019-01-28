@@ -190,11 +190,11 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       }
     }
 
-    ProgramResource mergeClassFiles(List<ProgramResource> dexFiles, Path out) throws Throwable {
+    AndroidApp mergeClassFiles(List<ProgramResource> dexFiles, Path out) throws Throwable {
       return mergeClassFiles(dexFiles, out, OutputMode.DexIndexed);
     }
 
-    ProgramResource mergeClassFiles(
+    AndroidApp mergeClassFiles(
         List<ProgramResource> dexFiles, Path outputPath, OutputMode outputMode) throws Throwable {
       Builder builder = D8Command.builder();
       for (ProgramResource dexFile : dexFiles) {
@@ -215,7 +215,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       try {
         AndroidApp app = ToolHelper.runD8(builder, this::combinedOptionConsumer);
         assert app.getDexProgramResourcesForTesting().size() == 1;
-        return app.getDexProgramResourcesForTesting().get(0);
+        return app;
       } catch (Unimplemented | CompilationError | InternalCompilerError re) {
         throw re;
       } catch (RuntimeException re) {
@@ -249,13 +249,16 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       Assert.assertArrayEquals(readResource(entry.getValue()), readResource(otherResource));
     }
 
-    ProgramResource mergedFromCompiledSeparately =
+    AndroidApp mergedFromCompiledSeparately =
         test.mergeClassFiles(Lists.newArrayList(compiledSeparately.values()), null);
-    ProgramResource mergedFromCompiledTogether =
+    AndroidApp mergedFromCompiledTogether =
         test.mergeClassFiles(Lists.newArrayList(compiledTogether.values()), null);
+
+    // TODO(b/123504206): Add a main method and test the output runs.
+
     Assert.assertArrayEquals(
-        readResource(mergedFromCompiledSeparately),
-        readResource(mergedFromCompiledTogether));
+        readResource(mergedFromCompiledSeparately.getDexProgramResourcesForTesting().get(0)),
+        readResource(mergedFromCompiledTogether.getDexProgramResourcesForTesting().get(0)));
   }
 
   @Test
@@ -269,16 +272,24 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     D8IncrementalTestRunner test = test(testName, testPackage, mainClass);
     test.withInterfaceMethodDesugaring(OffOrAuto.Auto);
 
-    ProgramResource mergedFromCompiledSeparately =
+    AndroidApp mergedFromCompiledSeparately =
         test.mergeClassFiles(
             Lists.newArrayList(test.compileClassesSeparately(inputJarFile).values()), null);
-    ProgramResource mergedFromCompiledTogether =
+    AndroidApp mergedFromCompiledTogether =
         test.mergeClassFiles(
             Lists.newArrayList(test.compileClassesTogether(inputJarFile, null).values()), null);
 
+    Path out1 = temp.newFolder().toPath().resolve("out-together.zip");
+    mergedFromCompiledTogether.writeToZip(out1, OutputMode.DexIndexed);
+    ToolHelper.runArtNoVerificationErrors(out1.toString(), testPackage + "." + mainClass);
+
+    Path out2 = temp.newFolder().toPath().resolve("out-separate.zip");
+    mergedFromCompiledSeparately.writeToZip(out2, OutputMode.DexIndexed);
+    ToolHelper.runArtNoVerificationErrors(out2.toString(), testPackage + "." + mainClass);
+
     Assert.assertArrayEquals(
-        readResource(mergedFromCompiledSeparately),
-        readResource(mergedFromCompiledTogether));
+        readResource(mergedFromCompiledSeparately.getDexProgramResourcesForTesting().get(0)),
+        readResource(mergedFromCompiledTogether.getDexProgramResourcesForTesting().get(0)));
   }
 
   @Test
@@ -292,16 +303,19 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     D8IncrementalTestRunner test = test(testName, testPackage, mainClass);
     test.withInterfaceMethodDesugaring(OffOrAuto.Auto);
 
-    ProgramResource mergedFromCompiledSeparately =
+    AndroidApp mergedFromCompiledSeparately =
         test.mergeClassFiles(
             Lists.newArrayList(test.compileClassesSeparately(inputJarFile).values()), null);
-    ProgramResource mergedFromCompiledTogether =
+    AndroidApp mergedFromCompiledTogether =
         test.mergeClassFiles(
             Lists.newArrayList(test.compileClassesTogether(inputJarFile, null).values()), null);
 
+    // TODO(b/123504206): This test throws an index out of bounds exception.
+    // Re-write or verify running fails in the expected way.
+
     Assert.assertArrayEquals(
-        readResource(mergedFromCompiledSeparately),
-        readResource(mergedFromCompiledTogether));
+        readResource(mergedFromCompiledSeparately.getDexProgramResourcesForTesting().get(0)),
+        readResource(mergedFromCompiledTogether.getDexProgramResourcesForTesting().get(0)));
   }
 
   @Test
