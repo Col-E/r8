@@ -117,13 +117,6 @@ APPS = {
   },
 }
 
-# Common environment setup.
-user_home = os.path.expanduser('~')
-android_home = os.path.join(user_home, 'Android', 'Sdk')
-android_build_tools_version = '28.0.3'
-android_build_tools = os.path.join(
-    android_home, 'build-tools', android_build_tools_version)
-
 # TODO(christofferqa): Do not rely on 'emulator-5554' name
 emulator_id = 'emulator-5554'
 
@@ -375,7 +368,7 @@ def BuildAppWithShrinker(
       app, config, checkout_dir, proguard_config_dest)
 
   env = {}
-  env['ANDROID_HOME'] = android_home
+  env['ANDROID_HOME'] = utils.ANDROID_HOME
   env['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
 
   releaseTarget = config.get('releaseTarget')
@@ -420,7 +413,7 @@ def BuildAppWithShrinker(
       keystore = 'app.keystore'
       keystore_password = 'android'
       apk_utils.sign_with_apksigner(
-          android_build_tools,
+          utils.ANDROID_BUILD_TOOLS,
           unsigned_apk,
           signed_apk,
           keystore,

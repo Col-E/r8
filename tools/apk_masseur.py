@@ -74,7 +74,16 @@ def sign(unsigned_apk, keystore, temp, quiet):
 def align(signed_apk, temp, quiet):
   utils.Print('Aligning', quiet=quiet)
   aligned_apk = os.path.join(temp, 'aligned.apk')
-  cmd = ['zipalign', '-f', '4', signed_apk, aligned_apk]
+  zipalign_path = (
+      'zipalign' if 'build_tools' in os.environ.get('PATH')
+      else os.path.join(utils.ANDROID_BUILD_TOOLS, 'zipalign'))
+  cmd = [
+    zipalign_path,
+    '-f',
+    '4',
+    signed_apk,
+    aligned_apk
+  ]
   utils.RunCmd(cmd, quiet=quiet)
   return signed_apk
 
