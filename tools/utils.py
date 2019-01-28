@@ -55,6 +55,13 @@ RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
 RETRACE_JAR = os.path.join(THIRD_PARTY, 'proguard', 'proguard6.0.1', 'lib', 'retrace.jar')
 
+# Common environment setup.
+USER_HOME = os.path.expanduser('~')
+ANDROID_HOME = os.path.join(USER_HOME, 'Android', 'Sdk')
+ANDROID_BUILD_TOOLS_VERSION = '28.0.3'
+ANDROID_BUILD_TOOLS = os.path.join(
+    ANDROID_HOME, 'build-tools', ANDROID_BUILD_TOOLS_VERSION)
+
 def Print(s, quiet=False):
   if quiet:
     return
