@@ -75,6 +75,11 @@ APPS = {
       'app_id': 'org.schabi.newpipe',
       'git_repo': 'https://github.com/christofferqa/NewPipe',
   },
+  'rover-android': {
+    'app_id': 'io.rover.app.debug',
+    'app_module': 'debug-app',
+    'git_repo': 'https://github.com/mkj-gram/rover-android.git',
+  },
   'Signal-Android': {
     'app_id': 'org.thoughtcrime.securesms',
     'app_module': '',
