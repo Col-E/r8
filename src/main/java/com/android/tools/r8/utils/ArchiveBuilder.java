@@ -150,7 +150,7 @@ public class ArchiveBuilder implements OutputBuilder {
 
   private void writeFileNow(String name, ByteDataView content, DiagnosticsHandler handler) {
     try {
-      ZipUtils.writeToZipStream(getStream(handler), name, content, ZipEntry.STORED);
+      ZipUtils.writeToZipStream(getStream(handler), name, content, ZipEntry.DEFLATED);
     } catch (IOException e) {
       handleIOException(e, handler);
     }
