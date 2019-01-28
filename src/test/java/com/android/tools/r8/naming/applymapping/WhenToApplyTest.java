@@ -66,11 +66,11 @@ public class WhenToApplyTest extends TestBase {
 
   @BeforeClass
   public static void setUpMappingFile() throws Exception {
-    mappingFile = temporaryFolder.newFile("mapping.txt").toPath();
+    mappingFile = temporaryFolder.newFile("mapping.txt").toPath().toAbsolutePath();
     FileUtils.writeTextFile(mappingFile, StringUtils.lines(
         ToBeRenamedClass.class.getTypeName() + " -> " + RENAMED_CLASS_NAME + ":",
         "  void toBeRenamedMethod() -> abc"));
-    configuration = temporaryFolder.newFile("pg.conf").toPath();
+    configuration = temporaryFolder.newFile("pg.conf").toPath().toAbsolutePath();
     FileUtils.writeTextFile(configuration, StringUtils.lines(
         "-dontoptimize",
         "-applymapping " + mappingFile
