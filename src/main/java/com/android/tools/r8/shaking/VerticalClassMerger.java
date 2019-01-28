@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -272,9 +271,7 @@ public class VerticalClassMerger {
     // TODO(christofferqa): Remove the invariant that the graph lense should not modify any
     // methods from the sets alwaysInline and noSideEffects (see use of assertNotModified).
     extractPinnedItems(appInfo.alwaysInline, AbortReason.ALWAYS_INLINE);
-    extractPinnedItems(
-        DexDefinition.mapToReference(appInfo.noSideEffects.keySet().stream())::iterator,
-        AbortReason.NO_SIDE_EFFECTS);
+    extractPinnedItems(appInfo.noSideEffects.keySet(), AbortReason.NO_SIDE_EFFECTS);
 
     for (DexProgramClass clazz : classes) {
       for (DexEncodedMethod method : clazz.methods()) {
@@ -620,7 +617,7 @@ public class VerticalClassMerger {
   }
 
   private boolean verifyGraphLense(GraphLense graphLense) {
-    assert graphLense.assertDefinitionsNotModified(appInfo.noSideEffects.keySet());
+    assert graphLense.assertReferencesNotModified(appInfo.noSideEffects.keySet());
 
     // Note that the method assertReferencesNotModified() relies on getRenamedFieldSignature() and
     // getRenamedMethodSignature() instead of lookupField() and lookupMethod(). This is important

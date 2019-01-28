@@ -6,13 +6,14 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -59,12 +60,16 @@ public class MemberValuePropagation {
     this.appInfo = appInfo;
   }
 
-  private ProguardMemberRuleLookup lookupMemberRule(DexItem item) {
-    ProguardMemberRule rule = appInfo.noSideEffects.get(item);
+  private ProguardMemberRuleLookup lookupMemberRule(DexDefinition definition) {
+    if (definition == null) {
+      return null;
+    }
+    DexReference reference = definition.toReference();
+    ProguardMemberRule rule = appInfo.noSideEffects.get(reference);
     if (rule != null) {
       return new ProguardMemberRuleLookup(RuleType.ASSUME_NO_SIDE_EFFECTS, rule);
     }
-    rule = appInfo.assumedValues.get(item);
+    rule = appInfo.assumedValues.get(reference);
     if (rule != null) {
       return new ProguardMemberRuleLookup(RuleType.ASSUME_VALUES, rule);
     }

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
@@ -19,7 +20,7 @@ import java.util.Set;
 
 public class DiscardedChecker {
 
-  private final Set<DexDefinition> checkDiscarded;
+  private final Set<DexReference> checkDiscarded;
   private final List<DexProgramClass> classes;
   private boolean fail = false;
   private final InternalOptions options;
@@ -55,7 +56,7 @@ public class DiscardedChecker {
   }
 
   private void checkItem(DexDefinition item) {
-    if (checkDiscarded.contains(item)) {
+    if (checkDiscarded.contains(item.toReference())) {
       options.reporter.info(
           new StringDiagnostic("Item " + item.toSourceString() + " was not discarded."));
       fail = true;

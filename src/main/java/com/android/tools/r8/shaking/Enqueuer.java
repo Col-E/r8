@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
@@ -63,7 +64,6 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -297,22 +297,21 @@ public class Enqueuer {
     this.options = options;
   }
 
-  private void enqueueRootItems(Map<DexDefinition, Set<ProguardKeepRule>> items) {
+  private void enqueueRootItems(Map<DexReference, Set<ProguardKeepRule>> items) {
     items.entrySet().forEach(this::enqueueRootItem);
   }
 
-  private void enqueueRootItem(Entry<DexDefinition, Set<ProguardKeepRule>> root) {
-    enqueueRootItem(root.getKey(), root.getValue());
-  }
-
-  private void enqueueRootItem(DexDefinition item, ProguardKeepRule rule) {
-    enqueueRootItem(item, KeepReason.dueToKeepRule(rule));
+  private void enqueueRootItem(Entry<DexReference, Set<ProguardKeepRule>> root) {
+    DexDefinition item = appInfo.definitionFor(root.getKey());
+    if (item != null) {
+      enqueueRootItem(item, root.getValue());
+    }
   }
 
   private void enqueueRootItem(DexDefinition item, Set<ProguardKeepRule> rules) {
     assert !rules.isEmpty();
     if (keptGraphConsumer != null) {
-      GraphNode node = getGraphNode(item);
+      GraphNode node = getGraphNode(item.toReference());
       for (ProguardKeepRule rule : rules) {
         registerEdge(node, KeepReason.dueToKeepRule(rule));
       }
@@ -322,7 +321,7 @@ public class Enqueuer {
 
   private void enqueueRootItem(DexDefinition item, KeepReason reason) {
     if (keptGraphConsumer != null) {
-      registerEdge(getGraphNode(item), reason);
+      registerEdge(getGraphNode(item.toReference()), reason);
     }
     internalEnqueueRootItem(item, reason);
   }
@@ -368,16 +367,17 @@ public class Enqueuer {
   }
 
   private void enqueueHolderIfDependentNonStaticMember(
-      DexClass holder, Map<DexDefinition, Set<ProguardKeepRule>> dependentItems) {
+      DexClass holder, Map<DexReference, Set<ProguardKeepRule>> dependentItems) {
     // Check if any dependent members are not static, and in that case enqueue the class as well.
     // Having a dependent rule like -keepclassmembers with non static items indicates that class
     // instances will be present even if tracing do not find any instantiation. See b/115867670.
-    for (Entry<DexDefinition, Set<ProguardKeepRule>> entry : dependentItems.entrySet()) {
-      DexDefinition dependentItem = entry.getKey();
-      if (dependentItem.isDexClass()) {
+    for (Entry<DexReference, Set<ProguardKeepRule>> entry : dependentItems.entrySet()) {
+      DexReference dependentItem = entry.getKey();
+      if (dependentItem.isDexType()) {
         continue;
       }
-      if (!dependentItem.isStaticMember()) {
+      DexDefinition dependentDefinition = appInfo.definitionFor(dependentItem);
+      if (!dependentDefinition.isStaticMember()) {
         enqueueRootItem(holder, entry.getValue());
         // Enough to enqueue the known holder once.
         break;
@@ -810,7 +810,7 @@ public class Enqueuer {
         annotations.forEach(this::handleAnnotationOfLiveType);
       }
 
-      Map<DexDefinition, Set<ProguardKeepRule>> dependentItems = rootSet.getDependentItems(holder);
+      Map<DexReference, Set<ProguardKeepRule>> dependentItems = rootSet.getDependentItems(holder);
       enqueueHolderIfDependentNonStaticMember(holder, dependentItems);
       // Add all dependent members to the workqueue.
       enqueueRootItems(dependentItems);
@@ -1325,7 +1325,7 @@ public class Enqueuer {
       // TODO(sgjesse): Does this have to be enqueued as a root item? Right now it is done as the
       // marking of not renaming is in the root set.
       enqueueRootItem(valuesMethod, reason);
-      rootSet.noObfuscation.add(valuesMethod);
+      rootSet.noObfuscation.add(valuesMethod.toReference());
     }
   }
 
@@ -1465,17 +1465,14 @@ public class Enqueuer {
                   targetedMethods.getItems(),
                   executorService);
           ConsequentRootSet consequentRootSet = ifRuleEvaluator.run(liveTypes);
+          rootSet.addConsequentRootSet(consequentRootSet);
           enqueueRootItems(consequentRootSet.noShrinking);
-          rootSet.neverInline.addAll(consequentRootSet.neverInline);
-          rootSet.neverClassInline.addAll(consequentRootSet.neverClassInline);
-          rootSet.noOptimization.addAll(consequentRootSet.noOptimization);
-          rootSet.noObfuscation.addAll(consequentRootSet.noObfuscation);
-          rootSet.addDependentItems(consequentRootSet.dependentNoShrinking);
           // Check if any newly dependent members are not static, and in that case find the holder
           // and enqueue it as well. This is -if version of workaround for b/115867670.
           consequentRootSet.dependentNoShrinking.forEach((precondition, dependentItems) -> {
-            if (precondition.isDexClass()) {
-              enqueueHolderIfDependentNonStaticMember(precondition.asDexClass(), dependentItems);
+            if (precondition.isDexType()) {
+              DexClass preconditionHolder = appInfo.definitionFor(precondition.asDexType());
+              enqueueHolderIfDependentNonStaticMember(preconditionHolder, dependentItems);
             }
             // Add all dependent members to the workqueue.
             enqueueRootItems(dependentItems);
@@ -1948,11 +1945,11 @@ public class Enqueuer {
     /**
      * All items with assumenosideeffects rule.
      */
-    public final Map<DexDefinition, ProguardMemberRule> noSideEffects;
+    public final Map<DexReference, ProguardMemberRule> noSideEffects;
     /**
      * All items with assumevalues rule.
      */
-    public final Map<DexDefinition, ProguardMemberRule> assumedValues;
+    public final Map<DexReference, ProguardMemberRule> assumedValues;
     /**
      * All methods that should be inlined if possible due to a configuration directive.
      */
@@ -1965,9 +1962,13 @@ public class Enqueuer {
      * All methods that *must* never be inlined due to a configuration directive (testing only).
      */
     public final Set<DexMethod> neverInline;
-    /** All methods that may not have any parameters with a constant value removed. */
+    /**
+     * All methods that may not have any parameters with a constant value removed.
+     */
     public final Set<DexMethod> keepConstantArguments;
-    /** All methods that may not have any unused arguments removed. */
+    /**
+     * All methods that may not have any unused arguments removed.
+     */
     public final Set<DexMethod> keepUnusedArguments;
     /**
      * All types that *must* never be inlined due to a configuration directive (testing only).
@@ -2143,16 +2144,14 @@ public class Enqueuer {
       this.callSites = previous.callSites;
       this.brokenSuperInvokes = lense.rewriteMethodsConservatively(previous.brokenSuperInvokes);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
-      assert lense.assertDefinitionsNotModified(previous.noSideEffects.keySet());
-      this.noSideEffects = previous.noSideEffects;
-      assert lense.assertDefinitionsNotModified(previous.assumedValues.keySet());
-      this.assumedValues = previous.assumedValues;
+      this.noSideEffects = rewriteReferenceKeys(previous.noSideEffects, lense::lookupReference);
+      this.assumedValues = rewriteReferenceKeys(previous.assumedValues, lense::lookupReference);
       assert lense.assertDefinitionsNotModified(
           previous.alwaysInline.stream()
               .map(this::definitionFor)
               .filter(Objects::nonNull)
               .collect(Collectors.toList()));
-      this.alwaysInline = previous.alwaysInline;
+      this.alwaysInline = lense.rewriteMethodsWithRenamedSignature(previous.alwaysInline);
       this.forceInline = lense.rewriteMethodsWithRenamedSignature(previous.forceInline);
       this.neverInline = lense.rewriteMethodsWithRenamedSignature(previous.neverInline);
       this.keepConstantArguments =
@@ -2165,7 +2164,7 @@ public class Enqueuer {
               .filter(Objects::nonNull)
               .collect(Collectors.toList()));
       this.neverClassInline = rewriteItems(previous.neverClassInline, lense::lookupType);
-      this.neverMerge = previous.neverMerge;
+      this.neverMerge = rewriteItems(previous.neverMerge, lense::lookupType);
       this.identifierNameStrings =
           lense.rewriteReferencesConservatively(previous.identifierNameStrings);
       // Switchmap classes should never be affected by renaming.
@@ -2174,8 +2173,8 @@ public class Enqueuer {
               .map(this::definitionFor)
               .filter(Objects::nonNull)
               .collect(Collectors.toList()));
-      this.switchMaps = previous.switchMaps;
-      this.ordinalsMaps = rewriteKeys(previous.ordinalsMaps, lense::lookupType);
+      this.switchMaps = rewriteReferenceKeys(previous.switchMaps, lense::lookupField);
+      this.ordinalsMaps = rewriteReferenceKeys(previous.ordinalsMaps, lense::lookupType);
       // Sanity check sets after rewriting.
       assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
       assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
@@ -2318,14 +2317,6 @@ public class Enqueuer {
       return builder.build();
     }
 
-    private static <T extends PresortedComparable<T>, S> ImmutableMap<T, S> rewriteKeys(
-        Map<T, S> original, Function<T, T> rewrite) {
-      ImmutableMap.Builder<T, S> builder = new ImmutableMap.Builder<>();
-      for (T item : original.keySet()) {
-        builder.put(rewrite.apply(item), original.get(item));
-      }
-      return builder.build();
-    }
 
     private static <T extends PresortedComparable<T>, S>
         Map<T, Set<S>> rewriteKeysWhileMergingValues(
@@ -2820,15 +2811,15 @@ public class Enqueuer {
     return reason.getSourceNode(this);
   }
 
-  public GraphNode getGraphNode(DexDefinition item) {
-    if (item instanceof DexClass) {
-      return getClassGraphNode(((DexClass) item).type);
+  public GraphNode getGraphNode(DexReference reference) {
+    if (reference.isDexType()) {
+      return getClassGraphNode(reference.asDexType());
     }
-    if (item instanceof DexEncodedMethod) {
-      return getMethodGraphNode(((DexEncodedMethod) item).method);
+    if (reference.isDexMethod()) {
+      return getMethodGraphNode(reference.asDexMethod());
     }
-    if (item instanceof DexEncodedField) {
-      return getFieldGraphNode(((DexEncodedField) item).field);
+    if (reference.isDexField()) {
+      return getFieldGraphNode(reference.asDexField());
     }
     throw new Unreachable();
   }

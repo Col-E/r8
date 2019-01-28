@@ -67,8 +67,8 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
       DexEncodedField encodedField,
       NamingState<DexType, ?> state,
       boolean isLibrary) {
-    if (isLibrary || rootSet.noObfuscation.contains(encodedField)) {
-      DexField field = encodedField.field;
+    DexField field = encodedField.field;
+    if (isLibrary || rootSet.noObfuscation.contains(field)) {
       state.reserveName(field.name, field.type);
     }
   }

@@ -87,12 +87,10 @@ class ClassNameMinifier {
     this.classDictionary = options.getProguardConfiguration().getClassObfuscationDictionary();
     this.keepInnerClassStructure = options.getProguardConfiguration().getKeepAttributes().signature;
     this.noObfuscationTypes =
-        DexReference.filterDexType(
-            DexDefinition.mapToReference(rootSet.noObfuscation.stream()))
+        DexReference.filterDexType(rootSet.noObfuscation.stream())
             .collect(Collectors.toSet());
     this.keepPackageName =
-        DexReference.filterDexType(
-            DexDefinition.mapToReference(rootSet.keepPackageName.stream()))
+        DexReference.filterDexType(rootSet.keepPackageName.stream())
             .collect(Collectors.toSet());
 
     // Initialize top-level naming state.

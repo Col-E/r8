@@ -66,6 +66,17 @@ public class AppInfo {
     return app.classesWithDeterministicOrder();
   }
 
+  public DexDefinition definitionFor(DexReference reference) {
+    if (reference.isDexType()) {
+      return definitionFor(reference.asDexType());
+    }
+    if (reference.isDexMethod()) {
+      return definitionFor(reference.asDexMethod());
+    }
+    assert reference.isDexField();
+    return definitionFor(reference.asDexField());
+  }
+
   public DexClass definitionFor(DexType type) {
     return app.definitionFor(type);
   }

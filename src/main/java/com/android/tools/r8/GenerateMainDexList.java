@@ -8,7 +8,7 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexDefinition;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
@@ -80,9 +80,9 @@ public class GenerateMainDexList {
       }
       // Print -whyareyoukeeping results if any.
       if (whyAreYouKeepingConsumer != null) {
-        for (DexDefinition definition : mainDexRootSet.reasonAsked) {
+        for (DexReference reference : mainDexRootSet.reasonAsked) {
           whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-              enqueuer.getGraphNode(definition), System.out);
+              enqueuer.getGraphNode(reference), System.out);
         }
       }
 

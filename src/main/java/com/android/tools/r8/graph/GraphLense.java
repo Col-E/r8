@@ -10,6 +10,8 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
@@ -25,6 +27,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.function.Function;
 
 /**
  * A GraphLense implements a virtual view on top of the graph, used to delay global rewrites until
@@ -494,6 +499,23 @@ public abstract class GraphLense {
     return true;
   }
 
+  public ImmutableList<DexReference> rewriteReferencesConservatively(List<DexReference> original) {
+    ImmutableList.Builder<DexReference> builder = ImmutableList.builder();
+    for (DexReference item : original) {
+      if (item.isDexMethod()) {
+        DexMethod method = item.asDexMethod();
+        if (isContextFreeForMethod(method)) {
+          builder.add(lookupMethod(method));
+        } else {
+          builder.addAll(lookupMethodInAllContexts(method));
+        }
+      } else {
+        builder.add(lookupReference(item));
+      }
+    }
+    return builder.build();
+  }
+
   public ImmutableSet<DexReference> rewriteReferencesConservatively(Set<DexReference> original) {
     ImmutableSet.Builder<DexReference> builder = ImmutableSet.builder();
     for (DexReference item : original) {
@@ -509,6 +531,23 @@ public abstract class GraphLense {
       }
     }
     return builder.build();
+  }
+
+  public Set<DexReference> rewriteMutableReferencesConservatively(Set<DexReference> original) {
+    Set<DexReference> result = Sets.newIdentityHashSet();
+    for (DexReference item : original) {
+      if (item.isDexMethod()) {
+        DexMethod method = item.asDexMethod();
+        if (isContextFreeForMethod(method)) {
+          result.add(lookupMethod(method));
+        } else {
+          result.addAll(lookupMethodInAllContexts(method));
+        }
+      } else {
+        result.add(lookupReference(item));
+      }
+    }
+    return result;
   }
 
   public Object2BooleanMap<DexReference> rewriteReferencesConservatively(
@@ -528,6 +567,22 @@ public abstract class GraphLense {
       } else {
         result.put(lookupReference(item), entry.getBooleanValue());
       }
+    }
+    return result;
+  }
+
+  public ImmutableSet<DexType> rewriteTypesConservatively(Set<DexType> original) {
+    ImmutableSet.Builder<DexType> builder = ImmutableSet.builder();
+    for (DexType item : original) {
+      builder.add(lookupType(item));
+    }
+    return builder.build();
+  }
+
+  public Set<DexType> rewriteMutableTypesConservatively(Set<DexType> original) {
+    Set<DexType> result = Sets.newIdentityHashSet();
+    for (DexType item : original) {
+      result.add(lookupType(item));
     }
     return result;
   }
@@ -561,6 +616,45 @@ public abstract class GraphLense {
       }
     }
     return builder.build();
+  }
+
+  public SortedSet<DexMethod> rewriteMutableMethodsConservatively(Set<DexMethod> original) {
+    SortedSet<DexMethod> result = new TreeSet<>(PresortedComparable::slowCompare);
+    if (isContextFreeForMethods()) {
+      for (DexMethod item : original) {
+        result.add(lookupMethod(item));
+      }
+    } else {
+      for (DexMethod item : original) {
+        // Avoid using lookupMethodInAllContexts when possible.
+        if (isContextFreeForMethod(item)) {
+          result.add(lookupMethod(item));
+        } else {
+          // The lense is context sensitive, but we do not have the context here. Therefore, we
+          // conservatively look up the method in all contexts.
+          result.addAll(lookupMethodInAllContexts(item));
+        }
+      }
+    }
+    return result;
+  }
+
+  public static <T extends DexReference, S> ImmutableMap<T, S> rewriteReferenceKeys(
+      Map<T, S> original, Function<T, T> rewrite) {
+    ImmutableMap.Builder<T, S> builder = new ImmutableMap.Builder<>();
+    for (T item : original.keySet()) {
+      builder.put(rewrite.apply(item), original.get(item));
+    }
+    return builder.build();
+  }
+
+  public static <T extends DexReference, S> Map<T, S> rewriteMutableReferenceKeys(
+      Map<T, S> original, Function<T, T> rewrite) {
+    Map<T, S> result = new IdentityHashMap<>();
+    for (T item : original.keySet()) {
+      result.put(rewrite.apply(item), original.get(item));
+    }
+    return result;
   }
 
   public boolean verifyMappingToOriginalProgram(

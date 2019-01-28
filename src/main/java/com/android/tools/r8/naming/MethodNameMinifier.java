@@ -479,11 +479,12 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     return state;
   }
 
-  private void reserveNamesForMethod(DexEncodedMethod method,
-      boolean keepAll, NamingState<DexProto, ?> state) {
+  private void reserveNamesForMethod(
+      DexEncodedMethod encodedMethod, boolean keepAll, NamingState<DexProto, ?> state) {
+    DexMethod method = encodedMethod.method;
     if (keepAll || rootSet.noObfuscation.contains(method)) {
-      state.reserveName(method.method.name, method.method.proto);
-      globalState.reserveName(method.method.name, method.method.proto);
+      state.reserveName(method.name, method.proto);
+      globalState.reserveName(method.name, method.proto);
     }
   }
 

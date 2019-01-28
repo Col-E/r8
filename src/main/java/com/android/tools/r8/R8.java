@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.AppliedGraphLens;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -403,8 +403,10 @@ public class R8 {
               SeedMapper.seedMapperFromFile(
                   options.getProguardConfiguration().getApplyMappingFile());
           timing.begin("apply-mapping");
-          appView.setGraphLense(
-              new ProguardMapApplier(appView.withLiveness(), seedMapper).run(timing));
+          GraphLense applyMappingLense =
+              new ProguardMapApplier(appView.withLiveness(), seedMapper).run(timing);
+          rootSet = rootSet.rewrittenWithLense(applyMappingLense);
+          appView.setGraphLense(applyMappingLense);
           application = application.asDirect().rewrittenWithLense(appView.graphLense());
           appView.setAppInfo(
               appView
@@ -490,6 +492,7 @@ public class R8 {
       // At this point all code has been mapped according to the graph lens. We cannot remove the
       // graph lens entirely, though, since it is needed for mapping all field and method signatures
       // back to the original program.
+      GraphLense finalLense = appView.graphLense();
       timing.begin("AppliedGraphLens construction");
       appView.setGraphLense(new AppliedGraphLens(appView, application.classes()));
       timing.end();
@@ -536,9 +539,9 @@ public class R8 {
               .run();
         }
         if (whyAreYouKeepingConsumer != null) {
-          for (DexDefinition dexDefinition : mainDexRootSet.reasonAsked) {
+          for (DexReference reference : mainDexRootSet.reasonAsked) {
             whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-                enqueuer.getGraphNode(dexDefinition), System.out);
+                enqueuer.getGraphNode(reference), System.out);
           }
         }
       }
@@ -578,9 +581,9 @@ public class R8 {
 
             // Print reasons on the application after pruning, so that we reflect the actual result.
             if (whyAreYouKeepingConsumer != null) {
-              for (DexDefinition dexDefinition : rootSet.reasonAsked) {
+              for (DexReference reference : rootSet.reasonAsked) {
                 whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-                    enqueuer.getGraphNode(dexDefinition), System.out);
+                    enqueuer.getGraphNode(reference), System.out);
               }
             }
             // Remove annotations that refer to types that no longer exist.
@@ -641,7 +644,8 @@ public class R8 {
 
       // Validity checks.
       assert application.classes().stream().allMatch(DexClass::isValid);
-      assert rootSet.verifyKeptItemsAreKept(application, appView.appInfo(), options);
+      // Use the final lense while checking the validity of the final app against the root set.
+      assert rootSet.verifyKeptItemsAreKept(application, appView.appInfo(), finalLense, options);
       assert appView
           .graphLense()
           .verifyMappingToOriginalProgram(
