@@ -69,6 +69,7 @@ public class Devirtualizer {
           NonNull nonNull = current.asNonNull();
           Instruction origin = nonNull.origin();
           if (origin.isInvokeInterface()
+              && !origin.asInvokeInterface().getReceiver().hasLocalInfo()
               && devirtualizedCall.containsKey(origin.asInvokeInterface())
               && origin.asInvokeInterface().getReceiver() == nonNull.getAliasForOutValue()) {
             InvokeVirtual devirtualizedInvoke = devirtualizedCall.get(origin.asInvokeInterface());
@@ -95,6 +96,7 @@ public class Devirtualizer {
               if (newReceiverType.lessThanOrEqual(oldReceiverType, appView.appInfo())
                   && dominatorTree.dominatedBy(block, devirtualizedInvoke.getBlock())) {
                 assert nonNull.src() == oldReceiver;
+                assert !oldReceiver.hasLocalInfo();
                 oldReceiver.replaceSelectiveUsers(
                     newReceiver, ImmutableSet.of(nonNull), ImmutableMap.of());
               }
@@ -171,7 +173,6 @@ public class Devirtualizer {
               newReceiver = code.createValue(castTypeLattice);
               // Cache the new receiver with a narrower type to avoid redundant checkcast.
               if (!receiver.hasLocalInfo()) {
-                // TODO(b/118125038): Add a test for this.
                 castedReceiverCache.putIfAbsent(receiver, new IdentityHashMap<>());
                 castedReceiverCache.get(receiver).put(holderType, newReceiver);
               }
