@@ -126,6 +126,9 @@ def SetPrintConfigurationDirective(app, config, checkout_dir, destination):
     for line in lines:
       if '-printconfiguration' not in line:
         f.write(line)
+    # Check that there is a line-break at the end of the file or insert one.
+    if lines[-1].strip():
+      f.write('\n')
     f.write('-printconfiguration {}\n'.format(destination))
 
 def FindProguardConfigurationFile(app, config, checkout_dir):
