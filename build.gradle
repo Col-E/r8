@@ -107,6 +107,20 @@ sourceSets {
             include 'com/android/tools/r8/utils/FlagFile.java'
         }
     }
+    cfSegments {
+        java {
+            srcDirs = ['third_party/classlib/java', 'src/cf_segments/java']
+        }
+        output.resourcesDir = 'build/classes/cfSegments'
+    }
+    classlib {
+        java {
+            srcDirs = [
+                    'third_party/classlib/java',
+            ]
+        }
+        output.resourcesDir = 'build/classes/classlib'
+    }
     debugTestResources {
         java {
             srcDirs = ['src/test/debugTestResources']
@@ -236,6 +250,7 @@ dependencies {
     jctfCommonCompile "junit:junit:$junitVersion"
     jctfTestsCompile "junit:junit:$junitVersion"
     jctfTestsCompile sourceSets.jctfCommon.output
+    cfSegmentsCompile sourceSets.classlib.output
     examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     // Import Guava for @Nullable annotation
@@ -335,6 +350,7 @@ def x20Dependencies = [
     "third_party": [
         "benchmarks/kotlin-benches",
         "chrome",
+        "classlib",
         "desugar/desugar_20180308",
         "framework",
         "gmail/gmail_android_170604.16",
@@ -797,6 +813,12 @@ task createJctfTests(type: Exec) {
 compileTestJava {
     dependsOn createArtTests
     dependsOn createJctfTests
+}
+
+task buildCfSegments(type: Jar, dependsOn: downloadDeps) {
+    from sourceSets.cfSegments.output
+    baseName 'cf_segments'
+    destinationDir file('build/libs')
 }
 
 task buildD8ApiUsageSample(type: Jar) {
