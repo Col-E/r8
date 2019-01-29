@@ -539,7 +539,6 @@ public class InternalOptions {
     public boolean forceNameReflectionOptimization = false;
     public boolean disallowLoadStoreOptimization = false;
     public Consumer<IRCode> irModifier = null;
-    public boolean noSplittingExceptionalEdges = false;
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {

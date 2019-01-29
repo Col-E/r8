@@ -149,9 +149,6 @@ public class CfBuilder {
     computeInitializers();
     typeVerificationHelper = new TypeVerificationHelper(code, factory, appInfo);
     typeVerificationHelper.computeVerificationTypes();
-    if (!options.testing.noSplittingExceptionalEdges) {
-      splitExceptionalBlocks();
-    }
     rewriter.converter.deadCodeRemover.run(code);
     rewriteNots();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, typeVerificationHelper, appInfo);
@@ -221,38 +218,6 @@ public class CfBuilder {
       }
     }
     return initializers;
-  }
-
-  // Split all blocks with throwing instructions and exceptional edges such that any non-throwing
-  // instructions that might define values prior to the throwing exception are excluded from the
-  // try-catch range. Failure to do so will result in code that does not verify on the JVM.
-  private void splitExceptionalBlocks() {
-    ListIterator<BasicBlock> it = code.listIterator();
-    while (it.hasNext()) {
-      BasicBlock block = it.next();
-      if (!block.hasCatchHandlers()) {
-        continue;
-      }
-      int size = block.getInstructions().size();
-      boolean isThrow = block.exit().isThrow();
-      if ((isThrow && size == 1) || (!isThrow && size == 2)) {
-        // Fast-path to avoid processing blocks with just a single throwing instruction.
-        continue;
-      }
-      InstructionListIterator instructions = block.listIterator();
-      boolean hasOutValues = false;
-      while (instructions.hasNext()) {
-        Instruction instruction = instructions.next();
-        if (instruction.instructionTypeCanThrow()) {
-          break;
-        }
-        hasOutValues |= instruction.outValue() != null;
-      }
-      if (hasOutValues) {
-        instructions.previous();
-        instructions.split(code, it);
-      }
-    }
   }
 
   private void rewriteNots() {

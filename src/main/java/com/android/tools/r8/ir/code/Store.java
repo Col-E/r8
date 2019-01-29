@@ -75,7 +75,7 @@ public class Store extends Instruction {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
-    // Nothing to do. This is only hit because loads and stores are insert for phis.
+    throw new Unreachable("This IR must not be inserted before load and store insertion.");
   }
 
   @Override

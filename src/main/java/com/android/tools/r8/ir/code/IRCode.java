@@ -671,8 +671,6 @@ public class IRCode {
           if (seenThrowing) {
             assert instruction.isDebugInstruction()
                 || instruction.isJumpInstruction()
-                || instruction.isStore()
-                || instruction.isPop()
                 || instruction.isDup()
                 || instruction.isDup2()
                 || instruction.isSwap();
