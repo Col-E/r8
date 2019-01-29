@@ -20,6 +20,11 @@ public class DominatorTree implements BasicBlockChangeListener {
     MAY_HAVE_UNREACHABLE_BLOCKS
   }
 
+  public enum Inclusive {
+    YES,
+    NO
+  }
+
   private final BasicBlock[] sorted;
   private BasicBlock[] doms;
   private final BasicBlock normalExitBlock = new BasicBlock();
@@ -165,30 +170,42 @@ public class DominatorTree implements BasicBlockChangeListener {
    * iteration starts by returning <code>dominated</code>.
    */
   public Iterable<BasicBlock> dominatorBlocks(BasicBlock dominated) {
+    return dominatorBlocks(dominated, Inclusive.YES);
+  }
+
+  public Iterable<BasicBlock> dominatorBlocks(BasicBlock dominated, Inclusive inclusive) {
     assert !obsolete;
-    return () -> new Iterator<BasicBlock>() {
-      private BasicBlock current = dominated;
+    return () -> {
+      Iterator<BasicBlock> iterator =
+          new Iterator<BasicBlock>() {
+            private BasicBlock current = dominated;
 
-      @Override
-      public boolean hasNext() {
-        return current != null;
-      }
+            @Override
+            public boolean hasNext() {
+              return current != null;
+            }
 
-      @Override
-      public BasicBlock next() {
-        if (!hasNext()) {
-          return null;
-        } else {
-          BasicBlock result = current;
-          if (current.getNumber() == 0) {
-            current = null;
-          } else {
-            current = immediateDominator(current);
-            assert current != result;
-          }
-          return result;
-        }
+            @Override
+            public BasicBlock next() {
+              if (!hasNext()) {
+                return null;
+              } else {
+                BasicBlock result = current;
+                if (current.getNumber() == 0) {
+                  current = null;
+                } else {
+                  current = immediateDominator(current);
+                  assert current != result;
+                }
+                return result;
+              }
+            }
+          };
+      if (inclusive == Inclusive.NO) {
+        BasicBlock block = iterator.next();
+        assert block == dominated;
       }
+      return iterator;
     };
   }
 

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -61,7 +62,10 @@ public abstract class InvokeMethod extends Invoke {
   public abstract Collection<DexEncodedMethod> lookupTargets(
       AppInfoWithSubtyping appInfo, DexType invocationContext);
 
-  public abstract InlineAction computeInlining(InliningOracle decider, DexType invocationContext);
+  public abstract InlineAction computeInlining(
+      InliningOracle decider,
+      DexType invocationContext,
+      ClassInitializationAnalysis classInitializationAnalysis);
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {

@@ -6,9 +6,13 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -105,8 +109,11 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public InlineAction computeInlining(InliningOracle decider, DexType invocationContext) {
-    return decider.computeForInvokeStatic(this, invocationContext);
+  public InlineAction computeInlining(
+      InliningOracle decider,
+      DexType invocationContext,
+      ClassInitializationAnalysis classInitializationAnalysis) {
+    return decider.computeForInvokeStatic(this, invocationContext, classInitializationAnalysis);
   }
 
   @Override
@@ -115,7 +122,20 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public boolean triggersInitializationOfClass(DexType klass) {
-    return getInvokedMethod().holder == klass;
+  public boolean definitelyTriggersClassInitialization(
+      DexType clazz,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      Query mode,
+      AnalysisAssumption assumption) {
+    if (assumption == AnalysisAssumption.NONE) {
+      // Class initialization may fail with ExceptionInInitializerError.
+      return false;
+    }
+    DexType holder = getInvokedMethod().holder;
+    if (mode == Query.DIRECTLY) {
+      return holder == clazz;
+    } else {
+      return holder.isSubtypeOf(clazz, appView.appInfo());
+    }
   }
 }

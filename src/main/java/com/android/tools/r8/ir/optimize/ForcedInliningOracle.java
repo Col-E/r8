@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -39,7 +40,10 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public InlineAction computeForInvokeStatic(InvokeStatic invoke, DexType invocationContext) {
+  public InlineAction computeForInvokeStatic(
+      InvokeStatic invoke,
+      DexType invocationContext,
+      ClassInitializationAnalysis classInitializationAnalysis) {
     return computeForInvoke(invoke);
   }
 

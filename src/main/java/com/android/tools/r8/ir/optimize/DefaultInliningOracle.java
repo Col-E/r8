@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -115,19 +116,29 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     return Reason.SIMPLE;
   }
 
-  private boolean canInlineStaticInvoke(DexEncodedMethod method, DexEncodedMethod target) {
+  private boolean canInlineStaticInvoke(
+      InvokeStatic invoke,
+      DexEncodedMethod method,
+      DexEncodedMethod target,
+      ClassInitializationAnalysis classInitializationAnalysis) {
     // Only proceed with inlining a static invoke if:
-    // - the holder for the target equals the holder for the method, or
+    // - the holder for the target is a subtype of the holder for the method,
     // - the target method always triggers class initialization of its holder before any other side
-    //   effect (hence preserving class initialization semantics).
+    //   effect (hence preserving class initialization semantics),
+    // - the current method has already triggered the holder for the target method to be
+    //   initialized, or
     // - there is no non-trivial class initializer.
-    DexType targetHolder = target.method.getHolder();
-    if (method.method.getHolder() == targetHolder) {
+    DexType targetHolder = target.method.holder;
+    if (method.method.holder.isSubtypeOf(targetHolder, appView.appInfo())) {
       return true;
     }
     DexClass clazz = inliner.appView.appInfo().definitionFor(targetHolder);
     assert clazz != null;
     if (target.getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
+      return true;
+    }
+    if (classInitializationAnalysis.isClassDefinitelyLoadedBeforeInstruction(
+        target.method.holder, invoke)) {
       return true;
     }
     // Check for class initializer side effects when loading this class, as inlining might remove
@@ -316,7 +327,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public InlineAction computeForInvokeStatic(InvokeStatic invoke, DexType invocationContext) {
+  public InlineAction computeForInvokeStatic(
+      InvokeStatic invoke,
+      DexType invocationContext,
+      ClassInitializationAnalysis classInitializationAnalysis) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
     if (candidate == null || inliner.isBlackListed(candidate.method)) {
       return null;
@@ -333,7 +347,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     // Abort inlining attempt if we can not guarantee class for static target has been initialized.
-    if (!canInlineStaticInvoke(method, candidate)) {
+    if (!canInlineStaticInvoke(invoke, method, candidate, classInitializationAnalysis)) {
       if (info != null) {
         info.exclude(invoke, "target is static but we cannot guarantee class has been initialized");
       }

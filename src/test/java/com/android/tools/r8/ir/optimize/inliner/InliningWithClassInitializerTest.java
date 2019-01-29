@@ -16,16 +16,13 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class InliningWithClassInitializerTest extends TestBase {
 
-  @Ignore("b/123327413")
   @Test
   public void test() throws Exception {
-    String expectedOutput =
-        StringUtils.lines("In A.<clinit>()", "In B.inlineable()", "In B.other()");
+    String expectedOutput = StringUtils.lines("In A.<clinit>()", "In B.<clinit>()", "In B.other()");
 
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
 
@@ -74,8 +71,11 @@ public class InliningWithClassInitializerTest extends TestBase {
 
   static class B extends A {
 
+    static {
+      System.out.println("In B.<clinit>()");
+    }
+
     static void inlineable() {
-      System.out.println("In B.inlineable()");
       other();
     }
 

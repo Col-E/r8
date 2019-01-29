@@ -16,12 +16,10 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class InliningFromCurrentClassTest extends TestBase {
 
-  @Ignore("b/123327416")
   @Test
   public void test() throws Exception {
     String expectedOutput =
@@ -65,8 +63,6 @@ public class InliningFromCurrentClassTest extends TestBase {
 
     MethodSubject testMethod = classB.uniqueMethodWithName("test");
     assertThat(testMethod, isPresent());
-    assertThat(testMethod, not(invokesMethod(inlineable1Method)));
-    assertThat(testMethod, not(invokesMethod(inlineable2Method)));
     assertThat(testMethod, invokesMethod(notInlineableMethod));
   }
 

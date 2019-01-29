@@ -8,7 +8,11 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -107,8 +111,17 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public boolean triggersInitializationOfClass(DexType klass) {
-    return clazz == klass;
+  public boolean definitelyTriggersClassInitialization(
+      DexType clazz,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      Query mode,
+      AnalysisAssumption assumption) {
+    DexType holder = this.clazz;
+    if (mode == Query.DIRECTLY) {
+      return holder == clazz;
+    } else {
+      return holder.isSubtypeOf(clazz, appView.appInfo());
+    }
   }
 
   public void markNoSpilling() {

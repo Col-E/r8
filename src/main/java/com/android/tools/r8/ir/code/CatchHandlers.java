@@ -5,14 +5,16 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-public class CatchHandlers<T> {
+public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
 
   public static class CatchHandler<T> {
 
@@ -91,6 +93,27 @@ public class CatchHandlers<T> {
     for (int i = 0; i < size(); ++i) {
       consumer.accept(guards.get(i), targets.get(i));
     }
+  }
+
+  @Override
+  public Iterator<CatchHandler<T>> iterator() {
+    return new Iterator<CatchHandler<T>>() {
+
+      private int nextIndex = 0;
+
+      @Override
+      public boolean hasNext() {
+        return nextIndex < size();
+      }
+
+      @Override
+      public CatchHandler<T> next() {
+        DexType guard = guards.get(nextIndex);
+        T target = targets.get(nextIndex);
+        ++nextIndex;
+        return new CatchHandler<>(guard, target);
+      }
+    };
   }
 
   @Override

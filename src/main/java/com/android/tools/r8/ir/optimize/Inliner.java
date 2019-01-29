@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -593,6 +594,8 @@ public class Inliner {
       InliningStrategy strategy, InliningOracle oracle, DexEncodedMethod context, IRCode code) {
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
+    ClassInitializationAnalysis classInitializationAnalysis =
+        new ClassInitializationAnalysis(appView, code);
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (blocksToRemove.contains(block)) {
@@ -603,7 +606,8 @@ public class Inliner {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
-          InlineAction result = invoke.computeInlining(oracle, context.method.holder);
+          InlineAction result =
+              invoke.computeInlining(oracle, context.method.holder, classInitializationAnalysis);
           if (result != null) {
             if (!(strategy.stillHasBudget() || result.reason.mustBeInlined())) {
               continue;
@@ -641,6 +645,8 @@ public class Inliner {
               strategy.markInlined(inlinee);
               iterator.inlineInvoke(
                   appView.appInfo(), code, inlinee.code, blockIterator, blocksToRemove, downcast);
+
+              classInitializationAnalysis.notifyCodeHasChanged();
               strategy.updateTypeInformationIfNeeded(inlinee.code, blockIterator, block);
 
               // If we inlined the invoke from a bridge method, it is no longer a bridge method.
@@ -656,6 +662,7 @@ public class Inliner {
         }
       }
     }
+    classInitializationAnalysis.finish();
     oracle.finish();
     code.removeBlocks(blocksToRemove);
     code.removeAllTrivialPhis();

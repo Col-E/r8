@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.OptimizationInfo;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -822,7 +823,9 @@ final class InlineCandidateProcessor {
       }
 
       // Check if the method is inline-able by standard inliner.
-      InlineAction inlineAction = invoke.computeInlining(defaultOracle.get(), method.method.holder);
+      InlineAction inlineAction =
+          invoke.computeInlining(
+              defaultOracle.get(), method.method.holder, ClassInitializationAnalysis.trivial());
       if (inlineAction == null) {
         return false;
       }

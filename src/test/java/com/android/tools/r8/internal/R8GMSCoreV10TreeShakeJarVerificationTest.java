@@ -17,8 +17,6 @@ public class R8GMSCoreV10TreeShakeJarVerificationTest
   private String proguardMap1 = null;
   private String proguardMap2 = null;
 
-  @Rule public final ExpectedException exception = ExpectedException.none();
-
   @Test
   public void buildAndTreeShakeFromDeployJar() throws Exception {
     // TODO(tamaskenez): set hasReference = true when we have the noshrink file for V10

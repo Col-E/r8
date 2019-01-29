@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query.DIRECTLY;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.CANONICAL_NAME;
@@ -15,6 +16,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -42,10 +44,10 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsageBuilder;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
@@ -1024,17 +1026,19 @@ public class CodeRewriter {
   }
 
   public void identifyInvokeSemanticsForInlining(
-      DexEncodedMethod method, IRCode code, GraphLense graphLense, OptimizationFeedback feedback) {
+      DexEncodedMethod method,
+      IRCode code,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      OptimizationFeedback feedback) {
     if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
-      feedback.markTriggerClassInitBeforeAnySideEffect(method,
-          triggersClassInitializationBeforeSideEffect(code, method.method.getHolder()));
+      feedback.markTriggerClassInitBeforeAnySideEffect(
+          method, triggersClassInitializationBeforeSideEffect(method.method.holder, code, appView));
     } else {
       // Identifies if the method preserves null check of the receiver after inlining.
       final Value receiver = code.getThis();
-      feedback.markCheckNullReceiverBeforeAnySideEffect(method,
-          receiver.isUsed()
-              && checksNullBeforeSideEffect(code, appInfo, graphLense, receiver));
+      feedback.markCheckNullReceiverBeforeAnySideEffect(
+          method, receiver.isUsed() && checksNullBeforeSideEffect(code, receiver, appView));
     }
   }
 
@@ -1366,10 +1370,10 @@ public class CodeRewriter {
    * Returns true if the given code unconditionally throws if value is null before any other side
    * effect instruction.
    *
-   * Note: we do not track phis so we may return false negative. This is a conservative approach.
+   * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
   public static boolean checksNullBeforeSideEffect(
-      IRCode code, AppInfo appInfo, GraphLense graphLense, Value value) {
+      IRCode code, Value value, AppView<? extends AppInfoWithSubtyping> appView) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instr, it) -> {
@@ -1379,13 +1383,13 @@ public class CodeRewriter {
           if (!currentBlock.hasCatchHandlers() && isNullCheck(instr, value)) {
             return InstructionEffect.CONDITIONAL_EFFECT;
           }
-          if (isKotlinNullCheck(appInfo, graphLense, instr, value)) {
+          if (isKotlinNullCheck(instr, value, appView)) {
             DexMethod invokedMethod = instr.asInvokeStatic().getInvokedMethod();
             // Kotlin specific way of throwing NPE: throwParameterIsNullException.
             // Similarly, combined with the above CONDITIONAL_EFFECT, the code checks on NPE on
             // the value.
             if (invokedMethod.name
-                == appInfo.dexItemFactory.kotlin.intrinsics.throwParameterIsNullException.name) {
+                == appView.dexItemFactory().kotlin.intrinsics.throwParameterIsNullException.name) {
               // We found a NPE (or similar exception) throwing code.
               // Combined with the above CONDITIONAL_EFFECT, the code checks NPE on the value.
               for (BasicBlock predecessor : currentBlock.getPredecessors()) {
@@ -1401,14 +1405,14 @@ public class CodeRewriter {
             } else {
               // Kotlin specific way of checking parameter nullness: checkParameterIsNotNull.
               assert invokedMethod.name
-                  == appInfo.dexItemFactory.kotlin.intrinsics.checkParameterIsNotNull.name;
+                  == appView.dexItemFactory().kotlin.intrinsics.checkParameterIsNotNull.name;
               return InstructionEffect.DESIRED_EFFECT;
             }
           }
-          if (isInstantiationOfNullPointerException(instr, it, appInfo.dexItemFactory)) {
+          if (isInstantiationOfNullPointerException(instr, it, appView.dexItemFactory())) {
             it.next(); // Skip call to NullPointerException.<init>.
             return InstructionEffect.NO_EFFECT;
-          } else if (instr.throwsNpeIfValueIsNull(value, appInfo.dexItemFactory)) {
+          } else if (instr.throwsNpeIfValueIsNull(value, appView.dexItemFactory())) {
             // In order to preserve NPE semantic, the exception must not be caught by any handler.
             // Therefore, we must ignore this instruction if it is covered by a catch handler.
             // Note: this is a conservative approach where we consider that any catch handler could
@@ -1434,7 +1438,7 @@ public class CodeRewriter {
   // declare a method called checkParameterIsNotNull(parameter, message) or
   // throwParameterIsNullException(parameterName) in a package that starts with "kotlin".
   private static boolean isKotlinNullCheck(
-      AppInfo appInfo, GraphLense graphLense, Instruction instr, Value value) {
+      Instruction instr, Value value, AppView<? extends AppInfoWithSubtyping> appView) {
     if (!instr.isInvokeStatic()) {
       return false;
     }
@@ -1442,11 +1446,11 @@ public class CodeRewriter {
     // e.g., kotlin.collections.ArraysKt___ArraysKt... or kotlin.jvm.internal.ArrayIteratorKt...
     MethodSignatureEquivalence wrapper = MethodSignatureEquivalence.get();
     Wrapper<DexMethod> checkParameterIsNotNull =
-        wrapper.wrap(appInfo.dexItemFactory.kotlin.intrinsics.checkParameterIsNotNull);
+        wrapper.wrap(appView.dexItemFactory().kotlin.intrinsics.checkParameterIsNotNull);
     Wrapper<DexMethod> throwParamIsNullException =
-        wrapper.wrap(appInfo.dexItemFactory.kotlin.intrinsics.throwParameterIsNullException);
+        wrapper.wrap(appView.dexItemFactory().kotlin.intrinsics.throwParameterIsNullException);
     DexMethod invokedMethod =
-        graphLense.getOriginalMethodSignature(instr.asInvokeStatic().getInvokedMethod());
+        appView.graphLense().getOriginalMethodSignature(instr.asInvokeStatic().getInvokedMethod());
     Wrapper<DexMethod> methodWrap = wrapper.wrap(invokedMethod);
     if (methodWrap.equals(throwParamIsNullException)
         || (methodWrap.equals(checkParameterIsNotNull) && instr.inValues().get(0).equals(value))) {
@@ -1492,13 +1496,15 @@ public class CodeRewriter {
    * Returns true if the given code unconditionally triggers class initialization before any other
    * side effecting instruction.
    *
-   * Note: we do not track phis so we may return false negative. This is a conservative approach.
+   * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
-  private static boolean triggersClassInitializationBeforeSideEffect(IRCode code, DexType klass) {
+  private static boolean triggersClassInitializationBeforeSideEffect(
+      DexType clazz, IRCode code, AppView<? extends AppInfoWithSubtyping> appView) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instruction, it) -> {
-          if (instruction.triggersInitializationOfClass(klass)) {
+          if (instruction.definitelyTriggersClassInitialization(
+              clazz, appView, DIRECTLY, AnalysisAssumption.INSTRUCTION_DOES_NOT_THROW)) {
             // In order to preserve class initialization semantic, the exception must not be caught
             // by any handler. Therefore, we must ignore this instruction if it is covered by a
             // catch handler.
