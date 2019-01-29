@@ -113,6 +113,10 @@ APPS = {
     'git_repo': 'https://github.com/mkj-gram/Tusky.git',
     'flavor': 'blue'
   },
+  'Vungle-Android-SDK': {
+    'app_id': 'com.publisher.vungle.sample',
+    'git_repo': 'https://github.com/mkj-gram/Vungle-Android-SDK.git',
+  },
   # This does not build yet.
   'muzei': {
       'git_repo': 'https://github.com/sgjesse/muzei.git',
