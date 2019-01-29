@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -169,17 +170,7 @@ public class InstanceGet extends FieldInstruction {
       AppView<? extends AppInfoWithSubtyping> appView,
       Query mode,
       AnalysisAssumption assumption) {
-    if (assumption == AnalysisAssumption.NONE) {
-      if (object().getTypeLattice().isNullable()) {
-        // If the receiver is null we cannot be sure that the holder has been initialized.
-        return false;
-      }
-    }
-    DexType holder = getField().clazz;
-    if (mode == Query.DIRECTLY) {
-      return holder == clazz;
-    } else {
-      return holder.isSubtypeOf(clazz, appView.appInfo());
-    }
+    return ClassInitializationAnalysis.InstructionUtils.forInstanceGet(
+        this, clazz, appView, mode, assumption);
   }
 }
