@@ -127,15 +127,7 @@ public class InvokeStatic extends InvokeMethod {
       AppView<? extends AppInfoWithSubtyping> appView,
       Query mode,
       AnalysisAssumption assumption) {
-    if (assumption == AnalysisAssumption.NONE) {
-      // Class initialization may fail with ExceptionInInitializerError.
-      return false;
-    }
-    DexType holder = getInvokedMethod().holder;
-    if (mode == Query.DIRECTLY) {
-      return holder == clazz;
-    } else {
-      return holder.isSubtypeOf(clazz, appView.appInfo());
-    }
+    return ClassInitializationAnalysis.InstructionUtils.forInvokeStatic(
+        this, clazz, appView, mode, assumption);
   }
 }

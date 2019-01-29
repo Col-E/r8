@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -116,12 +117,8 @@ public class NewInstance extends Instruction {
       AppView<? extends AppInfoWithSubtyping> appView,
       Query mode,
       AnalysisAssumption assumption) {
-    DexType holder = this.clazz;
-    if (mode == Query.DIRECTLY) {
-      return holder == clazz;
-    } else {
-      return holder.isSubtypeOf(clazz, appView.appInfo());
-    }
+    return ClassInitializationAnalysis.InstructionUtils.forNewInstance(
+        this, clazz, appView, mode, assumption);
   }
 
   public void markNoSpilling() {
