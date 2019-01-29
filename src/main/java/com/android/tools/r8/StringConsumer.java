@@ -106,7 +106,7 @@ public interface StringConsumer {
         if (parent != null && !parent.toFile().exists()) {
           Files.createDirectories(parent);
         }
-        Files.write(outputPath, string.getBytes(encoding));
+        com.google.common.io.Files.asCharSink(outputPath.toFile(), encoding).write(string);
       } catch (IOException e) {
         Origin origin = new PathOrigin(outputPath);
         handler.error(new ExceptionDiagnostic(e, origin));
