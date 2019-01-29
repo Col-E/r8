@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.Value;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 public class LoadStoreHelper {
@@ -35,7 +36,7 @@ public class LoadStoreHelper {
   private final AppInfo appInfo;
 
   private Map<Value, ConstInstruction> clonableConstants = null;
-  private BasicBlock block = null;
+  private ListIterator<BasicBlock> blockIterator = null;
 
   public LoadStoreHelper(IRCode code, TypeVerificationHelper typesHelper, AppInfo appInfo) {
     this.code = code;
@@ -96,16 +97,16 @@ public class LoadStoreHelper {
 
   public void insertLoadsAndStores() {
     clonableConstants = new IdentityHashMap<>();
-    for (BasicBlock block : code.blocks) {
-      this.block = block;
-      InstructionListIterator it = block.listIterator();
+    blockIterator = code.blocks.listIterator();
+    while (blockIterator.hasNext()) {
+      InstructionListIterator it = blockIterator.next().listIterator();
       while (it.hasNext()) {
         it.next().insertLoadAndStores(it, this);
       }
       clonableConstants.clear();
     }
     clonableConstants = null;
-    block = null;
+    blockIterator = null;
   }
 
   public void insertPhiMoves(CfRegisterAllocator allocator) {
@@ -170,8 +171,7 @@ public class LoadStoreHelper {
     assert !(instruction.outValue() instanceof StackValue);
     if (instruction.isConstInstruction()) {
       ConstInstruction constInstruction = instruction.asConstInstruction();
-      assert block != null;
-      if (canRemoveConstInstruction(constInstruction, block)) {
+      if (canRemoveConstInstruction(constInstruction, instruction.getBlock())) {
         assert !constInstruction.isDexItemBasedConstString()
             || constInstruction.outValue().numberOfUsers() == 1;
         clonableConstants.put(instruction.outValue(), constInstruction);
@@ -180,7 +180,8 @@ public class LoadStoreHelper {
         return;
       }
       assert instruction.outValue().isUsed(); // Should have removed it above.
-    } else if (!instruction.outValue().isUsed()) {
+    }
+    if (!instruction.outValue().isUsed()) {
       popOutValue(instruction.outValue(), instruction, it);
       return;
     }
@@ -189,19 +190,40 @@ public class LoadStoreHelper {
     Store store = new Store(oldOutValue, newOutValue);
     // Move the debugging-locals liveness pertaining to the instruction to the store.
     instruction.moveDebugValues(store);
-    add(store, instruction, it);
-  }
-
-  public void popOutValue(Value value, Instruction instruction, InstructionListIterator it) {
-    StackValue newOutValue = createStackValue(value, 0);
-    instruction.swapOutValue(newOutValue);
-    add(new Pop(newOutValue), instruction, it);
+    BasicBlock storeBlock = instruction.getBlock();
+    // If the block has catch-handlers we are not allowed to modify the locals of the block. If the
+    // instruction is throwing, the action should be moved to a new block - otherwise, the store
+    // should be inserted and the remaining instructions should be moved along with the handlers to
+    // the new block.
+    boolean hasCatchHandlers = instruction.getBlock().hasCatchHandlers();
+    if (hasCatchHandlers && instruction.instructionTypeCanThrow()) {
+      storeBlock = it.split(this.code, this.blockIterator);
+      it = storeBlock.listIterator();
+    }
+    add(store, storeBlock, instruction.getPosition(), it);
+    if (hasCatchHandlers && !instruction.instructionTypeCanThrow()) {
+      it.split(this.code, this.blockIterator);
+      this.blockIterator.previous();
+    }
   }
 
   public void popOutType(DexType type, Instruction instruction, InstructionListIterator it) {
-    StackValue newOutValue = createStackValue(type, 0);
+    popOutValue(createStackValue(type, 0), instruction, it);
+  }
+
+  private void popOutValue(Value value, Instruction instruction, InstructionListIterator it) {
+    popOutValue(createStackValue(value, 0), instruction, it);
+  }
+
+  private void popOutValue(
+      StackValue newOutValue, Instruction instruction, InstructionListIterator it) {
+    BasicBlock insertBlock = instruction.getBlock();
+    if (insertBlock.hasCatchHandlers() && instruction.instructionTypeCanThrow()) {
+      insertBlock = it.split(this.code, this.blockIterator);
+      it = insertBlock.listIterator();
+    }
     instruction.swapOutValue(newOutValue);
-    add(new Pop(newOutValue), instruction, it);
+    add(new Pop(newOutValue), insertBlock, instruction.getPosition(), it);
   }
 
   private static class PhiMove {
