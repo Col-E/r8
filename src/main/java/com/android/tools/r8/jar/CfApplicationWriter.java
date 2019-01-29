@@ -70,7 +70,7 @@ public class CfApplicationWriter {
   private final GraphLense graphLense;
   private final NamingLens namingLens;
   private final InternalOptions options;
-  private final String markerString;
+  private final Marker marker;
 
   public final ProguardMapSupplier proguardMapSupplier;
   public final String deadCode;
@@ -89,7 +89,8 @@ public class CfApplicationWriter {
     this.graphLense = graphLense;
     this.namingLens = namingLens;
     this.options = options;
-    this.markerString = marker == null ? null : marker.toString();
+    assert marker != null;
+    this.marker = marker;
     this.proguardMapSupplier = proguardMapSupplier;
     this.deadCode = deadCode;
     this.proguardSeedsData = proguardSeedsData;
@@ -106,9 +107,17 @@ public class CfApplicationWriter {
 
   private void writeApplication(ClassFileConsumer consumer, ExecutorService executor)
       throws IOException {
+    ProguardMapSupplier.ProguardMapAndId proguardMapAndId = null;
+    if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
+      proguardMapAndId = proguardMapSupplier.getProguardMapAndId();
+      if (proguardMapAndId != null) {
+        marker.setPgMapId(proguardMapAndId.id);
+      }
+    }
+    String markerString = marker.toString();
     for (DexProgramClass clazz : application.classes()) {
       if (clazz.getSynthesizedFrom().isEmpty()) {
-        writeClass(clazz, consumer);
+        writeClass(clazz, consumer, markerString);
       } else {
         throw new Unimplemented("No support for synthetics in the Java bytecode backend.");
       }
@@ -119,16 +128,14 @@ public class CfApplicationWriter {
         namingLens,
         options,
         deadCode,
-        proguardMapSupplier,
+        proguardMapAndId == null ? null : proguardMapAndId.map,
         proguardSeedsData);
   }
 
-  private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer) throws IOException {
+  private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer, String markerString) {
     ClassWriter writer = new ClassWriter(0);
-    if (markerString != null) {
-      int index = writer.newConst(markerString);
-      assert index == MARKER_STRING_CONSTANT_POOL_INDEX;
-    }
+    int markerStringPoolIndex = writer.newConst(markerString);
+    assert markerStringPoolIndex == MARKER_STRING_CONSTANT_POOL_INDEX;
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, null);
     int version = getClassFileVersion(clazz);
     int access = clazz.accessFlags.getAsCfAccessFlags();

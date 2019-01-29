@@ -21,6 +21,7 @@ public class Marker {
   public static final String MIN_API = "min-api";
   public static final String SHA1 = "sha-1";
   public static final String COMPILATION_MODE = "compilation-mode";
+  public static final String PG_MAP_ID = "pg-map-id";
 
   public enum Tool {D8, R8}
 
@@ -90,6 +91,16 @@ public class Marker {
   public Marker setCompilationMode(CompilationMode mode) {
     assert !jsonObject.has(COMPILATION_MODE);
     jsonObject.addProperty(COMPILATION_MODE, mode.toString().toLowerCase());
+    return this;
+  }
+
+  public String getPgMapId() {
+    return jsonObject.get(PG_MAP_ID).getAsString();
+  }
+
+  public Marker setPgMapId(String pgMapId) {
+    assert !jsonObject.has(PG_MAP_ID);
+    jsonObject.addProperty(PG_MAP_ID, pgMapId);
     return this;
   }
 

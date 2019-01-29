@@ -64,6 +64,7 @@ public class ApplicationWriter {
   public final NamingLens namingLens;
   public final String proguardSeedsData;
   public final InternalOptions options;
+  public List<Marker> markers;
   public List<DexString> markerStrings;
   public DexIndexedConsumer programConsumer;
   public final ProguardMapSupplier proguardMapSupplier;
@@ -160,12 +161,7 @@ public class ApplicationWriter {
     this.application = application;
     assert options != null;
     this.options = options;
-    if (markers != null && !markers.isEmpty()) {
-      this.markerStrings = new ArrayList<>();
-      for (Marker marker : markers) {
-        this.markerStrings.add(application.dexItemFactory.createString(marker.toString()));
-      }
-    }
+    this.markers = markers;
     this.deadCode = deadCode;
     this.graphLense = graphLense;
     this.namingLens = namingLens;
@@ -195,12 +191,29 @@ public class ApplicationWriter {
 
   public void write(ExecutorService executorService) throws IOException, ExecutionException {
     application.timing.begin("DexApplication.write");
+    ProguardMapSupplier.ProguardMapAndId proguardMapAndId = null;
+    if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
+      proguardMapAndId = proguardMapSupplier.getProguardMapAndId();
+    }
+
+    // If we do have a map then we're called from R8. In that case we have exactly one marker.
+    assert proguardMapAndId == null || (markers != null && markers.size() == 1);
+
+    if (markers != null && !markers.isEmpty()) {
+      if (proguardMapAndId != null) {
+        markers.get(0).setPgMapId(proguardMapAndId.id);
+      }
+      markerStrings = new ArrayList<>(markers.size());
+      for (Marker marker : markers) {
+        markerStrings.add(application.dexItemFactory.createString(marker.toString()));
+      }
+    }
     try {
       insertAttributeAnnotations();
 
       application.dexItemFactory.sort(namingLens);
-      assert this.markerStrings == null
-          || this.markerStrings.isEmpty()
+      assert markers == null
+          || markers.isEmpty()
           || application.dexItemFactory.extractMarker() != null;
 
       SortAnnotations sortAnnotations = new SortAnnotations();
@@ -288,7 +301,7 @@ public class ApplicationWriter {
           namingLens,
           options,
           deadCode,
-          proguardMapSupplier,
+          proguardMapAndId == null ? null : proguardMapAndId.map,
           proguardSeedsData);
     } finally {
       application.timing.end();
@@ -301,7 +314,7 @@ public class ApplicationWriter {
       NamingLens namingLens,
       InternalOptions options,
       String deadCode,
-      ProguardMapSupplier proguardMapSupplier,
+      String proguardMapContent,
       String proguardSeedsData) {
     if (options.configurationConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
@@ -312,15 +325,11 @@ public class ApplicationWriter {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.usageInformationConsumer, deadCode);
     }
-    // Write the proguard map file after writing the dex files, as the map writer traverses
-    // the DexProgramClass structures, which are destructively updated during dex file writing.
-    if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
-      String content = proguardMapSupplier.get();
-      if (content != null) {
-        ExceptionUtils.withConsumeResourceHandler(
-            options.reporter, options.proguardMapConsumer, content);
+    if (proguardMapContent != null) {
+      ExceptionUtils.withConsumeResourceHandler(
+          options.reporter, options.proguardMapConsumer, proguardMapContent);
       }
-    }
+
     if (options.proguardSeedsConsumer != null && proguardSeedsData != null) {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.proguardSeedsConsumer, proguardSeedsData);

@@ -6,55 +6,126 @@ package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.VersionProperties;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
 
 public class ProguardMapMarkerTest {
+  private static final int EXPECTED_NUMBER_OF_KEYS_DEX = 5;
+  private static final int EXPECTED_NUMBER_OF_KEYS_CF = 4;
+  private static final String CLASS_FILE =
+      ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
+
   @Test
   public void proguardMapMarkerTest24() throws CompilationFailedException {
-    proguardMapMarkerTest(AndroidApiLevel.N);
+    proguardMapMarkerTestDex(AndroidApiLevel.N);
   }
 
   @Test
   public void proguardMapMarkerTest26() throws CompilationFailedException {
-    proguardMapMarkerTest(AndroidApiLevel.O);
+    proguardMapMarkerTestDex(AndroidApiLevel.O);
   }
 
-  private void proguardMapMarkerTest(AndroidApiLevel minApiLevel) throws CompilationFailedException {
-    String classFile = ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
+  private static class ProguardMapIds {
+    String fromProgram = null;
+    String fromMap = null;
+  }
+
+  private void proguardMapMarkerTestDex(AndroidApiLevel minApiLevel)
+      throws CompilationFailedException {
+    ProguardMapIds proguardMapIds = new ProguardMapIds();
     R8.run(
         R8Command.builder()
-            .addProgramFiles(Paths.get(classFile))
+            .addProgramFiles(Paths.get(CLASS_FILE))
+            .setDisableTreeShaking(true)
             .setProgramConsumer(
-                new DexIndexedConsumer() {
+                new DexIndexedConsumer.ForwardingConsumer(null) {
                   @Override
                   public void accept(
                       int fileIndex,
                       ByteDataView data,
                       Set<String> descriptors,
-                      DiagnosticsHandler handler) {}
-
-                  @Override
-                  public void finished(DiagnosticsHandler handler) {}
+                      DiagnosticsHandler handler) {
+                    Marker marker;
+                    try {
+                      Collection<Marker> markers =
+                          ExtractMarker.extractMarkerFromDexProgramData(data.copyByteData());
+                      assertEquals(1, markers.size());
+                      marker = markers.iterator().next();
+                    } catch (Exception e) {
+                      throw new RuntimeException(e);
+                    }
+                    proguardMapIds.fromProgram = marker.getPgMapId();
+                  }
                 })
             .addLibraryFiles(ToolHelper.getAndroidJar(minApiLevel))
             .setMinApiLevel(minApiLevel.getLevel())
             .setProguardMapConsumer(
                 (proguardMap, handler) -> {
-                  verifyMarkers(proguardMap, minApiLevel.getLevel());
+                  proguardMapIds.fromMap =
+                      verifyMarkersGetPgMapId(
+                          proguardMap, minApiLevel.getLevel(), EXPECTED_NUMBER_OF_KEYS_DEX);
                 })
             .build());
+    verifyProguardMapIds(proguardMapIds);
   }
 
-  private static void verifyMarkers(String proguardMap, int minApiLevel) {
+  private void verifyProguardMapIds(ProguardMapIds proguardMapIds) {
+    assertTrue(
+        proguardMapIds.fromProgram != null
+            && proguardMapIds.fromProgram.length() == ProguardMapSupplier.PG_MAP_ID_LENGTH);
+    assertTrue(proguardMapIds.fromMap != null);
+    assertEquals(proguardMapIds.fromMap, proguardMapIds.fromProgram);
+  }
+
+  @Test
+  public void proguardMapMarkerTestCf() throws CompilationFailedException {
+    ProguardMapIds buildIds = new ProguardMapIds();
+    R8.run(
+        R8Command.builder()
+            .addProgramFiles(Paths.get(CLASS_FILE))
+            .setDisableTreeShaking(true)
+            .setProgramConsumer(
+                new ClassFileConsumer.ForwardingConsumer(null) {
+                  @Override
+                  public void accept(
+                      ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                    Marker marker;
+                    try {
+                      Collection<Marker> markers =
+                          ExtractMarker.extractMarkerFromClassProgramData(data.copyByteData());
+                      assertEquals(1, markers.size());
+                      marker = markers.iterator().next();
+                    } catch (Exception e) {
+                      throw new RuntimeException(e);
+                    }
+                    buildIds.fromProgram = marker.getPgMapId();
+                  }
+                })
+            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+            .setProguardMapConsumer(
+                (proguardMap, handler) -> {
+                  buildIds.fromMap =
+                      verifyMarkersGetPgMapId(proguardMap, null, EXPECTED_NUMBER_OF_KEYS_CF);
+                })
+            .build());
+    verifyProguardMapIds(buildIds);
+  }
+
+  private static String verifyMarkersGetPgMapId(
+      String proguardMap, Integer minApiLevel, int expectedNumberOfKeys) {
     String[] lines = proguardMap.split("\n");
     Set<String> keysFound = new HashSet<>();
+    String proguardMapId = null;
     for (String line : lines) {
       if (!line.startsWith("#")) {
         continue;
@@ -71,14 +142,19 @@ public class ProguardMapMarkerTest {
       } else if (key.equals(ProguardMapSupplier.MARKER_KEY_COMPILER_VERSION)) {
         assertEquals(Version.LABEL, value);
       } else if (key.equals(ProguardMapSupplier.MARKER_KEY_MIN_API)) {
-        assertEquals(minApiLevel, Integer.parseInt(value));
+        assertNotNull(minApiLevel);
+        assertEquals(minApiLevel.intValue(), Integer.parseInt(value));
       } else if (key.equals(ProguardMapSupplier.MARKER_KEY_COMPILER_HASH)) {
         assertEquals(VersionProperties.INSTANCE.getSha(), value);
+      } else if (key.equals(ProguardMapSupplier.MARKER_KEY_PG_MAP_ID)) {
+        proguardMapId = value;
       } else {
         continue;
       }
       assertFalse(keysFound.contains(key));
       keysFound.add(key);
     }
+    assertEquals(expectedNumberOfKeys, keysFound.size());
+    return proguardMapId;
   }
 }
