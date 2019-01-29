@@ -173,6 +173,8 @@ public class DexItemFactory {
   public final DexString enumDescriptor = createString("Ljava/lang/Enum;");
   public final DexString annotationDescriptor = createString("Ljava/lang/annotation/Annotation;");
   public final DexString throwableDescriptor = createString("Ljava/lang/Throwable;");
+  public final DexString exceptionInInitializerErrorDescriptor =
+      createString("Ljava/lang/ExceptionInInitializerError;");
   public final DexString objectsDescriptor = createString("Ljava/util/Objects;");
   public final DexString stringBuilderDescriptor = createString("Ljava/lang/StringBuilder;");
   public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");
@@ -228,6 +230,8 @@ public class DexItemFactory {
   public final DexType enumType = createType(enumDescriptor);
   public final DexType annotationType = createType(annotationDescriptor);
   public final DexType throwableType = createType(throwableDescriptor);
+  public final DexType exceptionInInitializerErrorType =
+      createType(exceptionInInitializerErrorDescriptor);
   public final DexType classType = createType(classDescriptor);
   public final DexType autoCloseableType = createType(autoCloseableDescriptor);
 

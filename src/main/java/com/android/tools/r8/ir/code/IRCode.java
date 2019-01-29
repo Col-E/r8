@@ -387,11 +387,9 @@ public class IRCode {
     }
   }
 
-  private boolean verifyNoBlocksMarked(int color) {
+  public boolean verifyNoBlocksMarked(int color) {
     for (BasicBlock block : blocks) {
-      if (block.isMarked(color)) {
-        return false;
-      }
+      assert !block.isMarked(color);
     }
     return true;
   }
@@ -919,7 +917,7 @@ public class IRCode {
   public Set<BasicBlock> getUnreachableBlocks() {
     Set<BasicBlock> unreachableBlocks = Sets.newIdentityHashSet();
     int color = reserveMarkingColor();
-    markReachableBlocks(color);
+    markTransitiveSuccessors(blocks.getFirst(), color);
     for (BasicBlock block : blocks) {
       if (!block.isMarked(color)) {
         unreachableBlocks.add(block);
@@ -932,7 +930,7 @@ public class IRCode {
   public Set<Value> removeUnreachableBlocks() {
     ImmutableSet.Builder<Value> affectedValueBuilder = ImmutableSet.builder();
     int color = reserveMarkingColor();
-    markReachableBlocks(color);
+    markTransitiveSuccessors(blocks.getFirst(), color);
     ListIterator<BasicBlock> blockIterator = listIterator();
     while (blockIterator.hasNext()) {
       BasicBlock current = blockIterator.next();
@@ -946,10 +944,10 @@ public class IRCode {
   }
 
   // Note: It is the responsibility of the caller to return the marking color.
-  private void markReachableBlocks(int color) {
+  private void markTransitiveSuccessors(BasicBlock subject, int color) {
     assert isMarkingColorInUse(color) && !anyBlocksMarkedWithColor(color);
     Queue<BasicBlock> worklist = new ArrayDeque<>();
-    worklist.add(blocks.getFirst());
+    worklist.add(subject);
     while (!worklist.isEmpty()) {
       BasicBlock block = worklist.poll();
       if (block.isMarked(color)) {
@@ -959,6 +957,29 @@ public class IRCode {
       for (BasicBlock successor : block.getSuccessors()) {
         if (!successor.isMarked(color)) {
           worklist.add(successor);
+        }
+      }
+    }
+  }
+
+  /**
+   * Marks the transitive predecessors of the given block, including the block itself.
+   *
+   * <p>Note: It is the responsibility of the caller to return the marking color.
+   */
+  public void markTransitivePredecessors(BasicBlock subject, int color) {
+    assert isMarkingColorInUse(color) && !anyBlocksMarkedWithColor(color);
+    Queue<BasicBlock> worklist = new ArrayDeque<>();
+    worklist.add(subject);
+    while (!worklist.isEmpty()) {
+      BasicBlock block = worklist.poll();
+      if (block.isMarked(color)) {
+        continue;
+      }
+      block.mark(color);
+      for (BasicBlock predecessor : block.getPredecessors()) {
+        if (!predecessor.isMarked(color)) {
+          worklist.add(predecessor);
         }
       }
     }

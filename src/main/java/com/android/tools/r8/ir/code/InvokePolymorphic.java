@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -126,7 +127,10 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public InlineAction computeInlining(InliningOracle decider, DexType invocationContext) {
+  public InlineAction computeInlining(
+      InliningOracle decider,
+      DexType invocationContext,
+      ClassInitializationAnalysis classInitializationAnalysis) {
     return decider.computeForInvokePolymorphic(this, invocationContext);
   }
 }

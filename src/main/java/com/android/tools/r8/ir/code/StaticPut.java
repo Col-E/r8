@@ -14,8 +14,12 @@ import com.android.tools.r8.code.SputShort;
 import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -130,7 +134,20 @@ public class StaticPut extends FieldInstruction {
   }
 
   @Override
-  public boolean triggersInitializationOfClass(DexType klass) {
-    return getField().clazz == klass;
+  public boolean definitelyTriggersClassInitialization(
+      DexType clazz,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      Query mode,
+      AnalysisAssumption assumption) {
+    if (assumption == AnalysisAssumption.NONE) {
+      // Class initialization may fail with ExceptionInInitializerError.
+      return false;
+    }
+    DexType holder = getField().clazz;
+    if (mode == Query.DIRECTLY) {
+      return holder == clazz;
+    } else {
+      return holder.isSubtypeOf(clazz, appView.appInfo());
+    }
   }
 }

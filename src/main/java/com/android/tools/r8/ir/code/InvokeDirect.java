@@ -7,9 +7,12 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -119,5 +122,25 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfInvoke(Opcodes.INVOKESPECIAL, getInvokedMethod(), itf));
+  }
+
+  @Override
+  public boolean definitelyTriggersClassInitialization(
+      DexType clazz,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      Query mode,
+      AnalysisAssumption assumption) {
+    if (assumption == AnalysisAssumption.NONE) {
+      if (getReceiver().getTypeLattice().isNullable()) {
+        // If the receiver is null we cannot be sure that the holder has been initialized.
+        return false;
+      }
+    }
+    DexType holder = getInvokedMethod().holder;
+    if (mode == Query.DIRECTLY) {
+      return holder == clazz;
+    } else {
+      return holder.isSubtypeOf(clazz, appView.appInfo());
+    }
   }
 }

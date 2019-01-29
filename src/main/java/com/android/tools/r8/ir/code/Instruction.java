@@ -8,10 +8,14 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstRangeLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
@@ -1250,11 +1254,14 @@ public abstract class Instruction implements InstructionOrPhi {
    * Indicates whether the instruction triggers the class initialization (i.e. the <clinit> method)
    * of the given class at runtime execution.
    *
-   * @param klass a class of the program
    * @return true if the instruction triggers intialization of the class at runtime, false
-   * otherwise.
+   *     otherwise.
    */
-  public boolean triggersInitializationOfClass(DexType klass) {
+  public boolean definitelyTriggersClassInitialization(
+      DexType clazz,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      Query mode,
+      AnalysisAssumption assumption) {
     return false;
   }
 

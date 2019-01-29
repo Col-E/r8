@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -34,7 +35,10 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public final InlineAction computeInlining(InliningOracle decider, DexType invocationContext) {
+  public final InlineAction computeInlining(
+      InliningOracle decider,
+      DexType invocationContext,
+      ClassInitializationAnalysis classInitializationAnalysis) {
     return decider.computeForInvokeWithReceiver(this, invocationContext);
   }
 

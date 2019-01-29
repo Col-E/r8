@@ -15,9 +15,13 @@ import com.android.tools.r8.code.IputShort;
 import com.android.tools.r8.code.IputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -140,5 +144,25 @@ public class InstancePut extends FieldInstruction {
   @Override
   public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return object() == value;
+  }
+
+  @Override
+  public boolean definitelyTriggersClassInitialization(
+      DexType clazz,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      Query mode,
+      AnalysisAssumption assumption) {
+    if (assumption == AnalysisAssumption.NONE) {
+      if (object().getTypeLattice().isNullable()) {
+        // If the receiver is null we cannot be sure that the holder has been initialized.
+        return false;
+      }
+    }
+    DexType holder = getField().clazz;
+    if (mode == Query.DIRECTLY) {
+      return holder == clazz;
+    } else {
+      return holder.isSubtypeOf(clazz, appView.appInfo());
+    }
   }
 }

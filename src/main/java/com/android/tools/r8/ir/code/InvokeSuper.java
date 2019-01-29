@@ -5,10 +5,15 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeSuperRange;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -106,5 +111,40 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forInvokeSuper(getInvokedMethod(), invocationContext);
+  }
+
+  @Override
+  public boolean definitelyTriggersClassInitialization(
+      DexType clazz,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      Query mode,
+      AnalysisAssumption assumption) {
+    if (assumption == AnalysisAssumption.NONE) {
+      if (getReceiver().getTypeLattice().isNullable()) {
+        // If the receiver is null we cannot be sure that the holder has been initialized.
+        return false;
+      }
+    }
+    if (mode == Query.DIRECTLY) {
+      // We cannot ensure exactly which class is being loaded because it depends on the runtime
+      // type of the receiver.
+      // TODO(christofferqa): We can do better if there is a unique target.
+      return false;
+    }
+    DexMethod method = getInvokedMethod();
+    DexClass enclosingClass = appView.appInfo().definitionFor(method.holder);
+    if (enclosingClass == null) {
+      return false;
+    }
+    DexType superType = enclosingClass.superType;
+    if (superType == null) {
+      return false;
+    }
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(superType, method);
+    if (!resolutionResult.hasSingleTarget()) {
+      return false;
+    }
+    DexType holder = resolutionResult.asSingleTarget().method.holder;
+    return holder.isSubtypeOf(clazz, appView.appInfo());
   }
 }

@@ -1125,12 +1125,14 @@ public class IRConverter {
 
     codeRewriter.identifyReturnsArgument(method, code, feedback);
     if (options.enableInlining && inliner != null) {
-      codeRewriter.identifyInvokeSemanticsForInlining(method, code, graphLense(), feedback);
+      codeRewriter.identifyInvokeSemanticsForInlining(method, code, appView, feedback);
     }
 
     // Track usage of parameters and compute their nullability and possibility of NPE.
-    if (method.getOptimizationInfo().getNonNullParamOrThrow() == null) {
-      computeNonNullParamHints(feedback, method, code);
+    if (enableWholeProgramOptimizations) {
+      if (method.getOptimizationInfo().getNonNullParamOrThrow() == null) {
+        computeNonNullParamHints(feedback, method, code);
+      }
     }
 
     // Insert code to log arguments if requested.
@@ -1189,8 +1191,7 @@ public class IRConverter {
       //   invoke-static throwParameterIsNullException(msg)
       //
       // or some other variants, e.g., throw null or NPE after the direct null check.
-      if (argument.isUsed()
-          && checksNullBeforeSideEffect(code, appInfo, graphLense(), argument)) {
+      if (argument.isUsed() && checksNullBeforeSideEffect(code, argument, appView)) {
         paramsCheckedForNull.set(index);
       }
     }
