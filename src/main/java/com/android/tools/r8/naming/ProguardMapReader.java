@@ -195,6 +195,7 @@ public class ProguardMapReader implements AutoCloseable {
   private void parseMemberMappings(ClassNaming.Builder classNamingBuilder) throws IOException {
     MemberNaming activeMemberNaming = null;
     Range previousObfuscatedRange = null;
+    boolean previousWasPotentiallySynthesized = false;
     Signature previousSignature = null;
     String previousRenamedName = null;
     boolean lastRound = false;
@@ -250,7 +251,12 @@ public class ProguardMapReader implements AutoCloseable {
             classNamingBuilder.addMemberEntry(activeMemberNaming);
             activeMemberNaming = null;
           } else {
-            assert (activeMemberNaming.getRenamedName().equals(previousRenamedName));
+            if (activeMemberNaming.getRenamedName().equals(previousRenamedName)) {
+              // The method was potentially synthesized.
+              previousWasPotentiallySynthesized = previousObfuscatedRange == null;
+            } else {
+              assert previousWasPotentiallySynthesized;
+            }
           }
         }
         if (activeMemberNaming == null) {
@@ -279,9 +285,7 @@ public class ProguardMapReader implements AutoCloseable {
 
         // Note that at this point originalRange may be null which either means, it's the same as
         // the obfuscatedRange (identity mapping) or that it's unknown (source line number
-        // information
-        // was not available).
-
+        // information was not available).
         assert signature instanceof MethodSignature;
       }
 
