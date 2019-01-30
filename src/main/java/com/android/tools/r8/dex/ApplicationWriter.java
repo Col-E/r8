@@ -34,6 +34,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -326,9 +327,10 @@ public class ApplicationWriter {
           options.reporter, options.usageInformationConsumer, deadCode);
     }
     if (proguardMapContent != null) {
+      assert validateProguardMapParses(proguardMapContent);
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.proguardMapConsumer, proguardMapContent);
-      }
+    }
 
     if (options.proguardSeedsConsumer != null && proguardSeedsData != null) {
       ExceptionUtils.withConsumeResourceHandler(
@@ -380,6 +382,16 @@ public class ApplicationWriter {
         }
       }
     }
+  }
+
+  private static boolean validateProguardMapParses(String content) {
+    try {
+      ClassNameMapper.mapperFromString(content);
+    } catch (IOException e) {
+      e.printStackTrace();
+      return false;
+    }
+    return true;
   }
 
   private void insertAttributeAnnotations() {
