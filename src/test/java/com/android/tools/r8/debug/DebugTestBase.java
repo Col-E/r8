@@ -15,7 +15,6 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
@@ -51,7 +50,6 @@ import org.apache.harmony.jpda.tests.framework.jdwp.EventBuilder;
 import org.apache.harmony.jpda.tests.framework.jdwp.EventPacket;
 import org.apache.harmony.jpda.tests.framework.jdwp.Frame.Variable;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPCommands;
-import org.apache.harmony.jpda.tests.framework.jdwp.JDWPCommands.ObjectReferenceCommandSet;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPCommands.ReferenceTypeCommandSet;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPCommands.StackFrameCommandSet;
 import org.apache.harmony.jpda.tests.framework.jdwp.JDWPConstants;
@@ -152,12 +150,6 @@ public abstract class DebugTestBase extends TestBase {
   protected static final boolean supportsDefaultMethod(DebugTestConfig config) {
     return config.isCfRuntime()
         || ToolHelper.getMinApiLevelForDexVm().getLevel() >= AndroidApiLevel.N.getLevel();
-  }
-
-  protected final void runDebugTest(
-      DebugTestConfig config, Class<?> debuggeeClass, JUnit3Wrapper.Command... commands)
-      throws Throwable {
-    runInternal(config, debuggeeClass.getTypeName(), Arrays.asList(commands));
   }
 
   protected final void runDebugTest(
@@ -332,10 +324,6 @@ public abstract class DebugTestBase extends TestBase {
     return new JUnit3Wrapper.Command.RunCommand();
   }
 
-  protected final JUnit3Wrapper.Command breakpoint(MethodReference method) {
-    return breakpoint(method.getHolderClass().getTypeName(), method.getMethodName());
-  }
-
   protected final JUnit3Wrapper.Command breakpoint(String className, String methodName) {
     return breakpoint(className, methodName, null);
   }
@@ -489,10 +477,6 @@ public abstract class DebugTestBase extends TestBase {
     });
   }
 
-  protected final JUnit3Wrapper.Command checkLine(int line) {
-    return inspect(t -> t.checkLine(null, line));
-  }
-
   protected final JUnit3Wrapper.Command checkLine(String sourceFile, int line) {
     return inspect(t -> t.checkLine(sourceFile, line));
   }
@@ -546,16 +530,6 @@ public abstract class DebugTestBase extends TestBase {
       Assert.assertEquals("Incorrect value for static '" + className + "." + fieldName + "'",
           expectedValue, value);
     });
-  }
-
-  protected final JUnit3Wrapper.Command checkFieldOnThis(
-      String fieldName, String fieldSignature, Value expectedValue) {
-    return inspect(
-        t -> {
-          Value value = t.getFieldOnThis(fieldName, fieldSignature);
-          Assert.assertEquals(
-              "Incorrect value for field 'this." + fieldName + "'", expectedValue, value);
-        });
   }
 
   protected final JUnit3Wrapper.Command inspect(Consumer<JUnit3Wrapper.DebuggeeState> inspector) {
@@ -1324,7 +1298,6 @@ public abstract class DebugTestBase extends TestBase {
 
         @Override
         public void checkLine(String sourceFile, int line) {
-          sourceFile = sourceFile != null ? sourceFile : getSourceFile();
           if (!Objects.equals(sourceFile, getSourceFile()) || line != getLineNumber()) {
             String locationString = convertCurrentLocationToString();
             Assert.fail(
@@ -1528,15 +1501,7 @@ public abstract class DebugTestBase extends TestBase {
 
         // The class is available, lookup and read the field.
         long fieldId = findField(getMirror(), classId, fieldName, fieldSignature);
-        return internalStaticField(getMirror(), classId, fieldId);
-      }
-
-      public Value getFieldOnThis(String fieldName, String fieldSignature) {
-        long thisObjectId = getMirror().getThisObject(getThreadId(), getFrameId());
-        long classId = getMirror().getReferenceType(thisObjectId);
-        // TODO(zerny): Search supers too. This will only get the field if directly on the class.
-        long fieldId = findField(getMirror(), classId, fieldName, fieldSignature);
-        return internalInstanceField(getMirror(), thisObjectId, fieldId);
+        return getField(getMirror(), classId, fieldId);
       }
 
       private long findField(VmMirror mirror, long classId, String fieldName,
@@ -1582,10 +1547,10 @@ public abstract class DebugTestBase extends TestBase {
         return matchingFieldIds.getLong(0);
       }
 
-      private static Value internalStaticField(VmMirror mirror, long classId, long fieldId) {
-        CommandPacket commandPacket =
-            new CommandPacket(
-                ReferenceTypeCommandSet.CommandSetID, ReferenceTypeCommandSet.GetValuesCommand);
+      private Value getField(VmMirror mirror, long classId, long fieldId) {
+
+        CommandPacket commandPacket = new CommandPacket(ReferenceTypeCommandSet.CommandSetID,
+            ReferenceTypeCommandSet.GetValuesCommand);
         commandPacket.setNextValueAsReferenceTypeID(classId);
         commandPacket.setNextValueAsInt(1);
         commandPacket.setNextValueAsFieldID(fieldId);
@@ -1598,23 +1563,6 @@ public abstract class DebugTestBase extends TestBase {
         Assert.assertTrue(replyPacket.isAllDataRead());
         return result;
       }
-    }
-
-    private static Value internalInstanceField(VmMirror mirror, long objectId, long fieldId) {
-      CommandPacket commandPacket =
-          new CommandPacket(
-              ObjectReferenceCommandSet.CommandSetID, ObjectReferenceCommandSet.GetValuesCommand);
-      commandPacket.setNextValueAsObjectID(objectId);
-      commandPacket.setNextValueAsInt(1);
-      commandPacket.setNextValueAsFieldID(fieldId);
-      ReplyPacket replyPacket = mirror.performCommand(commandPacket);
-      assert replyPacket.getErrorCode() == Error.NONE;
-
-      int fieldsCount = replyPacket.getNextValueAsInt();
-      assert fieldsCount == 1;
-      Value result = replyPacket.getNextValueAsValue();
-      Assert.assertTrue(replyPacket.isAllDataRead());
-      return result;
     }
 
     public static Optional<Variable> getVariableAt(VmMirror mirror, Location location,
