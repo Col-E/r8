@@ -107,7 +107,7 @@ public final class ClassAndMemberPublicizer {
 
     if (!accessFlags.isStatic()) {
       // If this method is mentioned in keep rules, do not transform (rule applications changed).
-      if (rootSet.noShrinking.containsKey(encodedMethod)) {
+      if (rootSet.noShrinking.containsKey(encodedMethod.method)) {
         return false;
       }
 
@@ -121,7 +121,7 @@ public final class ClassAndMemberPublicizer {
       boolean wasSeen = methodPoolCollection.markIfNotSeen(holder, encodedMethod.method);
       if (wasSeen) {
         // We can't do anything further because even renaming is not allowed due to the keep rule.
-        if (rootSet.noObfuscation.contains(encodedMethod)) {
+        if (rootSet.noObfuscation.contains(encodedMethod.method)) {
           return false;
         }
         // TODO(b/111118390): Renaming will enable more private instance methods to be publicized.
