@@ -50,10 +50,13 @@ import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -914,6 +917,15 @@ public class TestBase {
             out, DescriptorUtils.getPathFromJavaType(name), clazz, ZipEntry.STORED);
       }
     }
+  }
+
+  protected static void writeToJar(Path output, Collection<Path> classes) throws IOException {
+    List<byte[]> bytes = new LinkedList<>();
+    for (Path classPath : classes) {
+      byte[] classBytes = Files.readAllBytes(Paths.get(classPath.toString()));
+      bytes.add(classBytes);
+    }
+    writeToJar(output, bytes);
   }
 
   protected Path writeToJar(List<byte[]> classes) throws IOException {
