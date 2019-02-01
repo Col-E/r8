@@ -12,6 +12,7 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -45,10 +46,14 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     DexType.forAllInterfaces(appInfo.dexItemFactory,
         iface -> reserveNamesInSubtypes(iface, globalState));
     timing.end();
-    // Now rename the rest.
-    timing.begin("rename");
+    // Rename the definitions.
+    timing.begin("rename-definitions");
     renameFieldsInSubtypes(appInfo.dexItemFactory.objectType);
     DexType.forAllInterfaces(appInfo.dexItemFactory, this::renameFieldsInSubtypes);
+    timing.end();
+    // Rename the references that are not rebound to definitions for some reasons.
+    timing.begin("rename-references");
+    renameNonReboundReferences();
     timing.end();
     return renaming;
   }
@@ -90,6 +95,46 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
       renaming.put(
           field,
           state.assignNewNameFor(field.name, field.type, useUniqueMemberNames));
+    }
+  }
+
+  private void renameNonReboundReferences() {
+    // TODO(b/123068484): Collect non-rebound references instead of visiting all references.
+    Sets.union(
+        Sets.union(appInfo.staticFieldReads.keySet(), appInfo.staticFieldWrites.keySet()),
+        Sets.union(appInfo.instanceFieldReads.keySet(), appInfo.instanceFieldWrites.keySet()))
+        .forEach(this::renameNonReboundReference);
+  }
+
+  private void renameNonReboundReference(DexField field) {
+    // Already renamed
+    if (renaming.containsKey(field)) {
+      return;
+    }
+    DexEncodedField definition = appInfo.definitionFor(field);
+    if (definition != null) {
+      assert definition.field == field;
+      return;
+    }
+    // Now, `field` is reference. Find its definition and check if it's renamed.
+    DexType holderType = field.getHolder();
+    DexClass holder = appInfo.definitionFor(holderType);
+    // We don't care pruned types or library classes.
+    if (holder == null || holder.isLibraryClass()) {
+      return;
+    }
+    definition = appInfo.resolveFieldOn(holderType, field);
+    if (definition == null) {
+      // The program is already broken in the sense that it has an unresolvable field reference.
+      // Leave it as-is.
+      return;
+    }
+    assert definition.field != field;
+    assert definition.field.getHolder() != holderType;
+    // If the definition is renamed,
+    if (renaming.containsKey(definition.field)) {
+      // Assign the same, renamed name as the definition to the reference.
+      renaming.put(field, renaming.get(definition.field));
     }
   }
 }

@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -63,7 +62,6 @@ public class FieldRenamingTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
-  @Ignore("b/123068484")
   @Test
   public void testR8() throws Exception {
     testForR8(backend)
