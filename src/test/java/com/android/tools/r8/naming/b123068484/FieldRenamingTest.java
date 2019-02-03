@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming.b123068484;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
@@ -14,6 +15,7 @@ import com.android.tools.r8.naming.b123068484.runner.Runner;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
@@ -74,6 +76,9 @@ public class FieldRenamingTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
+    FieldSubject fld = inspector.clazz(CONCRETE1.getTypeName().replace("Concrete1", "Abs"))
+        .uniqueFieldWithName("strField");
+
     ClassSubject main = inspector.clazz(MAIN);
     assertThat(main, isPresent());
     MethodSubject methodSubject = main.mainMethod();
@@ -83,7 +88,9 @@ public class FieldRenamingTest extends TestBase {
         .iterateInstructions(InstructionSubject::isInstanceGet)
         .forEachRemaining(instructionSubject -> {
           String fieldName = instructionSubject.getField().name.toString();
+          // All of those field references will be renamed.
           assertNotEquals("strField", fieldName);
+          assertEquals(fld.getFinalName(), fieldName);
         });
   }
 
