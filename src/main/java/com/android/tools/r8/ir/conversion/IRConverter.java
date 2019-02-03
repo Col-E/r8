@@ -180,7 +180,7 @@ public class IRConverter {
     this.stringConcatRewriter = new StringConcatRewriter(appInfo);
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(this) : null;
     this.interfaceMethodRewriter =
-        (options.enableDesugaring && enableInterfaceMethodDesugaring())
+        options.isInterfaceMethodDesugaringEnabled()
             ? new InterfaceMethodRewriter(this, options) : null;
     this.twrCloseResourceRewriter =
         (options.enableDesugaring && enableTwrCloseResourceDesugaring())
@@ -283,16 +283,6 @@ public class IRConverter {
       MainDexClasses mainDexClasses,
       RootSet rootSet) {
     this(appView.appInfo(), options, timing, printer, appView, mainDexClasses, rootSet);
-  }
-
-  private boolean enableInterfaceMethodDesugaring() {
-    switch (options.interfaceMethodDesugaring) {
-      case Off:
-        return false;
-      case Auto:
-        return !options.canUseDefaultAndStaticInterfaceMethods();
-    }
-    throw new Unreachable();
   }
 
   private boolean enableTwrCloseResourceDesugaring() {

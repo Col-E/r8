@@ -586,6 +586,16 @@ public class InternalOptions {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
   }
 
+  public boolean isInterfaceMethodDesugaringEnabled() {
+    // This condition is to filter out tests that never set program consumer.
+    if (!hasConsumer()) {
+      return false;
+    }
+    return enableDesugaring
+        && interfaceMethodDesugaring == OffOrAuto.Auto
+        && !canUseDefaultAndStaticInterfaceMethods();
+  }
+
   public boolean canUseMultidex() {
     assert isGeneratingDex();
     return intermediate || hasMinApi(AndroidApiLevel.L);

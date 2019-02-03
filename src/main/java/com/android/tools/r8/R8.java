@@ -496,7 +496,6 @@ public class R8 {
       // At this point all code has been mapped according to the graph lens. We cannot remove the
       // graph lens entirely, though, since it is needed for mapping all field and method signatures
       // back to the original program.
-      GraphLense finalLense = appView.graphLense();
       timing.begin("AppliedGraphLens construction");
       appView.setGraphLense(new AppliedGraphLens(appView, application.classes()));
       timing.end();
@@ -647,8 +646,7 @@ public class R8 {
 
       // Validity checks.
       assert application.classes().stream().allMatch(DexClass::isValid);
-      // Use the final lense while checking the validity of the final app against the root set.
-      assert rootSet.verifyKeptItemsAreKept(application, appView.appInfo(), finalLense, options);
+      assert rootSet.verifyKeptItemsAreKept(application, appView.appInfo());
       assert appView
           .graphLense()
           .verifyMappingToOriginalProgram(

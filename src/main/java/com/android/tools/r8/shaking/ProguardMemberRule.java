@@ -273,6 +273,19 @@ public class ProguardMemberRule {
     return false;
   }
 
+  public boolean isSpecific() {
+    switch (getRuleType()) {
+      case ALL:
+        // fall through
+      case ALL_FIELDS:
+        // fall through
+      case ALL_METHODS:
+        return false;
+      default:
+        return Iterables.size(getWildcards()) == 0;
+    }
+  }
+
   Iterable<ProguardWildcard> getWildcards() {
     return Iterables.concat(
         ProguardTypeMatcher.getWildcardsOrEmpty(annotation),
