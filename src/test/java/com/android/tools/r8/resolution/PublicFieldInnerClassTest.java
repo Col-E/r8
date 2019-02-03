@@ -1,22 +1,16 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.resolution;
 
-public class PublicFieldInnerClassTest {
-  public static final Class<?>[] CLASSES = {
-      PrivateBase.class,
-      PrivateSubclass.class,
-      PackageBase.class,
-      PackageSubclass.class,
-      ProtectedBase.class,
-      ProtectedSubclass.class,
-      PublicBase.class,
-      PublicSubclass.class,
-      PublicFieldInnerClassTest.class
-  };
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.utils.StringUtils;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+class PublicFieldInnerClassTestMain {
   private static class PrivateBase {
     public int value;
   }
@@ -66,5 +60,32 @@ public class PublicFieldInnerClassTest {
     System.out.println(getPackage(new PackageSubclass()));
     System.out.println(getProtected(new ProtectedSubclass()));
     System.out.println(getPublic(new PublicSubclass()));
+  }
+}
+
+@RunWith(Parameterized.class)
+public class PublicFieldInnerClassTest extends TestBase {
+  private static final Class CLASS = PublicFieldInnerClassTestMain.class;
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("0", "0", "0", "0");
+
+  private final Backend backend;
+
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Object[] data() {
+    return Backend.values();
+  }
+
+  public PublicFieldInnerClassTest(Backend backend) {
+    this.backend = backend;
+  }
+
+  @Test
+  public void test() throws Exception {
+    testForR8(backend)
+        .setMode(CompilationMode.DEBUG)
+        .addProgramClassesAndInnerClasses(CLASS)
+        .addKeepMainRule(CLASS)
+        .run(CLASS)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 }
