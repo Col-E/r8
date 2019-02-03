@@ -37,7 +37,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.MethodPoolCollection.MethodPool;
+import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -139,7 +139,7 @@ public class UninstantiatedTypeOptimization {
         appView,
         appView.appInfo().classes(),
         clazz -> {
-          MethodPool methodPool = methodPoolCollection.get(clazz);
+          MemberPool<DexMethod> methodPool = methodPoolCollection.get(clazz);
 
           if (clazz.isInterface()) {
             // Do not allow changing the prototype of methods that override an interface method.

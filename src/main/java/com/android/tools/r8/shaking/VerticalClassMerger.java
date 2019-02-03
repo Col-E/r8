@@ -36,8 +36,8 @@ import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
-import com.android.tools.r8.ir.optimize.MethodPoolCollection.MethodPool;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.logging.Log;
@@ -941,7 +941,7 @@ public class VerticalClassMerger {
           // due to the way invoke-super works on default interface methods. In order to be able
           // to hit this method directly after the merge, we need to make it public, and find a
           // method name that does not collide with one in the hierarchy of this class.
-          MethodPool methodPoolForTarget =
+          MemberPool<DexMethod> methodPoolForTarget =
               methodPoolCollection.buildForHierarchy(target, executorService, timing);
           resultingDirectMethod =
               renameMethod(
