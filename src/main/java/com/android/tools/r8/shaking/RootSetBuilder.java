@@ -30,7 +30,6 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
-import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
@@ -896,11 +895,30 @@ public class RootSetBuilder {
       ProguardMemberRule rule,
       DexDefinition precondition) {
     if (context instanceof ProguardKeepRule) {
-      if (item.isDexEncodedMethod() && item.asDexEncodedMethod().accessFlags.isSynthetic()) {
-        // Don't keep synthetic methods (see b/120971047 for additional details).
-        // TODO(b/122819537): need to distinguish lambda desugared synthetic methods v.s. kotlinc
-        // synthetic methods?
-        return;
+      if (item.isDexEncodedMethod()) {
+        DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
+        if (encodedMethod.isSyntheticMethod()) {
+          // Don't keep synthetic methods (see b/120971047 for additional details).
+          // TODO(b/122819537): need to distinguish lambda desugared synthetic methods v.s. kotlinc
+          // synthetic methods?
+          return;
+        }
+        // If desugaring is enabled, private and static interface methods will be moved to a
+        // companion class. So we don't need to add them to the root set in the beginning.
+        if (options.isInterfaceMethodDesugaringEnabled()
+            && encodedMethod.hasCode()
+            && (encodedMethod.isPrivateMethod() || encodedMethod.isStaticMember())) {
+          DexClass holder = appView.appInfo().definitionFor(encodedMethod.method.getHolder());
+          if (holder != null && holder.isInterface()) {
+            if (rule.isSpecific()) {
+              options.reporter.warning(
+                  new StringDiagnostic(
+                      "The rule `" + rule + "` is ignored because the targeting interface method `"
+                          + encodedMethod.method.toSourceString() + "` will be desugared."));
+            }
+            return;
+          }
+        }
       }
 
       ProguardKeepRule keepRule = (ProguardKeepRule) context;
@@ -1041,8 +1059,8 @@ public class RootSetBuilder {
       this.keepUnusedArguments = keepUnusedArguments;
       this.neverClassInline = neverClassInline;
       this.neverMerge = Collections.unmodifiableSet(neverMerge);
-      this.noSideEffects = Collections.unmodifiableMap(noSideEffects);
-      this.assumedValues = Collections.unmodifiableMap(assumedValues);
+      this.noSideEffects = noSideEffects;
+      this.assumedValues = assumedValues;
       this.dependentNoShrinking = dependentNoShrinking;
       this.identifierNameStrings = Collections.unmodifiableSet(identifierNameStrings);
       this.ifRules = Collections.unmodifiableSet(ifRules);
@@ -1064,8 +1082,10 @@ public class RootSetBuilder {
           lense.rewriteMutableMethodsConservatively(previous.keepUnusedArguments);
       this.neverClassInline = lense.rewriteMutableTypesConservatively(previous.neverClassInline);
       this.neverMerge = lense.rewriteTypesConservatively(previous.neverMerge);
-      this.noSideEffects = rewriteReferenceKeys(previous.noSideEffects, lense::lookupReference);
-      this.assumedValues = rewriteReferenceKeys(previous.assumedValues, lense::lookupReference);
+      this.noSideEffects =
+          rewriteMutableReferenceKeys(previous.noSideEffects, lense::lookupReference);
+      this.assumedValues =
+          rewriteMutableReferenceKeys(previous.assumedValues, lense::lookupReference);
       this.dependentNoShrinking =
           rewriteDependentReferenceKeys(previous.dependentNoShrinking, lense::lookupReference);
       this.identifierNameStrings =
@@ -1107,6 +1127,37 @@ public class RootSetBuilder {
     Map<DexReference, Set<ProguardKeepRule>> getDependentItems(DexDefinition item) {
       return Collections.unmodifiableMap(
           dependentNoShrinking.getOrDefault(item.toReference(), Collections.emptyMap()));
+    }
+
+    public void copy(DexReference original, DexReference rewritten) {
+      if (noShrinking.containsKey(original)) {
+        noShrinking.put(rewritten, noShrinking.get(original));
+      }
+      if (noOptimization.contains(original)) {
+        noOptimization.add(rewritten);
+      }
+      if (noObfuscation.contains(original)) {
+        noObfuscation.add(rewritten);
+      }
+      if (noSideEffects.containsKey(original)) {
+        noSideEffects.put(rewritten, noSideEffects.get(original));
+      }
+      if (assumedValues.containsKey(original)) {
+        assumedValues.put(rewritten, assumedValues.get(original));
+      }
+    }
+
+    public void prune(DexReference reference) {
+      noShrinking.remove(reference);
+      noOptimization.remove(reference);
+      noObfuscation.remove(reference);
+      noSideEffects.remove(reference);
+      assumedValues.remove(reference);
+    }
+
+    public void move(DexReference original, DexReference rewritten) {
+      copy(original, rewritten);
+      prune(original);
     }
 
     public boolean verifyKeptFieldsAreAccessedAndLive(AppInfoWithLiveness appInfo) {
@@ -1173,40 +1224,7 @@ public class RootSetBuilder {
       return false;
     }
 
-    // TODO(b/121240523): Ideally, these default interface methods should be delegated.
-    private boolean isDesugaredMethod(
-        AppInfo appInfo, GraphLense lense, DexClass clazz, DexMethod method) {
-      if (clazz == null) {
-        clazz = appInfo.definitionFor(method.getHolder());
-      }
-      Set<DexMethod> lookupMethods = lense.lookupMethodInAllContexts(method);
-      if (lookupMethods.size() == 1) {
-        for (DexMethod lookupMethod : lookupMethods) {
-          if (lookupMethod == method) {
-            continue;
-          }
-          DexEncodedMethod encodedMethod = appInfo.definitionFor(lookupMethod);
-          if (clazz != null
-              && clazz.isInterface()
-              && encodedMethod != null
-              && encodedMethod.hasCode()) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
-    public boolean verifyKeptItemsAreKept(
-        DexApplication application,
-        AppInfo appInfo,
-        GraphLense lense,
-        InternalOptions options) {
-      boolean isInterfaceMethodDesugaringEnabled =
-          options.enableDesugaring
-              && options.interfaceMethodDesugaring == OffOrAuto.Auto
-              && !options.canUseDefaultAndStaticInterfaceMethods();
-
+    public boolean verifyKeptItemsAreKept(DexApplication application, AppInfo appInfo) {
       Set<DexReference> pinnedItems =
           appInfo.hasLiveness() ? appInfo.withLiveness().pinnedItems : null;
 
@@ -1214,10 +1232,7 @@ public class RootSetBuilder {
       Map<DexType, Set<DexReference>> requiredReferencesPerType = new IdentityHashMap<>();
       for (DexReference reference : noShrinking.keySet()) {
         // Check that `pinnedItems` is a super set of the root set.
-        assert pinnedItems == null || pinnedItems.contains(reference)
-            || (reference.isDexMethod()
-                && isInterfaceMethodDesugaringEnabled
-                && isDesugaredMethod(appInfo, lense, null, reference.asDexMethod()));
+        assert pinnedItems == null || pinnedItems.contains(reference);
         if (reference.isDexType()) {
           DexType type = reference.asDexType();
           requiredReferencesPerType.putIfAbsent(type, Sets.newIdentityHashSet());
@@ -1251,10 +1266,6 @@ public class RootSetBuilder {
             assert fields.contains(requiredField);
           } else if (requiredReference.isDexMethod()) {
             DexMethod requiredMethod = requiredReference.asDexMethod();
-            if (isInterfaceMethodDesugaringEnabled
-                && isDesugaredMethod(appInfo, lense, clazz, requiredMethod)) {
-              continue;
-            }
             if (methods == null) {
               // Create a Set of the methods to avoid quadratic behavior.
               methods =
