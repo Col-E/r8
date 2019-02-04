@@ -65,8 +65,8 @@ public class Metrics {
   public final SegmentInfo methodInfo = new SegmentInfo("Method");
   public final SegmentInfo size = new SegmentInfo("Size").increment(1, 0);
   public final SegmentInfo stores = new SegmentInfo("Stores", false);
-  public final SegmentInfo stackMapTable = new SegmentInfo("StackmapTable");
-  public final SegmentInfo stackmapTableOtherEntries = new SegmentInfo("StackmapTableOtherEntries");
+  public final SegmentInfo stackMapTable = new SegmentInfo("StackMapTable");
+  public final SegmentInfo stackmapTableOtherEntries = new SegmentInfo("StackMapTableOtherEntries");
   public final SegmentInfo stackMapTableFullFrameEntries = new SegmentInfo("StackMapFullFrame");
 
   public List<SegmentInfo> asList() {
@@ -106,7 +106,7 @@ public class Metrics {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    asList().forEach(s -> builder.append(s.name + "\t" + s.size + "\t" + s.items + "\n"));
+    asList().forEach(s -> builder.append("- " + s.name + ": " + s.size + " / " + s.items + "\n"));
     return builder.toString();
   }
 }

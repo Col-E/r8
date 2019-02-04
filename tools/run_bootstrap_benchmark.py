@@ -12,8 +12,6 @@ import minify_tool
 import toolhelper
 import utils
 
-PINNED_R8_JAR = os.path.join(utils.REPO_ROOT, 'third_party/r8/r8.jar')
-PINNED_PGR8_JAR = os.path.join(utils.REPO_ROOT, 'third_party/r8/r8-pg6.0.1.jar')
 
 def parse_arguments(argv):
   parser = argparse.ArgumentParser(
@@ -50,7 +48,7 @@ if __name__ == '__main__':
     d8_pg_output = os.path.join(temp, 'd8pg.zip')
 
     return_code = minify_tool.minify_tool(
-      input_jar=PINNED_R8_JAR,
+      input_jar=utils.PINNED_R8_JAR,
       output_jar=r8_output,
       debug=False,
       build=False,
@@ -63,8 +61,9 @@ if __name__ == '__main__':
     print "BootstrapR8(CodeSize):", utils.uncompressed_size(r8_output)
     print "BootstrapR8Dex(CodeSize):", utils.uncompressed_size(d8_r8_output)
 
-    dex(PINNED_PGR8_JAR, d8_pg_output)
-    print "BootstrapR8PG(CodeSize):", utils.uncompressed_size(PINNED_PGR8_JAR)
+    dex(utils.PINNED_PGR8_JAR, d8_pg_output)
+    print "BootstrapR8PG(CodeSize):", utils.uncompressed_size(
+        utils.PINNED_PGR8_JAR)
     print "BootstrapR8PGDex(CodeSize):", utils.uncompressed_size(d8_pg_output)
 
   sys.exit(0)
