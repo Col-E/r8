@@ -53,7 +53,16 @@ MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
-RETRACE_JAR = os.path.join(THIRD_PARTY, 'proguard', 'proguard6.0.1', 'lib', 'retrace.jar')
+RETRACE_JAR = os.path.join(
+    THIRD_PARTY,
+    'proguard',
+    'proguard6.0.1',
+    'lib',
+    'retrace.jar')
+CF_SEGMENTS_JAR = os.path.join(LIBS, 'cf_segments.jar')
+PINNED_R8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8.jar')
+PINNED_PGR8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8-pg6.0.1.jar')
+
 
 # Common environment setup.
 USER_HOME = os.path.expanduser('~')
@@ -372,8 +381,38 @@ def getDexSegmentSizes(dex_files):
 
   return result
 
+# Return a dictionary: {segment_name -> segments_size}
+def getCfSegmentSizes(cfFile):
+  cmd = ['java',
+         '-cp',
+         CF_SEGMENTS_JAR,
+         'com.android.tools.r8.cf_segments.MeasureLib',
+         cfFile]
+  PrintCmd(cmd)
+  output = subprocess.check_output(cmd)
+
+  matches = DEX_SEGMENTS_RESULT_PATTERN.findall(output)
+
+  if matches is None or len(matches) == 0:
+    raise Exception('CfSegments failed to return any output for' \
+                    ' the file: ' + cfFile)
+
+  result = {}
+
+  for match in matches:
+    result[match[0]] = int(match[1])
+
+  return result
+
+
 def get_maven_path(version):
   return os.path.join('com', 'android', 'tools', 'r8', version)
+
+def print_cfsegments(prefix, cf_files):
+  for cf_file in cf_files:
+    for segment_name, size in getCfSegmentSizes(cf_file).items():
+      print('{}-{}(CodeSize): {}'
+            .format(prefix, segment_name, size))
 
 def print_dexsegments(prefix, dex_files):
   for segment_name, size in getDexSegmentSizes(dex_files).items():

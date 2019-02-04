@@ -54,13 +54,13 @@ def parse_arguments():
           ' <NAME>-<segment>(CodeSize): <bytes>), the full size is reported'
           ' with <NAME>-Total(CodeSize)')
   parser.add_argument('--print-memoryuse',
-      help = 'Prints the line \'<NAME>-Total(MemoryUse):' +
-             ' <mem>\' at the end where <mem> is the peak' +
-             ' peak resident set size (VmHWM) in bytes.',
+      help = 'Prints the line \'<NAME>-Total(MemoryUse):' 
+          ' <mem>\' at the end where <mem> is the peak'
+          ' peak resident set size (VmHWM) in bytes.',
       default = False,
       action = 'store_true')
   parser.add_argument('--output',
-                      help = 'Output directory to keep the generated files')
+      help = 'Output directory to keep the generated files')
   return parser.parse_args()
 
 def Main():

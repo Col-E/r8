@@ -10,7 +10,7 @@ import sys
 
 GRADLE_ARGS = ['--no-daemon']
 BUILD_TARGETS = ['R8', 'D8', 'R8LibApiOnly', 'buildExampleJars', 'CompatDx',
-                 'downloadAndroidCts', 'downloadDx']
+                 'downloadAndroidCts', 'downloadDx', 'buildCfSegments']
 
 def Main():
   gradle.RunGradle(GRADLE_ARGS + BUILD_TARGETS)
