@@ -2536,11 +2536,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         // Values live at entry to a block that is an exceptional successor are only live
         // until the throwing instruction in this block. They are live until the end of
         // the block only if they are used in normal flow as well.
-        // TODO(b/119771771): This makes the bootstrap test fail for the CF backend with what
-        // looks like inconsistent stack maps. It is safe to not do this, but we should
-        // double check if that is what we want.
         boolean isExceptionalSuccessor = exceptionalSuccessors.contains(successor);
-        if (isExceptionalSuccessor && options.isGeneratingDex()) {
+        if (isExceptionalSuccessor) {
           liveAtThrowingInstruction.addAll(liveAtEntrySets.get(successor).liveValues);
         } else {
           live.addAll(liveAtEntrySets.get(successor).liveValues);
