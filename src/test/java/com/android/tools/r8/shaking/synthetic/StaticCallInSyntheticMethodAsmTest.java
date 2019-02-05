@@ -26,17 +26,8 @@ public class StaticCallInSyntheticMethodAsmTest extends AsmTestBase {
   //   static synthetic void bar() { Sub.foo(); }
   // }
   // class Sub extends Base {}
-  //
-  // As per b/120971047, we do not add synthetic methods to the root set.
-  // When running the above example with -dontshrink, the static call in the synthetic method is not
-  // traced, so no chance to rebind that call to Base#foo. Then, at the end of dex writing, it hits
-  // assertion error in the naming lense that checks if call targets are eligible for renaming.
   @Test
   public void test() throws Exception {
-    // TODO(b/122819537): need to trace kotlinc-generated synthetic methods.
-    if (backend == Backend.DEX) {
-      return;
-    }
     testForR8(backend)
         .addProgramClassFileData(Base.dump(), Sub.dump())
         .addKeepRules("-dontshrink")

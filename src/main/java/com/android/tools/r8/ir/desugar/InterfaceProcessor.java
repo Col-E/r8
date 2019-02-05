@@ -11,6 +11,7 @@ import com.android.tools.r8.code.InvokeSuper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -30,6 +31,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,11 +49,16 @@ import java.util.Set;
 //
 // Also moves static interface methods into a companion class.
 final class InterfaceProcessor {
+
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final InterfaceMethodRewriter rewriter;
+
   // All created companion and dispatch classes indexed by interface type.
   final Map<DexType, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
 
-  InterfaceProcessor(InterfaceMethodRewriter rewriter) {
+  InterfaceProcessor(
+      AppView<? extends AppInfoWithLiveness> appView, InterfaceMethodRewriter rewriter) {
+    this.appView = appView;
     this.rewriter = rewriter;
   }
 
@@ -106,7 +113,7 @@ final class InterfaceProcessor {
       }
     }
 
-    // If at least one bridge methods was removed update the table.
+    // If at least one bridge method was removed then update the table.
     if (remainingMethods.size() < iface.virtualMethods().length) {
       iface.setVirtualMethods(remainingMethods.toArray(
           new DexEncodedMethod[remainingMethods.size()]));
@@ -303,6 +310,9 @@ final class InterfaceProcessor {
   // methods. Bridge methods that does not override an implementation in a super-interface must
   // also be kept (such a situation can happen if the vertical class merger merges two interfaces).
   private boolean interfaceMethodRemovalChangesApi(DexEncodedMethod method, DexClass iface) {
+    if (appView != null && appView.appInfo().isPinned(method.method)) {
+      return true;
+    }
     if (method.accessFlags.isBridge()) {
       Deque<DexType> worklist = new ArrayDeque<>();
       Set<DexType> seenBefore = new HashSet<>();

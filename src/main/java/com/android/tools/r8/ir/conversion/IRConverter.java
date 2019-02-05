@@ -160,7 +160,7 @@ public class IRConverter {
       InternalOptions options,
       Timing timing,
       CfgPrinter printer,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithLiveness> appView,
       MainDexClasses mainDexClasses,
       RootSet rootSet) {
     assert appInfo != null;
@@ -181,7 +181,8 @@ public class IRConverter {
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(this) : null;
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled()
-            ? new InterfaceMethodRewriter(this, options) : null;
+            ? new InterfaceMethodRewriter(appView, this, options)
+            : null;
     this.twrCloseResourceRewriter =
         (options.enableDesugaring && enableTwrCloseResourceDesugaring())
             ? new TwrCloseResourceRewriter(this) : null;
@@ -276,7 +277,7 @@ public class IRConverter {
    * Create an IR converter for processing methods with full program optimization enabled.
    */
   public IRConverter(
-      AppView<AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithLiveness> appView,
       InternalOptions options,
       Timing timing,
       CfgPrinter printer,
@@ -317,10 +318,11 @@ public class IRConverter {
     );
   }
 
-  private void removeLambdaDeserializationMethods() {
+  private boolean removeLambdaDeserializationMethods() {
     if (lambdaRewriter != null) {
-      lambdaRewriter.removeLambdaDeserializationMethods(appInfo.classes());
+      return lambdaRewriter.removeLambdaDeserializationMethods(appInfo.classes());
     }
+    return false;
   }
 
   private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
@@ -528,8 +530,13 @@ public class IRConverter {
 
   public DexApplication optimize(DexApplication application, ExecutorService executorService)
       throws ExecutionException {
+    if (options.enableTreeShaking) {
+      assert !removeLambdaDeserializationMethods();
+    } else {
+      removeLambdaDeserializationMethods();
+    }
+
     computeReachabilitySensitivity(application);
-    removeLambdaDeserializationMethods();
     collectLambdaMergingCandidates(application);
     collectStaticizerCandidates(application);
 

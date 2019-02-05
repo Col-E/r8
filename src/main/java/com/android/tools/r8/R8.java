@@ -376,7 +376,7 @@ public class R8 {
           // We can now remove visibility bridges. Note that we do not need to update the
           // invoke-targets here, as the existing invokes will simply dispatch to the now
           // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
-          application = new VisibilityBridgeRemover(appView.appInfo(), application).run();
+          new VisibilityBridgeRemover(appView.withLiveness()).run();
         }
       }
 
@@ -481,12 +481,15 @@ public class R8 {
             new EnumOrdinalMapCollector(appViewWithLiveness, options).run());
       }
 
+      assert appView.appInfo().hasLiveness();
+
       timing.begin("Create IR");
       Set<DexCallSite> desugaredCallSites;
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
         IRConverter converter =
-            new IRConverter(appView, options, timing, printer, mainDexClasses, rootSet);
+            new IRConverter(
+                appView.withLiveness(), options, timing, printer, mainDexClasses, rootSet);
         application = converter.optimize(application, executorService);
         desugaredCallSites = converter.getDesugaredCallSites();
       } finally {

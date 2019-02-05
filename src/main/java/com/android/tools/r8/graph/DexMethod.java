@@ -185,6 +185,11 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
     return builder.toString();
   }
 
+  public boolean isLambdaDeserializeMethod(DexItemFactory dexItemFactory) {
+    return name == dexItemFactory.deserializeLambdaMethodName
+        && proto == dexItemFactory.deserializeLambdaMethodProto;
+  }
+
   synchronized public void setSingleVirtualMethodCache(
       DexType receiverType, DexEncodedMethod method) {
     if (singleTargetCache == null) {

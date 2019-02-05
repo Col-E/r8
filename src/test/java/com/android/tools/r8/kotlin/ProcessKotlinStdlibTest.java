@@ -39,10 +39,6 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
 
   @Test
   public void testDontShrinkAndDontOptimize() throws Exception {
-    // TODO(b/122819537): need to trace kotlinc-generated synthetic methods.
-    if (backend == Backend.DEX) {
-      return;
-    }
     test("-dontshrink", "-dontoptimize");
   }
 
@@ -53,10 +49,6 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
 
   @Test
   public void testDontShrink() throws Exception {
-    // TODO(b/122819537): need to trace kotlinc-generated synthetic methods.
-    if (backend == Backend.DEX) {
-      return;
-    }
     test("-dontshrink");
   }
 
@@ -69,5 +61,4 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
   public void testDontObfuscate() throws Exception {
     test("-dontobfuscate");
   }
-
 }
