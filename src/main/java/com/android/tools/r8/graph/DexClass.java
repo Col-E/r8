@@ -461,6 +461,15 @@ public abstract class DexClass extends DexDefinition {
     if (defaultValuesForStaticFieldsMayTriggerAllocation()) {
       return true;
     }
+    return initializationOfParentTypesMayHaveSideEffects(appInfo, ignore);
+  }
+
+  public boolean initializationOfParentTypesMayHaveSideEffects(AppInfo appInfo) {
+    return initializationOfParentTypesMayHaveSideEffects(appInfo, Predicates.alwaysFalse());
+  }
+
+  public boolean initializationOfParentTypesMayHaveSideEffects(
+      AppInfo appInfo, Predicate<DexType> ignore) {
     for (DexType iface : interfaces.values) {
       if (iface.classInitializationMayHaveSideEffects(appInfo, ignore)) {
         return true;

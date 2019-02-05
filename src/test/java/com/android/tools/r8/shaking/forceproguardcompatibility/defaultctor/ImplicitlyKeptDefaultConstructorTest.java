@@ -287,8 +287,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
         mainClass,
         ImmutableList.of(mainClass, StaticFieldNotInitialized.class),
         keepMainProguardConfiguration(mainClass),
-        // TODO(74379749): Proguard does not keep the class with the un-initialized static field.
-        this::checkAllClassesPresentOnlyMainWithDefaultConstructor,
+        this::checkOnlyMainPresent,
         this::checkOnlyMainPresent);
   }
 

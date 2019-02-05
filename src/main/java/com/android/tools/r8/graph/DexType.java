@@ -130,6 +130,16 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return clazz == null || clazz.classInitializationMayHaveSideEffects(appInfo, ignore);
   }
 
+  public boolean initializationOfParentTypesMayHaveSideEffects(AppInfo appInfo) {
+    return initializationOfParentTypesMayHaveSideEffects(appInfo, Predicates.alwaysFalse());
+  }
+
+  public boolean initializationOfParentTypesMayHaveSideEffects(
+      AppInfo appInfo, Predicate<DexType> ignore) {
+    DexClass clazz = appInfo.definitionFor(this);
+    return clazz == null || clazz.initializationOfParentTypesMayHaveSideEffects(appInfo, ignore);
+  }
+
   public boolean isUnknown() {
     return hierarchyLevel == UNKNOWN_LEVEL;
   }

@@ -524,51 +524,6 @@ public class AppInfo {
     return result;
   }
 
-  public boolean canTriggerStaticInitializer(DexType type, boolean ignoreTypeItself) {
-    DexClass clazz = definitionFor(type);
-    assert clazz != null;
-    return canTriggerStaticInitializer(clazz, ignoreTypeItself);
-  }
-
-  public boolean canTriggerStaticInitializer(DexClass clazz, boolean ignoreTypeItself) {
-    Set<DexType> knownInterfaces = Sets.newIdentityHashSet();
-
-    // Process superclass chain.
-    DexClass current = clazz;
-    while (current != null && current.type != dexItemFactory.objectType) {
-      if (canTriggerStaticInitializer(current) && (!ignoreTypeItself || current != clazz)) {
-        return true;
-      }
-      knownInterfaces.addAll(Arrays.asList(current.interfaces.values));
-      current = current.superType != null ? definitionFor(current.superType) : null;
-    }
-
-    // Process interfaces.
-    Queue<DexType> queue = new ArrayDeque<>(knownInterfaces);
-    while (!queue.isEmpty()) {
-      DexType iface = queue.remove();
-      DexClass definition = definitionFor(iface);
-      if (canTriggerStaticInitializer(definition)) {
-        return true;
-      }
-      if (!definition.isInterface()) {
-        throw new Unreachable(iface.toSourceString() + " is expected to be an interface");
-      }
-
-      for (DexType superIface : definition.interfaces.values) {
-        if (knownInterfaces.add(superIface)) {
-          queue.add(superIface);
-        }
-      }
-    }
-    return false;
-  }
-
-  public static boolean canTriggerStaticInitializer(DexClass clazz) {
-    // Assume it *may* trigger if we didn't find the definition.
-    return clazz == null || clazz.hasClassInitializer();
-  }
-
   public interface ResolutionResult {
 
     DexEncodedMethod asResultOfResolve();
