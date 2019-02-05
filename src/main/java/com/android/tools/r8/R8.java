@@ -368,9 +368,12 @@ public class R8 {
         timing.end();
       }
 
+      assert appView.appInfo().hasLiveness();
+
       if (options.getProguardConfiguration().isAccessModificationAllowed()) {
         GraphLense publicizedLense =
-            ClassAndMemberPublicizer.run(executorService, timing, application, appView, rootSet);
+            ClassAndMemberPublicizer.run(
+                executorService, timing, application, appView.withLiveness(), rootSet);
         if (publicizedLense != appView.graphLense()) {
           appView.setGraphLense(publicizedLense);
           // We can now remove visibility bridges. Note that we do not need to update the
@@ -480,8 +483,6 @@ public class R8 {
         appViewWithLiveness.setAppInfo(
             new EnumOrdinalMapCollector(appViewWithLiveness, options).run());
       }
-
-      assert appView.appInfo().hasLiveness();
 
       timing.begin("Create IR");
       Set<DexCallSite> desugaredCallSites;

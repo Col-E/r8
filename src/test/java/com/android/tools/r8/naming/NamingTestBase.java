@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.RootSetBuilder;
@@ -73,12 +72,6 @@ abstract class NamingTestBase {
         new AppView<>(new AppInfoWithSubtyping(program), GraphLense.getIdentityLense(), options);
     RootSet rootSet =
         new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
-
-    if (options.getProguardConfiguration().isAccessModificationAllowed()) {
-      ClassAndMemberPublicizer.run(executor, timing, program, appView, rootSet);
-      rootSet =
-          new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
-    }
 
     Enqueuer enqueuer = new Enqueuer(appView, options, null, options.forceProguardCompatibility);
     AppInfoWithSubtyping appInfo =

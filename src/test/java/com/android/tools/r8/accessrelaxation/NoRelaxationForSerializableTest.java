@@ -132,8 +132,6 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
 
   @Test
   public void testR8_withKeepRules() throws Exception {
-    // TODO(b/123575857): even with -allowaccessmodification, they should not be publicized.
-    assumeTrue(!accessModification);
     R8TestCompileResult result = testForR8(backend)
         .addProgramClasses(CLASSES)
         .enableClassInliningAnnotations()

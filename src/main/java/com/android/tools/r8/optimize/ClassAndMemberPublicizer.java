@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLense.PublicizedLenseBuilder;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.Timing;
 import java.util.LinkedHashSet;
@@ -22,13 +23,16 @@ import java.util.concurrent.ExecutorService;
 public final class ClassAndMemberPublicizer {
 
   private final DexApplication application;
-  private final AppView appView;
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final RootSet rootSet;
   private final MethodPoolCollection methodPoolCollection;
 
   private final PublicizedLenseBuilder lenseBuilder = PublicizerLense.createBuilder();
 
-  private ClassAndMemberPublicizer(DexApplication application, AppView appView, RootSet rootSet) {
+  private ClassAndMemberPublicizer(
+      DexApplication application,
+      AppView<? extends AppInfoWithLiveness> appView,
+      RootSet rootSet) {
     this.application = application;
     this.appView = appView;
     this.methodPoolCollection = new MethodPoolCollection(application);
@@ -45,7 +49,7 @@ public final class ClassAndMemberPublicizer {
       ExecutorService executorService,
       Timing timing,
       DexApplication application,
-      AppView appView,
+      AppView<? extends AppInfoWithLiveness> appView,
       RootSet rootSet)
       throws ExecutionException {
     return new ClassAndMemberPublicizer(application, appView, rootSet).run(executorService, timing);
@@ -107,7 +111,7 @@ public final class ClassAndMemberPublicizer {
 
     if (!accessFlags.isStatic()) {
       // If this method is mentioned in keep rules, do not transform (rule applications changed).
-      if (rootSet.noShrinking.containsKey(encodedMethod.method)) {
+      if (appView.appInfo().isPinned(encodedMethod.method)) {
         return false;
       }
 
