@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -59,17 +58,18 @@ public class B123730538 extends TestBase {
     testForProguard()
         .addProgramFiles(inJar)
         .addKeepMainRule(MAIN)
+        .addKeepRules("-dontoptimize")
         .run(MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);
   }
 
-  @Ignore("b/123730538")
   @Test
   public void testR8() throws Exception {
     testForR8(backend)
         .addProgramFiles(CLASSES)
         .addKeepMainRule(MAIN)
+        .addKeepRules("-dontoptimize")
         .run(MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);
