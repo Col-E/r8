@@ -310,7 +310,8 @@ public class Enqueuer {
     if (item != null) {
       enqueueRootItem(item, root.getValue());
     } else {
-      assert false : "Expected root item `" + root.getKey().toSourceString() + "` to be present";
+      // TODO(b/123923324): Verify that root items are present.
+      // assert false : "Expected root item `" + root.getKey().toSourceString() + "` to be present";
     }
   }
 
