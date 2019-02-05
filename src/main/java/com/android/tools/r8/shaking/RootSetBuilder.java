@@ -897,10 +897,8 @@ public class RootSetBuilder {
     if (context instanceof ProguardKeepRule) {
       if (item.isDexEncodedMethod()) {
         DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
-        if (encodedMethod.isSyntheticMethod()) {
-          // Don't keep synthetic methods (see b/120971047 for additional details).
-          // TODO(b/122819537): need to distinguish lambda desugared synthetic methods v.s. kotlinc
-          // synthetic methods?
+        if (encodedMethod.method.isLambdaDeserializeMethod(appView.dexItemFactory())) {
+          // Don't keep lambda deserialization methods.
           return;
         }
         // If desugaring is enabled, private and static interface methods will be moved to a
@@ -1232,7 +1230,8 @@ public class RootSetBuilder {
       Map<DexType, Set<DexReference>> requiredReferencesPerType = new IdentityHashMap<>();
       for (DexReference reference : noShrinking.keySet()) {
         // Check that `pinnedItems` is a super set of the root set.
-        assert pinnedItems == null || pinnedItems.contains(reference);
+        assert pinnedItems == null || pinnedItems.contains(reference)
+            : "Expected reference `" + reference.toSourceString() + "` to be pinned";
         if (reference.isDexType()) {
           DexType type = reference.asDexType();
           requiredReferencesPerType.putIfAbsent(type, Sets.newIdentityHashSet());
@@ -1263,7 +1262,10 @@ public class RootSetBuilder {
                       .map(DexEncodedField::getKey)
                       .collect(Collectors.toSet());
             }
-            assert fields.contains(requiredField);
+            assert fields.contains(requiredField)
+                : "Expected field `"
+                    + requiredField.toSourceString()
+                    + "` from the root set to be present";
           } else if (requiredReference.isDexMethod()) {
             DexMethod requiredMethod = requiredReference.asDexMethod();
             if (methods == null) {
@@ -1273,7 +1275,10 @@ public class RootSetBuilder {
                       .map(DexEncodedMethod::getKey)
                       .collect(Collectors.toSet());
             }
-            assert methods.contains(requiredMethod);
+            assert methods.contains(requiredMethod)
+                : "Expected method `"
+                    + requiredMethod.toSourceString()
+                    + "` from the root set to be present";
           } else {
             assert false;
           }

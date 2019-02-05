@@ -193,6 +193,10 @@ public class Enqueuer {
    */
   private final Set<DexMethod> methodsTargetedByInvokeDynamic = Sets.newIdentityHashSet();
   /**
+   * Set of direct lambda methods that are the immediate target of an invoke-dynamic.
+   */
+  private final Set<DexMethod> lambdaMethodsTargetedByInvokeDynamic = Sets.newIdentityHashSet();
+  /**
    * Set of virtual methods that are the immediate target of an invoke-direct.
    * */
   private final Set<DexMethod> virtualMethodsTargetedByInvokeDirect = Sets.newIdentityHashSet();
@@ -237,15 +241,15 @@ public class Enqueuer {
   private final Set<DexMethod> virtualTargetsMarkedAsReachable = Sets.newIdentityHashSet();
 
   /**
-   * A set of dexitems we have reported missing to dedupe warnings.
+   * A set of references we have reported missing to dedupe warnings.
    */
   private final Set<DexReference> reportedMissing = Sets.newIdentityHashSet();
 
   /**
-   * A set of items that we are keeping due to keep rules. This may differ from the rootSet due to
-   * dependent keep rules.
+   * A set of references that we are keeping due to keep rules. This may differ from the root set
+   * due to dependent keep rules.
    */
-  private final Set<DexDefinition> pinnedItems = Sets.newIdentityHashSet();
+  private final Set<DexReference> pinnedItems = Sets.newIdentityHashSet();
 
   /**
    * A map from classes to annotations that need to be processed should the classes ever become
@@ -305,6 +309,8 @@ public class Enqueuer {
     DexDefinition item = appInfo.definitionFor(root.getKey());
     if (item != null) {
       enqueueRootItem(item, root.getValue());
+    } else {
+      assert false : "Expected root item `" + root.getKey().toSourceString() + "` to be present";
     }
   }
 
@@ -351,7 +357,7 @@ public class Enqueuer {
     } else {
       throw new IllegalArgumentException(item.toString());
     }
-    pinnedItems.add(item);
+    pinnedItems.add(item.toReference());
   }
 
   private void enqueueFirstNonSerializableClassInitializer(DexClass clazz, KeepReason reason) {
@@ -648,6 +654,10 @@ public class Enqueuer {
       assert implHandle != null;
 
       DexMethod method = implHandle.asMethod();
+      if (descriptor.delegatesToLambdaImplMethod()) {
+        lambdaMethodsTargetedByInvokeDynamic.add(method);
+      }
+
       if (!methodsTargetedByInvokeDynamic.add(method)) {
         return;
       }
@@ -1517,7 +1527,16 @@ public class Enqueuer {
     } finally {
       timing.end();
     }
+    unpinLambdaMethods();
     return new AppInfoWithLiveness(appInfo, this);
+  }
+
+  private void unpinLambdaMethods() {
+    for (DexMethod method : lambdaMethodsTargetedByInvokeDynamic) {
+      pinnedItems.remove(method);
+      rootSet.prune(method);
+    }
+    lambdaMethodsTargetedByInvokeDynamic.clear();
   }
 
   private void markMethodAsKept(DexEncodedMethod target, KeepReason reason) {
@@ -2029,8 +2048,7 @@ public class Enqueuer {
           instanceFieldReads.keySet(), staticFieldReads.keySet());
       this.fieldsWritten = enqueuer.mergeFieldAccesses(
           instanceFieldWrites.keySet(), staticFieldWrites.keySet());
-      this.pinnedItems =
-          DexDefinition.mapToReference(enqueuer.pinnedItems.stream()).collect(Collectors.toSet());
+      this.pinnedItems = enqueuer.pinnedItems;
       this.virtualInvokes = joinInvokedMethods(enqueuer.virtualInvokes);
       this.interfaceInvokes = joinInvokedMethods(enqueuer.interfaceInvokes);
       this.superInvokes = joinInvokedMethods(enqueuer.superInvokes, TargetWithContext::getTarget);

@@ -152,7 +152,7 @@ public final class LambdaDescriptor {
   }
 
   /** If the lambda delegates to lambda$ method. */
-  boolean delegatesToLambdaImplMethod() {
+  public boolean delegatesToLambdaImplMethod() {
     DexString methodName = implHandle.asMethod().name;
     return methodName.toString().startsWith(LambdaRewriter.EXPECTED_LAMBDA_METHOD_PREFIX);
   }

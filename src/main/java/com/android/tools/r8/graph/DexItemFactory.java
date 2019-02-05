@@ -267,6 +267,10 @@ public class DexItemFactory {
   public final DexProto twrCloseResourceMethodProto =
       createProto(voidType, throwableType, autoCloseableType);
 
+  public final DexString deserializeLambdaMethodName = createString("$deserializeLambda$");
+  public final DexProto deserializeLambdaMethodProto =
+      createProto(objectType, createType("Ljava/lang/invoke/SerializedLambda;"));
+
   // Dex system annotations.
   // See https://source.android.com/devices/tech/dalvik/dex-format.html#system-annotation
   public final DexType annotationDefault = createType("Ldalvik/annotation/AnnotationDefault;");

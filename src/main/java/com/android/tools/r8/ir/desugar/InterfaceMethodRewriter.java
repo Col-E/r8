@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
@@ -78,6 +79,7 @@ public final class InterfaceMethodRewriter {
   public static final String DEFAULT_METHOD_PREFIX = "$default$";
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
@@ -112,8 +114,12 @@ public final class InterfaceMethodRewriter {
     ExcludeDexResources
   }
 
-  public InterfaceMethodRewriter(IRConverter converter, InternalOptions options) {
+  public InterfaceMethodRewriter(
+      AppView<? extends AppInfoWithLiveness> appView,
+      IRConverter converter,
+      InternalOptions options) {
     assert converter != null;
+    this.appView = appView;
     this.converter = converter;
     this.options = options;
     this.factory = options.itemFactory;
@@ -429,7 +435,7 @@ public final class InterfaceMethodRewriter {
 
   private Map<DexType, DexProgramClass> processInterfaces(Builder<?> builder, Flavor flavour) {
     NestedGraphLense.Builder graphLensBuilder = GraphLense.builder();
-    InterfaceProcessor processor = new InterfaceProcessor(this);
+    InterfaceProcessor processor = new InterfaceProcessor(appView, this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, true)) {
         processor.process(clazz.asProgramClass(), graphLensBuilder);

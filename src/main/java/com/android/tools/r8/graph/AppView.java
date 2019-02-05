@@ -106,6 +106,11 @@ public class AppView<T extends AppInfo> {
     }
 
     @Override
+    public VerticallyMergedClasses verticallyMergedClasses() {
+      return AppView.this.verticallyMergedClasses();
+    }
+
+    @Override
     public AppView<AppInfoWithLiveness> withLiveness() {
       return this;
     }
