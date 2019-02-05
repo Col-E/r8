@@ -59,7 +59,7 @@ RETRACE_JAR = os.path.join(
     'proguard6.0.1',
     'lib',
     'retrace.jar')
-CF_SEGMENTS_JAR = os.path.join(LIBS, 'cf_segments.jar')
+CF_SEGMENTS_TOOL = os.path.join(THIRD_PARTY, 'cf_segments')
 PINNED_R8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8.jar')
 PINNED_PGR8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8-pg6.0.1.jar')
 
@@ -385,7 +385,7 @@ def getDexSegmentSizes(dex_files):
 def getCfSegmentSizes(cfFile):
   cmd = ['java',
          '-cp',
-         CF_SEGMENTS_JAR,
+         CF_SEGMENTS_TOOL,
          'com.android.tools.r8.cf_segments.MeasureLib',
          cfFile]
   PrintCmd(cmd)

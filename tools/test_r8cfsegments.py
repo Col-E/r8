@@ -15,7 +15,10 @@
 #    <NAME>-AnnotationSets(CodeSize): <size>
 #    ...
 #
-# Uses the R8CfSegments Java tool (Gradle target).
+# Uses the R8CfSegments Java tool which is downloaded as an x20 dependency.
+# To make changes to the R8CfSegments tool one can use the gradle target -
+# remember to update the x20 dependency afterwards if you want the numbers
+# tracked.
 
 from __future__ import print_function
 import argparse
