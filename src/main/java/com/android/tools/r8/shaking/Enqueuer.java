@@ -88,7 +88,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
@@ -116,12 +118,16 @@ public class Enqueuer {
   private RootSet rootSet;
   private ProguardClassFilter dontWarnPatterns;
 
-  private final Map<DexType, Set<DexMethod>> virtualInvokes = Maps.newIdentityHashMap();
-  private final Map<DexType, Set<DexMethod>> interfaceInvokes = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<TargetWithContext<DexMethod>>> virtualInvokes =
+      Maps.newIdentityHashMap();
+  private final Map<DexType, Set<TargetWithContext<DexMethod>>> interfaceInvokes =
+      Maps.newIdentityHashMap();
   private final Map<DexType, Set<TargetWithContext<DexMethod>>> superInvokes =
       Maps.newIdentityHashMap();
-  private final Map<DexType, Set<DexMethod>> directInvokes = Maps.newIdentityHashMap();
-  private final Map<DexType, Set<DexMethod>> staticInvokes = Maps.newIdentityHashMap();
+  private final Map<DexType, Set<TargetWithContext<DexMethod>>> directInvokes =
+      Maps.newIdentityHashMap();
+  private final Map<DexType, Set<TargetWithContext<DexMethod>>> staticInvokes =
+      Maps.newIdentityHashMap();
   private final Map<DexType, Set<TargetWithContext<DexField>>> instanceFieldsWritten =
       Maps.newIdentityHashMap();
   private final Map<DexType, Set<TargetWithContext<DexField>>> instanceFieldsRead =
@@ -439,7 +445,7 @@ public class Enqueuer {
         // Revisit the current method to implicitly add -keep rule for items with reflective access.
         pendingReflectiveUses.add(currentMethod);
       }
-      if (!registerItemWithTarget(virtualInvokes, method)) {
+      if (!registerItemWithTargetAndContext(virtualInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -455,7 +461,7 @@ public class Enqueuer {
     }
 
     boolean registerInvokeDirect(DexMethod method, KeepReason keepReason) {
-      if (!registerItemWithTarget(directInvokes, method)) {
+      if (!registerItemWithTargetAndContext(directInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -482,7 +488,7 @@ public class Enqueuer {
       if (method == appInfo.dexItemFactory.enumMethods.valueOf) {
         pendingReflectiveUses.add(currentMethod);
       }
-      if (!registerItemWithTarget(staticInvokes, method)) {
+      if (!registerItemWithTargetAndContext(staticInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -498,7 +504,7 @@ public class Enqueuer {
     }
 
     boolean registerInvokeInterface(DexMethod method, KeepReason keepReason) {
-      if (!registerItemWithTarget(interfaceInvokes, method)) {
+      if (!registerItemWithTargetAndContext(interfaceInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -1629,34 +1635,18 @@ public class Enqueuer {
     }
   }
 
-  private Map<DexField, Set<DexEncodedMethod>> collectFields(
-      Map<DexType, Set<TargetWithContext<DexField>>> map) {
-    Map<DexField, Set<DexEncodedMethod>> result = new IdentityHashMap<>();
-    for (Entry<DexType, Set<TargetWithContext<DexField>>> entry : map.entrySet()) {
-      for (TargetWithContext<DexField> fieldWithContext : entry.getValue()) {
-        DexField field = fieldWithContext.getTarget();
-        DexEncodedMethod context = fieldWithContext.getContext();
-        result.computeIfAbsent(field, k -> Sets.newIdentityHashSet())
+  <T extends Descriptor<?, T>> SortedMap<T, Set<DexEncodedMethod>> collectDescriptors(
+      Map<DexType, Set<TargetWithContext<T>>> map) {
+    SortedMap<T, Set<DexEncodedMethod>> result = new TreeMap<>(PresortedComparable::slowCompare);
+    for (Entry<DexType, Set<TargetWithContext<T>>> entry : map.entrySet()) {
+      for (TargetWithContext<T> descriptorWithContext : entry.getValue()) {
+        T descriptor = descriptorWithContext.getTarget();
+        DexEncodedMethod context = descriptorWithContext.getContext();
+        result.computeIfAbsent(descriptor, k -> Sets.newIdentityHashSet())
             .add(context);
       }
     }
-    return result;
-  }
-
-  Map<DexField, Set<DexEncodedMethod>> collectInstanceFieldsRead() {
-    return Collections.unmodifiableMap(collectFields(instanceFieldsRead));
-  }
-
-  Map<DexField, Set<DexEncodedMethod>> collectInstanceFieldsWritten() {
-    return Collections.unmodifiableMap(collectFields(instanceFieldsWritten));
-  }
-
-  Map<DexField, Set<DexEncodedMethod>> collectStaticFieldsRead() {
-    return Collections.unmodifiableMap(collectFields(staticFieldsRead));
-  }
-
-  Map<DexField, Set<DexEncodedMethod>> collectStaticFieldsWritten() {
-    return Collections.unmodifiableMap(collectFields(staticFieldsWritten));
+    return Collections.unmodifiableSortedMap(result);
   }
 
   private Set<DexField> collectReachedFields(
@@ -1915,39 +1905,39 @@ public class Enqueuer {
     /**
      * Set of all field ids used in instance field reads, along with access context.
      */
-    public final Map<DexField, Set<DexEncodedMethod>> instanceFieldReads;
+    public final SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldReads;
     /**
      * Set of all field ids used in instance field writes, along with access context.
      */
-    public final Map<DexField, Set<DexEncodedMethod>> instanceFieldWrites;
+    public final SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldWrites;
     /**
      * Set of all field ids used in static field reads, along with access context.
      */
-    public final Map<DexField, Set<DexEncodedMethod>> staticFieldReads;
+    public final SortedMap<DexField, Set<DexEncodedMethod>> staticFieldReads;
     /**
      * Set of all field ids used in static field writes, along with access context.
      */
-    public final Map<DexField, Set<DexEncodedMethod>> staticFieldWrites;
+    public final SortedMap<DexField, Set<DexEncodedMethod>> staticFieldWrites;
     /**
-     * Set of all methods referenced in virtual invokes;
+     * Set of all methods referenced in virtual invokes, along with calling context.
      */
-    public final SortedSet<DexMethod> virtualInvokes;
+    public final SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes;
     /**
-     * Set of all methods referenced in interface invokes;
+     * Set of all methods referenced in interface invokes, along with calling context.
      */
-    public final SortedSet<DexMethod> interfaceInvokes;
+    public final SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes;
     /**
-     * Set of all methods referenced in super invokes;
+     * Set of all methods referenced in super invokes, along with calling context.
      */
-    public final SortedSet<DexMethod> superInvokes;
+    public final SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes;
     /**
-     * Set of all methods referenced in direct invokes;
+     * Set of all methods referenced in direct invokes, along with calling context.
      */
-    public final SortedSet<DexMethod> directInvokes;
+    public final SortedMap<DexMethod, Set<DexEncodedMethod>> directInvokes;
     /**
-     * Set of all methods referenced in static invokes;
+     * Set of all methods referenced in static invokes, along with calling context.
      */
-    public final SortedSet<DexMethod> staticInvokes;
+    public final SortedMap<DexMethod, Set<DexEncodedMethod>> staticInvokes;
     /**
      * Set of live call sites in the code. Note that if desugaring has taken place call site objects
      * will have been removed from the code.
@@ -2041,20 +2031,20 @@ public class Enqueuer {
               DexMethod::slowCompareTo, enqueuer.virtualMethodsTargetedByInvokeDirect);
       this.liveMethods = toSortedDescriptorSet(enqueuer.liveMethods.getItems());
       this.liveFields = toSortedDescriptorSet(enqueuer.liveFields.getItems());
-      this.instanceFieldReads = enqueuer.collectInstanceFieldsRead();
-      this.instanceFieldWrites = enqueuer.collectInstanceFieldsWritten();
-      this.staticFieldReads = enqueuer.collectStaticFieldsRead();
-      this.staticFieldWrites = enqueuer.collectStaticFieldsWritten();
+      this.instanceFieldReads = enqueuer.collectDescriptors(enqueuer.instanceFieldsRead);
+      this.instanceFieldWrites = enqueuer.collectDescriptors(enqueuer.instanceFieldsWritten);
+      this.staticFieldReads = enqueuer.collectDescriptors(enqueuer.staticFieldsRead);
+      this.staticFieldWrites = enqueuer.collectDescriptors(enqueuer.staticFieldsWritten);
       this.fieldsRead = enqueuer.mergeFieldAccesses(
           instanceFieldReads.keySet(), staticFieldReads.keySet());
       this.fieldsWritten = enqueuer.mergeFieldAccesses(
           instanceFieldWrites.keySet(), staticFieldWrites.keySet());
       this.pinnedItems = enqueuer.pinnedItems;
-      this.virtualInvokes = joinInvokedMethods(enqueuer.virtualInvokes);
-      this.interfaceInvokes = joinInvokedMethods(enqueuer.interfaceInvokes);
-      this.superInvokes = joinInvokedMethods(enqueuer.superInvokes, TargetWithContext::getTarget);
-      this.directInvokes = joinInvokedMethods(enqueuer.directInvokes);
-      this.staticInvokes = joinInvokedMethods(enqueuer.staticInvokes);
+      this.virtualInvokes = enqueuer.collectDescriptors(enqueuer.virtualInvokes);
+      this.interfaceInvokes = enqueuer.collectDescriptors(enqueuer.interfaceInvokes);
+      this.superInvokes = enqueuer.collectDescriptors(enqueuer.superInvokes);
+      this.directInvokes = enqueuer.collectDescriptors(enqueuer.directInvokes);
+      this.staticInvokes = enqueuer.collectDescriptors(enqueuer.staticInvokes);
       this.callSites = enqueuer.callSites;
       this.brokenSuperInvokes =
           ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, enqueuer.brokenSuperInvokes);
@@ -2153,11 +2143,16 @@ public class Enqueuer {
       this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
       this.pinnedItems = lense.rewriteReferencesConservatively(previous.pinnedItems);
-      this.virtualInvokes = lense.rewriteMethodsConservatively(previous.virtualInvokes);
-      this.interfaceInvokes = lense.rewriteMethodsConservatively(previous.interfaceInvokes);
-      this.superInvokes = lense.rewriteMethodsConservatively(previous.superInvokes);
-      this.directInvokes = lense.rewriteMethodsConservatively(previous.directInvokes);
-      this.staticInvokes = lense.rewriteMethodsConservatively(previous.staticInvokes);
+      this.virtualInvokes = rewriteKeysConservativelyWhileMergingValues(
+          previous.virtualInvokes, lense::lookupMethodInAllContexts);
+      this.interfaceInvokes = rewriteKeysConservativelyWhileMergingValues(
+          previous.interfaceInvokes, lense::lookupMethodInAllContexts);
+      this.superInvokes = rewriteKeysConservativelyWhileMergingValues(
+          previous.superInvokes, lense::lookupMethodInAllContexts);
+      this.directInvokes = rewriteKeysConservativelyWhileMergingValues(
+          previous.directInvokes, lense::lookupMethodInAllContexts);
+      this.staticInvokes = rewriteKeysConservativelyWhileMergingValues(
+          previous.staticInvokes, lense::lookupMethodInAllContexts);
       // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
       // after second tree shaking.
       this.callSites = previous.callSites;
@@ -2294,16 +2289,6 @@ public class Enqueuer {
       return isInstantiatedDirectly(type) || isInstantiatedIndirectly(type);
     }
 
-    private SortedSet<DexMethod> joinInvokedMethods(Map<DexType, Set<DexMethod>> invokes) {
-      return joinInvokedMethods(invokes, Function.identity());
-    }
-
-    private <T> SortedSet<DexMethod> joinInvokedMethods(Map<DexType, Set<T>> invokes,
-        Function<T, DexMethod> getter) {
-      return invokes.values().stream().flatMap(Set::stream).map(getter)
-          .collect(ImmutableSortedSet.toImmutableSortedSet(PresortedComparable::slowCompare));
-    }
-
     private Object2BooleanMap<DexReference> joinIdentifierNameStrings(
         Set<DexReference> explicit, Set<DexReference> implicit) {
       Object2BooleanMap<DexReference> result = new Object2BooleanArrayMap<>();
@@ -2336,17 +2321,30 @@ public class Enqueuer {
       return builder.build();
     }
 
-
     private static <T extends PresortedComparable<T>, S>
-        Map<T, Set<S>> rewriteKeysWhileMergingValues(
+        SortedMap<T, Set<S>> rewriteKeysWhileMergingValues(
             Map<T, Set<S>> original, Function<T, T> rewrite) {
-      Map<T, Set<S>> result = new IdentityHashMap<>();
+      SortedMap<T, Set<S>> result = new TreeMap<>(PresortedComparable::slowCompare);
       for (T item : original.keySet()) {
         T rewrittenKey = rewrite.apply(item);
         result.computeIfAbsent(rewrittenKey, k -> Sets.newIdentityHashSet())
             .addAll(original.get(item));
       }
-      return Collections.unmodifiableMap(result);
+      return Collections.unmodifiableSortedMap(result);
+    }
+
+    private static <T extends PresortedComparable<T>, S>
+        SortedMap<T, Set<S>> rewriteKeysConservativelyWhileMergingValues(
+            Map<T, Set<S>> original, Function<T, Set<T>> rewrite) {
+      SortedMap<T, Set<S>> result = new TreeMap<>(PresortedComparable::slowCompare);
+      for (T item : original.keySet()) {
+        Set<T> rewrittenKeys = rewrite.apply(item);
+        for (T rewrittenKey : rewrittenKeys) {
+          result.computeIfAbsent(rewrittenKey, k -> Sets.newIdentityHashSet())
+              .addAll(original.get(item));
+        }
+      }
+      return Collections.unmodifiableSortedMap(result);
     }
 
     @Override

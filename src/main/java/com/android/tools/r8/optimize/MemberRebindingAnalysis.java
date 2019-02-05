@@ -120,8 +120,10 @@ public class MemberRebindingAnalysis {
   }
 
   private void computeMethodRebinding(
-      Set<DexMethod> methods, Function<DexMethod, DexEncodedMethod> lookupTarget, Type invokeType) {
-    for (DexMethod method : methods) {
+      Map<DexMethod, Set<DexEncodedMethod>> methodsWithContexts,
+      Function<DexMethod, DexEncodedMethod> lookupTarget,
+      Type invokeType) {
+    for (DexMethod method : methodsWithContexts.keySet()) {
       // We can safely ignore array types, as the corresponding methods are defined in a library.
       if (!method.getHolder().isClassType()) {
         continue;
@@ -149,7 +151,10 @@ public class MemberRebindingAnalysis {
 
         // If the target class is not public but the targeted method is, we might run into
         // visibility problems when rebinding.
-        if (mayNeedBridgeForVisibility(target, targetClass)) {
+        final DexEncodedMethod finalTarget = target;
+        Set<DexEncodedMethod> contexts = methodsWithContexts.get(method);
+        if (contexts.stream().anyMatch(context ->
+            mayNeedBridgeForVisibility(context.method.getHolder(), finalTarget))) {
           target =
               insertBridgeForVisibilityIfNeeded(
                   method, target, originalClass, targetClass, lookupTarget);
@@ -205,8 +210,20 @@ public class MemberRebindingAnalysis {
     return findHolderForInterfaceMethodBridge(superClass.asProgramClass(), iface);
   }
 
-  private boolean mayNeedBridgeForVisibility(DexEncodedMethod target, DexClass targetClass) {
-    return !targetClass.accessFlags.isPublic() && target.accessFlags.isPublic();
+  private boolean mayNeedBridgeForVisibility(DexType context, DexEncodedMethod method) {
+    DexType holderType = method.method.getHolder();
+    DexClass holder = appInfo.definitionFor(holderType);
+    if (holder == null) {
+      return false;
+    }
+    ConstraintWithTarget classVisibility =
+        ConstraintWithTarget.deriveConstraint(context, holderType, holder.accessFlags, appInfo);
+    ConstraintWithTarget methodVisibility =
+        ConstraintWithTarget.deriveConstraint(context, holderType, method.accessFlags, appInfo);
+    // We may need bridge for visibility if the target class is not visible while the target method
+    // is visible from the calling context.
+    return classVisibility == ConstraintWithTarget.NEVER
+        && methodVisibility != ConstraintWithTarget.NEVER;
   }
 
   private DexEncodedMethod insertBridgeForVisibilityIfNeeded(
@@ -263,15 +280,15 @@ public class MemberRebindingAnalysis {
     return null;
   }
 
-  private void computeFieldRebinding(Map<DexField, Set<DexEncodedMethod>> fields,
+  private void computeFieldRebinding(
+      Map<DexField, Set<DexEncodedMethod>> fieldsWithContexts,
       BiFunction<DexType, DexField, DexEncodedField> lookup,
       BiFunction<DexClass, DexField, DexEncodedField> lookupTargetOnClass) {
-    for (Map.Entry<DexField, Set<DexEncodedMethod>> entry : fields.entrySet()) {
-      DexField field = entry.getKey();
+    for (DexField field : fieldsWithContexts.keySet()) {
       DexEncodedField target = lookup.apply(field.getHolder(), field);
       // Rebind to the lowest library class or program class. Do not rebind accesses to fields that
       // are not visible from the access context.
-      Set<DexEncodedMethod> contexts = entry.getValue();
+      Set<DexEncodedMethod> contexts = fieldsWithContexts.get(field);
       if (target != null && target.field != field
           && contexts.stream().allMatch(context ->
               isVisibleFromOriginalContext(context.method.getHolder(), target))) {

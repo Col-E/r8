@@ -640,7 +640,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public DexEncodedMethod toForwardingMethod(DexClass holder, DexItemFactory itemFactory) {
     checkIfObsolete();
-    assert accessFlags.isPublic();
     // Clear the final flag, as this method is now overwritten. Do this before creating the builder
     // for the forwarding method, as the forwarding method will copy the access flags from this,
     // and if different forwarding methods are created in different subclasses the first could be
