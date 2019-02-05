@@ -13,6 +13,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -118,6 +119,10 @@ public class DexType extends DexReference implements PresortedComparable<DexType
 
   public boolean isSerializable(AppInfo appInfo) {
     return implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.serializableType);
+  }
+
+  public boolean classInitializationMayHaveSideEffects(AppInfo appInfo) {
+    return classInitializationMayHaveSideEffects(appInfo, Predicates.alwaysFalse());
   }
 
   public boolean classInitializationMayHaveSideEffects(AppInfo appInfo, Predicate<DexType> ignore) {

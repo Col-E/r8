@@ -221,6 +221,8 @@ public class MemberValuePropagation {
       InstructionListIterator iterator,
       StaticGet current) {
     DexField field = current.getField();
+
+    // TODO(b/123857022): Should be able to use definitionFor().
     DexEncodedField target = appInfo.lookupStaticTarget(field.getHolder(), field);
     if (target == null) {
       return;
@@ -254,7 +256,7 @@ public class MemberValuePropagation {
       DexClass holderDefinition = appInfo.definitionFor(field.getHolder());
       if (holderDefinition != null
           && holderDefinition.accessFlags.isFinal()
-          && !appInfo.canTriggerStaticInitializer(field.getHolder(), true)) {
+          && !field.getHolder().classInitializationMayHaveSideEffects(appInfo)) {
         Value outValue = current.dest();
         DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
         if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
@@ -277,12 +279,14 @@ public class MemberValuePropagation {
 
   private void rewritePutWithConstantValues(
       InstructionIterator iterator, FieldInstruction current) {
-    DexField field = current.asFieldInstruction().getField();
+    DexField field = current.getField();
+    // TODO(b/123857022): Should be possible to use definitionFor().
     DexEncodedField target =
         current.isInstancePut()
             ? appInfo.lookupInstanceTarget(field.getHolder(), field)
             : appInfo.lookupStaticTarget(field.getHolder(), field);
-    if (target != null && !isFieldRead(target)) {
+    // TODO(b/123857022): Should be possible to use `!isFieldRead(field)`.
+    if (target != null && !isFieldRead(target.field)) {
       // Remove writes to dead (i.e. never read) fields.
       iterator.removeOrReplaceByDebugLocalRead();
     }
@@ -290,8 +294,8 @@ public class MemberValuePropagation {
 
   /**
    * Replace invoke targets and field accesses with constant values where possible.
-   * <p>
-   * Also assigns value ranges to values where possible.
+   *
+   * <p>Also assigns value ranges to values where possible.
    */
   public void rewriteWithConstantValues(
       IRCode code, DexType callingContext, Predicate<DexEncodedMethod> isProcessedConcurrently) {
@@ -324,12 +328,16 @@ public class MemberValuePropagation {
     assert code.isConsistentSSA();
   }
 
-  private boolean isFieldRead(DexEncodedField field) {
-    if (appInfo.fieldsRead.contains(field.field) || appInfo.isPinned(field.field)) {
-      return true;
-    }
-    // For library classes we don't know whether a field is read.
-    DexClass holder = appInfo.definitionFor(field.field.clazz);
+  private boolean isFieldRead(DexField field) {
+    return appInfo.fieldsRead.contains(field)
+        // TODO(b/121354886): Pinned fields should be in `fieldsRead`.
+        || appInfo.isPinned(field)
+        // For library classes we don't know whether a field is read.
+        || isLibraryField(field);
+  }
+
+  private boolean isLibraryField(DexField field) {
+    DexClass holder = appInfo.definitionFor(field.clazz);
     return holder == null || holder.isLibraryClass();
   }
 }

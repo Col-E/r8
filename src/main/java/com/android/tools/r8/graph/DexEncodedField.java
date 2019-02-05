@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 
 public class DexEncodedField extends KeyedDexItem<DexField> {
 
@@ -109,20 +110,21 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
   }
 
   // Returns a const instructions if this field is a compile time final const.
-  public Instruction valueAsConstInstruction(AppInfo appInfo, Value dest) {
+  public Instruction valueAsConstInstruction(AppInfoWithLiveness appInfo, Value dest) {
     // The only way to figure out whether the DexValue contains the final value
     // is ensure the value is not the default or check <clinit> is not present.
-    if (accessFlags.isStatic() && accessFlags.isPublic() && accessFlags.isFinal()) {
-      DexClass clazz = appInfo.definitionFor(field.getHolder());
+    boolean isEffectivelyFinal =
+        (accessFlags.isFinal() || !appInfo.fieldsWritten.contains(field))
+            && !appInfo.isPinned(field);
+    if (!isEffectivelyFinal) {
+      return null;
+    }
+    if (accessFlags.isStatic()) {
+      DexClass clazz = appInfo.definitionFor(field.clazz);
       assert clazz != null : "Class for the field must be present";
       return getStaticValue().asConstInstruction(clazz.hasClassInitializer(), dest);
     }
     return null;
-  }
-
-  public DexEncodedField toRenamedField(DexString name, DexItemFactory dexItemFactory) {
-    return new DexEncodedField(dexItemFactory.createField(field.clazz, field.type, name),
-        accessFlags, annotations, staticValue);
   }
 
   public DexEncodedField toTypeSubstitutedField(DexField field) {
