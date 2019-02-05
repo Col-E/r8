@@ -148,7 +148,7 @@ def RunCmd(cmd, env_vars=None, quiet=False):
         for line in stdout:
           Warn(line)
         raise subprocess.CalledProcessError(
-            exit_code, cmd, output='\n'.join(stdout))
+            exit_code or -1, cmd, output='\n'.join(stdout))
       return stdout
 
 def IsWindows():
