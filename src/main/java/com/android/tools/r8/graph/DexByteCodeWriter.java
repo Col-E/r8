@@ -11,7 +11,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 
 public abstract class DexByteCodeWriter {
@@ -62,7 +64,8 @@ public abstract class DexByteCodeWriter {
   private void write(ThrowingFunction<DexClass, PrintStream, IOException> outputStreamProvider,
       Consumer<PrintStream> closer)
       throws IOException {
-    for (DexProgramClass clazz : application.classes()) {
+    Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
+    for (DexProgramClass clazz : classes) {
       if (anyMethodMatches(clazz)) {
         PrintStream ps = outputStreamProvider.apply(clazz);
         try {
