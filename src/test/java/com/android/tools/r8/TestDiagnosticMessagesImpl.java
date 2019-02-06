@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.utils.ListUtils;
 import java.util.ArrayList;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -45,34 +44,25 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return errors;
   }
 
-  private void assertEmpty(String type, List<Diagnostic> messages) {
-    assertEquals(
-        "Expected no "
-            + type
-            + " messages, got:\n"
-            + String.join("\n", ListUtils.map(messages, m -> m.getDiagnosticMessage())),
-        0,
-        messages.size());
-  }
 
   public TestDiagnosticMessages assertNoMessages() {
-    assertEmpty("info", getInfos());
-    assertEmpty("warning", getWarnings());
-    assertEmpty("error", getErrors());
+    assertEquals(0, getInfos().size());
+    assertEquals(0, getWarnings().size());
+    assertEquals(0, getErrors().size());
     return this;
   }
 
   public TestDiagnosticMessages assertOnlyInfos() {
     assertNotEquals(0, getInfos().size());
-    assertEmpty("warning", getWarnings());
-    assertEmpty("error", getErrors());
+    assertEquals(0, getWarnings().size());
+    assertEquals(0, getErrors().size());
     return this;
   }
 
   public TestDiagnosticMessages assertOnlyWarnings() {
-    assertEmpty("info", getInfos());
+    assertEquals(0, getInfos().size());
     assertNotEquals(0, getWarnings().size());
-    assertEmpty("error", getErrors());
+    assertEquals(0, getErrors().size());
     return this;
   }
 

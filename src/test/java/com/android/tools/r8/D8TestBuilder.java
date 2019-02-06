@@ -87,8 +87,8 @@ public class D8TestBuilder
     return self();
   }
 
-  public D8TestBuilder setIntermediate(boolean intermediate) {
-    builder.setIntermediate(intermediate);
+  public D8TestBuilder setIntermediate(boolean b) {
+    builder.setIntermediate(true);
     return self();
   }
 }
