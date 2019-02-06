@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.conversion.JarSourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -116,6 +117,8 @@ public class InliningConstraintVisitor extends MethodVisitor {
     if (cst instanceof Type && ((Type) cst).getSort() != Type.METHOD) {
       DexType type = application.getType((Type) cst);
       updateConstraint(inliningConstraints.forConstClass(type, invocationContext));
+    } else if (cst instanceof Handle) {
+      updateConstraint(inliningConstraints.forConstMethodHandle());
     } else {
       updateConstraint(inliningConstraints.forConstInstruction());
     }
