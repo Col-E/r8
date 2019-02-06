@@ -259,6 +259,10 @@ public class InliningConstraints {
     return ConstraintWithTarget.ALWAYS;
   }
 
+  public ConstraintWithTarget forConstMethodHandle() {
+    return ConstraintWithTarget.NEVER;
+  }
+
   private ConstraintWithTarget forFieldInstruction(
       DexField field, DexEncodedField target, DexType invocationContext) {
     // Resolve the field if possible and decide whether the instruction can inlined.

@@ -69,6 +69,7 @@ public class ForceInlineTest extends TestBase {
             ImmutableList.of(
                 "-keep class **.Main { *; }",
                 "-nevermerge @com.android.tools.r8.NeverMerge class *",
+                "-neverinline class *{ @com.android.tools.r8.NeverInline <methods>;}",
                 "-dontobfuscate"));
 
     ClassSubject classA = inspector.clazz(A.class);
@@ -99,6 +100,7 @@ public class ForceInlineTest extends TestBase {
                 "-neverinline class **.B { method(); }",
                 "-keep class **.Main { *; }",
                 "-nevermerge @com.android.tools.r8.NeverMerge class *",
+                "-neverinline class *{ @com.android.tools.r8.NeverInline <methods>;}",
                 "-dontobfuscate"));
 
     ClassSubject classA = inspector.clazz(A.class);
@@ -126,6 +128,7 @@ public class ForceInlineTest extends TestBase {
                 "-forceinline class **.B { int m(int, int); }",
                 "-keep class **.Main { *; }",
                 "-nevermerge @com.android.tools.r8.NeverMerge class *",
+                "-neverinline class *{ @com.android.tools.r8.NeverInline <methods>;}",
                 "-dontobfuscate"));
 
     ClassSubject classA = inspector.clazz(A.class);

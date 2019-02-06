@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking.testrules;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 
 @NeverMerge
@@ -11,6 +12,7 @@ public class C {
 
   private static int i;
 
+  @NeverInline
   public static int x() {
     return i;
   }

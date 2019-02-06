@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
@@ -23,10 +24,14 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -133,6 +138,16 @@ public class MethodHandleTestRunner extends TestBase {
     ProcessResult runCf = ToolHelper.runJava(outCf, CLASS.getCanonicalName(), expected);
     assertEquals(runCf.stderr, 0, runCf.exitCode);
     assertEquals(runInput.toString(), runCf.toString());
+    // Ensure that we did not inline the const method handle
+    ensureConstHandleNotInlined(outCf);
+  }
+
+  private void ensureConstHandleNotInlined(Path file) throws IOException, ExecutionException {
+    CodeInspector inspector = new CodeInspector(file);
+    MethodSubject subject = inspector.clazz(MethodHandleTest.D.class).method(
+        "java.lang.MethodHandle", "vcviSpecialMethod");
+    assertTrue(inspector.clazz(MethodHandleTest.D.class)
+        .method("java.lang.invoke.MethodHandle", "vcviSpecialMethod").isPresent());
   }
 
   private void runDex() throws Exception {

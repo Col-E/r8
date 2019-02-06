@@ -910,11 +910,10 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
       MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
       MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
 
-      // Field is public and getter is small so we expect to always inline it.
+      // Field is public and getter/setter is only called from one place so we expect to always
+      // inline it.
       checkMethodIsRemoved(objectClass, getter);
-
-      // Setter has null check of new value, thus may not be inlined.
-      checkMethodIsKept(objectClass, setter);
+      checkMethodIsRemoved(objectClass, setter);
     });
   }
 
@@ -934,7 +933,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
       MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
 
       checkMethodIsRemoved(objectClass, getter);
-      checkMethodIsKept(objectClass, setter);
+      checkMethodIsRemoved(objectClass, setter);
       assertTrue(fieldSubject.getField().accessFlags.isPublic());
     });
   }

@@ -14,6 +14,8 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class ConstMethodHandle extends ConstInstruction {
 
@@ -66,6 +68,12 @@ public class ConstMethodHandle extends ConstInstruction {
   public int maxInValueRegister() {
     assert false : "ConstMethodHandle has no register arguments.";
     return 0;
+  }
+
+  @Override
+  public ConstraintWithTarget inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forConstMethodHandle();
   }
 
   @Override
