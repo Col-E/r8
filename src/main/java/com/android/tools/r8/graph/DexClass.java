@@ -452,7 +452,8 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public boolean classInitializationMayHaveSideEffects(AppInfo appInfo, Predicate<DexType> ignore) {
-    if (ignore.test(type)) {
+    if (ignore.test(type)
+        || appInfo.dexItemFactory.libraryTypesWithoutStaticInitialization.contains(type)) {
       return false;
     }
     if (hasNonTrivialClassInitializer()) {
