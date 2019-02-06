@@ -10,7 +10,6 @@ import utils.Utils
 ext {
     androidSupportVersion = '25.4.0'
     asmVersion = '6.2.1'
-    autoValueVersion = '1.5'
     espressoVersion = '3.0.0'
     fastutilVersion = '7.2.0'
     guavaVersion = '23.0'
@@ -66,7 +65,6 @@ buildscript {
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
         classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
-        classpath "net.ltgt.gradle:gradle-apt-plugin:0.12"
         classpath "com.gradle:build-scan-plugin:1.14"
     }
 }
@@ -81,7 +79,6 @@ buildScan {
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'net.ltgt.errorprone-base'
-apply plugin: "net.ltgt.apt"
 
 if (project.hasProperty('with_code_coverage')) {
     apply plugin: 'jacoco'
@@ -257,7 +254,6 @@ dependencies {
     examplesCompile "com.google.guava:guava:$guavaVersion"
     examplesCompile "junit:junit:$junitVersion"
     examplesCompile "org.mockito:mockito-core:$mockitoVersion"
-    examplesCompileOnly "com.google.auto.value:auto-value:$autoValueVersion"
     supportLibs "com.android.support:support-v4:$androidSupportVersion"
     supportLibs "junit:junit:$junitVersion"
     supportLibs "com.android.support.test.espresso:espresso-core:$espressoVersion"
@@ -266,7 +262,6 @@ dependencies {
     debugTestResourcesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     examplesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-    apt "com.google.auto.value:auto-value:$autoValueVersion"
 }
 
 def r8LibPath = "$buildDir/libs/r8lib.jar"
