@@ -1055,8 +1055,9 @@ public class CodeRewriter {
     //      that it is not the instance being initialized.
     //
     boolean instanceInitializer = method.isInstanceInitializer();
-    if (method.accessFlags.isNative() ||
-        (!method.isNonAbstractVirtualMethod() && !instanceInitializer)) {
+    if (method.accessFlags.isNative()
+        || (!method.isNonAbstractVirtualMethod() && !instanceInitializer)
+        || method.accessFlags.isSynchronized()) {
       return;
     }
 

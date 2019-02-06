@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -45,11 +44,6 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     return ImmutableList.of(Shrinker.R8_CF, Shrinker.PROGUARD6, Shrinker.R8);
   }
 
-  private void configure(InternalOptions options) {
-    // Disable inlining, otherwise classes can be pruned away if all their methods are inlined.
-    options.enableInlining = false;
-  }
-
   @Test
   public void ifOnPublic_noPublicClassForIfRule() throws Exception {
     List<String> config = ImmutableList.of(
@@ -64,7 +58,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
         "  public <methods>;",
         "}"
     );
-    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config, this::configure);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
@@ -93,7 +87,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
         "  public <methods>;",
         "}"
     );
-    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config, this::configure);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
@@ -126,7 +120,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
         "  !public <methods>;",
         "}"
     );
-    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config, this::configure);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
@@ -160,7 +154,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
         "  public <methods>;",
         "}"
     );
-    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config, this::configure);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
@@ -192,7 +186,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
         "  !public <methods>;",
         "}"
     );
-    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config, this::configure);
+    CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(ClassForIf.class);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(publicMethod);
