@@ -62,7 +62,8 @@ public abstract class DexByteCodeWriter {
   private void write(ThrowingFunction<DexClass, PrintStream, IOException> outputStreamProvider,
       Consumer<PrintStream> closer)
       throws IOException {
-    for (DexProgramClass clazz : application.classes()) {
+    Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
+    for (DexProgramClass clazz : classes) {
       if (anyMethodMatches(clazz)) {
         PrintStream ps = outputStreamProvider.apply(clazz);
         try {
