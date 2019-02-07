@@ -147,6 +147,10 @@ public class InternalOptions {
   // Throw exception if there is a warning about invalid debug info.
   public boolean invalidDebugInfoFatal = false;
 
+  // When dexsplitting we ignore main dex classes missing in the application. These will be
+  // fused together by play store when shipped for pre-L devices.
+  public boolean ignoreMainDexMissingClasses = false;
+
   // Hidden marker for classes.dex
   private boolean hasMarker = false;
   private Marker marker;

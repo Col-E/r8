@@ -307,11 +307,13 @@ public class VirtualFile {
             mainDexFile.addClass(programClass);
             classes.remove(programClass);
           } else {
-            options.reporter.warning(
-                new StringDiagnostic(
-                    "Application does not contain `"
-                        + type.toSourceString()
-                        + "` as referenced in main-dex-list."));
+            if (!options.ignoreMainDexMissingClasses) {
+              options.reporter.warning(
+                  new StringDiagnostic(
+                      "Application does not contain `"
+                          + type.toSourceString()
+                          + "` as referenced in main-dex-list."));
+            }
           }
           mainDexFile.commitTransaction();
         }

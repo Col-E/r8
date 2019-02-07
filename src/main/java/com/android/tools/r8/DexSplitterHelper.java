@@ -58,6 +58,7 @@ public final class DexSplitterHelper {
     InternalOptions options = command.getInternalOptions();
     options.enableDesugaring = false;
     options.enableMainDexListCheck = false;
+    options.ignoreMainDexMissingClasses = true;
     options.minimalMainDex = false;
     options.enableMinification = false;
     options.enableInlining = false;
