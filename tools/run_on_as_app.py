@@ -277,7 +277,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
             BuildAppWithShrinker(app, config, shrinker, checkout_dir, out_dir,
                 temp_dir, options)
         dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
-        result['apk_dest'] = apk_dest,
+        result['apk_dest'] = apk_dest
         result['build_status'] = 'success'
         result['dex_size'] = dex_size
         result['profile_dest_dir'] = profile_dest_dir
@@ -596,6 +596,12 @@ def ParseOptions(argv):
   result.add_option('--app',
                     help='What app to run on',
                     choices=APPS.keys())
+  result.add_option('--disable-tot', '--disable_tot',
+                    help='Whether to disable the use of the ToT version of R8',
+                    default=False,
+                    action='store_true')
+  result.add_option('--gradle-flags', '--gradle_flags',
+                    help='Flags to pass in to gradle')
   result.add_option('--keystore',
                     help='Path to app.keystore',
                     default='app.keystore')
@@ -610,10 +616,22 @@ def ParseOptions(argv):
                     help='Number of events that the monkey should trigger',
                     default=250,
                     type=int)
+  result.add_option('--no-build', '--no_build',
+                    help='Run without building ToT first (only when using ToT)',
+                    default=False,
+                    action='store_true')
   result.add_option('--pull',
                     help='Whether to pull the latest version of each app',
                     default=False,
                     action='store_true')
+  result.add_option('--quiet',
+                    help='Disable verbose logging',
+                    default=False,
+                    action='store_true')
+  result.add_option('--r8-compilation-steps', '--r8_compilation_steps',
+                    help='Number of times R8 should be run on each app',
+                    default=2,
+                    type=int)
   result.add_option('--sign-apks', '--sign_apks',
                     help='Whether the APKs should be signed',
                     default=False,
@@ -621,24 +639,6 @@ def ParseOptions(argv):
   result.add_option('--shrinker',
                     help='The shrinkers to use (by default, all are run)',
                     action='append')
-  result.add_option('--r8-compilation-steps', '--r8_compilation_steps',
-                    help='Number of times R8 should be run on each app',
-                    default=2,
-                    type=int)
-  result.add_option('--disable-tot', '--disable_tot',
-                    help='Whether to disable the use of the ToT version of R8',
-                    default=False,
-                    action='store_true')
-  result.add_option('--no-build', '--no_build',
-                    help='Run without building ToT first (only when using ToT)',
-                    default=False,
-                    action='store_true')
-  result.add_option('--gradle-flags', '--gradle_flags',
-                    help='Flags to pass in to gradle')
-  result.add_option('--quiet',
-                    help='Disable verbose logging',
-                    default=False,
-                    action='store_true')
   (options, args) = result.parse_args(argv)
   if options.disable_tot:
     # r8.jar is required for recompiling the generated APK
@@ -679,7 +679,7 @@ def main(argv):
       result_per_shrinker_per_app[options.app] = GetResultsForApp(
           options.app, APPS.get(options.app), options, temp_dir)
     else:
-      for app, config in sorted(APPS.iteritems()):
+      for app, config in sorted(APPS.iteritems(), key=lambda s: s[0].lower()):
         if not config.get('skip', False):
           result_per_shrinker_per_app[app] = GetResultsForApp(
               app, config, options, temp_dir)
