@@ -86,7 +86,7 @@ public final class DexSplitter {
 
   @Keep
   public static final class Options {
-    private final DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
+    private final DiagnosticsHandler diagnosticsHandler;
     private List<String> inputArchives = new ArrayList<>();
     private List<FeatureJar> featureJars = new ArrayList<>();
     private List<String> baseJars = new ArrayList<>();
@@ -96,6 +96,14 @@ public final class DexSplitter {
     private String proguardMap;
     private String mainDexList;
     private boolean splitNonClassResources = false;
+
+    public Options() {
+      this(new DiagnosticsHandler() {});
+    }
+
+    public Options(DiagnosticsHandler diagnosticsHandler) {
+      this.diagnosticsHandler = diagnosticsHandler;
+    }
 
     public DiagnosticsHandler getDiagnosticsHandler() {
       return diagnosticsHandler;
@@ -293,7 +301,9 @@ public final class DexSplitter {
       throw new AbortException();
     }
 
-    D8Command.Builder builder = D8Command.builder();
+    D8Command.Builder builder = D8Command.builder(options.diagnosticsHandler);
+
+
     for (String s : options.inputArchives) {
       builder.addProgramFiles(Paths.get(s));
     }

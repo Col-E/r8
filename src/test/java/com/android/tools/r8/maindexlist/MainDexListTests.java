@@ -226,14 +226,15 @@ public class MainDexListTests extends TestBase {
   @Test
   public void everyThirdClassInMainWithDexSplitter() throws Throwable {
     List<String> featureMappings = new ArrayList<>();
+    List<String> inFeatureMapping = new ArrayList<>();
 
     ImmutableList.Builder<String> mainDexBuilder = ImmutableList.builder();
     for (int i = 0; i < MANY_CLASSES.size(); i++) {
       String clazz = MANY_CLASSES.get(i);
       // Write the first 2 classes into the split.
-      if (i < 2) {
+      if (i < 10) {
         featureMappings.add(clazz + ":feature1");
-        continue;
+        inFeatureMapping.add(clazz);
       }
       if (i % 3 == 0) {
         mainDexBuilder.add(clazz);
@@ -246,19 +247,20 @@ public class MainDexListTests extends TestBase {
     FileUtils.writeTextFile(mainDexFile, ListUtils.map(mainDexList, MainDexListTests::typeToEntry));
     Path output = temp.getRoot().toPath().resolve("split_output");
     Files.createDirectories(output);
-
-    Options options = new Options();
+    TestDiagnosticsHandler diagnosticsHandler = new TestDiagnosticsHandler();
+    Options options = new Options(diagnosticsHandler);
     options.addInputArchive(getManyClassesMultiDexAppPath().toString());
     options.setFeatureSplitMapping(featureSplitMapping.toString());
     options.setOutput(output.toString());
     options.setMainDexList(mainDexFile.toString());
     DexSplitter.run(options);
+    assertEquals(0, diagnosticsHandler.numberOfErrorsAndWarnings());
     Path baseDir = output.resolve("base");
     CodeInspector inspector =
         new CodeInspector(
             AndroidApp.builder().addProgramFiles(baseDir.resolve("classes.dex")).build());
     for (String clazz : mainDexList) {
-      if (!inspector.clazz(clazz).isPresent()) {
+      if (!inspector.clazz(clazz).isPresent() && !inFeatureMapping.contains(clazz)) {
         failedToFindClassInExpectedFile(baseDir, clazz);
       }
     }
@@ -923,10 +925,20 @@ public class MainDexListTests extends TestBase {
   private class TestDiagnosticsHandler implements DiagnosticsHandler {
 
     public List<Diagnostic> errors = new ArrayList<>();
+    public List<Diagnostic> warnings = new ArrayList<>();
+
+    public int numberOfErrorsAndWarnings() {
+      return errors.size() + warnings.size();
+    }
 
     @Override
     public void error(Diagnostic error) {
       errors.add(error);
+    }
+
+    @Override
+    public void warning(Diagnostic warning) {
+      warnings.add(warning);
     }
   }
 }
