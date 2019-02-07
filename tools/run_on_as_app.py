@@ -59,6 +59,10 @@ APPS = {
       'app_id': 'com.google.firebase.example.fireeats',
       'git_repo': 'https://github.com/christofferqa/friendlyeats-android.git'
   },
+  'Instabug-Android': {
+      'app_id': 'com.example.instabug',
+      'git_repo': 'https://github.com/christofferqa/Instabug-Android.git',
+  },
   'KISS': {
       'app_id': 'fr.neamar.kiss',
       'git_repo': 'https://github.com/christofferqa/KISS',
