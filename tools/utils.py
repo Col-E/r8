@@ -62,6 +62,10 @@ RETRACE_JAR = os.path.join(
 CF_SEGMENTS_TOOL = os.path.join(THIRD_PARTY, 'cf_segments')
 PINNED_R8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8.jar')
 PINNED_PGR8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8-pg6.0.1.jar')
+OPENSOURCE_APPS_SHA_FILE = os.path.join(
+    REPO_ROOT,
+    'third_party/opensource_apps.tar.gz.sha1')
+OPENSOURCE_APPS_FOLDER = os.path.join(REPO_ROOT, 'third_party/opensource_apps/')
 
 
 # Common environment setup.

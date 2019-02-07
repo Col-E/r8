@@ -18,12 +18,15 @@ import zipfile
 import as_utils
 
 SHRINKERS = ['r8', 'r8-full', 'pg']
-WORKING_DIR = utils.BUILD
+WORKING_DIR = os.path.join(utils.BUILD, 'opensource_apps')
 
 if ('R8_BENCHMARK_DIR' in os.environ
     and os.path.isdir(os.environ['R8_BENCHMARK_DIR'])):
   WORKING_DIR = os.environ['R8_BENCHMARK_DIR']
 
+# For running on Golem all APPS are bundled as an x20-dependency and then copied
+# to WORKING_DIR. To make it easier to update the app-bundle, remove the folder
+# WORKING_DIR and then run run_on_as_app.py --download-only.
 APPS = {
   # 'app-name': {
   #     'git_repo': ...
@@ -257,7 +260,7 @@ def GetResultsForApp(app, config, options, temp_dir):
 
   result = {}
 
-  if not os.path.exists(checkout_dir):
+  if not os.path.exists(checkout_dir) and not options.golem:
     with utils.ChangedWorkingDirectory(WORKING_DIR, quiet=options.quiet):
       GitClone(config['git_repo'], config['revision'], checkout_dir, options)
 
@@ -629,6 +632,14 @@ def ParseOptions(argv):
   result.add_option('--app',
                     help='What app to run on',
                     choices=APPS.keys())
+  result.add_option('--download-only', '--download_only',
+                    help='Whether to download apps without any compilation',
+                    default=False,
+                    action='store_true')
+  result.add_option('--golem',
+                    help='Running on golem, do not download',
+                    default=False,
+                    action='store_true')
   result.add_option('--gradle-flags', '--gradle_flags',
                     help='Flags to pass in to gradle')
   result.add_option('--ignore-versions', '--ignore_versions',
@@ -680,13 +691,34 @@ def ParseOptions(argv):
       assert shrinker in SHRINKERS
   return (options, args)
 
+def download_apps(options):
+  # Download apps and place in build
+  with utils.ChangedWorkingDirectory(WORKING_DIR):
+    for app, config in APPS.iteritems():
+      app_dir = os.path.join(WORKING_DIR, app)
+      if not os.path.exists(app_dir):
+        GitClone(config['git_repo'], config['revision'], app_dir, options)
+
+
 def main(argv):
   global SHRINKERS
 
   (options, args) = ParseOptions(argv)
 
+  if options.golem:
+    if os.path.exists(WORKING_DIR):
+      shutil.rmtree(WORKING_DIR)
+    shutil.copytree(utils.OPENSOURCE_APPS_FOLDER, WORKING_DIR)
+
+  if not os.path.exists(WORKING_DIR):
+    os.makedirs(WORKING_DIR)
+
+  if options.download_only:
+    download_apps(options)
+    return
+
   with utils.TempDir() as temp_dir:
-    if not options.no_build:
+    if not options.no_build or options.golem:
       gradle.RunGradle(['r8lib'])
 
     assert os.path.isfile(utils.R8LIB_JAR), 'Cannot build without r8lib.jar'
