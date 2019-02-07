@@ -17,10 +17,11 @@ import zipfile
 
 import as_utils
 
-SHRINKERS = ['r8', 'r8-minified', 'r8full', 'r8full-minified', 'proguard']
+SHRINKERS = ['r8', 'r8-full', 'pg']
 WORKING_DIR = utils.BUILD
 
-if 'R8_BENCHMARK_DIR' in os.environ and os.path.isdir(os.environ['R8_BENCHMARK_DIR']):
+if ('R8_BENCHMARK_DIR' in os.environ
+    and os.path.isdir(os.environ['R8_BENCHMARK_DIR'])):
   WORKING_DIR = os.environ['R8_BENCHMARK_DIR']
 
 APPS = {
@@ -179,9 +180,6 @@ def IsBuiltWithR8(apk, temp_dir, options):
 
   utils.PrintCmd(cmd, quiet=options.quiet)
   return '~~R8' in subprocess.check_output(cmd).strip()
-
-def IsMinifiedR8(shrinker):
-  return shrinker == 'r8-minified' or shrinker == 'r8full-minified'
 
 def IsTrackedByGit(file):
   return subprocess.check_output(['git', 'ls-files', file]).strip() != ''
@@ -388,11 +386,8 @@ def BuildAppWithShrinker(
       shrinker,
       ' for recompilation' if keepRuleSynthesisForRecompilation else ''))
 
-  # Add/remove 'r8.jar' from top-level build.gradle.
-  if options.disable_tot:
-    as_utils.remove_r8_dependency(checkout_dir)
-  else:
-    as_utils.add_r8_dependency(checkout_dir, temp_dir, IsMinifiedR8(shrinker))
+  # Add 'r8.jar' from top-level build.gradle.
+  as_utils.add_r8_dependency(checkout_dir, temp_dir)
 
   app_module = config.get('app_module', 'app')
   archives_base_name = config.get('archives_base_name', app_module)
@@ -419,7 +414,7 @@ def BuildAppWithShrinker(
   # Value for property android.enableR8.
   enableR8 = 'r8' in shrinker
   # Value for property android.enableR8.fullMode.
-  enableR8FullMode = shrinker == 'r8full' or shrinker == 'r8full-minified'
+  enableR8FullMode = shrinker == 'r8-full'
   # Build gradlew command line.
   cmd = ['./gradlew', '--no-daemon', 'clean', releaseTarget,
          '--profile', '--stacktrace',
@@ -483,8 +478,7 @@ def RebuildAppWithShrinker(
 
   # Compile given APK with shrinker to temporary zip file.
   android_jar = utils.get_android_jar(compile_sdk)
-  r8_jar = os.path.join(
-      temp_dir, 'r8lib.jar' if IsMinifiedR8(shrinker) else 'r8.jar')
+  r8_jar = os.path.join(temp_dir, 'r8lib.jar')
   zip_dest = apk_dest[:-4] + '.zip'
 
   # TODO(christofferqa): Entry point should be CompatProguard if the shrinker
@@ -537,10 +531,28 @@ def RunMonkey(app, config, options, apk_dest):
 def LogResultsForApps(result_per_shrinker_per_app, options):
   print('')
   for app, result_per_shrinker in sorted(
-      result_per_shrinker_per_app.iteritems()):
+      result_per_shrinker_per_app.iteritems(), key=lambda s: s[0].lower()):
     LogResultsForApp(app, result_per_shrinker, options)
 
 def LogResultsForApp(app, result_per_shrinker, options):
+  if options.print_dexsegments:
+    LogSegmentsForApp(app, result_per_shrinker, options)
+  else:
+    LogComparisonResultsForApp(app, result_per_shrinker, options)
+
+def LogSegmentsForApp(app, result_per_shrinker, options):
+  for shrinker in SHRINKERS:
+    if shrinker not in result_per_shrinker:
+      continue
+    result = result_per_shrinker[shrinker];
+    benchmark_name = '{}-{}'.format(options.print_dexsegments, app)
+    utils.print_dexsegments(benchmark_name, [result.get('apk_dest')])
+    duration = sum(result.get('profile').values())
+    print('%s-Total(RunTimeRaw): %s ms' % (benchmark_name, duration * 1000))
+    print('%s-Total(CodeSize): %s' % (benchmark_name, result.get('dex_size')))
+
+
+def LogComparisonResultsForApp(app, result_per_shrinker, options):
   print(app + ':')
 
   if result_per_shrinker.get('status', 'success') != 'success':
@@ -548,7 +560,7 @@ def LogResultsForApp(app, result_per_shrinker, options):
     print('  skipped ({})'.format(error_message))
     return
 
-  proguard_result = result_per_shrinker.get('proguard', {})
+  proguard_result = result_per_shrinker.get('pg', {})
   proguard_dex_size = float(proguard_result.get('dex_size', -1))
   proguard_duration = sum(proguard_result.get('profile', {}).values())
 
@@ -617,10 +629,6 @@ def ParseOptions(argv):
   result.add_option('--app',
                     help='What app to run on',
                     choices=APPS.keys())
-  result.add_option('--disable-tot', '--disable_tot',
-                    help='Whether to disable the use of the ToT version of R8',
-                    default=False,
-                    action='store_true')
   result.add_option('--gradle-flags', '--gradle_flags',
                     help='Flags to pass in to gradle')
   result.add_option('--ignore-versions', '--ignore_versions',
@@ -650,6 +658,11 @@ def ParseOptions(argv):
                     help='Disable verbose logging',
                     default=False,
                     action='store_true')
+  result.add_option('--print-dexsegments',
+                    metavar='BENCHMARKNAME',
+                    help='Print the sizes of individual dex segments as ' +
+                         '\'<BENCHMARKNAME>-<APP>-<segment>(CodeSize): '
+                         '<bytes>\'')
   result.add_option('--r8-compilation-steps', '--r8_compilation_steps',
                     help='Number of times R8 should be run on each app',
                     default=2,
@@ -662,9 +675,6 @@ def ParseOptions(argv):
                     help='The shrinkers to use (by default, all are run)',
                     action='append')
   (options, args) = result.parse_args(argv)
-  if options.disable_tot:
-    # r8.jar is required for recompiling the generated APK
-    options.r8_compilation_steps = 1
   if options.shrinker:
     for shrinker in options.shrinker:
       assert shrinker in SHRINKERS
@@ -676,24 +686,14 @@ def main(argv):
   (options, args) = ParseOptions(argv)
 
   with utils.TempDir() as temp_dir:
-    if options.disable_tot:
-      # Cannot run r8 lib without adding r8lib.jar as an dependency
-      SHRINKERS = [
-          shrinker for shrinker in SHRINKERS
-          if 'minified' not in shrinker]
-    else:
-      if not options.no_build:
-        gradle.RunGradle(['r8', 'r8lib'])
+    if not options.no_build:
+      gradle.RunGradle(['r8lib'])
 
-      assert os.path.isfile(utils.R8_JAR), (
-          'Cannot build from ToT without r8.jar')
-      assert os.path.isfile(utils.R8LIB_JAR), (
-          'Cannot build from ToT without r8lib.jar')
+    assert os.path.isfile(utils.R8LIB_JAR), 'Cannot build without r8lib.jar'
 
-      # Make a copy of r8.jar and r8lib.jar such that they stay the same for
-      # the entire execution of this script.
-      shutil.copyfile(utils.R8_JAR, os.path.join(temp_dir, 'r8.jar'))
-      shutil.copyfile(utils.R8LIB_JAR, os.path.join(temp_dir, 'r8lib.jar'))
+    # Make a copy of r8lib.jar such that it stay the same for the entire
+    # execution of this script.
+    shutil.copyfile(utils.R8LIB_JAR, os.path.join(temp_dir, 'r8lib.jar'))
 
     result_per_shrinker_per_app = {}
 
