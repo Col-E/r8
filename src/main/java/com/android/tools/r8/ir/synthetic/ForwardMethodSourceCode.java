@@ -23,6 +23,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   private final DexMethod target;
   private final Invoke.Type invokeType;
   private final boolean castResult;
+  private final boolean isInterface;
 
   public ForwardMethodSourceCode(
       DexType receiver,
@@ -31,7 +32,8 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       DexType targetReceiver,
       DexMethod target,
       Type invokeType,
-      Position callerPosition) {
+      Position callerPosition,
+      boolean isInterface) {
     this(
         receiver,
         method,
@@ -40,6 +42,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
         target,
         invokeType,
         callerPosition,
+        isInterface,
         false);
   }
 
@@ -51,6 +54,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       DexMethod target,
       Type invokeType,
       Position callerPosition,
+      boolean isInterface,
       boolean castResult) {
     super(receiver, method, callerPosition, originalMethod);
     assert (targetReceiver == null) == (invokeType == Invoke.Type.STATIC);
@@ -58,6 +62,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
     this.target = target;
     this.targetReceiver = targetReceiver;
     this.invokeType = invokeType;
+    this.isInterface = isInterface;
     this.castResult = castResult;
     assert checkSignatures();
 
@@ -119,8 +124,15 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
     }
 
     // Method call to the target method.
-    add(builder -> builder.addInvoke(this.invokeType,
-        this.target, this.target.proto, argValueTypes, argRegisters));
+    add(
+        builder ->
+            builder.addInvoke(
+                this.invokeType,
+                this.target,
+                this.target.proto,
+                argValueTypes,
+                argRegisters,
+                this.isInterface));
 
     // Does the method return value?
     if (proto.returnType.isVoidType()) {

@@ -109,8 +109,17 @@ final class AccessorMethodSourceCode extends SynthesizedLambdaSourceCode {
     }
 
     // Method call to the original impl-method.
-    add(builder -> builder.addInvoke(inferInvokeType(),
-        implMethod, implMethod.proto, argValueTypes, argRegisters));
+    // Mirroring assert in constructor, we never need accessors to interfaces.
+    assert !descriptor().implHandle.type.isInvokeInterface();
+    add(
+        builder ->
+            builder.addInvoke(
+                inferInvokeType(),
+                implMethod,
+                implMethod.proto,
+                argValueTypes,
+                argRegisters,
+                false /* isInterface */));
 
     // Does the method have return value?
     if (proto.returnType == factory().voidType) {

@@ -45,6 +45,10 @@ public class CfInvoke extends CfInstruction {
     return opcode;
   }
 
+  public boolean isInterface() {
+    return itf;
+  }
+
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     String owner = lens.lookupInternalName(method.getHolder());

@@ -85,16 +85,18 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
       offsets[i] = nextInstructionIndex();
 
       // Emit fake call on `this` receiver.
-      add(builder -> {
-        if (arguments.isEmpty()) {
-          // Late initialization of argument list.
-          arguments.add(getReceiverValue());
-          for (int index = 0; index < paramCount; index++) {
-            arguments.add(getParamValue(index));
-          }
-        }
-        builder.addInvoke(Type.VIRTUAL, impl.method, impl.method.proto, arguments);
-      });
+      add(
+          builder -> {
+            if (arguments.isEmpty()) {
+              // Late initialization of argument list.
+              arguments.add(getReceiverValue());
+              for (int index = 0; index < paramCount; index++) {
+                arguments.add(getParamValue(index));
+              }
+            }
+            builder.addInvoke(
+                Type.VIRTUAL, impl.method, impl.method.proto, arguments, false /* isInterface */);
+          });
 
       // Handle return value if needed.
       if (returnsValue) {

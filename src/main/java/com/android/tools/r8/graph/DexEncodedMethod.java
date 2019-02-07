@@ -638,14 +638,15 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return builder.build();
   }
 
-  public DexEncodedMethod toForwardingMethod(DexClass holder, DexItemFactory itemFactory) {
+  public DexEncodedMethod toForwardingMethod(DexClass holder, AppInfo appInfo) {
     checkIfObsolete();
     // Clear the final flag, as this method is now overwritten. Do this before creating the builder
     // for the forwarding method, as the forwarding method will copy the access flags from this,
     // and if different forwarding methods are created in different subclasses the first could be
     // final.
     accessFlags.demoteFromFinal();
-    DexMethod newMethod = itemFactory.createMethod(holder.type, method.proto, method.name);
+    DexMethod newMethod =
+        appInfo.dexItemFactory.createMethod(holder.type, method.proto, method.name);
     Invoke.Type type = accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.SUPER;
     Builder builder = builder(this);
     builder.setMethod(newMethod);
@@ -655,6 +656,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       builder.accessFlags.setAbstract();
     } else {
       // Create code that forwards the call to the target.
+      DexClass target = appInfo.definitionFor(method.holder);
       builder.setCode(
           new SynthesizedCode(
               callerPosition ->
@@ -665,7 +667,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
                       accessFlags.isStatic() ? null : method.holder,
                       method,
                       type,
-                      callerPosition),
+                      callerPosition,
+                      target.isInterface()),
               registry -> {
                 if (accessFlags.isStatic()) {
                   registry.registerInvokeStatic(method);

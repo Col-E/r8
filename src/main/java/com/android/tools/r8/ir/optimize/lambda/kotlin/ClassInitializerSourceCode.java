@@ -41,18 +41,27 @@ final class ClassInitializerSourceCode extends SyntheticSourceCode {
     List<ValueType> argTypes = Lists.newArrayList(ValueType.OBJECT, ValueType.INT);
     List<Integer> argRegisters = Lists.newArrayList(instance, lambdaId);
 
-    group.forEachLambda(info -> {
-      DexType lambda = info.clazz.type;
-      if (group.isSingletonLambda(lambda)) {
-        int id = group.lambdaId(lambda);
-        add(builder -> builder.addNewInstance(instance, groupClassType));
-        add(builder -> builder.addConst(TypeLatticeElement.INT, lambdaId, id));
-        add(builder -> builder.addInvoke(Type.DIRECT,
-            lambdaConstructorMethod, lambdaConstructorMethod.proto, argTypes, argRegisters));
-        add(builder -> builder.addStaticPut(
-            instance, group.getSingletonInstanceField(factory, id)));
-      }
-    });
+    group.forEachLambda(
+        info -> {
+          DexType lambda = info.clazz.type;
+          if (group.isSingletonLambda(lambda)) {
+            int id = group.lambdaId(lambda);
+            add(builder -> builder.addNewInstance(instance, groupClassType));
+            add(builder -> builder.addConst(TypeLatticeElement.INT, lambdaId, id));
+            add(
+                builder ->
+                    builder.addInvoke(
+                        Type.DIRECT,
+                        lambdaConstructorMethod,
+                        lambdaConstructorMethod.proto,
+                        argTypes,
+                        argRegisters,
+                        false /* isInterface*/));
+            add(
+                builder ->
+                    builder.addStaticPut(instance, group.getSingletonInstanceField(factory, id)));
+          }
+        });
 
     assert this.nextInstructionIndex() > 0 : "no single field initialized";
     add(IRBuilder::addReturn);

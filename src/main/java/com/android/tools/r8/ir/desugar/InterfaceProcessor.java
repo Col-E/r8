@@ -252,7 +252,8 @@ final class InterfaceProcessor {
                           null,
                           origMethod,
                           Type.STATIC,
-                          callerPosition)));
+                          callerPosition,
+                          true /* isInterface */)));
       newEncodedMethod.getMutableOptimizationInfo().markNeverInline();
       dispatchMethods.add(newEncodedMethod);
     }

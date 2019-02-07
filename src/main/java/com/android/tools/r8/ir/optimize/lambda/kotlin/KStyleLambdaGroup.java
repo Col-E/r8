@@ -233,9 +233,15 @@ final class KStyleLambdaGroup extends KotlinLambdaGroup {
     void prepareSuperConstructorCall(int receiverRegister) {
       int arityRegister = nextRegister(ValueType.INT);
       add(builder -> builder.addConst(TypeLatticeElement.INT, arityRegister, arity));
-      add(builder -> builder.addInvoke(Type.DIRECT, lambdaInitializer, lambdaInitializer.proto,
-          Lists.newArrayList(ValueType.OBJECT, ValueType.INT),
-          Lists.newArrayList(receiverRegister, arityRegister)));
+      add(
+          builder ->
+              builder.addInvoke(
+                  Type.DIRECT,
+                  lambdaInitializer,
+                  lambdaInitializer.proto,
+                  Lists.newArrayList(ValueType.OBJECT, ValueType.INT),
+                  Lists.newArrayList(receiverRegister, arityRegister),
+                  false /* isInterface */));
     }
   }
 }

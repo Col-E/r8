@@ -224,8 +224,15 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     }
 
     // Method call to the method implementing lambda or method-ref.
-    add(builder -> builder.addInvoke(target.invokeType,
-        methodToCall, methodToCall.proto, argValueTypes, argRegisters));
+    add(
+        builder ->
+            builder.addInvoke(
+                target.invokeType,
+                methodToCall,
+                methodToCall.proto,
+                argValueTypes,
+                argRegisters,
+                false /* isInterface */));
 
     // Does the method have return value?
     if (enforcedReturnType.isVoidType()) {
@@ -446,8 +453,15 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
 
     List<ValueType> argValueTypes = ImmutableList.of(ValueType.OBJECT);
     List<Integer> argRegisters = Collections.singletonList(register);
-    add(builder -> builder.addInvoke(Invoke.Type.VIRTUAL,
-        method, method.proto, argValueTypes, argRegisters));
+    add(
+        builder ->
+            builder.addInvoke(
+                Invoke.Type.VIRTUAL,
+                method,
+                method.proto,
+                argValueTypes,
+                argRegisters,
+                false /* isInterface */));
 
     ValueType valueType = ValueType.fromDexType(primitiveType);
     int result = nextRegister(valueType);
@@ -469,8 +483,15 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     ValueType valueType = ValueType.fromDexType(primitiveType);
     List<ValueType> argValueTypes = ImmutableList.of(valueType);
     List<Integer> argRegisters = Collections.singletonList(register);
-    add(builder -> builder.addInvoke(Invoke.Type.STATIC,
-        method, method.proto, argValueTypes, argRegisters));
+    add(
+        builder ->
+            builder.addInvoke(
+                Invoke.Type.STATIC,
+                method,
+                method.proto,
+                argValueTypes,
+                argRegisters,
+                false /* isInterface */));
 
     int result = nextRegister(ValueType.OBJECT);
     add(builder -> builder.addMoveResult(result));

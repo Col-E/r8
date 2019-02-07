@@ -1405,19 +1405,6 @@ public class IRBuilder {
     add(Invoke.create(type, item, callSiteProto, null, arguments, itf));
   }
 
-  public void addInvoke(Type type, DexItem item, DexProto callSiteProto, List<Value> arguments) {
-    addInvoke(type, item, callSiteProto, arguments, false);
-  }
-
-  public void addInvoke(
-      Type type,
-      DexItem item,
-      DexProto callSiteProto,
-      List<ValueType> types,
-      List<Integer> registers) {
-    addInvoke(type, item, callSiteProto, types, registers, false);
-  }
-
   public void addInvoke(
       Type type,
       DexItem item,
@@ -1518,7 +1505,9 @@ public class IRBuilder {
       registerIndex += constraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(registerIndex, argumentRegisterCount);
-    addInvoke(type, method, callSiteProto, arguments);
+    // Note: We only call this register variant from DEX inputs where isInterface does not matter.
+    assert !isGeneratingClassFiles();
+    addInvoke(type, method, callSiteProto, arguments, false /* isInterface */);
   }
 
   public void addInvokeNewArray(DexType type, int argumentCount, int[] argumentRegisters) {
@@ -1538,7 +1527,7 @@ public class IRBuilder {
       registerIndex += constraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(registerIndex, argumentCount);
-    addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments);
+    addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments, false /* isInterface */);
   }
 
   public void addMultiNewArray(DexType type, int dest, int[] dimensions) {
@@ -1547,7 +1536,7 @@ public class IRBuilder {
     for (int dimension : dimensions) {
       arguments.add(readRegister(dimension, ValueTypeConstraint.INT));
     }
-    addInvoke(Invoke.Type.MULTI_NEW_ARRAY, type, null, arguments);
+    addInvoke(Invoke.Type.MULTI_NEW_ARRAY, type, null, arguments, false /* isInterface */);
     addMoveResult(dest);
   }
 
@@ -1581,7 +1570,9 @@ public class IRBuilder {
       register += valueTypeConstraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
-    addInvoke(type, method, callSiteProto, arguments);
+    // Note: We only call this register variant from DEX inputs where isInterface does not matter.
+    assert !isGeneratingClassFiles();
+    addInvoke(type, method, callSiteProto, arguments, false /* isInterface */);
   }
 
   public void addInvokeRangeNewArray(DexType type, int argumentCount, int firstArgumentRegister) {
@@ -1597,7 +1588,9 @@ public class IRBuilder {
       register += constraint.requiredRegisters();
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
-    addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments);
+    // Note: We only call this register variant from DEX inputs where isInterface does not matter.
+    assert !isGeneratingClassFiles();
+    addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments, false /* isInterface */);
   }
 
   private void checkInvokeArgumentRegisters(int expected, int actual) {

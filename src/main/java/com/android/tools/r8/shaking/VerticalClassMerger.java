@@ -1191,7 +1191,8 @@ public class VerticalClassMerger {
               newMethod,
               graphLense.getOriginalMethodSignature(method.method),
               invocationTarget.method,
-              invocationTarget.isPrivateMethod() ? DIRECT : STATIC);
+              invocationTarget.isPrivateMethod() ? DIRECT : STATIC,
+              target.isInterface());
 
       // Add the bridge to the list of synthesized bridges such that the method signatures will
       // be updated by the end of vertical class merging.
@@ -1873,13 +1874,19 @@ public class VerticalClassMerger {
     private DexMethod originalMethod;
     private DexMethod invocationTarget;
     private Type type;
+    private final boolean isInterface;
 
     public SynthesizedBridgeCode(
-        DexMethod method, DexMethod originalMethod, DexMethod invocationTarget, Type type) {
+        DexMethod method,
+        DexMethod originalMethod,
+        DexMethod invocationTarget,
+        Type type,
+        boolean isInterface) {
       this.method = method;
       this.originalMethod = originalMethod;
       this.invocationTarget = invocationTarget;
       this.type = type;
+      this.isInterface = isInterface;
     }
 
     // By the time the synthesized code object is created, vertical class merging still has not
@@ -1908,7 +1915,8 @@ public class VerticalClassMerger {
               type == DIRECT ? method.holder : null,
               invocationTarget,
               type,
-              callerPosition);
+              callerPosition,
+              isInterface);
     }
 
     @Override
