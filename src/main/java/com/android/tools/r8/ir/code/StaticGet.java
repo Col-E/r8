@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isVisibleFromOriginalContext;
+
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
@@ -18,6 +20,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
@@ -88,6 +91,25 @@ public class StaticGet extends FieldInstruction {
   public boolean instructionTypeCanThrow() {
     // This can cause <clinit> to run.
     return true;
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
+    // static-get can be dead as long as it cannot have any of the following:
+    // * NoSuchFieldError (resolution failure)
+    // * IllegalAccessError (not visible from the access context)
+    // * side-effects in <clinit>
+    // TODO(b/123857022): Should be possible to use definitionFor().
+    DexEncodedField resolvedField = appInfo.resolveFieldOn(getField().getHolder(), getField());
+    if (resolvedField == null) {
+      return false;
+    }
+    if (code == null
+        || !isVisibleFromOriginalContext(appInfo, code.method.method.getHolder(), resolvedField)) {
+      return false;
+    }
+    return appInfo.hasSubtyping()
+        && !getField().getHolder().classInitializationMayHaveSideEffects(appInfo);
   }
 
   @Override
