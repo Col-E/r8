@@ -10,7 +10,7 @@ import shutil
 
 import utils
 
-def add_r8_dependency(checkout_dir, temp_dir):
+def add_r8_dependency(checkout_dir, temp_dir, minified):
   build_file = os.path.join(checkout_dir, 'build.gradle')
   assert os.path.isfile(build_file), (
       'Expected a file to be present at {}'.format(build_file))
@@ -36,7 +36,7 @@ def add_r8_dependency(checkout_dir, temp_dir):
         elif 'com.android.tools.build:gradle:' in stripped:
           gradle_version = stripped[stripped.rindex(':')+1:-1]
           indent = ''.ljust(line.index('classpath'))
-          jar = os.path.join(temp_dir, 'r8lib.jar')
+          jar = os.path.join(temp_dir, 'r8lib.jar' if minified else 'r8.jar')
           f.write('{}classpath files(\'{}\')\n'.format(indent, jar))
           added_r8_dependency = True
         elif stripped == '}':

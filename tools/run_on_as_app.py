@@ -17,7 +17,7 @@ import zipfile
 
 import as_utils
 
-SHRINKERS = ['r8', 'r8-full', 'pg']
+SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full', 'pg']
 WORKING_DIR = os.path.join(utils.BUILD, 'opensource_apps')
 
 if ('R8_BENCHMARK_DIR' in os.environ
@@ -183,6 +183,9 @@ def IsBuiltWithR8(apk, temp_dir, options):
 
   utils.PrintCmd(cmd, quiet=options.quiet)
   return '~~R8' in subprocess.check_output(cmd).strip()
+
+def IsMinifiedR8(shrinker):
+  return 'nolib' not in shrinker
 
 def IsTrackedByGit(file):
   return subprocess.check_output(['git', 'ls-files', file]).strip() != ''
@@ -390,7 +393,7 @@ def BuildAppWithShrinker(
       ' for recompilation' if keepRuleSynthesisForRecompilation else ''))
 
   # Add 'r8.jar' from top-level build.gradle.
-  as_utils.add_r8_dependency(checkout_dir, temp_dir)
+  as_utils.add_r8_dependency(checkout_dir, temp_dir, IsMinifiedR8(shrinker))
 
   app_module = config.get('app_module', 'app')
   archives_base_name = config.get('archives_base_name', app_module)
@@ -417,7 +420,7 @@ def BuildAppWithShrinker(
   # Value for property android.enableR8.
   enableR8 = 'r8' in shrinker
   # Value for property android.enableR8.fullMode.
-  enableR8FullMode = shrinker == 'r8-full'
+  enableR8FullMode = shrinker == 'r8-full' or shrinker == 'r8-nolib-full'
   # Build gradlew command line.
   cmd = ['./gradlew', '--no-daemon', 'clean', releaseTarget,
          '--profile', '--stacktrace',
@@ -481,7 +484,8 @@ def RebuildAppWithShrinker(
 
   # Compile given APK with shrinker to temporary zip file.
   android_jar = utils.get_android_jar(compile_sdk)
-  r8_jar = os.path.join(temp_dir, 'r8lib.jar')
+  r8_jar = os.path.join(
+      temp_dir, 'r8lib.jar' if IsMinifiedR8(shrinker) else 'r8.jar')
   zip_dest = apk_dest[:-4] + '.zip'
 
   # TODO(christofferqa): Entry point should be CompatProguard if the shrinker
@@ -719,12 +723,14 @@ def main(argv):
 
   with utils.TempDir() as temp_dir:
     if not options.no_build or options.golem:
-      gradle.RunGradle(['r8lib'])
+      gradle.RunGradle(['r8', 'r8lib'])
 
+    assert os.path.isfile(utils.R8_JAR), 'Cannot build without r8.jar'
     assert os.path.isfile(utils.R8LIB_JAR), 'Cannot build without r8lib.jar'
 
-    # Make a copy of r8lib.jar such that it stay the same for the entire
-    # execution of this script.
+    # Make a copy of r8.jar and r8lib.jar such that they stay the same for
+    # the entire execution of this script.
+    shutil.copyfile(utils.R8_JAR, os.path.join(temp_dir, 'r8.jar'))
     shutil.copyfile(utils.R8LIB_JAR, os.path.join(temp_dir, 'r8lib.jar'))
 
     result_per_shrinker_per_app = {}
