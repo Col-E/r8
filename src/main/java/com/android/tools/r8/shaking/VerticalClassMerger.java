@@ -1226,8 +1226,19 @@ public class VerticalClassMerger {
         assert actual.isVirtualMethod() == method.isVirtualMethod();
         return actual;
       }
-      // We will keep the method, so the class better be abstract if there is no implementation.
-      assert !method.accessFlags.isAbstract() || target.accessFlags.isAbstract();
+      // The method is not actually overridden. This means that we will move `method` to the
+      // subtype. If `method` is abstract, then so should the subtype be.
+      if (Log.ENABLED) {
+        if (method.accessFlags.isAbstract() && !target.accessFlags.isAbstract()) {
+          Log.warn(
+              VerticalClassMerger.class,
+              "The non-abstract type `"
+                  + target.type.toSourceString()
+                  + "` does not implement the method `"
+                  + method.method.toSourceString()
+                  + "`.");
+        }
+      }
       return null;
     }
 
