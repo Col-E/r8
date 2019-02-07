@@ -93,6 +93,14 @@ APPS = {
       'git_repo': 'https://github.com/christofferqa/Simple-Calendar',
       'signed-apk-name': 'calendar-release.apk'
   },
+  'sqldelight': {
+      'app_id': 'com.example.sqldelight.hockey',
+      'git_repo': 'https://github.com/christofferqa/sqldelight.git',
+      'app_module': 'sample/android',
+      'archives_base_name': 'android',
+      'min_sdk': 14,
+      'compile_sdk': 28,
+  },
   'tachiyomi': {
       'app_id': 'eu.kanade.tachiyomi',
       'git_repo': 'https://github.com/sgjesse/tachiyomi.git',
@@ -380,7 +388,7 @@ def BuildAppWithShrinker(
 
   releaseTarget = config.get('releaseTarget')
   if not releaseTarget:
-    releaseTarget = app_module + ':' + 'assemble' + (
+    releaseTarget = app_module.replace('/', ':') + ':' + 'assemble' + (
         flavor.capitalize() if flavor else '') + 'Release'
 
   # Value for property android.enableR8.
