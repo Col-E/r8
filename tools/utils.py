@@ -184,9 +184,12 @@ def is_master():
   return 'origin/master' in remotes
 
 def get_HEAD_sha1():
+  return get_HEAD_sha1_for_checkout(REPO_ROOT)
+
+def get_HEAD_sha1_for_checkout(checkout):
   cmd = ['git', 'rev-parse', 'HEAD']
   PrintCmd(cmd)
-  with ChangedWorkingDirectory(REPO_ROOT):
+  with ChangedWorkingDirectory(checkout):
     return subprocess.check_output(cmd).strip()
 
 def makedirs_if_needed(path):

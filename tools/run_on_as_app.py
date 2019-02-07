@@ -26,6 +26,7 @@ if 'R8_BENCHMARK_DIR' in os.environ and os.path.isdir(os.environ['R8_BENCHMARK_D
 APPS = {
   # 'app-name': {
   #     'git_repo': ...
+  #     'revision': ...,
   #     'app_module': ... (default app)
   #     'archives_base_name': ... (default same as app_module)
   #     'flavor': ... (default no flavor)
@@ -34,6 +35,7 @@ APPS = {
   'AnExplorer': {
       'app_id': 'dev.dworks.apps.anexplorer.pro',
       'git_repo': 'https://github.com/christofferqa/AnExplorer',
+      'revision': '365927477b8eab4052a1882d5e358057ae3dee4d',
       'flavor': 'googleMobilePro',
       'signed-apk-name': 'AnExplorer-googleMobileProRelease-4.0.3.apk',
       'min_sdk': 17
@@ -41,6 +43,7 @@ APPS = {
   'AntennaPod': {
       'app_id': 'de.danoeh.antennapod',
       'git_repo': 'https://github.com/christofferqa/AntennaPod.git',
+      'revision': '77e94f4783a16abe9cc5b78dc2d2b2b1867d8c06',
       'flavor': 'play',
       'min_sdk': 14,
       'compile_sdk': 26
@@ -48,58 +51,70 @@ APPS = {
   'apps-android-wikipedia': {
       'app_id': 'org.wikipedia',
       'git_repo': 'https://github.com/christofferqa/apps-android-wikipedia',
+      'revision': '686e8aa5682af8e6a905054b935dd2daa57e63ee',
       'flavor': 'prod',
-      'signed-apk-name': 'app-prod-universal-release.apk'
+      'signed-apk-name': 'app-prod-universal-release.apk',
   },
   'chanu': {
-    'app_id': 'com.chanapps.four.activity',
-    'git_repo': 'https://github.com/mkj-gram/chanu.git',
+      'app_id': 'com.chanapps.four.activity',
+      'git_repo': 'https://github.com/mkj-gram/chanu.git',
+      'revision': '04ade1e9c33d707f0850d5eb9d6fa5e8af814a26',
   },
   'friendlyeats-android': {
       'app_id': 'com.google.firebase.example.fireeats',
-      'git_repo': 'https://github.com/christofferqa/friendlyeats-android.git'
+      'git_repo': 'https://github.com/christofferqa/friendlyeats-android.git',
+      'revision': '10091fa0ec37da12e66286559ad1b6098976b07b',
   },
   'Instabug-Android': {
       'app_id': 'com.example.instabug',
       'git_repo': 'https://github.com/christofferqa/Instabug-Android.git',
+      'revision': 'b8df78c96630a6537fbc07787b4990afc030cc0f'
   },
   'KISS': {
       'app_id': 'fr.neamar.kiss',
       'git_repo': 'https://github.com/christofferqa/KISS',
+      'revision': '093da9ee0512e67192f62951c45a07a616fc3224',
   },
   'materialistic': {
       'app_id': 'io.github.hidroh.materialistic',
       'git_repo': 'https://github.com/christofferqa/materialistic',
+      'revision': '2b2b2ee25ce9e672d5aab1dc90a354af1522b1d9',
   },
   'Minimal-Todo': {
       'app_id': 'com.avjindersinghsekhon.minimaltodo',
       'git_repo': 'https://github.com/christofferqa/Minimal-Todo',
+      'revision': '9d8c73746762cd376b718858ec1e8783ca07ba7c',
   },
   'NewPipe': {
       'app_id': 'org.schabi.newpipe',
       'git_repo': 'https://github.com/christofferqa/NewPipe',
+      'revision': 'ed543099c7823be00f15d9340f94bdb7cb37d1e6',
   },
   'rover-android': {
-    'app_id': 'io.rover.app.debug',
-    'app_module': 'debug-app',
-    'git_repo': 'https://github.com/mkj-gram/rover-android.git',
+      'app_id': 'io.rover.app.debug',
+      'app_module': 'debug-app',
+      'git_repo': 'https://github.com/mkj-gram/rover-android.git',
+      'revision': 'd2e876e597b3af7eab406e38a0e08327a38bd942',
   },
   'Signal-Android': {
-    'app_id': 'org.thoughtcrime.securesms',
-    'app_module': '',
-    'flavor': 'play',
-    'git_repo': 'https://github.com/mkj-gram/Signal-Android.git',
-    'releaseTarget': 'assemblePlayRelease',
-    'signed-apk-name': 'Signal-play-release-4.32.7.apk',
+      'app_id': 'org.thoughtcrime.securesms',
+      'app_module': '',
+      'flavor': 'play',
+      'git_repo': 'https://github.com/mkj-gram/Signal-Android.git',
+      'revision': '85e1a10993e5e9ffe923f0798b26cbc44068ba31',
+      'releaseTarget': 'assemblePlayRelease',
+      'signed-apk-name': 'Signal-play-release-4.32.7.apk',
   },
   'Simple-Calendar': {
       'app_id': 'com.simplemobiletools.calendar.pro',
       'git_repo': 'https://github.com/christofferqa/Simple-Calendar',
+      'revision': '82dad8c203eea5a0f0ddb513506d8f1de986ef2b',
       'signed-apk-name': 'calendar-release.apk'
   },
   'sqldelight': {
       'app_id': 'com.example.sqldelight.hockey',
       'git_repo': 'https://github.com/christofferqa/sqldelight.git',
+      'revision': '2e67a1126b6df05e4119d1e3a432fde51d76cdc8',
       'app_module': 'sample/android',
       'archives_base_name': 'android',
       'min_sdk': 14,
@@ -108,6 +123,7 @@ APPS = {
   'tachiyomi': {
       'app_id': 'eu.kanade.tachiyomi',
       'git_repo': 'https://github.com/sgjesse/tachiyomi.git',
+      'revision': 'b15d2fe16864645055af6a745a62cc5566629798',
       'flavor': 'standard',
       'releaseTarget': 'app:assembleRelease',
       'min_sdk': 16
@@ -115,21 +131,25 @@ APPS = {
   'tivi': {
       'app_id': 'app.tivi',
       'git_repo': 'https://github.com/sgjesse/tivi.git',
+      'revision': '7d7f591d6f39d7caeb88dd13bf476c0c06accdfb',
       'min_sdk': 23,
       'compile_sdk': 28,
   },
   'Tusky': {
-    'app_id': 'com.keylesspalace.tusky',
-    'git_repo': 'https://github.com/mkj-gram/Tusky.git',
-    'flavor': 'blue'
+      'app_id': 'com.keylesspalace.tusky',
+      'git_repo': 'https://github.com/mkj-gram/Tusky.git',
+      'revision': 'b794f3ab90388add98461ffe70edb65c39351c33',
+      'flavor': 'blue'
   },
   'Vungle-Android-SDK': {
-    'app_id': 'com.publisher.vungle.sample',
-    'git_repo': 'https://github.com/mkj-gram/Vungle-Android-SDK.git',
+      'app_id': 'com.publisher.vungle.sample',
+      'git_repo': 'https://github.com/mkj-gram/Vungle-Android-SDK.git',
+      'revision': '3e231396ea7ce97b2655e03607497c75730e45f6',
   },
   # This does not build yet.
   'muzei': {
       'git_repo': 'https://github.com/sgjesse/muzei.git',
+      'revision': 'bed2a5f79c6e08b0a21e3e3f9242232d0848ef74',
       'app_module': 'main',
       'archives_base_name': 'muzei',
       'skip': True,
@@ -166,12 +186,16 @@ def IsMinifiedR8(shrinker):
 def IsTrackedByGit(file):
   return subprocess.check_output(['git', 'ls-files', file]).strip() != ''
 
-def GitClone(git_url):
-  return subprocess.check_output(['git', 'clone', git_url]).strip()
-
-def GitPull():
-  # Use --no-edit to accept the auto-generated merge message, if any.
-  return subprocess.call(['git', 'pull', '--no-edit']) == 0
+def GitClone(git_url, revision, checkout_dir, options):
+  result = subprocess.check_output(
+      ['git', 'clone', git_url, checkout_dir]).strip()
+  head_rev = utils.get_HEAD_sha1_for_checkout(checkout_dir)
+  if revision == head_rev:
+    return result
+  warn('Target revision is not head in {}.'.format(checkout_dir))
+  with utils.ChangedWorkingDirectory(checkout_dir, quiet=options.quiet):
+    subprocess.check_output(['git', 'reset', '--hard', revision])
+  return result
 
 def GitCheckout(file):
   return subprocess.check_output(['git', 'checkout', file]).strip()
@@ -230,8 +254,6 @@ def WaitForEmulator():
       return True
 
 def GetResultsForApp(app, config, options, temp_dir):
-  git_repo = config['git_repo']
-
   # Checkout and build in the build directory.
   checkout_dir = os.path.join(WORKING_DIR, app)
 
@@ -239,17 +261,16 @@ def GetResultsForApp(app, config, options, temp_dir):
 
   if not os.path.exists(checkout_dir):
     with utils.ChangedWorkingDirectory(WORKING_DIR, quiet=options.quiet):
-      GitClone(git_repo)
-  elif options.pull:
-    with utils.ChangedWorkingDirectory(checkout_dir, quiet=options.quiet):
-      # Checkout build.gradle to avoid merge conflicts.
-      if IsTrackedByGit('build.gradle'):
-        GitCheckout('build.gradle')
+      GitClone(config['git_repo'], config['revision'], checkout_dir, options)
 
-      if not GitPull():
-        result['status'] = 'failed'
-        result['error_message'] = 'Unable to pull from remote'
-        return result
+  checkout_rev = utils.get_HEAD_sha1_for_checkout(checkout_dir)
+  if config['revision'] != checkout_rev:
+    msg = 'Checkout is not target revision for {} in {}.'.format(
+        app, checkout_dir)
+    if options.ignore_versions:
+      warn(msg)
+    else:
+      raise Exception(msg)
 
   result['status'] = 'success'
 
@@ -602,6 +623,11 @@ def ParseOptions(argv):
                     action='store_true')
   result.add_option('--gradle-flags', '--gradle_flags',
                     help='Flags to pass in to gradle')
+  result.add_option('--ignore-versions', '--ignore_versions',
+                    help='Allow checked-out app to differ in revision from '
+                         'pinned',
+                    default=False,
+                    action='store_true')
   result.add_option('--keystore',
                     help='Path to app.keystore',
                     default='app.keystore')
@@ -618,10 +644,6 @@ def ParseOptions(argv):
                     type=int)
   result.add_option('--no-build', '--no_build',
                     help='Run without building ToT first (only when using ToT)',
-                    default=False,
-                    action='store_true')
-  result.add_option('--pull',
-                    help='Whether to pull the latest version of each app',
                     default=False,
                     action='store_true')
   result.add_option('--quiet',
