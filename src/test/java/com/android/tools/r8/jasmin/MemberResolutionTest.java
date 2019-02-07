@@ -462,7 +462,7 @@ public class MemberResolutionTest extends JasminTestBase {
     main.addMainMethod(
         ".limit stack 2",
         ".limit locals 1",
-        "  getstatic Empty/aField I",
+        "  getstatic Empty/aMethod I",
         "  return");
 
     ensureRuntimeException(builder, NoSuchFieldError.class);

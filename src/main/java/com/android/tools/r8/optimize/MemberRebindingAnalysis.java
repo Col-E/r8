@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -292,15 +291,14 @@ public class MemberRebindingAnalysis {
       Set<DexEncodedMethod> contexts = fieldsWithContexts.get(field);
       if (target != null && target.field != field
           && contexts.stream().allMatch(context ->
-              isVisibleFromOriginalContext(appInfo, context.method.getHolder(), target))) {
+              isVisibleFromOriginalContext(context.method.getHolder(), target))) {
         builder.map(field,
             lense.lookupField(validTargetFor(target.field, field, lookupTargetOnClass)));
       }
     }
   }
 
-  public static boolean isVisibleFromOriginalContext(
-      AppInfo appInfo, DexType context, DexEncodedField field) {
+  private boolean isVisibleFromOriginalContext(DexType context, DexEncodedField field) {
     DexType holderType = field.field.getHolder();
     DexClass holder = appInfo.definitionFor(holderType);
     if (holder == null) {
