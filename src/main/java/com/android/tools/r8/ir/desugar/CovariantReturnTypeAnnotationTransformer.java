@@ -175,7 +175,8 @@ public final class CovariantReturnTypeAnnotationTransformer {
                         method.method,
                         Invoke.Type.VIRTUAL,
                         callerPosition,
-                        true)));
+                        false /* isInterface */,
+                        true /* castResult */)));
     // Optimize to generate DexCode instead of SynthesizedCode.
     converter.optimizeSynthesizedMethod(newVirtualMethod);
     return newVirtualMethod;

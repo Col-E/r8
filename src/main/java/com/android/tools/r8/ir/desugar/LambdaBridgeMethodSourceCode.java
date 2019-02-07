@@ -46,8 +46,15 @@ final class LambdaBridgeMethodSourceCode extends SynthesizedLambdaSourceCode {
     }
 
     // Method call to the main functional interface method.
-    add(builder -> builder.addInvoke(Invoke.Type.VIRTUAL,
-        this.mainMethod, this.mainMethod.proto, argValueTypes, argRegisters));
+    add(
+        builder ->
+            builder.addInvoke(
+                Invoke.Type.VIRTUAL,
+                this.mainMethod,
+                this.mainMethod.proto,
+                argValueTypes,
+                argRegisters,
+                false /* isInterface */));
 
     // Does the method have return value?
     if (proto.returnType == factory().voidType) {

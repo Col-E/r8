@@ -23,8 +23,14 @@ final class LambdaConstructorSourceCode extends SynthesizedLambdaSourceCode {
   protected void prepareInstructions() {
     // Super constructor call (always java.lang.Object.<init>()).
     DexMethod objectInitMethod = lambda.rewriter.objectInitMethod;
-    add(builder -> builder.addInvoke(Invoke.Type.DIRECT, objectInitMethod,
-        objectInitMethod.proto, Collections.singletonList(getReceiverValue())));
+    add(
+        builder ->
+            builder.addInvoke(
+                Invoke.Type.DIRECT,
+                objectInitMethod,
+                objectInitMethod.proto,
+                Collections.singletonList(getReceiverValue()),
+                false /* isInterface */));
 
     // Assign capture fields.
     DexType[] capturedTypes = captures();

@@ -192,7 +192,7 @@ public class MemberRebindingAnalysis {
         findHolderForInterfaceMethodBridge(originalClass, targetClass.type);
     assert bridgeHolder != null;
     assert bridgeHolder != targetClass;
-    DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appInfo.dexItemFactory);
+    DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appInfo);
     bridgeHolder.addMethod(bridgeMethod);
     assert lookupTarget.apply(method) == bridgeMethod;
     return bridgeMethod;
@@ -243,8 +243,7 @@ public class MemberRebindingAnalysis {
       DexProgramClass bridgeHolder =
           findHolderForVisibilityBridge(originalClass, targetClass, packageDescriptor);
       assert bridgeHolder != null;
-      DexEncodedMethod bridgeMethod =
-          target.toForwardingMethod(bridgeHolder, appInfo.dexItemFactory);
+      DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appInfo);
       bridgeHolder.addMethod(bridgeMethod);
       assert lookupTarget.apply(method) == bridgeMethod;
       return bridgeMethod;

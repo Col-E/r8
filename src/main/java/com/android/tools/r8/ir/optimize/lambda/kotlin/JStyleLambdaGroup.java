@@ -215,8 +215,15 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
 
     @Override
     void prepareSuperConstructorCall(int receiverRegister) {
-      add(builder -> builder.addInvoke(Type.DIRECT, objectInitializer, objectInitializer.proto,
-          Lists.newArrayList(ValueType.OBJECT), Lists.newArrayList(receiverRegister)));
+      add(
+          builder ->
+              builder.addInvoke(
+                  Type.DIRECT,
+                  objectInitializer,
+                  objectInitializer.proto,
+                  Lists.newArrayList(ValueType.OBJECT),
+                  Lists.newArrayList(receiverRegister),
+                  false /* isInterface */));
     }
   }
 }

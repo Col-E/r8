@@ -2864,7 +2864,13 @@ public class JarSourceCode implements SourceCode {
     List<ValueType> argumentTypes = Arrays.asList(valueType(CLASS_TYPE), valueType(INT_ARRAY_TYPE));
     List<Integer> argumentRegisters = Arrays.asList(classDestTemp, dimensionsDestTemp);
     builder.ensureBlockForThrowingInstruction();
-    builder.addInvoke(Invoke.Type.STATIC, newInstance, null, argumentTypes, argumentRegisters);
+    builder.addInvoke(
+        Invoke.Type.STATIC,
+        newInstance,
+        null,
+        argumentTypes,
+        argumentRegisters,
+        false /* isInterface */);
     // Pop the temporaries and push the final result.
     state.pop(); // classDestTemp.
     state.pop(); // dimensionsDestTemp.

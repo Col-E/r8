@@ -13,6 +13,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfTryCatch;
@@ -21,6 +22,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -179,7 +181,21 @@ public class CfBuilder {
     CodeRewriter.collapseTrivialGotos(method, code);
     DexBuilder.removeRedundantDebugPositions(code);
     CfCode code = buildCfCode();
+    assert verifyInvokeInterface(code, appInfo);
     return code;
+  }
+
+  private static boolean verifyInvokeInterface(CfCode code, AppInfo appInfo) {
+    for (CfInstruction instruction : code.instructions) {
+      if (instruction instanceof CfInvoke) {
+        CfInvoke invoke = (CfInvoke) instruction;
+        if (invoke.getMethod().holder.isClassType()) {
+          DexClass holder = appInfo.definitionFor(invoke.getMethod().holder);
+          assert holder == null || holder.isInterface() == invoke.isInterface();
+        }
+      }
+    }
+    return true;
   }
 
   public DexField resolveField(DexField field) {

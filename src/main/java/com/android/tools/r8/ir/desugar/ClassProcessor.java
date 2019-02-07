@@ -100,10 +100,10 @@ final class ClassProcessor {
 
   private DexEncodedMethod addForwardingMethod(DexEncodedMethod defaultMethod, DexClass clazz) {
     DexMethod method = defaultMethod.method;
+    DexClass target = rewriter.findDefinitionFor(method.holder);
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
-    assert rewriter.findDefinitionFor(method.holder) != null
-        && !rewriter.findDefinitionFor(method.holder).isLibraryClass();
+    assert target != null && !target.isLibraryClass();
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
     DexMethod newMethod = rewriter.factory.createMethod(clazz.type, method.proto, method.name);
@@ -124,7 +124,8 @@ final class ClassProcessor {
                     null /* static method */,
                     rewriter.defaultAsMethodOfCompanionClass(method),
                     Invoke.Type.STATIC,
-                    callerPosition)));
+                    callerPosition,
+                    target.isInterface())));
   }
 
   // For a given class `clazz` inspects all interfaces it implements directly or

@@ -24,12 +24,15 @@ final class LambdaClassConstructorSourceCode extends SynthesizedLambdaSourceCode
     // Create and initialize an instance.
     int instance = nextRegister(ValueType.OBJECT);
     add(builder -> builder.addNewInstance(instance, lambda.type));
-    add(builder -> builder.addInvoke(
-        Invoke.Type.DIRECT,
-        lambda.constructor,
-        lambda.constructor.proto,
-        ImmutableList.of(ValueType.OBJECT),
-        ImmutableList.of(instance)));
+    add(
+        builder ->
+            builder.addInvoke(
+                Invoke.Type.DIRECT,
+                lambda.constructor,
+                lambda.constructor.proto,
+                ImmutableList.of(ValueType.OBJECT),
+                ImmutableList.of(instance),
+                false /* isInterface */));
 
     // Assign to a field.
     add(builder -> builder.addStaticPut(instance, lambda.instanceField));
