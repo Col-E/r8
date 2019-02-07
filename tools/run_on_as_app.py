@@ -5,6 +5,7 @@
 
 import apk_masseur
 import apk_utils
+import golem
 import gradle
 import os
 import optparse
@@ -710,6 +711,7 @@ def main(argv):
   (options, args) = ParseOptions(argv)
 
   if options.golem:
+    golem.link_third_party()
     if os.path.exists(WORKING_DIR):
       shutil.rmtree(WORKING_DIR)
     shutil.copytree(utils.OPENSOURCE_APPS_FOLDER, WORKING_DIR)
