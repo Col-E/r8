@@ -127,7 +127,7 @@ def SetPrintConfigurationDirective(app, config, checkout_dir, destination):
       if '-printconfiguration' not in line:
         f.write(line)
     # Check that there is a line-break at the end of the file or insert one.
-    if lines[-1].strip():
+    if len(lines) and lines[-1].strip():
       f.write('\n')
     f.write('-printconfiguration {}\n'.format(destination))
 
@@ -159,7 +159,7 @@ def MoveDir(src, dst, quiet=False):
   Move(src, dst, quiet=quiet)
 
 def MoveFile(src, dst, quiet=False):
-  assert os.path.isfile(src)
+  assert os.path.isfile(src), "Expected a file to be present at " + src
   Move(src, dst, quiet=quiet)
 
 def MoveProfileReportTo(dest_dir, build_stdout, quiet=False):
