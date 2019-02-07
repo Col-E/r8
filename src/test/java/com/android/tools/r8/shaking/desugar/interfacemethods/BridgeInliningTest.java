@@ -4,7 +4,6 @@
 package com.android.tools.r8.shaking.desugar.interfacemethods;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -60,11 +59,9 @@ public class BridgeInliningTest extends TestBase {
     MethodSubject m = c.uniqueMethodWithName("m");
     assertThat(m, isPresent());
     assertTrue(m.getMethod().hasCode());
-    // TODO(b/123778921): why are I and C not merged without merge annotations?
+    // TODO(b/124017330): Verify that I$-CC.m() has been inlined into C.m().
     //assertTrue(
     //    m.iterateInstructions(i -> i.isConstString("I::m", JumboStringMode.ALLOW)).hasNext());
-
-    // TODO(b/123778921): No companion class is in the output.
     //codeInspector.forAllClasses(classSubject -> {
     //  assertFalse(classSubject.getOriginalDescriptor().contains("$-CC"));
     //});
