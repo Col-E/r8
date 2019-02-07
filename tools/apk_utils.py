@@ -23,7 +23,8 @@ def sign(unsigned_apk, signed_apk, keystore, quiet=False):
   ]
   utils.RunCmd(cmd, quiet=quiet)
 
-def sign_with_apksigner(build_tools_dir, unsigned_apk, signed_apk, keystore, password):
+def sign_with_apksigner(
+    build_tools_dir, unsigned_apk, signed_apk, keystore, password, quiet=False):
   cmd = [
     os.path.join(build_tools_dir, 'apksigner'),
     'sign',
@@ -34,5 +35,4 @@ def sign_with_apksigner(build_tools_dir, unsigned_apk, signed_apk, keystore, pas
     '--out', signed_apk,
     unsigned_apk
   ]
-  utils.PrintCmd(cmd)
-  subprocess.check_call(cmd)
+  utils.RunCmd(cmd, quiet=quiet)

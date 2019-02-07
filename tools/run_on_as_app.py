@@ -102,11 +102,9 @@ APPS = {
   },
   'tivi': {
       'app_id': 'app.tivi',
-      # Forked from https://github.com/chrisbanes/tivi.git removing
-      # signingConfigs.
       'git_repo': 'https://github.com/sgjesse/tivi.git',
-      # TODO(123047413): Fails with R8.
-      'skip': True,
+      'min_sdk': 23,
+      'compile_sdk': 28,
   },
   'Tusky': {
     'app_id': 'com.keylesspalace.tusky',
@@ -419,14 +417,13 @@ def BuildAppWithShrinker(
   if options.sign_apks and not os.path.isfile(signed_apk):
     assert os.path.isfile(unsigned_apk)
     if options.sign_apks:
-      keystore = 'app.keystore'
-      keystore_password = 'android'
       apk_utils.sign_with_apksigner(
           utils.ANDROID_BUILD_TOOLS,
           unsigned_apk,
           signed_apk,
-          keystore,
-          keystore_password)
+          options.keystore,
+          options.keystore_password,
+          quiet=options.quiet)
 
   if os.path.isfile(signed_apk):
     apk_dest = os.path.join(out_dir, signed_apk_name)
@@ -587,6 +584,12 @@ def ParseOptions(argv):
   result.add_option('--app',
                     help='What app to run on',
                     choices=APPS.keys())
+  result.add_option('--keystore',
+                    help='Path to app.keystore',
+                    default='app.keystore')
+  result.add_option('--keystore-password', '--keystore_password',
+                    help='Password for app.keystore',
+                    default='android')
   result.add_option('--monkey',
                     help='Whether to install and run app(s) with monkey',
                     default=False,
