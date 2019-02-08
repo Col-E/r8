@@ -38,6 +38,10 @@ def ParseOptions(argv):
   result.add_option('--output',
                     default='build',
                     help='Directory where to output results')
+  result.add_option('--timeout',
+                    type=int,
+                    default=0,
+                    help='Set timeout instead of waiting for OOM.')
   return result.parse_args(argv)
 
 
@@ -122,7 +126,10 @@ def pull_r8_from_cloud(commit):
 def run_on_app(options, commit):
   app = options.app
   compiler = options.compiler
-  cmd = ['tools/run_on_app.py', '--app', app, '--compiler', compiler,
+  cmd = ['tools/run_on_app.py',
+         '--app', app,
+         '--compiler', compiler,
+         '--timeout', str(options.timeout),
          '--no-build', '--find-min-xmx']
   stdout = subprocess.check_output(cmd)
   output_path = options.output or 'build'

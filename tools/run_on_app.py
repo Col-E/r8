@@ -27,6 +27,9 @@ COMPILER_BUILDS = ['full', 'lib']
 
 # We use this magic exit code to signal that the program OOM'ed
 OOM_EXIT_CODE = 42
+# According to Popen.returncode doc:
+# A negative value -N indicates that the child was terminated by signal N.
+TIMEOUT_KILL_CODE = -9
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
@@ -58,6 +61,10 @@ def ParseOptions(argv):
                     help='Find the minimum amount of memory we can run in',
                     default=False,
                     action='store_true')
+  result.add_option('--timeout',
+                    type=int,
+                    default=0,
+                    help='Set timeout instead of waiting for OOM.')
   result.add_option('--golem',
                     help='Running on golem, do not build or download',
                     default=False,
@@ -178,7 +185,7 @@ def find_min_xmx(options, args):
   assert len(args) == 0
   # If we can run in 128 MB then we are good (which we can for small examples
   # or D8 on medium sized examples)
-  not_working = 128
+  not_working = 128 if options.compiler == 'd8' else 1024
   working = 1024 * 8
   exit_code = 0
   while working - not_working > 32:
@@ -191,11 +198,15 @@ def find_min_xmx(options, args):
     exit_code = run_with_options(options, [], extra_args)
     t1 = time.time()
     print('Running took: %s ms' % (1000.0 * (t1 - t0)))
-    if exit_code != 0 and exit_code != OOM_EXIT_CODE:
-      print('Non OOM error executing, exiting')
-      return 2
+    if exit_code != 0:
+      if exit_code not in [OOM_EXIT_CODE, TIMEOUT_KILL_CODE]:
+        print('Non OOM/Timeout error executing, exiting')
+        return 2
     if exit_code == 0:
       working = next_candidate
+    elif exit_code == TIMEOUT_KILL_CODE:
+      print('Timeout. Continue to the next candidate.')
+      not_working = next_candidate
     else:
       assert exit_code == OOM_EXIT_CODE
       not_working = next_candidate
@@ -356,7 +367,9 @@ def run_with_options(options, args, extra_args=None):
             debug=not options.no_debug,
             profile=options.profile,
             track_memory_file=options.track_memory_to_file,
-            extra_args=extra_args, stderr=stderr)
+            extra_args=extra_args,
+            stderr=stderr,
+            timeout=options.timeout)
       if exit_code != 0:
         with open(stderr_path) as stderr:
           stderr_text = stderr.read()
