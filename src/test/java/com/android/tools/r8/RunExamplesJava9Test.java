@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
@@ -274,6 +275,7 @@ public abstract class RunExamplesJava9Test
 
   @Test
   public void desugaredPrivateInterfaceMethods() throws Throwable {
+    assumeFalse("CF backend does not desugar", this instanceof R8CFRunExamplesJava9Test);
     final String iName = "privateinterfacemethods.I";
     test("desugared-private-interface-methods",
         "privateinterfacemethods", "PrivateInterfaceMethods")
@@ -297,6 +299,7 @@ public abstract class RunExamplesJava9Test
   public void varHandle() throws Throwable {
     test("varhandle", "varhandle", "VarHandleTests")
         .withMinApiLevel(AndroidApiLevel.P.getLevel())
+        .withKeepAll()
         .run();
   }
 

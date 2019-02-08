@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -31,11 +32,24 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
     }
 
     @Override
+    R8CFTestRunner withKeepAll() {
+      return withBuilderTransformation(
+          builder ->
+              builder
+                  .setMode(CompilationMode.DEBUG)
+                  .setDisableTreeShaking(true)
+                  .setDisableMinification(true)
+                  .addProguardConfiguration(
+                      ImmutableList.of("-keepattributes *"), Origin.unknown()));
+    }
+
+    @Override
     void build(Path inputFile, Path out) throws Throwable {
       R8Command.Builder builder = R8Command.builder();
       for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
+      // TODO(b/124041175): We should not be linking against the Java 8 runtime for Java 9 inputs.
       builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
       R8Command command =
           builder.addProgramFiles(inputFile).setOutput(out, OutputMode.ClassFile).build();
@@ -67,7 +81,7 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
         }
       }
 
-      execute(testName, qualifiedMainClass, new Path[] {inputFile}, new Path[] {out});
+      execute(testName, qualifiedMainClass, new Path[] {inputFile}, new Path[] {out}, args);
 
       if (expectedToThrow) {
         System.out.println("Did not throw ApiLevelException as expected");
@@ -85,15 +99,23 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
     return new R8CFTestRunner(testName, packageName, mainClass);
   }
 
-  void execute(String testName, String qualifiedMainClass, Path[] inputJars, Path[] outputJars)
+  @Override
+  void execute(
+      String testName,
+      String qualifiedMainClass,
+      Path[] inputJars,
+      Path[] outputJars,
+      List<String> args)
       throws IOException {
     boolean expectedToFail = expectedToFailCf(testName);
     if (expectedToFail) {
       thrown.expect(Throwable.class);
     }
-    ProcessResult outputResult = ToolHelper.runJava(Arrays.asList(outputJars), qualifiedMainClass);
+    String[] mainAndArgs =
+        ImmutableList.builder().add(qualifiedMainClass).addAll(args).build().toArray(new String[0]);
+    ProcessResult outputResult = ToolHelper.runJava(Arrays.asList(outputJars), mainAndArgs);
     ToolHelper.ProcessResult inputResult =
-        ToolHelper.runJava(ImmutableList.copyOf(inputJars), qualifiedMainClass);
+        ToolHelper.runJava(ImmutableList.copyOf(inputJars), mainAndArgs);
     assertEquals(inputResult.toString(), outputResult.toString());
     if (inputResult.exitCode != 0) {
       System.out.println(inputResult);
