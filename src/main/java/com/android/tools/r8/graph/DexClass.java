@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -145,6 +146,7 @@ public abstract class DexClass extends DexDefinition {
     System.arraycopy(directMethods, 0, newMethods, 0, directMethods.length);
     newMethods[directMethods.length] = method;
     directMethods = newMethods;
+    assert verifyNoDuplicateMethods(directMethods);
   }
 
   public void appendDirectMethods(Collection<DexEncodedMethod> methods) {
@@ -156,6 +158,7 @@ public abstract class DexClass extends DexDefinition {
       i++;
     }
     directMethods = newMethods;
+    assert verifyNoDuplicateMethods(directMethods);
   }
 
   public void removeDirectMethod(int index) {
@@ -167,10 +170,12 @@ public abstract class DexClass extends DexDefinition {
 
   public void setDirectMethod(int index, DexEncodedMethod method) {
     directMethods[index] = method;
+    assert verifyNoDuplicateMethods(directMethods);
   }
 
   public void setDirectMethods(DexEncodedMethod[] values) {
     directMethods = MoreObjects.firstNonNull(values, NO_METHODS);
+    assert verifyNoDuplicateMethods(directMethods);
   }
 
   public List<DexEncodedMethod> virtualMethods() {
@@ -186,6 +191,7 @@ public abstract class DexClass extends DexDefinition {
     System.arraycopy(virtualMethods, 0, newMethods, 0, virtualMethods.length);
     newMethods[virtualMethods.length] = method;
     virtualMethods = newMethods;
+    assert verifyNoDuplicateMethods(virtualMethods);
   }
 
   public void appendVirtualMethods(Collection<DexEncodedMethod> methods) {
@@ -197,21 +203,36 @@ public abstract class DexClass extends DexDefinition {
       i++;
     }
     virtualMethods = newMethods;
+    assert verifyNoDuplicateMethods(virtualMethods);
   }
 
   public void removeVirtualMethod(int index) {
     DexEncodedMethod[] newMethods = new DexEncodedMethod[virtualMethods.length - 1];
     System.arraycopy(virtualMethods, 0, newMethods, 0, index);
-    System.arraycopy(virtualMethods, index + 1, newMethods, index, virtualMethods.length - index - 1);
+    System.arraycopy(
+        virtualMethods, index + 1, newMethods, index, virtualMethods.length - index - 1);
     virtualMethods = newMethods;
   }
 
   public void setVirtualMethod(int index, DexEncodedMethod method) {
     virtualMethods[index] = method;
+    assert verifyNoDuplicateMethods(virtualMethods);
   }
 
   public void setVirtualMethods(DexEncodedMethod[] values) {
     virtualMethods = MoreObjects.firstNonNull(values, NO_METHODS);
+    assert verifyNoDuplicateMethods(virtualMethods);
+  }
+
+  private boolean verifyNoDuplicateMethods(DexEncodedMethod[] methods) {
+    Set<DexMethod> unique = Sets.newIdentityHashSet();
+    Arrays.stream(methods)
+        .forEach(
+            method -> {
+              boolean changed = unique.add(method.method);
+              assert changed : "Duplicate method `" + method.method.toSourceString() + "`";
+            });
+    return true;
   }
 
   public void forEachMethod(Consumer<DexEncodedMethod> consumer) {
