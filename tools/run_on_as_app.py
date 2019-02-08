@@ -222,7 +222,7 @@ def PercentageDiffAsString(before, after):
 def UninstallApkOnEmulator(app, config, options):
   app_id = config.get('app_id')
   process = subprocess.Popen(
-      ['adb', 'uninstall', app_id],
+      ['adb', '-s', emulator_id, 'uninstall', app_id],
       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   stdout, stderr = process.communicate()
 
