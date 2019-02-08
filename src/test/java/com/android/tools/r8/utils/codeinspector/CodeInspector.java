@@ -185,7 +185,7 @@ public class CodeInspector {
   }
 
   static <S, T extends Subject> void forAll(
-      S[] items,
+      List<? extends S> items,
       BiFunction<S, FoundClassSubject, ? extends T> constructor,
       FoundClassSubject clazz,
       Consumer<T> consumer) {

@@ -100,7 +100,7 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     assertThat(classSubject, isPresent());
     assertThat(classSubject, not(isRenamed()));
     DexClass clazz = classSubject.getDexClass();
-    assertEquals(3, clazz.virtualMethods().length);
+    assertEquals(3, clazz.virtualMethods().size());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
       MethodSubject methodSubject =
@@ -141,7 +141,7 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     assertThat(classSubject, isPresent());
     assertThat(classSubject, not(isRenamed()));
     DexClass clazz = classSubject.getDexClass();
-    assertEquals(3, clazz.virtualMethods().length);
+    assertEquals(3, clazz.virtualMethods().size());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
       MethodSubject methodSubject =
@@ -163,7 +163,7 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     assertThat(classSubject, isPresent());
     assertThat(classSubject, not(isRenamed()));
     DexClass clazz = classSubject.getDexClass();
-    assertEquals(3, clazz.virtualMethods().length);
+    assertEquals(3, clazz.virtualMethods().size());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
       MethodSubject methodSubject =

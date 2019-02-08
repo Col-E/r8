@@ -129,33 +129,26 @@ public class LambdaRewriter {
 
   /** Remove lambda deserialization methods. */
   public boolean removeLambdaDeserializationMethods(Iterable<DexProgramClass> classes) {
-    boolean anyRemoved = false;
     for (DexProgramClass clazz : classes) {
       // Search for a lambda deserialization method and remove it if found.
-      DexEncodedMethod[] directMethods = clazz.directMethods();
+      List<DexEncodedMethod> directMethods = clazz.directMethods();
       if (directMethods != null) {
-        int methodCount = directMethods.length;
+        int methodCount = directMethods.size();
         for (int i = 0; i < methodCount; i++) {
-          DexEncodedMethod encoded = directMethods[i];
+          DexEncodedMethod encoded = directMethods.get(i);
           DexMethod method = encoded.method;
           if (method.isLambdaDeserializeMethod(appInfo.dexItemFactory)) {
             assert encoded.accessFlags.isStatic();
             assert encoded.accessFlags.isSynthetic();
-
-            DexEncodedMethod[] newMethods = new DexEncodedMethod[methodCount - 1];
-            System.arraycopy(directMethods, 0, newMethods, 0, i);
-            System.arraycopy(directMethods, i + 1, newMethods, i, methodCount - i - 1);
-            clazz.setDirectMethods(newMethods);
-
-            anyRemoved = true;
+            clazz.removeDirectMethod(i);
 
             // We assume there is only one such method in the class.
-            break;
+            return true;
           }
         }
       }
     }
-    return anyRemoved;
+    return false;
   }
 
   /**

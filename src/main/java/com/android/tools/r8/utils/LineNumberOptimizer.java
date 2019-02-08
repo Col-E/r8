@@ -341,7 +341,7 @@ public class LineNumberOptimizer {
   private static IdentityHashMap<DexString, List<DexEncodedMethod>> groupMethodsByRenamedName(
       NamingLens namingLens, DexProgramClass clazz) {
     IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
-        new IdentityHashMap<>(clazz.directMethods().length + clazz.virtualMethods().length);
+        new IdentityHashMap<>(clazz.directMethods().size() + clazz.virtualMethods().size());
     for (DexEncodedMethod method : clazz.methods()) {
       // Add method only if renamed or contains positions.
       DexString renamedName = namingLens.lookupName(method.method);

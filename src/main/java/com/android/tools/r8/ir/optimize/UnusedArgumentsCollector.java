@@ -184,12 +184,13 @@ public class UnusedArgumentsCollector {
     for (DexEncodedMethod method : clazz.methods()) {
       signatures.markSignatureAsUsed(method.method);
     }
-    for (int i = 0; i < clazz.directMethods().length; i++) {
-      DexEncodedMethod method = clazz.directMethods()[i];
+    List<DexEncodedMethod> directMethods = clazz.directMethods();
+    for (int i = 0; i < directMethods.size(); i++) {
+      DexEncodedMethod method = directMethods.get(i);
       RemovedArgumentsInfo unused = collectUnusedArguments(method);
       DexEncodedMethod newMethod = signatures.removeArguments(method, unused);
       if (newMethod != null) {
-        clazz.directMethods()[i] = newMethod;
+        clazz.setDirectMethod(i, newMethod);
         synchronized (this) {
           methodMapping.put(method.method, newMethod.method);
           removedArguments.put(newMethod.method, unused);

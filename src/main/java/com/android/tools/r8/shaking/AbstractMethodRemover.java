@@ -38,20 +38,23 @@ public class AbstractMethodRemover {
     DexClass holder = appInfo.definitionFor(type);
     scope = scope.newNestedScope();
     if (holder != null && !holder.isLibraryClass()) {
-      holder.setVirtualMethods(processMethods(holder.virtualMethods()));
+      DexEncodedMethod[] newVirtualMethods = processMethods(holder.virtualMethods());
+      if (newVirtualMethods != null) {
+        holder.setVirtualMethods(newVirtualMethods);
+      }
     }
     type.forAllExtendsSubtypes(this::processClass);
     scope = scope.getParent();
   }
 
-  private DexEncodedMethod[] processMethods(DexEncodedMethod[] virtualMethods) {
+  private DexEncodedMethod[] processMethods(List<DexEncodedMethod> virtualMethods) {
     if (virtualMethods == null) {
       return null;
     }
     // Removal of abstract methods is rare, so avoid copying the array until we find one.
     List<DexEncodedMethod> methods = null;
-    for (int i = 0; i < virtualMethods.length; i++) {
-      DexEncodedMethod method = virtualMethods[i];
+    for (int i = 0; i < virtualMethods.size(); i++) {
+      DexEncodedMethod method = virtualMethods.get(i);
       if (scope.addMethodIfMoreVisible(method)
           || !method.accessFlags.isAbstract()
           || appInfo.isPinned(method.method)) {
@@ -60,9 +63,9 @@ public class AbstractMethodRemover {
         }
       } else {
         if (methods == null) {
-          methods = new ArrayList<>(virtualMethods.length - 1);
+          methods = new ArrayList<>(virtualMethods.size() - 1);
           for (int j = 0; j < i; j++) {
-            methods.add(virtualMethods[j]);
+            methods.add(virtualMethods.get(j));
           }
         }
         if (Log.ENABLED) {
@@ -70,7 +73,10 @@ public class AbstractMethodRemover {
         }
       }
     }
-    return methods == null ? virtualMethods : methods.toArray(new DexEncodedMethod[methods.size()]);
+    if (methods != null) {
+      return methods.toArray(new DexEncodedMethod[methods.size()]);
+    }
+    return null;
   }
 
 }

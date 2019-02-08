@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClass.MethodSetter;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -25,6 +26,7 @@ import com.android.tools.r8.utils.Timing;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -317,18 +319,18 @@ public class ProguardMapApplier {
       clazz.superType = substituteType(clazz.superType, null);
       clazz.interfaces = substituteTypesIn(clazz.interfaces);
       clazz.annotations = substituteTypesIn(clazz.annotations);
-      clazz.setDirectMethods(substituteTypesIn(clazz.directMethods()));
-      clazz.setVirtualMethods(substituteTypesIn(clazz.virtualMethods()));
+      fixupMethods(clazz.directMethods(), clazz::setDirectMethod);
+      fixupMethods(clazz.virtualMethods(), clazz::setVirtualMethod);
       clazz.setStaticFields(substituteTypesIn(clazz.staticFields()));
       clazz.setInstanceFields(substituteTypesIn(clazz.instanceFields()));
     }
 
-    private DexEncodedMethod[] substituteTypesIn(DexEncodedMethod[] methods) {
+    private void fixupMethods(List<DexEncodedMethod> methods, MethodSetter setter) {
       if (methods == null) {
-        return null;
+        return;
       }
-      for (int i = 0; i < methods.length; i++) {
-        DexEncodedMethod encodedMethod = methods[i];
+      for (int i = 0; i < methods.size(); i++) {
+        DexEncodedMethod encodedMethod = methods.get(i);
         DexMethod appliedMethod = appliedLense.lookupMethod(encodedMethod.method);
         DexType newHolderType = substituteType(appliedMethod.holder, encodedMethod);
         DexProto newProto = substituteTypesIn(appliedMethod.proto, encodedMethod);
@@ -341,9 +343,8 @@ public class ProguardMapApplier {
           newMethod = appliedMethod;
         }
         // Explicitly fix members.
-        methods[i] = encodedMethod.toTypeSubstitutedMethod(newMethod);
+        setter.setMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
       }
-      return methods;
     }
 
     private DexEncodedField[] substituteTypesIn(DexEncodedField[] fields) {

@@ -179,9 +179,9 @@ public class UninstantiatedTypeOptimization {
           }
 
           // Change the return type of direct methods that return an uninstantiated type to void.
-          DexEncodedMethod[] directMethods = clazz.directMethods();
-          for (int i = 0; i < directMethods.length; ++i) {
-            DexEncodedMethod encodedMethod = directMethods[i];
+          List<DexEncodedMethod> directMethods = clazz.directMethods();
+          for (int i = 0; i < directMethods.size(); ++i) {
+            DexEncodedMethod encodedMethod = directMethods.get(i);
             DexMethod method = encodedMethod.method;
             RewrittenPrototypeDescription prototypeChanges =
                 prototypeChangesPerMethod.getOrDefault(
@@ -194,7 +194,7 @@ public class UninstantiatedTypeOptimization {
               // TODO(b/110806787): Can be extended to handle collisions by renaming the given
               // method.
               if (usedSignatures.add(wrapper)) {
-                directMethods[i] = encodedMethod.toTypeSubstitutedMethod(newMethod);
+                clazz.setDirectMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
                 methodMapping.put(method, newMethod);
                 if (removedArgumentsInfo.hasRemovedArguments()) {
                   removedArgumentsInfoPerMethod.put(newMethod, removedArgumentsInfo);
@@ -209,9 +209,9 @@ public class UninstantiatedTypeOptimization {
           // all supertypes of the current class are always visited prior to the current class.
           // This is important to ensure that a method that used to override a method in its super
           // class will continue to do so after this optimization.
-          DexEncodedMethod[] virtualMethods = clazz.virtualMethods();
-          for (int i = 0; i < virtualMethods.length; ++i) {
-            DexEncodedMethod encodedMethod = virtualMethods[i];
+          List<DexEncodedMethod> virtualMethods = clazz.virtualMethods();
+          for (int i = 0; i < virtualMethods.size(); ++i) {
+            DexEncodedMethod encodedMethod = virtualMethods.get(i);
             DexMethod method = encodedMethod.method;
             RewrittenPrototypeDescription prototypeChanges =
                 getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
@@ -229,13 +229,13 @@ public class UninstantiatedTypeOptimization {
                 boolean signatureIsAvailable = usedSignatures.add(wrapper);
                 assert signatureIsAvailable;
 
-                virtualMethods[i] = encodedMethod.toTypeSubstitutedMethod(newMethod);
+                clazz.setVirtualMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
                 methodMapping.put(method, newMethod);
               }
             }
           }
-          for (int i = 0; i < virtualMethods.length; ++i) {
-            DexEncodedMethod encodedMethod = virtualMethods[i];
+          for (int i = 0; i < virtualMethods.size(); ++i) {
+            DexEncodedMethod encodedMethod = virtualMethods.get(i);
             DexMethod method = encodedMethod.method;
             RewrittenPrototypeDescription prototypeChanges =
                 getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
@@ -249,7 +249,7 @@ public class UninstantiatedTypeOptimization {
               if (!methodPool.hasSeen(wrapper) && usedSignatures.add(wrapper)) {
                 methodPool.seen(wrapper);
 
-                virtualMethods[i] = encodedMethod.toTypeSubstitutedMethod(newMethod);
+                clazz.setVirtualMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
                 methodMapping.put(method, newMethod);
 
                 boolean added =

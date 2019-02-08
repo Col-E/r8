@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -99,8 +100,15 @@ public class TreePruner {
         // The class is used and must be kept. Remove the unused fields and methods from
         // the class.
         usagePrinter.visiting(clazz);
-        clazz.setDirectMethods(reachableMethods(clazz.directMethods(), clazz));
-        clazz.setVirtualMethods(reachableMethods(clazz.virtualMethods(), clazz));
+        DexEncodedMethod[] reachableDirectMethods = reachableMethods(clazz.directMethods(), clazz);
+        if (reachableDirectMethods != null) {
+          clazz.setDirectMethods(reachableDirectMethods);
+        }
+        DexEncodedMethod[] reachableVirtualMethods =
+            reachableMethods(clazz.virtualMethods(), clazz);
+        if (reachableVirtualMethods != null) {
+          clazz.setVirtualMethods(reachableVirtualMethods);
+        }
         clazz.setInstanceFields(reachableFields(clazz.instanceFields()));
         clazz.setStaticFields(reachableFields(clazz.staticFields()));
         clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
@@ -145,9 +153,9 @@ public class TreePruner {
   }
 
   private <S extends PresortedComparable<S>, T extends KeyedDexItem<S>> int firstUnreachableIndex(
-      T[] items, Predicate<S> live) {
-    for (int i = 0; i < items.length; i++) {
-      if (!live.test(items[i].getKey())) {
+      List<T> items, Predicate<S> live) {
+    for (int i = 0; i < items.size(); i++) {
+      if (!live.test(items.get(i).getKey())) {
         return i;
       }
     }
@@ -159,18 +167,18 @@ public class TreePruner {
         && method.method.proto.parameters.isEmpty();
   }
 
-  private DexEncodedMethod[] reachableMethods(DexEncodedMethod[] methods, DexClass clazz) {
+  private DexEncodedMethod[] reachableMethods(List<DexEncodedMethod> methods, DexClass clazz) {
     int firstUnreachable = firstUnreachableIndex(methods, appInfo.liveMethods::contains);
     // Return the original array if all methods are used.
     if (firstUnreachable == -1) {
-      return methods;
+      return null;
     }
-    ArrayList<DexEncodedMethod> reachableMethods = new ArrayList<>(methods.length);
+    ArrayList<DexEncodedMethod> reachableMethods = new ArrayList<>(methods.size());
     for (int i = 0; i < firstUnreachable; i++) {
-      reachableMethods.add(methods[i]);
+      reachableMethods.add(methods.get(i));
     }
-    for (int i = firstUnreachable; i < methods.length; i++) {
-      DexEncodedMethod method = methods[i];
+    for (int i = firstUnreachable; i < methods.size(); i++) {
+      DexEncodedMethod method = methods.get(i);
       if (appInfo.liveMethods.contains(method.getKey())) {
         reachableMethods.add(method);
       } else if (options.debugKeepRules && isDefaultConstructor(method)) {
@@ -222,7 +230,8 @@ public class TreePruner {
             appInfo.liveFields.contains(field)
                 || appInfo.fieldsRead.contains(field)
                 || appInfo.fieldsWritten.contains(field);
-    int firstUnreachable = firstUnreachableIndex(fields, isReachableOrReferencedField);
+    int firstUnreachable =
+        firstUnreachableIndex(Arrays.asList(fields), isReachableOrReferencedField);
     // Return the original array if all fields are used.
     if (firstUnreachable == -1) {
       return fields;

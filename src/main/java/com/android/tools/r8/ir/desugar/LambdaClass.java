@@ -513,9 +513,9 @@ final class LambdaClass {
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexClass implMethodHolder = definitionFor(implMethod.holder);
 
-      DexEncodedMethod[] directMethods = implMethodHolder.directMethods();
-      for (int i = 0; i < directMethods.length; i++) {
-        DexEncodedMethod encodedMethod = directMethods[i];
+      List<DexEncodedMethod> directMethods = implMethodHolder.directMethods();
+      for (int i = 0; i < directMethods.size(); i++) {
+        DexEncodedMethod encodedMethod = directMethods.get(i);
         if (implMethod.match(encodedMethod)) {
           // We need to create a new static method with the same code to be able to safely
           // relax its accessibility without making it virtual.
@@ -539,7 +539,7 @@ final class LambdaClass {
           dexCode.setDebugInfo(dexCode.debugInfoWithAdditionalFirstParameter(null));
           assert (dexCode.getDebugInfo() == null)
               || (callTarget.getArity() == dexCode.getDebugInfo().parameters.length);
-          directMethods[i] = newMethod;
+          implMethodHolder.setDirectMethod(i, newMethod);
           return true;
         }
       }
@@ -579,20 +579,11 @@ final class LambdaClass {
 
       // We may arrive here concurrently so we need must update the methods of the class atomically.
       synchronized (accessorClass) {
-        accessorClass.setDirectMethods(
-            appendMethod(accessorClass.directMethods(), accessorEncodedMethod));
+        accessorClass.appendDirectMethod(accessorEncodedMethod);
       }
 
       rewriter.converter.optimizeSynthesizedMethod(accessorEncodedMethod);
       return true;
-    }
-
-    private DexEncodedMethod[] appendMethod(DexEncodedMethod[] methods, DexEncodedMethod method) {
-      int size = methods.length;
-      DexEncodedMethod[] newMethods = new DexEncodedMethod[size + 1];
-      System.arraycopy(methods, 0, newMethods, 0, size);
-      newMethods[size] = method;
-      return newMethods;
     }
   }
 }

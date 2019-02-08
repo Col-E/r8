@@ -226,7 +226,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   public boolean hasMethodsOrFields() {
     int numberOfFields = staticFields().length + instanceFields().length;
-    int numberOfMethods = directMethods().length + virtualMethods().length;
+    int numberOfMethods = directMethods().size() + virtualMethods().size();
     return numberOfFields + numberOfMethods > 0;
   }
 
@@ -269,7 +269,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     // It does not actually hurt to compute this multiple times. So racing on staticValues is OK.
     if (staticValues == SENTINEL_NOT_YET_COMPUTED) {
       synchronized (staticFields) {
-        assert PresortedComparable.isSorted(staticFields);
+        assert PresortedComparable.isSorted(Arrays.asList(staticFields));
         DexEncodedField[] fields = staticFields;
         int length = 0;
         List<DexValue> values = new ArrayList<>(fields.length);

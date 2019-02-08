@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
 import java.util.List;
 
 public class AnnotationRemover {
@@ -184,8 +183,9 @@ public class AnnotationRemover {
       return original;
     }
     assert definition.isInterface();
-    boolean liveGetter = Arrays.stream(definition.virtualMethods())
-        .anyMatch(method -> method.method.name == original.name);
+    boolean liveGetter =
+        definition.virtualMethods().stream()
+            .anyMatch(method -> method.method.name == original.name);
     return liveGetter ? original : null;
   }
 

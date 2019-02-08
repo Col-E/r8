@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClass.MethodSetter;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -993,11 +994,6 @@ public class VerticalClassMerger {
         return false;
       }
 
-      DexEncodedMethod[] mergedDirectMethods =
-          mergeMethods(directMethods.values(), target.directMethods());
-      DexEncodedMethod[] mergedVirtualMethods =
-          mergeMethods(virtualMethods.values(), target.virtualMethods());
-
       // Step 2: Merge fields
       Set<DexString> existingFieldNames = new HashSet<>();
       for (DexEncodedField field : target.fields()) {
@@ -1044,8 +1040,8 @@ public class VerticalClassMerger {
               ? DexTypeList.empty()
               : new DexTypeList(interfaces.toArray(new DexType[0]));
       // Step 2: replace fields and methods.
-      target.setDirectMethods(mergedDirectMethods);
-      target.setVirtualMethods(mergedVirtualMethods);
+      target.appendDirectMethods(directMethods.values());
+      target.appendVirtualMethods(virtualMethods.values());
       target.setInstanceFields(mergedInstanceFields);
       target.setStaticFields(mergedStaticFields);
       // Step 3: Unlink old class to ease tree shaking.
@@ -1283,8 +1279,8 @@ public class VerticalClassMerger {
     }
 
     private DexEncodedMethod[] mergeMethods(
-        Collection<DexEncodedMethod> sourceMethods, DexEncodedMethod[] targetMethods) {
-      DexEncodedMethod[] result = new DexEncodedMethod[sourceMethods.size() + targetMethods.length];
+        Collection<DexEncodedMethod> sourceMethods, List<DexEncodedMethod> targetMethods) {
+      DexEncodedMethod[] result = new DexEncodedMethod[sourceMethods.size() + targetMethods.size()];
       // Add methods from source.
       int i = 0;
       for (DexEncodedMethod method : sourceMethods) {
@@ -1292,7 +1288,7 @@ public class VerticalClassMerger {
         i++;
       }
       // Add methods from target.
-      System.arraycopy(targetMethods, 0, result, i, targetMethods.length);
+      System.arraycopy(targetMethods, 0, result, i, targetMethods.size());
       return result;
     }
 
@@ -1435,8 +1431,8 @@ public class VerticalClassMerger {
     private GraphLense fixupTypeReferences(GraphLense graphLense) {
       // Globally substitute merged class types in protos and holders.
       for (DexProgramClass clazz : appInfo.classes()) {
-        clazz.setDirectMethods(substituteTypesIn(clazz.directMethods()));
-        clazz.setVirtualMethods(substituteTypesIn(clazz.virtualMethods()));
+        fixupMethods(clazz.directMethods(), clazz::setDirectMethod);
+        fixupMethods(clazz.virtualMethods(), clazz::setVirtualMethod);
         clazz.setStaticFields(substituteTypesIn(clazz.staticFields()));
         clazz.setInstanceFields(substituteTypesIn(clazz.instanceFields()));
       }
@@ -1450,20 +1446,19 @@ public class VerticalClassMerger {
       return lense.build(application.dexItemFactory, graphLense);
     }
 
-    private DexEncodedMethod[] substituteTypesIn(DexEncodedMethod[] methods) {
+    private void fixupMethods(List<DexEncodedMethod> methods, MethodSetter setter) {
       if (methods == null) {
-        return null;
+        return;
       }
-      for (int i = 0; i < methods.length; i++) {
-        DexEncodedMethod encodedMethod = methods[i];
+      for (int i = 0; i < methods.size(); i++) {
+        DexEncodedMethod encodedMethod = methods.get(i);
         DexMethod method = encodedMethod.method;
         DexMethod newMethod = fixupMethod(method);
         if (newMethod != method) {
           lense.move(method, newMethod);
-          methods[i] = encodedMethod.toTypeSubstitutedMethod(newMethod);
+          setter.setMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
         }
       }
-      return methods;
     }
 
     private DexEncodedField[] substituteTypesIn(DexEncodedField[] fields) {

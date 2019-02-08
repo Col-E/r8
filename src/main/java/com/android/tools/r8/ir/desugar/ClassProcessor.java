@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -85,17 +84,14 @@ final class ClassProcessor {
     }
 
     // Add the methods.
-    DexEncodedMethod[] existing = clazz.virtualMethods();
-    clazz.setVirtualMethods(new DexEncodedMethod[existing.length + methodsToImplement.size()]);
-    System.arraycopy(existing, 0, clazz.virtualMethods(), 0, existing.length);
-
-    for (int i = 0; i < methodsToImplement.size(); i++) {
-      DexEncodedMethod method = methodsToImplement.get(i);
+    List<DexEncodedMethod> newForwardingMethods = new ArrayList<>(methodsToImplement.size());
+    for (DexEncodedMethod method : methodsToImplement) {
       assert method.accessFlags.isPublic() && !method.accessFlags.isAbstract();
       DexEncodedMethod newMethod = addForwardingMethod(method, clazz);
-      clazz.virtualMethods()[existing.length + i] = newMethod;
+      newForwardingMethods.add(newMethod);
       createdMethods.put(newMethod, method);
     }
+    clazz.appendVirtualMethods(newForwardingMethods);
   }
 
   private DexEncodedMethod addForwardingMethod(DexEncodedMethod defaultMethod, DexClass clazz) {
@@ -149,7 +145,7 @@ final class ClassProcessor {
         helper.merge(rewriter.getOrCreateInterfaceInfo(clazz, current, type));
       }
 
-      accumulatedVirtualMethods.addAll(Arrays.asList(clazz.virtualMethods()));
+      accumulatedVirtualMethods.addAll(clazz.virtualMethods());
 
       List<DexEncodedMethod> defaultMethodsInDirectInterface = helper.createFullList();
 
@@ -202,7 +198,7 @@ final class ClassProcessor {
     current = clazz;
     while (true) {
       // Hide candidates by virtual method of the class.
-      hideCandidates(Arrays.asList(current.virtualMethods()), candidates, toBeImplemented);
+      hideCandidates(current.virtualMethods(), candidates, toBeImplemented);
       if (candidates.isEmpty()) {
         return toBeImplemented;
       }

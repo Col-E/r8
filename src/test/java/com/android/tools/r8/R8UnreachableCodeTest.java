@@ -45,7 +45,7 @@ public class R8UnreachableCodeTest {
     IRConverter converter = new IRConverter(new AppInfoWithSubtyping(application), options);
     converter.optimize(application);
     DexProgramClass clazz = application.classes().iterator().next();
-    assertEquals(4, clazz.directMethods().length);
+    assertEquals(4, clazz.directMethods().size());
     for (DexEncodedMethod method : clazz.directMethods()) {
       if (!method.method.name.toString().equals("main")) {
         assertEquals(2, method.getCode().asDexCode().instructions.length);

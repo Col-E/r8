@@ -241,11 +241,11 @@ final public class ResourceShrinker {
               .filter(DexEncodedField::hasAnnotation)
               .flatMap(f -> Arrays.stream(f.annotations.annotations));
       Stream<DexAnnotation> virtualMethodAnnotations =
-          Arrays.stream(classDef.virtualMethods())
+          classDef.virtualMethods().stream()
               .filter(DexEncodedMethod::hasAnnotation)
               .flatMap(m -> Arrays.stream(m.annotations.annotations));
       Stream<DexAnnotation> directMethodAnnotations =
-          Arrays.stream(classDef.directMethods())
+          classDef.directMethods().stream()
               .filter(DexEncodedMethod::hasAnnotation)
               .flatMap(m -> Arrays.stream(m.annotations.annotations));
       Stream<DexAnnotation> classAnnotations = Arrays.stream(classDef.annotations.annotations);

@@ -4,15 +4,23 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.naming.NamingLens;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
 
 public interface PresortedComparable<T> extends Presorted, Comparable<T> {
 
-  static <T extends PresortedComparable<T>> boolean isSorted(KeyedDexItem<T>[] items) {
+  static <T extends PresortedComparable<T>> boolean isSorted(
+      List<? extends KeyedDexItem<T>> items) {
     return isSorted(items, KeyedDexItem::getKey);
   }
 
   static <S, T extends Comparable<T>> boolean isSorted(S[] items, Function<S, T> getter) {
+    return isSorted(Arrays.asList(items), getter);
+  }
+
+  static <S, T extends Comparable<T>> boolean isSorted(
+      List<? extends S> items, Function<S, T> getter) {
     T current = null;
     for (S item : items) {
       T next = getter.apply(item);

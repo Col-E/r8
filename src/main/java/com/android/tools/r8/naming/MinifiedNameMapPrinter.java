@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,12 @@ public class MinifiedNameMapPrinter {
   private <T> T[] sortedCopy(T[] source, Comparator<? super T> comparator) {
     T copy[] = Arrays.copyOf(source, source.length);
     Arrays.sort(copy, comparator);
+    return copy;
+  }
+
+  private <T> List<T> sortedCopy(List<T> source, Comparator<? super T> comparator) {
+    List<T> copy = new ArrayList<>(source);
+    Collections.sort(copy, comparator);
     return copy;
   }
 
@@ -87,7 +94,7 @@ public class MinifiedNameMapPrinter {
     out.append(renamed).append(NEW_LINE);
   }
 
-  private void writeMethods(DexEncodedMethod[] methods, StringBuilder out) {
+  private void writeMethods(List<DexEncodedMethod> methods, StringBuilder out) {
     for (DexEncodedMethod encodedMethod : methods) {
       DexMethod method = encodedMethod.method;
       DexString renamed = namingLens.lookupName(method);

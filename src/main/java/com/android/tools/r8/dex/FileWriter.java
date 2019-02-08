@@ -563,7 +563,7 @@ public class FileWriter {
   }
 
   private void writeEncodedFields(DexEncodedField[] fields) {
-    assert PresortedComparable.isSorted(fields);
+    assert PresortedComparable.isSorted(Arrays.asList(fields));
     int currentOffset = 0;
     for (DexEncodedField field : fields) {
       int nextOffset = mapping.getOffsetFor(field.field);
@@ -574,7 +574,7 @@ public class FileWriter {
     }
   }
 
-  private void writeEncodedMethods(DexEncodedMethod[] methods, boolean clearBodies) {
+  private void writeEncodedMethods(List<DexEncodedMethod> methods, boolean clearBodies) {
     assert PresortedComparable.isSorted(methods);
     int currentOffset = 0;
     for (DexEncodedMethod method : methods) {
@@ -602,8 +602,8 @@ public class FileWriter {
     mixedSectionOffsets.setOffsetFor(clazz, dest.position());
     dest.putUleb128(clazz.staticFields().length);
     dest.putUleb128(clazz.instanceFields().length);
-    dest.putUleb128(clazz.directMethods().length);
-    dest.putUleb128(clazz.virtualMethods().length);
+    dest.putUleb128(clazz.directMethods().size());
+    dest.putUleb128(clazz.virtualMethods().size());
     writeEncodedFields(clazz.staticFields());
     writeEncodedFields(clazz.instanceFields());
 

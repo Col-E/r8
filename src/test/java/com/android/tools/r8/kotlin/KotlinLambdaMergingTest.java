@@ -183,7 +183,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
           if (check.match(clazz)) {
             // Validate static initializer.
             if (check instanceof Group) {
-              assertEquals(clazz.directMethods().length, ((Group) check).singletons == 0 ? 1 : 2);
+              assertEquals(clazz.directMethods().size(), ((Group) check).singletons == 0 ? 1 : 2);
             }
 
             list.remove(clazz);
@@ -228,8 +228,8 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     } else {
       assertTrue(isJStyleLambdaOrGroup(clazz));
       // Taking the number of any virtual method parameters seems to be good enough.
-      assertTrue(clazz.virtualMethods().length > 0);
-      return clazz.virtualMethods()[0].method.proto.parameters.size();
+      assertTrue(clazz.virtualMethods().size() > 0);
+      return clazz.virtualMethods().get(0).method.proto.parameters.size();
     }
     fail("Failed to get arity for " + clazz.type.descriptor.toString());
     throw new AssertionError();

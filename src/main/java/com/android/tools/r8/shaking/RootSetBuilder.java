@@ -495,14 +495,16 @@ public class RootSetBuilder {
       }
       // In compat mode traverse all direct methods in the hierarchy.
       if (clazz == startingClass || options.forceProguardCompatibility) {
-        Arrays.stream(clazz.directMethods())
+        clazz
+            .directMethods()
             .forEach(
                 method -> {
                   DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
                   markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
                 });
       }
-      Arrays.stream(clazz.virtualMethods())
+      clazz
+          .virtualMethods()
           .forEach(
               method -> {
                 DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);

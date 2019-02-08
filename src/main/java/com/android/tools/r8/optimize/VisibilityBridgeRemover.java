@@ -12,7 +12,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 public class VisibilityBridgeRemover {
@@ -24,11 +24,17 @@ public class VisibilityBridgeRemover {
   }
 
   private void removeUnneededVisibilityBridgesFromClass(DexProgramClass clazz) {
-    clazz.setDirectMethods(removeUnneededVisibilityBridges(clazz.directMethods()));
-    clazz.setVirtualMethods(removeUnneededVisibilityBridges(clazz.virtualMethods()));
+    DexEncodedMethod[] newDirectMethods = removeUnneededVisibilityBridges(clazz.directMethods());
+    if (newDirectMethods != null) {
+      clazz.setDirectMethods(newDirectMethods);
+    }
+    DexEncodedMethod[] newVirtualMethods = removeUnneededVisibilityBridges(clazz.virtualMethods());
+    if (newVirtualMethods != null) {
+      clazz.setVirtualMethods(newVirtualMethods);
+    }
   }
 
-  private DexEncodedMethod[] removeUnneededVisibilityBridges(DexEncodedMethod[] methods) {
+  private DexEncodedMethod[] removeUnneededVisibilityBridges(List<DexEncodedMethod> methods) {
     Set<DexEncodedMethod> methodsToBeRemoved = null;
     for (DexEncodedMethod method : methods) {
       if (isUnneededVisibilityBridge(method)) {
@@ -40,11 +46,11 @@ public class VisibilityBridgeRemover {
     }
     if (methodsToBeRemoved != null) {
       Set<DexEncodedMethod> finalMethodsToBeRemoved = methodsToBeRemoved;
-      return Arrays.stream(methods)
+      return methods.stream()
           .filter(method -> !finalMethodsToBeRemoved.contains(method))
           .toArray(DexEncodedMethod[]::new);
     }
-    return methods;
+    return null;
   }
 
   private boolean isUnneededVisibilityBridge(DexEncodedMethod method) {

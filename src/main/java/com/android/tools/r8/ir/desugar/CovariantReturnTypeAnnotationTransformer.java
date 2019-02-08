@@ -96,16 +96,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
           method.annotations.keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation));
     }
     // Add the newly constructed methods to the class.
-    DexEncodedMethod[] oldVirtualMethods = clazz.virtualMethods();
-    DexEncodedMethod[] newVirtualMethods =
-        new DexEncodedMethod[oldVirtualMethods.length + covariantReturnTypeMethods.size()];
-    System.arraycopy(oldVirtualMethods, 0, newVirtualMethods, 0, oldVirtualMethods.length);
-    int i = oldVirtualMethods.length;
-    for (DexEncodedMethod syntheticMethod : covariantReturnTypeMethods) {
-      newVirtualMethods[i] = syntheticMethod;
-      i++;
-    }
-    clazz.setVirtualMethods(newVirtualMethods);
+    clazz.appendVirtualMethods(covariantReturnTypeMethods);
   }
 
   // Processes all the dalvik.annotation.codegen.CovariantReturnType and dalvik.annotation.codegen.

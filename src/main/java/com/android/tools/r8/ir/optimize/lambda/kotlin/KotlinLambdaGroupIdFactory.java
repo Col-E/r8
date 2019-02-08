@@ -144,8 +144,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
   }
 
   void validateDirectMethods(DexClass lambda) throws LambdaStructureError {
-    DexEncodedMethod[] directMethods = lambda.directMethods();
-    for (DexEncodedMethod method : directMethods) {
+    for (DexEncodedMethod method : lambda.directMethods()) {
       if (method.isClassInitializer()) {
         // We expect to see class initializer only if there is a singleton field.
         if (lambda.staticFields().length != 1) {

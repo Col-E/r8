@@ -548,16 +548,13 @@ final class StaticizingProcessor {
     }
 
     // Process static methods.
-    if (candidateClass.directMethods().length > 0) {
-      DexEncodedMethod[] oldMethods = hostClass.directMethods();
-      DexEncodedMethod[] extraMethods = candidateClass.directMethods();
-      DexEncodedMethod[] newMethods = new DexEncodedMethod[oldMethods.length + extraMethods.length];
-      System.arraycopy(oldMethods, 0, newMethods, 0, oldMethods.length);
-      for (int i = 0; i < extraMethods.length; i++) {
-        DexEncodedMethod method = extraMethods[i];
+    List<DexEncodedMethod> extraMethods = candidateClass.directMethods();
+    if (!extraMethods.isEmpty()) {
+      List<DexEncodedMethod> newMethods = new ArrayList<>(extraMethods.size());
+      for (DexEncodedMethod method : extraMethods) {
         DexEncodedMethod newMethod = method.toTypeSubstitutedMethod(
             factory().createMethod(hostType, method.method.proto, method.method.name));
-        newMethods[oldMethods.length + i] = newMethod;
+        newMethods.add(newMethod);
         staticizedMethods.add(newMethod);
         staticizedMethods.remove(method);
         DexMethod originalMethod = methodMapping.inverse().get(method.method);
@@ -567,7 +564,7 @@ final class StaticizingProcessor {
           methodMapping.put(originalMethod, newMethod.method);
         }
       }
-      hostClass.setDirectMethods(newMethods);
+      hostClass.appendDirectMethods(newMethods);
     }
   }
 

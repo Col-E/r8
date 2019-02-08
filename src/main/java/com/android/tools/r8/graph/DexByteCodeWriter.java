@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 public abstract class DexByteCodeWriter {
@@ -77,8 +76,8 @@ public abstract class DexByteCodeWriter {
 
   private boolean anyMethodMatches(DexClass clazz) {
     return !options.hasMethodsFilter()
-        || Arrays.stream(clazz.virtualMethods()).anyMatch(options::methodMatchesFilter)
-        || Arrays.stream(clazz.directMethods()).anyMatch(options::methodMatchesFilter);
+        || clazz.virtualMethods().stream().anyMatch(options::methodMatchesFilter)
+        || clazz.directMethods().stream().anyMatch(options::methodMatchesFilter);
   }
 
   private void writeClass(DexProgramClass clazz, PrintStream ps) {

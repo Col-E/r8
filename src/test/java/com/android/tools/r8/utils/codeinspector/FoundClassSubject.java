@@ -19,6 +19,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.utils.DescriptorUtils;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -89,7 +90,7 @@ public class FoundClassSubject extends ClassSubject {
         : new FoundMethodSubject(codeInspector, encoded, this);
   }
 
-  private DexEncodedMethod findMethod(DexEncodedMethod[] methods, DexMethod dexMethod) {
+  private DexEncodedMethod findMethod(List<DexEncodedMethod> methods, DexMethod dexMethod) {
     for (DexEncodedMethod method : methods) {
       if (method.method.equals(dexMethod)) {
         return method;
@@ -113,12 +114,12 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public void forAllFields(Consumer<FoundFieldSubject> inspection) {
     CodeInspector.forAll(
-        dexClass.staticFields(),
+        Arrays.asList(dexClass.staticFields()),
         (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),
         this,
         inspection);
     CodeInspector.forAll(
-        dexClass.instanceFields(),
+        Arrays.asList(dexClass.instanceFields()),
         (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),
         this,
         inspection);

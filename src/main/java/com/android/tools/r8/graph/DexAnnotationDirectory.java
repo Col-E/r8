@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.OrderedMergingIterator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -37,10 +38,11 @@ public class DexAnnotationDirectory extends DexItem {
         parameterAnnotations.add(method);
       }
     }
-    assert isSorted(clazz.staticFields());
-    assert isSorted(clazz.instanceFields());
+    assert isSorted(Arrays.asList(clazz.staticFields()));
+    assert isSorted(Arrays.asList(clazz.instanceFields()));
     OrderedMergingIterator<DexEncodedField, DexField> fields =
-        new OrderedMergingIterator<>(clazz.staticFields(), clazz.instanceFields());
+        new OrderedMergingIterator<>(
+            Arrays.asList(clazz.staticFields()), Arrays.asList(clazz.instanceFields()));
     fieldAnnotations = new ArrayList<>();
     while (fields.hasNext()) {
       DexEncodedField field = fields.next();
@@ -108,11 +110,13 @@ public class DexAnnotationDirectory extends DexItem {
     throw new Unreachable();
   }
 
-  private static <T extends PresortedComparable<T>> boolean isSorted(KeyedDexItem<T>[] items) {
+  private static <T extends PresortedComparable<T>> boolean isSorted(
+      List<? extends KeyedDexItem<T>> items) {
     return isSorted(items, KeyedDexItem::getKey);
   }
 
-  private static <S, T extends Comparable<T>> boolean isSorted(S[] items, Function<S, T> getter) {
+  private static <S, T extends Comparable<T>> boolean isSorted(
+      List<S> items, Function<S, T> getter) {
     T current = null;
     for (S item : items) {
       T next = getter.apply(item);
