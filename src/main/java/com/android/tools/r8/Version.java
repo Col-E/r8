@@ -25,4 +25,10 @@ public final class Version {
   public static boolean isDev() {
     return LABEL.endsWith("-dev") || VersionProperties.INSTANCE.isEngineering();
   }
+
+  /** Returns current R8 version (with additional info) as a string. */
+  @SuppressWarnings("unused") // used by external tools to obtain R8 version
+  public static String getVersionString() {
+    return LABEL + " (" + VersionProperties.INSTANCE.getDescription() + ")";
+  }
 }
