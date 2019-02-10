@@ -138,6 +138,8 @@ public class DexItemFactory {
   public final DexString equalsMethodName = createString("equals");
   public final DexString equalsIgnoreCaseMethodName = createString("equalsIgnoreCase");
   public final DexString contentEqualsMethodName = createString("contentEquals");
+  public final DexString indexOfMethodName = createString("indexOf");
+  public final DexString lastIndexOfMethodName = createString("lastIndexOf");
   public final DexString cloneMethodName = createString("clone");
 
   public final DexString valueOfMethodName = createString("valueOf");
@@ -607,6 +609,11 @@ public class DexItemFactory {
     public final DexMethod equalsIgnoreCase;
     public final DexMethod contentEqualsCharSequence;
 
+    public final DexMethod indexOfInt;
+    public final DexMethod indexOfString;
+    public final DexMethod lastIndexOfInt;
+    public final DexMethod lastIndexOfString;
+
     public final DexMethod valueOf;
     public final DexMethod toString;
 
@@ -619,6 +626,7 @@ public class DexItemFactory {
       DexString[] needsOneCharSequence = { charSequenceDescriptor };
       DexString[] needsOneString = { stringDescriptor };
       DexString[] needsOneObject = { objectDescriptor };
+      DexString[] needsOneInt = { intDescriptor };
 
       contains = createMethod(
           stringDescriptor, containsMethodName, booleanDescriptor, needsOneCharSequence);
@@ -632,6 +640,15 @@ public class DexItemFactory {
           stringDescriptor, equalsIgnoreCaseMethodName, booleanDescriptor, needsOneString);
       contentEqualsCharSequence = createMethod(
           stringDescriptor, contentEqualsMethodName, booleanDescriptor, needsOneCharSequence);
+
+      indexOfString =
+          createMethod(stringDescriptor, indexOfMethodName, intDescriptor, needsOneString);
+      indexOfInt =
+          createMethod(stringDescriptor, indexOfMethodName, intDescriptor, needsOneInt);
+      lastIndexOfString =
+          createMethod(stringDescriptor, lastIndexOfMethodName, intDescriptor, needsOneString);
+      lastIndexOfInt =
+          createMethod(stringDescriptor, lastIndexOfMethodName, intDescriptor, needsOneInt);
 
       valueOf = createMethod(
           stringDescriptor, valueOfMethodName, stringDescriptor, needsOneObject);
