@@ -6,11 +6,13 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 
 public class DebugLocalRead extends Instruction {
   private static final String ERROR_MESSAGE = "Unexpected attempt to emit debug-local read.";
@@ -61,7 +63,8 @@ public class DebugLocalRead extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(
+      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
     // Reads are never dead code.
     // They should also have a non-empty set of debug values (see RegAlloc::computeDebugInfo)
     return false;

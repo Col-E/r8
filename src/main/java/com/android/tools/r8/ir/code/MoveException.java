@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -14,6 +15,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 
 public class MoveException extends Instruction {
@@ -70,7 +72,8 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(
+      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
     return !(code.options.debug || code.method.getOptimizationInfo().isReachabilitySensitive())
         && code.options.isGeneratingDex();
   }
