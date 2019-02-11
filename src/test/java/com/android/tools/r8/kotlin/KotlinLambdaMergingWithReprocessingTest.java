@@ -5,7 +5,6 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTestBase {
@@ -18,7 +17,6 @@ public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTes
       o.enableLambdaMerging = true;
     };
 
-  @Ignore("b/123737770")
   @Test
   public void testMergingKStyleLambdasAndReprocessing() throws Exception {
     final String mainClassName = "reprocess_merged_lambdas_kstyle.MainKt";
