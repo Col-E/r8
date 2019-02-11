@@ -724,6 +724,10 @@ public abstract class GraphLense {
       if (originalMethods.contains(targetMethod)) {
         return true;
       }
+      // Stop traversing upwards if we reach the Object.
+      if (holder == dexItemFactory.objectType) {
+        continue;
+      }
       DexClass clazz = originalApplication.definitionFor(holder);
       if (clazz != null) {
         worklist.add(clazz.superType);
