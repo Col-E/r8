@@ -124,8 +124,6 @@ def archive_failures():
 def Main():
   (options, args) = ParseOptions()
   if utils.is_bot():
-    print "Result of 'java -version':"
-    print subprocess.check_output(['java', '-version'])
     gradle.RunGradle(['clean'])
 
   gradle_args = ['--stacktrace']
