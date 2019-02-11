@@ -2399,4 +2399,22 @@ public class ProguardConfigurationParserTest extends TestBase {
       assertThat(result.stderr, containsString(expectedMessage));
     }
   }
+
+  @Test
+  public void b124181032() throws Exception {
+    ProguardConfigurationParser parser;
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(
+        createConfigurationForTesting(
+            ImmutableList.of(
+                "-keepclassmembers class a.b.c.**, !**Client, !**Interceptor {",
+                "<fields>;",
+                "<init>();",
+                "}")));
+    List<ProguardConfigurationRule> rules = parser.getConfig().getRules();
+    assertEquals(1, rules.size());
+    ProguardConfigurationRule rule = rules.get(0);
+    assertEquals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS.toString(), rule.typeString());
+    assertEquals("a.b.c.**,!**Client,!**Interceptor", rule.getClassNames().toString());
+  }
 }

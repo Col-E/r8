@@ -1635,6 +1635,7 @@ public class ProguardConfigurationParser {
           ProguardTypeMatcher.create(parseClassName(), ClassOrType.CLASS, dexItemFactory));
       skipWhitespace();
       while (acceptChar(',')) {
+        skipWhitespace();
         negated = acceptChar('!');
         builder.addClassName(negated,
             ProguardTypeMatcher.create(parseClassName(), ClassOrType.CLASS, dexItemFactory));
