@@ -508,7 +508,6 @@ public abstract class R8RunArtTestsTest {
             "156-register-dex-file-multi-loader",
             "412-new-array",
             "530-checker-lse2",
-            "550-new-instance-clinit",
             "580-checker-round",
             "594-invoke-super",
             "625-checker-licm-regressions",
@@ -670,6 +669,12 @@ public abstract class R8RunArtTestsTest {
           // lib64 libarttest.so: wrong ELF class ELFCLASS64.
           .put("543-env-long-ref",
               TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
+          // Leaving two static-get triggers LSE bug on 6.0.1 (b/25735083).
+          // R8, with subtyping, knows the first sget is dead, and removing it avoids the bug.
+          // Due to the lack of subtype hierarchy, D8 can't guarantee <clinit> side effects.
+          .put("550-new-instance-clinit",
+              TestCondition.match(
+                  TestCondition.D8_COMPILER, TestCondition.runtimes(DexVm.Version.V6_0_1)))
           // Regression test for an issue that is not fixed on version 5.1.1. Throws an Exception
           // instance instead of the expected NullPointerException. This bug is only tickled when
           // running the R8 generated code when starting from jar or from dex code generated with
