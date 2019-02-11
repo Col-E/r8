@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -15,6 +16,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.io.UTFDataFormatException;
 
 public class ConstString extends ConstInstruction {
@@ -115,7 +117,8 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(
+      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
     // No side-effect, such as throwing an exception, in CF.
     return code.options.isGeneratingClassFiles() || !instructionInstanceCanThrow();
   }

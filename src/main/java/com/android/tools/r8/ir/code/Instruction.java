@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -510,7 +511,8 @@ public abstract class Instruction implements InstructionOrPhi {
   }
 
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */
-  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(
+      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
     return !instructionInstanceCanThrow();
   }
 

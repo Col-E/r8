@@ -196,7 +196,8 @@ public class IRConverter {
             ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
             : null;
     this.stringOptimizer = new StringOptimizer(appInfo, options.getInternalOutputMode());
-    this.enableWholeProgramOptimizations = appView != null;
+    this.enableWholeProgramOptimizations =
+        appView != null && appView.enableWholeProgramOptimizations();
     if (enableWholeProgramOptimizations) {
       assert appInfo.hasLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
@@ -241,8 +242,7 @@ public class IRConverter {
     this.classStaticizer = options.enableClassStaticizer && appInfo.hasLiveness()
         ? new ClassStaticizer(appInfo.withLiveness(), this) : null;
     this.deadCodeRemover =
-        new DeadCodeRemover(
-            appInfo, codeRewriter, graphLense(), options, enableWholeProgramOptimizations);
+        new DeadCodeRemover(appView, appInfo, codeRewriter, graphLense(), options);
     this.idempotentFunctionCallCanonicalizer =
         new IdempotentFunctionCallCanonicalizer(appInfo.dexItemFactory);
   }

@@ -9,11 +9,13 @@ import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Arrays;
 
 public class NewArrayFilledData extends Instruction {
@@ -74,7 +76,8 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(
+      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
     if (!src().getTypeLattice().isNullable() && src().numberOfAllUsers() == 1) {
       // The NewArrayFilledData instruction is only inserted by an R8 optimization following
       // a NewArrayEmpty when there are more than one entry.

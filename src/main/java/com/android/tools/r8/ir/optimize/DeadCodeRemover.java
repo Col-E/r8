@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -26,6 +27,7 @@ import java.util.Queue;
 
 public class DeadCodeRemover {
 
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final AppInfo appInfo;
   private final CodeRewriter codeRewriter;
   private final GraphLense graphLense;
@@ -33,16 +35,18 @@ public class DeadCodeRemover {
   private final boolean enableWholeProgramOptimizations;
 
   public DeadCodeRemover(
+      AppView<? extends AppInfoWithLiveness> appView,
       AppInfo appInfo,
       CodeRewriter codeRewriter,
       GraphLense graphLense,
-      InternalOptions options,
-      boolean enableWholeProgramOptimizations) {
+      InternalOptions options) {
+    this.appView = appView;
     this.appInfo = appInfo;
     this.codeRewriter = codeRewriter;
     this.graphLense = graphLense;
     this.options = options;
-    this.enableWholeProgramOptimizations = enableWholeProgramOptimizations;
+    this.enableWholeProgramOptimizations =
+        appView != null && appView.enableWholeProgramOptimizations();
   }
 
   public void run(IRCode code) {
@@ -54,8 +58,8 @@ public class DeadCodeRemover {
     do {
       worklist.addAll(code.blocks);
       for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
-        removeDeadInstructions(worklist, code, block, appInfo);
-        removeDeadPhis(worklist, block, appInfo);
+        removeDeadInstructions(worklist, code, block, appView, appInfo);
+        removeDeadPhis(worklist, block, appView, appInfo);
       }
     } while (removeUnneededCatchHandlers(code));
     assert code.isConsistentSSA();
@@ -86,11 +90,14 @@ public class DeadCodeRemover {
   }
 
   private static void removeDeadPhis(
-      Queue<BasicBlock> worklist, BasicBlock block, AppInfo appInfo) {
+      Queue<BasicBlock> worklist,
+      BasicBlock block,
+      AppView<? extends AppInfoWithLiveness> appView,
+      AppInfo appInfo) {
     Iterator<Phi> phiIt = block.getPhis().iterator();
     while (phiIt.hasNext()) {
       Phi phi = phiIt.next();
-      if (phi.isDead(appInfo)) {
+      if (phi.isDead(appView, appInfo)) {
         phiIt.remove();
         for (Value operand : phi.getOperands()) {
           operand.removePhiUser(phi);
@@ -101,7 +108,11 @@ public class DeadCodeRemover {
   }
 
   private static void removeDeadInstructions(
-      Queue<BasicBlock> worklist, IRCode code, BasicBlock block, AppInfo appInfo) {
+      Queue<BasicBlock> worklist,
+      IRCode code,
+      BasicBlock block,
+      AppView<? extends AppInfoWithLiveness> appView,
+      AppInfo appInfo) {
     InstructionListIterator iterator = block.listIterator(block.getInstructions().size());
     while (iterator.hasPrevious()) {
       Instruction current = iterator.previous();
@@ -111,11 +122,11 @@ public class DeadCodeRemover {
           && !current.outValue().isUsed()) {
         current.setOutValue(null);
       }
-      if (!current.canBeDeadCode(appInfo, code)) {
+      if (!current.canBeDeadCode(appView, appInfo, code)) {
         continue;
       }
       Value outValue = current.outValue();
-      if (outValue != null && !outValue.isDead(appInfo)) {
+      if (outValue != null && !outValue.isDead(appView, appInfo)) {
         continue;
       }
       updateWorklist(worklist, current);
