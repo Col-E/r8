@@ -85,6 +85,12 @@ third_party/ddmlib
 third_party/ddmlib.tar.gz
 third_party/core-lambda-stubs
 third_party/core-lambda-stubs.tar.gz
+third_party/openjdk/openjdk-9.0.4/linux
+third_party/openjdk/openjdk-9.0.4/linux.tar.gz
+third_party/openjdk/openjdk-9.0.4/osx
+third_party/openjdk/openjdk-9.0.4/osx.tar.gz
+third_party/openjdk/openjdk-9.0.4/windows
+third_party/openjdk/openjdk-9.0.4/windows.tar.gz
 third_party/openjdk/openjdk-rt-1.8
 third_party/openjdk/openjdk-rt-1.8.tar.gz
 third_party/r8
@@ -98,6 +104,7 @@ gradle/*
 *.iml
 r8.ipr
 r8.iws
+local.properties
 #*#
 *~
 .#*

@@ -171,7 +171,7 @@ public class InnerClassNameTestRunner extends TestBase {
         if (backend == Backend.CF && minify) {
           // TODO(b/120639028) R8 does not keep the structure of inner classes.
           r8RunResult.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
-        } else if (backend == Backend.CF) {
+        } else if (backend == Backend.CF && ToolHelper.isJava8Runtime()) {
           // $$ as separator and InnerClass as name, results in $InnerClass from getSimpleName...
           String expectedWithDollarOnInnerName =
               getExpectedNonMinified("$" + config.getInnerClassName());
@@ -182,20 +182,21 @@ public class InnerClassNameTestRunner extends TestBase {
           r8RunResult.assertSuccessWithOutput(
               minify ? getExpectedMinified(inspector) : expectedWithDollarOnInnerName);
         } else {
-          // $$ in DEX will not change the InnerName/getSimpleName.
+          // $$ in DEX or JDK 9+ will not change the InnerName/getSimpleName.
           r8RunResult.assertSuccessWithOutput(getExpectedMinified(inspector));
         }
         break;
       case EMTPY_SEPARATOR:
       case UNDERBAR_SEPARATOR:
       case NON_NESTED_INNER:
-        if (backend == Backend.CF) {
+        if (backend == Backend.CF && ToolHelper.isJava8Runtime()) {
           // NOTE(b/120597515): These cases should fail, but if they succeed, we have recovered via
           // minification, likely by not using the same separator from output in input.
           // Any non-$ separator results in a runtime exception in getCanonicalName.
+          // NOTE: Behavior changed in JDK 9 so the class is no longer considered malformed.
           r8RunResult.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
         } else {
-          assert backend == Backend.DEX;
+          assert backend == Backend.DEX || !ToolHelper.isJava8Runtime();
           r8RunResult.assertSuccessWithOutput(getExpectedMinified(inspector));
         }
         break;

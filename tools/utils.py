@@ -156,7 +156,22 @@ def RunCmd(cmd, env_vars=None, quiet=False):
       return stdout
 
 def IsWindows():
-  return os.name == 'nt'
+  return sys.platform.startswith('win')
+
+def IsLinux():
+  return sys.platform.startswith('linux')
+
+def IsOsX():
+  return sys.platform.startswith('darwin')
+
+def EnsureDepFromGoogleCloudStorage(dep, tgz, sha1, msg):
+  if not os.path.exists(dep) or os.path.getmtime(tgz) < os.path.getmtime(sha1):
+    DownloadFromGoogleCloudStorage(sha1)
+    # Update the mtime of the tar file to make sure we do not run again unless
+    # there is an update.
+    os.utime(tgz, None)
+  else:
+    print 'Ensure cloud dependency:', msg, 'present'
 
 def DownloadFromX20(sha1_file):
   download_script = os.path.join(REPO_ROOT, 'tools', 'download_from_x20.py')

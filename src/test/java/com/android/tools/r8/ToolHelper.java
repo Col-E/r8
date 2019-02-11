@@ -778,6 +778,10 @@ public class ToolHelper {
     return getPlatform().startsWith("Windows");
   }
 
+  public static boolean isJava8Runtime() {
+    return System.getProperty("java.specification.version").equals("8");
+  }
+
   public static boolean isJava9Runtime() {
     return System.getProperty("java.specification.version").equals("9");
   }
@@ -804,7 +808,7 @@ public class ToolHelper {
   }
 
   public static Path getClassPathForTests() {
-    return Paths.get(BUILD_DIR, "classes", "test");
+    return Paths.get(BUILD_DIR, "classes", "java", "test");
   }
 
   private static List<String> getNamePartsForTestPackage(Package pkg) {

@@ -7,16 +7,17 @@
 # if an argument is given, run only tests with that pattern. This script will
 # force the tests to run, even if no input changed.
 
-import os
-import gradle
 import optparse
+import os
 import subprocess
 import sys
 import thread
 import time
-import utils
 import uuid
+
+import gradle
 import notify
+import utils
 
 ALL_ART_VMS = [
     "default",
@@ -96,6 +97,8 @@ def ParseOptions():
           ' Note that the directory will not be cleared before the test.')
   result.add_option('--java-home', '--java_home',
       help='Use a custom java version to run tests.')
+  result.add_option('--java-max-memory-size', '--java_max_memory_size',
+      help='Use a custom max memory size for the gradle java instance, eg, 4g')
   result.add_option('--generate-golden-files-to', '--generate_golden_files_to',
       help='Store dex files produced by tests in the specified directory.'
            ' It is aimed to be read on platforms with no host runtime available'
@@ -166,6 +169,8 @@ def Main():
       os.makedirs(options.test_dir)
   if options.java_home:
     gradle_args.append('-Dorg.gradle.java.home=' + options.java_home)
+  if options.java_max_memory_size:
+    gradle_args.append('-Dorg.gradle.jvmargs=-Xmx' + options.java_max_memory_size)
   if options.generate_golden_files_to:
     gradle_args.append('-Pgenerate_golden_files_to=' + options.generate_golden_files_to)
     if not os.path.exists(options.generate_golden_files_to):

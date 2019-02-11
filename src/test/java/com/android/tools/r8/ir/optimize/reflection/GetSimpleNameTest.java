@@ -234,8 +234,8 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .addOptionsModification(this::configure)
         .run(MAIN);
     if (enableMinification) {
-      if (backend == Backend.CF) {
-        // TODO(b/120639028): Incorrect inner-class structure fails on JVM.
+      if (backend == Backend.CF && ToolHelper.isJava8Runtime()) {
+        // TODO(b/120639028): Incorrect inner-class structure fails on JVM prior to JDK 9.
         result.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
         return;
       } else {

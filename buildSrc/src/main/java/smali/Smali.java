@@ -10,6 +10,9 @@ import java.util.stream.Collectors;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.UncheckedIOException;
 import org.gradle.api.file.FileTree;
+import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
 public class Smali extends DefaultTask {
@@ -18,22 +21,22 @@ public class Smali extends DefaultTask {
   private File destination;
   private File smaliScript;
 
+  @InputFiles
   public FileTree getSource() {
     return source;
   }
 
   public void setSource(FileTree source) {
     this.source = source;
-    getInputs().file(source);
   }
 
+  @OutputFile
   public File getDestination() {
     return destination;
   }
 
   public void setDestination(File destination) {
     this.destination = destination;
-    getOutputs().file(destination);
   }
 
   public File getSmaliScript() {

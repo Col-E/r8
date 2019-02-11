@@ -8,37 +8,38 @@ import java.io.IOException;
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.UncheckedIOException;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
+import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.process.ExecSpec;
 import utils.Utils;
 
 public class Dx extends DefaultTask {
 
-  private FileTree source;
+  private FileCollection source;
   private File destination;
   private File dxExecutable;
   private boolean debug;
 
-  public FileTree getSource() {
+  @InputFiles
+  public FileCollection getSource() {
     return source;
   }
 
-  public void setSource(FileTree source) {
+  public void setSource(FileCollection source) {
     this.source = source;
-    getInputs().file(source);
   }
 
+  @OutputDirectory
   public File getDestination() {
     return destination;
   }
 
   public void setDestination(File destination) {
     this.destination = destination;
-    File classesFile = destination.toPath().resolve("classes.dex").toFile();
-    // The output from running DX is classes.dex in the destination directory.
-    // TODO(sgjesse): Handle multidex?
-    getOutputs().file(classesFile);
   }
 
   public File getDxExecutable() {

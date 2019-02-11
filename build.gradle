@@ -1,11 +1,32 @@
 // Copyright (c) 2016, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
+
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import net.ltgt.gradle.errorprone.ErrorProneToolChain
+import net.ltgt.gradle.errorprone.CheckSeverity
 import org.gradle.internal.os.OperatingSystem
 import tasks.GetJarsFromConfiguration
 import utils.Utils
+
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
+    }
+}
+
+plugins {
+  id "net.ltgt.errorprone" version "0.7"
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
 
 ext {
     androidSupportVersion = '25.4.0'
@@ -20,31 +41,8 @@ ext {
     kotlinVersion = '1.3.11'
     kotlinExtMetadataJVMVersion = '0.0.4'
     smaliVersion = '2.2b4'
+    errorproneVersion = '2.3.2'
 }
-
-def errorProneConfiguration = [
-    '-XepDisableAllChecks',
-    // D8 want to use reference equality, thus disable the checker explicitly
-    '-Xep:ReferenceEquality:OFF',
-    '-Xep:ClassCanBeStatic:ERROR',
-    '-Xep:OperatorPrecedence:ERROR',
-    '-Xep:RemoveUnusedImports:ERROR',
-    '-Xep:MissingOverride:ERROR',
-    '-Xep:IntLongMath:ERROR',
-    '-Xep:EqualsHashCode:ERROR',
-    '-Xep:InconsistentOverloads:ERROR',
-    '-Xep:ArrayHashCode:ERROR',
-    '-Xep:EqualsIncompatibleType:ERROR',
-    '-Xep:NonOverridingEquals:ERROR',
-    '-Xep:FallThrough:ERROR',
-    '-Xep:MissingCasesInEnumSwitch:ERROR',
-    '-Xep:MissingDefault:ERROR',
-    '-Xep:MultipleTopLevelClasses:ERROR',
-    '-Xep:NarrowingCompoundAssignment:ERROR',
-    '-Xep:BoxedPrimitiveConstructor:ERROR',
-    '-Xep:LogicalAssignment:ERROR',
-    '-Xep:FloatCast:ERROR',
-    '-Xep:ReturnValueIgnored:ERROR']
 
 apply from: 'copyAdditionalJctfCommonFiles.gradle'
 
@@ -53,32 +51,6 @@ repositories {
     maven { url 'https://kotlin.bintray.com/kotlinx' }
     mavenCentral()
 }
-
-buildscript {
-    repositories {
-        mavenCentral()
-        jcenter()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-    }
-    dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
-        classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
-        classpath "com.gradle:build-scan-plugin:1.14"
-    }
-}
-
-apply plugin: "com.gradle.build-scan"
-
-buildScan {
-    licenseAgreementUrl = 'https://gradle.com/terms-of-service'
-    licenseAgree = 'yes'
-}
-
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'net.ltgt.errorprone-base'
 
 if (project.hasProperty('with_code_coverage')) {
     apply plugin: 'jacoco'
@@ -206,10 +178,10 @@ idea {
         module {
             if (sources.name == "main") {
                 sourceDirs += sources.java.srcDirs
-                outputDir sources.output.classesDir
+                outputDir sources.output.classesDirs[0]
             } else {
                 testSourceDirs += sources.java.srcDirs
-                testOutputDir sources.output.classesDir
+                testOutputDir sources.output.classesDirs[0]
             }
         }
     }
@@ -262,6 +234,7 @@ dependencies {
     debugTestResourcesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     examplesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    errorprone("com.google.errorprone:error_prone_core:$errorproneVersion")
 }
 
 def r8LibPath = "$buildDir/libs/r8lib.jar"
@@ -320,9 +293,41 @@ def cloudDependencies = [
         ]
 ]
 
+def cloudSystemDependencies = [
+        linux: [
+                "third_party": ["openjdk/openjdk-9.0.4/linux"],
+        ],
+        osx: [
+                "third_party": ["openjdk/openjdk-9.0.4/osx"],
+        ],
+        windows: [
+                "third_party": ["openjdk/openjdk-9.0.4/windows"],
+        ],
+]
+
+if (OperatingSystem.current().isWindows()) {
+    cloudSystemDependencies.windows.each { entry ->
+        cloudDependencies.get(entry.key).addAll(entry.value)
+    }
+} else if (OperatingSystem.current().isLinux()) {
+    cloudSystemDependencies.linux.each { entry ->
+        cloudDependencies.get(entry.key).addAll(entry.value)
+    }
+} else if (OperatingSystem.current().isMacOsX()) {
+    cloudSystemDependencies.osx.each { entry ->
+        cloudDependencies.get(entry.key).addAll(entry.value)
+    }
+} else {
+    println "WARNING: Unsupported system: " + OperatingSystem.current()
+}
+
+def getDownloadDepsTaskName(entryKey, entryFile) {
+    return "download_deps_${entryKey}_${entryFile.replace('/', '_').replace('\\', '_')}"
+}
+
 cloudDependencies.each { entry ->
     entry.value.each { entryFile ->
-        task "download_deps_${entry.key}/${entryFile}"(type: Exec) {
+        task "${getDownloadDepsTaskName(entry.key, entryFile)}"(type: Exec) {
             def outputDir = "${entry.key}/${entryFile}"
             def gzFile = "${outputDir}.tar.gz"
             def sha1File = "${gzFile}.sha1"
@@ -372,7 +377,7 @@ def x20Dependencies = [
 
 x20Dependencies.each { entry ->
     entry.value.each { entryFile ->
-        task "download_deps_${entry.key}/${entryFile}"(type: Exec) {
+        task "${getDownloadDepsTaskName(entry.key, entryFile)}"(type: Exec) {
             def outputDir = "${entry.key}/${entryFile}"
             def gzFile = "${outputDir}.tar.gz"
             def sha1File = "${gzFile}.sha1"
@@ -388,7 +393,7 @@ task downloadProguard {
     cloudDependencies.each { entry ->
         entry.value.each { entryFile ->
             if (entryFile.contains("proguard")) {
-                dependsOn "download_deps_${entry.key}/${entryFile}"
+                dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
             }
         }
     }
@@ -398,7 +403,7 @@ task downloadOpenJDKrt {
    cloudDependencies.each { entry ->
         entry.value.each { entryFile ->
             if (entryFile.contains("openjdk-rt")) {
-                dependsOn "download_deps_${entry.key}/${entryFile}"
+                dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
             }
         }
     }
@@ -408,7 +413,7 @@ task downloadDx {
     cloudDependencies.each { entry ->
         entry.value.each { entryFile ->
             if (entryFile.endsWith("/dx")) {
-                dependsOn "download_deps_${entry.key}/${entryFile}"
+                dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
             }
         }
     }
@@ -418,7 +423,7 @@ task downloadAndroidCts {
     cloudDependencies.each { entry ->
         entry.value.each { entryFile ->
             if (entryFile.contains("android_cts_baseline")) {
-                dependsOn "download_deps_${entry.key}/${entryFile}"
+                dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
             }
         }
     }
@@ -427,13 +432,13 @@ task downloadAndroidCts {
 task downloadDeps {
     cloudDependencies.each { entry ->
         entry.value.each { entryFile ->
-            dependsOn "download_deps_${entry.key}/${entryFile}"
+            dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
         }
     }
     if (!project.hasProperty('no_internal')) {
         x20Dependencies.each { entry ->
             entry.value.each { entryFile ->
-                dependsOn "download_deps_${entry.key}/${entryFile}"
+                dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
             }
         }
     }
@@ -444,22 +449,63 @@ allprojects {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-// Javac often runs out of stack space when compiling the tests.
-// Increase the stack size for the javac process.
-tasks.withType(JavaCompile) {
-    options.fork = true
-    options.forkOptions.jvmArgs = ["-Xss4m"]
+// Check if running with the JDK location from tools/jdk.py.
+if (OperatingSystem.current().isWindows()) {
+    println "NOTE: Running with JDK: " + org.gradle.internal.jvm.Jvm.current().javaHome
+} else {
+    def javaHomeOut = new StringBuilder()
+    def javaHomeErr = new StringBuilder()
+    def javaHomeProc = './tools/jdk.py'.execute()
+    javaHomeProc.waitForProcessOutput(javaHomeOut, javaHomeErr)
+    def jdkHome = new File(javaHomeOut.toString().trim())
+    if (!jdkHome.exists()) {
+        println "WARNING: Failed to find the ./tools/jdk.py specified JDK: " + jdkHome
+    } else if (jdkHome != org.gradle.internal.jvm.Jvm.current().javaHome) {
+        println("WARNING: Gradle is running in a non-pinned Java"
+                + ". Gradle Java Home: " + org.gradle.internal.jvm.Jvm.current().javaHome
+                + ". Expected: " + jdkHome)
+    }
 }
 
-tasks.withType(JavaCompile) {
-    options.compilerArgs << '-Xlint:unchecked'
+sourceSets.configureEach { sourceSet ->
+    tasks.named(sourceSet.compileJavaTaskName).configure {
+        // Default disable errorprone (enabled and setup below).
+        options.errorprone.enabled = false
+        options.compilerArgs << '-Xlint:unchecked'
+        // Javac often runs out of stack space when compiling the tests.
+        // Increase the stack size for the javac process.
+        options.forkOptions.jvmArgs << "-Xss4m"
+        // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
+        options.forkOptions.jvmArgs << "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar"
+    }
 }
 
-if (!project.hasProperty('without_error_prone')) {
+if (!project.hasProperty('without_error_prone') &&
+        // Don't enable error prone on Java 8 as the plugin setup does not support it.
+        !org.gradle.internal.jvm.Jvm.current().javaVersion.java8) {
     compileJava {
         // Enable error prone for D8/R8 sources.
-        toolChain ErrorProneToolChain.create(project)
-        options.compilerArgs += errorProneConfiguration
+        options.errorprone.enabled = true
+        options.errorprone.disableAllChecks = true
+        options.errorprone.check('ClassCanBeStatic', CheckSeverity.ERROR)
+        options.errorprone.check('OperatorPrecedence', CheckSeverity.ERROR)
+        options.errorprone.check('RemoveUnusedImports', CheckSeverity.ERROR)
+        options.errorprone.check('MissingOverride', CheckSeverity.ERROR)
+        options.errorprone.check('IntLongMath', CheckSeverity.ERROR)
+        options.errorprone.check('EqualsHashCode', CheckSeverity.ERROR)
+        options.errorprone.check('InconsistentOverloads', CheckSeverity.ERROR)
+        options.errorprone.check('ArrayHashCode', CheckSeverity.ERROR)
+        options.errorprone.check('EqualsIncompatibleType', CheckSeverity.ERROR)
+        options.errorprone.check('NonOverridingEquals', CheckSeverity.ERROR)
+        options.errorprone.check('FallThrough', CheckSeverity.ERROR)
+        options.errorprone.check('MissingCasesInEnumSwitch', CheckSeverity.ERROR)
+        options.errorprone.check('MissingDefault', CheckSeverity.ERROR)
+        options.errorprone.check('MultipleTopLevelClasses', CheckSeverity.ERROR)
+        options.errorprone.check('NarrowingCompoundAssignment', CheckSeverity.ERROR)
+        options.errorprone.check('BoxedPrimitiveConstructor', CheckSeverity.ERROR)
+        options.errorprone.check('LogicalAssignment', CheckSeverity.ERROR)
+        options.errorprone.check('FloatCast', CheckSeverity.ERROR)
+        options.errorprone.check('ReturnValueIgnored', CheckSeverity.ERROR)
     }
 }
 
@@ -788,8 +834,7 @@ artifacts {
 task createArtTests(type: Exec) {
     def outputDir = "build/generated/test/java/com/android/tools/r8/art"
     def createArtTestsScript = "tools/create_art_tests.py"
-    inputs.file "tests/2017-10-04/art.tar.gz"
-    inputs.file createArtTestsScript
+    inputs.files files("tests/2017-10-04/art.tar.gz", createArtTestsScript)
     outputs.dir outputDir
     dependsOn downloadDeps
     commandLine "python", createArtTestsScript
@@ -864,7 +909,7 @@ task buildDebugInfoExamplesDex {
         args "--dex"
         args "--output=build/test/${hostDexJar}"
         args "build/test/${hostJar}"
-        inputs.file file("build/test/${hostJar}")
+        inputs.files files("build/test/${hostJar}")
         outputs.file file("build/test/${hostDexJar}")
     }
     dependsOn dex_debuginfo_examples
@@ -1017,8 +1062,9 @@ task buildExampleJars {
             def proguardJarPath = "${exampleOutputDir}/${jarName}"
             def proguardMapPath = "${exampleOutputDir}/${name}/${name}.map"
             task "jar_example_${name}"(type: Exec, dependsOn: "pre_proguard_example_${name}") {
-                inputs.files tasks.getByPath("pre_proguard_example_${name}")
-                inputs.file  proguardConfigPath
+                inputs.files files(
+                        tasks.getByPath("pre_proguard_example_${name}"),
+                        proguardConfigPath)
                 // Enable these to get stdout and stderr redirected to files...
                 // standardOutput = new FileOutputStream('proguard.stdout')
                 // errorOutput = new FileOutputStream('proguard.stderr')
@@ -1338,7 +1384,7 @@ task buildSmali {
         def smaliOutputDir = file("build/test/smali/" + relativeDir);
         smaliOutputDir.mkdirs()
         outputs.dir smaliOutputDir
-        def taskName = "smali_build_${relativeDir.toString().replace('/', '_')}"
+        def taskName = "smali_build_${relativeDir.toString().replace('/', '_').replace('\\', '_')}"
         def smaliFiles = fileTree(dir: dir, include: '*.smali')
         def javaFiles = fileTree(dir: dir, include: '*.java')
         def destDir = smaliOutputDir;
@@ -1410,7 +1456,7 @@ task buildPreNJdwpTestsJar(type: Jar) {
 task buildPreNJdwpTestsDex(type: Exec, dependsOn: "buildPreNJdwpTestsJar") {
     def inFile = buildPreNJdwpTestsJar.archivePath
     def outFile = new File(buildPreNJdwpTestsJar.destinationDir, buildPreNJdwpTestsJar.baseName + '-dex.jar')
-    inputs.file inFile
+    inputs.files files(inFile)
     outputs.file outFile
     if (OperatingSystem.current().isWindows()) {
         executable file("tools/windows/dx/bin/dx.bat")
@@ -1431,7 +1477,7 @@ task getJarsFromSupportLibs(type: GetJarsFromConfiguration) {
 task AospJarTest(type: Exec) {
     dependsOn CompatDx, downloadDeps
     def script = "tools/test_aosp_jar.py"
-    inputs.file script
+    inputs.files files(script)
     commandLine "python", script, "--no-build"
     workingDir = projectDir
 }
@@ -1447,7 +1493,7 @@ def getR8LibTask() {
 
 task configureTestForR8Lib(type: Copy) {
     dependsOn testJar
-    inputs.file "$buildDir/libs/r8tests.jar"
+    inputs.files files("$buildDir/libs/r8tests.jar")
     if (getR8LibTask() != null) {
         dependsOn getR8LibTask()
         delete r8LibTestPath
@@ -1489,6 +1535,9 @@ def printStackTrace(TestResult result) {
 }
 
 test {
+    // TODO(b/124091860): Increase the max heap size to avoid OOM when running tests.
+    maxHeapSize = "3g"
+
     if (project.hasProperty('generate_golden_files_to')) {
         systemProperty 'generate_golden_files_to', project.property('generate_golden_files_to')
         assert project.hasProperty('HEAD_sha1')
@@ -1591,7 +1640,7 @@ test {
                 sourceSets.test.runtimeClasspath -
                 sourceSets.main.output -
                 files(['build/classes/test'])
-        testClassesDir = new File(r8LibTestPath)
+        testClassesDirs = files(r8LibTestPath)
     }
     if (OperatingSystem.current().isLinux()
             || OperatingSystem.current().isMacOsX()
