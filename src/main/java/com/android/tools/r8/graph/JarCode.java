@@ -129,12 +129,8 @@ public class JarCode extends Code {
       GraphLense graphLense,
       InternalOptions options,
       Origin origin) {
-    assert getOwner() == encodedMethod;
-    triggerDelayedParsingIfNeccessary();
-    return options.debug || encodedMethod.getOptimizationInfo().isReachabilitySensitive()
-        ? internalBuildWithLocals(
-            encodedMethod, encodedMethod, appInfo, graphLense, options, null, null)
-        : internalBuild(encodedMethod, encodedMethod, appInfo, graphLense, options, null, null);
+    return internalBuildPossiblyWithLocals(
+        encodedMethod, encodedMethod, appInfo, graphLense, options, null, null);
   }
 
   @Override
@@ -147,14 +143,30 @@ public class JarCode extends Code {
       ValueNumberGenerator generator,
       Position callerPosition,
       Origin origin) {
-    assert getOwner() == encodedMethod;
     assert generator != null;
+    return internalBuildPossiblyWithLocals(
+        context, encodedMethod, appInfo, graphLense, options, generator, callerPosition);
+  }
+
+  private IRCode internalBuildPossiblyWithLocals(
+      DexEncodedMethod context,
+      DexEncodedMethod encodedMethod,
+      AppInfo appInfo,
+      GraphLense graphLense,
+      InternalOptions options,
+      ValueNumberGenerator generator,
+      Position callerPosition) {
+    assert getOwner() == encodedMethod;
     triggerDelayedParsingIfNeccessary();
-    return options.debug || encodedMethod.getOptimizationInfo().isReachabilitySensitive()
-        ? internalBuildWithLocals(
-            context, encodedMethod, appInfo, graphLense, options, generator, callerPosition)
-        : internalBuild(
-            context, encodedMethod, appInfo, graphLense, options, generator, callerPosition);
+    if (!keepLocals(encodedMethod, options)) {
+      // We strip locals here because we will not be able to recover from invalid info.
+      node.localVariables.clear();
+      return internalBuild(
+          context, encodedMethod, appInfo, graphLense, options, generator, callerPosition);
+    } else {
+      return internalBuildWithLocals(
+          context, encodedMethod, appInfo, graphLense, options, generator, callerPosition);
+    }
   }
 
   private IRCode internalBuildWithLocals(
@@ -180,14 +192,10 @@ public class JarCode extends Code {
     if (options.testing.noLocalsTableOnInput) {
       return false;
     }
-    if (options.debug) {
+    if (options.debug || encodedMethod.getOptimizationInfo().isReachabilitySensitive()) {
       return true;
     }
-    if (options.getProguardConfiguration() != null
-        && options.getProguardConfiguration().getKeepAttributes().localVariableTable) {
-      return true;
-    }
-    return encodedMethod.getOptimizationInfo().isReachabilitySensitive();
+    return false;
   }
 
   private IRCode internalBuild(
@@ -198,9 +206,7 @@ public class JarCode extends Code {
       InternalOptions options,
       ValueNumberGenerator generator,
       Position callerPosition) {
-    if (!keepLocals(encodedMethod, options)) {
-      node.localVariables.clear();
-    }
+    assert node.localVariables.isEmpty() || keepLocals(encodedMethod, options);
     JarSourceCode source =
         new JarSourceCode(
             method.getHolder(),
