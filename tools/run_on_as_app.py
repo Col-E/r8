@@ -7,6 +7,7 @@ import apk_masseur
 import apk_utils
 import golem
 import gradle
+import jdk
 import os
 import optparse
 import shutil
@@ -177,7 +178,7 @@ def IsBuiltWithR8(apk, temp_dir, options):
 
   # Use the copy of r8.jar if it is there.
   if os.path.isfile(r8_jar):
-    cmd = ['java', '-ea', '-jar', r8_jar, 'extractmarker', apk]
+    cmd = [jdk.GetJavaExecutable(), '-ea', '-jar', r8_jar, 'extractmarker', apk]
   else:
     script = os.path.join(utils.TOOLS_DIR, 'extractmarker.py')
     cmd = ['python', script, apk]
@@ -493,7 +494,7 @@ def RebuildAppWithShrinker(
   # is 'r8'.
   entry_point = 'com.android.tools.r8.R8'
 
-  cmd = ['java', '-ea:com.android.tools.r8...', '-cp', r8_jar, entry_point,
+  cmd = [jdk.GetJavaExecutable(), '-ea:com.android.tools.r8...', '-cp', r8_jar, entry_point,
       '--release', '--min-api', str(min_sdk), '--pg-conf', proguard_config_file,
       '--lib', android_jar, '--output', zip_dest, apk]
 

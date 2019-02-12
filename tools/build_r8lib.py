@@ -10,6 +10,7 @@ works with the minified R8.
 
 import argparse
 import gradle
+import jdk
 import os
 import subprocess
 import toolhelper
@@ -76,7 +77,8 @@ def build_r8lib(target, exclude_deps, no_relocate, keep_rules_path,
 
 def test_d8sample(paths):
   with utils.TempDir() as path:
-    args = ['java', '-cp', '%s:%s' % (SAMPLE_JAR, ":".join(paths)),
+    args = [jdk.GetJavaExecutable(),
+            '-cp', '%s:%s' % (SAMPLE_JAR, ":".join(paths)),
             'com.android.tools.apiusagesample.D8ApiUsageSample',
             '--output', path,
             '--min-api', str(API_LEVEL),
@@ -94,7 +96,8 @@ def test_r8command(paths):
     # R8CommandParser should have been minified in LIB_JAR.
     # Just in case R8CommandParser is also present in LIB_JAR, we put
     # SAMPLE_JAR first on the classpath to use its version of R8CommandParser.
-    args = ['java', '-cp', '%s:%s' % (SAMPLE_JAR, ":".join(paths)),
+    args = [jdk.GetJavaExecutable(),
+            '-cp', '%s:%s' % (SAMPLE_JAR, ":".join(paths)),
             'com.android.tools.r8.R8CommandParser',
             '--output', path + "/output.zip",
             '--min-api', str(API_LEVEL),
@@ -111,7 +114,8 @@ def test_r8cfcommand(paths):
     # R8CommandParser should have been minified in LIB_JAR.
     # Just in case R8CommandParser is also present in LIB_JAR, we put
     # SAMPLE_JAR first on the classpath to use its version of R8CommandParser.
-    args = ['java', '-cp', '%s:%s' % (SAMPLE_JAR, ":".join(paths)),
+    args = [jdk.GetJavaExecutable(),
+            '-cp', '%s:%s' % (SAMPLE_JAR, ":".join(paths)),
             'com.android.tools.r8.R8CommandParser',
             '--classfile',
             '--output', path + "/output.jar",

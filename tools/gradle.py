@@ -44,9 +44,15 @@ def EnsureGradle():
   utils.EnsureDepFromGoogleCloudStorage(
     GRADLE, GRADLE_TGZ, GRADLE_SHA1, 'Gradle binary')
 
+def EnsureJdk():
+  jdkHome = jdk.GetJdkHome()
+  jdkTgz = jdkHome + '.tar.gz'
+  jdkSha1 = jdkTgz + '.sha1'
+  utils.EnsureDepFromGoogleCloudStorage(jdkHome, jdkTgz, jdkSha1, 'JDK')
+
 def EnsureDeps():
   EnsureGradle()
-  jdk.EnsureJdk()
+  EnsureJdk()
 
 def RunGradleIn(gradleCmd, args, cwd, throw_on_failure=True, env=None):
   EnsureDeps()

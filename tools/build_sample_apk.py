@@ -8,6 +8,7 @@
 import apk_utils
 import fnmatch
 import glob
+import jdk
 import optparse
 import os
 import shutil
@@ -21,7 +22,7 @@ import uuid
 DEFAULT_AAPT = 'aapt' # Assume in path.
 DEFAULT_D8 = os.path.join(utils.REPO_ROOT, 'tools', 'd8.py')
 DEFAULT_DEXSPLITTER = os.path.join(utils.REPO_ROOT, 'tools', 'dexsplitter.py')
-DEFAULT_JAVAC = 'javac'
+DEFAULT_JAVAC = jdk.GetJavacExecutable()
 SRC_LOCATION = 'src/com/android/tools/r8/sample/{app}/*.java'
 DEFAULT_KEYSTORE = os.path.join(os.getenv('HOME'), '.android', 'debug.keystore')
 PACKAGE_PREFIX = 'com.android.tools.r8.sample'

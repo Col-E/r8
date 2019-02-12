@@ -3,39 +3,32 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import defines
 import os
 import sys
-import utils
 
-JDK_DIR = os.path.join(utils.REPO_ROOT, 'third_party', 'openjdk')
+JDK_DIR = os.path.join(defines.THIRD_PARTY, 'openjdk')
 
 def GetJdkHome():
   root = os.path.join(JDK_DIR, 'openjdk-9.0.4')
-  if utils.IsLinux():
+  if defines.IsLinux():
     return os.path.join(root, 'linux')
-  elif utils.IsOsX():
+  elif defines.IsOsX():
     return os.path.join(root, 'osx')
-  elif utils.IsWindows():
+  elif defines.IsWindows():
     return os.path.join(root, 'windows')
   else:
     return os.environ['JAVA_HOME']
-  return jdkHome
 
 def GetJavaExecutable(jdkHome=None):
   jdkHome = jdkHome if jdkHome else GetJdkHome()
-  executable = 'java.exe' if utils.IsWindows() else 'java'
+  executable = 'java.exe' if defines.IsWindows() else 'java'
   return os.path.join(jdkHome, 'bin', executable) if jdkHome else executable
 
 def GetJavacExecutable(jdkHome=None):
   jdkHome = jdkHome if jdkHome else GetJdkHome()
-  executable = 'javac.exe' if utils.IsWindows() else 'javac'
+  executable = 'javac.exe' if defines.IsWindows() else 'javac'
   return os.path.join(jdkHome, 'bin', executable) if jdkHome else executable
-
-def EnsureJdk():
-  jdkHome = GetJdkHome()
-  jdkTgz = jdkHome + '.tar.gz'
-  jdkSha1 = jdkTgz + '.sha1'
-  utils.EnsureDepFromGoogleCloudStorage(jdkHome, jdkTgz, jdkSha1, 'JDK')
 
 def Main():
   print GetJdkHome()

@@ -4,7 +4,7 @@
 
 import glob
 import gradle
-import os
+import jdk
 import subprocess
 from threading import Timer
 import utils
@@ -19,7 +19,7 @@ def run(tool, args, build=None, debug=True,
   cmd = []
   if track_memory_file:
     cmd.extend(['tools/track_memory.sh', track_memory_file])
-  cmd.append('java')
+  cmd.append(jdk.GetJavaExecutable())
   if extra_args:
     cmd.extend(extra_args)
   if debug:
@@ -61,7 +61,7 @@ def run_in_tests(tool, args, build=None, debug=True, extra_args=None):
       'compileTestJava',
     ])
   cmd = []
-  cmd.append('java')
+  cmd.append(jdk.GetJavaExecutable())
   if extra_args:
     cmd.extend(extra_args)
   if debug:

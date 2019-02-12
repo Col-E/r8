@@ -21,6 +21,7 @@ from __future__ import print_function
 from glob import glob
 import argparse
 import golem
+import jdk
 import os
 import re
 import subprocess
@@ -96,7 +97,7 @@ def Main():
 
     if tool_file.endswith('.jar'):
       assert xmx is not None
-      cmd.extend(['java', xmx, '-jar'])
+      cmd.extend([jdk.GetJavaExecutable(), xmx, '-jar'])
 
     cmd.extend([tool_file] + tool_args + [FRAMEWORK_JAR])
 

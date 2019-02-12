@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import gradle
+import jdk
 import os
 import subprocess
 import sys
@@ -37,7 +38,9 @@ def main():
     raise Exception("Only one argument is allowed, see '--help'.")
 
   # Run 'r8 --help' which throws an exception.
-  cmd = ['java','-cp', r8lib, 'com.android.tools.r8.R8', '--help']
+  cmd = [
+    jdk.GetJavaExecutable(),'-cp', r8lib, 'com.android.tools.r8.R8', '--help'
+  ]
   os.environ["R8_THROW_EXCEPTION_FOR_TESTING_RETRACE"] = "1"
   utils.PrintCmd(cmd)
   p = subprocess.Popen(cmd, stderr=subprocess.PIPE)
@@ -48,7 +51,7 @@ def main():
   assert('SelfRetraceTest' not in stacktrace)
 
   # Run the retrace tool.
-  cmd = ['java', '-jar', utils.RETRACE_JAR, r8lib + ".map"]
+  cmd = [jdk.GetJavaExecutable(), '-jar', utils.RETRACE_JAR, r8lib + ".map"]
   utils.PrintCmd(cmd)
   p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
   retrace_stdout, _ = p.communicate(stacktrace)

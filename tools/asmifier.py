@@ -4,6 +4,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import gradle
+import jdk
 import os
 import subprocess
 import sys
@@ -13,7 +14,7 @@ def run(args, build=True):
   if build:
     gradle.RunGradle(['copyMavenDeps'])
   cmd = []
-  cmd.append('java')
+  cmd.append(jdk.GetJavaExecutable())
   cp = ":".join([os.path.join(utils.REPO_ROOT, 'build/deps/asm-6.2.1.jar'),
                  os.path.join(utils.REPO_ROOT, 'build/deps/asm-util-6.2.1.jar')])
   cmd.extend(['-cp', cp])
