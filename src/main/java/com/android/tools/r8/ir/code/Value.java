@@ -292,6 +292,13 @@ public class Value {
     debugData = null;
   }
 
+  public boolean hasSameOrNoLocal(Value other) {
+    assert other != null;
+    return hasLocalInfo()
+        ? other.getLocalInfo() == this.getLocalInfo()
+        : !other.hasLocalInfo();
+  }
+
   public List<Instruction> getDebugLocalStarts() {
     if (debugData == null) {
       return Collections.emptyList();

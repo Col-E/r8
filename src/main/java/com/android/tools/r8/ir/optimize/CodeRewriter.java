@@ -48,6 +48,7 @@ import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsageBuilder;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
@@ -1632,10 +1633,30 @@ public class CodeRewriter {
       Instruction current = iterator.next();
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
-        if (invoke.outValue() != null && !invoke.outValue().hasLocalInfo()) {
+        Value outValue = invoke.outValue();
+        // TODO(b/124246610): extend to other variants that receive error messages or supplier.
+        if (invoke.getInvokedMethod() == dexItemFactory.objectsMethods.requireNonNull) {
+          Value obj = invoke.arguments().get(0);
+          if ((outValue == null && obj.hasLocalInfo())
+              || (outValue != null && !obj.hasSameOrNoLocal(outValue))) {
+            continue;
+          }
+          Nullability nullability = obj.getTypeLattice().nullability();
+          if (nullability.isDefinitelyNotNull()) {
+            if (outValue != null) {
+              outValue.replaceUsers(obj);
+              needToNarrowValues.addAll(outValue.affectedValues());
+            }
+            iterator.removeOrReplaceByDebugLocalRead();
+          } else if (nullability.isDefinitelyNull()) {
+            // TODO(b/124246610): throw NPE.
+            // Refactor UninstantiatedTypeOptimization#replaceCurrentInstructionWithThrowNull
+            // and move it to iterator.
+          }
+        } else if (outValue != null && !outValue.hasLocalInfo()) {
           if (libraryMethodsReturningReceiver.contains(invoke.getInvokedMethod())) {
             if (checkArgumentType(invoke, 0)) {
-              invoke.outValue().replaceUsers(invoke.arguments().get(0));
+              outValue.replaceUsers(invoke.arguments().get(0));
               invoke.setOutValue(null);
             }
           } else if (appInfoWithLiveness != null) {
@@ -1650,7 +1671,6 @@ public class CodeRewriter {
                 // Replace the out value of the invoke with the argument and ignore the out value.
                 if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
-                  Value outValue = invoke.outValue();
                   assert outValue.verifyCompatible(argument.outType());
                   if (argument.getTypeLattice().lessThanOrEqual(
                       outValue.getTypeLattice(), appInfo)) {
