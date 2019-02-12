@@ -140,6 +140,8 @@ public class DexItemFactory {
   public final DexString contentEqualsMethodName = createString("contentEquals");
   public final DexString indexOfMethodName = createString("indexOf");
   public final DexString lastIndexOfMethodName = createString("lastIndexOf");
+  public final DexString compareToMethodName = createString("compareTo");
+  public final DexString compareToIgnoreCaseMethodName = createString("compareToIgnoreCase");
   public final DexString cloneMethodName = createString("clone");
 
   public final DexString valueOfMethodName = createString("valueOf");
@@ -613,6 +615,8 @@ public class DexItemFactory {
     public final DexMethod indexOfString;
     public final DexMethod lastIndexOfInt;
     public final DexMethod lastIndexOfString;
+    public final DexMethod compareTo;
+    public final DexMethod compareToIgnoreCase;
 
     public final DexMethod valueOf;
     public final DexMethod toString;
@@ -649,6 +653,11 @@ public class DexItemFactory {
           createMethod(stringDescriptor, lastIndexOfMethodName, intDescriptor, needsOneString);
       lastIndexOfInt =
           createMethod(stringDescriptor, lastIndexOfMethodName, intDescriptor, needsOneInt);
+      compareTo =
+          createMethod(stringDescriptor, compareToMethodName, intDescriptor, needsOneString);
+      compareToIgnoreCase =
+          createMethod(stringDescriptor, compareToIgnoreCaseMethodName, intDescriptor,
+              needsOneString);
 
       valueOf = createMethod(
           stringDescriptor, valueOfMethodName, stringDescriptor, needsOneObject);
