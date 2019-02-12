@@ -19,7 +19,7 @@ public class InstructionFactoryTest {
     ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
     InstructionFactory factory = new InstructionFactory();
     Instruction[] instructions =
-        factory.readSequenceFrom(emptyBuffer, 0, 0, new OffsetToObjectMapping());
+        factory.readSequenceFrom(emptyBuffer.asShortBuffer(), 0, 0, new OffsetToObjectMapping());
     assertTrue(instructions.length == 0);
   }
 }

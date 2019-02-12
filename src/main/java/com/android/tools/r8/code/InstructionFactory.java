@@ -4,7 +4,6 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.graph.OffsetToObjectMapping;
-import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,11 +15,6 @@ public class InstructionFactory extends BaseInstructionFactory {
     int high = stream.nextByte();
     int opcode = stream.nextByte();
     return create(high, opcode, stream, mapping);
-  }
-
-  public Instruction[] readSequenceFrom(ByteBuffer buffer, int startIndex, int length,
-      OffsetToObjectMapping mapping) {
-    return readSequenceFrom(buffer.asShortBuffer(), startIndex, length, mapping);
   }
 
   public Instruction[] readSequenceFrom(ShortBuffer buffer, int startIndex, int length,

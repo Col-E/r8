@@ -12,7 +12,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DexVersion;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**
@@ -38,7 +37,7 @@ public class DexReader extends BinaryReader {
   }
 
   // Parse the magic header and determine the dex file version.
-  private int parseMagic(ByteBuffer buffer) {
+  private int parseMagic(CompatByteBuffer buffer) {
     try {
       buffer.get();
       buffer.rewind();

@@ -14,7 +14,6 @@ import com.android.tools.r8.origin.Origin;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**
@@ -37,7 +36,7 @@ public class VDexReader extends BinaryReader {
   }
 
   // Parse the magic header and determine the dex file version.
-  private int parseMagic(ByteBuffer buffer) {
+  private int parseMagic(CompatByteBuffer buffer) {
     int index = 0;
     for (byte prefixByte : VDEX_FILE_MAGIC_PREFIX) {
       if (buffer.get(index++) != prefixByte) {

@@ -57,7 +57,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
@@ -77,10 +76,10 @@ public class FileWriter {
   /** Simple pair of a byte buffer and its written length. */
   public static class ByteBufferResult {
     // Ownership of the buffer is transferred to the receiver of this result structure.
-    public final ByteBuffer buffer;
+    public final CompatByteBuffer buffer;
     public final int length;
 
-    private ByteBufferResult(ByteBuffer buffer, int length) {
+    private ByteBufferResult(CompatByteBuffer buffer, int length) {
       this.buffer = buffer;
       this.length = length;
     }

@@ -10,14 +10,13 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.LebUtils;
 import com.android.tools.r8.utils.StreamUtils;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 /**
  * Base class for reading binary content.
  */
 public abstract class BinaryReader {
   protected final Origin origin;
-  protected final ByteBuffer buffer;
+  protected final CompatByteBuffer buffer;
 
   protected BinaryReader(ProgramResource resource) throws ResourceException, IOException {
     this(resource.getOrigin(), StreamUtils.StreamToByteArrayClose(resource.getByteStream()));
@@ -26,7 +25,7 @@ public abstract class BinaryReader {
   protected BinaryReader(Origin origin, byte[] bytes) {
     assert origin != null;
     this.origin = origin;
-    buffer = ByteBuffer.wrap(bytes);
+    buffer = CompatByteBuffer.wrap(bytes);
   }
 
   public Origin getOrigin() {

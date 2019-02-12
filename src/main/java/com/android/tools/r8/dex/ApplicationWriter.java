@@ -281,7 +281,7 @@ public class ApplicationWriter {
                     }
                     // Release use of the backing buffer now that accept has returned.
                     data.invalidate();
-                    byteBufferProvider.releaseByteBuffer(result.buffer);
+                    byteBufferProvider.releaseByteBuffer(result.buffer.asByteBuffer());
                     return true;
                   }));
         }

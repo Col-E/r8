@@ -22,7 +22,7 @@ public class DexOutputBuffer {
   private static final int DEFAULT_BUFFER_SIZE = 256 * 1024;
 
   private final ByteBufferProvider byteBufferProvider;
-  private ByteBuffer byteBuffer;
+  private CompatByteBuffer byteBuffer;
 
   @VisibleForTesting
   DexOutputBuffer() {
@@ -37,16 +37,16 @@ public class DexOutputBuffer {
   private void ensureSpaceFor(int bytes) {
     if (byteBuffer.remaining() < bytes) {
       int newSize = byteBuffer.capacity() + Math.max(byteBuffer.capacity(), bytes * 2);
-      ByteBuffer newBuffer = allocateByteBuffer(newSize);
-      System.arraycopy(byteBuffer.array(), 0, newBuffer.array(), 0, byteBuffer.position());
+      CompatByteBuffer newBuffer = allocateByteBuffer(newSize);
+      System.arraycopy(byteBuffer.array(), 0, newBuffer.array(), 0, position());
       newBuffer.position(byteBuffer.position());
       freeByteBuffer(byteBuffer);
       byteBuffer = newBuffer;
     }
   }
 
-  private ByteBuffer allocateByteBuffer(int size) {
-    ByteBuffer buffer = byteBufferProvider.acquireByteBuffer(size);
+  private CompatByteBuffer allocateByteBuffer(int size) {
+    CompatByteBuffer buffer = new CompatByteBuffer(byteBufferProvider.acquireByteBuffer(size));
     if (!buffer.hasArray()) {
       throw new CompilationError(
           "Provided byte-buffer is required to have an array backing, but does not.");
@@ -69,9 +69,9 @@ public class DexOutputBuffer {
     return buffer;
   }
 
-  private void freeByteBuffer(ByteBuffer buffer) {
+  private void freeByteBuffer(CompatByteBuffer buffer) {
     assert buffer != null;
-    byteBufferProvider.releaseByteBuffer(buffer);
+    byteBufferProvider.releaseByteBuffer(buffer.asByteBuffer());
   }
 
   public void putUleb128(int value) {
@@ -133,7 +133,7 @@ public class DexOutputBuffer {
   public int align(int bytes) {
     assert bytes > 0;
     int mask = bytes - 1;
-    int newPosition = (byteBuffer.position() + mask) & ~mask;
+    int newPosition = (position() + mask) & ~mask;
     ensureSpaceFor(newPosition - position());
     byteBuffer.position(newPosition);
     return newPosition;
@@ -165,8 +165,8 @@ public class DexOutputBuffer {
     return byteBuffer.array();
   }
 
-  public ByteBuffer stealByteBuffer() {
-    ByteBuffer buffer = byteBuffer;
+  public CompatByteBuffer stealByteBuffer() {
+    CompatByteBuffer buffer = byteBuffer;
     byteBuffer = null;
     return buffer;
   }
