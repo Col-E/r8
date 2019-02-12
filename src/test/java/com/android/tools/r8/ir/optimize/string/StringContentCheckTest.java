@@ -35,7 +35,9 @@ class StringContentCheckTestMain {
         && "CONST".equalsIgnoreCase(arg)
         && "CONST".contentEquals(arg)
         && "CONST".indexOf(arg) > 0
-        && "CONST".lastIndexOf(arg) > 0;
+        && "CONST".lastIndexOf(arg) > 0
+        && "CONST".compareTo(arg) > 0
+        && "CONST".compareToIgnoreCase(arg) > 0;
   }
 
   public static void main(String[] args) {
@@ -52,6 +54,8 @@ class StringContentCheckTestMain {
       System.out.println(s1.indexOf("ix"));
       System.out.println(s1.lastIndexOf('f'));
       System.out.println(s1.lastIndexOf("ix"));
+      System.out.println(s1.compareTo("prefix-CONST-suffix") == 0);
+      System.out.println(s1.compareToIgnoreCase("PREFIX-const-SUFFIX") == 0);
     }
 
     {
@@ -68,6 +72,8 @@ class StringContentCheckTestMain {
       System.out.println(s2.indexOf("ix"));
       System.out.println(s2.lastIndexOf('f'));
       System.out.println(s2.lastIndexOf("ix"));
+      System.out.println(s2.compareTo("prefix-CONST-suffix") == 0);
+      System.out.println(s2.compareToIgnoreCase("pre-con-suf") == 0);
     }
 
     {
@@ -90,15 +96,15 @@ public class StringContentCheckTest extends TestBase {
       StringContentCheckTestMain.class
   );
   private static final String JAVA_OUTPUT = StringUtils.lines(
-      // s1, contains
+      // s1, contains(String)
       "true",
-      // s1, startsWith
+      // s1, startsWith(String)
       "true",
-      // s1, endsWith
+      // s1, endsWith(String)
       "true",
-      // s1, equals
+      // s1, equals(String)
       "true",
-      // s1, equalsIgnoreCase
+      // s1, equalsIgnoreCase(String)
       "true",
       // s1, contentEquals(CharSequence)
       "true",
@@ -112,15 +118,19 @@ public class StringContentCheckTest extends TestBase {
       "16",
       // s1, lastIndexOf(String)
       "17",
-      // s2, contains
+      // s1, compareTo(String)
+      "true",
+      // s1, compareToIgnoreCase(String)
+      "true",
+      // s2, contains(String)
       "false",
-      // s2, startsWith
+      // s2, startsWith(String)
       "false",
-      // s2, endsWith
+      // s2, endsWith(String)
       "false",
-      // s2, equals
+      // s2, equals(String)
       "false",
-      // s2, equalsIgnoreCase
+      // s2, equalsIgnoreCase(String)
       "false",
       // s2, contentEquals(CharSequence)
       "false",
@@ -134,6 +144,10 @@ public class StringContentCheckTest extends TestBase {
       "-1",
       // s2, lastIndexOf(String)
       "-1",
+      // s2, compareTo(String)
+      "false",
+      // s2, compareToIgnoreCase(String)
+      "false",
       // argCouldBeNull
       "false"
   );
@@ -166,7 +180,9 @@ public class StringContentCheckTest extends TestBase {
             || method.name.toString().equals("equalsIgnoreCase")
             || method.name.toString().equals("contentEquals")
             || method.name.toString().equals("indexOf")
-            || method.name.toString().equals("lastIndexOf"));
+            || method.name.toString().equals("lastIndexOf")
+            || method.name.toString().equals("compareTo")
+            || method.name.toString().equals("compareToIgnoreCase"));
   }
 
   private long countStringContentChecker(MethodSubject method) {
@@ -190,7 +206,7 @@ public class StringContentCheckTest extends TestBase {
         "boolean", "argCouldBeNull", ImmutableList.of("java.lang.String"));
     assertThat(argCouldBeNull, isPresent());
     // Because of nullable argument, all checkers should remain.
-    assertEquals(8, countStringContentChecker(argCouldBeNull));
+    assertEquals(10, countStringContentChecker(argCouldBeNull));
   }
 
   @Test
@@ -202,14 +218,14 @@ public class StringContentCheckTest extends TestBase {
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 22);
+    test(result, 26);
 
     result = testForD8()
         .release()
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 12);
+    test(result, 14);
   }
 
   @Test
@@ -221,6 +237,6 @@ public class StringContentCheckTest extends TestBase {
         .addKeepMainRule(MAIN)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 12);
+    test(result, 14);
   }
 }

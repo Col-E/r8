@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -53,16 +54,18 @@ public class StringOptimizer {
 
   // int String#length()
   // boolean String#isEmpty()
-  // boolean String#startsWith(str)
-  // boolean String#endsWith(str)
-  // boolean String#contains(str)
-  // boolean String#equals(str)
-  // boolean String#equalsIgnoreCase(str)
-  // boolean String#contentEquals(str)
-  // int String#indexOf(str)
+  // boolean String#startsWith(String)
+  // boolean String#endsWith(String)
+  // boolean String#contains(String)
+  // boolean String#equals(String)
+  // boolean String#equalsIgnoreCase(String)
+  // boolean String#contentEquals(String)
+  // int String#indexOf(String)
   // int String#indexOf(int)
-  // int String#lastIndexOf(str)
+  // int String#lastIndexOf(String)
   // int String#lastIndexOf(int)
+  // int String#compareTo(String)
+  // int String#compareToIgnoreCase(String)
   public void computeTrivialOperationsOnConstString(IRCode code) {
     if (!code.hasConstString) {
       return;
@@ -102,6 +105,10 @@ public class StringOptimizer {
         operatorWithInt = String::lastIndexOf;
       } else if (invokedMethod == factory.stringMethods.lastIndexOfString) {
         operatorWithString = String::lastIndexOf;
+      } else if (invokedMethod == factory.stringMethods.compareTo) {
+        operatorWithString = String::compareTo;
+      } else if (invokedMethod == factory.stringMethods.compareToIgnoreCase) {
+        operatorWithString = String::compareToIgnoreCase;
       } else {
         continue;
       }
@@ -111,12 +118,12 @@ public class StringOptimizer {
           || !rcv.isConstant()) {
         continue;
       }
+      DexString rcvString = rcv.definition.asConstString().getValue();
 
       ConstNumber constNumber;
       if (operatorWithNoArg != null) {
         assert invoke.inValues().size() == 1;
-        ConstString rcvString = rcv.definition.asConstString();
-        int v = operatorWithNoArg.apply(rcvString.getValue().toString());
+        int v = operatorWithNoArg.apply(rcvString.toString());
         constNumber = code.createIntConstant(v);
       } else if (operatorWithString != null) {
         assert invoke.inValues().size() == 2;
@@ -126,10 +133,9 @@ public class StringOptimizer {
             || !arg.isConstant()) {
           continue;
         }
-        ConstString rcvString = rcv.definition.asConstString();
-        ConstString argString = arg.definition.asConstString();
         int v = operatorWithString.apply(
-            rcvString.getValue().toString(), argString.getValue().toString());
+            rcvString.toString(),
+            arg.definition.asConstString().getValue().toString());
         constNumber = code.createIntConstant(v);
       } else {
         assert operatorWithInt != null;
@@ -140,10 +146,9 @@ public class StringOptimizer {
             || !arg.isConstant()) {
           continue;
         }
-        ConstString rcvString = rcv.definition.asConstString();
-        ConstNumber argInt = arg.definition.asConstNumber();
         int v = operatorWithInt.apply(
-            rcvString.getValue().toString(), argInt.getIntValue());
+            rcvString.toString(),
+            arg.definition.asConstNumber().getIntValue());
         constNumber = code.createIntConstant(v);
       }
 
