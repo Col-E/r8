@@ -59,6 +59,10 @@ public class StringOptimizer {
   // boolean String#equals(str)
   // boolean String#equalsIgnoreCase(str)
   // boolean String#contentEquals(str)
+  // int String#indexOf(str)
+  // int String#indexOf(int)
+  // int String#lastIndexOf(str)
+  // int String#lastIndexOf(int)
   public void computeTrivialOperationsOnConstString(IRCode code) {
     if (!code.hasConstString) {
       return;
@@ -73,6 +77,7 @@ public class StringOptimizer {
       DexMethod invokedMethod = invoke.getInvokedMethod();
       Function<String, Integer> operatorWithNoArg = null;
       BiFunction<String, String, Integer> operatorWithString = null;
+      BiFunction<String, Integer, Integer> operatorWithInt = null;
       if (invokedMethod == factory.stringMethods.length) {
         operatorWithNoArg = String::length;
       } else if (invokedMethod == factory.stringMethods.isEmpty) {
@@ -89,8 +94,15 @@ public class StringOptimizer {
         operatorWithString = (rcv, arg) -> rcv.equalsIgnoreCase(arg) ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.contentEqualsCharSequence) {
         operatorWithString = (rcv, arg) -> rcv.contentEquals(arg) ? 1 : 0;
-      }
-      if (operatorWithNoArg == null && operatorWithString == null) {
+      } else if (invokedMethod == factory.stringMethods.indexOfInt) {
+        operatorWithInt = String::indexOf;
+      } else if (invokedMethod == factory.stringMethods.indexOfString) {
+        operatorWithString = String::indexOf;
+      } else if (invokedMethod == factory.stringMethods.lastIndexOfInt) {
+        operatorWithInt = String::lastIndexOf;
+      } else if (invokedMethod == factory.stringMethods.lastIndexOfString) {
+        operatorWithString = String::lastIndexOf;
+      } else {
         continue;
       }
       Value rcv = invoke.getReceiver().getAliasedValue();
@@ -99,14 +111,14 @@ public class StringOptimizer {
           || !rcv.isConstant()) {
         continue;
       }
+
+      ConstNumber constNumber;
       if (operatorWithNoArg != null) {
         assert invoke.inValues().size() == 1;
         ConstString rcvString = rcv.definition.asConstString();
         int v = operatorWithNoArg.apply(rcvString.getValue().toString());
-        ConstNumber constNumber = code.createIntConstant(v);
-        it.replaceCurrentInstruction(constNumber);
-      } else {
-        assert operatorWithString != null;
+        constNumber = code.createIntConstant(v);
+      } else if (operatorWithString != null) {
         assert invoke.inValues().size() == 2;
         Value arg = invoke.inValues().get(1).getAliasedValue();
         if (arg.definition == null
@@ -118,9 +130,24 @@ public class StringOptimizer {
         ConstString argString = arg.definition.asConstString();
         int v = operatorWithString.apply(
             rcvString.getValue().toString(), argString.getValue().toString());
-        ConstNumber constNumber = code.createIntConstant(v);
-        it.replaceCurrentInstruction(constNumber);
+        constNumber = code.createIntConstant(v);
+      } else {
+        assert operatorWithInt != null;
+        assert invoke.inValues().size() == 2;
+        Value arg = invoke.inValues().get(1).getAliasedValue();
+        if (arg.definition == null
+            || !arg.definition.isConstNumber()
+            || !arg.isConstant()) {
+          continue;
+        }
+        ConstString rcvString = rcv.definition.asConstString();
+        ConstNumber argInt = arg.definition.asConstNumber();
+        int v = operatorWithInt.apply(
+            rcvString.getValue().toString(), argInt.getIntValue());
+        constNumber = code.createIntConstant(v);
       }
+
+      it.replaceCurrentInstruction(constNumber);
     }
   }
 

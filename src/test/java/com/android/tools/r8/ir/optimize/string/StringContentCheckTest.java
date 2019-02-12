@@ -33,7 +33,9 @@ class StringContentCheckTestMain {
         && "suffix".endsWith(arg)
         && "CONST".equals(arg)
         && "CONST".equalsIgnoreCase(arg)
-        && "CONST".contentEquals(arg);
+        && "CONST".contentEquals(arg)
+        && "CONST".indexOf(arg) > 0
+        && "CONST".lastIndexOf(arg) > 0;
   }
 
   public static void main(String[] args) {
@@ -46,6 +48,10 @@ class StringContentCheckTestMain {
       System.out.println(s1.equalsIgnoreCase("PREFIX-const-SUFFIX"));
       System.out.println(s1.contentEquals("prefix-CONST-suffix"));
       System.out.println(s1.contentEquals(new StringBuffer("prefix-CONST-suffix")));
+      System.out.println(s1.indexOf('f'));
+      System.out.println(s1.indexOf("ix"));
+      System.out.println(s1.lastIndexOf('f'));
+      System.out.println(s1.lastIndexOf("ix"));
     }
 
     {
@@ -58,6 +64,10 @@ class StringContentCheckTestMain {
       System.out.println(s2.equalsIgnoreCase("pre-con-suf"));
       System.out.println(s2.contentEquals("prefix-CONST-suffix"));
       System.out.println(s2.contentEquals(new StringBuffer("prefix-CONST-suffix")));
+      System.out.println(s2.indexOf('f'));
+      System.out.println(s2.indexOf("ix"));
+      System.out.println(s2.lastIndexOf('f'));
+      System.out.println(s2.lastIndexOf("ix"));
     }
 
     {
@@ -94,6 +104,14 @@ public class StringContentCheckTest extends TestBase {
       "true",
       // s1, contentEquals(StringBuffer)
       "true",
+      // s1, indexOf(int)
+      "3",
+      // s1, indexOf(String)
+      "4",
+      // s1, lastIndexOf(int)
+      "16",
+      // s1, lastIndexOf(String)
+      "17",
       // s2, contains
       "false",
       // s2, startsWith
@@ -108,6 +126,14 @@ public class StringContentCheckTest extends TestBase {
       "false",
       // s2, contentEquals(StringBuffer)
       "false",
+      // s2, indexOf(int)
+      "-1",
+      // s2, indexOf(String)
+      "-1",
+      // s2, lastIndexOf(int)
+      "-1",
+      // s2, lastIndexOf(String)
+      "-1",
       // argCouldBeNull
       "false"
   );
@@ -131,13 +157,16 @@ public class StringContentCheckTest extends TestBase {
   private static boolean isStringContentChecker(DexMethod method) {
     return method.getHolder().toDescriptorString().equals("Ljava/lang/String;")
         && method.getArity() == 1
-        && method.proto.returnType.isBooleanType()
+        && (method.proto.returnType.isBooleanType()
+            || method.proto.returnType.isIntType())
         && (method.name.toString().equals("contains")
             || method.name.toString().equals("startsWith")
             || method.name.toString().equals("endsWith")
             || method.name.toString().equals("equals")
             || method.name.toString().equals("equalsIgnoreCase")
-            || method.name.toString().equals("contentEquals"));
+            || method.name.toString().equals("contentEquals")
+            || method.name.toString().equals("indexOf")
+            || method.name.toString().equals("lastIndexOf"));
   }
 
   private long countStringContentChecker(MethodSubject method) {
@@ -161,7 +190,7 @@ public class StringContentCheckTest extends TestBase {
         "boolean", "argCouldBeNull", ImmutableList.of("java.lang.String"));
     assertThat(argCouldBeNull, isPresent());
     // Because of nullable argument, all checkers should remain.
-    assertEquals(6, countStringContentChecker(argCouldBeNull));
+    assertEquals(8, countStringContentChecker(argCouldBeNull));
   }
 
   @Test
@@ -173,14 +202,14 @@ public class StringContentCheckTest extends TestBase {
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 14);
+    test(result, 22);
 
     result = testForD8()
         .release()
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 8);
+    test(result, 12);
   }
 
   @Test
@@ -192,6 +221,6 @@ public class StringContentCheckTest extends TestBase {
         .addKeepMainRule(MAIN)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 8);
+    test(result, 12);
   }
 }
