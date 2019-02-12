@@ -100,7 +100,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Test
   public void lambdaDesugaring() throws Throwable {
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
-        .withMinApiLevel(AndroidApiLevel.K)
+        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
@@ -108,7 +108,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
-        .withMinApiLevel(AndroidApiLevel.K)
+        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
@@ -144,7 +144,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Test
   public void lambdaDesugaringNPlus() throws Throwable {
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
-        .withMinApiLevel(AndroidApiLevel.K)
+        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
@@ -153,7 +153,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .run();
 
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
-        .withMinApiLevel(AndroidApiLevel.K)
+        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(

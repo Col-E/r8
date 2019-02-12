@@ -362,7 +362,7 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void lambdaDesugaring() throws Throwable {
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
-        .withMinApiLevel(AndroidApiLevel.K)
+        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withKeepAll()
         .run();
   }
@@ -370,7 +370,7 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void lambdaDesugaringNPlus() throws Throwable {
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
-        .withMinApiLevel(AndroidApiLevel.K)
+        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .withKeepAll()
         .run();
@@ -399,7 +399,7 @@ public abstract class RunExamplesAndroidOTest
   @Test
   public void lambdaDesugaringValueAdjustments() throws Throwable {
     test("lambdadesugaring-value-adjustments", "lambdadesugaring", "ValueAdjustments")
-        .withMinApiLevel(AndroidApiLevel.K)
+        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withKeepAll()
         .run();
   }
@@ -631,7 +631,7 @@ public abstract class RunExamplesAndroidOTest
             output.replace("\r", "").equals(javaResult.stdout.replace("\r", "")));
       }
     } catch (Throwable t) {
-      assert expectedToFail;
+      assertTrue("Test was not expected to fail. Failed with " + t.getMessage(), expectedToFail);
     }
   }
 

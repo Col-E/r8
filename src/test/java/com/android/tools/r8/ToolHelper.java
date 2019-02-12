@@ -735,6 +735,11 @@ public class ToolHelper {
     }
   }
 
+  public static AndroidApiLevel getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel threshold) {
+    AndroidApiLevel minApiLevelForDexVm = getMinApiLevelForDexVm();
+    return minApiLevelForDexVm.getLevel() < threshold.getLevel() ? minApiLevelForDexVm : threshold;
+  }
+
   public static AndroidApiLevel getMinApiLevelForDexVm() {
     return getMinApiLevelForDexVm(ToolHelper.getDexVm());
   }
