@@ -10,6 +10,9 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.VmTestRunner;
+import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -18,6 +21,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Streams;
 import java.util.Objects;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 class ObjectsRequireNonNullTestMain {
 
@@ -59,6 +63,7 @@ class ObjectsRequireNonNullTestMain {
   }
 }
 
+@RunWith(VmTestRunner.class)
 public class ObjectsRequireNonNullTest extends TestBase {
   private static final String JAVA_OUTPUT = StringUtils.lines(
       "Foo::toString",
@@ -102,6 +107,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
   }
 
   @Test
+  @IgnoreIfVmOlderThan(Version.V4_4_4)
   public void testD8() throws Exception {
     TestRunResult result = testForD8()
         .debug()
@@ -119,6 +125,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
   }
 
   @Test
+  @IgnoreIfVmOlderThan(Version.V4_4_4)
   public void testR8() throws Exception {
     // CF disables move result optimization.
     TestRunResult result = testForR8(Backend.DEX)
