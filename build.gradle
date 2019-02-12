@@ -472,9 +472,11 @@ sourceSets.configureEach { sourceSet ->
         // Default disable errorprone (enabled and setup below).
         options.errorprone.enabled = false
         options.compilerArgs << '-Xlint:unchecked'
+        // Run all compilation tasks in a forked subprocess.
+        options.fork = true
         // Javac often runs out of stack space when compiling the tests.
         // Increase the stack size for the javac process.
-        options.forkOptions.jvmArgs << "-Xss8m"
+        options.forkOptions.jvmArgs << "-Xss4m"
         // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
         options.forkOptions.jvmArgs << "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar"
     }
