@@ -474,7 +474,7 @@ sourceSets.configureEach { sourceSet ->
         options.compilerArgs << '-Xlint:unchecked'
         // Javac often runs out of stack space when compiling the tests.
         // Increase the stack size for the javac process.
-        options.forkOptions.jvmArgs << "-Xss4m"
+        options.forkOptions.jvmArgs << "-Xss8m"
         // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
         options.forkOptions.jvmArgs << "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar"
     }
