@@ -4,7 +4,9 @@
 
 # Different utility functions used accross scripts
 
+import defines
 import hashlib
+import jdk
 import os
 import re
 import shutil
@@ -16,9 +18,9 @@ import zipfile
 
 ANDROID_JAR_DIR = 'third_party/android_jar/lib-v{api}'
 ANDROID_JAR = os.path.join(ANDROID_JAR_DIR, 'android.jar')
-TOOLS_DIR = os.path.abspath(os.path.normpath(os.path.join(__file__, '..')))
-REPO_ROOT = os.path.realpath(os.path.join(TOOLS_DIR, '..'))
-THIRD_PARTY = os.path.join(REPO_ROOT, 'third_party')
+TOOLS_DIR = defines.TOOLS_DIR
+REPO_ROOT = defines.REPO_ROOT
+THIRD_PARTY = defines.THIRD_PARTY
 MEMORY_USE_TMP_FILE = 'memory_use.tmp'
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 BUILD = os.path.join(REPO_ROOT, 'build')
@@ -156,13 +158,13 @@ def RunCmd(cmd, env_vars=None, quiet=False):
       return stdout
 
 def IsWindows():
-  return sys.platform.startswith('win')
+  return defines.IsWindows()
 
 def IsLinux():
-  return sys.platform.startswith('linux')
+  return defines.IsLinux()
 
 def IsOsX():
-  return sys.platform.startswith('darwin')
+  return defines.IsOsX()
 
 def EnsureDepFromGoogleCloudStorage(dep, tgz, sha1, msg):
   if not os.path.exists(dep) or os.path.getmtime(tgz) < os.path.getmtime(sha1):
@@ -385,7 +387,7 @@ def grep_memoryuse(logfile):
 # Return a dictionary: {segment_name -> segments_size}
 def getDexSegmentSizes(dex_files):
   assert len(dex_files) > 0
-  cmd = ['java', '-jar', R8_JAR, 'dexsegments']
+  cmd = [jdk.GetJavaExecutable(), '-jar', R8_JAR, 'dexsegments']
   cmd.extend(dex_files)
   PrintCmd(cmd)
   output = subprocess.check_output(cmd)
@@ -405,7 +407,7 @@ def getDexSegmentSizes(dex_files):
 
 # Return a dictionary: {segment_name -> segments_size}
 def getCfSegmentSizes(cfFile):
-  cmd = ['java',
+  cmd = [jdk.GetJavaExecutable(),
          '-cp',
          CF_SEGMENTS_TOOL,
          'com.android.tools.r8.cf_segments.MeasureLib',
@@ -443,7 +445,7 @@ def print_dexsegments(prefix, dex_files):
 
 # Ensure that we are not benchmarking with a google jvm.
 def check_java_version():
-  cmd= ['java', '-version']
+  cmd= [jdk.GetJavaExecutable(), '-version']
   output = subprocess.check_output(cmd, stderr = subprocess.STDOUT)
   m = re.search('openjdk version "([^"]*)"', output)
   if m is None:

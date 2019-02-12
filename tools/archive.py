@@ -5,6 +5,7 @@
 
 import create_maven_release
 import gradle
+import jdk
 import optparse
 import os
 import shutil
@@ -25,7 +26,9 @@ def ParseOptions():
   return result.parse_args()
 
 def GetToolVersion(jar_path):
-  output = subprocess.check_output(['java', '-jar', jar_path, '--version'])
+  output = subprocess.check_output([
+    jdk.GetJavaExecutable(), '-jar', jar_path, '--version'
+  ])
   return output.splitlines()[0].strip()
 
 def GetVersion():

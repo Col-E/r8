@@ -5,6 +5,7 @@
 
 import archive
 import argparse
+import jdk
 import subprocess
 import sys
 import tempfile
@@ -49,7 +50,9 @@ def main():
       print('Could not find map file from argument: %s.' % hashOrVersion)
       return 1
 
-  retrace_args = ['java', '-jar', utils.RETRACE_JAR, r8lib_map_path]
+  retrace_args = [
+    jdk.GetJavaExecutable(), '-jar', utils.RETRACE_JAR, r8lib_map_path
+  ]
   if args.stacktrace:
     retrace_args.append(args.stacktrace)
 

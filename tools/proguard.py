@@ -6,6 +6,7 @@
 # Run ProGuard, Google's internal version
 
 from __future__ import print_function
+import jdk
 import os
 import subprocess
 import sys
@@ -19,7 +20,7 @@ def run(args, track_memory_file = None, stdout=None, stderr=None):
   cmd = []
   if track_memory_file:
     cmd.extend(['tools/track_memory.sh', track_memory_file])
-  cmd.extend(['java', '-jar', PROGUARD_JAR])
+  cmd.extend([jdk.GetJavaExecutable(), '-jar', PROGUARD_JAR])
   cmd.extend(args)
   utils.PrintCmd(cmd)
   subprocess.call(cmd, stdout=stdout, stderr=stderr)

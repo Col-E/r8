@@ -8,6 +8,7 @@ Compare the R8 API used by the API usage sample to the API kept by @Keep.
 '''
 
 import argparse
+import jdk
 import os
 import subprocess
 import utils
@@ -23,16 +24,17 @@ def main(output_dir=None):
   if output_dir is None:
     output_dir = ''
 
+  javaExecutable = jdk.GetJavaExecutable()
   printseeds_path = os.path.join(output_dir, 'keep-seeds.txt')
   printseeds_args = [
-    'java', '-jar', utils.R8_JAR, 'printseeds',
+    javaExecutable, '-jar', utils.R8_JAR, 'printseeds',
     utils.RT_JAR, utils.R8_JAR, utils.R8LIB_KEEP_RULES,
   ]
   write_sorted_lines(printseeds_args, printseeds_path)
 
   printuses_path = os.path.join(output_dir, 'sample-uses.txt')
   printuses_args = [
-    'java', '-jar', utils.R8_JAR, 'printuses',
+    javaExecutable, '-jar', utils.R8_JAR, 'printuses',
     utils.RT_JAR, utils.R8_JAR, API_SAMPLE_JAR,
   ]
   write_sorted_lines(printuses_args, printuses_path)

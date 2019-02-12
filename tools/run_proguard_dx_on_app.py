@@ -13,6 +13,7 @@ from subprocess import check_call
 import argparse
 import fnmatch
 import gmscore_data
+import jdk
 import os
 import stat
 import sys
@@ -140,7 +141,7 @@ def Main(argv):
     if options.print_memoryuse:
       track_memory_file = join(temp, utils.MEMORY_USE_TMP_FILE)
       cmd.extend(['tools/track_memory.sh', track_memory_file])
-    cmd.extend(['java', '-jar', jar, '--multi-dex',
+    cmd.extend([jdk.GetJavaExecutable(), '-jar', jar, '--multi-dex',
         '--output=' + outdir])
     if 'min-api' in values_proguarded:
       cmd.append('--min-sdk-version=' + values_proguarded['min-api'])

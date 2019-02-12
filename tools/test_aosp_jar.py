@@ -10,6 +10,7 @@ from glob import glob
 from itertools import chain
 from os.path import join
 import argparse
+import jdk
 import os
 import subprocess
 import sys
@@ -36,7 +37,7 @@ def Main():
   if not args.no_build:
     gradle.RunGradle(['CompatDx'])
 
-  cmd = [REPLAY_SCRIPT, 'java', '-jar', utils.COMPATDX_JAR]
+  cmd = [REPLAY_SCRIPT, jdk.GetJavaExecutable(), '-jar', utils.COMPATDX_JAR]
   utils.PrintCmd(cmd)
   subprocess.check_call(cmd)
 
