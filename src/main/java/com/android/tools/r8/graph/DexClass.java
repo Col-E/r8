@@ -38,22 +38,17 @@ public abstract class DexClass extends DexDefinition {
   public DexTypeList interfaces;
   public DexString sourceFile;
 
-  /**
-   * Access has to be synchronized during concurrent collection/writing phase.
-   */
-  protected DexEncodedField[] staticFields;
-  /**
-   * Access has to be synchronized during concurrent collection/writing phase.
-   */
-  protected DexEncodedField[] instanceFields;
-  /**
-   * Access has to be synchronized during concurrent collection/writing phase.
-   */
-  protected DexEncodedMethod[] directMethods;
-  /**
-   * Access has to be synchronized during concurrent collection/writing phase.
-   */
-  protected DexEncodedMethod[] virtualMethods;
+  /** Access has to be synchronized during concurrent collection/writing phase. */
+  protected DexEncodedField[] staticFields = NO_FIELDS;
+
+  /** Access has to be synchronized during concurrent collection/writing phase. */
+  protected DexEncodedField[] instanceFields = NO_FIELDS;
+
+  /** Access has to be synchronized during concurrent collection/writing phase. */
+  protected DexEncodedMethod[] directMethods = NO_METHODS;
+
+  /** Access has to be synchronized during concurrent collection/writing phase. */
+  protected DexEncodedMethod[] virtualMethods = NO_METHODS;
 
   /** Enclosing context of this class if it is an inner class, null otherwise. */
   private EnclosingMethodAttribute enclosingMethod;
@@ -146,7 +141,8 @@ public abstract class DexClass extends DexDefinition {
     System.arraycopy(directMethods, 0, newMethods, 0, directMethods.length);
     newMethods[directMethods.length] = method;
     directMethods = newMethods;
-    assert verifyNoDuplicateMethods(directMethods);
+    assert verifyCorrectnessOfMethodHolder(method);
+    assert verifyNoDuplicateMethods();
   }
 
   public void appendDirectMethods(Collection<DexEncodedMethod> methods) {
@@ -158,7 +154,8 @@ public abstract class DexClass extends DexDefinition {
       i++;
     }
     directMethods = newMethods;
-    assert verifyNoDuplicateMethods(directMethods);
+    assert verifyCorrectnessOfMethodHolders(methods);
+    assert verifyNoDuplicateMethods();
   }
 
   public void removeDirectMethod(int index) {
@@ -170,12 +167,14 @@ public abstract class DexClass extends DexDefinition {
 
   public void setDirectMethod(int index, DexEncodedMethod method) {
     directMethods[index] = method;
-    assert verifyNoDuplicateMethods(directMethods);
+    assert verifyCorrectnessOfMethodHolder(method);
+    assert verifyNoDuplicateMethods();
   }
 
   public void setDirectMethods(DexEncodedMethod[] values) {
     directMethods = MoreObjects.firstNonNull(values, NO_METHODS);
-    assert verifyNoDuplicateMethods(directMethods);
+    assert verifyCorrectnessOfMethodHolders(directMethods());
+    assert verifyNoDuplicateMethods();
   }
 
   public List<DexEncodedMethod> virtualMethods() {
@@ -191,7 +190,8 @@ public abstract class DexClass extends DexDefinition {
     System.arraycopy(virtualMethods, 0, newMethods, 0, virtualMethods.length);
     newMethods[virtualMethods.length] = method;
     virtualMethods = newMethods;
-    assert verifyNoDuplicateMethods(virtualMethods);
+    assert verifyCorrectnessOfMethodHolder(method);
+    assert verifyNoDuplicateMethods();
   }
 
   public void appendVirtualMethods(Collection<DexEncodedMethod> methods) {
@@ -203,7 +203,8 @@ public abstract class DexClass extends DexDefinition {
       i++;
     }
     virtualMethods = newMethods;
-    assert verifyNoDuplicateMethods(virtualMethods);
+    assert verifyCorrectnessOfMethodHolders(methods);
+    assert verifyNoDuplicateMethods();
   }
 
   public void removeVirtualMethod(int index) {
@@ -216,22 +217,39 @@ public abstract class DexClass extends DexDefinition {
 
   public void setVirtualMethod(int index, DexEncodedMethod method) {
     virtualMethods[index] = method;
-    assert verifyNoDuplicateMethods(virtualMethods);
+    assert verifyCorrectnessOfMethodHolder(method);
+    assert verifyNoDuplicateMethods();
   }
 
   public void setVirtualMethods(DexEncodedMethod[] values) {
     virtualMethods = MoreObjects.firstNonNull(values, NO_METHODS);
-    assert verifyNoDuplicateMethods(virtualMethods);
+    assert verifyCorrectnessOfMethodHolders(virtualMethods());
+    assert verifyNoDuplicateMethods();
   }
 
-  private boolean verifyNoDuplicateMethods(DexEncodedMethod[] methods) {
+  private boolean verifyCorrectnessOfMethodHolder(DexEncodedMethod method) {
+    assert method.method.holder == type
+        : "Expected method `"
+            + method.method.toSourceString()
+            + "` to have holder `"
+            + type.toSourceString()
+            + "`";
+    return true;
+  }
+
+  private boolean verifyCorrectnessOfMethodHolders(Iterable<DexEncodedMethod> methods) {
+    for (DexEncodedMethod method : methods) {
+      assert verifyCorrectnessOfMethodHolder(method);
+    }
+    return true;
+  }
+
+  private boolean verifyNoDuplicateMethods() {
     Set<DexMethod> unique = Sets.newIdentityHashSet();
-    Arrays.stream(methods)
-        .forEach(
-            method -> {
-              boolean changed = unique.add(method.method);
-              assert changed : "Duplicate method `" + method.method.toSourceString() + "`";
-            });
+    for (DexEncodedMethod method : methods()) {
+      boolean changed = unique.add(method.method);
+      assert changed : "Duplicate method `" + method.method.toSourceString() + "`";
+    }
     return true;
   }
 
@@ -651,6 +669,8 @@ public abstract class DexClass extends DexDefinition {
   public boolean isValid() {
     assert !isInterface()
         || Arrays.stream(virtualMethods).noneMatch(method -> method.accessFlags.isFinal());
+    assert verifyCorrectnessOfMethodHolders(methods());
+    assert verifyNoDuplicateMethods();
     return true;
   }
 }
