@@ -69,6 +69,14 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
       return useUniqueMemberNames ? globalState : states.get(type);
     }
 
+    DexType getStateKey(NamingState<StateType, ?> state) {
+      return states.inverse().get(state);
+    }
+
+    NamingState<StateType, ?> globalState() {
+      return globalState;
+    }
+
     boolean isReservedInGlobalState(DexString name, StateType state) {
       return globalState.isReserved(name, state);
     }
