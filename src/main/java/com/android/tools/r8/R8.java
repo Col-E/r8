@@ -624,7 +624,6 @@ public class R8 {
             new Minifier(appView.appInfo().withLiveness(), rootSet, desugaredCallSites, options)
                 .run(timing);
         timing.end();
-        assert namingLens.verifyNoCollisions(application.classes(), options.itemFactory);
       } else {
         namingLens = NamingLens.getIdentityLens();
       }

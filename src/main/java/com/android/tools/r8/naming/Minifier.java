@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
+import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -56,21 +57,28 @@ public class Minifier {
     ClassNameMinifier classNameMinifier = new ClassNameMinifier(appInfo, rootSet, options);
     ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing);
     timing.end();
+
+    assert new MinifiedRenaming(
+            classRenaming, MethodRenaming.empty(), FieldRenaming.empty(), appInfo)
+        .verifyNoCollisions(appInfo.classes(), appInfo.dexItemFactory);
+
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
         new MethodNameMinifier(appInfo, rootSet, desugaredCallSites, options)
             .computeRenaming(timing);
     timing.end();
+
+    assert new MinifiedRenaming(classRenaming, methodRenaming, FieldRenaming.empty(), appInfo)
+        .verifyNoCollisions(appInfo.classes(), appInfo.dexItemFactory);
+
     timing.begin("MinifyFields");
-    Map<DexField, DexString> fieldRenaming =
+    FieldRenaming fieldRenaming =
         new FieldNameMinifier(appInfo, rootSet, options).computeRenaming(timing);
     timing.end();
-    NamingLens lens =
-        new MinifiedRenaming(
-            classRenaming,
-            methodRenaming,
-            fieldRenaming,
-            appInfo);
+
+    NamingLens lens = new MinifiedRenaming(classRenaming, methodRenaming, fieldRenaming, appInfo);
+    assert lens.verifyNoCollisions(appInfo.classes(), appInfo.dexItemFactory);
+
     timing.begin("MinifyIdentifiers");
     new IdentifierMinifier(
         appInfo, options.getProguardConfiguration().getAdaptClassStrings(), lens).run();
@@ -87,14 +95,14 @@ public class Minifier {
     private MinifiedRenaming(
         ClassRenaming classRenaming,
         MethodRenaming methodRenaming,
-        Map<DexField, DexString> fieldRenaming,
+        FieldRenaming fieldRenaming,
         AppInfo appInfo) {
       this.appInfo = appInfo;
       this.packageRenaming = classRenaming.packageRenaming;
       renaming.putAll(classRenaming.classRenaming);
       renaming.putAll(methodRenaming.renaming);
       renaming.putAll(methodRenaming.callSiteRenaming);
-      renaming.putAll(fieldRenaming);
+      renaming.putAll(fieldRenaming.renaming);
     }
 
     @Override
