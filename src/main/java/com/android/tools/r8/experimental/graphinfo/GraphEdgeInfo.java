@@ -15,6 +15,7 @@ public class GraphEdgeInfo {
     TargetedBySuper,
     InvokedFrom,
     InvokedFromLambdaCreatedIn,
+    AnnotatedOn,
     ReferencedFrom,
     ReflectiveUseFrom,
     ReachableFromLiveType,

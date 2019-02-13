@@ -4,16 +4,21 @@
 
 package com.android.tools.r8.shaking;
 
+import static junit.framework.TestCase.assertTrue;
+
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
-import org.junit.Ignore;
+import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 class UnusedTypeInThrowing {
 
+  public static final String EXPECTED = "42";
+
   public static void main(String[] args) throws UnusedTypeInThrowingThrowable {
-    System.out.print("42");
+    System.out.print(EXPECTED);
   }
 }
 
@@ -25,14 +30,20 @@ public class UnusedTypeInThrowingTest extends TestBase {
   static final Class MAIN_CLASS = UnusedTypeInThrowing.class;
 
   @Test
-  @Ignore("b/124019003")
-  public void testTypeIsMarkedAsLive() throws IOException, CompilationFailedException {
-    testForR8(Backend.CF)
-        .addProgramClasses(MAIN_CLASS)
-        .addProgramClasses(THROWABLE_CLASS)
-        .addKeepMainRule(MAIN_CLASS)
-        .addKeepRules("-keepattributes Exceptions")
-        .run(MAIN_CLASS)
-        .assertSuccessWithOutput("42");
+  public void testTypeIsMarkedAsLive()
+      throws IOException, CompilationFailedException, ExecutionException, NoSuchMethodException {
+    CodeInspector inspector =
+        testForR8(Backend.CF)
+            .enableGraphInspector()
+            .addProgramClasses(MAIN_CLASS)
+            .addProgramClasses(THROWABLE_CLASS)
+            .addKeepMainRule(MAIN_CLASS)
+            .addKeepRules("-keepattributes Exceptions")
+            .run(MAIN_CLASS)
+            .assertSuccessWithOutput(UnusedTypeInThrowing.EXPECTED)
+            .inspector();
+
+    assertTrue(inspector.clazz(THROWABLE_CLASS).isPresent());
+    // TODO(b/124217402) When done check that THROWABLE_CLASS is kept by the throwing annotation.
   }
 }
