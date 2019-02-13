@@ -5,6 +5,8 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
@@ -39,6 +41,7 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.base.Suppliers;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -66,13 +69,33 @@ public class LineNumberOptimizer {
   }
 
   private static class OptimizingPositionRemapper implements PositionRemapper {
-    private int nextLineNumber = 1;
+    private final int maxLineDelta;
+    private DexMethod previousMethod = null;
+    private int previousSourceLine = -1;
+    private int nextOptimizedLineNumber = 1;
+
+    OptimizingPositionRemapper(InternalOptions options) {
+      // TODO(113198295): For dex using "Constants.DBG_LINE_RANGE + Constants.DBG_LINE_BASE"
+      // instead of 1 creates a ~30% smaller map file but the dex files gets larger due to reduced
+      // debug info canonicalization.
+      maxLineDelta = options.isGeneratingClassFiles() ? Integer.MAX_VALUE : 1;
+    }
 
     @Override
     public Position createRemappedPosition(
         int line, DexString file, DexMethod method, Position callerPosition) {
-      Position newPosition = new Position(nextLineNumber, file, method, null);
-      ++nextLineNumber;
+      assert method != null;
+      if (previousMethod == method) {
+        assert previousSourceLine >= 0;
+        if (line > previousSourceLine && line - previousSourceLine <= maxLineDelta) {
+            nextOptimizedLineNumber += (line - previousSourceLine) - 1;
+        }
+      }
+
+      Position newPosition = new Position(nextOptimizedLineNumber, file, method, null);
+      ++nextOptimizedLineNumber;
+      previousSourceLine = line;
+      previousMethod = method;
       return newPosition;
     }
   }
@@ -138,10 +161,9 @@ public class LineNumberOptimizer {
   }
 
   public static ClassNameMapper run(
+      AppView<AppInfoWithSubtyping> appView,
       DexApplication application,
-      GraphLense graphLense,
-      NamingLens namingLens,
-      boolean identityMapping) {
+      NamingLens namingLens) {
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
@@ -151,7 +173,7 @@ public class LineNumberOptimizer {
       // At this point we don't know if we really need to add this class to the builder.
       // It depends on whether any methods/fields are renamed or some methods contain positions.
       // Create a supplier which creates a new, cached ClassNaming.Builder on-demand.
-      DexType originalType = graphLense.getOriginalType(clazz.type);
+      DexType originalType = appView.graphLense().getOriginalType(clazz.type);
       DexString renamedClassName = namingLens.lookupDescriptor(clazz.getType());
       Supplier<ClassNaming.Builder> onDemandClassNamingBuilder =
           Suppliers.memoize(
@@ -164,7 +186,7 @@ public class LineNumberOptimizer {
       addClassToClassNaming(originalType, renamedClassName, onDemandClassNamingBuilder);
 
       // First transfer renamed fields to classNamingBuilder.
-      addFieldsToClassNaming(graphLense, namingLens, clazz, onDemandClassNamingBuilder);
+      addFieldsToClassNaming(appView.graphLense(), namingLens, clazz, onDemandClassNamingBuilder);
 
       // Then process the methods, ordered by renamed name.
       List<DexString> renamedMethodNames = new ArrayList<>(methodsByRenamedName.keySet());
@@ -179,8 +201,12 @@ public class LineNumberOptimizer {
           sortMethods(methods);
         }
 
+        boolean identityMapping =
+            appView.options().lineNumberOptimization == LineNumberOptimization.OFF;
         PositionRemapper positionRemapper =
-            identityMapping ? new IdentityPositionRemapper() : new OptimizingPositionRemapper();
+            identityMapping
+                ? new IdentityPositionRemapper()
+                : new OptimizingPositionRemapper(appView.options());
 
         for (DexEncodedMethod method : methods) {
           List<MappedPosition> mappedPositions = new ArrayList<>();
@@ -194,7 +220,7 @@ public class LineNumberOptimizer {
             }
           }
 
-          DexMethod originalMethod = graphLense.getOriginalMethodSignature(method.method);
+          DexMethod originalMethod = appView.graphLense().getOriginalMethodSignature(method.method);
           MethodSignature originalSignature =
               MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != clazz.type);
 
@@ -217,7 +243,7 @@ public class LineNumberOptimizer {
           signatures.put(originalMethod, originalSignature);
           Function<DexMethod, MethodSignature> getOriginalMethodSignature =
               m -> {
-                DexMethod original = graphLense.getOriginalMethodSignature(m);
+                DexMethod original = appView.graphLense().getOriginalMethodSignature(m);
                 return signatures.computeIfAbsent(
                     original,
                     key ->

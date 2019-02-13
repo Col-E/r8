@@ -63,7 +63,6 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SelfRetraceTest;
@@ -632,12 +631,7 @@ public class R8 {
       // When line number optimization is turned off the identity mapping for line numbers is
       // used. We still run the line number optimizer to collect line numbers and inline frame
       // information for the mapping file.
-      ClassNameMapper classNameMapper =
-          LineNumberOptimizer.run(
-              application,
-              appView.graphLense(),
-              namingLens,
-              options.lineNumberOptimization == LineNumberOptimization.OFF);
+      ClassNameMapper classNameMapper = LineNumberOptimizer.run(appView, application, namingLens);
       timing.end();
       proguardMapSupplier = ProguardMapSupplier.fromClassNameMapper(classNameMapper, options);
 
