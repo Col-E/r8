@@ -96,7 +96,7 @@ class ClassNameMinifier {
     // Initialize top-level naming state.
     topLevelState = new Namespace(
         getPackageBinaryNameFromJavaType(options.getProguardConfiguration().getPackagePrefix()));
-    states.computeIfAbsent("", k -> topLevelState);
+    states.put("", topLevelState);
   }
 
   static class ClassRenaming {

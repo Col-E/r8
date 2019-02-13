@@ -15,6 +15,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -269,25 +270,23 @@ public class DexType extends DexReference implements PresortedComparable<DexType
    * language, where interfaces "extend" their superinterface.
    */
   public void forAllImplementsSubtypes(Consumer<DexType> f) {
-    if (hierarchyLevel != INTERFACE_LEVEL) {
-      return;
+    allImplementsSubtypes().forEach(f);
+  }
+
+  public Iterable<DexType> allImplementsSubtypes() {
+    if (hierarchyLevel == INTERFACE_LEVEL) {
+      return Iterables.filter(directSubtypes, subtype -> !subtype.isInterface());
     }
-    for (DexType subtype : directSubtypes) {
-      // Filter out other interfaces.
-      if (subtype.hierarchyLevel != INTERFACE_LEVEL) {
-        f.accept(subtype);
-      }
-    }
+    return ImmutableList.of();
+  }
+
+  public static Iterable<DexType> allInterfaces(DexItemFactory dexItemFactory) {
+    assert dexItemFactory.objectType.hierarchyLevel == ROOT_LEVEL;
+    return Iterables.filter(dexItemFactory.objectType.directSubtypes, DexType::isInterface);
   }
 
   public static void forAllInterfaces(DexItemFactory factory, Consumer<DexType> f) {
-    DexType object = factory.objectType;
-    assert object.hierarchyLevel == ROOT_LEVEL;
-    for (DexType subtype : object.directSubtypes) {
-      if (subtype.isInterface()) {
-        f.accept(subtype);
-      }
-    }
+    allInterfaces(factory).forEach(f);
   }
 
   /**

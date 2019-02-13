@@ -64,8 +64,8 @@ public class Minifier {
 
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appInfo, rootSet, desugaredCallSites, options)
-            .computeRenaming(timing);
+        new MethodNameMinifier(appInfo, rootSet, options)
+            .computeRenaming(desugaredCallSites, timing);
     timing.end();
 
     assert new MinifiedRenaming(classRenaming, methodRenaming, FieldRenaming.empty(), appInfo)

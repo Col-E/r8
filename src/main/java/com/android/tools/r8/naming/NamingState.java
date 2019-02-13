@@ -129,7 +129,7 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     state.addRenaming(original, key, newName);
   }
 
-  private class InternalState {
+  class InternalState {
 
     private static final int INITIAL_NAME_COUNT = 1;
     private final char[] EMPTY_CHAR_ARRAY = new char[0];

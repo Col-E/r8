@@ -19,15 +19,9 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -92,20 +86,15 @@ import java.util.function.Function;
  */
 class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
-  private final Set<DexCallSite> desugaredCallSites;
-
   private final Equivalence<DexMethod> equivalence;
-  private final Map<DexCallSite, DexString> callSiteRenaming = new IdentityHashMap<>();
 
-  private final Map<DexType, DexType> frontierMap = new IdentityHashMap<>();
+  private final FrontierState frontierState = new FrontierState();
 
   MethodNameMinifier(
       AppInfoWithLiveness appInfo,
       RootSet rootSet,
-      Set<DexCallSite> desugaredCallSites,
       InternalOptions options) {
     super(appInfo, rootSet, options);
-    this.desugaredCallSites = desugaredCallSites;
     equivalence =
         overloadAggressively
             ? MethodSignatureEquivalence.get()
@@ -139,32 +128,32 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     }
   }
 
-  MethodRenaming computeRenaming(Timing timing) {
+  MethodRenaming computeRenaming(Set<DexCallSite> desugaredCallSites, Timing timing) {
     // Phase 1: Reserve all the names that need to be kept and allocate linked state in the
     //          library part.
     timing.begin("Phase 1");
     reserveNamesInClasses(
         appInfo.dexItemFactory.objectType, appInfo.dexItemFactory.objectType, null);
     timing.end();
-    // Phase 2: Reserve all the names that are required for interfaces.
+    // Phase 2: Reserve all the names that are required for interfaces, and then assign names to
+    //          interface methods. These are assigned by finding a name that is free in all naming
+    //          states that may hold an implementation
     timing.begin("Phase 2");
-    DexType.forAllInterfaces(appInfo.dexItemFactory, this::reserveNamesInInterfaces);
+    InterfaceMethodNameMinifier interfaceMethodNameMinifier =
+        new InterfaceMethodNameMinifier(
+            appInfo, desugaredCallSites, equivalence, frontierState, minifierState, options);
+    interfaceMethodNameMinifier.assignNamesToInterfaceMethods(timing);
     timing.end();
-    // Phase 3: Assign names to interface methods. These are assigned by finding a name that is
-    //          free in all naming states that may hold an implementation.
+    // Phase 3: Assign names top-down by traversing the subtype hierarchy.
     timing.begin("Phase 3");
-    assignNamesToInterfaceMethods(timing);
-    timing.end();
-    // Phase 4: Assign names top-down by traversing the subtype hierarchy.
-    timing.begin("Phase 4");
     assignNamesToClassesMethods(appInfo.dexItemFactory.objectType, false);
     timing.end();
     // Phase 4: Do the same for private methods.
-    timing.begin("Phase 5");
+    timing.begin("Phase 4");
     assignNamesToClassesMethods(appInfo.dexItemFactory.objectType, true);
     timing.end();
 
-    return new MethodRenaming(renaming, callSiteRenaming);
+    return new MethodRenaming(renaming, interfaceMethodNameMinifier.getCallSiteRenamings());
   }
 
   private void assignNamesToClassesMethods(DexType type, boolean doPrivates) {
@@ -172,7 +161,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     if (holder != null && !holder.isLibraryClass()) {
       Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel = new HashMap<>();
       NamingState<DexProto, ?> state =
-          computeStateIfAbsent(type, k -> getState(holder.superType).createChild());
+          computeStateIfAbsent(type, k -> minifierState.getState(holder.superType).createChild());
       for (DexEncodedMethod method : holder.allMethodsSorted()) {
         assignNameToMethod(method, state, renamingAtThisLevel, doPrivates);
       }
@@ -206,249 +195,14 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     }
   }
 
-  private Set<NamingState<DexProto, ?>> getReachableStates(DexType type) {
-    Set<DexType> interfaces = Sets.newIdentityHashSet();
-    interfaces.add(type);
-    collectSuperInterfaces(type, interfaces);
-    collectSubInterfaces(type, interfaces);
-    Set<NamingState<DexProto, ?>> reachableStates = new HashSet<>();
-    for (DexType iface : interfaces) {
-      // Add the interface itself
-      reachableStates.add(getState(iface));
-      // And the frontiers that correspond to the classes that implement the interface.
-      iface.forAllImplementsSubtypes(t -> {
-        NamingState<DexProto, ?> state = getState(frontierMap.get(t));
-        assert state != null;
-        reachableStates.add(state);
-      });
-    }
-    return reachableStates;
-  }
-
-  private void assignNamesToInterfaceMethods(Timing timing) {
-    // First compute a map from method signatures to a set of naming states for interfaces and
-    // frontier states of classes that implement them. We add the frontier states so that we can
-    // reserve the names for later method naming.
-    timing.begin("Compute map");
-    // A map from DexMethods to all the states linked to interfaces they appear in.
-    Map<Wrapper<DexMethod>, Set<NamingState<DexProto, ?>>> globalStateMap = new HashMap<>();
-    // A map from DexMethods to all the definitions seen. Needed as the Wrapper equalizes them all.
-    Map<Wrapper<DexMethod>, Set<DexMethod>> sourceMethodsMap = new HashMap<>();
-    // A map from DexMethods to the first interface state it was seen in. Used to pick good names.
-    Map<Wrapper<DexMethod>, NamingState<DexProto, ?>> originStates = new HashMap<>();
-    DexType.forAllInterfaces(
-        appInfo.dexItemFactory,
-        iface -> {
-          assert iface.isInterface();
-          DexClass clazz = appInfo.definitionFor(iface);
-          if (clazz != null) {
-            assert clazz.isInterface();
-            Set<NamingState<DexProto, ?>> collectedStates = getReachableStates(iface);
-            for (DexEncodedMethod method : shuffleMethods(clazz.methods())) {
-              addStatesToGlobalMapForMethod(
-                  method, collectedStates, globalStateMap, sourceMethodsMap, originStates, iface);
-            }
-          }
-        });
-    // Collect the live call sites for multi-interface lambda expression renaming. For code with
-    // desugared lambdas this is a conservative estimate, as we don't track if the generated
-    // lambda classes survive into the output. As multi-interface lambda expressions are rare
-    // this is not a big deal.
-    Set<DexCallSite> liveCallSites = Sets.union(desugaredCallSites, appInfo.callSites);
-    // If the input program contains a multi-interface lambda expression that implements
-    // interface methods with different protos, we need to make sure that
-    // the implemented lambda methods are renamed to the same name.
-    // To achieve this, we map each DexCallSite that corresponds to a lambda expression to one of
-    // the DexMethods it implements, and we unify the DexMethods that need to be renamed together.
-    Map<DexCallSite, DexMethod> callSites = new IdentityHashMap<>();
-    // Union-find structure to keep track of methods that must be renamed together.
-    // Note that if the input does not use multi-interface lambdas,
-    // unificationParent will remain empty.
-    Map<Wrapper<DexMethod>, Wrapper<DexMethod>> unificationParent = new HashMap<>();
-    liveCallSites.forEach(
-        callSite -> {
-          Set<Wrapper<DexMethod>> callSiteMethods = new HashSet<>();
-          // Don't report errors, as the set of call sites is a conservative estimate, and can
-          // refer to interfaces which has been removed.
-          Set<DexEncodedMethod> implementedMethods =
-              appInfo.lookupLambdaImplementedMethods(callSite);
-          if (implementedMethods.isEmpty()) {
-            return;
-          }
-          callSites.put(callSite, implementedMethods.iterator().next().method);
-          for (DexEncodedMethod method : implementedMethods) {
-            DexType iface = method.method.holder;
-            assert iface.isInterface();
-            Set<NamingState<DexProto, ?>> collectedStates = getReachableStates(iface);
-            addStatesToGlobalMapForMethod(
-                method, collectedStates, globalStateMap, sourceMethodsMap, originStates, iface);
-            callSiteMethods.add(equivalence.wrap(method.method));
-          }
-          if (callSiteMethods.size() > 1) {
-            // Implemented interfaces have different return types. Unify them.
-            Wrapper<DexMethod> mainKey = callSiteMethods.iterator().next();
-            mainKey = unificationParent.getOrDefault(mainKey, mainKey);
-            for (Wrapper<DexMethod> key : callSiteMethods) {
-              unificationParent.put(key, mainKey);
-            }
-          }
-        });
-    Map<Wrapper<DexMethod>, Set<Wrapper<DexMethod>>> unification = new HashMap<>();
-    for (Wrapper<DexMethod> key : unificationParent.keySet()) {
-      // Find root with path-compression.
-      Wrapper<DexMethod> root = unificationParent.get(key);
-      while (unificationParent.get(root) != root) {
-        Wrapper<DexMethod> k = unificationParent.get(unificationParent.get(root));
-        unificationParent.put(root, k);
-        root = k;
-      }
-      unification.computeIfAbsent(root, k -> new HashSet<>()).add(key);
-    }
-    timing.end();
-    // Go over every method and assign a name.
-    timing.begin("Allocate names");
-    // Sort the methods by the number of dependent states, so that we use short names for methods
-    // references in many places.
-    List<Wrapper<DexMethod>> methods = new ArrayList<>(globalStateMap.keySet());
-    methods.sort((a, b) -> globalStateMap.get(b).size() - globalStateMap.get(a).size());
-    for (Wrapper<DexMethod> key : methods) {
-      if (!unificationParent.getOrDefault(key, key).equals(key)) {
-        continue;
-      }
-      List<MethodNamingState> collectedStates = new ArrayList<>();
-      Set<DexMethod> sourceMethods = Sets.newIdentityHashSet();
-      for (Wrapper<DexMethod> k : unification.getOrDefault(key, Collections.singleton(key))) {
-        DexMethod unifiedMethod = k.get();
-        assert unifiedMethod != null;
-        sourceMethods.addAll(sourceMethodsMap.get(k));
-        for (NamingState<DexProto, ?> namingState : globalStateMap.get(k)) {
-          collectedStates.add(
-              new MethodNamingState(namingState, unifiedMethod.name, unifiedMethod.proto));
-        }
-      }
-      DexMethod method = key.get();
-      assert method != null;
-      MethodNamingState originState =
-          new MethodNamingState(originStates.get(key), method.name, method.proto);
-      assignNameForInterfaceMethodInAllStates(collectedStates, sourceMethods, originState);
-    }
-    for (Entry<DexCallSite, DexMethod> entry : callSites.entrySet()) {
-      DexMethod method = entry.getValue();
-      DexString renamed = renaming.get(method);
-      if (originStates.get(equivalence.wrap(method)).isReserved(method.name, method.proto)) {
-        assert renamed == null;
-        callSiteRenaming.put(entry.getKey(), method.name);
-      } else {
-        assert renamed != null;
-        callSiteRenaming.put(entry.getKey(), renamed);
-      }
-    }
-    timing.end();
-  }
-
-  private void collectSuperInterfaces(DexType iface, Set<DexType> interfaces) {
-    DexClass clazz = appInfo.definitionFor(iface);
-    // In cases where we lack the interface's definition, we can at least look at subtypes and
-    // tie those up to get proper naming.
-    if (clazz != null) {
-      for (DexType type : clazz.interfaces.values) {
-        if (interfaces.add(type)) {
-          collectSuperInterfaces(type, interfaces);
-        }
-      }
-    }
-  }
-
-  private void collectSubInterfaces(DexType iface, Set<DexType> interfaces) {
-    iface.forAllExtendsSubtypes(subtype -> {
-      assert subtype.isInterface();
-      if (interfaces.add(subtype)) {
-        collectSubInterfaces(subtype, interfaces);
-      }
-    });
-  }
-
-  private void addStatesToGlobalMapForMethod(
-      DexEncodedMethod method,
-      Set<NamingState<DexProto, ?>> collectedStates,
-      Map<Wrapper<DexMethod>, Set<NamingState<DexProto, ?>>> globalStateMap,
-      Map<Wrapper<DexMethod>, Set<DexMethod>> sourceMethodsMap,
-      Map<Wrapper<DexMethod>, NamingState<DexProto, ?>> originStates,
-      DexType originInterface) {
-    Wrapper<DexMethod> key = equivalence.wrap(method.method);
-    Set<NamingState<DexProto, ?>> stateSet =
-        globalStateMap.computeIfAbsent(key, k -> new HashSet<>());
-    stateSet.addAll(collectedStates);
-    sourceMethodsMap.computeIfAbsent(key, k -> new HashSet<>()).add(method.method);
-    originStates.putIfAbsent(key, getState(originInterface));
-  }
-
-  private void assignNameForInterfaceMethodInAllStates(
-      List<MethodNamingState> collectedStates,
-      Set<DexMethod> sourceMethods,
-      MethodNamingState originState) {
-    if (anyIsReserved(collectedStates)) {
-      // This method's name is reserved in at least one naming state, so reserve it everywhere.
-      for (MethodNamingState state : collectedStates) {
-        state.reserveName();
-      }
-      return;
-    }
-    // We use the origin state to allocate a name here so that we can reuse names between different
-    // unrelated interfaces. This saves some space. The alternative would be to use a global state
-    // for allocating names, which would save the work to search here.
-    DexString previousCandidate = null;
-    DexString candidate;
-    do {
-      candidate = originState.assignNewNameFor(false);
-      // If the state returns the same candidate for two consecutive trials, it should be this case:
-      //   1) an interface method with the same signature (name, param) but different return type
-      //   has been already renamed; and 2) -useuniqueclassmembernames is set.
-      // The option forces the naming state to return the same renamed name for the same signature.
-      // So, here we break the loop in an ad-hoc manner.
-      if (candidate != null && candidate == previousCandidate) {
-        assert useUniqueMemberNames;
-        break;
-      }
-      for (MethodNamingState state : collectedStates) {
-        if (!state.isAvailable(candidate)) {
-          previousCandidate = candidate;
-          candidate = null;
-          break;
-        }
-      }
-    } while (candidate == null);
-    for (MethodNamingState state : collectedStates) {
-      state.addRenaming(candidate);
-    }
-    // Rename all methods in interfaces that gave rise to this renaming.
-    for (DexMethod sourceMethod : sourceMethods) {
-      renaming.put(sourceMethod, candidate);
-    }
-  }
-
-  private boolean anyIsReserved(List<MethodNamingState> collectedStates) {
-    DexString name = collectedStates.get(0).getName();
-    Map<DexProto, Boolean> globalStateCache = new HashMap<>();
-    for (MethodNamingState state : collectedStates) {
-      assert state.getName() == name;
-      if (globalStateCache.computeIfAbsent(
-              state.getProto(), proto -> globalState.isReserved(name, proto))
-          && state.isReserved()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   private void reserveNamesInClasses(
       DexType type, DexType libraryFrontier, NamingState<DexProto, ?> parent) {
     assert !type.isInterface();
-    DexClass holder = appInfo.definitionFor(type);
     NamingState<DexProto, ?> state =
-        allocateNamingStateAndReserve(holder, type, libraryFrontier, parent);
+        frontierState.allocateNamingStateAndReserve(type, libraryFrontier, parent);
     // If this is a library class (or effectively a library class as it is missing) move the
     // frontier forward.
+    DexClass holder = appInfo.definitionFor(type);
     type.forAllExtendsSubtypes(
         subtype -> {
           assert !subtype.isInterface();
@@ -457,32 +211,6 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
               holder == null || holder.isLibraryClass() ? subtype : libraryFrontier,
               state);
         });
-  }
-
-  private void reserveNamesInInterfaces(DexType type) {
-    assert type.isInterface();
-    frontierMap.put(type, type);
-    DexClass holder = appInfo.definitionFor(type);
-    allocateNamingStateAndReserve(holder, type, type, null);
-  }
-
-  private NamingState<DexProto, ?> allocateNamingStateAndReserve(
-      DexClass holder, DexType type, DexType libraryFrontier, NamingState<DexProto, ?> parent) {
-    frontierMap.put(type, libraryFrontier);
-    NamingState<DexProto, ?> state =
-        computeStateIfAbsent(
-            libraryFrontier,
-            ignore -> parent == null
-                ? NamingState.createRoot(
-                    appInfo.dexItemFactory, dictionary, getKeyTransform(), useUniqueMemberNames)
-                : parent.createChild());
-    if (holder != null) {
-      boolean keepAll = holder.isLibraryClass() || holder.accessFlags.isAnnotation();
-      for (DexEncodedMethod method : shuffleMethods(holder.methods())) {
-        reserveNamesForMethod(method, keepAll, state);
-      }
-    }
-    return state;
   }
 
   private void reserveNamesForMethod(
@@ -494,12 +222,52 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     }
   }
 
+  class FrontierState {
+
+    private final Map<DexType, DexType> frontiers = new IdentityHashMap<>();
+
+    NamingState<DexProto, ?> allocateNamingStateAndReserve(
+        DexType type, DexType libraryFrontier, NamingState<DexProto, ?> parent) {
+      frontiers.put(type, libraryFrontier);
+
+      NamingState<DexProto, ?> state =
+          computeStateIfAbsent(
+              libraryFrontier,
+              ignore ->
+                  parent == null
+                      ? NamingState.createRoot(
+                          appInfo.dexItemFactory,
+                          dictionary,
+                          getKeyTransform(),
+                          useUniqueMemberNames)
+                      : parent.createChild());
+
+      DexClass holder = appInfo.definitionFor(type);
+      if (holder != null) {
+        boolean keepAll = holder.isLibraryClass() || holder.accessFlags.isAnnotation();
+        for (DexEncodedMethod method : shuffleMethods(holder.methods(), options)) {
+          reserveNamesForMethod(method, keepAll, state);
+        }
+      }
+
+      return state;
+    }
+
+    public DexType get(DexType type) {
+      return frontiers.get(type);
+    }
+
+    public DexType put(DexType type, DexType frontier) {
+      return frontiers.put(type, frontier);
+    }
+  }
+
   /**
    * Capture a (name, proto)-pair for a {@link NamingState}. Each method methodState.METHOD(...)
    * simply defers to parent.METHOD(name, proto, ...). This allows R8 to assign the same name to
    * methods with different prototypes, which is needed for multi-interface lambdas.
    */
-  private static class MethodNamingState {
+  static class MethodNamingState {
 
     private final NamingState<DexProto, ?> parent;
     private final DexString name;
@@ -512,8 +280,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
       this.proto = proto;
     }
 
-    DexString assignNewNameFor(boolean markAsUsed) {
-      return parent.assignNewNameFor(name, proto, markAsUsed);
+    DexString assignNewName() {
+      return parent.assignNewNameFor(name, proto, false);
     }
 
     void reserveName() {
@@ -543,7 +311,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
   // Shuffles the given methods if assertions are enabled and deterministic debugging is disabled.
   // Used to ensure that the generated output is deterministic.
-  private Iterable<DexEncodedMethod> shuffleMethods(Iterable<DexEncodedMethod> methods) {
+  static Iterable<DexEncodedMethod> shuffleMethods(
+      Iterable<DexEncodedMethod> methods, InternalOptions options) {
     return options.testing.irOrdering.order(methods);
   }
 }
