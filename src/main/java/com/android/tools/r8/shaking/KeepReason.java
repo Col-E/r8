@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo.EdgeKind;
 import com.android.tools.r8.experimental.graphinfo.GraphNode;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexType;
@@ -16,6 +17,10 @@ public abstract class KeepReason {
   public abstract GraphEdgeInfo.EdgeKind edgeKind();
 
   public abstract GraphNode getSourceNode(Enqueuer enqueuer);
+
+  static KeepReason annotatedOn(DexDefinition definition) {
+    return new AnnotatedOn(definition);
+  }
 
   static KeepReason dueToKeepRule(ProguardKeepRule rule) {
     return new DueToKeepRule(rule);
@@ -299,6 +304,32 @@ public abstract class KeepReason {
     @Override
     public GraphNode getSourceNode(Enqueuer enqueuer) {
       return enqueuer.getAnnotationGraphNode(holder);
+    }
+  }
+
+  private static class AnnotatedOn extends KeepReason {
+
+    private final DexDefinition holder;
+
+    private AnnotatedOn(DexDefinition holder) {
+      this.holder = holder;
+    }
+
+    @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.AnnotatedOn;
+    }
+
+    @Override
+    public GraphNode getSourceNode(Enqueuer enqueuer) {
+      if (holder.isDexClass()) {
+        return enqueuer.getClassGraphNode(holder.asDexClass().type);
+      } else if (holder.isDexEncodedField()) {
+        return enqueuer.getFieldGraphNode(holder.asDexEncodedField().field);
+      } else {
+        assert holder.isDexEncodedMethod();
+        return enqueuer.getMethodGraphNode(holder.asDexEncodedMethod().method);
+      }
     }
   }
 
