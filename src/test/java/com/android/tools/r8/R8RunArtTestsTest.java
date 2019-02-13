@@ -104,7 +104,7 @@ public abstract class R8RunArtTestsTest {
   private static final String JCTF_COMMON_JAR = "build/libs/jctfCommon.jar";
 
   // Parent dir for on-the-fly compiled jctf dex output.
-  private static final String JCTF_TESTS_PREFIX = "build/classes/jctfTests";
+  private static final String JCTF_TESTS_PREFIX = "build/classes/java/jctfTests";
   private static final String JCTF_TESTS_LIB_PREFIX =
       JCTF_TESTS_PREFIX + "/com/google/jctf/test/lib";
   private static final String JUNIT_TEST_RUNNER = "org.junit.runner.JUnitCore";
