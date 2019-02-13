@@ -9,6 +9,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +24,15 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   protected final List<String> dictionary;
 
   protected final Map<MemberType, DexString> renaming = new IdentityHashMap<>();
-  protected final Map<DexType, NamingState<StateType, ?>> states = new IdentityHashMap<>();
   protected final NamingState<StateType, ?> globalState;
   protected final boolean useUniqueMemberNames;
   protected final boolean overloadAggressively;
+
+  protected final State minifierState = new State();
+
+  // The use of a bidirectional map allows us to map a naming state to the type it represents,
+  // which is useful for debugging.
+  private final BiMap<DexType, NamingState<StateType, ?>> states = HashBiMap.create();
 
   MemberNameMinifier(AppInfoWithLiveness appInfo, RootSet rootSet, InternalOptions options) {
     this.appInfo = appInfo;
@@ -46,7 +53,28 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     return useUniqueMemberNames ? globalState : states.computeIfAbsent(type, f);
   }
 
-  protected NamingState<StateType, ?> getState(DexType type) {
-    return useUniqueMemberNames ? globalState : states.get(type);
+  // A class that provides access to the minification state. An instance of this class is passed
+  // from the method name minifier to the interface method name minifier.
+  class State {
+
+    DexString getRenaming(MemberType key) {
+      return renaming.get(key);
+    }
+
+    void putRenaming(MemberType key, DexString value) {
+      renaming.put(key, value);
+    }
+
+    NamingState<StateType, ?> getState(DexType type) {
+      return useUniqueMemberNames ? globalState : states.get(type);
+    }
+
+    boolean isReservedInGlobalState(DexString name, StateType state) {
+      return globalState.isReserved(name, state);
+    }
+
+    boolean useUniqueMemberNames() {
+      return useUniqueMemberNames;
+    }
   }
 }

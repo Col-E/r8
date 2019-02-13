@@ -27,7 +27,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   Function<DexType, ?> getKeyTransform() {
     if (overloadAggressively) {
       // Use the type as the key, hence reuse names per type.
-      return a -> a;
+      return Function.identity();
     } else {
       // Always use the same key, hence do not reuse names per type.
       return a -> Void.class;
@@ -97,7 +97,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     if (clazz == null) {
       return;
     }
-    NamingState<DexType, ?> state = getState(clazz.type);
+    NamingState<DexType, ?> state = minifierState.getState(clazz.type);
     assert state != null;
     clazz.forEachField(field -> renameField(field, state));
     type.forAllExtendsSubtypes(this::renameFieldsInSubtypes);
@@ -106,9 +106,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   private void renameField(DexEncodedField encodedField, NamingState<DexType, ?> state) {
     DexField field = encodedField.field;
     if (!state.isReserved(field.name, field.type)) {
-      renaming.put(
-          field,
-          state.assignNewNameFor(field.name, field.type, useUniqueMemberNames));
+      renaming.put(field, state.assignNewNameFor(field.name, field.type, useUniqueMemberNames));
     }
   }
 
