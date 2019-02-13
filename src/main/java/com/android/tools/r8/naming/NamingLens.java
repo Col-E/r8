@@ -7,10 +7,14 @@ import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPA
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -19,7 +23,10 @@ import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -70,6 +77,40 @@ public abstract class NamingLens {
     return lookupName(reference.asDexField());
   }
 
+  public final DexField lookupField(DexField field, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createField(
+        lookupType(field.clazz, dexItemFactory),
+        lookupType(field.type, dexItemFactory),
+        lookupName(field));
+  }
+
+  public final DexMethod lookupMethod(DexMethod method, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createMethod(
+        lookupType(method.holder, dexItemFactory),
+        lookupProto(method.proto, dexItemFactory),
+        lookupName(method));
+  }
+
+  private DexProto lookupProto(DexProto proto, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createProto(
+        lookupType(proto.returnType, dexItemFactory),
+        Arrays.stream(proto.parameters.values)
+            .map(type -> lookupType(type, dexItemFactory))
+            .toArray(DexType[]::new));
+  }
+
+  public final DexType lookupType(DexType type, DexItemFactory dexItemFactory) {
+    if (type.isPrimitiveType() || type.isVoidType()) {
+      return type;
+    }
+    if (type.isArrayType()) {
+      DexType newBaseType = lookupType(type.toBaseType(dexItemFactory), dexItemFactory);
+      return type.replaceBaseType(newBaseType, dexItemFactory);
+    }
+    assert type.isClassType();
+    return dexItemFactory.createType(lookupDescriptor(type));
+  }
+
   public static NamingLens getIdentityLens() {
     return new IdentityLens();
   }
@@ -96,6 +137,34 @@ public abstract class NamingLens {
    * anyway.
    */
   public abstract boolean checkTargetCanBeTranslated(DexMethod item);
+
+  public final boolean verifyNoCollisions(
+      Iterable<DexProgramClass> classes, DexItemFactory dexItemFactory) {
+    Set<DexReference> references = Sets.newIdentityHashSet();
+    for (DexProgramClass clazz : classes) {
+      {
+        DexType newType = lookupType(clazz.type, dexItemFactory);
+        boolean referencesChanged = references.add(newType);
+        assert referencesChanged
+            : "Duplicate definition of type `" + newType.toSourceString() + "`";
+      }
+
+      for (DexEncodedField field : clazz.fields()) {
+        DexField newField = lookupField(field.field, dexItemFactory);
+        boolean referencesChanged = references.add(newField);
+        assert referencesChanged
+            : "Duplicate definition of field `" + newField.toSourceString() + "`";
+      }
+
+      for (DexEncodedMethod method : clazz.methods()) {
+        DexMethod newMethod = lookupMethod(method.method, dexItemFactory);
+        boolean referencesChanged = references.add(newMethod);
+        assert referencesChanged
+            : "Duplicate definition of method `" + newMethod.toSourceString() + "`";
+      }
+    }
+    return true;
+  }
 
   private static class IdentityLens extends NamingLens {
 
