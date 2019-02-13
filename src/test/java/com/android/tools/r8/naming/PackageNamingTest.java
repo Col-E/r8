@@ -312,11 +312,15 @@ public class PackageNamingTest extends NamingTestBase {
     assertEquals("Lnaming101/a/a;", naming.lookupDescriptor(aa).toSourceString());
     DexType ba = dexItemFactory.createType("Lnaming101/b/a;");
     assertEquals("Lnaming101/b/a;", naming.lookupDescriptor(ba).toSourceString());
-    // Due to package-private access, classes in the same package should remain as-is.
-    DexType ab = dexItemFactory.createType("Lnaming101/a/b;");
-    assertEquals("Lnaming101/a/b;", naming.lookupDescriptor(ab).toSourceString());
+    // Due to package-private access, classes in the same package should remain in the same package.
+    DexType ac = dexItemFactory.createType("Lnaming101/a/c;");
+    assertEquals(
+        getPackageNameFromDescriptor(naming.lookupDescriptor(aa).toString()),
+        getPackageNameFromDescriptor(naming.lookupDescriptor(ac).toString()));
     DexType bb = dexItemFactory.createType("Lnaming101/b/b;");
-    assertEquals("Lnaming101/b/b;", naming.lookupDescriptor(bb).toSourceString());
+    assertEquals(
+        getPackageNameFromDescriptor(naming.lookupDescriptor(ba).toString()),
+        getPackageNameFromDescriptor(naming.lookupDescriptor(bb).toString()));
 
     // All other classes can be repackaged to naming101.a, but naming101.a.a exists to make a name
     // conflict. Thus, those should not be renamed to 'a'.
@@ -340,11 +344,15 @@ public class PackageNamingTest extends NamingTestBase {
     assertEquals("Lnaming101/a/a;", naming.lookupDescriptor(aa).toSourceString());
     DexType ba = dexItemFactory.createType("Lnaming101/b/a;");
     assertEquals("Lnaming101/b/a;", naming.lookupDescriptor(ba).toSourceString());
-    // Due to package-private access, classes in the same package should remain as-is.
-    DexType ab = dexItemFactory.createType("Lnaming101/a/b;");
-    assertEquals("Lnaming101/a/b;", naming.lookupDescriptor(ab).toSourceString());
+    // Due to package-private access, classes in the same package should remain in the same package.
+    DexType ac = dexItemFactory.createType("Lnaming101/a/c;");
+    assertEquals(
+        getPackageNameFromDescriptor(naming.lookupDescriptor(aa).toString()),
+        getPackageNameFromDescriptor(naming.lookupDescriptor(ac).toString()));
     DexType bb = dexItemFactory.createType("Lnaming101/b/b;");
-    assertEquals("Lnaming101/b/b;", naming.lookupDescriptor(bb).toSourceString());
+    assertEquals(
+        getPackageNameFromDescriptor(naming.lookupDescriptor(ba).toString()),
+        getPackageNameFromDescriptor(naming.lookupDescriptor(bb).toString()));
 
     // All other packages are flattened to naming101, hence all other classes will be in
     // naming101.* package. Due to naming101.a.a, prefix naming101.a is already used. So,
