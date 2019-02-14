@@ -21,6 +21,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.Inliner;
+import com.android.tools.r8.naming.InterfaceMethodNameMinifier.DefaultInterfaceMethodOrdering;
+import com.android.tools.r8.naming.InterfaceMethodNameMinifier.InterfaceMethodOrdering;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -223,6 +225,9 @@ public class InternalOptions {
   }
 
   public Set<String> extensiveLoggingFilter = getExtensiveLoggingFilter();
+  public Set<String> extensiveInterfaceMethodMinifierLoggingFilter =
+      getExtensiveInterfaceMethodMinifierLoggingFilter();
+
   public List<String> methodsFilter = ImmutableList.of();
   public int minApiLevel = AndroidApiLevel.getDefault().getLevel();
   // Skipping min_api check and compiling an intermediate result intended for later merging.
@@ -288,6 +293,19 @@ public class InternalOptions {
 
   private static Set<String> getExtensiveLoggingFilter() {
     String property = System.getProperty("com.android.tools.r8.extensiveLoggingFilter");
+    if (property != null) {
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      for (String method : property.split(";")) {
+        builder.add(method);
+      }
+      return builder.build();
+    }
+    return ImmutableSet.of();
+  }
+
+  private static Set<String> getExtensiveInterfaceMethodMinifierLoggingFilter() {
+    String property =
+        System.getProperty("com.android.tools.r8.extensiveInterfaceMethodMinifierLoggingFilter");
     if (property != null) {
       ImmutableSet.Builder<String> builder = ImmutableSet.builder();
       for (String method : property.split(";")) {
@@ -543,6 +561,13 @@ public class InternalOptions {
     public boolean forceNameReflectionOptimization = false;
     public boolean disallowLoadStoreOptimization = false;
     public Consumer<IRCode> irModifier = null;
+
+    public MinifierTestingOptions minifier = new MinifierTestingOptions();
+
+    public static class MinifierTestingOptions {
+
+      public InterfaceMethodOrdering interfaceMethodOrdering = new DefaultInterfaceMethodOrdering();
+    }
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {

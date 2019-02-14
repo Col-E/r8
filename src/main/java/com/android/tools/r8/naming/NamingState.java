@@ -11,10 +11,12 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -129,6 +131,18 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     state.addRenaming(original, key, newName);
   }
 
+  void printState(ProtoType proto, String indentation, PrintStream out) {
+    KeyType key = keyTransform.apply(proto);
+    InternalState state = findInternalStateFor(key);
+    if (state != null) {
+      state.printReservedNames(indentation, out);
+      state.printRenamings(indentation, out);
+    } else {
+      out.print(indentation);
+      out.println("<NO STATE>");
+    }
+  }
+
   class InternalState {
 
     private static final int INITIAL_NAME_COUNT = 1;
@@ -227,6 +241,50 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
         return dictionaryIterator.next();
       } else {
         return StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, nameCount++, false);
+      }
+    }
+
+    void printReservedNames(String indentation, PrintStream out) {
+      out.print(indentation);
+      out.print("Reserved names:");
+      if (reservedNames == null || reservedNames.isEmpty()) {
+        out.print(" <NO RESERVED NAMES>");
+      } else {
+        for (DexString reservedName : reservedNames) {
+          out.print(System.lineSeparator());
+          out.print(indentation);
+          out.print("  ");
+          out.print(reservedName.toSourceString());
+        }
+      }
+      out.println();
+      if (parentInternalState != null) {
+        parentInternalState.printReservedNames(indentation + "  ", out);
+      }
+    }
+
+    void printRenamings(String indentation, PrintStream out) {
+      out.print(indentation);
+      out.print("Renamings:");
+      if (renamings == null || renamings.isEmpty()) {
+        out.print(" <NO RENAMINGS>");
+      } else {
+        for (DexString original : renamings.rowKeySet()) {
+          Map<KeyType, DexString> row = renamings.row(original);
+          for (Entry<KeyType, DexString> entry : row.entrySet()) {
+            out.print(System.lineSeparator());
+            out.print(indentation);
+            out.print("  ");
+            out.print(original.toSourceString());
+            out.print(entry.getKey().toString());
+            out.print(" -> ");
+            out.print(entry.getValue().toSourceString());
+          }
+        }
+      }
+      out.println();
+      if (parentInternalState != null) {
+        parentInternalState.printRenamings(indentation + "  ", out);
       }
     }
   }

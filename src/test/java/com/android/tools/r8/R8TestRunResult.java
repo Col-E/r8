@@ -57,7 +57,6 @@ public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
     return self();
   }
 
-
   public String proguardMap() {
     return proguardMap;
   }
