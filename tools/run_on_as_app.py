@@ -137,7 +137,7 @@ APPS = {
   'tivi': {
       'app_id': 'app.tivi',
       'git_repo': 'https://github.com/sgjesse/tivi.git',
-      'revision': '7d7f591d6f39d7caeb88dd13bf476c0c06accdfb',
+      'revision': '25c52e3593e7c98da4e537b49b29f6f67f88754d',
       'min_sdk': 23,
       'compile_sdk': 28,
   },
