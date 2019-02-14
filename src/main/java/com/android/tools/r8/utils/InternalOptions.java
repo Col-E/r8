@@ -21,17 +21,18 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.Inliner;
-import com.android.tools.r8.naming.InterfaceMethodNameMinifier.DefaultInterfaceMethodOrdering;
-import com.android.tools.r8.naming.InterfaceMethodNameMinifier.InterfaceMethodOrdering;
+import com.android.tools.r8.naming.InterfaceMethodNameMinifier;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -566,7 +567,15 @@ public class InternalOptions {
 
     public static class MinifierTestingOptions {
 
-      public InterfaceMethodOrdering interfaceMethodOrdering = new DefaultInterfaceMethodOrdering();
+      public Comparator<DexMethod> interfaceMethodOrdering = null;
+
+      public Comparator<Wrapper<DexMethod>> createInterfaceMethodOrdering(
+          InterfaceMethodNameMinifier minifier) {
+        if (interfaceMethodOrdering != null) {
+          return (a, b) -> interfaceMethodOrdering.compare(a.get(), b.get());
+        }
+        return minifier.createDefaultInterfaceMethodOrdering();
+      }
     }
   }
 

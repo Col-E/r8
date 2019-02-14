@@ -4,10 +4,8 @@
 
 package com.android.tools.r8.naming;
 
-import static org.junit.Assert.fail;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.FileUtils;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -17,28 +15,20 @@ public class InterfaceMethodNameMinifierTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    try {
-      Path dictionary = temp.getRoot().toPath().resolve("dictionary.txt");
-      FileUtils.writeTextFile(dictionary, "a", "b", "c");
+    Path dictionary = temp.getRoot().toPath().resolve("dictionary.txt");
+    FileUtils.writeTextFile(dictionary, "a", "b", "c");
 
-      testForR8(Backend.DEX)
-          .addInnerClasses(InterfaceMethodNameMinifierTest.class)
-          .addKeepRules(
-              "-keep,allowobfuscation interface * { <methods>; }",
-              "-keep,allowobfuscation class * { <methods>; }",
-              "-keep interface " + L.class.getTypeName() + " { <methods>; }",
-              "-obfuscationdictionary " + dictionary.toString())
-          // Minify the interface methods in alphabetic order.
-          .addOptionsModification(
-              options ->
-                  options.testing.minifier.interfaceMethodOrdering =
-                      minifier -> (a, b) -> a.get().slowCompareTo(b.get()))
-          .compile();
-    } catch (CompilationFailedException e) {
-      // TODO(b/123730537): Fails with duplicate methods.
-      return;
-    }
-    fail();
+    testForR8(Backend.DEX)
+        .addInnerClasses(InterfaceMethodNameMinifierTest.class)
+        .addKeepRules(
+            "-keep,allowobfuscation interface * { <methods>; }",
+            "-keep,allowobfuscation class * { <methods>; }",
+            "-keep interface " + L.class.getTypeName() + " { <methods>; }",
+            "-obfuscationdictionary " + dictionary.toString())
+        // Minify the interface methods in alphabetic order.
+        .addOptionsModification(
+            options -> options.testing.minifier.interfaceMethodOrdering = DexMethod::slowCompareTo)
+        .compile();
   }
 
   interface I {}

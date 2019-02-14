@@ -36,21 +36,6 @@ import java.util.stream.Collectors;
 
 public class InterfaceMethodNameMinifier {
 
-  public interface InterfaceMethodOrdering {
-
-    Comparator<Wrapper<DexMethod>> getComparator(InterfaceMethodNameMinifier minifier);
-  }
-
-  public static class DefaultInterfaceMethodOrdering implements InterfaceMethodOrdering {
-
-    @Override
-    public Comparator<Wrapper<DexMethod>> getComparator(InterfaceMethodNameMinifier minifier) {
-      Map<Wrapper<DexMethod>, Set<NamingState<DexProto, ?>>> globalStateMap =
-          minifier.globalStateMap;
-      return (a, b) -> globalStateMap.get(b).size() - globalStateMap.get(a).size();
-    }
-  }
-
   private final AppInfoWithLiveness appInfo;
   private final Set<DexCallSite> desugaredCallSites;
   private final Equivalence<DexMethod> equivalence;
@@ -85,6 +70,10 @@ public class InterfaceMethodNameMinifier {
     this.frontierState = frontierState;
     this.minifierState = minifierState;
     this.options = options;
+  }
+
+  public Comparator<Wrapper<DexMethod>> createDefaultInterfaceMethodOrdering() {
+    return (a, b) -> globalStateMap.get(b).size() - globalStateMap.get(a).size();
   }
 
   Map<DexCallSite, DexString> getCallSiteRenamings() {
@@ -180,10 +169,27 @@ public class InterfaceMethodNameMinifier {
     List<Wrapper<DexMethod>> interfaceMethods =
         globalStateMap.keySet().stream()
             .filter(wrapper -> unificationParent.getOrDefault(wrapper, wrapper).equals(wrapper))
-            .sorted(options.testing.minifier.interfaceMethodOrdering.getComparator(this))
+            .sorted(options.testing.minifier.createInterfaceMethodOrdering(this))
             .collect(Collectors.toList());
+
+    // Propagate reserved names to all states.
+    List<Wrapper<DexMethod>> reservedInterfaceMethods =
+        interfaceMethods.stream()
+            .filter(wrapper -> anyIsReserved(wrapper, unification))
+            .collect(Collectors.toList());
+    for (Wrapper<DexMethod> key : reservedInterfaceMethods) {
+      propagateReservedNames(key, unification);
+    }
+
+    // Verify that there is no more to propagate.
+    assert reservedInterfaceMethods.stream()
+        .noneMatch(key -> propagateReservedNames(key, unification));
+
+    // Assign names to unreserved interface methods.
     for (Wrapper<DexMethod> key : interfaceMethods) {
-      assignNameToInterfaceMethod(key, unification);
+      if (!reservedInterfaceMethods.contains(key)) {
+        assignNameToInterfaceMethod(key, unification);
+      }
     }
 
     for (Entry<DexCallSite, DexMethod> entry : callSites.entrySet()) {
@@ -198,6 +204,24 @@ public class InterfaceMethodNameMinifier {
       }
     }
     timing.end();
+  }
+
+  private boolean propagateReservedNames(
+      Wrapper<DexMethod> key, Map<Wrapper<DexMethod>, Set<Wrapper<DexMethod>>> unification) {
+    Set<Wrapper<DexMethod>> unifiedMethods =
+        unification.getOrDefault(key, Collections.singleton(key));
+    boolean changed = false;
+    for (Wrapper<DexMethod> wrapper : unifiedMethods) {
+      DexMethod unifiedMethod = wrapper.get();
+      assert unifiedMethod != null;
+      for (NamingState<DexProto, ?> namingState : globalStateMap.get(wrapper)) {
+        if (!namingState.isReserved(unifiedMethod.name, unifiedMethod.proto)) {
+          namingState.reserveName(unifiedMethod.name, unifiedMethod.proto);
+          changed = true;
+        }
+      }
+    }
+    return changed;
   }
 
   private void assignNameToInterfaceMethod(
@@ -233,13 +257,8 @@ public class InterfaceMethodNameMinifier {
       List<MethodNamingState> collectedStates,
       Set<DexMethod> sourceMethods,
       MethodNamingState originState) {
-    if (anyIsReserved(collectedStates)) {
-      // This method's name is reserved in at least one naming state, so reserve it everywhere.
-      for (MethodNamingState state : collectedStates) {
-        state.reserveName();
-      }
-      return;
-    }
+    assert !anyIsReserved(collectedStates);
+
     // We use the origin state to allocate a name here so that we can reuse names between different
     // unrelated interfaces. This saves some space. The alternative would be to use a global state
     // for allocating names, which would save the work to search here.
@@ -280,6 +299,23 @@ public class InterfaceMethodNameMinifier {
     globalStateMap.computeIfAbsent(key, k -> new HashSet<>()).addAll(collectedStates);
     sourceMethodsMap.computeIfAbsent(key, k -> new HashSet<>()).add(method);
     originStates.putIfAbsent(key, minifierState.getState(originInterface));
+  }
+
+  private boolean anyIsReserved(
+      Wrapper<DexMethod> key, Map<Wrapper<DexMethod>, Set<Wrapper<DexMethod>>> unification) {
+    Set<Wrapper<DexMethod>> unifiedMethods =
+        unification.getOrDefault(key, Collections.singleton(key));
+    for (Wrapper<DexMethod> wrapper : unifiedMethods) {
+      DexMethod unifiedMethod = wrapper.get();
+      assert unifiedMethod != null;
+
+      for (NamingState<DexProto, ?> namingState : globalStateMap.get(wrapper)) {
+        if (namingState.isReserved(unifiedMethod.name, unifiedMethod.proto)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private boolean anyIsReserved(List<MethodNamingState> collectedStates) {
