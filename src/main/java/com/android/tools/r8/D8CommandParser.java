@@ -5,10 +5,12 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,6 +22,15 @@ import java.util.List;
 import java.util.Set;
 
 public class D8CommandParser extends BaseCompilerCommandParser {
+
+  private static final Set<String> OPTIONS_WITH_PARAMETER =
+      ImmutableSet.of(
+          "--output",
+          "--lib",
+          "--classpath",
+          "--min-api",
+          "--main-dex-list",
+          "--main-dex-list-output");
 
   private static final String APK_EXTENSION = ".apk";
   private static final String JAR_EXTENSION = ".jar";
@@ -106,13 +117,16 @@ public class D8CommandParser extends BaseCompilerCommandParser {
               "                          # <file> must be an existing directory or a zip file.",
               "  --lib <file>            # Add <file> as a library resource.",
               "  --classpath <file>      # Add <file> as a classpath resource.",
-              "  --min-api               # Minimum Android API level compatibility",
+              "  --min-api <number>      # Minimum Android API level compatibility, default: "
+                  + AndroidApiLevel.getDefault().getLevel()
+                  + ".",
               "  --intermediate          # Compile an intermediate result intended for later",
               "                          # merging.",
               "  --file-per-class        # Produce a separate dex file per input class",
               "  --no-desugaring         # Force disable desugaring.",
               "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
-              "  --main-dex-list-output <file> # Output resulting main dex list in <file>.",
+              "  --main-dex-list-output <file>",
+              "                          # Output resulting main dex list in <file>.",
               "  --version               # Print the version of d8.",
               "  --help                  # Print this message."));
 
@@ -153,6 +167,16 @@ public class D8CommandParser extends BaseCompilerCommandParser {
     String[] expandedArgs = FlagFile.expandFlagFiles(args, builder);
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
+      String nextArg = null;
+      if (OPTIONS_WITH_PARAMETER.contains(arg)) {
+        if (++i < expandedArgs.length) {
+          nextArg = expandedArgs[i];
+        } else {
+          builder.error(
+              new StringDiagnostic("Missing parameter for " + expandedArgs[i - 1] + ".", origin));
+          break;
+        }
+      }
       if (arg.length() == 0) {
         continue;
       } else if (arg.equals("--help")) {
@@ -176,19 +200,18 @@ public class D8CommandParser extends BaseCompilerCommandParser {
       } else if (arg.equals("--file-per-class")) {
         outputMode = OutputMode.DexFilePerClass;
       } else if (arg.equals("--output")) {
-        String output = expandedArgs[++i];
         if (outputPath != null) {
           builder.error(
               new StringDiagnostic(
-                  "Cannot output both to '" + outputPath.toString() + "' and '" + output + "'",
+                  "Cannot output both to '" + outputPath.toString() + "' and '" + nextArg + "'",
                   origin));
           continue;
         }
-        outputPath = Paths.get(output);
+        outputPath = Paths.get(nextArg);
       } else if (arg.equals("--lib")) {
-        builder.addLibraryFiles(Paths.get(expandedArgs[++i]));
+        builder.addLibraryFiles(Paths.get(nextArg));
       } else if (arg.equals("--classpath")) {
-        Path file = Paths.get(expandedArgs[++i]);
+        Path file = Paths.get(nextArg);
         try {
           if (!Files.exists(file)) {
             throw new NoSuchFileException(file.toString());
@@ -206,17 +229,16 @@ public class D8CommandParser extends BaseCompilerCommandParser {
           builder.error(new ExceptionDiagnostic(e, new PathOrigin(file)));
         }
       } else if (arg.equals("--main-dex-list")) {
-        builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
+        builder.addMainDexListFiles(Paths.get(nextArg));
       } else if (arg.equals("--main-dex-list-output")) {
-        builder.setMainDexListOutputPath(Paths.get(expandedArgs[++i]));
+        builder.setMainDexListOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
         builder.setOptimizeMultidexForLinearAlloc(true);
       } else if (arg.equals("--min-api")) {
-        String minApiString = expandedArgs[++i];
         if (hasDefinedApiLevel) {
           builder.error(new StringDiagnostic("Cannot set multiple --min-api options", origin));
         } else {
-          parseMinApi(builder, minApiString, origin);
+          parseMinApi(builder, nextArg, origin);
           hasDefinedApiLevel = true;
         }
       } else if (arg.equals("--intermediate")) {

@@ -507,6 +507,12 @@ public class D8CommandTest {
     assertEquals(0, new ZipFile(emptyZip.toFile(), StandardCharsets.UTF_8).size());
   }
 
+  @Test(expected = CompilationFailedException.class)
+  public void missingParameterForLastOption() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "Missing parameter", handler -> parse(handler, "--output"));
+  }
+
   private D8Command parse(String... args) throws CompilationFailedException {
     return D8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }

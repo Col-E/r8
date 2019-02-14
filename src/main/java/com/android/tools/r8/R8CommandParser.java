@@ -4,13 +4,27 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Set;
 
 public class R8CommandParser extends BaseCompilerCommandParser {
+
+  private static final Set<String> OPTIONS_WITH_PARAMETER =
+      ImmutableSet.of(
+          "--output",
+          "--lib",
+          "--min-api",
+          "--main-dex-rules",
+          "--main-dex-list",
+          "--main-dex-list-output",
+          "--pg-conf",
+          "--pg-map-output");
 
   public static void main(String[] args) throws CompilationFailedException {
     R8Command command = parse(args, Origin.root()).build();
@@ -45,7 +59,9 @@ public class R8CommandParser extends BaseCompilerCommandParser {
               "  --output <file>          # Output result in <file>.",
               "                           # <file> must be an existing directory or a zip file.",
               "  --lib <file>             # Add <file> as a library resource.",
-              "  --min-api                # Minimum Android API level compatibility.",
+              "  --min-api <number>       # Minimum Android API level compatibility, default: "
+                  + AndroidApiLevel.getDefault().getLevel()
+                  + ".",
               "  --pg-conf <file>         # Proguard configuration <file>.",
               "  --pg-map-output <file>   # Output the resulting name and line mapping to <file>.",
               "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
@@ -55,7 +71,8 @@ public class R8CommandParser extends BaseCompilerCommandParser {
               "  --main-dex-rules <file>  # Proguard keep rules for classes to place in the",
               "                           # primary dex file.",
               "  --main-dex-list <file>   # List of classes to place in the primary dex file.",
-              "  --main-dex-list-output <file>  # Output the full main-dex list in <file>.",
+              "  --main-dex-list-output <file>  ",
+              "                           # Output the full main-dex list in <file>.",
               "  --version                # Print the version of r8.",
               "  --help                   # Print this message."));
   /**
@@ -102,6 +119,17 @@ public class R8CommandParser extends BaseCompilerCommandParser {
     String[] expandedArgs = FlagFile.expandFlagFiles(args, builder);
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
+      String nextArg = null;
+      if (OPTIONS_WITH_PARAMETER.contains(arg)) {
+        if (++i < expandedArgs.length) {
+          nextArg = expandedArgs[i];
+        } else {
+          builder.error(
+              new StringDiagnostic(
+                  "Missing parameter for " + expandedArgs[i - 1] + ".", argsOrigin));
+          break;
+        }
+      }
       if (arg.length() == 0) {
         continue;
       } else if (arg.equals("--help")) {
@@ -137,26 +165,24 @@ public class R8CommandParser extends BaseCompilerCommandParser {
         }
         state.outputMode = OutputMode.ClassFile;
       } else if (arg.equals("--output")) {
-        String outputPath = expandedArgs[++i];
         if (state.outputPath != null) {
           builder.error(
               new StringDiagnostic(
                   "Cannot output both to '"
                       + state.outputPath.toString()
                       + "' and '"
-                      + outputPath
+                      + nextArg
                       + "'",
                   argsOrigin));
         }
-        state.outputPath = Paths.get(outputPath);
+        state.outputPath = Paths.get(nextArg);
       } else if (arg.equals("--lib")) {
-        builder.addLibraryFiles(Paths.get(expandedArgs[++i]));
+        builder.addLibraryFiles(Paths.get(nextArg));
       } else if (arg.equals("--min-api")) {
-        String minApiString = expandedArgs[++i];
         if (state.hasDefinedApiLevel) {
           builder.error(new StringDiagnostic("Cannot set multiple --min-api options", argsOrigin));
         } else {
-          parseMinApi(builder, minApiString, argsOrigin);
+          parseMinApi(builder, nextArg, argsOrigin);
           state.hasDefinedApiLevel = true;
         }
       } else if (arg.equals("--no-tree-shaking")) {
@@ -166,17 +192,17 @@ public class R8CommandParser extends BaseCompilerCommandParser {
       } else if (arg.equals("--no-desugaring")) {
         builder.setDisableDesugaring(true);
       } else if (arg.equals("--main-dex-rules")) {
-        builder.addMainDexRulesFiles(Paths.get(expandedArgs[++i]));
+        builder.addMainDexRulesFiles(Paths.get(nextArg));
       } else if (arg.equals("--main-dex-list")) {
-        builder.addMainDexListFiles(Paths.get(expandedArgs[++i]));
+        builder.addMainDexListFiles(Paths.get(nextArg));
       } else if (arg.equals("--main-dex-list-output")) {
-        builder.setMainDexListOutputPath(Paths.get(expandedArgs[++i]));
+        builder.setMainDexListOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
         builder.setOptimizeMultidexForLinearAlloc(true);
       } else if (arg.equals("--pg-conf")) {
-        builder.addProguardConfigurationFiles(Paths.get(expandedArgs[++i]));
+        builder.addProguardConfigurationFiles(Paths.get(nextArg));
       } else if (arg.equals("--pg-map-output")) {
-        builder.setProguardMapOutputPath(Paths.get(expandedArgs[++i]));
+        builder.setProguardMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--no-data-resources")) {
         state.includeDataResources = false;
       } else {

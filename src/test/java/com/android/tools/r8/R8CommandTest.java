@@ -619,6 +619,12 @@ public class R8CommandTest {
     runCustomResourceProcessing(false, false, 0);
   }
 
+  @Test(expected = CompilationFailedException.class)
+  public void missingParameterForLastOption() throws CompilationFailedException {
+    DiagnosticsChecker.checkErrorsContains(
+        "Missing parameter", handler -> parse(handler, "--output"));
+  }
+
   private R8Command parse(String... args) throws CompilationFailedException {
     return R8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
