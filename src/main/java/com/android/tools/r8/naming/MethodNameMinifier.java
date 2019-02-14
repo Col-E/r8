@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -132,8 +133,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     // Phase 1: Reserve all the names that need to be kept and allocate linked state in the
     //          library part.
     timing.begin("Phase 1");
-    reserveNamesInClasses(
-        appInfo.dexItemFactory.objectType, appInfo.dexItemFactory.objectType, null);
+    reserveNamesInClasses();
     timing.end();
     // Phase 2: Reserve all the names that are required for interfaces, and then assign names to
     //          interface methods. These are assigned by finding a name that is free in all naming
@@ -195,30 +195,24 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     }
   }
 
+  private void reserveNamesInClasses() {
+    reserveNamesInClasses(
+        appInfo.dexItemFactory.objectType, appInfo.dexItemFactory.objectType, null);
+  }
+
   private void reserveNamesInClasses(
       DexType type, DexType libraryFrontier, NamingState<DexProto, ?> parent) {
     assert !type.isInterface();
     NamingState<DexProto, ?> state =
         frontierState.allocateNamingStateAndReserve(type, libraryFrontier, parent);
+
     // If this is a library class (or effectively a library class as it is missing) move the
     // frontier forward.
     DexClass holder = appInfo.definitionFor(type);
-    type.forAllExtendsSubtypes(
-        subtype -> {
-          assert !subtype.isInterface();
-          reserveNamesInClasses(
-              subtype,
-              holder == null || holder.isLibraryClass() ? subtype : libraryFrontier,
-              state);
-        });
-  }
-
-  private void reserveNamesForMethod(
-      DexEncodedMethod encodedMethod, boolean keepAll, NamingState<DexProto, ?> state) {
-    DexMethod method = encodedMethod.method;
-    if (keepAll || rootSet.noObfuscation.contains(method)) {
-      state.reserveName(method.name, method.proto);
-      globalState.reserveName(method.name, method.proto);
+    for (DexType subtype : type.allExtendsSubtypes()) {
+      assert !subtype.isInterface();
+      reserveNamesInClasses(
+          subtype, holder == null || holder.isLibraryClass() ? subtype : libraryFrontier, state);
     }
   }
 
@@ -227,12 +221,14 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     private final Map<DexType, DexType> frontiers = new IdentityHashMap<>();
 
     NamingState<DexProto, ?> allocateNamingStateAndReserve(
-        DexType type, DexType libraryFrontier, NamingState<DexProto, ?> parent) {
-      frontiers.put(type, libraryFrontier);
+        DexType type, DexType frontier, NamingState<DexProto, ?> parent) {
+      if (frontier != type) {
+        frontiers.put(type, frontier);
+      }
 
       NamingState<DexProto, ?> state =
           computeStateIfAbsent(
-              libraryFrontier,
+              frontier,
               ignore ->
                   parent == null
                       ? NamingState.createRoot(
@@ -246,18 +242,28 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
       if (holder != null) {
         boolean keepAll = holder.isLibraryClass() || holder.accessFlags.isAnnotation();
         for (DexEncodedMethod method : shuffleMethods(holder.methods(), options)) {
-          reserveNamesForMethod(method, keepAll, state);
+          // TODO(christofferqa): Wouldn't it be sufficient only to reserve names for non-private
+          //  methods?
+          if (keepAll || rootSet.noObfuscation.contains(method.method)) {
+            reserveNamesForMethod(method.method, state);
+          }
         }
       }
 
       return state;
     }
 
+    private void reserveNamesForMethod(DexMethod method, NamingState<DexProto, ?> state) {
+      state.reserveName(method.name, method.proto);
+      globalState.reserveName(method.name, method.proto);
+    }
+
     public DexType get(DexType type) {
-      return frontiers.get(type);
+      return frontiers.getOrDefault(type, type);
     }
 
     public DexType put(DexType type, DexType frontier) {
+      assert frontier != type;
       return frontiers.put(type, frontier);
     }
   }
@@ -306,6 +312,19 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
     DexProto getProto() {
       return proto;
+    }
+
+    void print(
+        String indentation,
+        Function<NamingState<DexProto, ?>, DexType> stateKeyGetter,
+        PrintStream out) {
+      DexType stateKey = stateKeyGetter.apply(parent);
+      out.print(indentation);
+      out.print(stateKey != null ? stateKey.toSourceString() : "<?>");
+      out.print(".");
+      out.print(name.toSourceString());
+      out.println(proto.toSmaliString());
+      parent.printState(proto, indentation + "  ", out);
     }
   }
 
