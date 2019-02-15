@@ -8,8 +8,6 @@ from HTMLParser import HTMLParser
 import os
 import shutil
 
-import utils
-
 def add_r8_dependency(checkout_dir, temp_dir, minified):
   build_file = os.path.join(checkout_dir, 'build.gradle')
   assert os.path.isfile(build_file), (
@@ -112,7 +110,7 @@ def IsGradleCompilerTask(x, shrinker):
     assert 'transformDexArchiveWithDexMergerFor' not in x
     return 'transformClassesAndResourcesWithR8For' in x
 
-  assert shrinker == 'proguard'
+  assert shrinker == 'pg'
   return ('transformClassesAndResourcesWithProguard' in x
       or 'transformClassesWithDexBuilderFor' in x
       or 'transformDexArchiveWithDexMergerFor' in x)
