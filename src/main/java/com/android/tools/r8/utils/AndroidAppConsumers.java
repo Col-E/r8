@@ -6,6 +6,9 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.BaseCompilerCommand;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.DataDirectoryResource;
+import com.android.tools.r8.DataEntryResource;
+import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexIndexedConsumer.ForwardingConsumer;
@@ -103,6 +106,29 @@ public class AndroidAppConsumers {
             } else {
               assert getDataResourceConsumer() != null;
             }
+          }
+
+          @Override
+          public DataResourceConsumer getDataResourceConsumer() {
+            assert consumer.getDataResourceConsumer() == null;
+            return new DataResourceConsumer() {
+
+              @Override
+              public void accept(
+                  DataDirectoryResource directory, DiagnosticsHandler diagnosticsHandler) {
+                // Ignore.
+              }
+
+              @Override
+              public void accept(DataEntryResource file, DiagnosticsHandler diagnosticsHandler) {
+                builder.addDataResource(file);
+              }
+
+              @Override
+              public void finished(DiagnosticsHandler handler) {
+                // Ignore.
+              }
+            };
           }
 
           synchronized void addDexFile(int fileIndex, byte[] data, Set<String> descriptors) {

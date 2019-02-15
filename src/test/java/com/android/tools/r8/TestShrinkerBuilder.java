@@ -46,6 +46,8 @@ public abstract class TestShrinkerBuilder<
     return minification(false);
   }
 
+  public abstract T addDataEntryResources(DataEntryResource... resources);
+
   public abstract T addKeepRuleFiles(List<Path> files);
 
   public T addKeepRuleFiles(Path... files) throws IOException {
@@ -60,6 +62,10 @@ public abstract class TestShrinkerBuilder<
 
   public T addKeepAllClassesRule() {
     return addKeepRules("-keep class ** { *; }");
+  }
+
+  public T addKeepAllInterfacesRule() {
+    return addKeepRules("-keep interface ** { *; }");
   }
 
   public T addKeepClassRules(Class<?>... classes) {

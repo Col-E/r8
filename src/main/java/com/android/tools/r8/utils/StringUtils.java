@@ -141,12 +141,16 @@ public class StringUtils {
     return builder.toString();
   }
 
-  public static String lines(String... lines) {
+  public static String lines(List<String> lines) {
     StringBuilder builder = new StringBuilder();
     for (String line : lines) {
       builder.append(line).append(LINE_SEPARATOR);
     }
     return builder.toString();
+  }
+
+  public static String lines(String... lines) {
+    return lines(Arrays.asList(lines));
   }
 
   public static String withNativeLineSeparator(String s) {

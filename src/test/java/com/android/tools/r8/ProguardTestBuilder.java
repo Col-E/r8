@@ -181,6 +181,11 @@ public class ProguardTestBuilder
   }
 
   @Override
+  public ProguardTestBuilder addDataEntryResources(DataEntryResource... resources) {
+    throw new Unimplemented("No support for adding data entry resources");
+  }
+
+  @Override
   public ProguardTestBuilder addProgramClasses(Collection<Class<?>> classes) {
     // Adding a collection of classes will build a jar of exactly those classes so that no other
     // classes are made available via a too broad classpath directory.
