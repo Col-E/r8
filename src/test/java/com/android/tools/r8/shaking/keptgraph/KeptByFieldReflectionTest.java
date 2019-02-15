@@ -8,9 +8,7 @@ import com.android.tools.r8.Keep;
 @Keep
 public class KeptByFieldReflectionTest {
 
-  // TODO(b/123262024): This field must be kept un-initialized. Otherwise the "-whyareyoukeeping"
-  // output tested will hit the initialization in <init> and not the reflective access.
-  public int foo;
+  public int foo = 42;
 
   public static void main(String[] args) throws Exception {
     // Due to b/123210548 the object cannot be created by a reflective newInstance call.

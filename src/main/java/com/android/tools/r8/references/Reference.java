@@ -7,6 +7,7 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.MapMaker;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -148,6 +149,17 @@ public final class Reference {
         methodName,
         builder.build(),
         returnType == Void.TYPE ? null : typeFromClass(returnType));
+  }
+
+  /** Get a method reference from a Java reflection constructor. */
+  public static MethodReference methodFromMethod(Constructor<?> method) {
+    Class<?> holderClass = method.getDeclaringClass();
+    Class<?>[] parameterTypes = method.getParameterTypes();
+    ImmutableList.Builder<TypeReference> builder = ImmutableList.builder();
+    for (Class<?> parameterType : parameterTypes) {
+      builder.add(typeFromClass(parameterType));
+    }
+    return method(classFromClass(holderClass), "<init>", builder.build(), null);
   }
 
   /** Get a field reference from its full reference specification. */

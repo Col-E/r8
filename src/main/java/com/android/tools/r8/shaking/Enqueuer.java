@@ -307,6 +307,10 @@ public class Enqueuer {
     this.options = options;
   }
 
+  private static <T> SetWithReason<T> newSetWithoutReasonReporter() {
+    return new SetWithReason<>((f, r) -> {});
+  }
+
   private void enqueueRootItems(Map<DexReference, Set<ProguardKeepRule>> items) {
     items.entrySet().forEach(this::enqueueRootItem);
   }
@@ -1097,6 +1101,7 @@ public class Enqueuer {
       SetWithReason<DexEncodedField> reachableFields = reachableInstanceFields.get(type);
       if (reachableFields != null) {
         for (DexEncodedField field : reachableFields.getItems()) {
+          // TODO(b/120959039): Should the reason this field is reachable come from the set?
           markInstanceFieldAsLive(field, KeepReason.reachableFromLiveType(type));
         }
       }
@@ -1241,14 +1246,14 @@ public class Enqueuer {
     if (encodedField.accessFlags.isStatic()) {
       markStaticFieldAsLive(encodedField.field, reason);
     } else {
-      SetWithReason<DexEncodedField> reachable =
-          reachableInstanceFields.computeIfAbsent(
-              encodedField.field.clazz, ignore -> new SetWithReason<>((f, r) -> {}));
-      // TODO(b/120959039): The reachable.add test might be hiding other paths to the field.
-      if (reachable.add(encodedField, reason)
-          && isInstantiatedOrHasInstantiatedSubtype(encodedField.field.clazz)) {
+      if (isInstantiatedOrHasInstantiatedSubtype(encodedField.field.clazz)) {
         // We have at least one live subtype, so mark it as live.
         markInstanceFieldAsLive(encodedField, reason);
+      } else {
+        // Add the field to the reachable set if the type later becomes instantiated.
+        reachableInstanceFields
+            .computeIfAbsent(encodedField.field.clazz, ignore -> newSetWithoutReasonReporter())
+            .add(encodedField, reason);
       }
     }
   }
@@ -1292,7 +1297,7 @@ public class Enqueuer {
       // TODO(b/120959039): The reachable.add test might be hiding other paths to the method.
       SetWithReason<DexEncodedMethod> reachable =
           reachableVirtualMethods.computeIfAbsent(
-              encodedMethod.method.holder, (ignore) -> new SetWithReason<>((m, r) -> {}));
+              encodedMethod.method.holder, ignore -> newSetWithoutReasonReporter());
       if (reachable.add(encodedMethod, reason)) {
         // Abstract methods cannot be live.
         if (!encodedMethod.accessFlags.isAbstract()) {
