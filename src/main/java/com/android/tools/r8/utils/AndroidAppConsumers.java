@@ -113,7 +113,8 @@ public class AndroidAppConsumers {
 
           @Override
           public DataResourceConsumer getDataResourceConsumer() {
-            DataResourceConsumer dataResourceConsumer = consumer.getDataResourceConsumer();
+            DataResourceConsumer dataResourceConsumer =
+                consumer != null ? consumer.getDataResourceConsumer() : null;
             return new DataResourceConsumer() {
 
               @Override
@@ -194,7 +195,8 @@ public class AndroidAppConsumers {
 
           @Override
           public DataResourceConsumer getDataResourceConsumer() {
-            DataResourceConsumer dataResourceConsumer = consumer.getDataResourceConsumer();
+            DataResourceConsumer dataResourceConsumer =
+                consumer != null ? consumer.getDataResourceConsumer() : null;
             return new DataResourceConsumer() {
 
               @Override
@@ -265,23 +267,38 @@ public class AndroidAppConsumers {
 
           @Override
           public DataResourceConsumer getDataResourceConsumer() {
-            assert consumer.getDataResourceConsumer() == null;
+            DataResourceConsumer dataResourceConsumer =
+                consumer != null ? consumer.getDataResourceConsumer() : null;
             return new DataResourceConsumer() {
 
               @Override
               public void accept(
                   DataDirectoryResource directory, DiagnosticsHandler diagnosticsHandler) {
-                // Ignore.
+                if (dataResourceConsumer != null) {
+                  dataResourceConsumer.accept(directory, diagnosticsHandler);
+                }
               }
 
               @Override
               public void accept(DataEntryResource file, DiagnosticsHandler diagnosticsHandler) {
-                builder.addDataResource(file);
+                try {
+                  byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
+                  DataEntryResource copy =
+                      DataEntryResource.fromBytes(bytes, file.getName(), file.getOrigin());
+                  builder.addDataResource(copy);
+                  if (dataResourceConsumer != null) {
+                    dataResourceConsumer.accept(copy, diagnosticsHandler);
+                  }
+                } catch (IOException | ResourceException e) {
+                  throw new RuntimeException(e);
+                }
               }
 
               @Override
               public void finished(DiagnosticsHandler handler) {
-                // Ignore.
+                if (dataResourceConsumer != null) {
+                  dataResourceConsumer.finished(handler);
+                }
               }
             };
           }

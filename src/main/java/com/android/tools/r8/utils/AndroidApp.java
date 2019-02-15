@@ -32,6 +32,7 @@ import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -39,10 +40,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Collection of program files needed for processing.
@@ -214,8 +217,8 @@ public class AndroidApp {
     }
   }
 
-  public List<DataEntryResource> getDataEntryResourcesForTesting() throws ResourceException {
-    List<DataEntryResource> out = new ArrayList<>();
+  public Set<DataEntryResource> getDataEntryResourcesForTesting() throws ResourceException {
+    Set<DataEntryResource> out = new TreeSet<>(Comparator.comparing(DataResource::getName));
     for (ProgramResourceProvider programResourceProvider : getProgramResourceProviders()) {
       DataResourceProvider dataResourceProvider = programResourceProvider.getDataResourceProvider();
       if (dataResourceProvider != null) {
@@ -229,7 +232,14 @@ public class AndroidApp {
 
               @Override
               public void visit(DataEntryResource file) {
-                out.add(file);
+                try {
+                  byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
+                  DataEntryResource copy =
+                      DataEntryResource.fromBytes(bytes, file.getName(), file.getOrigin());
+                  out.add(copy);
+                } catch (IOException | ResourceException e) {
+                  throw new RuntimeException(e);
+                }
               }
             });
       }

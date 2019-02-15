@@ -18,6 +18,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -151,7 +152,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
     }
 
     public static void writeResources(
-        Path archive, List<ProgramResource> resources, List<DataEntryResource> dataResources)
+        Path archive, List<ProgramResource> resources, Set<DataEntryResource> dataResources)
         throws IOException, ResourceException {
       OpenOption[] options =
           new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
