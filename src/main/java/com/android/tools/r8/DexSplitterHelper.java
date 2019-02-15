@@ -96,6 +96,7 @@ public final class DexSplitterHelper {
         try {
           new ApplicationWriter(
                   featureApp,
+                  null,
                   options,
                   markers,
                   null,

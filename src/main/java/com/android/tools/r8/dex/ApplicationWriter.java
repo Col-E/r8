@@ -17,6 +17,8 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -60,6 +62,7 @@ import java.util.stream.Collectors;
 public class ApplicationWriter {
 
   public final DexApplication application;
+  public final AppView<? extends AppInfo> appView;
   public final String deadCode;
   public final GraphLense graphLense;
   public final NamingLens namingLens;
@@ -129,6 +132,7 @@ public class ApplicationWriter {
 
   public ApplicationWriter(
       DexApplication application,
+      AppView<? extends AppInfo> appView,
       InternalOptions options,
       List<Marker> markers,
       String deadCode,
@@ -138,6 +142,7 @@ public class ApplicationWriter {
       ProguardMapSupplier proguardMapSupplier) {
     this(
         application,
+        appView,
         options,
         markers,
         deadCode,
@@ -150,6 +155,7 @@ public class ApplicationWriter {
 
   public ApplicationWriter(
       DexApplication application,
+      AppView<? extends AppInfo> appView,
       InternalOptions options,
       List<Marker> markers,
       String deadCode,
@@ -160,6 +166,7 @@ public class ApplicationWriter {
       DexIndexedConsumer consumer) {
     assert application != null;
     this.application = application;
+    this.appView = appView;
     assert options != null;
     this.options = options;
     this.markers = markers;
@@ -298,6 +305,7 @@ public class ApplicationWriter {
       // Supply info to all additional resource consumers.
       supplyAdditionalConsumers(
           application,
+          appView,
           graphLense,
           namingLens,
           options,
@@ -311,6 +319,7 @@ public class ApplicationWriter {
 
   public static void supplyAdditionalConsumers(
       DexApplication application,
+      AppView<? extends AppInfo> appView,
       GraphLense graphLense,
       NamingLens namingLens,
       InternalOptions options,
@@ -349,7 +358,7 @@ public class ApplicationWriter {
           .collect(Collectors.toList());
 
       ResourceAdapter resourceAdapter =
-          new ResourceAdapter(application.dexItemFactory, graphLense, namingLens, options);
+          new ResourceAdapter(appView, application.dexItemFactory, graphLense, namingLens, options);
       Set<String> generatedResourceNames = new HashSet<>();
 
       for (DataResourceProvider dataResourceProvider : dataResourceProviders) {
@@ -367,6 +376,10 @@ public class ApplicationWriter {
 
                 @Override
                 public void visit(DataEntryResource file) {
+                  if (resourceAdapter.shouldBeDeleted(file)) {
+                    return;
+                  }
+
                   DataEntryResource adapted = resourceAdapter.adaptIfNeeded(file);
                   if (generatedResourceNames.add(adapted.getName())) {
                     dataResourceConsumer.accept(adapted, options.reporter);

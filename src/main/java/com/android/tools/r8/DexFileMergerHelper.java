@@ -95,6 +95,7 @@ public class DexFileMergerHelper {
         ApplicationWriter writer =
             new ApplicationWriter(
                 app,
+                null,
                 options,
                 markers,
                 null,

@@ -5,11 +5,14 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.naming.AdaptResourceFileContentsTest.DataResourceConsumerForTesting;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -27,16 +30,18 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ServiceLoaderTest extends TestBase {
 
+  private final Backend backend;
   private final boolean includeWorldGreeter;
 
   private DataResourceConsumerForTesting dataResourceConsumer;
 
-  @Parameters(name = "Include WorldGreeter: {0}")
-  public static Boolean[] data() {
-    return BooleanUtils.values();
+  @Parameters(name = "Backend: {0}, include WorldGreeter: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(Backend.values(), BooleanUtils.values());
   }
 
-  public ServiceLoaderTest(boolean includeWorldGreeter) {
+  public ServiceLoaderTest(Backend backend, boolean includeWorldGreeter) {
+    this.backend = backend;
     this.includeWorldGreeter = includeWorldGreeter;
   }
 
@@ -50,12 +55,9 @@ public class ServiceLoaderTest extends TestBase {
     }
 
     CodeInspector inspector =
-        testForR8(Backend.DEX)
+        testForR8(backend)
             .addInnerClasses(ServiceLoaderTest.class)
             .addKeepMainRule(TestClass.class)
-            // TODO(b/124181030): It should not be necessary to keep Greeter, but the resource
-            //  adapter needs to rewrite the resource file names.
-            .addKeepRules("-keep interface " + Greeter.class.getTypeName())
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(serviceImplementations).getBytes(),
@@ -72,9 +74,7 @@ public class ServiceLoaderTest extends TestBase {
             .inspector();
 
     ClassSubject greeterSubject = inspector.clazz(Greeter.class);
-    // TODO(b/124181030): Greeter should be merged into HelloGreeter when the keep rule above is
-    //  removed.
-    assertThat(greeterSubject, isPresent());
+    assertEquals(includeWorldGreeter, greeterSubject.isPresent());
 
     ClassSubject helloGreeterSubject = inspector.clazz(HelloGreeter.class);
     assertThat(helloGreeterSubject, isPresent());
@@ -82,20 +82,57 @@ public class ServiceLoaderTest extends TestBase {
     ClassSubject worldGreeterSubject = inspector.clazz(WorldGreeter.class);
     assertEquals(includeWorldGreeter, worldGreeterSubject.isPresent());
 
-    // TODO(b/124181030): The resource file name should become:
-    //  `includeWorldGreeter ? greeterSubject.getFinalName() : helloGreeterSubject.getFinalName()`.
+    String serviceFileName =
+        includeWorldGreeter ? greeterSubject.getFinalName() : helloGreeterSubject.getFinalName();
     List<String> lines =
-        dataResourceConsumer.get("META-INF/services/" + greeterSubject.getOriginalName());
+        dataResourceConsumer.get(AppServices.SERVICE_DIRECTORY_NAME + serviceFileName);
     assertEquals(includeWorldGreeter ? 2 : 1, lines.size());
     assertEquals(helloGreeterSubject.getFinalName(), lines.get(0));
     if (includeWorldGreeter) {
       assertEquals(worldGreeterSubject.getFinalName(), lines.get(1));
     }
 
-    // TODO(b/124181030): Verify that META-INF/services/...Greeter is removed if there is no call to
-    //  ServiceLoader.load().
-
     // TODO(b/124181030): Verify that -whyareyoukeeping works as intended.
+  }
+
+  @Test
+  public void testResourceElimination() throws Exception {
+    String expectedOutput = "Hello world!";
+
+    List<String> serviceImplementations = Lists.newArrayList(HelloGreeter.class.getTypeName());
+    if (includeWorldGreeter) {
+      serviceImplementations.add(WorldGreeter.class.getTypeName());
+    }
+
+    CodeInspector inspector =
+        testForR8(backend)
+            .addInnerClasses(ServiceLoaderTest.class)
+            .addKeepMainRule(OtherTestClass.class)
+            .addDataEntryResources(
+                DataEntryResource.fromBytes(
+                    StringUtils.lines(serviceImplementations).getBytes(),
+                    "META-INF/services/" + Greeter.class.getTypeName(),
+                    Origin.unknown()))
+            .addOptionsModification(
+                options -> {
+                  dataResourceConsumer =
+                      new DataResourceConsumerForTesting(options.dataResourceConsumer);
+                  options.dataResourceConsumer = dataResourceConsumer;
+                })
+            .run(OtherTestClass.class)
+            .assertSuccessWithOutput(expectedOutput)
+            .inspector();
+
+    ClassSubject greeterSubject = inspector.clazz(Greeter.class);
+    assertThat(greeterSubject, not(isPresent()));
+
+    ClassSubject helloGreeterSubject = inspector.clazz(HelloGreeter.class);
+    assertThat(helloGreeterSubject, not(isPresent()));
+
+    ClassSubject worldGreeterSubject = inspector.clazz(WorldGreeter.class);
+    assertThat(worldGreeterSubject, not(isPresent()));
+
+    assertTrue(dataResourceConsumer.isEmpty());
   }
 
   static class TestClass {
@@ -104,6 +141,13 @@ public class ServiceLoaderTest extends TestBase {
       for (Greeter greeter : ServiceLoader.load(Greeter.class)) {
         System.out.print(greeter.greeting());
       }
+    }
+  }
+
+  static class OtherTestClass {
+
+    public static void main(String[] args) {
+      System.out.print("Hello world!");
     }
   }
 

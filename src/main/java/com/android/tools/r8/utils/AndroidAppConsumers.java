@@ -191,6 +191,29 @@ public class AndroidAppConsumers {
               assert getDataResourceConsumer() != null;
             }
           }
+
+          @Override
+          public DataResourceConsumer getDataResourceConsumer() {
+            assert consumer.getDataResourceConsumer() == null;
+            return new DataResourceConsumer() {
+
+              @Override
+              public void accept(
+                  DataDirectoryResource directory, DiagnosticsHandler diagnosticsHandler) {
+                // Ignore.
+              }
+
+              @Override
+              public void accept(DataEntryResource file, DiagnosticsHandler diagnosticsHandler) {
+                builder.addDataResource(file);
+              }
+
+              @Override
+              public void finished(DiagnosticsHandler handler) {
+                // Ignore.
+              }
+            };
+          }
         };
     programConsumer = wrapped;
     return wrapped;
@@ -224,6 +247,29 @@ public class AndroidAppConsumers {
             } else {
               assert getDataResourceConsumer() != null;
             }
+          }
+
+          @Override
+          public DataResourceConsumer getDataResourceConsumer() {
+            assert consumer.getDataResourceConsumer() == null;
+            return new DataResourceConsumer() {
+
+              @Override
+              public void accept(
+                  DataDirectoryResource directory, DiagnosticsHandler diagnosticsHandler) {
+                // Ignore.
+              }
+
+              @Override
+              public void accept(DataEntryResource file, DiagnosticsHandler diagnosticsHandler) {
+                builder.addDataResource(file);
+              }
+
+              @Override
+              public void finished(DiagnosticsHandler handler) {
+                // Ignore.
+              }
+            };
           }
         };
     programConsumer = wrapped;

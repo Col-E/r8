@@ -113,6 +113,7 @@ public class Smali {
       ApplicationWriter writer =
           new ApplicationWriter(
               dexApp,
+              null,
               options,
               null,
               null,

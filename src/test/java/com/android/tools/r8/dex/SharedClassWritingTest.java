@@ -139,6 +139,7 @@ public class SharedClassWritingTest {
     ApplicationWriter writer =
         new ApplicationWriter(
             application,
+            null,
             options,
             null,
             null,

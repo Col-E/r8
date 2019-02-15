@@ -355,8 +355,8 @@ public class AndroidApp {
         DexFilePerClassFileConsumer.ArchiveConsumer.writeResources(
             archive, resources, programResourcesMainDescriptor);
       } else if (outputMode == OutputMode.ClassFile) {
-        List<ProgramResource> resources = getClassProgramResourcesForTesting();
-        ClassFileConsumer.ArchiveConsumer.writeResources(archive, resources);
+        ClassFileConsumer.ArchiveConsumer.writeResources(
+            archive, getClassProgramResourcesForTesting(), getDataEntryResourcesForTesting());
       } else {
         throw new Unreachable("Unsupported output-mode for writing: " + outputMode);
       }

@@ -221,6 +221,12 @@ public class Enqueuer {
       new SetWithReason<>(this::registerField);
 
   /**
+   * Set of service types (from META-INF/services/) that may have been instantiated reflectively via
+   * ServiceLoader.load() or ServiceLoader.loadInstalled().
+   */
+  private final Set<DexType> instantiatedAppServices = Sets.newIdentityHashSet();
+
+  /**
    * Set of interface types for which a lambda expression can be reached. These never have a single
    * interface implementation.
    */
@@ -1845,6 +1851,8 @@ public class Enqueuer {
   }
 
   private void handleServiceInstantiation(DexType serviceType, KeepReason reason) {
+    instantiatedAppServices.add(serviceType);
+
     Set<DexType> serviceImplementationTypes =
         appView.appServices().serviceImplementationsFor(serviceType);
     for (DexType serviceImplementationType : serviceImplementationTypes) {
@@ -1930,6 +1938,11 @@ public class Enqueuer {
     public final SortedSet<DexType> liveTypes;
     /** Set of annotation types that are instantiated. */
     final SortedSet<DexType> instantiatedAnnotationTypes;
+    /**
+     * Set of service types (from META-INF/services/) that may have been instantiated reflectively
+     * via ServiceLoader.load() or ServiceLoader.loadInstalled().
+     */
+    public final SortedSet<DexType> instantiatedAppServices;
     /**
      * Set of types that are actually instantiated. These cannot be abstract.
      */
@@ -2092,6 +2105,9 @@ public class Enqueuer {
           ImmutableSortedSet.orderedBy(PresortedComparable<DexType>::slowCompareTo);
       enqueuer.liveAnnotations.items.forEach(annotation -> builder.add(annotation.annotation.type));
       this.instantiatedAnnotationTypes = builder.build();
+      this.instantiatedAppServices =
+          ImmutableSortedSet.copyOf(
+              PresortedComparable<DexType>::slowCompareTo, enqueuer.instantiatedAppServices);
       this.instantiatedTypes = ImmutableSortedSet.copyOf(
           PresortedComparable<DexType>::slowCompareTo, enqueuer.instantiatedTypes.getItems());
       this.instantiatedLambdas =
@@ -2150,6 +2166,7 @@ public class Enqueuer {
       super(application);
       this.liveTypes = previous.liveTypes;
       this.instantiatedAnnotationTypes = previous.instantiatedAnnotationTypes;
+      this.instantiatedAppServices = previous.instantiatedAppServices;
       this.instantiatedTypes = previous.instantiatedTypes;
       this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;
@@ -2199,6 +2216,8 @@ public class Enqueuer {
       this.liveTypes = rewriteItems(previous.liveTypes, lense::lookupType);
       this.instantiatedAnnotationTypes =
           rewriteItems(previous.instantiatedAnnotationTypes, lense::lookupType);
+      this.instantiatedAppServices =
+          rewriteItems(previous.instantiatedAppServices, lense::lookupType);
       this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
       this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
       this.targetedMethods = lense.rewriteMethodsConservatively(previous.targetedMethods);
@@ -2277,6 +2296,7 @@ public class Enqueuer {
       super(previous);
       this.liveTypes = previous.liveTypes;
       this.instantiatedAnnotationTypes = previous.instantiatedAnnotationTypes;
+      this.instantiatedAppServices = previous.instantiatedAppServices;
       this.instantiatedTypes = previous.instantiatedTypes;
       this.instantiatedLambdas = previous.instantiatedLambdas;
       this.targetedMethods = previous.targetedMethods;

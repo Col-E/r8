@@ -204,6 +204,7 @@ public final class D8 {
 
       new ApplicationWriter(
               app,
+              null,
               options,
               marker == null ? null : ImmutableList.copyOf(markers),
               null,

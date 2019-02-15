@@ -14,6 +14,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
@@ -21,24 +22,32 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /** A description of the services and their implementations found in META-INF/services/. */
 public class AppServices {
 
+  public static final String SERVICE_DIRECTORY_NAME = "META-INF/services/";
+
+  private final AppView<? extends AppInfo> appView;
+
   // Mapping from service types to service implementation types.
   private final Map<DexType, Set<DexType>> services;
 
-  private AppServices(Map<DexType, Set<DexType>> services) {
+  private AppServices(AppView<? extends AppInfo> appView, Map<DexType, Set<DexType>> services) {
+    this.appView = appView;
     this.services = services;
   }
 
   public Set<DexType> allServiceTypes() {
+    assert verifyRewrittenWithLens();
     return services.keySet();
   }
 
   public Set<DexType> serviceImplementationsFor(DexType serviceType) {
+    assert verifyRewrittenWithLens();
     assert services.containsKey(serviceType);
     Set<DexType> serviceImplementationTypes = services.get(serviceType);
     if (serviceImplementationTypes == null) {
@@ -51,13 +60,34 @@ public class AppServices {
     return serviceImplementationTypes;
   }
 
+  public AppServices rewrittenWithLens(GraphLense graphLens) {
+    ImmutableMap.Builder<DexType, Set<DexType>> rewrittenServices = ImmutableMap.builder();
+    for (Entry<DexType, Set<DexType>> entry : services.entrySet()) {
+      DexType rewrittenServiceType = graphLens.lookupType(entry.getKey());
+      ImmutableSet.Builder<DexType> rewrittenServiceImplementationTypes = ImmutableSet.builder();
+      for (DexType serviceImplementationType : entry.getValue()) {
+        rewrittenServiceImplementationTypes.add(graphLens.lookupType(serviceImplementationType));
+      }
+      rewrittenServices.put(rewrittenServiceType, rewrittenServiceImplementationTypes.build());
+    }
+    return new AppServices(appView, rewrittenServices.build());
+  }
+
+  private boolean verifyRewrittenWithLens() {
+    for (Entry<DexType, Set<DexType>> entry : services.entrySet()) {
+      assert entry.getKey() == appView.graphLense().lookupType(entry.getKey());
+      for (DexType type : entry.getValue()) {
+        assert type == appView.graphLense().lookupType(type);
+      }
+    }
+    return true;
+  }
+
   public static Builder builder(AppView<? extends AppInfo> appView) {
     return new Builder(appView);
   }
 
   public static class Builder {
-
-    private static final String SERVICE_DIRECTORY_NAME = "META-INF/services/";
 
     private final AppView<? extends AppInfo> appView;
     private final Map<DexType, Set<DexType>> services = new IdentityHashMap<>();
@@ -76,7 +106,7 @@ public class AppServices {
           readServices(dataResourceProvider);
         }
       }
-      return new AppServices(services);
+      return new AppServices(appView, services);
     }
 
     private void readServices(DataResourceProvider dataResourceProvider) {

@@ -8,11 +8,15 @@ import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppServices;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardPathFilter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -27,16 +31,19 @@ import java.nio.charset.Charset;
 
 public class ResourceAdapter {
 
+  private final AppView<? extends AppInfo> appView;
   private final DexItemFactory dexItemFactory;
   private final GraphLense graphLense;
   private final NamingLens namingLense;
   private final InternalOptions options;
 
   public ResourceAdapter(
+      AppView<? extends AppInfo> appView,
       DexItemFactory dexItemFactory,
       GraphLense graphLense,
       NamingLens namingLense,
       InternalOptions options) {
+    this.appView = appView;
     this.dexItemFactory = dexItemFactory;
     this.graphLense = graphLense;
     this.namingLense = namingLense;
@@ -88,8 +95,40 @@ public class ResourceAdapter {
     return DataDirectoryResource.fromName(adaptDirectoryName(directory), directory.getOrigin());
   }
 
+  // Returns true for files in META-INF/services/ that are never used by the application.
+  public boolean shouldBeDeleted(DataEntryResource file) {
+    if (appView != null && appView.appInfo().hasLiveness()) {
+      AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
+      if (file.getName().startsWith(AppServices.SERVICE_DIRECTORY_NAME)) {
+        String serviceName = file.getName().substring(AppServices.SERVICE_DIRECTORY_NAME.length());
+        if (!DescriptorUtils.isValidJavaType(serviceName)) {
+          return false;
+        }
+
+        DexString serviceDescriptor =
+            dexItemFactory.lookupString(DescriptorUtils.javaTypeToDescriptor(serviceName));
+        if (serviceDescriptor == null) {
+          return false;
+        }
+
+        DexType serviceType = appView.dexItemFactory().lookupType(serviceDescriptor);
+        if (serviceType == null) {
+          return false;
+        }
+
+        DexType rewrittenServiceType = appView.graphLense().lookupType(serviceType);
+        assert appView.appServices().allServiceTypes().contains(rewrittenServiceType);
+        return !appInfo.instantiatedAppServices.contains(rewrittenServiceType);
+      }
+    }
+    return false;
+  }
+
   private String adaptFileName(DataEntryResource file) {
-    FileNameAdapter adapter = new FileNameAdapter(file.getName());
+    FileNameAdapter adapter =
+        file.getName().startsWith(AppServices.SERVICE_DIRECTORY_NAME)
+            ? new ServiceFileNameAdapter(file.getName())
+            : new DefaultFileNameAdapter(file.getName());
     if (adapter.run()) {
       return adapter.getResult();
     }
@@ -307,7 +346,7 @@ public class ResourceAdapter {
 
     private void outputRangeFromInput(int from, int toExclusive) {
       if (from < toExclusive) {
-        result.append(contents.substring(from, toExclusive));
+        result.append(contents, from, toExclusive);
       }
     }
 
@@ -362,8 +401,8 @@ public class ResourceAdapter {
     }
   }
 
-  private abstract class FileNameAdapterBase extends StringAdapter {
-    public FileNameAdapterBase(String filename) {
+  private abstract class FileNameAdapter extends StringAdapter {
+    public FileNameAdapter(String filename) {
       super(filename);
     }
 
@@ -391,8 +430,8 @@ public class ResourceAdapter {
     }
   }
 
-  private class FileNameAdapter extends FileNameAdapterBase {
-    public FileNameAdapter(String filename) {
+  private class DefaultFileNameAdapter extends FileNameAdapter {
+    public DefaultFileNameAdapter(String filename) {
       super(filename);
     }
 
@@ -402,7 +441,28 @@ public class ResourceAdapter {
     }
   }
 
-  private class DirectoryNameAdapter extends FileNameAdapterBase {
+  private class ServiceFileNameAdapter extends FileNameAdapter {
+    public ServiceFileNameAdapter(String filename) {
+      super(filename);
+    }
+
+    @Override
+    public char getClassNameSeparator() {
+      return '.';
+    }
+
+    @Override
+    public boolean allowRenamingOfPrefixes() {
+      return false;
+    }
+
+    @Override
+    public boolean isRenamingCandidate(int from, int toExclusive) {
+      return from == AppServices.SERVICE_DIRECTORY_NAME.length() && eof(toExclusive);
+    }
+  }
+
+  private class DirectoryNameAdapter extends FileNameAdapter {
     public DirectoryNameAdapter(String filename) {
       super(filename);
     }

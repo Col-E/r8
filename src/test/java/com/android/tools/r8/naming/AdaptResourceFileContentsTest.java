@@ -101,6 +101,10 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
       return resources.get(name);
     }
 
+    public boolean isEmpty() {
+      return size() == 0;
+    }
+
     public int size() {
       return resources.size();
     }
