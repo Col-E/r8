@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilder<RR, T>> {
 
@@ -23,6 +25,15 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
   }
 
   abstract T self();
+
+  public <S> S map(Function<T, S> fn) {
+    return fn.apply(self());
+  }
+
+  public T apply(Consumer<T> fn) {
+    fn.accept(self());
+    return self();
+  }
 
   public abstract RR run(String mainClass)
       throws IOException, CompilationFailedException;

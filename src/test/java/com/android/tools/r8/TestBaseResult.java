@@ -4,6 +4,9 @@
 
 package com.android.tools.r8;
 
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 public abstract class TestBaseResult<CR extends TestBaseResult<CR, RR>, RR extends TestRunResult> {
   final TestState state;
 
@@ -12,4 +15,13 @@ public abstract class TestBaseResult<CR extends TestBaseResult<CR, RR>, RR exten
   }
 
   public abstract CR self();
+
+  public <S> S map(Function<CR, S> fn) {
+    return fn.apply(self());
+  }
+
+  public CR apply(Consumer<CR> fn) {
+    fn.accept(self());
+    return self();
+  }
 }

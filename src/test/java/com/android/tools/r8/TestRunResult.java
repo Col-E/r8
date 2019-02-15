@@ -9,12 +9,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.hamcrest.Matcher;
 
@@ -28,6 +28,15 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
   }
 
   abstract RR self();
+
+  public <S> S map(Function<RR, S> fn) {
+    return fn.apply(self());
+  }
+
+  public RR apply(Consumer<RR> fn) {
+    fn.accept(self());
+    return self();
+  }
 
   public AndroidApp app() {
     return app;
@@ -72,10 +81,6 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
     assertSuccess();
     assertEquals(errorMessage("Run stdout incorrect.", expected), expected, result.stdout);
     return self();
-  }
-
-  public <R> R map(Function<RR, R> mapper) {
-    return mapper.apply(self());
   }
 
   public CodeInspector inspector() throws IOException, ExecutionException {
