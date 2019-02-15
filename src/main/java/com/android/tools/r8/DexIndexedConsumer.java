@@ -180,11 +180,6 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
       outputBuilder.close(handler);
     }
 
-    public static void writeResources(Path archive, List<ProgramResource> resources)
-        throws IOException, ResourceException {
-      writeResources(archive, resources, ImmutableList.of());
-    }
-
     public static void writeResources(
         Path archive, List<ProgramResource> resources, List<DataEntryResource> dataResources)
         throws IOException, ResourceException {
