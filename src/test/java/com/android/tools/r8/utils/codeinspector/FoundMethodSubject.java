@@ -12,6 +12,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
@@ -283,4 +284,13 @@ public class FoundMethodSubject extends MethodSubject {
   public String toString() {
     return dexMethod.toSourceString();
   }
+
+  @Override
+  public AnnotationSubject annotation(String name) {
+    DexAnnotation annotation = codeInspector.findAnnotation(name, dexMethod.annotations);
+    return annotation == null
+        ? new AbsentAnnotationSubject()
+        : new FoundAnnotationSubject(annotation);
+  }
+
 }

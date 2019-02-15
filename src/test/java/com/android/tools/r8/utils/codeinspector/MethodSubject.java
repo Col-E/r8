@@ -72,4 +72,6 @@ public abstract class MethodSubject extends MemberSubject {
   public boolean isMethodSubject() {
     return true;
   }
+
+  public abstract AnnotationSubject annotation(String name);
 }
