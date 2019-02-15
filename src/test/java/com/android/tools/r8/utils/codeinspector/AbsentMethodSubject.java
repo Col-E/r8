@@ -116,4 +116,9 @@ public class AbsentMethodSubject extends MethodSubject {
   public boolean hasLocalVariableTable() {
     throw new Unreachable("Cannot determine if an absent method has a local variable table");
   }
+
+  @Override
+  public AnnotationSubject annotation(String name) {
+    return new AbsentAnnotationSubject();
+  }
 }
