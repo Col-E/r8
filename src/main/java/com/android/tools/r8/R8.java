@@ -264,7 +264,7 @@ public class R8 {
       AppView<AppInfoWithSubtyping> appView =
           new AppView<>(
               new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
-      appView.setAppServices(AppServices.builder(application).build());
+      appView.setAppServices(AppServices.builder(appView).build());
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       RootSet rootSet;

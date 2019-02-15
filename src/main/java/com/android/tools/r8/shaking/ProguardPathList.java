@@ -26,7 +26,11 @@ public abstract class ProguardPathList {
     private Builder() {
     }
 
-    public Builder addFileName(boolean isNegated, String path) {
+    public Builder addFileName(String path) {
+      return addFileName(path, false);
+    }
+
+    public Builder addFileName(String path, boolean isNegated) {
       matchers.add(new FileNameMatcher(isNegated, path));
       return this;
     }

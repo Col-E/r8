@@ -18,7 +18,6 @@ import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestCompileResult;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
@@ -60,13 +59,24 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
     this.backend = backend;
   }
 
-  protected static class CustomDataResourceConsumer implements DataResourceConsumer {
+  public static class DataResourceConsumerForTesting implements DataResourceConsumer {
 
+    private final DataResourceConsumer inner;
     private final Map<String, ImmutableList<String>> resources = new HashMap<>();
+
+    public DataResourceConsumerForTesting() {
+      this(null);
+    }
+
+    public DataResourceConsumerForTesting(DataResourceConsumer inner) {
+      this.inner = inner;
+    }
 
     @Override
     public void accept(DataDirectoryResource directory, DiagnosticsHandler diagnosticsHandler) {
-      throw new Unreachable();
+      if (inner != null) {
+        inner.accept(directory, diagnosticsHandler);
+      }
     }
 
     @Override
@@ -78,6 +88,9 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
         resources.put(file.getName(), ImmutableList.copyOf(contents.split(System.lineSeparator())));
       } catch (Exception e) {
         throw new RuntimeException(e);
+      }
+      if (inner != null) {
+        inner.accept(file, diagnosticsHandler);
       }
     }
 
@@ -175,7 +188,7 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
   @Test
   public void testEnabled() throws Exception {
     String pgConf = getProguardConfigWithNeverInline(true, null);
-    CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
+    DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     CodeInspector inspector = compileWithR8(pgConf, dataResourceConsumer).inspector();
 
     // Check that the data resources have changed as expected.
@@ -257,7 +270,7 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
 
   @Test
   public void testEnabledWithFilter() throws Exception {
-    CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
+    DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(getProguardConfigWithNeverInline(true, "*.md"), dataResourceConsumer);
 
     // Check that the file matching the filter has changed as expected.
@@ -279,7 +292,7 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
 
   @Test
   public void testDisabled() throws Exception {
-    CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
+    DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(getProguardConfigWithNeverInline(false, null), dataResourceConsumer);
 
     // Check that all data resources are unchanged.

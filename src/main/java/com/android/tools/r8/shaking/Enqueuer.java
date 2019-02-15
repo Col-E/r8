@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
@@ -490,6 +491,10 @@ public class Enqueuer {
       }
       // See comment in handleJavaLangEnumValueOf.
       if (method == appInfo.dexItemFactory.enumMethods.valueOf) {
+        pendingReflectiveUses.add(currentMethod);
+      }
+      // Handling of application services.
+      if (appInfo.dexItemFactory.serviceLoaderMethods.isLoadMethod(method)) {
         pendingReflectiveUses.add(currentMethod);
       }
       if (!registerItemWithTargetAndContext(staticInvokes, method, currentMethod)) {
@@ -1688,6 +1693,13 @@ public class Enqueuer {
             collectReachedFields(staticFields, this::tryLookupStaticField)));
   }
 
+  private void markClassAsInstantiatedWithReason(DexClass clazz, KeepReason reason) {
+    workList.add(Action.markInstantiated(clazz, reason));
+    if (clazz.hasDefaultInitializer()) {
+      workList.add(Action.markMethodLive(clazz.getDefaultInitializer(), reason));
+    }
+  }
+
   private void markClassAsInstantiatedWithCompatRule(DexClass clazz) {
     ProguardKeepRule rule = ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
     proguardCompatibilityWorkList.add(
@@ -1726,6 +1738,10 @@ public class Enqueuer {
     DexMethod invokedMethod = invoke.getInvokedMethod();
     if (invokedMethod == appInfo.dexItemFactory.enumMethods.valueOf) {
       handleJavaLangEnumValueOf(method, invoke);
+      return;
+    }
+    if (appInfo.dexItemFactory.serviceLoaderMethods.isLoadMethod(invokedMethod)) {
+      handleServiceLoaderInvocation(method, invoke);
       return;
     }
     if (!isReflectionMethod(appInfo.dexItemFactory, invokedMethod)) {
@@ -1793,6 +1809,53 @@ public class Enqueuer {
           appInfo.definitionFor(invoke.inValues().get(0).definition.asConstClass().getValue());
       if (clazz.accessFlags.isEnum() && clazz.superType == appInfo.dexItemFactory.enumType) {
         markEnumValuesAsReachable(clazz, KeepReason.invokedFrom(method));
+      }
+    }
+  }
+
+  private void handleServiceLoaderInvocation(DexEncodedMethod method, InvokeMethod invoke) {
+    if (invoke.inValues().size() == 0) {
+      // Should never happen.
+      return;
+    }
+
+    Value argument = invoke.inValues().get(0).getAliasedValue();
+    if (!argument.isPhi() && argument.definition.isConstClass()) {
+      DexType serviceType = argument.definition.asConstClass().getValue();
+      if (!appView.appServices().allServiceTypes().contains(serviceType)) {
+        // Should never happen.
+        options.reporter.warning(
+            new StringDiagnostic(
+                "The type `"
+                    + serviceType.toSourceString()
+                    + "` is being passed to the method `"
+                    + invoke.getInvokedMethod()
+                    + "`, but could was found in `META-INF/services/`.",
+                appInfo.originFor(method.method.holder)));
+        return;
+      }
+
+      handleServiceInstantiation(serviceType, KeepReason.reflectiveUseIn(method));
+    } else {
+      KeepReason reason = KeepReason.reflectiveUseIn(method);
+      for (DexType serviceType : appView.appServices().allServiceTypes()) {
+        handleServiceInstantiation(serviceType, reason);
+      }
+    }
+  }
+
+  private void handleServiceInstantiation(DexType serviceType, KeepReason reason) {
+    Set<DexType> serviceImplementationTypes =
+        appView.appServices().serviceImplementationsFor(serviceType);
+    for (DexType serviceImplementationType : serviceImplementationTypes) {
+      if (!serviceImplementationType.isClassType()) {
+        // Should never happen.
+        continue;
+      }
+
+      DexClass serviceImplementationClass = appInfo.definitionFor(serviceImplementationType);
+      if (serviceImplementationClass != null && serviceImplementationClass.isProgramClass()) {
+        markClassAsInstantiatedWithReason(serviceImplementationClass, reason);
       }
     }
   }

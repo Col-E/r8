@@ -384,10 +384,8 @@ public class ProguardConfigurationParser {
       } else if (acceptString("adaptclassstrings")) {
         parseClassFilter(configurationBuilder::addAdaptClassStringsPattern);
       } else if (acceptString("adaptresourcefilenames")) {
-        configurationBuilder.enableAdaptResourceFilenames();
         parsePathFilter(configurationBuilder::addAdaptResourceFilenames);
       } else if (acceptString("adaptresourcefilecontents")) {
-        configurationBuilder.enableAdaptResourceFileContents();
         parsePathFilter(configurationBuilder::addAdaptResourceFileContents);
       } else if (acceptString("identifiernamestring")) {
         configurationBuilder.addRule(parseIdentifierNameStringRule(optionStart));
@@ -1710,7 +1708,7 @@ public class ProguardConfigurationParser {
       if (fileFilter == null) {
         throw parseError("Path filter expected");
       }
-      builder.addFileName(negated, fileFilter);
+      builder.addFileName(fileFilter, negated);
       skipWhitespace();
       while (acceptChar(',')) {
         skipWhitespace();
@@ -1720,7 +1718,7 @@ public class ProguardConfigurationParser {
         if (fileFilter == null) {
           throw parseError("Path filter expected");
         }
-        builder.addFileName(negated, fileFilter);
+        builder.addFileName(fileFilter, negated);
         skipWhitespace();
       }
       return builder.build();

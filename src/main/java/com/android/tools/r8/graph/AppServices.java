@@ -11,7 +11,9 @@ import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
@@ -25,29 +27,49 @@ import java.util.stream.Collectors;
 /** A description of the services and their implementations found in META-INF/services/. */
 public class AppServices {
 
+  // Mapping from service types to service implementation types.
   private final Map<DexType, Set<DexType>> services;
 
   private AppServices(Map<DexType, Set<DexType>> services) {
     this.services = services;
   }
 
-  public static Builder builder(DexApplication application) {
-    return new Builder(application);
+  public Set<DexType> allServiceTypes() {
+    return services.keySet();
+  }
+
+  public Set<DexType> serviceImplementationsFor(DexType serviceType) {
+    assert services.containsKey(serviceType);
+    Set<DexType> serviceImplementationTypes = services.get(serviceType);
+    if (serviceImplementationTypes == null) {
+      assert false
+          : "Unexpected attempt to get service implementations for non-service type `"
+              + serviceType.toSourceString()
+              + "`";
+      return ImmutableSet.of();
+    }
+    return serviceImplementationTypes;
+  }
+
+  public static Builder builder(AppView<? extends AppInfo> appView) {
+    return new Builder(appView);
   }
 
   public static class Builder {
 
     private static final String SERVICE_DIRECTORY_NAME = "META-INF/services/";
 
-    private final DexApplication app;
+    private final AppView<? extends AppInfo> appView;
     private final Map<DexType, Set<DexType>> services = new IdentityHashMap<>();
 
-    private Builder(DexApplication app) {
-      this.app = app;
+    private Builder(AppView<? extends AppInfo> appView) {
+      this.appView = appView;
     }
 
     public AppServices build() {
-      for (ProgramResourceProvider programResourceProvider : app.programResourceProviders) {
+      Iterable<ProgramResourceProvider> programResourceProviders =
+          appView.appInfo().app.programResourceProviders;
+      for (ProgramResourceProvider programResourceProvider : programResourceProviders) {
         DataResourceProvider dataResourceProvider =
             programResourceProvider.getDataResourceProvider();
         if (dataResourceProvider != null) {
@@ -80,10 +102,11 @@ public class AppServices {
             String serviceName = name.substring(SERVICE_DIRECTORY_NAME.length());
             if (DescriptorUtils.isValidJavaType(serviceName)) {
               String serviceDescriptor = DescriptorUtils.javaTypeToDescriptor(serviceName);
-              DexType serviceType = app.dexItemFactory.createType(serviceDescriptor);
+              DexType serviceType = appView.dexItemFactory().createType(serviceDescriptor);
               byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
               String contents = new String(bytes, Charset.defaultCharset());
-              services.put(serviceType, readServiceImplementationsForService(contents));
+              services.put(
+                  serviceType, readServiceImplementationsForService(contents, file.getOrigin()));
             }
           }
         } catch (IOException | ResourceException e) {
@@ -91,14 +114,31 @@ public class AppServices {
         }
       }
 
-      private Set<DexType> readServiceImplementationsForService(String contents) {
+      private Set<DexType> readServiceImplementationsForService(String contents, Origin origin) {
         if (contents != null) {
           return Arrays.stream(contents.split(System.lineSeparator()))
               .map(String::trim)
               .filter(line -> !line.isEmpty())
               .filter(DescriptorUtils::isValidJavaType)
               .map(DescriptorUtils::javaTypeToDescriptor)
-              .map(app.dexItemFactory::createType)
+              .map(appView.dexItemFactory()::createType)
+              .filter(
+                  serviceImplementationType -> {
+                    if (!serviceImplementationType.isClassType()) {
+                      // Should never happen.
+                      appView
+                          .options()
+                          .reporter
+                          .warning(
+                              new StringDiagnostic(
+                                  "Unexpected service implementation found in META-INF/services/: `"
+                                      + serviceImplementationType.toSourceString()
+                                      + "`.",
+                                  origin));
+                      return false;
+                    }
+                    return true;
+                  })
               .collect(Collectors.toSet());
         }
         return ImmutableSet.of();

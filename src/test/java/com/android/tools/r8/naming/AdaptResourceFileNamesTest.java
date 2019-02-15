@@ -20,7 +20,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.naming.AdaptResourceFileContentsTest.CustomDataResourceConsumer;
+import com.android.tools.r8.naming.AdaptResourceFileContentsTest.DataResourceConsumerForTesting;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;
@@ -107,7 +107,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void testEnabled() throws Exception {
-    CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
+    DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(
         getProguardConfigWithNeverInline(true, null), dataResourceConsumer, this::checkR8Renamings);
     // Check that the generated resources have the expected names.
@@ -120,7 +120,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void testEnabledWithFilter() throws Exception {
-    CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
+    DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(
         getProguardConfigWithNeverInline(true, "**.md"),
         dataResourceConsumer,
@@ -138,7 +138,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void testDisabled() throws Exception {
-    CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
+    DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(getProguardConfigWithNeverInline(false, null), dataResourceConsumer);
     // Check that none of the resources were renamed.
     for (DataEntryResource dataResource : getOriginalDataResources()) {
@@ -150,7 +150,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void testCollisionBehavior() throws Exception {
-    CustomDataResourceConsumer dataResourceConsumer = new CustomDataResourceConsumer();
+    DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(
         getProguardConfigWithNeverInline(true, null),
         dataResourceConsumer,

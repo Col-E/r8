@@ -4,11 +4,17 @@
 
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.naming.AdaptResourceFileContentsTest.DataResourceConsumerForTesting;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Lists;
 import java.util.List;
@@ -22,6 +28,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class ServiceLoaderTest extends TestBase {
 
   private final boolean includeWorldGreeter;
+
+  private DataResourceConsumerForTesting dataResourceConsumer;
 
   @Parameters(name = "Include WorldGreeter: {0}")
   public static Boolean[] data() {
@@ -45,23 +53,49 @@ public class ServiceLoaderTest extends TestBase {
         testForR8(Backend.DEX)
             .addInnerClasses(ServiceLoaderTest.class)
             .addKeepMainRule(TestClass.class)
-            // TODO(b/124181030): Test should work without the following keep-all-rules.
-            .addKeepAllClassesRule()
-            .addKeepAllInterfacesRule()
+            // TODO(b/124181030): It should not be necessary to keep Greeter, but the resource
+            //  adapter needs to rewrite the resource file names.
+            .addKeepRules("-keep interface " + Greeter.class.getTypeName())
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(serviceImplementations).getBytes(),
                     "META-INF/services/" + Greeter.class.getTypeName(),
                     Origin.unknown()))
+            .addOptionsModification(
+                options -> {
+                  dataResourceConsumer =
+                      new DataResourceConsumerForTesting(options.dataResourceConsumer);
+                  options.dataResourceConsumer = dataResourceConsumer;
+                })
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 
-    // TODO(b/124181030): Verify that Greeter is merged into HelloGreeter when `includeWorldGreeter`
-    //  is false.
+    ClassSubject greeterSubject = inspector.clazz(Greeter.class);
+    // TODO(b/124181030): Greeter should be merged into HelloGreeter when the keep rule above is
+    //  removed.
+    assertThat(greeterSubject, isPresent());
 
-    // TODO(b/124181030): Verify that META-INF/services/...WorldGreeter is removed when
-    //  `includeWorldGreeter` is false.
+    ClassSubject helloGreeterSubject = inspector.clazz(HelloGreeter.class);
+    assertThat(helloGreeterSubject, isPresent());
+
+    ClassSubject worldGreeterSubject = inspector.clazz(WorldGreeter.class);
+    assertEquals(includeWorldGreeter, worldGreeterSubject.isPresent());
+
+    // TODO(b/124181030): The resource file name should become:
+    //  `includeWorldGreeter ? greeterSubject.getFinalName() : helloGreeterSubject.getFinalName()`.
+    List<String> lines =
+        dataResourceConsumer.get("META-INF/services/" + greeterSubject.getOriginalName());
+    assertEquals(includeWorldGreeter ? 2 : 1, lines.size());
+    assertEquals(helloGreeterSubject.getFinalName(), lines.get(0));
+    if (includeWorldGreeter) {
+      assertEquals(worldGreeterSubject.getFinalName(), lines.get(1));
+    }
+
+    // TODO(b/124181030): Verify that META-INF/services/...Greeter is removed if there is no call to
+    //  ServiceLoader.load().
+
+    // TODO(b/124181030): Verify that -whyareyoukeeping works as intended.
   }
 
   static class TestClass {

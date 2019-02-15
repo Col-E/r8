@@ -57,9 +57,11 @@ public class ProguardConfiguration {
     private Position keepParameterNamesOptionPosition;
     private final ProguardClassFilter.Builder adaptClassStrings = ProguardClassFilter.builder();
     private final ProguardPathFilter.Builder adaptResourceFilenames =
-        ProguardPathFilter.builder().disable();
+        ProguardPathFilter.builder()
+            .addPattern(ProguardPathList.builder().addFileName("META-INF/services/*").build());
     private final ProguardPathFilter.Builder adaptResourceFileContents =
-        ProguardPathFilter.builder().disable();
+        ProguardPathFilter.builder()
+            .addPattern(ProguardPathList.builder().addFileName("META-INF/services/*").build());
     private final ProguardPathFilter.Builder keepDirectories =
         ProguardPathFilter.builder().disable();
     private boolean forceProguardCompatibility = false;
@@ -243,16 +245,8 @@ public class ProguardConfiguration {
       adaptClassStrings.addPattern(pattern);
     }
 
-    public void enableAdaptResourceFilenames() {
-      adaptResourceFilenames.enable();
-    }
-
     public void addAdaptResourceFilenames(ProguardPathList pattern) {
       adaptResourceFilenames.addPattern(pattern);
-    }
-
-    public void enableAdaptResourceFileContents() {
-      adaptResourceFileContents.enable();
     }
 
     public void addAdaptResourceFileContents(ProguardPathList pattern) {

@@ -170,6 +170,7 @@ public class DexItemFactory {
   public final DexString objectDescriptor = createString("Ljava/lang/Object;");
   public final DexString objectArrayDescriptor = createString("[Ljava/lang/Object;");
   public final DexString classDescriptor = createString("Ljava/lang/Class;");
+  public final DexString classLoaderDescriptor = createString("Ljava/lang/ClassLoader;");
   public final DexString autoCloseableDescriptor = createString("Ljava/lang/AutoCloseable;");
   public final DexString classArrayDescriptor = createString("[Ljava/lang/Class;");
   public final DexString fieldDescriptor = createString("Ljava/lang/reflect/Field;");
@@ -187,6 +188,7 @@ public class DexItemFactory {
   public final DexString methodTypeDescriptor = createString("Ljava/lang/invoke/MethodType;");
 
   public final DexString npeDescriptor = createString("Ljava/lang/NullPointerException;");
+  public final DexString serviceLoaderDescriptor = createString("Ljava/util/ServiceLoader;");
 
   public final DexString intFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
@@ -237,6 +239,7 @@ public class DexItemFactory {
   public final DexType exceptionInInitializerErrorType =
       createType(exceptionInInitializerErrorDescriptor);
   public final DexType classType = createType(classDescriptor);
+  public final DexType classLoaderType = createType(classLoaderDescriptor);
   public final DexType autoCloseableType = createType(autoCloseableDescriptor);
 
   public final DexType stringBuilderType = createType(stringBuilderDescriptor);
@@ -247,6 +250,7 @@ public class DexItemFactory {
   public final DexType methodTypeType = createType(methodTypeDescriptor);
 
   public final DexType npeType = createType(npeDescriptor);
+  public final DexType serviceLoaderType = createType(serviceLoaderDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
@@ -266,6 +270,7 @@ public class DexItemFactory {
       new AtomicFieldUpdaterMethods();
   public final Kotlin kotlin;
   public final PolymorphicMethods polymorphicMethods = new PolymorphicMethods();
+  public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
 
   public final DexString twrCloseResourceMethodName = createString("$closeResource");
   public final DexProto twrCloseResourceMethodProto =
@@ -787,6 +792,32 @@ public class DexItemFactory {
         map.put(dexString, dexString);
       }
       return map.keySet();
+    }
+  }
+
+  public class ServiceLoaderMethods {
+
+    public final DexMethod load;
+    public final DexMethod loadWithClassLoader;
+    public final DexMethod loadInstalled;
+
+    private ServiceLoaderMethods() {
+      DexString loadName = createString("load");
+      load = createMethod(serviceLoaderType, createProto(serviceLoaderType, classType), loadName);
+      loadWithClassLoader =
+          createMethod(
+              serviceLoaderType,
+              createProto(serviceLoaderType, classType, classLoaderType),
+              loadName);
+      loadInstalled =
+          createMethod(
+              serviceLoaderType,
+              createProto(serviceLoaderType, classType),
+              createString("loadInstalled"));
+    }
+
+    public boolean isLoadMethod(DexMethod method) {
+      return method == load || method == loadWithClassLoader || method == loadInstalled;
     }
   }
 
