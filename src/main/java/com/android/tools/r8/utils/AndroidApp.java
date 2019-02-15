@@ -13,6 +13,7 @@ import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResource;
 import com.android.tools.r8.DataResourceProvider;
+import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DirectoryClassFileProvider;
@@ -213,6 +214,29 @@ public class AndroidApp {
     }
   }
 
+  public List<DataEntryResource> getDataEntryResourcesForTesting() throws ResourceException {
+    List<DataEntryResource> out = new ArrayList<>();
+    for (ProgramResourceProvider programResourceProvider : getProgramResourceProviders()) {
+      DataResourceProvider dataResourceProvider = programResourceProvider.getDataResourceProvider();
+      if (dataResourceProvider != null) {
+        dataResourceProvider.accept(
+            new Visitor() {
+
+              @Override
+              public void visit(DataDirectoryResource directory) {
+                // Ignore.
+              }
+
+              @Override
+              public void visit(DataEntryResource file) {
+                out.add(file);
+              }
+            });
+      }
+    }
+    return out;
+  }
+
   /** Get program resource providers. */
   public List<ProgramResourceProvider> getProgramResourceProviders() {
     return programResourceProviders;
@@ -320,14 +344,12 @@ public class AndroidApp {
     }
   }
 
-  /**
-   * Write the dex program resources to @code{archive} and the proguard resource as its sibling.
-   */
+  /** Write the dex program resources to @code{archive}. */
   public void writeToZip(Path archive, OutputMode outputMode) throws IOException {
     try {
       if (outputMode == OutputMode.DexIndexed) {
-        List<ProgramResource> resources = getDexProgramResourcesForTesting();
-        DexIndexedConsumer.ArchiveConsumer.writeResources(archive, resources);
+        DexIndexedConsumer.ArchiveConsumer.writeResources(
+            archive, getDexProgramResourcesForTesting(), getDataEntryResourcesForTesting());
       } else if (outputMode == OutputMode.DexFilePerClassFile) {
         List<ProgramResource> resources = getDexProgramResourcesForTesting();
         DexFilePerClassFileConsumer.ArchiveConsumer.writeResources(

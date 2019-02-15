@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.OutputBuilder;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ZipUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import java.io.IOException;
@@ -181,6 +182,12 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
 
     public static void writeResources(Path archive, List<ProgramResource> resources)
         throws IOException, ResourceException {
+      writeResources(archive, resources, ImmutableList.of());
+    }
+
+    public static void writeResources(
+        Path archive, List<ProgramResource> resources, List<DataEntryResource> dataResources)
+        throws IOException, ResourceException {
       OpenOption[] options =
           new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
       try (Closer closer = Closer.create()) {
@@ -189,6 +196,11 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
             ProgramResource resource = resources.get(i);
             String entryName = getDefaultDexFileName(i);
             byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
+            ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.STORED);
+          }
+          for (DataEntryResource dataResource : dataResources) {
+            String entryName = dataResource.getName();
+            byte[] bytes = ByteStreams.toByteArray(closer.register(dataResource.getByteStream()));
             ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.STORED);
           }
         }

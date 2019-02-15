@@ -97,6 +97,11 @@ public class R8TestBuilder
   }
 
   @Override
+  public R8TestBuilder addDataEntryResources(DataEntryResource... resources) {
+    return addDataResources(Arrays.asList(resources));
+  }
+
+  @Override
   public R8TestBuilder addKeepRuleFiles(List<Path> files) {
     builder.addProguardConfigurationFiles(files);
     return self();
