@@ -190,40 +190,8 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
   }
 
   private void printEdge(GraphNode node, GraphEdgeInfo info, Formatter formatter) {
-    formatter.addReason("is " + getInfoPrefix(info) + ":");
+    formatter.addReason("is " + info.getInfoPrefix() + ":");
     addNodeMessage(node, formatter);
-  }
-
-  private String getInfoPrefix(GraphEdgeInfo info) {
-    switch (info.edgeKind()) {
-      case KeepRule:
-      case CompatibilityRule:
-        return "referenced in keep rule";
-      case InstantiatedIn:
-        return "instantiated in";
-      case InvokedViaSuper:
-        return "invoked via super from";
-      case TargetedBySuper:
-        return "targeted by super from";
-      case InvokedFrom:
-        return "invoked from";
-      case InvokedFromLambdaCreatedIn:
-        return "invoked from lambda created in";
-      case ReferencedFrom:
-        return "referenced from";
-      case ReflectiveUseFrom:
-        return "reflected from";
-      case ReachableFromLiveType:
-        return "reachable from";
-      case ReferencedInAnnotation:
-        return "referenced in annotation";
-      case IsLibraryMethod:
-        return "defined in library";
-      case MethodHandleUseFrom:
-        return "referenced by method handle";
-      default:
-        throw new Unreachable("Unexpected edge kind: " + info.edgeKind());
-    }
   }
 
   private String getNodeString(GraphNode node) {
