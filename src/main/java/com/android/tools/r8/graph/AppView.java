@@ -11,6 +11,7 @@ import com.android.tools.r8.utils.InternalOptions;
 public class AppView<T extends AppInfo> {
 
   private T appInfo;
+  private AppServices appServices;
   private final DexItemFactory dexItemFactory;
   private GraphLense graphLense;
   private final InternalOptions options;
@@ -29,6 +30,14 @@ public class AppView<T extends AppInfo> {
 
   public void setAppInfo(T appInfo) {
     this.appInfo = appInfo;
+  }
+
+  public AppServices appServices() {
+    return appServices;
+  }
+
+  public void setAppServices(AppServices appServices) {
+    this.appServices = appServices;
   }
 
   public DexItemFactory dexItemFactory() {
@@ -83,6 +92,16 @@ public class AppView<T extends AppInfo> {
       @SuppressWarnings("unchecked")
       T appInfo = (T) appInfoWithLiveness;
       AppView.this.setAppInfo(appInfo);
+    }
+
+    @Override
+    public AppServices appServices() {
+      return AppView.this.appServices();
+    }
+
+    @Override
+    public void setAppServices(AppServices appServices) {
+      AppView.this.setAppServices(appServices);
     }
 
     @Override

@@ -12,6 +12,7 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.AppliedGraphLens;
 import com.android.tools.r8.graph.DexApplication;
@@ -263,6 +264,8 @@ public class R8 {
       AppView<AppInfoWithSubtyping> appView =
           new AppView<>(
               new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
+      appView.setAppServices(AppServices.builder(application).build());
+
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       RootSet rootSet;
       String proguardSeedsData = null;
