@@ -336,6 +336,10 @@ public abstract class DebugTestBase extends TestBase {
     return breakpoint(method.getHolderClass().getTypeName(), method.getMethodName());
   }
 
+  protected final JUnit3Wrapper.Command breakpoint(MethodReference method, int line) {
+    return breakpoint(method.getHolderClass().getTypeName(), method.getMethodName(), line);
+  }
+
   protected final JUnit3Wrapper.Command breakpoint(String className, String methodName) {
     return breakpoint(className, methodName, null);
   }

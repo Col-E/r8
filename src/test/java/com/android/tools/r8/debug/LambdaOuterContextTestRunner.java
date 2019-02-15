@@ -27,7 +27,6 @@ public class LambdaOuterContextTestRunner extends DebugTestBase {
   }
 
   @Test
-  @Ignore("b/123068053")
   public void testD8() throws Throwable {
     D8TestCompileResult compileResult =
         testForD8().addProgramClassesAndInnerClasses(CLASS).compile();

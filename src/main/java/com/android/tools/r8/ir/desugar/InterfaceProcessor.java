@@ -90,10 +90,7 @@ final class InterfaceProcessor {
         newFlags.unsetBridge();
         newFlags.promoteToStatic();
         DexCode dexCode = code.asDexCode();
-        // We cannot name the parameter "this" because the debugger may omit it due to the method
-        // actually being static. Instead we prepend it with a special character.
-        dexCode.setDebugInfo(dexCode.debugInfoWithAdditionalFirstParameter(
-            rewriter.factory.createString("-this")));
+        dexCode.setDebugInfo(dexCode.debugInfoWithFakeThisParameter(rewriter.factory));
         assert (dexCode.getDebugInfo() == null)
             || (companionMethod.getArity() == dexCode.getDebugInfo().parameters.length);
 
@@ -153,8 +150,7 @@ final class InterfaceProcessor {
                 + "interface method: " + oldMethod.toSourceString(), iface.origin);
           }
           DexCode dexCode = code.asDexCode();
-          // TODO(ager): Should we give the new first parameter an actual name? Maybe 'this'?
-          dexCode.setDebugInfo(dexCode.debugInfoWithAdditionalFirstParameter(null));
+          dexCode.setDebugInfo(dexCode.debugInfoWithFakeThisParameter(rewriter.factory));
           assert (dexCode.getDebugInfo() == null)
               || (companionMethod.getArity() == dexCode.getDebugInfo().parameters.length);
 

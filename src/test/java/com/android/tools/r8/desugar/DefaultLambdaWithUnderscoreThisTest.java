@@ -3,29 +3,24 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
-public class DefaultLambdaWithInvokeInterfaceTest {
+public class DefaultLambdaWithUnderscoreThisTest {
 
   public interface I {
-    String run();
-  }
-
-  public interface J {
-    default String stateless() {
-      return "hest";
-    }
+    String foo();
 
     default I stateful() {
+      String _this = "My _this variable";
       return () -> {
-        String stateless = stateless();
-        return "stateful(" + stateless + ")";
+        String ___this = "Another ___this variable";
+        return "stateful(" + _this + " " + foo() + " " + ___this + ")";
       };
     }
   }
 
   public static void main(String[] args) {
-    J j = new J() {};
-    I stateful = j.stateful();
-    String run = stateful.run();
-    System.out.println(run);
+    I i = () -> "foo";
+    I stateful = i.stateful();
+    String foo = stateful.foo();
+    System.out.println(foo);
   }
 }

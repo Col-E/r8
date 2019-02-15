@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.google.common.base.Suppliers;
@@ -343,17 +344,28 @@ final class LambdaClass {
 
     assert implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect();
 
-    // If lambda$ method is an instance method we convert it into a static methods and
-    // relax its accessibility.
-    DexProto implProto = implMethod.proto;
-    DexType[] implParams = implProto.parameters.values;
-    DexType[] newParams = new DexType[implParams.length + 1];
-    newParams[0] = implMethod.holder;
-    System.arraycopy(implParams, 0, newParams, 1, implParams.length);
+    // If the lambda$ method is an instance-private method on an interface we convert it into a
+    // public static method as it will be placed on the companion class.
+    if (implHandle.type.isInvokeDirect()
+        && rewriter.appInfo.definitionFor(implMethod.holder).isInterface()) {
+      DexProto implProto = implMethod.proto;
+      DexType[] implParams = implProto.parameters.values;
+      DexType[] newParams = new DexType[implParams.length + 1];
+      newParams[0] = implMethod.holder;
+      System.arraycopy(implParams, 0, newParams, 1, implParams.length);
 
-    DexProto newProto = rewriter.factory.createProto(implProto.returnType, newParams);
-    return new InstanceLambdaImplTarget(
-        rewriter.factory.createMethod(implMethod.holder, newProto, implMethod.name));
+      DexProto newProto = rewriter.factory.createProto(implProto.returnType, newParams);
+      return new InterfaceLambdaImplTarget(
+          rewriter.factory.createMethod(implMethod.holder, newProto, implMethod.name));
+    } else {
+      // Otherwise we need to ensure the method can be reached publicly by virtual dispatch.
+      // To avoid potential conflicts on the name of the lambda method once dispatch becomes virtual
+      // we add the method-holder name as suffix to the lambda-method name.
+      return new InstanceLambdaImplTarget(
+            rewriter.factory.createMethod(implMethod.holder, implMethod.proto,
+                rewriter.factory.createString(
+                    implMethod.name.toString() + "$" + implMethod.holder.getName())));
+    }
   }
 
   // Create targets for instance method referenced directly without
@@ -498,17 +510,17 @@ final class LambdaClass {
     }
   }
 
-  // Used for instance private lambda$ methods. Needs to be converted to
-  // a package-private static method.
-  private class InstanceLambdaImplTarget extends Target {
+  // Used for instance private lambda$ methods on interfaces which need to be converted to public
+  // static methods. They can't remain instance methods as they will end up on the companion class.
+  private class InterfaceLambdaImplTarget extends Target {
 
-    InstanceLambdaImplTarget(DexMethod staticMethod) {
-      super(staticMethod, Invoke.Type.STATIC);
+    InterfaceLambdaImplTarget(DexMethod staticMethod) {
+      super(staticMethod, Type.STATIC);
     }
 
     @Override
     boolean ensureAccessibility() {
-      // For all instantiation points for which compiler creates lambda$
+      // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexClass implMethodHolder = definitionFor(implMethod.holder);
@@ -534,12 +546,55 @@ final class LambdaClass {
                   encodedMethod.getCode());
           newMethod.copyMetadata(encodedMethod);
           rewriter.methodMapping.put(encodedMethod.method, callTarget);
-          // TODO(ager): Should we give the new first parameter an actual name? Maybe 'this'?
           DexCode dexCode = newMethod.getCode().asDexCode();
-          dexCode.setDebugInfo(dexCode.debugInfoWithAdditionalFirstParameter(null));
+          dexCode.setDebugInfo(dexCode.debugInfoWithFakeThisParameter(rewriter.factory));
           assert (dexCode.getDebugInfo() == null)
               || (callTarget.getArity() == dexCode.getDebugInfo().parameters.length);
           implMethodHolder.setDirectMethod(i, newMethod);
+          return true;
+        }
+      }
+      assert false
+          : "Unexpected failure to find direct lambda target for: " + implMethod.qualifiedName();
+      return false;
+    }
+  }
+
+  // Used for instance private lambda$ methods which need to be converted to public methods.
+  private class InstanceLambdaImplTarget extends Target {
+
+    InstanceLambdaImplTarget(DexMethod staticMethod) {
+      super(staticMethod, Type.VIRTUAL);
+    }
+
+    @Override
+    boolean ensureAccessibility() {
+      // For all instantiation points for which the compiler creates lambda$
+      // methods, it creates these methods in the same class/interface.
+      DexMethod implMethod = descriptor.implHandle.asMethod();
+      DexClass implMethodHolder = definitionFor(implMethod.holder);
+
+      List<DexEncodedMethod> oldDirectMethods = implMethodHolder.directMethods();
+      for (int i = 0; i < oldDirectMethods.size(); i++) {
+        DexEncodedMethod encodedMethod = oldDirectMethods.get(i);
+        if (implMethod.match(encodedMethod)) {
+          // We need to create a new method with the same code to be able to safely relax its
+          // accessibility and make it virtual.
+          MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
+          newAccessFlags.unsetPrivate();
+          newAccessFlags.setPublic();
+          DexEncodedMethod newMethod =
+              new DexEncodedMethod(
+                  callTarget,
+                  newAccessFlags,
+                  encodedMethod.annotations,
+                  encodedMethod.parameterAnnotationsList,
+                  encodedMethod.getCode());
+          newMethod.copyMetadata(encodedMethod);
+          rewriter.methodMapping.put(encodedMethod.method, callTarget);
+          // Move the method from the direct methods to the virtual methods set.
+          implMethodHolder.removeDirectMethod(i);
+          implMethodHolder.appendVirtualMethod(newMethod);
           return true;
         }
       }

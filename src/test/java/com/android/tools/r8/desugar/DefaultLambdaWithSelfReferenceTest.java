@@ -13,11 +13,18 @@ public class DefaultLambdaWithSelfReferenceTest {
     }
 
     default I stateful() {
-      return () -> "stateful(" + stateless().foo() + ")";
+      return () -> {
+        I stateless = stateless();
+        String foo = stateless.foo();
+        return "stateful(" + foo + ")";
+      };
     }
   }
 
   public static void main(String[] args) {
-    System.out.println(((I) () -> "foo").stateful().foo());
+    I i = () -> "foo";
+    I stateful = i.stateful();
+    String foo = stateful.foo();
+    System.out.println(foo);
   }
 }

@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
+import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -19,6 +20,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,6 +32,9 @@ import java.util.Set;
 
 // DexCode corresponds to code item in dalvik/dex-format.html
 public class DexCode extends Code {
+
+  private static final String FAKE_THIS_PREFIX = "_";
+  private static final String FAKE_THIS_SUFFIX = "this";
 
   public final int registerSize;
   public final int incomingRegisterSize;
@@ -103,15 +108,41 @@ public class DexCode extends Code {
     }
   }
 
-  public DexDebugInfo debugInfoWithAdditionalFirstParameter(DexString name) {
+  public DexDebugInfo debugInfoWithFakeThisParameter(DexItemFactory factory) {
     if (debugInfo == null) {
       return null;
     }
+    // User code may already have variables named '_*this'. Use one more than the largest number of
+    // underscores present as a prefix to 'this'.
+    int largestPrefix = 0;
+    for (DexString parameter : debugInfo.parameters) {
+      largestPrefix = Integer.max(largestPrefix, getLargestPrefix(factory, parameter));
+    }
+    for (DexDebugEvent event : debugInfo.events) {
+      if (event instanceof DexDebugEvent.StartLocal) {
+        DexString name = ((StartLocal) event).name;
+        largestPrefix = Integer.max(largestPrefix, getLargestPrefix(factory, name));
+      }
+    }
+
+    String fakeThisName = Strings.repeat(FAKE_THIS_PREFIX, largestPrefix + 1) + FAKE_THIS_SUFFIX;
     DexString[] parameters = debugInfo.parameters;
     DexString[] newParameters = new DexString[parameters.length + 1];
-    newParameters[0] = name;
+    newParameters[0] = factory.createString(fakeThisName);
     System.arraycopy(parameters, 0, newParameters, 1, parameters.length);
     return new DexDebugInfo(debugInfo.startLine, newParameters, debugInfo.events);
+  }
+
+  private static int getLargestPrefix(DexItemFactory factory, DexString name) {
+    if (name != null && name.endsWith(factory.thisName)) {
+      String string = name.toString();
+      for (int i = 0; i < string.length(); i++) {
+        if (string.charAt(i) != '_') {
+          return i;
+        }
+      }
+    }
+    return 0;
   }
 
   public DexDebugInfo debugInfoWithoutFirstParameter() {

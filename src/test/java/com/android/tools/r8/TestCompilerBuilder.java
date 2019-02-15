@@ -113,6 +113,12 @@ public abstract class TestCompilerBuilder<
     return setMode(CompilationMode.RELEASE);
   }
 
+  public T setMinApiThreshold(AndroidApiLevel minApiThreshold) {
+    assert backend == Backend.DEX;
+    AndroidApiLevel minApi = ToolHelper.getMinApiLevelForDexVmNoHigherThan(minApiThreshold);
+    return setMinApi(minApi);
+  }
+
   public T setMinApi(AndroidApiLevel minApiLevel) {
     // Should we ignore min-api calls when backend == CF?
     this.defaultMinApiLevel = null;

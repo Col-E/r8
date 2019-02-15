@@ -3,14 +3,24 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.Disassemble;
 import com.android.tools.r8.Disassemble.DisassembleCommand;
-import com.android.tools.r8.TestBase;
+import com.android.tools.r8.JvmTestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.debug.DebugTestBase;
+import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
+import com.android.tools.r8.debug.DebugTestConfig;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -19,18 +29,63 @@ import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 
-public class DefaultLambdaWithSelfReferenceTestRunner extends TestBase {
+public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
 
   final Class<?> CLASS = DefaultLambdaWithSelfReferenceTest.class;
   final String EXPECTED = StringUtils.lines("stateful(stateless)");
 
-  @Test
-  public void testJvm() throws Exception {
-    testForJvm().addTestClasspath().run(CLASS).assertSuccessWithOutput(EXPECTED);
+  private void runDebugger(DebugTestConfig config) throws Throwable {
+    MethodReference main = Reference.methodFromMethod(CLASS.getMethod("main", String[].class));
+    Command checkThis = conditional((state) ->
+        state.isCfRuntime()
+            ? Collections.singletonList(checkLocal("this"))
+            : ImmutableList.of(
+                checkNoLocal("this"),
+                checkLocal("_this")));
+
+    runDebugTest(config, CLASS,
+        breakpoint(main, 26),
+        run(),
+        checkLine(26),
+        stepInto(INTELLIJ_FILTER),
+        checkLine(16),
+        // When desugaring, the InterfaceProcessor makes this static on the companion class.
+        checkThis,
+        breakpoint(main, 27),
+        run(),
+        checkLine(27),
+        stepInto(INTELLIJ_FILTER),
+        checkLine(17),
+        // When desugaring, the LambdaClass will change this to a static (later moved to companion).
+        checkThis,
+        run());
   }
 
   @Test
-  public void test() throws Exception {
+  public void testJvm() throws Throwable {
+    JvmTestBuilder builder = testForJvm().addTestClasspath();
+    builder.run(CLASS).assertSuccessWithOutput(EXPECTED);
+    runDebugger(builder.debugConfig());
+  }
+
+  @Test
+  public void testR8Cf() throws Throwable {
+    R8TestCompileResult compileResult = testForR8(Backend.CF)
+        .addProgramClassesAndInnerClasses(CLASS)
+        .noMinification()
+        .noTreeShaking()
+        .debug()
+        .compile();
+    compileResult
+        // TODO(b/123506120): Add .assertNoMessages()
+        .run(CLASS)
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(inspector -> assertThat(inspector.clazz(CLASS), isPresent()));
+    runDebugger(compileResult.debugConfig());
+  }
+
+  @Test
+  public void testD8() throws Throwable {
     Path out1 = temp.newFolder().toPath().resolve("out1.zip");
     testForD8()
         .addProgramClassesAndInnerClasses(CLASS)
@@ -73,13 +128,17 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends TestBase {
     }
 
     Path out2 = temp.newFolder().toPath().resolve("out2.zip");
-    testForD8()
+    D8TestCompileResult compiledResult = testForD8()
         .addProgramFiles(outs)
-        .compile()
+        .compile();
+
+    compiledResult
         // TODO(b/123506120): Add .assertNoMessages()
         .writeToZip(out2)
         .run(CLASS)
         .assertSuccessWithOutput(EXPECTED);
+
+    runDebugger(compiledResult.debugConfig());
 
     Path dissasemble1 = temp.newFolder().toPath().resolve("disassemble1.txt");
     Path dissasemble2 = temp.newFolder().toPath().resolve("disassemble2.txt");
