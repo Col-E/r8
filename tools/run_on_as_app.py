@@ -730,10 +730,11 @@ def main(argv):
 
     # Make a copy of r8.jar and r8lib.jar such that they stay the same for
     # the entire execution of this script.
-    if 'r8-nolib' in options.shrinker:
+    all_shrinkers_enabled = (options.shrinker == None)
+    if all_shrinkers_enabled or 'r8-nolib' in options.shrinker:
       assert os.path.isfile(utils.R8_JAR), 'Cannot build without r8.jar'
       shutil.copyfile(utils.R8_JAR, os.path.join(temp_dir, 'r8.jar'))
-    if 'r8' in options.shrinker:
+    if all_shrinkers_enabled or 'r8' in options.shrinker:
       assert os.path.isfile(utils.R8LIB_JAR), 'Cannot build without r8lib.jar'
       shutil.copyfile(utils.R8LIB_JAR, os.path.join(temp_dir, 'r8lib.jar'))
 
