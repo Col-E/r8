@@ -3,13 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.Minifier.MinifiedRenaming;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Timing;
 import java.nio.file.Paths;
@@ -38,6 +41,25 @@ public class MinifierTest extends NamingTestBase {
   public void minifierTest() throws Exception {
     NamingLens naming = runMinifier(ListUtils.map(keepRulesFiles, Paths::get));
     inspection.accept(dexItemFactory, naming);
+  }
+
+  @Test
+  public void ensureClassesAddedToRenamingOrNoClashTest() throws Exception {
+    MinifiedRenaming naming =
+        (MinifiedRenaming) runMinifier(ListUtils.map(keepRulesFiles, Paths::get));
+    // Create a type that exists.
+    String existingType = "La/c;";
+    DexType d = dexItemFactory.createType(existingType);
+    try {
+      naming.lookupDescriptor(d);
+    } catch (AssertionError ae) {
+      assertTrue(
+          ae.getMessage()
+              .startsWith(
+                  "Duplicate minified type '" + existingType + "' already mapped for: naming001."));
+      return;
+    }
+    fail("Should have thrown an error.");
   }
 
   @Parameters(name = "test: {0} keep: {1}")

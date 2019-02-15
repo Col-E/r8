@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -86,11 +87,13 @@ public class Minifier {
     return lens;
   }
 
-  private static class MinifiedRenaming extends NamingLens {
+  static class MinifiedRenaming extends NamingLens {
 
     private final AppInfo appInfo;
     private final Map<String, String> packageRenaming;
     private final Map<DexItem, DexString> renaming = new IdentityHashMap<>();
+    // This set is only used for asserting no duplicated names.
+    private final Map<DexString, DexType> renamedTypesForVerification;
 
     private MinifiedRenaming(
         ClassRenaming classRenaming,
@@ -103,6 +106,10 @@ public class Minifier {
       renaming.putAll(methodRenaming.renaming);
       renaming.putAll(methodRenaming.callSiteRenaming);
       renaming.putAll(fieldRenaming.renaming);
+      renamedTypesForVerification = new HashMap<>();
+      for (Map.Entry<DexType, DexString> entry : classRenaming.classRenaming.entrySet()) {
+        renamedTypesForVerification.put(entry.getValue(), entry.getKey());
+      }
     }
 
     @Override
@@ -112,7 +119,18 @@ public class Minifier {
 
     @Override
     public DexString lookupDescriptor(DexType type) {
-      return renaming.getOrDefault(type, type.descriptor);
+      DexString dexString = renaming.get(type);
+      if (dexString != null) {
+        return dexString;
+      }
+      assert type.isPrimitiveType()
+              || type.isVoidType()
+              || !renamedTypesForVerification.containsKey(type.descriptor)
+          : "Duplicate minified type '"
+              + type.descriptor
+              + "' already mapped for: "
+              + renamedTypesForVerification.get(type.descriptor);
+      return type.descriptor;
     }
 
     @Override
