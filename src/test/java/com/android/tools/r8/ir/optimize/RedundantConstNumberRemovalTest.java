@@ -102,7 +102,7 @@ public class RedundantConstNumberRemovalTest extends TestBase {
       // Only a single basic block.
       assertEquals(1, code.blocks.size());
       // The block only has three instructions.
-      BasicBlock entryBlock = code.blocks.get(0);
+      BasicBlock entryBlock = code.entryBlock();
       assertEquals(3, entryBlock.getInstructions().size());
       // The first one is the `argument` instruction.
       Instruction argument = entryBlock.getInstructions().getFirst();

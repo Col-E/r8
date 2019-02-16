@@ -201,7 +201,7 @@ public class CodeRewriter {
       BasicBlock blk = block;  // Additional local for lambda below.
       assert !block.isTrivialGoto()
           || block.exit().asGoto().getTarget() == block
-          || code.blocks.get(0) == block
+          || code.entryBlock() == block
           || block.getPredecessors().stream().anyMatch((b) -> b.exit().fallthroughBlock() == blk);
       // Trivial goto blocks never target the next block (in that case there should just be a
       // fallthrough).
@@ -242,7 +242,7 @@ public class CodeRewriter {
       // Not targeting the fallthrough block, determine if we need this goto. We need it if
       // a fallthrough can hit this block. That is the case if the block is the entry block
       // or if one of the predecessors fall through to the block.
-      needed = code.blocks.get(0) == block || isFallthroughBlock(block);
+      needed = code.entryBlock() == block || isFallthroughBlock(block);
     }
 
     if (!needed) {
@@ -1535,7 +1535,7 @@ public class CodeRewriter {
     final int color = code.reserveMarkingColor();
     try {
       ArrayDeque<BasicBlock> worklist = new ArrayDeque<>();
-      final BasicBlock entry = code.blocks.getFirst();
+      final BasicBlock entry = code.entryBlock();
       worklist.add(entry);
       entry.mark(color);
 
@@ -2032,7 +2032,7 @@ public class CodeRewriter {
       Set<StaticPut> puts, Map<DexField, StaticPut> finalFieldPut) {
     final int color = code.reserveMarkingColor();
     try {
-      BasicBlock block = code.blocks.getFirst();
+      BasicBlock block = code.entryBlock();
       while (!block.isMarked(color) && block.getPredecessors().size() <= 1) {
         block.mark(color);
         InstructionListIterator it = block.listIterator();
@@ -3897,7 +3897,7 @@ public class CodeRewriter {
    */
   public void logArgumentTypes(DexEncodedMethod method, IRCode code) {
     List<Value> arguments = code.collectArguments();
-    BasicBlock block = code.blocks.getFirst();
+    BasicBlock block = code.entryBlock();
     InstructionListIterator iterator = block.listIterator();
 
     // Attach some synthetic position to all inserted code.

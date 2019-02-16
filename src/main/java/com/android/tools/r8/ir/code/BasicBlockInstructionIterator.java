@@ -303,7 +303,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     for (int i = 0; i < inlinee.blocks.size(); i++) {
       blocksIterator.previous();
     }
-    assert IteratorUtils.peekNext(blocksIterator) == inlinee.blocks.getFirst();
+    assert IteratorUtils.peekNext(blocksIterator) == inlinee.entryBlock();
     // Iterate through the inlined blocks.
     for (BasicBlock inlinedBlock : inlinee.blocks) {
       BasicBlock expected = blocksIterator.next();
@@ -364,7 +364,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     List<Value> arguments = inlinee.collectArguments();
     assert invoke.inValues().size() == arguments.size();
 
-    BasicBlock entryBlock = inlinee.blocks.getFirst();
+    BasicBlock entryBlock = inlinee.entryBlock();
     InstructionListIterator entryBlockIterator;
 
     int i = 0;
@@ -425,7 +425,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     new TypeAnalysis(appInfo, inlinee.method).narrowing(argumentUsers);
 
     // The inline entry is the first block now the argument instructions are gone.
-    BasicBlock inlineEntry = inlinee.blocks.getFirst();
+    BasicBlock inlineEntry = inlinee.entryBlock();
 
     BasicBlock inlineExit = null;
     List<BasicBlock> normalExits = inlinee.computeNormalExitBlocks();

@@ -189,7 +189,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     this.code = code;
     this.options = options;
     int argumentRegisters = 0;
-    for (Instruction instruction : code.blocks.getFirst().getInstructions()) {
+    for (Instruction instruction : code.entryBlock().getInstructions()) {
       if (instruction.isArgument()) {
         argumentRegisters += instruction.outValue().requiredRegisters();
       }
@@ -2506,7 +2506,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // VMs we block the receiver register throughout the method.
     if ((options.canHaveThisTypeVerifierBug() || options.canHaveThisJitCodeDebuggingBug())
         && !code.method.accessFlags.isStatic()) {
-      for (Instruction instruction : code.blocks.get(0).getInstructions()) {
+      for (Instruction instruction : code.entryBlock().getInstructions()) {
         if (instruction.isArgument() && instruction.outValue().isThis()) {
           Value thisValue = instruction.outValue();
           LiveIntervals thisIntervals = thisValue.getLiveIntervals();
@@ -2674,8 +2674,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // be original, consecutive arguments of the enclosing method (and importantly, not values that
   // have been defined by a check-cast instruction).
   private void transformBridgeMethod() {
-    assert implementationIsBridge(this.code);
-    BasicBlock entry = this.code.blocks.getFirst();
+    assert implementationIsBridge(code);
+    BasicBlock entry = code.entryBlock();
     InstructionListIterator iterator = entry.listIterator();
     // Create a mapping from argument values to their index, while scanning over the arguments.
     Reference2IntMap<Value> argumentIndices = new Reference2IntArrayMap<>();
@@ -2733,7 +2733,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (code.blocks.size() > 1) {
       return false;
     }
-    InstructionListIterator iterator = code.blocks.getFirst().listIterator();
+    InstructionListIterator iterator = code.entryBlock().listIterator();
     // Move forward to the first instruction after the definition of the arguments.
     while (iterator.hasNext() && iterator.peekNext().isArgument()) {
       iterator.next();

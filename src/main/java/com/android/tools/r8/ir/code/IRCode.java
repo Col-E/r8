@@ -136,6 +136,10 @@ public class IRCode {
     this.hasConstString |= inlinee.hasConstString;
   }
 
+  public BasicBlock entryBlock() {
+    return blocks.getFirst();
+  }
+
   /**
    * Compute the set of live values at the entry to each block using a backwards data-flow analysis.
    */
@@ -416,7 +420,7 @@ public class IRCode {
     ArrayList<BasicBlock> reverseOrdered = new ArrayList<>(blocks.size());
     Set<BasicBlock> visitedBlocks = new HashSet<>(blocks.size());
     Deque<Object> worklist = new ArrayDeque<>(blocks.size());
-    worklist.addLast(blocks.getFirst());
+    worklist.addLast(entryBlock());
     while (!worklist.isEmpty()) {
       Object item = worklist.removeLast();
       if (item instanceof BlockMarker) {
@@ -768,7 +772,7 @@ public class IRCode {
 
   public List<Value> collectArguments(boolean ignoreReceiver) {
     final List<Value> arguments = new ArrayList<>();
-    Iterator<Instruction> iterator = blocks.get(0).iterator();
+    Iterator<Instruction> iterator = entryBlock().iterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       if (instruction.isArgument()) {
@@ -787,7 +791,7 @@ public class IRCode {
     if (method.accessFlags.isStatic()) {
       return null;
     }
-    Instruction firstArg = blocks.getFirst().listIterator().nextUntil(Instruction::isArgument);
+    Instruction firstArg = entryBlock().listIterator().nextUntil(Instruction::isArgument);
     assert firstArg != null;
     Value thisValue = firstArg.asArgument().outValue();
     assert thisValue.isThis();
@@ -910,7 +914,7 @@ public class IRCode {
   public Set<BasicBlock> getUnreachableBlocks() {
     Set<BasicBlock> unreachableBlocks = Sets.newIdentityHashSet();
     int color = reserveMarkingColor();
-    markTransitiveSuccessors(blocks.getFirst(), color);
+    markTransitiveSuccessors(entryBlock(), color);
     for (BasicBlock block : blocks) {
       if (!block.isMarked(color)) {
         unreachableBlocks.add(block);
@@ -923,7 +927,7 @@ public class IRCode {
   public Set<Value> removeUnreachableBlocks() {
     ImmutableSet.Builder<Value> affectedValueBuilder = ImmutableSet.builder();
     int color = reserveMarkingColor();
-    markTransitiveSuccessors(blocks.getFirst(), color);
+    markTransitiveSuccessors(entryBlock(), color);
     ListIterator<BasicBlock> blockIterator = listIterator();
     while (blockIterator.hasNext()) {
       BasicBlock current = blockIterator.next();

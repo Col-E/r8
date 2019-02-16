@@ -166,7 +166,7 @@ class SpillMoveSet {
   public int scheduleAndInsertMoves(int tempRegister) {
     for (BasicBlock block : code.blocks) {
       InstructionListIterator insertAt = block.listIterator();
-      if (block == code.blocks.getFirst()) {
+      if (block == code.entryBlock()) {
         // Move insertAt iterator to the first non-argument, such that moves for the arguments will
         // be inserted after the last argument.
         while (insertAt.hasNext() && insertAt.peekNext().isArgument()) {

@@ -104,7 +104,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
     public int countArgumentInstructions() {
       int count = 0;
-      ListIterator<Instruction> iterator = code.blocks.get(0).listIterator();
+      ListIterator<Instruction> iterator = code.entryBlock().listIterator();
       while (iterator.next().isArgument()) {
         count++;
       }
