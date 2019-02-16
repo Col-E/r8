@@ -58,7 +58,7 @@ public class InterfaceMethodTest extends DebugTestBase {
       // the source file or the desguared interface is to make it an inner class.
       assertEquals('$', InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX.charAt(0));
       defaultMethodName = InterfaceMethodRewriter.DEFAULT_METHOD_PREFIX + "doSomething";
-      defaultMethodThisName = "-this";
+      defaultMethodThisName = "_this";
     }
 
 
