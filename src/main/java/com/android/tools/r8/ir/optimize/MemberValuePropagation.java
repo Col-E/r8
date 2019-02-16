@@ -286,7 +286,7 @@ public class MemberValuePropagation {
             ? appInfo.lookupInstanceTarget(field.getHolder(), field)
             : appInfo.lookupStaticTarget(field.getHolder(), field);
     // TODO(b/123857022): Should be possible to use `!isFieldRead(field)`.
-    if (target != null && !isFieldRead(target.field)) {
+    if (target != null && !appInfo.isFieldRead(target.field)) {
       // Remove writes to dead (i.e. never read) fields.
       iterator.removeOrReplaceByDebugLocalRead();
     }
@@ -326,18 +326,5 @@ public class MemberValuePropagation {
       new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
-  }
-
-  private boolean isFieldRead(DexField field) {
-    return appInfo.fieldsRead.contains(field)
-        // TODO(b/121354886): Pinned fields should be in `fieldsRead`.
-        || appInfo.isPinned(field)
-        // For library classes we don't know whether a field is read.
-        || isLibraryField(field);
-  }
-
-  private boolean isLibraryField(DexField field) {
-    DexClass holder = appInfo.definitionFor(field.clazz);
-    return holder == null || holder.isLibraryClass();
   }
 }

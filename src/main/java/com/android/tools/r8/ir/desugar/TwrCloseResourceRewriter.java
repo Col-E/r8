@@ -31,6 +31,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 // Try with resources outlining processor. Handles $closeResource methods
 // synthesized by java 9 compiler.
@@ -45,6 +47,7 @@ import java.util.Set;
 // tree shaking to remove them since now they should not be referenced.
 //
 public final class TwrCloseResourceRewriter {
+  public static final String UTILITY_CLASS_NAME = "$r8$twr$utility";
   public static final String UTILITY_CLASS_DESCRIPTOR = "L$r8$twr$utility;";
 
   private final IRConverter converter;
@@ -107,7 +110,9 @@ public final class TwrCloseResourceRewriter {
         && original.proto == converter.appInfo.dexItemFactory.twrCloseResourceMethodProto;
   }
 
-  public void synthesizeUtilityClass(Builder<?> builder, InternalOptions options) {
+  public void synthesizeUtilityClass(
+      Builder<?> builder, ExecutorService executorService, InternalOptions options)
+      throws ExecutionException {
     if (referencingClasses.isEmpty()) {
       return;
     }
@@ -144,7 +149,8 @@ public final class TwrCloseResourceRewriter {
     // Process created class and method.
     boolean addToMainDexList = referencingClasses.stream()
         .anyMatch(clazz -> converter.appInfo.isInMainDexList(clazz.type));
-    converter.optimizeSynthesizedClass(utilityClass);
+    converter.appInfo.addSynthesizedClass(utilityClass);
+    converter.optimizeSynthesizedClass(utilityClass, executorService);
     builder.addSynthesizedClass(utilityClass, addToMainDexList);
   }
 

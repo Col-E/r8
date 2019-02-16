@@ -322,7 +322,7 @@ final class InterfaceProcessor {
         if (!seenBefore.add(superType)) {
           continue;
         }
-        DexClass clazz = rewriter.findDefinitionFor(superType);
+        DexClass clazz = rewriter.appInfo.definitionFor(superType);
         if (clazz != null) {
           if (clazz.lookupVirtualMethod(method.method) != null) {
             return false;

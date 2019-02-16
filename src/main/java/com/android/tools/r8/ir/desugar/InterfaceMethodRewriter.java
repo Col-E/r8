@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication.Builder;
@@ -80,6 +81,7 @@ public final class InterfaceMethodRewriter {
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
   private final AppView<? extends AppInfoWithLiveness> appView;
+  final AppInfo appInfo;
   private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
@@ -121,6 +123,7 @@ public final class InterfaceMethodRewriter {
     assert converter != null;
     this.appView = appView;
     this.converter = converter;
+    this.appInfo = converter.appInfo;
     this.options = options;
     this.factory = options.itemFactory;
   }
@@ -156,7 +159,7 @@ public final class InterfaceMethodRewriter {
         if (instruction.isInvokeStatic()) {
           InvokeStatic invokeStatic = instruction.asInvokeStatic();
           DexMethod method = invokeStatic.getInvokedMethod();
-          DexClass clazz = findDefinitionFor(method.holder);
+          DexClass clazz = appInfo.definitionFor(method.holder);
           if (Java8MethodRewriter.hasJava8MethodRewritePrefix(method.holder)) {
             // We did not create this code yet, but it will not require rewriting.
             continue;
@@ -187,7 +190,7 @@ public final class InterfaceMethodRewriter {
                         invokeStatic.outValue(), invokeStatic.arguments()));
                 requiredDispatchClasses
                     .computeIfAbsent(clazz.asLibraryClass(), k -> Sets.newConcurrentHashSet())
-                    .add(findDefinitionFor(encodedMethod.method.holder).asProgramClass());
+                    .add(appInfo.definitionFor(encodedMethod.method.holder).asProgramClass());
               }
             } else {
               instructions.replaceCurrentInstruction(
@@ -201,7 +204,7 @@ public final class InterfaceMethodRewriter {
         if (instruction.isInvokeSuper()) {
           InvokeSuper invokeSuper = instruction.asInvokeSuper();
           DexMethod method = invokeSuper.getInvokedMethod();
-          DexClass clazz = findDefinitionFor(method.holder);
+          DexClass clazz = appInfo.definitionFor(method.holder);
           if (clazz == null) {
             // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
             // exception but we can not report it as error since it can also be the intended
@@ -218,7 +221,7 @@ public final class InterfaceMethodRewriter {
             // WARNING: This may result in incorrect code on older platforms!
             // Retarget call to an appropriate method of companion class.
             DexMethod amendedMethod = amendDefaultMethod(
-                findDefinitionFor(encodedMethod.method.holder), method);
+                appInfo.definitionFor(encodedMethod.method.holder), method);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(defaultAsMethodOfCompanionClass(amendedMethod),
                     invokeSuper.outValue(), invokeSuper.arguments()));
@@ -233,7 +236,7 @@ public final class InterfaceMethodRewriter {
             continue;
           }
 
-          DexClass clazz = findDefinitionFor(method.holder);
+          DexClass clazz = appInfo.definitionFor(method.holder);
           if (clazz == null) {
             // Report missing class since we don't know if it is an interface.
             warnMissingType(encodedMethod.method, method.holder);
@@ -279,7 +282,7 @@ public final class InterfaceMethodRewriter {
 
   private void reportStaticInterfaceMethodHandle(DexMethod referencedFrom, DexMethodHandle handle) {
     if (handle.type.isInvokeStatic()) {
-      DexClass holderClass = findDefinitionFor(handle.asMethod().holder);
+      DexClass holderClass = appInfo.definitionFor(handle.asMethod().holder);
       // NOTE: If the class definition is missing we can't check. Let it be handled as any other
       // missing call target.
       if (holderClass == null) {
@@ -290,15 +293,6 @@ public final class InterfaceMethodRewriter {
                 + referencedFrom.toSourceString() + "` in is not yet supported.");
       }
     }
-  }
-
-  /**
-   * Returns the class definition for the specified type.
-   *
-   * @return may return null if no definition for the given type is available.
-   */
-  final DexClass findDefinitionFor(DexType type) {
-    return converter.definitionFor(type);
   }
 
   // Gets the companion class for the interface `type`.
@@ -334,7 +328,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private boolean isInMainDexList(DexType iface) {
-    return converter.appInfo.isInMainDexList(iface);
+    return appInfo.isInMainDexList(iface);
   }
 
   // Represent a static interface method as a method of companion class.
@@ -393,8 +387,7 @@ public final class InterfaceMethodRewriter {
   public void desugarInterfaceMethods(
       Builder<?> builder,
       Flavor flavour,
-      ExecutorService executorService,
-      Map<DexType, DexProgramClass> synthesizedClasses)
+      ExecutorService executorService)
       throws ExecutionException {
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
@@ -409,13 +402,10 @@ public final class InterfaceMethodRewriter {
       // are just moved from interfaces and don't need to be re-processed.
       DexProgramClass synthesizedClass = entry.getValue();
       builder.addSynthesizedClass(synthesizedClass, isInMainDexList(entry.getKey()));
-
-      if (synthesizedClasses != null) {
-        synthesizedClasses.put(synthesizedClass.type, synthesizedClass);
-      }
+      appInfo.addSynthesizedClass(synthesizedClass);
     }
 
-    converter.optimizeSynthesizedMethods(synthesizedMethods, executorService);
+    converter.optimizeSynthesizedMethodsConcurrently(synthesizedMethods, executorService);
 
     // Cached data is not needed any more.
     clear();
@@ -528,7 +518,7 @@ public final class InterfaceMethodRewriter {
     if (isCompanionClassType(holder)) {
       holder = getInterfaceClassType(holder);
     }
-    DexClass clazz = converter.appInfo.definitionFor(holder);
+    DexClass clazz = appInfo.definitionFor(holder);
     return clazz == null ? Origin.unknown() : clazz.getOrigin();
   }
 
@@ -550,7 +540,7 @@ public final class InterfaceMethodRewriter {
       DexClass implementing,
       DexType iface) {
     DefaultMethodsHelper helper = new DefaultMethodsHelper();
-    DexClass definedInterface = findDefinitionFor(iface);
+    DexClass definedInterface = appInfo.definitionFor(iface);
     if (definedInterface == null) {
       warnMissingInterface(classToDesugar, implementing, iface);
       return helper.wrapInCollection();

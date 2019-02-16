@@ -1985,11 +1985,11 @@ public class Enqueuer {
     /**
      * Set of all fields which may be touched by a get operation. This is actual field definitions.
      */
-    public final SortedSet<DexField> fieldsRead;
+    private final SortedSet<DexField> fieldsRead;
     /**
      * Set of all fields which may be touched by a put operation. This is actual field definitions.
      */
-    public final SortedSet<DexField> fieldsWritten;
+    private final SortedSet<DexField> fieldsWritten;
     /**
      * Set of all field ids used in instance field reads, along with access context.
      */
@@ -2359,7 +2359,8 @@ public class Enqueuer {
 
     public boolean isInstantiatedDirectly(DexType type) {
       assert type.isClassType();
-      return instantiatedTypes.contains(type)
+      return type.isD8R8SynthesizedClassType()
+          || instantiatedTypes.contains(type)
           || instantiatedLambdas.contains(type)
           || instantiatedAnnotationTypes.contains(type);
     }
@@ -2384,6 +2385,31 @@ public class Enqueuer {
     public boolean isInstantiatedDirectlyOrIndirectly(DexType type) {
       assert type.isClassType();
       return isInstantiatedDirectly(type) || isInstantiatedIndirectly(type);
+    }
+
+    public boolean isFieldRead(DexField field) {
+      return fieldsRead.contains(field)
+          // TODO(b/121354886): Pinned fields should be in `fieldsRead`.
+          || isPinned(field)
+          // Fields in the class that is synthesized by D8/R8 would be used soon.
+          || field.getHolder().isD8R8SynthesizedClassType()
+          // For library classes we don't know whether a field is read.
+          || isLibraryField(field);
+    }
+
+    public boolean isFieldWritten(DexField field) {
+      return fieldsWritten.contains(field)
+          // TODO(b/121354886): Pinned fields should be in `fieldsWritten`.
+          || isPinned(field)
+          // Fields in the class that is synthesized by D8/R8 would be used soon.
+          || field.clazz.isD8R8SynthesizedClassType()
+          // For library classes we don't know whether a field is rewritten.
+          || isLibraryField(field);
+    }
+
+    private boolean isLibraryField(DexField field) {
+      DexClass holder = definitionFor(field.clazz);
+      return holder == null || holder.isLibraryClass();
     }
 
     private Object2BooleanMap<DexReference> joinIdentifierNameStrings(

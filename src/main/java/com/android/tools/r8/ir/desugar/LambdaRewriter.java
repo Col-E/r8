@@ -181,14 +181,15 @@ public class LambdaRewriter {
   /** Generates lambda classes and adds them to the builder. */
   public void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
+    for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
+      DexProgramClass synthesizedClass = lambdaClass.getLambdaClass();
+      appInfo.addSynthesizedClass(synthesizedClass);
+      builder.addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
+    }
     converter.optimizeSynthesizedClasses(
         knownLambdaClasses.values().stream()
             .map(LambdaClass::getLambdaClass).collect(ImmutableSet.toImmutableSet()),
         executorService);
-    for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
-      DexProgramClass synthesizedClass = lambdaClass.getLambdaClass();
-      builder.addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
-    }
   }
 
   public Set<DexCallSite> getDesugaredCallSites() {

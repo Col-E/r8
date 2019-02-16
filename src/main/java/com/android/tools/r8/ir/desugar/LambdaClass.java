@@ -153,8 +153,9 @@ final class LambdaClass {
             synthesizeVirtualMethods(mainMethod),
             rewriter.factory.getSkipNameValidationForTesting());
     // Optimize main method.
-    rewriter.converter.optimizeMethodOnSynthesizedClass(
-        clazz, clazz.lookupVirtualMethod(mainMethod));
+    rewriter.converter.appInfo.addSynthesizedClass(clazz);
+    rewriter.converter.optimizeSynthesizedMethod(clazz.lookupVirtualMethod(mainMethod));
+
     // The method addSynthesizedFrom() may be called concurrently. To avoid a Concurrent-
     // ModificationException we must use synchronization.
     synchronized (synthesizedFrom) {

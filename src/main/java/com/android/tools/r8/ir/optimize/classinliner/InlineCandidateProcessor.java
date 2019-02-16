@@ -117,11 +117,13 @@ final class InlineCandidateProcessor {
     if (!eligibleClass.isClassType()) {
       return false;
     }
-    eligibleClassDefinition = appInfo.definitionFor(eligibleClass);
-    if (eligibleClassDefinition == null && lambdaRewriter != null) {
+    if (lambdaRewriter != null) {
       // Check if the class is synthesized for a desugared lambda
       eligibleClassDefinition = lambdaRewriter.getLambdaClass(eligibleClass);
       isDesugaredLambda = eligibleClassDefinition != null;
+    }
+    if (eligibleClassDefinition == null) {
+      eligibleClassDefinition = appInfo.definitionFor(eligibleClass);
     }
     return eligibleClassDefinition != null;
   }

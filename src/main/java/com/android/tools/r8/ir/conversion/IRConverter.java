@@ -89,12 +89,10 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -148,10 +146,6 @@ public class IRConverter {
   private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private final OptimizationFeedback simpleOptimizationFeedback = new OptimizationFeedbackSimple();
   private DexString highestSortingString;
-
-  // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve
-  // the current class being optimized.
-  private ConcurrentHashMap<DexType, DexProgramClass> cachedClasses = new ConcurrentHashMap<>();
 
   // The argument `appView` is only available when full program optimizations are allowed
   // (i.e., when running R8).
@@ -352,30 +346,24 @@ public class IRConverter {
       InterfaceMethodRewriter.Flavor includeAllResources,
       ExecutorService executorService)
       throws ExecutionException {
-    desugarInterfaceMethods(builder, includeAllResources, executorService, null);
-  }
-
-  private void desugarInterfaceMethods(
-      Builder<?> builder,
-      InterfaceMethodRewriter.Flavor includeAllResources,
-      ExecutorService executorService,
-      Map<DexType, DexProgramClass> synthesizedClasses)
-      throws ExecutionException {
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.desugarInterfaceMethods(
-          builder, includeAllResources, executorService, synthesizedClasses);
+          builder, includeAllResources, executorService);
     }
   }
 
-  private void synthesizeTwrCloseResourceUtilityClass(Builder<?> builder) {
+  private void synthesizeTwrCloseResourceUtilityClass(
+      Builder<?> builder, ExecutorService executorService)
+      throws ExecutionException {
     if (twrCloseResourceRewriter != null) {
-      twrCloseResourceRewriter.synthesizeUtilityClass(builder, options);
+      twrCloseResourceRewriter.synthesizeUtilityClass(builder, executorService, options);
     }
   }
 
-  private void synthesizeJava8UtilityClass(Builder<?> builder) {
+  private void synthesizeJava8UtilityClass(
+      Builder<?> builder, ExecutorService executorService) throws ExecutionException {
     if (java8MethodRewriter != null) {
-      java8MethodRewriter.synthesizeUtilityClass(builder, options);
+      java8MethodRewriter.synthesizeUtilityClass(builder, executorService, options);
     }
   }
 
@@ -398,8 +386,8 @@ public class IRConverter {
 
     synthesizeLambdaClasses(builder, executor);
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
-    synthesizeTwrCloseResourceUtilityClass(builder);
-    synthesizeJava8UtilityClass(builder);
+    synthesizeTwrCloseResourceUtilityClass(builder, executor);
+    synthesizeJava8UtilityClass(builder, executor);
     processCovariantReturnTypeAnnotations(builder);
 
     handleSynthesizedClassMapping(builder);
@@ -590,21 +578,20 @@ public class IRConverter {
     synthesizeLambdaClasses(builder, executorService);
 
     printPhase("Interface method desugaring");
-    Map<DexType, DexProgramClass> synthesizedClasses = new IdentityHashMap<>();
-    desugarInterfaceMethods(builder, IncludeAllResources, executorService, synthesizedClasses);
+    desugarInterfaceMethods(builder, IncludeAllResources, executorService);
 
     printPhase("Twr close resource utility class synthesis");
-    synthesizeTwrCloseResourceUtilityClass(builder);
-    synthesizeJava8UtilityClass(builder);
+    synthesizeTwrCloseResourceUtilityClass(builder, executorService);
+    synthesizeJava8UtilityClass(builder, executorService);
     handleSynthesizedClassMapping(builder);
 
     printPhase("Lambda merging finalization");
-    finalizeLambdaMerging(application, feedback, builder, executorService, synthesizedClasses);
+    finalizeLambdaMerging(application, feedback, builder, executorService);
 
     if (outliner != null) {
       printPhase("Outlining");
       timing.begin("IR conversion phase 2");
-      if (outliner.selectMethodsForOutlining(synthesizedClasses)) {
+      if (outliner.selectMethodsForOutlining()) {
         forEachSelectedOutliningMethod(
             executorService,
             (code, method) -> {
@@ -612,7 +599,8 @@ public class IRConverter {
               outliner.identifyOutlineSites(code, method);
             });
         DexProgramClass outlineClass = outliner.buildOutlinerClass(computeOutlineClassType());
-        optimizeSynthesizedClass(outlineClass);
+        appInfo.addSynthesizedClass(outlineClass);
+        optimizeSynthesizedClass(outlineClass, executorService);
         forEachSelectedOutliningMethod(
             executorService,
             (code, method) -> {
@@ -636,6 +624,12 @@ public class IRConverter {
       uninstantiatedTypeOptimization.logResults();
     }
 
+    // Check if what we've added to the application builder as synthesized classes are same as
+    // what we've added and used through AppInfo.
+    assert appInfo.getSynthesizedClassesForSanityCheck()
+            .containsAll(builder.getSynthesizedClasses())
+        && builder.getSynthesizedClasses()
+            .containsAll(appInfo.getSynthesizedClassesForSanityCheck());
     return builder.build();
   }
 
@@ -687,14 +681,13 @@ public class IRConverter {
 
   private void finalizeLambdaMerging(
       DexApplication application,
-      OptimizationFeedback directFeedback,
+      OptimizationFeedback feedback,
       Builder<?> builder,
-      ExecutorService executorService,
-      Map<DexType, DexProgramClass> synthesizedClasses)
+      ExecutorService executorService)
       throws ExecutionException {
     if (lambdaMerger != null) {
       lambdaMerger.applyLambdaClassMapping(
-          application, this, directFeedback, builder, executorService, synthesizedClasses);
+          application, this, feedback, builder, executorService);
     }
   }
 
@@ -744,49 +737,24 @@ public class IRConverter {
     return result;
   }
 
-  public DexClass definitionFor(DexType type) {
-    DexProgramClass cached = cachedClasses.get(type);
-    return cached != null ? cached : appInfo.definitionFor(type);
-  }
-
-  public void optimizeSynthesizedClass(DexProgramClass clazz) {
-    try {
-      enterCachedClass(clazz);
-      // Process the generated class, but don't apply any outlining.
-      clazz.forEachMethod(this::optimizeSynthesizedMethod);
-    } finally {
-      leaveCachedClass(clazz);
-    }
+  public void optimizeSynthesizedClass(
+      DexProgramClass clazz, ExecutorService executorService)
+      throws ExecutionException {
+    Set<DexEncodedMethod> methods = Sets.newIdentityHashSet();
+    clazz.forEachMethod(methods::add);
+    // Process the generated class, but don't apply any outlining.
+    optimizeSynthesizedMethodsConcurrently(methods, executorService);
   }
 
   public void optimizeSynthesizedClasses(
       Collection<DexProgramClass> classes, ExecutorService executorService)
       throws ExecutionException {
     Set<DexEncodedMethod> methods = Sets.newIdentityHashSet();
-    try {
-      for (DexProgramClass clazz : classes) {
-        enterCachedClass(clazz);
-        clazz.forEachMethod(methods::add);
-      }
-      // Process the generated class, but don't apply any outlining.
-      optimizeSynthesizedMethods(methods, executorService);
-    } finally {
-      for (DexProgramClass clazz : classes) {
-        leaveCachedClass(clazz);
-      }
+    for (DexProgramClass clazz : classes) {
+      clazz.forEachMethod(methods::add);
     }
-  }
-
-  public void optimizeMethodOnSynthesizedClass(DexProgramClass clazz, DexEncodedMethod method) {
-    if (!method.isProcessed()) {
-      try {
-        enterCachedClass(clazz);
-        // Process the generated method, but don't apply any outlining.
-        optimizeSynthesizedMethod(method);
-      } finally {
-        leaveCachedClass(clazz);
-      }
-    }
+    // Process the generated class, but don't apply any outlining.
+    optimizeSynthesizedMethodsConcurrently(methods, executorService);
   }
 
   public void optimizeSynthesizedMethod(DexEncodedMethod method) {
@@ -801,7 +769,7 @@ public class IRConverter {
     }
   }
 
-  public void optimizeSynthesizedMethods(
+  public void optimizeSynthesizedMethodsConcurrently(
       Collection<DexEncodedMethod> methods, ExecutorService executorService)
       throws ExecutionException {
     List<Future<?>> futures = new ArrayList<>();
@@ -819,16 +787,6 @@ public class IRConverter {
               }));
     }
     ThreadUtils.awaitFutures(futures);
-  }
-
-  private void enterCachedClass(DexProgramClass clazz) {
-    DexProgramClass previous = cachedClasses.put(clazz.type, clazz);
-    assert previous == null;
-  }
-
-  private void leaveCachedClass(DexProgramClass clazz) {
-    DexProgramClass existing = cachedClasses.remove(clazz.type);
-    assert existing == clazz;
   }
 
   private String logCode(InternalOptions options, DexEncodedMethod method) {
@@ -1198,7 +1156,8 @@ public class IRConverter {
       // original method signature (this could have changed as a result of, for example, class
       // merging). Then, we find the type that now corresponds to the the original holder.
       DexMethod originalSignature = graphLense().getOriginalMethodSignature(method.method);
-      DexClass originalHolder = definitionFor(graphLense().lookupType(originalSignature.holder));
+      DexClass originalHolder = appInfo.definitionFor(
+          graphLense().lookupType(originalSignature.holder));
       if (originalHolder.hasKotlinInfo()) {
         KotlinInfo kotlinInfo = originalHolder.getKotlinInfo();
         if (kotlinInfo.hasNonNullParameterHints()) {

@@ -1232,7 +1232,7 @@ public class Outliner {
     }
   }
 
-  public boolean selectMethodsForOutlining(Map<DexType, DexProgramClass> synthesizedClasses) {
+  public boolean selectMethodsForOutlining() {
     assert methodsSelectedForOutlining.size() == 0;
     assert outlineSites.size() == 0;
     for (List<DexEncodedMethod> outlineMethods : candidateMethodLists) {
@@ -1241,7 +1241,7 @@ public class Outliner {
           methodsSelectedForOutlining.add(
               converter
                   .graphLense()
-                  .mapDexEncodedMethod(outlineMethod, appInfo, synthesizedClasses));
+                  .mapDexEncodedMethod(outlineMethod, appInfo));
         }
       }
     }
