@@ -90,7 +90,7 @@ public class ConstantCanonicalizer {
 
     // Double-check the entry block does not have catch handlers.
     // Otherwise, we need to split it before moving canonicalized const-string, which may throw.
-    assert !code.blocks.getFirst().hasCatchHandlers();
+    assert !code.entryBlock().hasCatchHandlers();
     Position firstNonNonePosition = findFirstNonNonePosition(code);
     FastSortedEntrySet<ConstInstruction, List<Value>> entries =
         valuesDefinedByConstant.object2ObjectEntrySet();
@@ -124,7 +124,7 @@ public class ConstantCanonicalizer {
 
   private static void insertCanonicalizedConstant(
       IRCode code, ConstInstruction canonicalizedConstant) {
-    BasicBlock entryBlock = code.blocks.get(0);
+    BasicBlock entryBlock = code.entryBlock();
     // Insert the constant instruction at the start of the block right after the argument
     // instructions. It is important that the const instruction is put before any instruction
     // that can throw exceptions (since the value could be used on the exceptional edge).
@@ -139,7 +139,7 @@ public class ConstantCanonicalizer {
   }
 
   private static Position findFirstNonNonePosition(IRCode code) {
-    BasicBlock entryBlock = code.blocks.get(0);
+    BasicBlock entryBlock = code.entryBlock();
     Instruction rightAfterArguments =
         entryBlock.listIterator().nextUntil(instr -> !instr.isArgument());
     Position firstNonArgumentPosition = rightAfterArguments.getPosition();

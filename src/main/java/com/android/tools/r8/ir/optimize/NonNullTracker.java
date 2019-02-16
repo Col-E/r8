@@ -422,8 +422,7 @@ public class NonNullTracker {
       // Stop traversing upwards if we hit the entry block: if the entry block has an non-null,
       // this case should be handled already by A) because the entry block surely dominates all
       // normal exits.
-      // TODO(b/120787963): code.entryBlock()
-      if (uncoveredPath == code.blocks.getFirst()) {
+      if (uncoveredPath == code.entryBlock()) {
         return false;
       }
       // Make sure we're not visiting the same block over and over again.

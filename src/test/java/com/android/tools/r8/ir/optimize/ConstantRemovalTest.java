@@ -145,6 +145,6 @@ public class ConstantRemovalTest {
     // Check that all four constant number instructions remain.
     assertEquals(
         4,
-        code.blocks.get(0).getInstructions().stream().filter(Instruction::isConstNumber).count());
+        code.entryBlock().getInstructions().stream().filter(Instruction::isConstNumber).count());
   }
 }

@@ -183,7 +183,7 @@ public class IdempotentFunctionCallCanonicalizer {
   }
 
   private static void insertCanonicalizedInvoke(IRCode code, Invoke canonicalizedInvoke) {
-    BasicBlock entryBlock = code.blocks.get(0);
+    BasicBlock entryBlock = code.entryBlock();
     // Insert the canonicalized invoke after in values.
     int numberOfInValuePassed = 0;
     InstructionListIterator it = entryBlock.listIterator();

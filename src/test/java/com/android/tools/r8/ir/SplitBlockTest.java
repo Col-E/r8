@@ -83,7 +83,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
-      BasicBlock block = code.blocks.get(0);
+      BasicBlock block = code.entryBlock();
       int instructionCount = block.getInstructions().size();
       assertEquals(firstBlockInstructions, instructionCount);
 
@@ -96,7 +96,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
       assertTrue(code.isConsistentSSA());
 
       assertEquals(initialBlockCount + 1, code.blocks.size());
-      assertEquals(i + 1, code.blocks.get(0).getInstructions().size());
+      assertEquals(i + 1, code.entryBlock().getInstructions().size());
       assertEquals(instructionCount - i, code.blocks.get(1).getInstructions().size());
       assertSame(newBlock, code.blocks.get(1));
 
@@ -117,7 +117,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
-      BasicBlock block = code.blocks.get(0);
+      BasicBlock block = code.entryBlock();
       int instructionCount = block.getInstructions().size();
       assertEquals(firstBlockInstructions, instructionCount);
 
@@ -130,7 +130,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
       assertTrue(code.isConsistentSSA());
 
       assertEquals(initialBlockCount + 2, code.blocks.size());
-      assertEquals(i + 1, code.blocks.get(0).getInstructions().size());
+      assertEquals(i + 1, code.entryBlock().getInstructions().size());
       assertEquals(2, code.blocks.get(1).getInstructions().size());
       assertEquals(instructionCount - i - 1, code.blocks.get(2).getInstructions().size());
       assertSame(newBlock, code.blocks.get(1));
@@ -329,7 +329,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
-      BasicBlock block = code.blocks.get(0);
+      BasicBlock block = code.entryBlock();
       int instructionCount = block.getInstructions().size();
       assertEquals(firstBlockInstructions, instructionCount);
 
@@ -342,7 +342,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
       assertTrue(code.isConsistentSSA());
 
       assertEquals(initialBlockCount + 1, code.blocks.size());
-      assertEquals(i + 1, code.blocks.get(0).getInstructions().size());
+      assertEquals(i + 1, code.entryBlock().getInstructions().size());
       assertEquals(instructionCount - i, newBlock.getInstructions().size());
       assertSame(newBlock, code.blocks.get(1));
 
@@ -457,7 +457,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
-      BasicBlock block = code.blocks.get(0);
+      BasicBlock block = code.entryBlock();
       int instructionCount = block.getInstructions().size();
       assertEquals(firstBlockInstructions, instructionCount);
 
@@ -470,7 +470,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
       assertTrue(code.isConsistentSSA());
 
       assertEquals(initialBlockCount + 1, code.blocks.size());
-      assertEquals(i + 1, code.blocks.get(0).getInstructions().size());
+      assertEquals(i + 1, code.entryBlock().getInstructions().size());
       assertEquals(instructionCount - i, newBlock.getInstructions().size());
       assertSame(newBlock, code.blocks.get(1));
 

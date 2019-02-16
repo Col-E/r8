@@ -91,7 +91,7 @@ public class TryRangeTestRunner extends TestBase {
     if (!code.method.qualifiedName().equals(TryRangeTestLimitRange.class.getName() + ".main")) {
       return;
     }
-    BasicBlock entryBlock = code.blocks.get(0);
+    BasicBlock entryBlock = code.entryBlock();
     BasicBlock tryBlock = code.blocks.get(1);
     assertTrue(tryBlock.hasCatchHandlers());
     ListIterator<Instruction> it = entryBlock.getInstructions().listIterator();

@@ -45,7 +45,7 @@ public class SparseConditionalConstantPropagation {
 
   public void run() {
 
-    BasicBlock firstBlock = code.blocks.get(0);
+    BasicBlock firstBlock = code.entryBlock();
     visitInstructions(firstBlock);
 
     while (!flowEdges.isEmpty() || !ssaEdges.isEmpty()) {
