@@ -7,6 +7,7 @@ package com.android.tools.r8.naming.b124357885;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
@@ -69,9 +70,13 @@ public class B124357885Test extends TestBase {
         })
         .run(Main.class)
         .assertFailureWithErrorThatMatches(
-            containsString(
-                "java.lang.ClassNotFoundException: "
-                    + "Didn't find class \"com.android.tools.r8.naming.b124357885.Foo\""));
+            anyOf(
+                containsString(
+                    "java.lang.ClassNotFoundException: "
+                        + "Didn't find class \"com.android.tools.r8.naming.b124357885.Foo\""),
+                containsString(
+                    "java.lang.NoClassDefFoundError: "
+                        + "com/android/tools/r8/naming/b124357885/Foo")));
   }
 }
 
