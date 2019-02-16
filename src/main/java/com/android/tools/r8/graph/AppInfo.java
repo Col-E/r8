@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,10 @@ public class AppInfo {
   public final DexApplication app;
   public final DexItemFactory dexItemFactory;
   private final ConcurrentHashMap<DexType, Map<Descriptor<?,?>, KeyedDexItem<?>>> definitions =
+      new ConcurrentHashMap<>();
+  // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve the current
+  // class being optimized.
+  private ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses =
       new ConcurrentHashMap<>();
 
   public AppInfo(DexApplication application) {
@@ -40,6 +45,16 @@ public class AppInfo {
     // In particular, we have to invalidate the definitions cache, as its keys are no longer
     // valid.
     this(application);
+  }
+
+  public void addSynthesizedClass(DexProgramClass clazz) {
+    assert clazz.type.isD8R8SynthesizedClassType();
+    DexProgramClass previous = synthesizedClasses.put(clazz.type, clazz);
+    assert previous == null || previous == clazz;
+  }
+
+  public Collection<DexProgramClass> getSynthesizedClassesForSanityCheck() {
+    return Collections.unmodifiableCollection(synthesizedClasses.values());
   }
 
   private Map<Descriptor<?,?>, KeyedDexItem<?>> computeDefinitions(DexType type) {
@@ -72,6 +87,11 @@ public class AppInfo {
   }
 
   public DexClass definitionFor(DexType type) {
+    DexProgramClass cached = synthesizedClasses.get(type);
+    if (cached != null) {
+      assert app.definitionFor(type) == null;
+      return cached;
+    }
     return app.definitionFor(type);
   }
 

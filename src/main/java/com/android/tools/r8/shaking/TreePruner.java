@@ -228,8 +228,8 @@ public class TreePruner {
     Predicate<DexField> isReachableOrReferencedField =
         field ->
             appInfo.liveFields.contains(field)
-                || appInfo.fieldsRead.contains(field)
-                || appInfo.fieldsWritten.contains(field);
+                || appInfo.isFieldRead(field)
+                || appInfo.isFieldWritten(field);
     int firstUnreachable =
         firstUnreachableIndex(Arrays.asList(fields), isReachableOrReferencedField);
     // Return the original array if all fields are used.

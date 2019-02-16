@@ -60,7 +60,7 @@ final class ClassProcessor {
     DexType superType = clazz.superType;
     // If superClass definition is missing, just skip this part and let real processing of its
     // subclasses report the error if it is required.
-    DexClass superClass = superType == null ? null : rewriter.findDefinitionFor(superType);
+    DexClass superClass = superType == null ? null : rewriter.appInfo.definitionFor(superType);
     if (superClass != null && superType != rewriter.factory.objectType) {
       if (superClass.isInterface()) {
         throw new CompilationError("Interface `" + superClass.toSourceString()
@@ -96,7 +96,7 @@ final class ClassProcessor {
 
   private DexEncodedMethod addForwardingMethod(DexEncodedMethod defaultMethod, DexClass clazz) {
     DexMethod method = defaultMethod.method;
-    DexClass target = rewriter.findDefinitionFor(method.holder);
+    DexClass target = rewriter.appInfo.definitionFor(method.holder);
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
     assert target != null && !target.isLibraryClass();
@@ -168,7 +168,7 @@ final class ClassProcessor {
       if (current.superType == null) {
         break;
       } else {
-        DexClass superClass = rewriter.findDefinitionFor(current.superType);
+        DexClass superClass = rewriter.appInfo.definitionFor(current.superType);
         if (superClass != null) {
           current = superClass;
         } else {
@@ -206,7 +206,7 @@ final class ClassProcessor {
       DexType superType = current.superType;
       DexClass superClass = null;
       if (superType != null) {
-        superClass = rewriter.findDefinitionFor(superType);
+        superClass = rewriter.appInfo.definitionFor(superType);
         // It's available or we would have failed while analyzing the hierarchy for interfaces.
         assert superClass != null;
       }

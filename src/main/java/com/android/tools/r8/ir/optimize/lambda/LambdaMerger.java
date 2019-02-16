@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
@@ -36,6 +37,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -194,8 +196,7 @@ public final class LambdaMerger {
       IRConverter converter,
       OptimizationFeedback feedback,
       Builder<?> builder,
-      ExecutorService executorService,
-      Map<DexType, DexProgramClass> synthesizedClasses)
+      ExecutorService executorService)
       throws ExecutionException {
     if (lambdas.isEmpty()) {
       return;
@@ -218,18 +219,29 @@ public final class LambdaMerger {
     this.strategyFactory = ApplyStrategy::new;
 
     // Add synthesized lambda group classes to the builder.
-    converter.optimizeSynthesizedClasses(lambdaGroupsClasses.values(), executorService);
 
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
       DexProgramClass synthesizedClass = entry.getValue();
-      synthesizedClasses.put(synthesizedClass.type, synthesizedClass);
+      converter.appInfo.addSynthesizedClass(synthesizedClass);
       builder.addSynthesizedClass(
           synthesizedClass, entry.getKey().shouldAddToMainDex(converter.appInfo));
+      // Eventually, we need to process synthesized methods in the lambda group.
+      // Otherwise, abstract SynthesizedCode will be flown to Enqueuer.
+      // But that process should not see the holder. Otherwise, lambda calls in the main dispatch
+      // method became recursive calls via the lense rewriter. They should remain, then inliner
+      // will inline methods from mergee lambdas to the main dispatch method.
+      // Then, there is a dilemma: other sub optimizations trigger subtype lookup that will throw
+      // NPE if it cannot find the holder for this synthesized lambda group.
+      // One hack here is to mark those methods `processed` so that the lense rewriter is skipped.
+      synthesizedClass.forEachMethod(encodedMethod -> {
+        encodedMethod.markProcessed(ConstraintWithTarget.NEVER);
+      });
     }
+    converter.optimizeSynthesizedClasses(lambdaGroupsClasses.values(), executorService);
 
     // Rewrite lambda class references into lambda group class
     // references inside methods from the processing queue.
-    rewriteLambdaReferences(converter, synthesizedClasses, feedback);
+    rewriteLambdaReferences(converter, feedback);
     this.strategyFactory = null;
   }
 
@@ -304,10 +316,7 @@ public final class LambdaMerger {
     }
   }
 
-  private void rewriteLambdaReferences(
-      IRConverter converter,
-      Map<DexType, DexProgramClass> synthesizedClasses,
-      OptimizationFeedback feedback) {
+  private void rewriteLambdaReferences(IRConverter converter, OptimizationFeedback feedback) {
     List<DexEncodedMethod> methods =
         methodsToReprocess
             .stream()
@@ -315,9 +324,9 @@ public final class LambdaMerger {
             .collect(Collectors.toList());
     for (DexEncodedMethod method : methods) {
       DexEncodedMethod mappedMethod =
-          converter.graphLense().mapDexEncodedMethod(method, converter.appInfo, synthesizedClasses);
+          converter.graphLense().mapDexEncodedMethod(method, converter.appInfo);
       converter.processMethod(mappedMethod, feedback,
-          x -> false, CallSiteInformation.empty(), Outliner::noProcessing);
+          Predicates.alwaysFalse(), CallSiteInformation.empty(), Outliner::noProcessing);
       assert mappedMethod.isProcessed();
     }
   }

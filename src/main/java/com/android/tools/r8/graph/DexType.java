@@ -10,7 +10,8 @@ import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
+import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
@@ -221,14 +222,6 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     }
     while (other.hierarchyLevel < self.hierarchyLevel) {
       DexClass holder = appInfo.definitionFor(self);
-      // TODO(b/113374256): even synthesized class should be available ATM.
-      if (holder == null) {
-        assert self.isD8R8SynthesizedClassType();
-        if (Log.ENABLED) {
-          Log.debug(getClass(), "%s is not in AppInfo yet.", self.toSourceString());
-        }
-        return orElse;
-      }
       assert holder != null && !holder.isInterface();
       self = holder.superType;
     }
@@ -483,7 +476,9 @@ public class DexType extends DexReference implements PresortedComparable<DexType
         || name.contains(DISPATCH_CLASS_NAME_SUFFIX)
         || name.contains(LAMBDA_CLASS_NAME_PREFIX)
         || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX)
-        || name.contains(OutlineOptions.CLASS_NAME);
+        || name.contains(OutlineOptions.CLASS_NAME)
+        || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME)
+        || name.contains(Java8MethodRewriter.UTILITY_CLASS_NAME_PREFIX);
   }
 
   public int elementSizeForPrimitiveArrayType() {

@@ -37,9 +37,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 
 public final class Java8MethodRewriter {
+  public static final String UTILITY_CLASS_NAME_PREFIX = "$r8$java8methods$utility";
   private static final String UTILITY_CLASS_DESCRIPTOR_PREFIX = "L$r8$java8methods$utility";
   private final Set<DexType> holders = Sets.newConcurrentHashSet();
   private final IRConverter converter;
@@ -88,7 +91,9 @@ public final class Java8MethodRewriter {
     return clazz.descriptor.toString().startsWith(UTILITY_CLASS_DESCRIPTOR_PREFIX);
   }
 
-  public void synthesizeUtilityClass(Builder<?> builder, InternalOptions options) {
+  public void synthesizeUtilityClass(
+      Builder<?> builder, ExecutorService executorService, InternalOptions options)
+      throws ExecutionException {
     if (holders.isEmpty()) {
       return;
     }
@@ -134,7 +139,8 @@ public final class Java8MethodRewriter {
       code.setUpContext(utilityClass);
       boolean addToMainDexList = referencingClasses.stream()
           .anyMatch(clazz -> converter.appInfo.isInMainDexList(clazz.type));
-      converter.optimizeSynthesizedClass(utilityClass);
+      converter.appInfo.addSynthesizedClass(utilityClass);
+      converter.optimizeSynthesizedClass(utilityClass, executorService);
       builder.addSynthesizedClass(utilityClass, addToMainDexList);
     }
   }
