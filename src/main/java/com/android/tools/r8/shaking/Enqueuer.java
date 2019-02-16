@@ -840,8 +840,8 @@ public class Enqueuer {
         // If this type has deferred annotations, we have to process those now, too.
         Set<DexAnnotation> annotations = deferredAnnotations.remove(type);
         if (annotations != null && !annotations.isEmpty()) {
-          assert !holder.accessFlags.isAnnotation()
-              || annotations.stream().allMatch(a -> a.annotation.type == holder.type);
+          assert holder.accessFlags.isAnnotation();
+          assert annotations.stream().allMatch(a -> a.annotation.type == holder.type);
           annotations.forEach(annotation -> handleAnnotation(holder, annotation));
         }
       } else {
