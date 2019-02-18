@@ -47,6 +47,14 @@ def add_r8_dependency(checkout_dir, temp_dir, minified):
       'Unsupported gradle version: {} (must use at least gradle '
           + 'version 3.2)').format(gradle_version)
 
+def add_settings_gradle(checkout_dir, name):
+  settings_file = os.path.join(checkout_dir, 'settings.gradle')
+  if os.path.isfile(settings_file):
+    return
+
+  with open(settings_file, "w+") as f:
+    f.write("rootProject.name = '{}'\n".format(name))
+
 def remove_r8_dependency(checkout_dir):
   build_file = os.path.join(checkout_dir, 'build.gradle')
   assert os.path.isfile(build_file), (

@@ -394,6 +394,11 @@ def BuildAppWithShrinker(
       shrinker,
       ' for recompilation' if keepRuleSynthesisForRecompilation else ''))
 
+  # Add settings.gradle file if it is not present to prevent gradle from finding
+  # the settings.gradle file in the r8 root when apps are placed under
+  # $R8/build.
+  as_utils.add_settings_gradle(checkout_dir, app)
+
   # Add 'r8.jar' from top-level build.gradle.
   as_utils.add_r8_dependency(checkout_dir, temp_dir, IsMinifiedR8(shrinker))
 
