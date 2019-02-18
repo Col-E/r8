@@ -321,6 +321,14 @@ public class CodeInspector {
     return obfuscatedTypeName != null ? obfuscatedTypeName : originalTypeName;
   }
 
+  String getOriginalTypeName(String minifiedTypeName) {
+    String originalTypeName = null;
+    if (mapping != null) {
+      originalTypeName = mapType(obfuscatedToOriginalMapping, minifiedTypeName);
+    }
+    return originalTypeName != null ? originalTypeName : minifiedTypeName;
+  }
+
   InstructionSubject createInstructionSubject(Instruction instruction) {
     DexInstructionSubject dexInst = new DexInstructionSubject(instruction);
     if (dexInst.isInvoke()) {

@@ -143,18 +143,14 @@ public class FoundMethodSubject extends MethodSubject {
     //     X method(X) -> a
     //
     // whereas the final signature is for X.a is "a (a)"
-    String[] OriginalParameters = new String[signature.parameters.length];
-    for (int i = 0; i < OriginalParameters.length; i++) {
-      String obfuscated = signature.parameters[i];
-      String original = codeInspector.obfuscatedToOriginalMapping.get(obfuscated);
-      OriginalParameters[i] = original != null ? original : obfuscated;
+    String[] originalParameters = new String[signature.parameters.length];
+    for (int i = 0; i < originalParameters.length; i++) {
+      originalParameters[i] = codeInspector.getOriginalTypeName(signature.parameters[i]);
     }
-    String obfuscatedReturnType = signature.type;
-    String originalReturnType = codeInspector.obfuscatedToOriginalMapping.get(obfuscatedReturnType);
-    String returnType = originalReturnType != null ? originalReturnType : obfuscatedReturnType;
+    String returnType = codeInspector.getOriginalTypeName(signature.type);
 
     MethodSignature lookupSignature =
-        new MethodSignature(signature.name, returnType, OriginalParameters);
+        new MethodSignature(signature.name, returnType, originalParameters);
 
     MemberNaming memberNaming = clazz.naming.lookup(lookupSignature);
     return memberNaming != null ? (MethodSignature) memberNaming.getOriginalSignature() : signature;

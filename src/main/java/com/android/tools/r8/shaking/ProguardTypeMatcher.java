@@ -386,24 +386,43 @@ public abstract class ProguardTypeMatcher {
             wildcard = wildcards.get(wildcardIndex);
             assert wildcard.isPattern();
             wildcardPattern = wildcard.asPattern();
+
             boolean includeSeparators = pattern.length() > (i + 1) && pattern.charAt(i + 1) == '*';
-            int nextPatternIndex = i + (includeSeparators ? 2 : 1);
-            // Fast cases for the common case where a pattern ends with '**' or '*'.
+            boolean includeAll = pattern.length() > (i + 2) && pattern.charAt(i + 2) == '*';
+            int nextPatternIndex = i + 1;
+            if (includeAll) {
+              nextPatternIndex += 2;
+            } else if (includeSeparators) {
+              nextPatternIndex += 1;
+            }
+
+            // Fast cases for the common case where a pattern ends with  '*', '**', or '***'.
             if (nextPatternIndex == pattern.length()) {
-              wildcardPattern.setCaptured(name.substring(nameIndex, name.length()));
+              wildcardPattern.setCaptured(name.substring(nameIndex));
+              if (includeAll) {
+                return true;
+              }
               if (includeSeparators) {
                 return kind == ClassOrType.CLASS || !isArrayType(name);
               }
               boolean hasSeparators = containsSeparatorsStartingAt(name, nameIndex);
               return !hasSeparators && (kind == ClassOrType.CLASS || !isArrayType(name));
             }
+
             // Match the rest of the pattern against the (non-empty) rest of the class name.
             for (int nextNameIndex = nameIndex; nextNameIndex < name.length(); nextNameIndex++) {
               wildcardPattern.setCaptured(name.substring(nameIndex, nextNameIndex));
-              if (!includeSeparators && name.charAt(nextNameIndex) == '.') {
-                return matchClassOrTypeNameImpl(
-                    pattern, nextPatternIndex, name, nextNameIndex, wildcards, wildcardIndex + 1,
-                    kind);
+              if (!includeSeparators) {
+                if (name.charAt(nextNameIndex) == '.') {
+                  return matchClassOrTypeNameImpl(
+                      pattern,
+                      nextPatternIndex,
+                      name,
+                      nextNameIndex,
+                      wildcards,
+                      wildcardIndex + 1,
+                      kind);
+                }
               }
               if (kind == ClassOrType.TYPE && name.charAt(nextNameIndex) == '[') {
                 return matchClassOrTypeNameImpl(
@@ -416,11 +435,12 @@ public abstract class ProguardTypeMatcher {
                 return true;
               }
             }
-            // Finally, check the case where the '*' or '**' eats all of the class name.
-            wildcardPattern.setCaptured(name.substring(nameIndex, name.length()));
+
+            // Finally, check the case where the '*', '**', or '***' eats all of the class name.
+            wildcardPattern.setCaptured(name.substring(nameIndex));
             return matchClassOrTypeNameImpl(
-                pattern, nextPatternIndex, name, name.length(), wildcards, wildcardIndex + 1,
-                kind);
+                pattern, nextPatternIndex, name, name.length(), wildcards, wildcardIndex + 1, kind);
+
           case '?':
             wildcard = wildcards.get(wildcardIndex);
             assert wildcard.isPattern();
@@ -432,6 +452,7 @@ public abstract class ProguardTypeMatcher {
             nameIndex++;
             wildcardIndex++;
             break;
+
           case '<':
             wildcard = wildcards.get(wildcardIndex);
             assert wildcard.isBackReference();
@@ -446,6 +467,7 @@ public abstract class ProguardTypeMatcher {
             wildcardIndex++;
             i = pattern.indexOf(">", i);
             break;
+
           default:
             if (nameIndex == name.length() || patternChar != name.charAt(nameIndex++)) {
               return false;
