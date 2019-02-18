@@ -89,7 +89,7 @@ class Main {
 
     // Convince R8 we only use subtypes to get class merging of Foo into FooImpl.
     Foo<String> foo = new FooImpl<>();
-    System.out.println(foo.getClass().getTypeName());
+    System.out.println(foo.getClass().getCanonicalName());
   }
 }
 
