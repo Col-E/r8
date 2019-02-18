@@ -388,7 +388,8 @@ public abstract class ProguardTypeMatcher {
             wildcardPattern = wildcard.asPattern();
 
             boolean includeSeparators = pattern.length() > (i + 1) && pattern.charAt(i + 1) == '*';
-            boolean includeAll = pattern.length() > (i + 2) && pattern.charAt(i + 2) == '*';
+            boolean includeAll =
+                includeSeparators && pattern.length() > (i + 2) && pattern.charAt(i + 2) == '*';
             int nextPatternIndex = i + 1;
             if (includeAll) {
               nextPatternIndex += 2;
