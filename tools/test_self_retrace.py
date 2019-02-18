@@ -6,11 +6,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import gradle
 import jdk
 import os
 import subprocess
 import sys
+
 import utils
 
 EXCEPTION_LINE = 'Intentional exception for testing retrace.'
@@ -27,15 +29,16 @@ def main():
   if len(args) == 0:
     gradle.RunGradle(['r8lib'])
     r8lib = utils.R8LIB_JAR
-  elif len(args) == 1:
-    if args[0] == '--help':
-      print('Usage: test_self_retrace.py [<path-to-r8lib-jar>]')
-      print('If the path is missing the script builds and uses ' + utils.R8LIB_JAR)
-      return
-    else:
-      r8lib = args[0]
+    r8map = utils.R8LIB + '.map'
+  elif len(args) == 2:
+    r8lib = args[0]
+    r8map = args[1]
+  elif len(args) == 1 and args[0] == '--help':
+    print('Usage: test_self_retrace.py [<path-to-r8lib-jar> <path-to-r8lib-map]')
+    print('If the path is missing the script builds and uses ' + utils.R8LIB_JAR)
+    return
   else:
-    raise Exception("Only one argument is allowed, see '--help'.")
+    raise Exception("Only two argument allowed, see '--help'.")
 
   # Run 'r8 --help' which throws an exception.
   cmd = [
@@ -51,7 +54,7 @@ def main():
   assert('SelfRetraceTest' not in stacktrace)
 
   # Run the retrace tool.
-  cmd = [jdk.GetJavaExecutable(), '-jar', utils.RETRACE_JAR, r8lib + ".map"]
+  cmd = [jdk.GetJavaExecutable(), '-jar', utils.RETRACE_JAR, r8map]
   utils.PrintCmd(cmd)
   p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
   retrace_stdout, _ = p.communicate(stacktrace)

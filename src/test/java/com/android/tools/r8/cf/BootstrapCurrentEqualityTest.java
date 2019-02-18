@@ -12,12 +12,11 @@ import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ExternalR8TestCompileResult;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.Pair;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -46,8 +45,8 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     "-keep class " + HELLO_NAME + " {", "  public static void main(...);", "}",
   };
 
-  private static Path r8R8Debug;
-  private static Path r8R8Release;
+  private static Pair<Path, Path> r8R8Debug;
+  private static Pair<Path, Path> r8R8Release;
 
   private static boolean testExternal = true;
 
@@ -59,30 +58,29 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     r8R8Release = compileR8(CompilationMode.RELEASE);
   }
 
-  private static Path compileR8(CompilationMode mode) throws Exception {
+  private static Pair<Path, Path> compileR8(CompilationMode mode) throws Exception {
     // Run R8 on r8.jar.
-    Path jar;
+    final Path jar = testFolder.newFolder().toPath().resolve("out.jar");
+    final Path map = testFolder.newFolder().toPath().resolve("out.map");
     if (testExternal) {
-      jar =
-          testForExternalR8(newTempFolder(), Backend.CF)
-              .useR8WithRelocatedDeps()
-              .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
-              .addKeepRuleFiles(MAIN_KEEP)
-              .setMode(mode)
-              .compile()
-              .outputJar();
+      testForExternalR8(newTempFolder(), Backend.CF)
+          .useR8WithRelocatedDeps()
+          .setMode(mode)
+          .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+          .addKeepRuleFiles(MAIN_KEEP)
+          .compile()
+          .apply(c -> FileUtils.writeTextFile(map, c.getProguardMap()))
+          .writeToZip(jar);
     } else {
-      jar = testFolder.newFolder().toPath().resolve("out.jar");
-      R8.run(
-          R8Command.builder()
-              .setMode(mode)
-              .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
-              .addProguardConfigurationFiles(MAIN_KEEP)
-              .addLibraryFiles(runtimeJar(Backend.CF))
-              .setOutput(jar, OutputMode.ClassFile)
-              .build());
+      testForR8(newTempFolder(), Backend.CF)
+          .setMode(mode)
+          .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+          .addKeepRuleFiles(MAIN_KEEP)
+          .compile()
+          .apply(c -> FileUtils.writeTextFile(map, c.getProguardMap()))
+          .writeToZip(jar);
     }
-    return jar;
+    return new Pair<>(jar, map);
   }
 
   @Test
@@ -92,8 +90,9 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             new ProcessBuilder(
                 "python",
                 Paths.get(ToolHelper.TOOLS_DIR, "test_self_retrace.py").toString(),
-                r8R8Release.toString()));
-    assertEquals(0, result.exitCode);
+                r8R8Release.getFirst().toString(),
+                r8R8Release.getSecond().toString()));
+    assertEquals(result.toString(), 0, result.exitCode);
   }
 
   @Test
@@ -158,7 +157,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   }
 
   private void RunR8AndCheck(
-      Path r8,
+      Pair<Path, Path> r8,
       Path program,
       ExternalR8TestCompileResult result,
       String[] keep,
@@ -166,7 +165,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
       throws Exception {
     ExternalR8TestCompileResult runR8R8 =
         testForExternalR8(newTempFolder(), Backend.CF)
-            .useProvidedR8(r8)
+            .useProvidedR8(r8.getFirst())
             .addProgramFiles(program)
             .addKeepRules(keep)
             .setMode(mode)

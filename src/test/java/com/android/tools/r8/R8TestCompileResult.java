@@ -94,4 +94,8 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   public R8TestRunResult createRunResult(ProcessResult result) {
     return new R8TestRunResult(app, result, proguardMap, this::graphInspector);
   }
+
+  public String getProguardMap() {
+    return proguardMap;
+  }
 }

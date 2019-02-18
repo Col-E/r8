@@ -32,6 +32,10 @@ public class ExternalR8TestCompileResult
     return outputJar;
   }
 
+  public String getProguardMap() {
+    return proguardMap;
+  }
+
   public String stdout() {
     return processResult.stdout;
   }
