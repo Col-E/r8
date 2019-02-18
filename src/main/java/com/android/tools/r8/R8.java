@@ -399,7 +399,7 @@ public class R8 {
         mainDexRootSet =
             new RootSetBuilder(appView, application, options.mainDexKeepRules, options)
                 .run(executorService);
-        Enqueuer enqueuer = new Enqueuer(appView, options, null, true);
+        Enqueuer enqueuer = new Enqueuer(appView, options, null);
         AppInfoWithLiveness mainDexAppInfo =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
         // LiveTypes is the tracing result.
@@ -540,7 +540,7 @@ public class R8 {
           mainDexKeptGraphConsumer = whyAreYouKeepingConsumer;
         }
 
-        Enqueuer enqueuer = new Enqueuer(appView, options, mainDexKeptGraphConsumer, true);
+        Enqueuer enqueuer = new Enqueuer(appView, options, mainDexKeptGraphConsumer);
         // Find classes which may have code executed before secondary dex files installation.
         AppInfoWithLiveness mainDexAppInfo =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);

@@ -57,7 +57,7 @@ public class GenerateMainDexList {
         graphConsumer = whyAreYouKeepingConsumer;
       }
 
-      Enqueuer enqueuer = new Enqueuer(appView, options, graphConsumer, true);
+      Enqueuer enqueuer = new Enqueuer(appView, options, graphConsumer);
       AppInfoWithLiveness mainDexAppInfo = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
       // LiveTypes is the result.
       MainDexClasses mainDexClasses =

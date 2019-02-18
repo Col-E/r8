@@ -74,7 +74,7 @@ abstract class NamingTestBase {
     RootSet rootSet =
         new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
 
-    Enqueuer enqueuer = new Enqueuer(appView, options, null, options.forceProguardCompatibility);
+    Enqueuer enqueuer = new Enqueuer(appView, options, null);
     AppInfoWithLiveness appInfo =
         enqueuer.traceApplication(rootSet, configuration.getDontWarnPatterns(), executor, timing);
     return new Minifier(

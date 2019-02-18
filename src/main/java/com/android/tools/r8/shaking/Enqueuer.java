@@ -281,35 +281,18 @@ public class Enqueuer {
       AppView<? extends AppInfoWithSubtyping> appView,
       InternalOptions options,
       GraphConsumer keptGraphConsumer) {
-    this(appView, options, keptGraphConsumer, options.forceProguardCompatibility, null);
+    this(appView, options, keptGraphConsumer, null);
   }
 
   public Enqueuer(
       AppView<? extends AppInfoWithSubtyping> appView,
       InternalOptions options,
       GraphConsumer keptGraphConsumer,
-      ProguardConfiguration.Builder compatibility) {
-    this(appView, options, keptGraphConsumer, options.forceProguardCompatibility, compatibility);
-  }
-
-  public Enqueuer(
-      AppView<? extends AppInfoWithSubtyping> appView,
-      InternalOptions options,
-      GraphConsumer keptGraphConsumer,
-      boolean forceProguardCompatibility) {
-    this(appView, options, keptGraphConsumer, forceProguardCompatibility, null);
-  }
-
-  public Enqueuer(
-      AppView<? extends AppInfoWithSubtyping> appView,
-      InternalOptions options,
-      GraphConsumer keptGraphConsumer,
-      boolean forceProguardCompatibility,
       ProguardConfiguration.Builder compatibility) {
     this.appInfo = appView.appInfo();
     this.appView = appView;
     this.compatibility = compatibility;
-    this.forceProguardCompatibility = forceProguardCompatibility;
+    this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.keptGraphConsumer = keptGraphConsumer;
     this.options = options;
   }
@@ -941,7 +924,7 @@ public class Enqueuer {
                     + (holder.isInterface() ? " implements " : " extends ")
                     + "program class "
                     + type.toSourceString());
-        if (forceProguardCompatibility) {
+        if (tracingMainDex || forceProguardCompatibility) {
           options.reporter.warning(message);
         } else {
           options.reporter.error(message);

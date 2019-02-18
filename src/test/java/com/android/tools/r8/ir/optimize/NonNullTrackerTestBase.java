@@ -43,7 +43,7 @@ public abstract class NonNullTrackerTestBase extends TestBase {
             TEST_OPTIONS)
         .run(executorService);
     Enqueuer enqueuer =
-        new Enqueuer(appView, TEST_OPTIONS, null, TEST_OPTIONS.forceProguardCompatibility);
+        new Enqueuer(appView, TEST_OPTIONS, null);
     return enqueuer.traceApplication(
         rootSet,
         ProguardClassFilter.empty(),
