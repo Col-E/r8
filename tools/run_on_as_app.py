@@ -107,6 +107,7 @@ APPS = {
       'app_module': '',
       'flavor': 'play',
       'git_repo': 'https://github.com/mkj-gram/Signal-Android.git',
+      'main_dex_rules': 'multidex-config.pro',
       'revision': '85e1a10993e5e9ffe923f0798b26cbc44068ba31',
       'releaseTarget': 'assemblePlayRelease',
       'signed-apk-name': 'Signal-play-release-4.32.7.apk',
@@ -353,6 +354,13 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
 
           # Now rebuild generated apk.
           previous_apk = apk_dest
+
+          # We may need main dex rules when re-compiling with R8 as standalone.
+          main_dex_rules = None
+          if config.get('main_dex_rules'):
+            main_dex_rules = os.path.join(
+                checkout_dir, config.get('main_dex_rules'))
+
           for i in range(1, options.r8_compilation_steps):
             try:
               recompiled_apk_dest = os.path.join(
@@ -360,7 +368,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
               RebuildAppWithShrinker(
                   app, previous_apk, recompiled_apk_dest,
                   ext_proguard_config_file, shrinker, min_sdk, compile_sdk,
-                  options, temp_dir)
+                  options, temp_dir, main_dex_rules)
               recompilation_result = {
                 'apk_dest': recompiled_apk_dest,
                 'build_status': 'success',
@@ -483,7 +491,7 @@ def BuildAppWithShrinker(
 
 def RebuildAppWithShrinker(
     app, apk, apk_dest, proguard_config_file, shrinker, min_sdk, compile_sdk,
-    options, temp_dir):
+    options, temp_dir, main_dex_rules):
   assert 'r8' in shrinker
   assert apk_dest.endswith('.apk')
 
@@ -506,6 +514,10 @@ def RebuildAppWithShrinker(
   for android_optional_jar in utils.get_android_optional_jars(compile_sdk):
     cmd.append('--lib')
     cmd.append(android_optional_jar)
+
+  if main_dex_rules:
+    cmd.append('--main-dex-rules')
+    cmd.append(main_dex_rules)
 
   utils.RunCmd(cmd, quiet=options.quiet)
 
