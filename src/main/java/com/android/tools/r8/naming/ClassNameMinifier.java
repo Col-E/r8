@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.getClassBinaryNameFromD
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
 import static com.android.tools.r8.utils.DescriptorUtils.getPackageBinaryNameFromJavaType;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
@@ -50,6 +51,7 @@ import java.util.stream.Collectors;
 
 class ClassNameMinifier {
 
+  private final AppView<AppInfoWithLiveness> appView;
   private final AppInfoWithLiveness appInfo;
   private final Reporter reporter;
   private final PackageObfuscationMode packageObfuscationMode;
@@ -74,11 +76,10 @@ class ClassNameMinifier {
   private final GenericSignatureParser<DexType> genericSignatureParser =
       new GenericSignatureParser<>(genericSignatureRewriter);
 
-  ClassNameMinifier(
-      AppInfoWithLiveness appInfo,
-      RootSet rootSet,
-      InternalOptions options) {
-    this.appInfo = appInfo;
+  ClassNameMinifier(AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
+    this.appView = appView;
+    this.appInfo = appView.appInfo();
+    InternalOptions options = appView.options();
     this.reporter = options.reporter;
     this.packageObfuscationMode = options.getProguardConfiguration().getPackageObfuscationMode();
     this.isAccessModificationAllowed =
@@ -546,6 +547,7 @@ class ClassNameMinifier {
     @Override
     public DexType parsedTypeName(String name) {
       DexType type = appInfo.dexItemFactory.createType(getDescriptorFromClassBinaryName(name));
+      type = appView.graphLense().lookupType(type);
       DexString renamedDescriptor = renaming.getOrDefault(type, type.descriptor);
       renamedSignature.append(getClassBinaryNameFromDescriptor(renamedDescriptor.toString()));
       return type;
@@ -564,6 +566,7 @@ class ClassNameMinifier {
       String enclosingRenamedBinaryName =
           getClassBinaryNameFromDescriptor(
               renaming.getOrDefault(enclosingType, enclosingType.descriptor).toString());
+      type = appView.graphLense().lookupType(type);
       DexString renamedDescriptor = renaming.get(type);
       if (renamedDescriptor != null) {
         // Pick the renamed inner class from the fully renamed binary name.

@@ -628,9 +628,7 @@ public class R8 {
       NamingLens namingLens;
       if (options.enableMinification) {
         timing.begin("Minification");
-        namingLens =
-            new Minifier(appView.appInfo().withLiveness(), rootSet, desugaredCallSites, options)
-                .run(timing);
+        namingLens = new Minifier(appView.withLiveness(), rootSet, desugaredCallSites).run(timing);
         timing.end();
       } else {
         namingLens = NamingLens.getIdentityLens();

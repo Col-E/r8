@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -35,26 +36,27 @@ public class Minifier {
 
   static final char INNER_CLASS_SEPARATOR = '$';
 
+  private final AppView<AppInfoWithLiveness> appView;
   private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
   private final Set<DexCallSite> desugaredCallSites;
   private final InternalOptions options;
 
   public Minifier(
-      AppInfoWithLiveness appInfo,
+      AppView<AppInfoWithLiveness> appView,
       RootSet rootSet,
-      Set<DexCallSite> desugaredCallSites,
-      InternalOptions options) {
-    this.appInfo = appInfo;
+      Set<DexCallSite> desugaredCallSites) {
+    this.appView = appView;
+    this.appInfo = appView.appInfo();
     this.rootSet = rootSet;
     this.desugaredCallSites = desugaredCallSites;
-    this.options = options;
+    this.options = appView.options();
   }
 
   public NamingLens run(Timing timing) {
     assert options.enableMinification;
     timing.begin("MinifyClasses");
-    ClassNameMinifier classNameMinifier = new ClassNameMinifier(appInfo, rootSet, options);
+    ClassNameMinifier classNameMinifier = new ClassNameMinifier(appView, rootSet);
     ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing);
     timing.end();
 
@@ -64,16 +66,14 @@ public class Minifier {
 
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appInfo, rootSet, options)
-            .computeRenaming(desugaredCallSites, timing);
+        new MethodNameMinifier(appView, rootSet).computeRenaming(desugaredCallSites, timing);
     timing.end();
 
     assert new MinifiedRenaming(classRenaming, methodRenaming, FieldRenaming.empty(), appInfo)
         .verifyNoCollisions(appInfo.classes(), appInfo.dexItemFactory);
 
     timing.begin("MinifyFields");
-    FieldRenaming fieldRenaming =
-        new FieldNameMinifier(appInfo, rootSet, options).computeRenaming(timing);
+    FieldRenaming fieldRenaming = new FieldNameMinifier(appView, rootSet).computeRenaming(timing);
     timing.end();
 
     NamingLens lens = new MinifiedRenaming(classRenaming, methodRenaming, fieldRenaming, appInfo);

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CachedHashValueDexItem;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -18,6 +19,7 @@ import java.util.function.Function;
 
 abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueDexItem> {
 
+  protected final AppView<AppInfoWithLiveness> appView;
   protected final AppInfoWithLiveness appInfo;
   protected final RootSet rootSet;
   protected final InternalOptions options;
@@ -34,10 +36,11 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   // which is useful for debugging.
   private final BiMap<DexType, NamingState<StateType, ?>> states = HashBiMap.create();
 
-  MemberNameMinifier(AppInfoWithLiveness appInfo, RootSet rootSet, InternalOptions options) {
-    this.appInfo = appInfo;
+  MemberNameMinifier(AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
+    this.appView = appView;
+    this.appInfo = appView.appInfo();
     this.rootSet = rootSet;
-    this.options = options;
+    this.options = appView.options();
     this.dictionary = options.getProguardConfiguration().getObfuscationDictionary();
     this.useUniqueMemberNames = options.getProguardConfiguration().isUseUniqueClassMemberNames();
     this.overloadAggressively =

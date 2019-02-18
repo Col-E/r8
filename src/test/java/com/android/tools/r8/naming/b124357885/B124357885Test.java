@@ -7,20 +7,21 @@ package com.android.tools.r8.naming.b124357885;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.allOf;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -28,7 +29,7 @@ import org.junit.Test;
 
 public class B124357885Test extends TestBase {
 
-  private void checkSignatureAnnotation(AnnotationSubject signature) {
+  private void checkSignatureAnnotation(CodeInspector inspector, AnnotationSubject signature) {
     DexAnnotationElement[] elements = signature.getAnnotation().elements;
     assertEquals(1, elements.length);
     assertEquals("value", elements[0].name.toString());
@@ -39,20 +40,22 @@ public class B124357885Test extends TestBase {
       assertTrue(value instanceof DexValueString);
       builder.append(((DexValueString) value).value);
     }
-    // TODO(124357885): This should be the minified name for FooImpl instead of Foo.
-    String fooDescriptor = DescriptorUtils.javaTypeToDescriptor(Foo.class.getTypeName());
+    String fooImplFinalDescriptor =
+        DescriptorUtils.javaTypeToDescriptor(inspector.clazz(FooImpl.class).getFinalName());
     StringBuilder expected =
         new StringBuilder()
             .append("()")
-            .append(fooDescriptor.substring(0, fooDescriptor.length() - 1))  // Remove the ;.
+            // Remove the final ; from the descriptor to add the generic type.
+            .append(fooImplFinalDescriptor.substring(0, fooImplFinalDescriptor.length() - 1))
             .append("<Ljava/lang/String;>")
-            .append(";");  // Add the ; here.
+            // Add the ; after the generic type.
+            .append(";");
     assertEquals(expected.toString(), builder.toString());
   }
 
   @Test
   public void test() throws Exception {
-    testForR8(Backend.DEX)
+    R8TestCompileResult compileResult = testForR8(Backend.DEX)
         .addProgramClasses(Main.class, Service.class, Foo.class, FooImpl.class)
         .addKeepMainRule(Main.class)
         .addKeepRules("-keepattributes Signature,InnerClasses,EnclosingMethod")
@@ -66,17 +69,14 @@ public class B124357885Test extends TestBase {
           assertEquals(1, inspector.clazz(Service.class).allMethods().size());
           MethodSubject fooList = inspector.clazz(Service.class).allMethods().get(0);
           AnnotationSubject signature = fooList.annotation("dalvik.annotation.Signature");
-          checkSignatureAnnotation(signature);
-        })
-        .run(Main.class)
-        .assertFailureWithErrorThatMatches(
-            anyOf(
-                containsString(
-                    "java.lang.ClassNotFoundException: "
-                        + "Didn't find class \"com.android.tools.r8.naming.b124357885.Foo\""),
-                containsString(
-                    "java.lang.NoClassDefFoundError: "
-                        + "com/android/tools/r8/naming/b124357885/Foo")));
+          checkSignatureAnnotation(inspector, signature);
+        });
+
+        String fooImplFinalName = compileResult.inspector().clazz(FooImpl.class).getFinalName();
+
+        compileResult
+            .run(Main.class)
+            .assertSuccessWithOutput(StringUtils.lines(fooImplFinalName, fooImplFinalName));
   }
 }
 
@@ -89,7 +89,7 @@ class Main {
 
     // Convince R8 we only use subtypes to get class merging of Foo into FooImpl.
     Foo<String> foo = new FooImpl<>();
-    System.out.println(foo);
+    System.out.println(foo.getClass().getTypeName());
   }
 }
 

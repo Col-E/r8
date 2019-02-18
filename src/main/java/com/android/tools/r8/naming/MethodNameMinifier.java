@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -91,11 +92,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
   private final FrontierState frontierState = new FrontierState();
 
-  MethodNameMinifier(
-      AppInfoWithLiveness appInfo,
-      RootSet rootSet,
-      InternalOptions options) {
-    super(appInfo, rootSet, options);
+  MethodNameMinifier(AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
+    super(appView, rootSet);
     equivalence =
         overloadAggressively
             ? MethodSignatureEquivalence.get()
