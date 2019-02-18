@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
 import com.android.tools.r8.cf.FixedLocalValue;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -618,6 +619,13 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       return realRegisterNumberFromAllocated(value.asFixedRegisterValue().getRegister());
     }
     LiveIntervals intervals = value.getLiveIntervals();
+    if (intervals == null) {
+      throw new CompilationError(
+          "Unexpected attempt to get register for a value without a register in method `"
+              + code.method.method.toSourceString()
+              + "`.",
+          code.origin);
+    }
     if (intervals.hasSplits()) {
       intervals = intervals.getSplitCovering(instructionNumber);
     }
