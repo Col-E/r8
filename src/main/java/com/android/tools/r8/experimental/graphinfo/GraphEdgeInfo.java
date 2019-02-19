@@ -3,9 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.graphinfo;
 
-import com.android.tools.r8.errors.Unreachable;
-
 public class GraphEdgeInfo {
+
+  private static GraphEdgeInfo UNKNOWN = new GraphEdgeInfo(EdgeKind.Unknown);
+
+  public static GraphEdgeInfo unknown() {
+    return UNKNOWN;
+  }
 
   // TODO(b/120959039): Simplify these. Most of the information is present in the source node.
   public enum EdgeKind {
@@ -23,7 +27,8 @@ public class GraphEdgeInfo {
     ReachableFromLiveType,
     ReferencedInAnnotation,
     IsLibraryMethod,
-    MethodHandleUseFrom
+    MethodHandleUseFrom,
+    Unknown
   }
 
   private final EdgeKind kind;
@@ -66,7 +71,10 @@ public class GraphEdgeInfo {
       case MethodHandleUseFrom:
         return "referenced by method handle";
       default:
-        throw new Unreachable("Unexpected edge kind: " + edgeKind());
+        assert false : "Unknown edge kind: " + edgeKind();
+        // fall through
+      case Unknown:
+        return "kept for unknown reasons";
     }
   }
 

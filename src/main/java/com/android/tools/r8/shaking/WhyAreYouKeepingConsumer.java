@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.ClassGraphNode;
 import com.android.tools.r8.experimental.graphinfo.FieldGraphNode;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
@@ -32,6 +31,7 @@ import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -125,50 +125,53 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     out.println(DescriptorUtils.descriptorToJavaType(clazz.getDescriptor()));
   }
 
-  public List<Pair<GraphNode, GraphEdgeInfo>> findShortestPathTo(final GraphNode node) {
+  private List<Pair<GraphNode, GraphEdgeInfo>> findShortestPathTo(final GraphNode node) {
     if (node == null) {
       return null;
     }
-    Deque<GraphPath> queue;
-    {
-      Map<GraphNode, Set<GraphEdgeInfo>> sources = getSourcesTargeting(node);
-      if (sources == null) {
-        // The node is not targeted at all (it is not reachable).
-        return null;
-      }
-      queue = new LinkedList<>();
-      for (GraphNode source : sources.keySet()) {
-        queue.addLast(new GraphPath(source, null));
-      }
-    }
     Map<GraphNode, GraphNode> seen = new IdentityHashMap<>();
-    while (!queue.isEmpty()) {
-      GraphPath path = queue.removeFirst();
-      Map<GraphNode, Set<GraphEdgeInfo>> sources = getSourcesTargeting(path.node);
+    Deque<GraphPath> queue = new LinkedList<>();
+    GraphPath path = null;
+    GraphNode current = node;
+    while (true) {
+      Map<GraphNode, Set<GraphEdgeInfo>> sources = getSourcesTargeting(current);
       if (sources == null) {
+        // We have reached a root or the current node is not targeted at all.
         return getCanonicalPath(path, node);
       }
+      assert !sources.isEmpty();
       for (GraphNode source : sources.keySet()) {
-        if (seen.containsKey(source)) {
-          continue;
+        if (!seen.containsKey(source)) {
+          seen.put(source, source);
+          queue.addLast(new GraphPath(source, path));
         }
-        seen.put(source, source);
-        queue.addLast(new GraphPath(source, path));
       }
+      // The source set was not empty, thus we don't have a real root, but all sources are seen!
+      if (queue.isEmpty()) {
+        return getCanonicalPath(new GraphPath(GraphNode.cycle(), path), node);
+      }
+      path = queue.removeFirst();
+      current = path.node;
     }
-    throw new Unreachable("Failed to find a root from node: " + node);
   }
 
   // Convert a internal path representation to the external API and compute the edge reasons.
   private List<Pair<GraphNode, GraphEdgeInfo>> getCanonicalPath(
       GraphPath path, GraphNode endTarget) {
-    assert path != null;
+    if (path == null) {
+      // If there is no path to endTarget, treat it as not kept by returning a null path.
+      return null;
+    }
     List<Pair<GraphNode, GraphEdgeInfo>> canonical = new ArrayList<>();
     while (path.path != null) {
       GraphNode source = path.node;
-      GraphNode target = path.path.node;
-      Set<GraphEdgeInfo> infos = getSourcesTargeting(target).get(source);
-      canonical.add(new Pair<>(source, getCanonicalInfo(infos)));
+      if (source.isCycle()) {
+        canonical.add(new Pair<>(source, new GraphEdgeInfo(EdgeKind.Unknown)));
+      } else {
+        GraphNode target = path.path.node;
+        Set<GraphEdgeInfo> infos = getSourcesTargeting(target).get(source);
+        canonical.add(new Pair<>(source, getCanonicalInfo(infos)));
+      }
       path = path.path;
     }
     Set<GraphEdgeInfo> infos = getSourcesTargeting(endTarget).get(path.node);
@@ -186,7 +189,8 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
         }
       }
     }
-    throw new Unreachable("Unexpected empty set of graph edge info");
+    assert false : "Unexpected empty set of graph edge info";
+    return GraphEdgeInfo.unknown();
   }
 
   private void printEdge(GraphNode node, GraphEdgeInfo info, Formatter formatter) {
@@ -225,7 +229,11 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
           ? keepRuleNode.getContent()
           : keepRuleNode.getOrigin() + ":" + shortPositionInfo(keepRuleNode.getPosition());
     }
-    throw new Unreachable("Unexpected graph node type: " + node);
+    if (node == GraphNode.cycle()) {
+      return "only cyclic dependencies remain, failed to determine a path from a keep rule";
+    }
+    assert false : "Unexpected graph node type: " + node;
+    return Objects.toString(node);
   }
 
   private void addNodeMessage(GraphNode node, Formatter formatter) {

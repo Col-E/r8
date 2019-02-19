@@ -8,10 +8,36 @@ import com.android.tools.r8.Keep;
 @Keep
 public abstract class GraphNode {
 
+  private static final GraphNode CYCLE =
+      new GraphNode(false) {
+        @Override
+        public boolean equals(Object o) {
+          return o == this;
+        }
+
+        @Override
+        public int hashCode() {
+          return 0;
+        }
+
+        @Override
+        public String toString() {
+          return "cycle";
+        }
+      };
+
   private final boolean isLibraryNode;
 
   public GraphNode(boolean isLibraryNode) {
     this.isLibraryNode = isLibraryNode;
+  }
+
+  public static GraphNode cycle() {
+    return CYCLE;
+  }
+
+  public final boolean isCycle() {
+    return this == cycle();
   }
 
   public boolean isLibraryNode() {
