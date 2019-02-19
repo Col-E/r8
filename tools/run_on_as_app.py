@@ -178,10 +178,14 @@ def ComputeSizeOfDexFilesInApk(apk):
 
 def ExtractMarker(apk, temp_dir, options):
   r8_jar = os.path.join(temp_dir, 'r8.jar')
+  r8lib_jar = os.path.join(temp_dir, 'r8lib.jar')
 
-  # Use the copy of r8.jar if it is there.
+  # Use the copy of r8.jar or r8lib.jar if one is there.
   if os.path.isfile(r8_jar):
     cmd = [jdk.GetJavaExecutable(), '-ea', '-jar', r8_jar, 'extractmarker', apk]
+  elif os.path.isfile(r8lib_jar):
+    cmd = [jdk.GetJavaExecutable(), '-ea', '-cp', r8lib_jar,
+        'com.android.tools.r8.SwissArmyKnife', 'extractmarker', apk]
   else:
     script = os.path.join(utils.TOOLS_DIR, 'extractmarker.py')
     cmd = ['python', script, apk]
@@ -531,9 +535,9 @@ def RebuildAppWithShrinker(
   # is 'r8'.
   entry_point = 'com.android.tools.r8.R8'
 
-  cmd = [jdk.GetJavaExecutable(), '-ea:com.android.tools.r8...', '-cp', r8_jar, entry_point,
-      '--release', '--min-api', str(min_sdk), '--pg-conf', proguard_config_file,
-      '--lib', android_jar, '--output', zip_dest, apk]
+  cmd = [jdk.GetJavaExecutable(), '-ea:com.android.tools.r8...', '-cp', r8_jar,
+      entry_point, '--release', '--min-api', str(min_sdk), '--pg-conf',
+      proguard_config_file, '--lib', android_jar, '--output', zip_dest, apk]
 
   for android_optional_jar in utils.get_android_optional_jars(compile_sdk):
     cmd.append('--lib')
