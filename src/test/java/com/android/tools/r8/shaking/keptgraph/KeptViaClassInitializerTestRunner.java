@@ -9,13 +9,13 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
@@ -67,7 +67,6 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
     }
   }
 
-  private static final Class<?> CLASS = Main.class;
   private static final String EXPECTED = StringUtils.lines("I'm an A");
 
   private final Backend backend;
@@ -82,8 +81,9 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
   }
 
   @Test
-  @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void testKeptMethod() throws Exception {
+    assumeTrue(ToolHelper.getDexVm().getVersion().isAtLeast(Version.V7_0_0));
+
     MethodReference mainMethod =
         methodFromMethod(Main.class.getDeclaredMethod("main", String[].class));
 
@@ -116,7 +116,7 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
     assertThat(baos.toString(), containsString("is kept for unknown reason"));
 
     // TODO(b/124499108): Currently synthetic lambda classes are referenced,
-    // should be their originating context.
+    //  should be their originating context.
     if (backend == Backend.DEX) {
       assertThat(baos.toString(), containsString("-$$Lambda$"));
     } else {
