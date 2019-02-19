@@ -346,7 +346,12 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
           # Sanity check that keep rules have changed.
           with open(ext_proguard_config_file) as new:
             with open(proguard_config_file) as old:
-              assert(sum(1 for line in new) > sum(1 for line in old))
+              assert(
+                  sum(1 for line in new
+                      if line.strip() and '-printconfiguration' not in line)
+                  >
+                  sum(1 for line in old
+                      if line.strip() and '-printconfiguration' not in line))
 
           # Extract min-sdk and target-sdk
           (min_sdk, compile_sdk) = as_utils.GetMinAndCompileSdk(app, config,
