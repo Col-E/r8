@@ -1444,6 +1444,8 @@ tasks.withType(Test) {
     if (project.hasProperty('disable_assertions')) {
         enableAssertions = false
     }
+    // TODO(b/124091860): Increase the max heap size to avoid OOM when running tests.
+    maxHeapSize = "4g"
 }
 
 task buildPreNJdwpTestsJar(type: Jar) {
@@ -1537,9 +1539,6 @@ def printStackTrace(TestResult result) {
 }
 
 test {
-    // TODO(b/124091860): Increase the max heap size to avoid OOM when running tests.
-    maxHeapSize = "3g"
-
     if (project.hasProperty('generate_golden_files_to')) {
         systemProperty 'generate_golden_files_to', project.property('generate_golden_files_to')
         assert project.hasProperty('HEAD_sha1')
