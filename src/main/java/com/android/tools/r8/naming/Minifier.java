@@ -34,8 +34,6 @@ import java.util.function.Predicate;
 
 public class Minifier {
 
-  static final char INNER_CLASS_SEPARATOR = '$';
-
   private final AppView<AppInfoWithLiveness> appView;
   private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
@@ -129,7 +127,7 @@ public class Minifier {
       String innerName = attribute.getInnerName().toString();
       int lengthOfPrefix = inner.length() - innerName.length();
       if (lengthOfPrefix < 0
-          || inner.lastIndexOf(INNER_CLASS_SEPARATOR, lengthOfPrefix - 1) < 0
+          || inner.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR, lengthOfPrefix - 1) < 0
           || !inner.endsWith(innerName)) {
         return lookupSimpleName(innerType, options.itemFactory);
       }
@@ -141,7 +139,7 @@ public class Minifier {
       if (inner.equals(innerTypeMapped)) {
         return attribute.getInnerName();
       }
-      int index = innerTypeMapped.lastIndexOf(INNER_CLASS_SEPARATOR);
+      int index = innerTypeMapped.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
       if (index < 0) {
         // TODO(b/120639028): Replace this by "assert false" and remove the testing option.
         // Hitting means we have converted a proper Outer$Inner relationship to an invalid one.
