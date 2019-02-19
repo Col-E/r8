@@ -27,8 +27,7 @@ if ('R8_BENCHMARK_DIR' in os.environ
   WORKING_DIR = os.environ['R8_BENCHMARK_DIR']
 
 # For running on Golem all APPS are bundled as an x20-dependency and then copied
-# to WORKING_DIR. To make it easier to update the app-bundle, remove the folder
-# WORKING_DIR and then run run_on_as_app.py --download-only.
+# to WORKING_DIR. To update the app-bundle use 'run_on_as_app_x20_packager.py'.
 APPS = {
   # 'app-name': {
   #     'git_repo': ...
@@ -193,14 +192,14 @@ def IsMinifiedR8(shrinker):
 def IsTrackedByGit(file):
   return subprocess.check_output(['git', 'ls-files', file]).strip() != ''
 
-def GitClone(git_url, revision, checkout_dir, options):
+def GitClone(git_url, revision, checkout_dir, quiet):
   result = subprocess.check_output(
       ['git', 'clone', git_url, checkout_dir]).strip()
   head_rev = utils.get_HEAD_sha1_for_checkout(checkout_dir)
   if revision == head_rev:
     return result
   warn('Target revision is not head in {}.'.format(checkout_dir))
-  with utils.ChangedWorkingDirectory(checkout_dir, quiet=options.quiet):
+  with utils.ChangedWorkingDirectory(checkout_dir, quiet=quiet):
     subprocess.check_output(['git', 'reset', '--hard', revision])
   return result
 
@@ -268,7 +267,8 @@ def GetResultsForApp(app, config, options, temp_dir):
 
   if not os.path.exists(checkout_dir) and not options.golem:
     with utils.ChangedWorkingDirectory(WORKING_DIR, quiet=options.quiet):
-      GitClone(config['git_repo'], config['revision'], checkout_dir, options)
+      GitClone(
+          config['git_repo'], config['revision'], checkout_dir, options.quiet)
 
   checkout_rev = utils.get_HEAD_sha1_for_checkout(checkout_dir)
   if config['revision'] != checkout_rev:
@@ -714,13 +714,13 @@ def ParseOptions(argv):
       assert shrinker in SHRINKERS
   return (options, args)
 
-def download_apps(options):
+def download_apps(quiet):
   # Download apps and place in build
   with utils.ChangedWorkingDirectory(WORKING_DIR):
     for app, config in APPS.iteritems():
       app_dir = os.path.join(WORKING_DIR, app)
       if not os.path.exists(app_dir):
-        GitClone(config['git_repo'], config['revision'], app_dir, options)
+        GitClone(config['git_repo'], config['revision'], app_dir, quiet)
 
 
 def main(argv):
@@ -738,7 +738,7 @@ def main(argv):
     os.makedirs(WORKING_DIR)
 
   if options.download_only:
-    download_apps(options)
+    download_apps(options.quiet)
     return
 
   with utils.TempDir() as temp_dir:
