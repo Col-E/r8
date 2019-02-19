@@ -8,6 +8,7 @@ import apk_utils
 import golem
 import gradle
 import jdk
+import json
 import os
 import optparse
 import shutil
@@ -18,6 +19,8 @@ import utils
 import zipfile
 
 import as_utils
+import create_maven_release
+import update_prebuilds_in_android
 
 SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full', 'pg']
 WORKING_DIR = os.path.join(utils.BUILD, 'opensource_apps')
@@ -174,7 +177,7 @@ def ComputeSizeOfDexFilesInApk(apk):
       dex_size += z.getinfo(filename).file_size
   return dex_size
 
-def IsBuiltWithR8(apk, temp_dir, options):
+def ExtractMarker(apk, temp_dir, options):
   r8_jar = os.path.join(temp_dir, 'r8.jar')
 
   # Use the copy of r8.jar if it is there.
@@ -185,7 +188,26 @@ def IsBuiltWithR8(apk, temp_dir, options):
     cmd = ['python', script, apk]
 
   utils.PrintCmd(cmd, quiet=options.quiet)
-  return '~~R8' in subprocess.check_output(cmd).strip()
+  stdout = subprocess.check_output(cmd)
+
+  # Return the last line.
+  lines = stdout.strip().splitlines()
+  assert len(lines) >= 1
+  return lines[-1]
+
+def CheckIsBuiltWithExpectedR8(apk, temp_dir, options):
+  marker = ExtractMarker(apk, temp_dir, options)
+  expected_version = (
+      options.version
+      if options.version
+      else create_maven_release.determine_version())
+  if marker.startswith('~~R8'):
+    actual_version = json.loads(marker[4:]).get('version')
+    if actual_version == expected_version:
+      return True
+  raise Exception(
+      'Expected APK to be built with R8 version {} (was: {})'.format(
+          expected_version, marker))
 
 def IsMinifiedR8(shrinker):
   return 'nolib' not in shrinker
@@ -292,10 +314,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
   result_per_shrinker = {}
 
   with utils.ChangedWorkingDirectory(checkout_dir, quiet=options.quiet):
-    for shrinker in SHRINKERS:
-      if options.shrinker and shrinker not in options.shrinker:
-        continue
-
+    for shrinker in options.shrinker:
       apk_dest = None
 
       result = {}
@@ -407,7 +426,7 @@ def BuildAppWithShrinker(
   # $R8/build.
   as_utils.add_settings_gradle(checkout_dir, app)
 
-  # Add 'r8.jar' from top-level build.gradle.
+  # Add 'r8.jar' to top-level build.gradle.
   as_utils.add_r8_dependency(checkout_dir, temp_dir, IsMinifiedR8(shrinker))
 
   app_module = config.get('app_module', 'app')
@@ -481,8 +500,8 @@ def BuildAppWithShrinker(
     apk_dest = os.path.join(out_dir, unsigned_apk_name)
     as_utils.MoveFile(unsigned_apk, apk_dest, quiet=options.quiet)
 
-  assert IsBuiltWithR8(apk_dest, temp_dir, options) == ('r8' in shrinker), (
-      'Unexpected marker in generated APK for {}'.format(shrinker))
+  assert ('r8' not in shrinker
+      or CheckIsBuiltWithExpectedR8(apk_dest, temp_dir, options))
 
   profile_dest_dir = os.path.join(out_dir, 'profile')
   as_utils.MoveProfileReportTo(profile_dest_dir, stdout, quiet=options.quiet)
@@ -708,10 +727,25 @@ def ParseOptions(argv):
   result.add_option('--shrinker',
                     help='The shrinkers to use (by default, all are run)',
                     action='append')
+  result.add_option('--version',
+                    help='The version of R8 to use (e.g., 1.4.51)')
   (options, args) = result.parse_args(argv)
   if options.shrinker:
     for shrinker in options.shrinker:
       assert shrinker in SHRINKERS
+  else:
+    options.shrinker = [shrinker for shrinker in SHRINKERS]
+  if options.version:
+    # No need to build R8 if a specific release version should be used.
+    options.no_build = True
+    if 'r8-nolib' in options.shrinker:
+      warn('Skipping shrinker r8-nolib because a specific release version '
+          + 'of r8 was specified')
+      options.shrinker.remove('r8-nolib')
+    if 'r8-nolib-full' in options.shrinker:
+      warn('Skipping shrinker r8-nolib-full because a specific release version '
+          + 'of r8 was specified')
+      options.shrinker.remove('r8-nolib-full')
   return (options, args)
 
 def download_apps(options):
@@ -724,8 +758,6 @@ def download_apps(options):
 
 
 def main(argv):
-  global SHRINKERS
-
   (options, args) = ParseOptions(argv)
 
   if options.golem:
@@ -745,15 +777,24 @@ def main(argv):
     if not options.no_build or options.golem:
       gradle.RunGradle(['r8', 'r8lib'])
 
-    # Make a copy of r8.jar and r8lib.jar such that they stay the same for
-    # the entire execution of this script.
-    all_shrinkers_enabled = (options.shrinker == None)
-    if all_shrinkers_enabled or 'r8-nolib' in options.shrinker:
-      assert os.path.isfile(utils.R8_JAR), 'Cannot build without r8.jar'
-      shutil.copyfile(utils.R8_JAR, os.path.join(temp_dir, 'r8.jar'))
-    if all_shrinkers_enabled or 'r8' in options.shrinker:
-      assert os.path.isfile(utils.R8LIB_JAR), 'Cannot build without r8lib.jar'
-      shutil.copyfile(utils.R8LIB_JAR, os.path.join(temp_dir, 'r8lib.jar'))
+    if options.version:
+      # Download r8-<version>.jar from
+      # http://storage.googleapis.com/r8-releases/raw/.
+      target = 'r8-{}.jar'.format(options.version)
+      update_prebuilds_in_android.download_version(
+          temp_dir, 'com/android/tools/r8/' + options.version, target)
+      as_utils.MoveFile(
+          os.path.join(temp_dir, target), os.path.join(temp_dir, 'r8lib.jar'),
+          quiet=options.quiet)
+    else:
+      # Make a copy of r8.jar and r8lib.jar such that they stay the same for
+      # the entire execution of this script.
+      if 'r8-nolib' in options.shrinker:
+        assert os.path.isfile(utils.R8_JAR), 'Cannot build without r8.jar'
+        shutil.copyfile(utils.R8_JAR, os.path.join(temp_dir, 'r8.jar'))
+      if 'r8' in options.shrinker:
+        assert os.path.isfile(utils.R8LIB_JAR), 'Cannot build without r8lib.jar'
+        shutil.copyfile(utils.R8LIB_JAR, os.path.join(temp_dir, 'r8lib.jar'))
 
     result_per_shrinker_per_app = {}
 
