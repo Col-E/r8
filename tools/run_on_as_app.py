@@ -99,7 +99,7 @@ APPS = {
       'app_id': 'io.rover.app.debug',
       'app_module': 'debug-app',
       'git_repo': 'https://github.com/mkj-gram/rover-android.git',
-      'revision': 'd2e876e597b3af7eab406e38a0e08327a38bd942',
+      'revision': '859af82ba56fe9035ae9949156c7a88e6012d930',
   },
   'Signal-Android': {
       'app_id': 'org.thoughtcrime.securesms',
