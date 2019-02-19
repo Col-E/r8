@@ -271,9 +271,13 @@ def download_file_from_cloud_storage(source, destination):
   subprocess.check_call(cmd)
 
 def create_archive(name):
+  return create_archive(name, [name])
+
+def create_archive(name, sources):
   tarname = '%s.tar.gz' % name
   with tarfile.open(tarname, 'w:gz') as tar:
-    tar.add(name)
+    for source in sources:
+      tar.add(source)
   return tarname
 
 def extract_dir(filename):
@@ -287,6 +291,9 @@ def unpack_archive(filename):
   dirname = os.path.dirname(os.path.abspath(filename))
   with tarfile.open(filename, 'r:gz') as tar:
     tar.extractall(path=dirname)
+
+def check_prodacces():
+  subprocess.check_call(['prodaccess'])
 
 # Note that gcs is eventually consistent with regards to list operations.
 # This is not a problem in our case, but don't ever use this method
