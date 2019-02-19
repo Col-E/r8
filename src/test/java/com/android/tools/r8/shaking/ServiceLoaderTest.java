@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.references.Reference.classFromClass;
+import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
@@ -11,14 +13,19 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DataEntryResource;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.naming.AdaptResourceFileContentsTest.DataResourceConsumerForTesting;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.graphinspector.GraphInspector;
+import com.android.tools.r8.utils.graphinspector.GraphInspector.QueryNode;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -54,7 +61,7 @@ public class ServiceLoaderTest extends TestBase {
       serviceImplementations.add(WorldGreeter.class.getTypeName());
     }
 
-    CodeInspector inspector =
+    R8TestRunResult result =
         testForR8(backend)
             .addInnerClasses(ServiceLoaderTest.class)
             .addKeepMainRule(TestClass.class)
@@ -69,9 +76,11 @@ public class ServiceLoaderTest extends TestBase {
                       new DataResourceConsumerForTesting(options.dataResourceConsumer);
                   options.dataResourceConsumer = dataResourceConsumer;
                 })
+            .enableGraphInspector()
             .run(TestClass.class)
-            .assertSuccessWithOutput(expectedOutput)
-            .inspector();
+            .assertSuccessWithOutput(expectedOutput);
+
+    CodeInspector inspector = result.inspector();
 
     ClassSubject greeterSubject = inspector.clazz(Greeter.class);
     assertEquals(includeWorldGreeter, greeterSubject.isPresent());
@@ -92,7 +101,45 @@ public class ServiceLoaderTest extends TestBase {
       assertEquals(worldGreeterSubject.getFinalName(), lines.get(1));
     }
 
-    // TODO(b/124181030): Verify that -whyareyoukeeping works as intended.
+    verifyGraphInformation(result.graphInspector());
+  }
+
+  private void verifyGraphInformation(GraphInspector graphInspector) throws Exception {
+    assertEquals(1, graphInspector.getRoots().size());
+    QueryNode keepMain = graphInspector.rule(Origin.unknown(), 1, 1).assertRoot();
+
+    MethodReference mainMethod =
+        methodFromMethod(TestClass.class.getDeclaredMethod("main", String[].class));
+    graphInspector.method(mainMethod).assertKeptBy(keepMain);
+
+    ClassReference helloGreeterClass = classFromClass(HelloGreeter.class);
+    MethodReference helloGreeterInitMethod = methodFromMethod(HelloGreeter.class.getConstructor());
+    MethodReference helloGreeterGreetingMethod =
+        methodFromMethod(HelloGreeter.class.getDeclaredMethod("greeting"));
+
+    graphInspector.clazz(helloGreeterClass).assertKeptBy(graphInspector.method(mainMethod));
+    graphInspector.clazz(helloGreeterClass).assertReflectedFrom(mainMethod);
+    graphInspector.method(helloGreeterInitMethod).assertReflectedFrom(mainMethod);
+
+    // TODO(b/121313747): greeting() is called from main(), so this should be strengthened to
+    //  `assertInvokedFrom(mainMethod)`.
+    graphInspector.method(helloGreeterGreetingMethod).assertPresent();
+
+    if (includeWorldGreeter) {
+      ClassReference worldGreeterClass = classFromClass(WorldGreeter.class);
+      MethodReference worldGreeterInitMethod =
+          methodFromMethod(WorldGreeter.class.getConstructor());
+      MethodReference worldGreeterGreetingMethod =
+          methodFromMethod(WorldGreeter.class.getDeclaredMethod("greeting"));
+
+      graphInspector.clazz(worldGreeterClass).assertKeptBy(graphInspector.method(mainMethod));
+      graphInspector.clazz(worldGreeterClass).assertReflectedFrom(mainMethod);
+      graphInspector.method(worldGreeterInitMethod).assertReflectedFrom(mainMethod);
+
+      // TODO(b/121313747): greeting() is called from main(), so this should be strengthened to
+      //  `assertInvokedFrom(mainMethod)`.
+      graphInspector.method(worldGreeterGreetingMethod).assertPresent();
+    }
   }
 
   @Test
