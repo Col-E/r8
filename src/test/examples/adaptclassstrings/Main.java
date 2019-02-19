@@ -5,6 +5,7 @@ package adaptclassstrings;
 
 public class Main {
   public static void main(String[] args) throws Exception {
+    assert false;
     int f = 3;
     A a = new A(f);
     AA aa = new AA(f);
@@ -25,6 +26,7 @@ public class Main {
     assert a_foo.equals(c_to_a_foo);
 
     String cName = (String) Class.forName(C.ITSELF).getField("ITSELF").get(null);
-    assert cName.equals(A.OTHER);
+    boolean b = cName.equals(A.OTHER);
+    assert b;
   }
 }

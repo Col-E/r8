@@ -100,6 +100,7 @@ public class IdentifierMinifierTest extends TestBase {
     Map<String, Consumer<CodeInspector>> inspections = new HashMap<>();
     inspections.put("adaptclassstrings:keep-rules-1.txt", IdentifierMinifierTest::test1_rule1);
     inspections.put("adaptclassstrings:keep-rules-2.txt", IdentifierMinifierTest::test1_rule2);
+    inspections.put("adaptclassstrings:keep-rules-3.txt", IdentifierMinifierTest::test1_rule3);
     inspections.put(
         "atomicfieldupdater:keep-rules.txt", IdentifierMinifierTest::test_atomicfieldupdater);
     inspections.put("forname:keep-rules.txt", IdentifierMinifierTest::test_forname);
@@ -107,7 +108,6 @@ public class IdentifierMinifierTest extends TestBase {
     inspections.put("identifiernamestring:keep-rules-1.txt", IdentifierMinifierTest::test2_rule1);
     inspections.put("identifiernamestring:keep-rules-2.txt", IdentifierMinifierTest::test2_rule2);
     inspections.put("identifiernamestring:keep-rules-3.txt", IdentifierMinifierTest::test2_rule3);
-
     Collection<Object[]> parameters = NamingTestBase.createTests(tests, inspections);
 
     // Duplicate parameters for each backend.
@@ -126,36 +126,28 @@ public class IdentifierMinifierTest extends TestBase {
 
   // Without -adaptclassstrings
   private static void test1_rule1(CodeInspector inspector) {
-    ClassSubject mainClass = inspector.clazz("adaptclassstrings.Main");
-    MethodSubject main = mainClass.method(CodeInspector.MAIN);
-    assertTrue(main instanceof FoundMethodSubject);
-    FoundMethodSubject foundMain = (FoundMethodSubject) main;
-    verifyPresenceOfConstString(foundMain);
-    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
-    assertEquals(4, renamedYetFoundIdentifierCount);
-
-    ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
-    MethodSubject bar = aClass.method("void", "bar", ImmutableList.of());
-    assertTrue(bar instanceof FoundMethodSubject);
-    FoundMethodSubject foundBar = (FoundMethodSubject) bar;
-    verifyPresenceOfConstString(foundBar);
-    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundBar);
-    assertEquals(0, renamedYetFoundIdentifierCount);
-
-    renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, aClass.getDexClass().staticFields());
-    assertEquals(0, renamedYetFoundIdentifierCount);
+    test1_rules(inspector, 4, 0, 0);
   }
 
   // With -adaptclassstrings *.*A
   private static void test1_rule2(CodeInspector inspector) {
+    test1_rules(inspector, 4, 1, 1);
+  }
+
+  // With -adaptclassstrings (no filter)
+  private static void test1_rule3(CodeInspector inspector) {
+    test1_rules(inspector, 5, 1, 1);
+  }
+
+  private static void test1_rules(
+      CodeInspector inspector, int countInMain, int countInABar, int countInAFields) {
     ClassSubject mainClass = inspector.clazz("adaptclassstrings.Main");
     MethodSubject main = mainClass.method(CodeInspector.MAIN);
     assertTrue(main instanceof FoundMethodSubject);
     FoundMethodSubject foundMain = (FoundMethodSubject) main;
     verifyPresenceOfConstString(foundMain);
     int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
-    assertEquals(4, renamedYetFoundIdentifierCount);
+    assertEquals(countInMain, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
     MethodSubject bar = aClass.method("void", "bar", ImmutableList.of());
@@ -163,11 +155,11 @@ public class IdentifierMinifierTest extends TestBase {
     FoundMethodSubject foundBar = (FoundMethodSubject) bar;
     verifyPresenceOfConstString(foundBar);
     renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundBar);
-    assertEquals(1, renamedYetFoundIdentifierCount);
+    assertEquals(countInABar, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
         countRenamedClassIdentifier(inspector, aClass.getDexClass().staticFields());
-    assertEquals(1, renamedYetFoundIdentifierCount);
+    assertEquals(countInAFields, renamedYetFoundIdentifierCount);
   }
 
   private static void test_atomicfieldupdater(CodeInspector inspector) {
