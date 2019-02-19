@@ -107,7 +107,7 @@ APPS = {
       'flavor': 'play',
       'git_repo': 'https://github.com/mkj-gram/Signal-Android.git',
       'main_dex_rules': 'multidex-config.pro',
-      'revision': '85e1a10993e5e9ffe923f0798b26cbc44068ba31',
+      'revision': 'a45d0c1fed20fa39e8b9445fe7790326f46b3166',
       'releaseTarget': 'assemblePlayRelease',
       'signed-apk-name': 'Signal-play-release-4.32.7.apk',
   },
