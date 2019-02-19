@@ -6,14 +6,11 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 import static com.android.tools.r8.utils.DescriptorUtils.getClassBinaryNameFromDescriptor;
-import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
 import static com.android.tools.r8.utils.DescriptorUtils.getPackageBinaryNameFromJavaType;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -22,22 +19,18 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.naming.signature.GenericSignatureAction;
-import com.android.tools.r8.naming.signature.GenericSignatureParser;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.lang.reflect.GenericSignatureFormatError;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,8 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 class ClassNameMinifier {
@@ -71,11 +62,6 @@ class ClassNameMinifier {
 
   private final Namespace topLevelState;
 
-  private final GenericSignatureRewriter genericSignatureRewriter = new GenericSignatureRewriter();
-
-  private final GenericSignatureParser<DexType> genericSignatureParser =
-      new GenericSignatureParser<>(genericSignatureRewriter);
-
   ClassNameMinifier(AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
     this.appView = appView;
     this.appInfo = appView.appInfo();
@@ -97,6 +83,7 @@ class ClassNameMinifier {
     // Initialize top-level naming state.
     topLevelState = new Namespace(
         getPackageBinaryNameFromJavaType(options.getProguardConfiguration().getPackagePrefix()));
+
     states.put("", topLevelState);
   }
 
@@ -141,7 +128,7 @@ class ClassNameMinifier {
     timing.end();
 
     timing.begin("rename-generic");
-    renameTypesInGenericSignatures();
+    new GenericSignatureRewriter(appView, renaming).run();
     timing.end();
 
     timing.begin("rename-arrays");
@@ -192,100 +179,6 @@ class ClassNameMinifier {
     }
   }
 
-  private void parseError(
-      DexDefinition item, Origin origin, String signature, GenericSignatureFormatError e) {
-    StringBuilder message = new StringBuilder("Invalid signature '");
-    message.append(signature);
-    message.append("' for ");
-    if (item.isDexClass()) {
-      message.append("class ");
-      message.append((item.asDexClass()).getType().toSourceString());
-    } else if (item.isDexEncodedField()) {
-      message.append("field ");
-      message.append(item.toSourceString());
-    } else {
-      assert item.isDexEncodedMethod();
-      message.append("method ");
-      message.append(item.toSourceString());
-    }
-    message.append(".\n");
-    message.append("Signature is ignored and will not be present in the output.\n");
-    message.append("Parser error: ");
-    message.append(e.getMessage());
-    reporter.warning(new StringDiagnostic(message.toString(), origin));
-  }
-
-  private void renameTypesInGenericSignatures() {
-    for (DexClass clazz : appInfo.classes()) {
-      clazz.annotations =
-          rewriteGenericSignatures(
-              clazz.annotations,
-              genericSignatureParser::parseClassSignature,
-              (signature, e) -> parseError(clazz, clazz.getOrigin(), signature, e));
-      clazz.forEachField(
-          field ->
-              field.annotations =
-                  rewriteGenericSignatures(
-                      field.annotations,
-                      genericSignatureParser::parseFieldSignature,
-                      (signature, e) -> parseError(field, clazz.getOrigin(), signature, e)));
-      clazz.forEachMethod(
-          method ->
-              method.annotations =
-                  rewriteGenericSignatures(
-                      method.annotations,
-                      genericSignatureParser::parseMethodSignature,
-                      (signature, e) -> parseError(method, clazz.getOrigin(), signature, e)));
-    }
-  }
-
-  private DexAnnotationSet rewriteGenericSignatures(
-      DexAnnotationSet annotations,
-      Consumer<String> parser,
-      BiConsumer<String, GenericSignatureFormatError> parseError) {
-    // There can be no more than one signature annotation in an annotation set.
-    final int VALID = -1;
-    int invalid = VALID;
-    for (int i = 0; i < annotations.annotations.length && invalid == VALID; i++) {
-      DexAnnotation annotation = annotations.annotations[i];
-      if (DexAnnotation.isSignatureAnnotation(annotation, appInfo.dexItemFactory)) {
-        String signature = DexAnnotation.getSignature(annotation);
-        try {
-          parser.accept(signature);
-          annotations.annotations[i] = DexAnnotation.createSignatureAnnotation(
-              genericSignatureRewriter.getRenamedSignature(),
-              appInfo.dexItemFactory);
-        } catch (GenericSignatureFormatError e) {
-          parseError.accept(signature, e);
-          invalid = i;
-        }
-      }
-    }
-
-    // Return the rewritten signatures if it was valid and could be rewritten.
-    if (invalid == VALID) {
-      return annotations;
-    }
-    // Remove invalid signature if found.
-    DexAnnotation[] prunedAnnotations =
-        new DexAnnotation[annotations.annotations.length - 1];
-    int dest = 0;
-    for (int i = 0; i < annotations.annotations.length; i++) {
-      if (i != invalid) {
-        prunedAnnotations[dest++] = annotations.annotations[i];
-      }
-    }
-    assert dest == prunedAnnotations.length;
-    return new DexAnnotationSet(prunedAnnotations);
-  }
-
-  /**
-   * Registers the given type as used.
-   * <p>
-   * When {@link #keepInnerClassStructure} is true, keeping the name of an inner class will
-   * automatically also keep the name of the outer class, as otherwise the structure would be
-   * invalidated.
-   */
   private void registerClassAsUsed(DexType type) {
     renaming.put(type, type.descriptor);
     registerPackagePrefixesAsUsed(
@@ -523,73 +416,6 @@ class ClassNameMinifier {
       } while (usedPackagePrefixes.contains(candidate));
       usedPackagePrefixes.add(candidate);
       return candidate;
-    }
-  }
-
-  private class GenericSignatureRewriter implements GenericSignatureAction<DexType> {
-
-    private StringBuilder renamedSignature;
-
-    public String getRenamedSignature() {
-      return renamedSignature.toString();
-    }
-
-    @Override
-    public void parsedSymbol(char symbol) {
-      renamedSignature.append(symbol);
-    }
-
-    @Override
-    public void parsedIdentifier(String identifier) {
-      renamedSignature.append(identifier);
-    }
-
-    @Override
-    public DexType parsedTypeName(String name) {
-      DexType type = appInfo.dexItemFactory.createType(getDescriptorFromClassBinaryName(name));
-      type = appView.graphLense().lookupType(type);
-      DexString renamedDescriptor = renaming.getOrDefault(type, type.descriptor);
-      renamedSignature.append(getClassBinaryNameFromDescriptor(renamedDescriptor.toString()));
-      return type;
-    }
-
-    @Override
-    public DexType parsedInnerTypeName(DexType enclosingType, String name) {
-      assert enclosingType.isClassType();
-      String enclosingDescriptor = enclosingType.toDescriptorString();
-      DexType type =
-          appInfo.dexItemFactory.createType(
-              getDescriptorFromClassBinaryName(
-                  getClassBinaryNameFromDescriptor(enclosingDescriptor)
-                      + Minifier.INNER_CLASS_SEPARATOR
-                      + name));
-      String enclosingRenamedBinaryName =
-          getClassBinaryNameFromDescriptor(
-              renaming.getOrDefault(enclosingType, enclosingType.descriptor).toString());
-      type = appView.graphLense().lookupType(type);
-      DexString renamedDescriptor = renaming.get(type);
-      if (renamedDescriptor != null) {
-        // Pick the renamed inner class from the fully renamed binary name.
-        String fullRenamedBinaryName =
-            getClassBinaryNameFromDescriptor(renamedDescriptor.toString());
-        renamedSignature.append(
-            fullRenamedBinaryName.substring(enclosingRenamedBinaryName.length() + 1));
-      } else {
-        // Did not find the class - keep the inner class name as is.
-        // TODO(110085899): Warn about missing classes in signatures?
-        renamedSignature.append(name);
-      }
-      return type;
-    }
-
-    @Override
-    public void start() {
-      renamedSignature = new StringBuilder();
-    }
-
-    @Override
-    public void stop() {
-      // nothing to do
     }
   }
 
