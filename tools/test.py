@@ -106,9 +106,11 @@ def ParseOptions():
   result.add_option('--use-golden-files-in', '--use_golden_files_in',
       help='Download golden files hierarchy for this commit in the specified'
            ' location and use them instead of executing on host runtime.')
-  result.add_option('--no_r8lib', '--no_r8lib', default=False, action='store_true',
+  result.add_option('--no-r8lib', '--no_r8lib',
+      default=False, action='store_true',
       help='Run the tests on R8 full with relocated dependencies.')
-  result.add_option('--r8lib_no_deps', '--r8lib_no_deps', default=False, action='store_true',
+  result.add_option('--r8lib-no-deps', '--r8lib_no_deps',
+      default=False, action='store_true',
       help='Run the tests on r8lib without relocated dependencies.')
   return result.parse_args()
 
