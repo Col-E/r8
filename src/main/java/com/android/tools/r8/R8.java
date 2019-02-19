@@ -38,6 +38,7 @@ import com.android.tools.r8.naming.ProguardMapApplier;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.naming.SourceFileRewriter;
+import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
@@ -631,6 +632,10 @@ public class R8 {
         namingLens = new Minifier(appView.withLiveness(), rootSet, desugaredCallSites).run(timing);
         timing.end();
       } else {
+        if (appView.appInfo().hasLiveness()) {
+          // TODO(124726014): Rewrite signature annotations in lens rewriting instead of here?
+          new GenericSignatureRewriter(appView.withLiveness()).run();
+        }
         namingLens = NamingLens.getIdentityLens();
       }
 

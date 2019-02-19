@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.naming.b124357885;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.allOf;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
@@ -26,8 +27,21 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class B124357885Test extends TestBase {
+  public final boolean minification;
+
+  @Parameterized.Parameters(name = "Minification: {0}")
+  public static Boolean[] data() {
+    return BooleanUtils.values();
+  }
+
+  public B124357885Test(boolean minification) {
+    this.minification = minification;
+  }
 
   private void checkSignatureAnnotation(CodeInspector inspector, AnnotationSubject signature) {
     DexAnnotationElement[] elements = signature.getAnnotation().elements;
@@ -59,12 +73,13 @@ public class B124357885Test extends TestBase {
         .addProgramClasses(Main.class, Service.class, Foo.class, FooImpl.class)
         .addKeepMainRule(Main.class)
         .addKeepRules("-keepattributes Signature,InnerClasses,EnclosingMethod")
+        .minification(minification)
         .compile()
         .inspect(inspector -> {
-          assertThat(inspector.clazz(Main.class), allOf(isPresent(), not(isRenamed())));
-          assertThat(inspector.clazz(Service.class), allOf(isPresent(), isRenamed()));
+          assertThat(inspector.clazz(Main.class), isNotRenamed());
+          assertThat(inspector.clazz(Service.class), isRenamed(minification));
           assertThat(inspector.clazz(Foo.class), not(isPresent()));
-          assertThat(inspector.clazz(FooImpl.class), allOf(isPresent(), isRenamed()));
+          assertThat(inspector.clazz(FooImpl.class), isRenamed(minification));
           // TODO(124477502): Using uniqueMethodWithName("fooList") does not work.
           assertEquals(1, inspector.clazz(Service.class).allMethods().size());
           MethodSubject fooList = inspector.clazz(Service.class).allMethods().get(0);
