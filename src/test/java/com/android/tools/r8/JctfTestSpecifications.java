@@ -894,7 +894,7 @@ public class JctfTestSpecifications {
               "lang.String.getBytesLjava_lang_String.String_getBytes_A14",
               match(artRuntimesUpTo(Runtime.ART_V7_0_0)))
           .put("lang.String.splitLjava_lang_String.String_split_A01", any())
-          .put("lang.String.getBytesII_BI.String_getBytes_A03", any())
+          .put("lang.String.getBytesII_BI.String_getBytes_A03", anyDexVm())
           .put("lang.String.getBytesII_BI.String_getBytes_A02", anyDexVm())
           .put("lang.String.toLowerCaseLjava_util_Locale.String_toLowerCase_A01", any())
           .put("lang.String.Constructor_BIILjava_nio_charset_Charset.String_Constructor_A01", any())
@@ -1690,6 +1690,54 @@ public class JctfTestSpecifications {
               "lang.String.replaceAllLjava_lang_StringLjava_lang_String.String_replaceAll_A01",
               cf())
           .put("lang.System.inheritedChannel.System_inheritedChannel_A01", cf())
+          // TODO(b/124842490): Failing with change to JDK 9 for the classfile backend.
+          .put("lang.Character.isSpaceCharC.Character_isSpaceChar_A01", cf())
+          .put("lang.Character.isSpaceCharI.Character_isSpaceChar_A01", cf())
+          .put("lang.Character.isWhitespaceI.Character_isWhitespace_A01", cf())
+          .put("lang.Class.getConstructors.Class_getConstructors_A01", cf())
+          .put("lang.Class.getPackage.Class_getPackage_A01", cf())
+          .put(
+              "lang.Class.getResourceAsStreamLjava_lang_String.Class_getResourceAsStream_A01", cf())
+          .put("lang.Class.getResourceLjava_lang_String.Class_getResource_A01", cf())
+          .put(
+              "lang.ClassLoader.defineClassLjava_lang_StringLjava_nio_ByteBufferLjava_security_ProtectionDomain.ClassLoader_defineClass_A01",
+              cf())
+          .put(
+              "lang.ClassLoader.defineClassLjava_lang_String_BII.ClassLoader_defineClass_A01", cf())
+          .put(
+              "lang.ClassLoader.defineClassLjava_lang_String_BIILjava_security_ProtectionDomain.ClassLoader_defineClass_A01",
+              cf())
+          .put("lang.ClassLoader.defineClass_BII.ClassLoader_defineClass_A01", cf())
+          .put(
+              "lang.ClassLoader.definePackageLjava_lang_String6Ljava_net_URL.ClassLoader_definePackage_A03",
+              cf())
+          .put("lang.ClassLoader.getPackages.ClassLoader_getPackages_A01", cf())
+          .put("lang.Package.getImplementationVersion.Package_getImplementationVersion_A01", cf())
+          .put(
+              "lang.SecurityManager.checkAwtEventQueueAccess.SecurityManager_checkAwtEventQueueAccess_A01",
+              cf())
+          .put(
+              "lang.SecurityManager.checkSystemClipboardAccess.SecurityManager_checkSystemClipboardAccess_A01",
+              cf())
+          .put(
+              "lang.SecurityManager.checkTopLevelWindowLjava_lang_Object.SecurityManager_checkTopLevelWindow_A01",
+              cf())
+          .put("lang.StrictMath.toDegreesD.StrictMath_toDegrees_A01", cf())
+          .put("lang.StrictMath.toRadiansD.StrictMath_toRadians_A01", cf())
+          .put("lang.String.matchesLjava_lang_String.String_matches_A01", cf())
+          .put("lang.StringBuffer.append_CII.StringBuffer_append_A03", cf())
+          .put("lang.System.getProperties.System_getProperties_A02", cf())
+          .put("lang.System.getPropertyLjava_lang_String.System_getProperty_A02", cf())
+          .put(
+              "lang.System.getPropertyLjava_lang_StringLjava_lang_String.System_getProperty_A02",
+              cf())
+          .put("lang.Throwable.serialization.Throwable_serialization_A01", cf())
+          .put("lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01", cf())
+          .put("lang.ref.ReferenceQueue.remove.ReferenceQueue_remove_A01", cf())
+          .put("lang.ref.ReferenceQueue.removeJ.ReferenceQueue_remove_A01", cf())
+          .put("lang.reflect.Constructor.toGenericString.Constructor_toGenericString_A01", cf())
+          .put("lang.reflect.Field.getGenericType.Field_getGenericType_A01", cf())
+          .put("lang.reflect.Field.toGenericString.Field_toGenericString_A01", cf())
           .build(); // end of failuresToTriage
 
   public static final Multimap<String, TestCondition> flakyWhenRun =
