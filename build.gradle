@@ -5,6 +5,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import net.ltgt.gradle.errorprone.CheckSeverity
 import org.gradle.internal.os.OperatingSystem
+import tasks.DownloadDependency
 import tasks.GetJarsFromConfiguration
 import utils.Utils
 
@@ -325,23 +326,15 @@ def getDownloadDepsTaskName(entryKey, entryFile) {
     return "download_deps_${entryKey}_${entryFile.replace('/', '_').replace('\\', '_')}"
 }
 
+def getFetchDepsTaskName(entryKey, entryFile) {
+    return "fetch_deps_${entryKey}_${entryFile.replace('/', '_').replace('\\', '_')}"
+}
+
 cloudDependencies.each { entry ->
     entry.value.each { entryFile ->
-        task "${getDownloadDepsTaskName(entry.key, entryFile)}"(type: Exec) {
-            def outputDir = "${entry.key}/${entryFile}"
-            def gzFile = "${outputDir}.tar.gz"
-            def sha1File = "${gzFile}.sha1"
-            // Make the output file part of the input dependencies explictly.
-            inputs.files files(sha1File, gzFile)
-            outputs.dir outputDir
-            List<String> dlFromStorageArgs = ["-n", "-b", "r8-deps", "-u", "-s", "${sha1File}"]
-            if (OperatingSystem.current().isWindows()) {
-                executable "download_from_google_storage.bat"
-                args dlFromStorageArgs
-            } else {
-                executable "bash"
-                args "-c", "download_from_google_storage " + String.join(" ", dlFromStorageArgs)
-            }
+        task "${getDownloadDepsTaskName(entry.key, entryFile)}"(type: DownloadDependency) {
+            type DownloadDependency.Type.GOOGLE_STORAGE
+            dependency "${entry.key}/${entryFile}"
         }
     }
 }
@@ -377,14 +370,9 @@ def x20Dependencies = [
 
 x20Dependencies.each { entry ->
     entry.value.each { entryFile ->
-        task "${getDownloadDepsTaskName(entry.key, entryFile)}"(type: Exec) {
-            def outputDir = "${entry.key}/${entryFile}"
-            def gzFile = "${outputDir}.tar.gz"
-            def sha1File = "${gzFile}.sha1"
-            inputs.files files(sha1File, gzFile)
-            outputs.dir outputDir
-            executable "bash"
-            args "-c", "tools/download_from_x20.py ${sha1File}"
+        task "${getDownloadDepsTaskName(entry.key, entryFile)}"(type: DownloadDependency) {
+            type DownloadDependency.Type.X20
+            dependency "${entry.key}/${entryFile}"
         }
     }
 }
