@@ -16,7 +16,12 @@ USAGE = 'usage: %prog [options] <apk>'
 def parse_options():
   parser = optparse.OptionParser(usage=USAGE)
   parser.add_option('--dex',
-                    help='directory with dex files to use instead of those in the apk',
+                    help=('directory with dex files to use instead of those in '
+                        + 'the apk'),
+                    default=None)
+  parser.add_option('--resources',
+                    help=('pattern that matches resources to use instead of '
+                        + 'those in the apk'),
                     default=None)
   parser.add_option('--out',
                     help='output file (default ./$(basename <apk>))',
@@ -43,32 +48,39 @@ def parse_options():
 def findKeystore():
   return os.path.join(os.getenv('HOME'), '.android', 'app.keystore')
 
-def repack(processed_out, original_apk, temp, quiet):
+def repack(apk, processed_out, resources, temp, quiet):
   processed_apk = os.path.join(temp, 'processed.apk')
-  shutil.copyfile(original_apk, processed_apk)
+  shutil.copyfile(apk, processed_apk)
   if not processed_out:
     utils.Print('Using original APK as is', quiet=quiet)
     return processed_apk
   utils.Print(
       'Repacking APK with dex files from {}'.format(processed_apk), quiet=quiet)
+
+  # Delete original dex files in APK.
   with utils.ChangedWorkingDirectory(temp, quiet=quiet):
     cmd = ['zip', '-d', 'processed.apk', '*.dex']
     utils.RunCmd(cmd, quiet=quiet)
+
+  # Unzip the jar or zip file into `temp`.
   if processed_out.endswith('.zip') or processed_out.endswith('.jar'):
     cmd = ['unzip', processed_out, '-d', temp]
     if quiet:
       cmd.insert(1, '-q')
     utils.RunCmd(cmd, quiet=quiet)
     processed_out = temp
+
+  # Insert the new dex and resource files from `processed_out` into the APK.
   with utils.ChangedWorkingDirectory(processed_out, quiet=quiet):
-    dex = glob.glob('*.dex')
-    cmd = ['zip', '-u', '-9', processed_apk] + dex
+    dex_files = glob.glob('*.dex')
+    resource_files = glob.glob(resources) if resources else []
+    cmd = ['zip', '-u', '-9', processed_apk] + dex_files + resource_files
     utils.RunCmd(cmd, quiet=quiet)
   return processed_apk
 
 def sign(unsigned_apk, keystore, temp, quiet):
   signed_apk = os.path.join(temp, 'unaligned.apk')
-  apk_utils.sign(unsigned_apk, signed_apk, keystore, quiet=quiet)
+  apk_utils.sign_with_apksigner(unsigned_apk, signed_apk, keystore, quiet=quiet)
   return signed_apk
 
 def align(signed_apk, temp, quiet):
@@ -88,8 +100,8 @@ def align(signed_apk, temp, quiet):
   return signed_apk
 
 def masseur(
-    apk, dex=None, out=None, adb_options=None, keystore=None, install=False,
-    quiet=False):
+    apk, dex=None, resources=None, out=None, adb_options=None, keystore=None,
+    install=False, quiet=False):
   if not out:
     out = os.path.basename(apk)
   if not keystore:
@@ -97,7 +109,7 @@ def masseur(
   with utils.TempDir() as temp:
     processed_apk = None
     if dex:
-      processed_apk = repack(dex, apk, temp, quiet)
+      processed_apk = repack(apk, dex, resources, temp, quiet)
     else:
       utils.Print(
           'Signing original APK without modifying dex files', quiet=quiet)

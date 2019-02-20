@@ -491,7 +491,6 @@ def BuildAppWithShrinker(
     assert os.path.isfile(unsigned_apk)
     if options.sign_apks:
       apk_utils.sign_with_apksigner(
-          utils.ANDROID_BUILD_TOOLS,
           unsigned_apk,
           signed_apk,
           options.keystore,
@@ -531,9 +530,9 @@ def RebuildAppWithShrinker(
   # is 'r8'.
   entry_point = 'com.android.tools.r8.R8'
 
-  cmd = [jdk.GetJavaExecutable(), '-ea:com.android.tools.r8...', '-cp', r8_jar, entry_point,
-      '--release', '--min-api', str(min_sdk), '--pg-conf', proguard_config_file,
-      '--lib', android_jar, '--output', zip_dest, apk]
+  cmd = [jdk.GetJavaExecutable(), '-ea:com.android.tools.r8...', '-cp', r8_jar,
+      entry_point, '--release', '--min-api', str(min_sdk), '--pg-conf',
+      proguard_config_file, '--lib', android_jar, '--output', zip_dest, apk]
 
   for android_optional_jar in utils.get_android_optional_jars(compile_sdk):
     cmd.append('--lib')
@@ -548,7 +547,8 @@ def RebuildAppWithShrinker(
   # Make a copy of the given APK, move the newly generated dex files into the
   # copied APK, and then sign the APK.
   apk_masseur.masseur(
-    apk, dex=zip_dest, out=apk_dest, quiet=options.quiet)
+      apk, dex=zip_dest, resources='META-INF/services/*', out=apk_dest,
+      quiet=options.quiet)
 
 def RunMonkey(app, config, options, apk_dest):
   if not WaitForEmulator():
