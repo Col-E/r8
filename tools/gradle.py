@@ -7,7 +7,7 @@
 # Will make sure we pulled down gradle before running, and will use the pulled
 # down version to have a consistent developer experience.
 
-import optparse
+import argparse
 import os
 import subprocess
 import sys
@@ -25,10 +25,10 @@ else:
   GRADLE = os.path.join(GRADLE_DIR, 'gradle', 'bin', 'gradle')
 
 def ParseOptions():
-  result = optparse.OptionParser()
-  result.add_option('--java-home', '--java_home',
+  parser = argparse.ArgumentParser(description = 'Call gradle.')
+  parser.add_argument('--java-home', '--java_home',
       help='Use a custom java version to run gradle.')
-  return result.parse_args()
+  return parser.parse_known_args()
 
 def GetJavaEnv(env):
   return dict(env if env else os.environ, JAVA_HOME = jdk.GetJdkHome())
@@ -92,10 +92,9 @@ def RunGradleGetOutput(args, env=None):
 
 def Main():
   (options, args) = ParseOptions()
-  gradle_args = sys.argv[1:]
   if options.java_home:
-    gradle_args.append('-Dorg.gradle.java.home=' + options.java_home)
-  return RunGradle(gradle_args)
+    args.append('-Dorg.gradle.java.home=' + options.java_home)
+  return RunGradle(args)
 
 if __name__ == '__main__':
   sys.exit(Main())
