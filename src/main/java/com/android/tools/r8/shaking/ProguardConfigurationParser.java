@@ -953,6 +953,11 @@ public class ProguardConfigurationParser {
               flags.setAbstract();
             }
             break;
+          case 'b':
+            if ((found = acceptString("bridge"))) {
+              flags.setBridge();
+            }
+            break;
           case 'f':
             if ((found = acceptString("final"))) {
               flags.setFinal();
@@ -979,6 +984,8 @@ public class ProguardConfigurationParser {
               flags.setStatic();
             } else if ((found = acceptString("strictfp"))) {
               flags.setStrict();
+            } else if ((found = acceptString("synthetic"))) {
+              flags.setSynthetic();
             }
             break;
           case 't':

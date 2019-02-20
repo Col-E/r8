@@ -26,7 +26,9 @@ public class ProguardAccessFlags {
       "transient",
       "synchronized",
       "native",
-      "strictfp"
+      "strictfp",
+      "synthetic",
+      "bridge"
   );
 
   // Get ordered list of flag predicates. Must be consistent with getNames.
@@ -42,7 +44,9 @@ public class ProguardAccessFlags {
         this::isTransient,
         this::isSynchronized,
         this::isNative,
-        this::isStrict);
+        this::isStrict,
+        this::isSynthetic,
+        this::isBridge);
   }
 
   private boolean containsAll(int other) {
@@ -161,6 +165,22 @@ public class ProguardAccessFlags {
 
   public boolean isStrict() {
     return isSet(Constants.ACC_STRICT);
+  }
+
+  public void setSynthetic() {
+    set(Constants.ACC_SYNTHETIC);
+  }
+
+  public boolean isSynthetic() {
+    return isSet(Constants.ACC_SYNTHETIC);
+  }
+
+  public void setBridge() {
+    set(Constants.ACC_BRIDGE);
+  }
+
+  public boolean isBridge() {
+    return isSet(Constants.ACC_BRIDGE);
   }
 
   private boolean isSet(int flag) {
