@@ -495,7 +495,6 @@ def BuildAppWithShrinker(
     assert os.path.isfile(unsigned_apk)
     if options.sign_apks:
       apk_utils.sign_with_apksigner(
-          utils.ANDROID_BUILD_TOOLS,
           unsigned_apk,
           signed_apk,
           options.keystore,
@@ -552,7 +551,8 @@ def RebuildAppWithShrinker(
   # Make a copy of the given APK, move the newly generated dex files into the
   # copied APK, and then sign the APK.
   apk_masseur.masseur(
-    apk, dex=zip_dest, out=apk_dest, quiet=options.quiet)
+      apk, dex=zip_dest, resources='META-INF/services/*', out=apk_dest,
+      quiet=options.quiet)
 
 def RunMonkey(app, config, options, apk_dest):
   if not WaitForEmulator():
