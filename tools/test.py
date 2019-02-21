@@ -99,6 +99,10 @@ def ParseOptions():
       help='Use a custom java version to run tests.')
   result.add_option('--java-max-memory-size', '--java_max_memory_size',
       help='Use a custom max memory size for the gradle java instance, eg, 4g')
+  result.add_option('--shard-count', '--shard_count',
+      help='We are running this many shards.')
+  result.add_option('--shard-number', '--shard_number',
+      help='We are running this shard.')
   result.add_option('--generate-golden-files-to', '--generate_golden_files_to',
       help='Store dex files produced by tests in the specified directory.'
            ' It is aimed to be read on platforms with no host runtime available'
@@ -130,6 +134,10 @@ def Main():
 
   gradle_args = ['--stacktrace']
   # Set all necessary Gradle properties and options first.
+  if options.shard_count:
+    assert options.shard_number
+    gradle_args.append('-Pshard_count=%s' % options.shard_count)
+    gradle_args.append('-Pshard_number=%s' % options.shard_number)
   if options.verbose:
     gradle_args.append('-Pprint_test_stdout')
   if options.no_internal:
