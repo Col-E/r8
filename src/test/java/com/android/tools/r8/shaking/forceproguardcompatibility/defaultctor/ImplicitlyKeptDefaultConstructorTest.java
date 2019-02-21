@@ -119,14 +119,14 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   }
 
   private void checkAllClassesPresentWithDefaultConstructor(
-      Class mainClass, List<Class> programClasses, CodeInspector inspector) {
+      Class mainClass, List<Class<?>> programClasses, CodeInspector inspector) {
     assert programClasses.contains(mainClass);
     assertEquals(programClasses.size(), inspector.allClasses().size());
     inspector.forAllClasses(this::checkPresentWithDefaultConstructor);
   }
 
   private void checkAllClassesPresentOnlyMainWithDefaultConstructor(
-      Class mainClass, List<Class> programClasses, CodeInspector inspector) {
+      Class mainClass, List<Class<?>> programClasses, CodeInspector inspector) {
     assert programClasses.contains(mainClass);
     assertEquals(programClasses.size(), inspector.allClasses().size());
     checkPresentWithDefaultConstructor(inspector.clazz(mainClass));
@@ -137,16 +137,19 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   }
 
   private void checkOnlyMainPresent(
-      Class mainClass, List<Class> programClasses, CodeInspector inspector) {
+      Class mainClass, List<Class<?>> programClasses, CodeInspector inspector) {
     assert programClasses.contains(mainClass);
     assertEquals(1, inspector.allClasses().size());
     inspector.forAllClasses(this::checkPresentWithDefaultConstructor);
   }
 
   private void runTest(
-      Class mainClass, List<Class> programClasses, String proguardConfiguration,
-      TriConsumer<Class, List<Class>, CodeInspector> r8Checker,
-      TriConsumer<Class, List<Class>, CodeInspector> proguardChecker) throws Exception {
+      Class mainClass,
+      List<Class<?>> programClasses,
+      String proguardConfiguration,
+      TriConsumer<Class, List<Class<?>>, CodeInspector> r8Checker,
+      TriConsumer<Class, List<Class<?>>, CodeInspector> proguardChecker)
+      throws Exception {
     CodeInspector inspector =
         inspectR8CompatResult(programClasses, proguardConfiguration, null, backend);
     r8Checker.accept(mainClass, programClasses, inspector);
@@ -160,8 +163,11 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   }
 
   private void runTest(
-      Class mainClass, List<Class> programClasses, String proguardConfiguration,
-      TriConsumer<Class, List<Class>, CodeInspector> checker) throws Exception {
+      Class mainClass,
+      List<Class<?>> programClasses,
+      String proguardConfiguration,
+      TriConsumer<Class, List<Class<?>>, CodeInspector> checker)
+      throws Exception {
     runTest(mainClass, programClasses, proguardConfiguration, checker, checker);
   }
 

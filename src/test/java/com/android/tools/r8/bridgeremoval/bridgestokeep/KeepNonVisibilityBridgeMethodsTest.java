@@ -16,7 +16,7 @@ import org.junit.Test;
 
 public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
 
-  private String keepMainAllowAccessModification(Class clazz, boolean obfuscate) {
+  private String keepMainAllowAccessModification(Class<?> clazz, boolean obfuscate) {
     return "-keep public class " + clazz.getCanonicalName() + " {\n"
         + "  public static void main(java.lang.String[]);\n"
         + "}\n"
@@ -25,12 +25,13 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
   }
 
   private void run(boolean obfuscate) throws Exception {
-    List<Class> classes = ImmutableList.of(
-        DataAdapter.class,
-        SimpleDataAdapter.class,
-        ObservableList.class,
-        SimpleObservableList.class,
-        Main.class);
+    List<Class<?>> classes =
+        ImmutableList.of(
+            DataAdapter.class,
+            SimpleDataAdapter.class,
+            ObservableList.class,
+            SimpleObservableList.class,
+            Main.class);
     String proguardConfig = keepMainAllowAccessModification(Main.class, obfuscate);
     CodeInspector inspector = new CodeInspector(compileWithR8(classes, proguardConfig));
 

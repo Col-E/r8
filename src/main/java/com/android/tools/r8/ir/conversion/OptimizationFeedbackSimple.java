@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
@@ -19,7 +20,12 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   }
 
   @Override
-  public void methodReturnsConstant(DexEncodedMethod method, long value) {
+  public void methodReturnsConstantNumber(DexEncodedMethod method, long value) {
+    // Ignored.
+  }
+
+  @Override
+  public void methodReturnsConstantString(DexEncodedMethod method, DexString value) {
     // Ignored.
   }
 

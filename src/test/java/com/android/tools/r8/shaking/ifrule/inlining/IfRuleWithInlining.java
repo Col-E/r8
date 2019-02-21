@@ -49,7 +49,7 @@ class Main {
 
 @RunWith(Parameterized.class)
 public class IfRuleWithInlining extends ProguardCompatibilityTestBase {
-  private static final List<Class> CLASSES = ImmutableList.of(A.class, D.class, Main.class);
+  private static final List<Class<?>> CLASSES = ImmutableList.of(A.class, D.class, Main.class);
 
   private final Shrinker shrinker;
   private final boolean neverInlineMethod;

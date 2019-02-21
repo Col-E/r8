@@ -35,13 +35,19 @@ public interface OptimizationInfo {
 
   boolean returnsConstant();
 
+  boolean returnsConstantNumber();
+
+  boolean returnsConstantString();
+
   ClassInlinerEligibility getClassInlinerEligibility();
 
   TrivialInitializer getTrivialInitializerInfo();
 
   boolean isInitializerEnablingJavaAssertions();
 
-  long getReturnedConstant();
+  long getReturnedConstantNumber();
+
+  DexString getReturnedConstantString();
 
   boolean forceInline();
 

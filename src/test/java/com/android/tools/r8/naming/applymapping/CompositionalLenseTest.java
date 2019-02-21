@@ -52,7 +52,7 @@ class CompositionalLenseTestMain {
 
 @RunWith(Parameterized.class)
 public class CompositionalLenseTest extends TestBase {
-  private final static List<Class> CLASSES =
+  private static final List<Class<?>> CLASSES =
       ImmutableList.of(Base.class, Sub.class, CompositionalLenseTestMain.class);
 
   private Backend backend;

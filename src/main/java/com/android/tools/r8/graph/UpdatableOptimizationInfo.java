@@ -11,7 +11,9 @@ import java.util.BitSet;
 public interface UpdatableOptimizationInfo extends OptimizationInfo {
   void markReturnsArgument(int argument);
 
-  void markReturnsConstant(long value);
+  void markReturnsConstantNumber(long value);
+
+  void markReturnsConstantString(DexString value);
 
   void markMayNotHaveSideEffects();
 

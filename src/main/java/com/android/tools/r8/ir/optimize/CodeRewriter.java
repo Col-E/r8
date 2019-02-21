@@ -1016,9 +1016,16 @@ public class CodeRewriter {
         assert index != -1;
         feedback.methodReturnsArgument(method, index);
       }
-      if (returnValue.isConstant() && returnValue.definition.isConstNumber()) {
-        long value = returnValue.definition.asConstNumber().getRawValue();
-        feedback.methodReturnsConstant(method, value);
+      if (returnValue.isConstant()) {
+        if (returnValue.definition.isConstNumber()) {
+          long value = returnValue.definition.asConstNumber().getRawValue();
+          feedback.methodReturnsConstantNumber(method, value);
+        } else if (returnValue.definition.isConstString()) {
+          ConstString constStringInstruction = returnValue.definition.asConstString();
+          if (!constStringInstruction.instructionInstanceCanThrow()) {
+            feedback.methodReturnsConstantString(method, constStringInstruction.getValue());
+          }
+        }
       }
     }
     if (isNeverNull) {
@@ -1916,6 +1923,8 @@ public class CodeRewriter {
               assert false;
             }
           } else {
+            // If it is not a constant it must be the result of a virtual invoke to one of the
+            // reflective lookup methods.
             InvokeVirtual invoke = inValue.definition.asInvokeVirtual();
             DexMethod invokedMethod = invoke.getInvokedMethod();
             DexType holderType = method.method.getHolder();

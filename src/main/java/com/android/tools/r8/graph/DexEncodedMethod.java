@@ -813,7 +813,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public static boolean UNKNOWN_NEVER_RETURNS_NULL = false;
     public static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
     public static boolean UNKNOWN_RETURNS_CONSTANT = false;
-    public static int UNKNOWN_RETURNED_CONSTANT = -1;
+    public static long UNKNOWN_RETURNED_CONSTANT_NUMBER = 0;
+    public static DexString UNKNOWN_RETURNED_CONSTANT_STRING = null;
     public static boolean DOES_NOT_USE_IDNETIFIER_NAME_STRING = false;
     public static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
     public static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
@@ -880,14 +881,30 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
+    public boolean returnsConstantNumber() {
+      return UNKNOWN_RETURNS_CONSTANT;
+    }
+
+    @Override
+    public boolean returnsConstantString() {
+      return UNKNOWN_RETURNS_CONSTANT;
+    }
+
+    @Override
     public ClassInlinerEligibility getClassInlinerEligibility() {
       return UNKNOWN_CLASS_INLINER_ELIGIBILITY;
     }
 
     @Override
-    public long getReturnedConstant() {
-      assert returnsConstant();
-      return 0;
+    public long getReturnedConstantNumber() {
+      assert returnsConstantNumber();
+      return UNKNOWN_RETURNED_CONSTANT_NUMBER;
+    }
+
+    @Override
+    public DexString getReturnedConstantString() {
+      assert returnsConstantString();
+      return UNKNOWN_RETURNED_CONSTANT_STRING;
     }
 
     @Override
@@ -938,8 +955,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private boolean neverReturnsNull = DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NULL;
     private boolean neverReturnsNormally =
         DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NORMALLY;
-    private boolean returnsConstant = DefaultOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
-    private long returnedConstant = DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT;
+    private boolean returnsConstantNumber = DefaultOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
+    private long returnedConstantNumber =
+        DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT_NUMBER;
+    private boolean returnsConstantString = DefaultOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
+    private DexString returnedConstantString =
+        DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT_STRING;
     private InlinePreference inlining = InlinePreference.Default;
     private boolean useIdentifierNameString =
         DefaultOptimizationInfoImpl.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
@@ -983,8 +1004,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       returnedArgument = template.returnedArgument;
       neverReturnsNull = template.neverReturnsNull;
       neverReturnsNormally = template.neverReturnsNormally;
-      returnsConstant = template.returnsConstant;
-      returnedConstant = template.returnedConstant;
+      returnsConstantNumber = template.returnsConstantNumber;
+      returnedConstantNumber = template.returnedConstantNumber;
+      returnsConstantString = template.returnsConstantString;
+      returnedConstantString = template.returnedConstantString;
       inlining = template.inlining;
       useIdentifierNameString = template.useIdentifierNameString;
       checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
@@ -1046,7 +1069,18 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     @Override
     public boolean returnsConstant() {
-      return returnsConstant;
+      assert !(returnsConstantNumber && returnsConstantString);
+      return returnsConstantNumber || returnsConstantString;
+    }
+
+    @Override
+    public boolean returnsConstantNumber() {
+      return returnsConstantNumber;
+    }
+
+    @Override
+    public boolean returnsConstantString() {
+      return returnsConstantString;
     }
 
     @Override
@@ -1055,9 +1089,15 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
-    public long getReturnedConstant() {
+    public long getReturnedConstantNumber() {
       assert returnsConstant();
-      return returnedConstant;
+      return returnedConstantNumber;
+    }
+
+    @Override
+    public DexString getReturnedConstantString() {
+      assert returnsConstant();
+      return returnedConstantString;
     }
 
     @Override
@@ -1153,10 +1193,19 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
-    public void markReturnsConstant(long value) {
-      assert !returnsConstant || returnedConstant == value;
-      returnsConstant = true;
-      returnedConstant = value;
+    public void markReturnsConstantNumber(long value) {
+      assert !returnsConstantString;
+      assert !returnsConstantNumber || returnedConstantNumber == value;
+      returnsConstantNumber = true;
+      returnedConstantNumber = value;
+    }
+
+    @Override
+    public void markReturnsConstantString(DexString value) {
+      assert !returnsConstantNumber;
+      assert !returnsConstantString || returnedConstantString == value;
+      returnsConstantString = true;
+      returnedConstantString = value;
     }
 
     @Override

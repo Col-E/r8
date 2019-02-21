@@ -25,9 +25,8 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
-    private final static List<Class> CLASSES = ImmutableList.of(
-        ClassForIf.class, ClassForSubsequent.class,
-        MainForAccessModifierTest.class);
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(ClassForIf.class, ClassForSubsequent.class, MainForAccessModifierTest.class);
 
   private final Shrinker shrinker;
   private final MethodSignature nonPublicMethod;

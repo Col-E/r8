@@ -63,8 +63,9 @@ class Main {
 public class B115867670 extends ProguardCompatibilityTestBase {
   private final String pkg = getClass().getPackage().getName();
   private final Shrinker shrinker;
-  private final static List<Class> CLASSES = ImmutableList.of(
-      JsonClass.class, Foo.class, Foo.Interaction.class, Foo.Request.class, Main.class);
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(
+          JsonClass.class, Foo.class, Foo.Interaction.class, Foo.Request.class, Main.class);
 
   @Parameters(name = "shrinker: {0}")
   public static Collection<Object> data() {

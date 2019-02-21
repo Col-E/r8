@@ -74,8 +74,9 @@ class MemberResolutionTestMain {
 
 @RunWith(Parameterized.class)
 public class MemberResolutionTest extends TestBase {
-  private final static List<Class> CLASSES = ImmutableList.of(
-      AbstractChecker.class, ConcreteChecker.class, MemberResolutionTestMain.class);
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(
+          AbstractChecker.class, ConcreteChecker.class, MemberResolutionTestMain.class);
 
   private Backend backend;
 

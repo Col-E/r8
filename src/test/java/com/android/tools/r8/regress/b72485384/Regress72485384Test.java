@@ -40,8 +40,8 @@ public class Regress72485384Test extends TestBase {
         });
   }
 
-  private final static List<Class> CLASSES = ImmutableList
-      .of(GenericOuter.class, GenericInner.class, Main.class);
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(GenericOuter.class, GenericInner.class, Main.class);
 
   private final String proguardConfig;
   private final String expectedErrorMessage;

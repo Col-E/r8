@@ -18,12 +18,22 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class IfOnFieldTest extends ProguardCompatibilityTestBase {
-  private final static List<Class> CLASSES = ImmutableList.of(
-      D.class, D1.class, D2.class,
-      R.class, R1.class, R2.class,
-      MainWithInner.InnerR.class, MainWithInner.InnerD.class,
-      I.class, Impl.class,
-      MainUsesR.class, MainWithIf.class, MainWithInner.class, MainUsesImpl.class);
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(
+          D.class,
+          D1.class,
+          D2.class,
+          R.class,
+          R1.class,
+          R2.class,
+          MainWithInner.InnerR.class,
+          MainWithInner.InnerD.class,
+          I.class,
+          Impl.class,
+          MainUsesR.class,
+          MainWithIf.class,
+          MainWithInner.class,
+          MainUsesImpl.class);
 
   private final Shrinker shrinker;
 
@@ -45,17 +55,18 @@ public class IfOnFieldTest extends ProguardCompatibilityTestBase {
 
   @Override
   protected CodeInspector inspectR8Result(
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Consumer<InternalOptions> config,
-      Backend backend) throws Exception {
+      Backend backend)
+      throws Exception {
     return super.inspectR8Result(
         programClasses, adaptConfiguration(proguardConfig), config, backend);
   }
 
   @Override
-  protected CodeInspector inspectProguard6Result(List<Class> programClasses, String proguardConfig)
-      throws Exception {
+  protected CodeInspector inspectProguard6Result(
+      List<Class<?>> programClasses, String proguardConfig) throws Exception {
     return super.inspectProguard6Result(programClasses, adaptConfiguration(proguardConfig));
   }
 

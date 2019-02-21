@@ -247,13 +247,16 @@ class SerializableTestMain {
 
 @RunWith(Parameterized.class)
 public class ExternalizableTest extends ProguardCompatibilityTestBase {
-  private final static List<Class> CLASSES_FOR_EXTERNALIZABLE = ImmutableList.of(
-      ExternalizableDataClass.class, Delegate1.class, Delegate2.class, ExternalizableTestMain.class
-  );
+  private static final List<Class<?>> CLASSES_FOR_EXTERNALIZABLE =
+      ImmutableList.of(
+          ExternalizableDataClass.class,
+          Delegate1.class,
+          Delegate2.class,
+          ExternalizableTestMain.class);
 
-  private final static List<Class> CLASSES_FOR_SERIALIZABLE = ImmutableList.of(
-      NonSerializableSuperClass.class, SerializableDataClass.class, SerializableTestMain.class
-  );
+  private static final List<Class<?>> CLASSES_FOR_SERIALIZABLE =
+      ImmutableList.of(
+          NonSerializableSuperClass.class, SerializableDataClass.class, SerializableTestMain.class);
 
   private final Shrinker shrinker;
 

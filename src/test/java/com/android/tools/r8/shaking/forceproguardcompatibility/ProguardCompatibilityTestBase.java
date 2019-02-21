@@ -72,7 +72,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected AndroidApp runShrinker(
-      Shrinker mode, List<Class> programClasses, Iterable<String> proguardConfigs)
+      Shrinker mode, List<Class<?>> programClasses, Iterable<String> proguardConfigs)
       throws Exception {
     return runShrinker(
         mode, programClasses, String.join(System.lineSeparator(), proguardConfigs), null);
@@ -80,7 +80,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
 
   protected AndroidApp runShrinker(
       Shrinker mode,
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       Iterable<String> proguardConfigs,
       Consumer<InternalOptions> configure)
       throws Exception {
@@ -90,7 +90,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
 
   protected AndroidApp runShrinker(
       Shrinker mode,
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Consumer<InternalOptions> configure)
       throws Exception {
@@ -115,14 +115,13 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected CodeInspector inspectAfterShrinking(
-      Shrinker mode, List<Class> programClasses, List<String> proguardConfigs)
-      throws Exception {
+      Shrinker mode, List<Class<?>> programClasses, List<String> proguardConfigs) throws Exception {
     return inspectAfterShrinking(mode, programClasses, proguardConfigs, null);
   }
 
   protected CodeInspector inspectAfterShrinking(
       Shrinker mode,
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       List<String> proguardConfigs,
       Consumer<InternalOptions> configure)
       throws Exception {
@@ -132,7 +131,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
 
   protected CodeInspector inspectAfterShrinking(
       Shrinker mode,
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Consumer<InternalOptions> configure)
       throws Exception {
@@ -156,16 +155,13 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected AndroidApp runR8(
-      List<Class> programClasses,
-      String proguardConfig,
-      Path proguardMap,
-      Backend backend)
+      List<Class<?>> programClasses, String proguardConfig, Path proguardMap, Backend backend)
       throws Exception {
     return runR8(programClasses, proguardConfig, proguardMap, null, backend);
   }
 
   protected AndroidApp runR8(
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Path proguardMap,
       Consumer<InternalOptions> configure,
@@ -180,7 +176,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected CodeInspector inspectR8Result(
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Consumer<InternalOptions> configure,
       Backend backend)
@@ -189,7 +185,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected AndroidApp runR8Compat(
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Path proguardMap,
       Consumer<InternalOptions> configure,
@@ -213,15 +209,16 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected CodeInspector inspectR8CompatResult(
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Consumer<InternalOptions> configure,
-      Backend backend) throws Exception {
+      Backend backend)
+      throws Exception {
     return new CodeInspector(runR8Compat(programClasses, proguardConfig, null, configure, backend));
   }
 
   protected AndroidApp runProguard5(
-      List<Class> programClasses, String proguardConfig, Path proguardMap) throws Exception {
+      List<Class<?>> programClasses, String proguardConfig, Path proguardMap) throws Exception {
     Path proguardedJar =
         File.createTempFile("proguarded", FileUtils.JAR_EXTENSION, temp.getRoot()).toPath();
     Path proguardConfigFile = File.createTempFile("proguard", ".config", temp.getRoot()).toPath();
@@ -238,8 +235,8 @@ public class ProguardCompatibilityTestBase extends TestBase {
     return readJar(proguardedJar);
   }
 
-  protected CodeInspector inspectProguard5Result(List<Class> programClasses, String proguardConfig)
-      throws Exception {
+  protected CodeInspector inspectProguard5Result(
+      List<Class<?>> programClasses, String proguardConfig) throws Exception {
     proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
     return new CodeInspector(
         runProguard5(programClasses, proguardConfig, proguardMap), proguardMap);
@@ -247,7 +244,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
 
   protected ProcessResult runProguard6Raw(
       Path destination,
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Path proguardMap,
       List<DataResource> dataResources)
@@ -291,12 +288,12 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected AndroidApp runProguard6(
-      List<Class> programClasses, String proguardConfig, Path proguardMap) throws Exception {
+      List<Class<?>> programClasses, String proguardConfig, Path proguardMap) throws Exception {
     return runProguard6(programClasses, proguardConfig, proguardMap, null);
   }
 
   protected AndroidApp runProguard6(
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Path proguardMap,
       List<DataResource> dataResources)
@@ -307,15 +304,15 @@ public class ProguardCompatibilityTestBase extends TestBase {
     return readJar(proguardedJar);
   }
 
-  protected CodeInspector inspectProguard6Result(List<Class> programClasses, String proguardConfig)
-      throws Exception {
+  protected CodeInspector inspectProguard6Result(
+      List<Class<?>> programClasses, String proguardConfig) throws Exception {
     proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
     return new CodeInspector(
         runProguard6(programClasses, proguardConfig, proguardMap), proguardMap);
   }
 
   protected AndroidApp runProguard6AndD8(
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Path proguardMap,
       Consumer<InternalOptions> configure)
@@ -337,7 +334,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
   }
 
   protected CodeInspector inspectProguard6AndD8Result(
-      List<Class> programClasses, String proguardConfig, Consumer<InternalOptions> configure)
+      List<Class<?>> programClasses, String proguardConfig, Consumer<InternalOptions> configure)
       throws Exception {
     proguardMap = File.createTempFile("proguard", ".map", temp.getRoot()).toPath();
     return new CodeInspector(

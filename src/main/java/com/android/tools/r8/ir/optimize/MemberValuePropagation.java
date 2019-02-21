@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -14,12 +15,16 @@ import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialCla
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
+import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
+import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -30,6 +35,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
@@ -38,6 +44,7 @@ import java.util.function.Predicate;
 public class MemberValuePropagation {
 
   private final AppInfoWithLiveness appInfo;
+  private final InternalOptions options;
 
   private enum RuleType {
     NONE,
@@ -56,8 +63,9 @@ public class MemberValuePropagation {
     }
   }
 
-  public MemberValuePropagation(AppInfoWithLiveness appInfo) {
-    this.appInfo = appInfo;
+  public MemberValuePropagation(AppView<? extends AppInfoWithLiveness> appView) {
+    this.appInfo = appView.appInfo();
+    this.options = appView.options();
   }
 
   private ProguardMemberRuleLookup lookupMemberRule(DexDefinition definition) {
@@ -109,6 +117,21 @@ public class MemberValuePropagation {
         code.createValue(
             typeLattice.isReference() ? TypeLatticeElement.NULL : typeLattice, debugLocalInfo);
     return new ConstNumber(returnedValue, constant);
+  }
+
+  private ConstString createConstStringReplacement(
+      IRCode code,
+      DexString constant,
+      TypeLatticeElement typeLattice,
+      DebugLocalInfo debugLocalInfo) {
+    assert typeLattice.isClassType();
+    assert appInfo.dexItemFactory.stringType.isSubtypeOf(
+        typeLattice.asClassTypeLatticeElement().getClassType(), appInfo);
+    Value returnedValue = code.createValue(typeLattice, debugLocalInfo);
+    ConstString instruction =
+        new ConstString(returnedValue, constant, ThrowingInfo.defaultForConstString(options));
+    assert !instruction.instructionInstanceCanThrow();
+    return instruction;
   }
 
   private void setValueRangeFromProguardRule(ProguardMemberRule rule, Value value) {
@@ -196,10 +219,20 @@ public class MemberValuePropagation {
       affectedValues.addAll(knownToBeNonNullValue.affectedValues());
     }
     if (target.getOptimizationInfo().returnsConstant()) {
-      long constant = target.getOptimizationInfo().getReturnedConstant();
-      ConstNumber replacement =
-          createConstNumberReplacement(
-              code, constant, current.outValue().getTypeLattice(), current.getLocalInfo());
+      ConstInstruction replacement;
+      if (target.getOptimizationInfo().returnsConstantNumber()) {
+        long constant = target.getOptimizationInfo().getReturnedConstantNumber();
+        replacement =
+            createConstNumberReplacement(
+                code, constant, current.outValue().getTypeLattice(), current.getLocalInfo());
+      } else {
+        assert target.getOptimizationInfo().returnsConstantString();
+        DexString constant = target.getOptimizationInfo().getReturnedConstantString();
+        replacement =
+            createConstStringReplacement(
+                code, constant, current.outValue().getTypeLattice(), current.getLocalInfo());
+      }
+
       affectedValues.add(replacement.outValue());
       current.outValue().replaceUsers(replacement.outValue());
       current.setOutValue(null);

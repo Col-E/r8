@@ -202,7 +202,7 @@ public class IRConverter {
       this.inliner = new Inliner(appViewWithLiveness, this, options, mainDexClasses);
       this.outliner = new Outliner(appInfoWithLiveness, options, this);
       this.memberValuePropagation =
-          options.enableValuePropagation ? new MemberValuePropagation(appInfoWithLiveness) : null;
+          options.enableValuePropagation ? new MemberValuePropagation(appView) : null;
       this.lensCodeRewriter = new LensCodeRewriter(appView, options);
       if (!appInfoWithLiveness.identifierNameStrings.isEmpty() && options.enableMinification) {
         this.identifierNameStringMarker =
@@ -1186,10 +1186,12 @@ public class IRConverter {
     if (options.enableSideEffectAnalysis
         && !appView.appInfo().withLiveness().mayHaveSideEffects.containsKey(method.method)) {
       boolean mayHaveSideEffects =
-          Streams.stream(code.instructions())
-              .anyMatch(
-                  instruction ->
-                      instruction.instructionMayHaveSideEffects(appView, method.method.holder));
+          // If the method is synchronized then it acquires a lock.
+          method.accessFlags.isSynchronized()
+              || Streams.stream(code.instructions())
+                  .anyMatch(
+                      instruction ->
+                          instruction.instructionMayHaveSideEffects(appView, method.method.holder));
       if (!mayHaveSideEffects) {
         feedback.methodMayNotHaveSideEffects(method);
       }

@@ -15,10 +15,11 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class IfOnAnnotationTest extends ProguardCompatibilityTestBase {
-  private final static List<Class> CLASSES = ImmutableList.of(
-      UsedAnnotation.class, UnusedAnnotation.class,
-      UsedAnnotationDependent.class, UnusedAnnotationDependent.class,
-      AnnotationUser.class, MainUsesAnnotationUser.class);
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(
+          UsedAnnotation.class, UnusedAnnotation.class,
+          UsedAnnotationDependent.class, UnusedAnnotationDependent.class,
+          AnnotationUser.class, MainUsesAnnotationUser.class);
 
   private final Shrinker shrinker;
 

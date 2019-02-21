@@ -240,18 +240,14 @@ public class TestBase {
     return readClasses(Arrays.asList(classes));
   }
 
-  /**
-   * Build an AndroidApp with the specified test classes.
-   */
-  protected static AndroidApp readClasses(List<Class> classes) throws IOException {
+  /** Build an AndroidApp with the specified test classes. */
+  protected static AndroidApp readClasses(List<Class<?>> classes) throws IOException {
     return readClasses(classes, Collections.emptyList());
   }
 
-  /**
-   * Build an AndroidApp with the specified test classes.
-   */
-  protected static AndroidApp readClasses(List<Class> programClasses, List<Class> libraryClasses)
-      throws IOException {
+  /** Build an AndroidApp with the specified test classes. */
+  protected static AndroidApp readClasses(
+      List<Class<?>> programClasses, List<Class<?>> libraryClasses) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (Class clazz : programClasses) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
@@ -268,8 +264,8 @@ public class TestBase {
     return builder.build();
   }
 
-  protected static AndroidApp readClassesAndRuntimeJar(List<Class> programClasses, Backend backend)
-      throws IOException {
+  protected static AndroidApp readClassesAndRuntimeJar(
+      List<Class<?>> programClasses, Backend backend) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (Class clazz : programClasses) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
@@ -300,15 +296,13 @@ public class TestBase {
     }
   }
 
-  /**
-   * Create a temporary JAR file containing the specified test classes.
-   */
-  protected Path jarTestClasses(Class... classes) throws IOException {
+  /** Create a temporary JAR file containing the specified test classes. */
+  protected Path jarTestClasses(Class<?>... classes) throws IOException {
     return jarTestClasses(Arrays.asList(classes), null);
   }
 
   /** Create a temporary JAR file containing the specified test classes and data resources. */
-  protected Path jarTestClasses(Iterable<Class> classes, List<DataResource> dataResources)
+  protected Path jarTestClasses(Iterable<Class<?>> classes, List<DataResource> dataResources)
       throws IOException {
     Path jar = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
     try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar.toFile()))) {
@@ -321,7 +315,7 @@ public class TestBase {
   }
 
   /** Create a temporary JAR file containing the specified test classes. */
-  protected void addTestClassesToJar(JarOutputStream out, Iterable<Class> classes)
+  protected void addTestClassesToJar(JarOutputStream out, Iterable<Class<?>> classes)
       throws IOException {
     for (Class clazz : classes) {
       try (FileInputStream in =
@@ -432,11 +426,9 @@ public class TestBase {
     return jar;
   }
 
-  /**
-   * Create a temporary JAR file containing the specified test classes.
-   */
-  protected Path jarTestClasses(List<Class> classes) throws IOException {
-    return jarTestClasses(classes.toArray(new Class[classes.size()]));
+  /** Create a temporary JAR file containing the specified test classes. */
+  protected Path jarTestClasses(List<Class<?>> classes) throws IOException {
+    return jarTestClasses(classes.toArray(new Class<?>[classes.size()]));
   }
 
   /**
@@ -491,14 +483,15 @@ public class TestBase {
   }
 
   /** Compile an application with R8. */
-  protected AndroidApp compileWithR8(List<Class> classes)
+  protected AndroidApp compileWithR8(List<Class<?>> classes)
       throws IOException, CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(readClasses(classes)).build();
     return ToolHelper.runR8(command);
   }
 
   /** Compile an application with R8. */
-  protected AndroidApp compileWithR8(List<Class> classes, Consumer<InternalOptions> optionsConsumer)
+  protected AndroidApp compileWithR8(
+      List<Class<?>> classes, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationFailedException {
     R8Command command = ToolHelper.prepareR8CommandBuilder(readClasses(classes)).build();
     return ToolHelper.runR8(command, optionsConsumer);
@@ -523,20 +516,20 @@ public class TestBase {
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
-  protected AndroidApp compileWithR8(List<Class> classes, String proguardConfig)
+  protected AndroidApp compileWithR8(List<Class<?>> classes, String proguardConfig)
       throws IOException, CompilationFailedException {
     return compileWithR8(readClasses(classes), proguardConfig);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
   protected AndroidApp compileWithR8(
-      List<Class> classes, String proguardConfig, Consumer<InternalOptions> optionsConsumer)
+      List<Class<?>> classes, String proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws IOException, CompilationFailedException {
     return compileWithR8(readClasses(classes), proguardConfig, optionsConsumer);
   }
 
   /** Compile an application with R8 using the supplied proguard configuration. */
-  protected AndroidApp compileWithR8(List<Class> classes, Path proguardConfig)
+  protected AndroidApp compileWithR8(List<Class<?>> classes, Path proguardConfig)
       throws IOException, CompilationFailedException {
     return compileWithR8(readClasses(classes), proguardConfig);
   }

@@ -28,9 +28,12 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class IfOnClassTest extends ProguardCompatibilityTestBase {
-  private final static List<Class> CLASSES = ImmutableList.of(
-      EmptyMainClassForIfOnClassTests.class,
-      Precondition.class, DependentUser.class, Dependent.class);
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(
+          EmptyMainClassForIfOnClassTests.class,
+          Precondition.class,
+          DependentUser.class,
+          Dependent.class);
 
   private final Shrinker shrinker;
   private final boolean keepPrecondition;
@@ -64,7 +67,7 @@ public class IfOnClassTest extends ProguardCompatibilityTestBase {
 
   @Override
   protected CodeInspector inspectR8Result(
-      List<Class> programClasses,
+      List<Class<?>> programClasses,
       String proguardConfig,
       Consumer<InternalOptions> configure,
       Backend backend)
@@ -74,14 +77,14 @@ public class IfOnClassTest extends ProguardCompatibilityTestBase {
   }
 
   @Override
-  protected CodeInspector inspectProguard5Result(List<Class> programClasses, String proguardConfig)
-      throws Exception {
+  protected CodeInspector inspectProguard5Result(
+      List<Class<?>> programClasses, String proguardConfig) throws Exception {
     return super.inspectProguard5Result(programClasses, adaptConfiguration(proguardConfig));
   }
 
   @Override
-  protected CodeInspector inspectProguard6Result(List<Class> programClasses, String proguardConfig)
-      throws Exception {
+  protected CodeInspector inspectProguard6Result(
+      List<Class<?>> programClasses, String proguardConfig) throws Exception {
     return super.inspectProguard6Result(programClasses, adaptConfiguration(proguardConfig));
   }
 

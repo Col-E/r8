@@ -20,10 +20,7 @@ public class CheckDiscardedTest extends TestBase {
 
   private void run(boolean obfuscate, Class annotation, boolean checkMembers, boolean shouldFail)
       throws Exception {
-    List<Class> classes = ImmutableList.of(
-        UnusedClass.class,
-        UsedClass.class,
-        Main.class);
+    List<Class<?>> classes = ImmutableList.of(UnusedClass.class, UsedClass.class, Main.class);
     String proguardConfig = keepMainProguardConfiguration(Main.class, true, obfuscate)
         + checkDiscardRule(checkMembers, annotation);
     try {

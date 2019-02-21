@@ -52,14 +52,18 @@ public class IncludeDescriptorClassesTest extends TestBase {
     }
   }
 
-  private List<Class> applicationClasses = ImmutableList.of(
-      ClassWithNativeMethods.class, NativeArgumentType.class, NativeReturnType.class,
-      StaticFieldType.class, InstanceFieldType.class);
+  private List<Class<?>> applicationClasses =
+      ImmutableList.of(
+          ClassWithNativeMethods.class,
+          NativeArgumentType.class,
+          NativeReturnType.class,
+          StaticFieldType.class,
+          InstanceFieldType.class);
   private List<Class> mainClasses = ImmutableList.of(
       MainCallMethod1.class, MainCallMethod2.class, MainCallMethod3.class);
 
   Result runTest(Class mainClass, Path proguardConfig) throws Exception {
-    List<Class> classes = new ArrayList<>(applicationClasses);
+    List<Class<?>> classes = new ArrayList<>(applicationClasses);
     classes.add(mainClass);
 
     CodeInspector inspector = new CodeInspector(compileWithR8(classes, proguardConfig));

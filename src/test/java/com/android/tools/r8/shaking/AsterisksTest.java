@@ -54,7 +54,7 @@ class B111974287 {
 
 @RunWith(Parameterized.class)
 public class AsterisksTest extends ProguardCompatibilityTestBase {
-  private final static List<Class> CLASSES = ImmutableList.of(B111974287.class);
+  private static final List<Class<?>> CLASSES = ImmutableList.of(B111974287.class);
   private final Shrinker shrinker;
 
   public AsterisksTest(Shrinker shrinker) {

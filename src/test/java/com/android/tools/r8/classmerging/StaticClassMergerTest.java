@@ -6,6 +6,7 @@ package com.android.tools.r8.classmerging;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.StringUtils;
@@ -23,6 +24,7 @@ public class StaticClassMergerTest extends TestBase {
 
   static class StaticMergeCandidateA {
 
+    @AssumeMayHaveSideEffects
     @NeverInline
     public static String m() {
       return "StaticMergeCandidateA.m()";
@@ -31,6 +33,7 @@ public class StaticClassMergerTest extends TestBase {
 
   static class StaticMergeCandidateB {
 
+    @AssumeMayHaveSideEffects
     @NeverInline
     public static String m() {
       return "StaticMergeCandidateB.m()";
@@ -69,6 +72,7 @@ public class StaticClassMergerTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .addOptionsModification(options -> options.enableMinification = false)
             .enableInliningAnnotations()
+            .enableSideEffectAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();

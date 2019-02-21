@@ -30,9 +30,7 @@ import org.junit.Test;
 public class RemoveVisibilityBridgeMethodsTest extends TestBase {
 
   private void run(boolean obfuscate) throws Exception {
-    List<Class> classes = ImmutableList.of(
-        Outer.class,
-        Main.class);
+    List<Class<?>> classes = ImmutableList.of(Outer.class, Main.class);
     String proguardConfig = keepMainProguardConfiguration(Main.class, true, obfuscate);
     CodeInspector inspector = new CodeInspector(compileWithR8(classes, proguardConfig));
 

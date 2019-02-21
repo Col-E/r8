@@ -24,8 +24,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ClassKindTest extends TestBase {
 
-  private static List<java.lang.Class> CLASSES_TO_INCLUDE = ImmutableList.of(
-      Annotation.class, Class.class, Enum.class, Interface.class);
+  private static List<java.lang.Class<?>> CLASSES_TO_INCLUDE =
+      ImmutableList.of(Annotation.class, Class.class, Enum.class, Interface.class);
 
   public ClassKindTest(String config, List<java.lang.Class<?>> classes) {
     this.config = config;
