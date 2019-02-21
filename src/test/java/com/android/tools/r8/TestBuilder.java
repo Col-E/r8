@@ -50,6 +50,12 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
     return addProgramClassFileData(Arrays.asList(classes));
   }
 
+  public abstract T addProgramDexFileData(Collection<byte[]> data);
+
+  public T addProgramDexFileData(byte[]... data) {
+    return addProgramDexFileData(Arrays.asList(data));
+  }
+
   public T addProgramClasses(Class<?>... classes) {
     return addProgramClasses(Arrays.asList(classes));
   }

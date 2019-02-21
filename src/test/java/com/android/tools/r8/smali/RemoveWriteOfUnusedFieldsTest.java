@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.smali;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
@@ -76,8 +79,10 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
 
     CodeInspector inspector = new CodeInspector(app);
     MethodSubject method = inspector.clazz("Test").method("void", "test", ImmutableList.of());
-    DexCode code = method.getMethod().getCode().asDexCode();
-    assertTrue(code.isEmptyVoidMethod());
+    assertThat(
+        "Expected method to be removed entirely because it does not have side effects",
+        method,
+        not(isPresent()));
   }
 
   @Test

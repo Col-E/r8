@@ -1088,6 +1088,8 @@ public class IRConverter {
       if (method.getOptimizationInfo().getNonNullParamOrThrow() == null) {
         computeNonNullParamHints(feedback, method, code);
       }
+
+      computeMayHaveSideEffects(feedback, method, code);
     }
 
     // Insert code to log arguments if requested.
@@ -1176,6 +1178,21 @@ public class IRConverter {
         }
       }
       feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
+    }
+  }
+
+  private void computeMayHaveSideEffects(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+    if (options.enableSideEffectAnalysis
+        && !appView.appInfo().withLiveness().mayHaveSideEffects.containsKey(method.method)) {
+      boolean mayHaveSideEffects =
+          Streams.stream(code.instructions())
+              .anyMatch(
+                  instruction ->
+                      instruction.instructionMayHaveSideEffects(appView, method.method.holder));
+      if (!mayHaveSideEffects) {
+        feedback.methodMayNotHaveSideEffects(method);
+      }
     }
   }
 

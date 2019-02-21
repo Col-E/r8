@@ -147,6 +147,11 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return self();
   }
 
+  @Override
+  public JvmTestBuilder addProgramDexFileData(Collection<byte[]> data) {
+    throw new Unimplemented("No support for adding dex file data directly");
+  }
+
   public JvmTestBuilder addClasspath(Path... paths) {
     return addClasspath(Arrays.asList(paths));
   }

@@ -53,5 +53,7 @@ public interface OptimizationInfo {
 
   boolean triggersClassInitBeforeAnySideEffect();
 
+  boolean mayHaveSideEffects();
+
   UpdatableOptimizationInfo mutableCopy();
 }

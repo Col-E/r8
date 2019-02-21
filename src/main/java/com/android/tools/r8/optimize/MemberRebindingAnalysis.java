@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
+import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -289,30 +290,36 @@ public class MemberRebindingAnalysis {
       // Rebind to the lowest library class or program class. Do not rebind accesses to fields that
       // are not visible from the access context.
       Set<DexEncodedMethod> contexts = fieldsWithContexts.get(field);
-      if (target != null && target.field != field
-          && contexts.stream().allMatch(context ->
-              isVisibleFromOriginalContext(appInfo, context.method.getHolder(), target))) {
+      if (target != null
+          && target.field != field
+          && contexts.stream()
+              .allMatch(
+                  context ->
+                      isMemberVisibleFromOriginalContext(
+                          appInfo,
+                          context.method.getHolder(),
+                          target.field.clazz,
+                          target.accessFlags))) {
         builder.map(field,
             lense.lookupField(validTargetFor(target.field, field, lookupTargetOnClass)));
       }
     }
   }
 
-  public static boolean isVisibleFromOriginalContext(
-      AppInfo appInfo, DexType context, DexEncodedField field) {
-    DexType holderType = field.field.getHolder();
-    DexClass holder = appInfo.definitionFor(holderType);
-    if (holder == null) {
+  public static boolean isMemberVisibleFromOriginalContext(
+      AppInfo appInfo, DexType context, DexType holder, AccessFlags<?> memberAccessFlags) {
+    DexClass clazz = appInfo.definitionFor(holder);
+    if (clazz == null) {
       return false;
     }
     ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holderType, holder.accessFlags, appInfo);
+        ConstraintWithTarget.deriveConstraint(context, holder, clazz.accessFlags, appInfo);
     if (classVisibility == ConstraintWithTarget.NEVER) {
       return false;
     }
-    ConstraintWithTarget fieldVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holderType, field.accessFlags, appInfo);
-    return fieldVisibility != ConstraintWithTarget.NEVER;
+    ConstraintWithTarget memberVisibility =
+        ConstraintWithTarget.deriveConstraint(context, holder, memberAccessFlags, appInfo);
+    return memberVisibility != ConstraintWithTarget.NEVER;
   }
 
   private Map<DexField, Set<DexEncodedMethod>> mergeFieldAccessContexts(

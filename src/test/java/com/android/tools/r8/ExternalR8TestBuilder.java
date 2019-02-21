@@ -172,6 +172,11 @@ public class ExternalR8TestBuilder
   }
 
   @Override
+  public ExternalR8TestBuilder addProgramDexFileData(Collection<byte[]> data) {
+    throw new Unimplemented("No support for adding dex file data directly");
+  }
+
+  @Override
   public ExternalR8TestBuilder addLibraryFiles(Collection<Path> files) {
     libJars.addAll(files);
     return self();

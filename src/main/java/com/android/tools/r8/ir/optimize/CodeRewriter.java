@@ -1423,7 +1423,7 @@ public class CodeRewriter {
               // We found a NPE check on the value.
               return InstructionEffect.DESIRED_EFFECT;
             }
-          } else if (instructionHasSideEffects(instr)) {
+          } else if (instr.instructionMayHaveSideEffects(appView, code.method.method.holder)) {
             // If the current instruction is const-string, this could load the parameter name.
             // Just make sure it is indeed not throwing.
             if (instr.isConstString() && !instr.instructionInstanceCanThrow()) {
@@ -1469,12 +1469,6 @@ public class CodeRewriter {
         && (instr.asIf().getType() == Type.EQ || instr.asIf().getType() == Type.NE);
   }
 
-  private static boolean instructionHasSideEffects(Instruction instruction) {
-    // We consider that an instruction has side effects if it can throw an exception. This is a
-    // conservative approach which can be revised in the future.
-    return instruction.instructionTypeCanThrow();
-  }
-
   /**
    * Returns true if the given instruction is {@code v <- new-instance NullPointerException},
    * and the next instruction is {@code invoke-direct v, NullPointerException.<init>()}.
@@ -1516,7 +1510,7 @@ public class CodeRewriter {
               // We found an instruction that preserves initialization of the class.
               return InstructionEffect.DESIRED_EFFECT;
             }
-          } else if (instructionHasSideEffects(instruction)) {
+          } else if (instruction.instructionMayHaveSideEffects(appView, clazz)) {
             // We found a side effect before class initialization.
             return InstructionEffect.OTHER_EFFECT;
           }
@@ -1896,7 +1890,7 @@ public class CodeRewriter {
     // the field initial value.
     Set<StaticPut> puts = Sets.newIdentityHashSet();
     Map<DexField, StaticPut> finalFieldPut = Maps.newIdentityHashMap();
-    computeUnnecessaryStaticPuts(code, method, clazz, puts, finalFieldPut);
+    computeUnnecessaryStaticPuts(code, clazz, puts, finalFieldPut);
 
     if (!puts.isEmpty()) {
       // Set initial values for static fields from the definitive static put instructions collected.
@@ -2028,8 +2022,8 @@ public class CodeRewriter {
     }
   }
 
-  private void computeUnnecessaryStaticPuts(IRCode code, DexEncodedMethod clinit, DexClass clazz,
-      Set<StaticPut> puts, Map<DexField, StaticPut> finalFieldPut) {
+  private void computeUnnecessaryStaticPuts(
+      IRCode code, DexClass clazz, Set<StaticPut> puts, Map<DexField, StaticPut> finalFieldPut) {
     final int color = code.reserveMarkingColor();
     try {
       BasicBlock block = code.entryBlock();
@@ -2038,7 +2032,7 @@ public class CodeRewriter {
         InstructionListIterator it = block.listIterator();
         while (it.hasNext()) {
           Instruction instruction = it.next();
-          if (instructionHasSideEffects(instruction)) {
+          if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {
             if (isClassNameConstantOf(clazz, instruction)) {
               continue;
             } else if (instruction.isStaticPut()) {

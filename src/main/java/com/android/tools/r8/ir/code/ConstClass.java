@@ -79,6 +79,37 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
+  public boolean instructionInstanceCanThrow() {
+    // TODO(christofferqa): Should return false in R8 if the class is in the program.
+    return true;
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<? extends AppInfo> appView, DexType context) {
+    if (appView == null || !appView.enableWholeProgramOptimizations()) {
+      return true;
+    }
+
+    DexType baseType = getValue().toBaseType(appView.dexItemFactory());
+    if (baseType.isPrimitiveType()) {
+      return false;
+    }
+
+    DexClass clazz = appView.appInfo().definitionFor(baseType);
+    if (clazz != null && clazz.isProgramClass()) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public boolean canBeDeadCode(
+      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
+  }
+
+  @Override
   public boolean isOutConstant() {
     return true;
   }
@@ -86,19 +117,6 @@ public class ConstClass extends ConstInstruction {
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isConstClass() && other.asConstClass().clazz == clazz;
-  }
-
-  @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
-    // A const-class instruction can be dead code only if the resulting program is known to contain
-    // the class mentioned.
-    DexType baseType = clazz.toBaseType(appInfo.dexItemFactory);
-    if (baseType.isPrimitiveType()) {
-      return true;
-    }
-    DexClass holder = appInfo.definitionFor(baseType);
-    return holder != null && holder.isProgramClass();
   }
 
   @Override

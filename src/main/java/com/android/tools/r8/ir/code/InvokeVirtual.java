@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -111,5 +112,36 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeVirtual(
         this, clazz, appView, mode, assumption);
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<? extends AppInfo> appView, DexType context) {
+    if (appView == null || !appView.enableWholeProgramOptimizations()) {
+      return true;
+    }
+
+    if (appView.options().debug) {
+      return true;
+    }
+
+    // Check if it could throw a NullPointerException as a result of the receiver being null.
+    Value receiver = getReceiver();
+    if (receiver.getTypeLattice().nullability().isNullable()) {
+      return true;
+    }
+
+    // Check if it is a call to one of java.lang.Class.get*Name().
+    if (appView.dexItemFactory().classMethods.isReflectiveNameLookup(getInvokedMethod())) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean canBeDeadCode(
+      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 }

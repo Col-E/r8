@@ -305,7 +305,6 @@ public class ClassInlinerTest extends TestBase {
 
   @Test
   public void testInvalidatedRoot() throws Exception {
-    String prefix = "com.android.tools.r8.ir.optimize.classinliner.invalidroot.";
     Class<?> main = InvalidRootsTestClass.class;
     Class<?>[] classes = {
         InvalidRootsTestClass.class,
@@ -438,7 +437,7 @@ public class ClassInlinerTest extends TestBase {
   }
 
   private void configure(InternalOptions options) {
-    options.enableClassInlining = true;
+    options.enableSideEffectAnalysis = false;
     options.classInliningInstructionLimit = 10000;
     options.inliningInstructionLimit = 6;
   }

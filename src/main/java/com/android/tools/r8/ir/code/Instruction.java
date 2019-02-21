@@ -510,6 +510,11 @@ public abstract class Instruction implements InstructionOrPhi {
     return instructionTypeCanThrow();
   }
 
+  public boolean instructionMayHaveSideEffects(
+      AppView<? extends AppInfo> appView, DexType context) {
+    return instructionInstanceCanThrow();
+  }
+
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */
   public boolean canBeDeadCode(
       AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {

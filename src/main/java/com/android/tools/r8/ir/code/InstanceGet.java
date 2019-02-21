@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isVisibleFromOriginalContext;
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
@@ -117,8 +117,11 @@ public class InstanceGet extends FieldInstruction {
     if (resolvedField == null) {
       return false;
     }
-    if (code == null
-        || !isVisibleFromOriginalContext(appInfo, code.method.method.getHolder(), resolvedField)) {
+    if (!isMemberVisibleFromOriginalContext(
+        appInfo,
+        code.method.method.getHolder(),
+        resolvedField.field.clazz,
+        resolvedField.accessFlags)) {
       return false;
     }
     return object().getTypeLattice().nullability().isDefinitelyNotNull();

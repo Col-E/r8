@@ -720,6 +720,10 @@ public class IRCode {
     return true;
   }
 
+  public Iterable<Instruction> instructions() {
+    return this::instructionIterator;
+  }
+
   public InstructionIterator instructionIterator() {
     return new IRCodeInstructionsIterator(this);
   }

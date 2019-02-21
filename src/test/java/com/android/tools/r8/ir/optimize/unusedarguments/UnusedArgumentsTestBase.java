@@ -58,6 +58,7 @@ public abstract class UnusedArgumentsTestBase extends TestBase {
         .minification(minification)
         .enableInliningAnnotations()
         .enableClassInliningAnnotations()
+        .addOptionsModification(options -> options.enableSideEffectAnalysis = false)
         .compile()
         .run(getTestClass())
         .inspect(this::inspect)

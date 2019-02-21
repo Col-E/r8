@@ -54,6 +54,11 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
   }
 
   @Override
+  public synchronized void methodMayNotHaveSideEffects(DexEncodedMethod method) {
+    getOptimizationInfoForUpdating(method).markMayNotHaveSideEffects();
+  }
+
+  @Override
   public synchronized void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {
     processed.put(method, state);
   }

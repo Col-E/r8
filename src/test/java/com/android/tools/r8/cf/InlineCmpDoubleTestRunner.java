@@ -29,9 +29,13 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class InlineCmpDoubleTestRunner {
-  static final Class CLASS = InlineCmpDoubleTest.class;
-  final boolean enableInlining;
-  @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+
+  private static final Class CLASS = InlineCmpDoubleTest.class;
+
+  private final boolean enableInlining;
+
+  @Rule
+  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   public InlineCmpDoubleTestRunner(boolean enableInlining) {
     this.enableInlining = enableInlining;
@@ -61,12 +65,12 @@ public class InlineCmpDoubleTestRunner {
           options.enableInlining = enableInlining;
     });
 
+    assertEquals(0, ToolHelper.runJava(outPath, CLASS.getCanonicalName()).exitCode);
 
-    assert ToolHelper.runJava(outPath, CLASS.getCanonicalName()).exitCode == 0;
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(CLASS);
-    MethodSubject method = clazz
-        .method(new MethodSignature("inlineMe", "int", ImmutableList.of("int")));
+    MethodSubject method =
+        clazz.method(new MethodSignature("inlineMe", "int", ImmutableList.of("int")));
     assertEquals(enableInlining, !method.isPresent());
   }
 }
