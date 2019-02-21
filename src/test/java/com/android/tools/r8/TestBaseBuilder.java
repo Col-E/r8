@@ -32,6 +32,14 @@ public abstract class TestBaseBuilder<
   }
 
   @Override
+  public T addProgramDexFileData(Collection<byte[]> data) {
+    for (byte[] dex : data) {
+      builder.addDexProgramData(dex, Origin.unknown());
+    }
+    return self();
+  }
+
+  @Override
   public T addProgramFiles(Collection<Path> files) {
     builder.addProgramFiles(files);
     return self();

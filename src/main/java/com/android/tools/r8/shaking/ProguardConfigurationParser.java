@@ -364,6 +364,9 @@ public class ProguardConfigurationParser {
       } else if (acceptString("alwaysinline")) {
         InlineRule rule = parseInlineRule(InlineRule.Type.ALWAYS, optionStart);
         configurationBuilder.addRule(rule);
+      } else if (allowTestOptions && acceptString("assumemayhavesideeffects")) {
+        ProguardAssumeMayHaveSideEffectsRule rule = parseAssumeMayHaveSideEffectsRule(optionStart);
+        configurationBuilder.addRule(rule);
       } else if (allowTestOptions && acceptString("forceinline")) {
         InlineRule rule = parseInlineRule(InlineRule.Type.FORCE, optionStart);
         configurationBuilder.addRule(rule);
@@ -1264,6 +1267,17 @@ public class ProguardConfigurationParser {
       ProguardAssumeNoSideEffectRule.Builder builder = ProguardAssumeNoSideEffectRule.builder()
           .setOrigin(origin)
           .setStart(start);
+      parseClassSpec(builder, true);
+      Position end = getPosition();
+      builder.setSource(getSourceSnippet(contents, start, end));
+      builder.setEnd(end);
+      return builder.build();
+    }
+
+    private ProguardAssumeMayHaveSideEffectsRule parseAssumeMayHaveSideEffectsRule(Position start)
+        throws ProguardRuleParserException {
+      ProguardAssumeMayHaveSideEffectsRule.Builder builder =
+          ProguardAssumeMayHaveSideEffectsRule.builder().setOrigin(origin).setStart(start);
       parseClassSpec(builder, true);
       Position end = getPosition();
       builder.setSource(getSourceSnippet(contents, start, end));

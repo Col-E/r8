@@ -78,6 +78,7 @@ public final class D8Command extends BaseCompilerCommand {
     }
 
     /** Add dex program-data. */
+    @Override
     public Builder addDexProgramData(byte[] data, Origin origin) {
       guard(() -> getAppBuilder().addDexProgramData(data, origin));
       return self();

@@ -2024,6 +2024,10 @@ public class Enqueuer {
      */
     final Set<DexReference> pinnedItems;
     /**
+     * All items with assumemayhavesideeffects rule.
+     */
+    public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
+    /**
      * All items with assumenosideeffects rule.
      */
     public final Map<DexReference, ProguardMemberRule> noSideEffects;
@@ -2124,6 +2128,7 @@ public class Enqueuer {
       this.callSites = enqueuer.callSites;
       this.brokenSuperInvokes =
           ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, enqueuer.brokenSuperInvokes);
+      this.mayHaveSideEffects = enqueuer.rootSet.mayHaveSideEffects;
       this.noSideEffects = enqueuer.rootSet.noSideEffects;
       this.assumedValues = enqueuer.rootSet.assumedValues;
       this.alwaysInline = enqueuer.rootSet.alwaysInline;
@@ -2167,6 +2172,7 @@ public class Enqueuer {
       this.fieldsWritten = previous.fieldsWritten;
       assert assertNoItemRemoved(previous.pinnedItems, removedClasses);
       this.pinnedItems = previous.pinnedItems;
+      this.mayHaveSideEffects = previous.mayHaveSideEffects;
       this.noSideEffects = previous.noSideEffects;
       this.assumedValues = previous.assumedValues;
       this.virtualInvokes = previous.virtualInvokes;
@@ -2237,6 +2243,8 @@ public class Enqueuer {
       this.callSites = previous.callSites;
       this.brokenSuperInvokes = lense.rewriteMethodsConservatively(previous.brokenSuperInvokes);
       this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
+      this.mayHaveSideEffects =
+          rewriteReferenceKeys(previous.mayHaveSideEffects, lense::lookupReference);
       this.noSideEffects = rewriteReferenceKeys(previous.noSideEffects, lense::lookupReference);
       this.assumedValues = rewriteReferenceKeys(previous.assumedValues, lense::lookupReference);
       assert lense.assertDefinitionsNotModified(
@@ -2295,6 +2303,7 @@ public class Enqueuer {
       this.fieldsRead = previous.fieldsRead;
       this.fieldsWritten = previous.fieldsWritten;
       this.pinnedItems = previous.pinnedItems;
+      this.mayHaveSideEffects = previous.mayHaveSideEffects;
       this.noSideEffects = previous.noSideEffects;
       this.assumedValues = previous.assumedValues;
       this.virtualInvokes = previous.virtualInvokes;

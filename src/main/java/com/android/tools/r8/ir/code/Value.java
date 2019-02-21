@@ -868,13 +868,23 @@ public class Value {
     }
   }
 
-  public boolean isDead(AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo) {
+  public boolean isDead(
+      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
     // Totally unused values are trivially dead.
-    return !isUsed() || isDead(appView, appInfo, new HashSet<>());
+    return !isUsed() || isDead(appView, appInfo, code, new HashSet<>());
   }
 
   protected boolean isDead(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, Set<Value> active) {
+      AppView<? extends AppInfoWithLiveness> appView,
+      AppInfo appInfo,
+      IRCode code,
+      Set<Value> active) {
+    // Give up when the dependent set of values reach a given threshold (otherwise this fails with
+    // a StackOverflowError on Art003_omnibus_opcodesTest).
+    if (active.size() > 100) {
+      return false;
+    }
+
     // If the value has debug users we cannot eliminate it since it represents a value in a local
     // variable that should be visible in the debugger.
     if (numberOfDebugUsers() != 0) {
@@ -884,19 +894,18 @@ public class Value {
     // currently active values.
     active.add(this);
     for (Instruction instruction : uniqueUsers()) {
-      if (!instruction.canBeDeadCode(appView, appInfo, null)) {
+      if (!instruction.canBeDeadCode(appView, appInfo, code)) {
         return false;
       }
       Value outValue = instruction.outValue();
-      // Instructions with no out value cannot be dead code by the current definition
-      // (unused out value). They typically side-effect input values or deals with control-flow.
-      assert outValue != null;
-      if (!active.contains(outValue) && !outValue.isDead(appView, appInfo, active)) {
+      if (outValue != null
+          && !active.contains(outValue)
+          && !outValue.isDead(appView, appInfo, code, active)) {
         return false;
       }
     }
     for (Phi phi : uniquePhiUsers()) {
-      if (!active.contains(phi) && !phi.isDead(appView, appInfo, active)) {
+      if (!active.contains(phi) && !phi.isDead(appView, appInfo, code, active)) {
         return false;
       }
     }

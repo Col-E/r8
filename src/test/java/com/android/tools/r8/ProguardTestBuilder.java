@@ -225,6 +225,11 @@ public class ProguardTestBuilder
   }
 
   @Override
+  public ProguardTestBuilder addProgramDexFileData(Collection<byte[]> data) {
+    throw new Unimplemented("No support for adding dex file data directly");
+  }
+
+  @Override
   public ProguardTestBuilder addKeepRuleFiles(List<Path> proguardConfigFiles) {
     this.proguardConfigFiles.addAll(proguardConfigFiles);
     return self();

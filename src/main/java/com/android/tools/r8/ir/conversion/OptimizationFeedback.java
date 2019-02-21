@@ -6,14 +6,15 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
 
 public interface OptimizationFeedback {
   void methodReturnsArgument(DexEncodedMethod method, int argument);
   void methodReturnsConstant(DexEncodedMethod method, long value);
+  void methodMayNotHaveSideEffects(DexEncodedMethod method);
   void methodNeverReturnsNull(DexEncodedMethod method);
   void methodNeverReturnsNormally(DexEncodedMethod method);
   void markProcessed(DexEncodedMethod method, ConstraintWithTarget state);

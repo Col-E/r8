@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
+
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeStaticRange;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -129,5 +132,54 @@ public class InvokeStatic extends InvokeMethod {
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeStatic(
         this, clazz, appView, mode, assumption);
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<? extends AppInfo> appView, DexType context) {
+    if (appView == null || !appView.enableWholeProgramOptimizations()) {
+      return true;
+    }
+
+    if (appView.options().debug) {
+      return true;
+    }
+
+    // Find the target and check if the invoke may have side effects.
+    if (appView.appInfo().hasLiveness()) {
+      AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
+      DexEncodedMethod target = lookupSingleTarget(appInfoWithLiveness, context);
+      if (target == null) {
+        return true;
+      }
+
+      // Verify that the target method is accessible in the current context.
+      if (!isMemberVisibleFromOriginalContext(
+          appInfoWithLiveness, context, target.method.holder, target.accessFlags)) {
+        return true;
+      }
+
+      // Verify that the target method does not have side-effects.
+      boolean targetMayHaveSideEffects =
+          target.getOptimizationInfo().mayHaveSideEffects()
+              && !appInfoWithLiveness.noSideEffects.containsKey(target.method);
+      if (targetMayHaveSideEffects) {
+        return true;
+      }
+
+      // Verify that calling the target method won't lead to class initialization.
+      return target.method.holder.classInitializationMayHaveSideEffects(
+          appView.appInfo(),
+          // Types that are a super type of `context` are guaranteed to be initialized already.
+          type -> context.isSubtypeOf(type, appView.appInfo()));
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean canBeDeadCode(
+      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 }

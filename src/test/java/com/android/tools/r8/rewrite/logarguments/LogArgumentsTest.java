@@ -30,10 +30,16 @@ public class LogArgumentsTest extends TestBase {
   @Test
   public void testStatic() throws Exception {
     String qualifiedMethodName = "com.android.tools.r8.rewrite.logarguments.TestStatic.a";
-    AndroidApp app = compileWithR8(
-        readClasses(TestStatic.class),
-        options -> options.logArgumentsFilter = ImmutableList.of(qualifiedMethodName));
-    String result = runOnArt(app, TestStatic.class);
+    String result =
+        testForR8(Backend.DEX)
+            .addProgramClasses(TestStatic.class)
+            .addOptionsModification(
+                options -> options.logArgumentsFilter = ImmutableList.of(qualifiedMethodName))
+            .assumeAllMethodsMayHaveSideEffects()
+            .minification(false)
+            .treeShaking(false)
+            .run(TestStatic.class)
+            .getStdOut();
     assertEquals(7, occourences(qualifiedMethodName, result));
     assertEquals(3, occourences("(primitive)", result));
     assertEquals(3, occourences("(null)", result));
@@ -45,10 +51,16 @@ public class LogArgumentsTest extends TestBase {
   @Test
   public void testInstance() throws Exception {
     String qualifiedMethodName = "com.android.tools.r8.rewrite.logarguments.TestInstance.a";
-    AndroidApp app = compileWithR8(
-        readClasses(TestInstance.class),
-        options -> options.logArgumentsFilter = ImmutableList.of(qualifiedMethodName));
-    String result = runOnArt(app, TestInstance.class);
+    String result =
+        testForR8(Backend.DEX)
+            .addProgramClasses(TestInstance.class)
+            .addOptionsModification(
+                options -> options.logArgumentsFilter = ImmutableList.of(qualifiedMethodName))
+            .assumeAllMethodsMayHaveSideEffects()
+            .minification(false)
+            .treeShaking(false)
+            .run(TestInstance.class)
+            .getStdOut();
     assertEquals(7, occourences(qualifiedMethodName, result));
     assertEquals(7, occourences(
         "class com.android.tools.r8.rewrite.logarguments.TestInstance", result));

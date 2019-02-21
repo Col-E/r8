@@ -43,8 +43,10 @@ public class R8TestBuilder
   private boolean enableMergeAnnotations = false;
   private boolean enableConstantArgumentAnnotations = false;
   private boolean enableUnusedArgumentAnnotations = false;
+  private boolean enableSideEffectAnnotations = false;
   private CollectingGraphConsumer graphConsumer = null;
   private List<String> keepRules = new ArrayList<>();
+  private List<Path> mainDexRulesFiles = new ArrayList<>();
 
   @Override
   R8TestBuilder self() {
@@ -59,12 +61,14 @@ public class R8TestBuilder
         || enableClassInliningAnnotations
         || enableMergeAnnotations
         || enableConstantArgumentAnnotations
-        || enableUnusedArgumentAnnotations) {
+        || enableUnusedArgumentAnnotations
+        || enableSideEffectAnnotations) {
       ToolHelper.allowTestProguardOptions(builder);
     }
     if (!keepRules.isEmpty()) {
       builder.addProguardConfiguration(keepRules, Origin.unknown());
     }
+    builder.addMainDexRulesFiles(mainDexRulesFiles);
     StringBuilder proguardMapBuilder = new StringBuilder();
     builder.setDisableTreeShaking(!enableTreeShaking);
     builder.setDisableMinification(!enableMinification);
@@ -124,6 +128,15 @@ public class R8TestBuilder
     return addMainDexRules(Arrays.asList(rules));
   }
 
+  public R8TestBuilder addMainDexRuleFiles(List<Path> files) {
+    mainDexRulesFiles.addAll(files);
+    return self();
+  }
+
+  public R8TestBuilder addMainDexRuleFiles(Path... files) {
+    return addMainDexRuleFiles(Arrays.asList(files));
+  }
+
   public R8TestBuilder addMainDexClassRules(Class<?>... classes) {
     for (Class<?> clazz : classes) {
       addMainDexRules("-keep class " + clazz.getTypeName());
@@ -159,6 +172,25 @@ public class R8TestBuilder
     if (!enableMergeAnnotations) {
       enableMergeAnnotations = true;
       addInternalKeepRules("-nevermerge @com.android.tools.r8.NeverMerge class *");
+    }
+    return self();
+  }
+
+  public R8TestBuilder enableSideEffectAnnotations() {
+    if (!enableSideEffectAnnotations) {
+      enableSideEffectAnnotations = true;
+      addInternalKeepRules(
+          "-assumemayhavesideeffects class * {",
+          "  @com.android.tools.r8.AssumeMayHaveSideEffects <methods>;",
+          "}");
+    }
+    return self();
+  }
+
+  public R8TestBuilder assumeAllMethodsMayHaveSideEffects() {
+    if (!enableSideEffectAnnotations) {
+      enableSideEffectAnnotations = true;
+      addInternalKeepRules("-assumemayhavesideeffects class * { <methods>; }");
     }
     return self();
   }

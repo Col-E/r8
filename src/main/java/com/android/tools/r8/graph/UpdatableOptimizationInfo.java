@@ -13,6 +13,8 @@ public interface UpdatableOptimizationInfo extends OptimizationInfo {
 
   void markReturnsConstant(long value);
 
+  void markMayNotHaveSideEffects();
+
   void markNeverReturnsNull();
 
   void markNeverReturnsNormally();

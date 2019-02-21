@@ -698,6 +698,11 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   private CodeInspector getInspectorAfterRunR8(
       SmaliBuilder builder, List<String> proguardConfigurations) throws Exception {
-    return new CodeInspector(runR8(builder, proguardConfigurations));
+    return testForR8(Backend.DEX)
+        .addProgramDexFileData(builder.compile())
+        .addKeepRules(proguardConfigurations)
+        .debug()
+        .compile()
+        .inspector();
   }
 }

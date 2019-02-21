@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking.testrules;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 
@@ -12,6 +13,7 @@ public class C {
 
   private static int i;
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   public static int x() {
     return i;

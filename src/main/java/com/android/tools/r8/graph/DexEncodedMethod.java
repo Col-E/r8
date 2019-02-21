@@ -821,6 +821,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public static TrivialInitializer UNKNOWN_TRIVIAL_INITIALIZER = null;
     public static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
     public static ParameterUsagesInfo UNKNOWN_PARAMETER_USAGE_INFO = null;
+    public static boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
     public static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
     public static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
 
@@ -920,6 +921,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
+    public boolean mayHaveSideEffects() {
+      return UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
+    }
+
+    @Override
     public UpdatableOptimizationInfo mutableCopy() {
       return new OptimizationInfoImpl();
     }
@@ -928,6 +934,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public static class OptimizationInfoImpl implements UpdatableOptimizationInfo {
 
     private int returnedArgument = DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_ARGUMENT;
+    private boolean mayHaveSideEffects = DefaultOptimizationInfoImpl.UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
     private boolean neverReturnsNull = DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NULL;
     private boolean neverReturnsNormally =
         DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NORMALLY;
@@ -1084,6 +1091,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
+    public boolean mayHaveSideEffects() {
+      return mayHaveSideEffects;
+    }
+
+    @Override
     public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
       this.parametersUsages = parametersUsages;
     }
@@ -1123,6 +1135,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       assert argument >= 0;
       assert returnedArgument == -1 || returnedArgument == argument;
       returnedArgument = argument;
+    }
+
+    @Override
+    public void markMayNotHaveSideEffects() {
+      mayHaveSideEffects = false;
     }
 
     @Override

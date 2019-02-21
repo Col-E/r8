@@ -81,6 +81,7 @@ public class VerticalClassMergerTest extends TestBase {
     options.enableVerticalClassMerging = true;
     options.enableClassInlining = false;
     options.enableMinification = false;
+    options.enableSideEffectAnalysis = false;
     options.testing.nondeterministicCycleElimination = true;
   }
 

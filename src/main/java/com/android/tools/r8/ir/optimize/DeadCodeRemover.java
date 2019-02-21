@@ -59,7 +59,7 @@ public class DeadCodeRemover {
       worklist.addAll(code.blocks);
       for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
         removeDeadInstructions(worklist, code, block, appView, appInfo);
-        removeDeadPhis(worklist, block, appView, appInfo);
+        removeDeadPhis(worklist, code, block, appView, appInfo);
       }
     } while (removeUnneededCatchHandlers(code));
     assert code.isConsistentSSA();
@@ -91,13 +91,14 @@ public class DeadCodeRemover {
 
   private static void removeDeadPhis(
       Queue<BasicBlock> worklist,
+      IRCode code,
       BasicBlock block,
       AppView<? extends AppInfoWithLiveness> appView,
       AppInfo appInfo) {
     Iterator<Phi> phiIt = block.getPhis().iterator();
     while (phiIt.hasNext()) {
       Phi phi = phiIt.next();
-      if (phi.isDead(appView, appInfo)) {
+      if (phi.isDead(appView, appInfo, code)) {
         phiIt.remove();
         for (Value operand : phi.getOperands()) {
           operand.removePhiUser(phi);
@@ -126,7 +127,7 @@ public class DeadCodeRemover {
         continue;
       }
       Value outValue = current.outValue();
-      if (outValue != null && !outValue.isDead(appView, appInfo)) {
+      if (outValue != null && !outValue.isDead(appView, appInfo, code)) {
         continue;
       }
       updateWorklist(worklist, current);

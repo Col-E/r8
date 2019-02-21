@@ -219,6 +219,12 @@ public abstract class BaseCommand {
       return self();
     }
 
+    /** Add Java-bytecode program-data. */
+    B addDexProgramData(byte[] data, Origin origin) {
+      guard(() -> app.addDexProgramData(data, origin));
+      return self();
+    }
+
     /**
      * Add main-dex list files.
      *

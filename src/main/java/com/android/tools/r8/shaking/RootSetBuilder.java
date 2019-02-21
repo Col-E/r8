@@ -82,6 +82,7 @@ public class RootSetBuilder {
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
   private final Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking =
       new IdentityHashMap<>();
+  private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects = new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
@@ -184,7 +185,8 @@ public class RootSetBuilder {
         markClass(clazz, rule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
-      } else if (rule instanceof ProguardAssumeNoSideEffectRule) {
+      } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
+          || rule instanceof ProguardAssumeNoSideEffectRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else if (rule instanceof ClassMergingRule) {
@@ -273,6 +275,7 @@ public class RootSetBuilder {
         keepUnusedArguments,
         neverClassInline,
         neverMerge,
+        mayHaveSideEffects,
         noSideEffects,
         assumedValues,
         dependentNoShrinking,
@@ -942,6 +945,8 @@ public class RootSetBuilder {
       if (modifiers.includeDescriptorClasses) {
         includeDescriptorClasses(item, keepRule);
       }
+    } else if (context instanceof ProguardAssumeMayHaveSideEffectsRule) {
+      mayHaveSideEffects.put(item.toReference(), rule);
     } else if (context instanceof ProguardAssumeNoSideEffectRule) {
       noSideEffects.put(item.toReference(), rule);
     } else if (context instanceof ProguardWhyAreYouKeepingRule) {
@@ -1020,6 +1025,7 @@ public class RootSetBuilder {
     public final Set<DexMethod> keepUnusedArguments;
     public final Set<DexType> neverClassInline;
     public final Set<DexType> neverMerge;
+    public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
     public final Map<DexReference, ProguardMemberRule> noSideEffects;
     public final Map<DexReference, ProguardMemberRule> assumedValues;
     private final Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>>
@@ -1041,6 +1047,7 @@ public class RootSetBuilder {
         Set<DexMethod> keepUnusedArguments,
         Set<DexType> neverClassInline,
         Set<DexType> neverMerge,
+        Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
         Map<DexReference, ProguardMemberRule> noSideEffects,
         Map<DexReference, ProguardMemberRule> assumedValues,
         Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking,
@@ -1059,6 +1066,7 @@ public class RootSetBuilder {
       this.keepUnusedArguments = keepUnusedArguments;
       this.neverClassInline = neverClassInline;
       this.neverMerge = Collections.unmodifiableSet(neverMerge);
+      this.mayHaveSideEffects = mayHaveSideEffects;
       this.noSideEffects = noSideEffects;
       this.assumedValues = assumedValues;
       this.dependentNoShrinking = dependentNoShrinking;
@@ -1082,6 +1090,8 @@ public class RootSetBuilder {
           lense.rewriteMutableMethodsConservatively(previous.keepUnusedArguments);
       this.neverClassInline = lense.rewriteMutableTypesConservatively(previous.neverClassInline);
       this.neverMerge = lense.rewriteTypesConservatively(previous.neverMerge);
+      this.mayHaveSideEffects =
+          rewriteMutableReferenceKeys(previous.mayHaveSideEffects, lense::lookupReference);
       this.noSideEffects =
           rewriteMutableReferenceKeys(previous.noSideEffects, lense::lookupReference);
       this.assumedValues =

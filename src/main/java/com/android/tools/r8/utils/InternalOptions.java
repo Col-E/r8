@@ -123,6 +123,7 @@ public class InternalOptions {
       !Version.isDev() || System.getProperty("com.android.tools.r8.disableinlining") == null;
   public boolean enableClassInlining = true;
   public boolean enableClassStaticizer = true;
+  public boolean enableSideEffectAnalysis = true;
   // TODO(b/120138731): Enable this when it is worthwhile, e.g., combined with Class#forName.
   public boolean enableNameReflectionOptimization = false;
   public int classInliningInstructionLimit = 50;

@@ -14,6 +14,9 @@ public class InlineCmpDoubleTest {
   }
 
   public static int inlineMe(int x) {
+    // Side effect to ensure that the invocation is not removed simply because the method does not
+    // have any side effects.
+    System.out.println("In InlineCmpDoubleTest.inlineMe()");
     double a = x / 255.0;
     return a < 64.0 ? 42 : 43;
   }
