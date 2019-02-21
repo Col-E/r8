@@ -1611,6 +1611,23 @@ test {
     if (project.hasProperty('only_jctf')) {
         include "com/android/tools/r8/jctf/**"
     }
+    if (project.hasProperty('shard_count') ) {
+      assert project.hasProperty('shard_number')
+      int shard_count = project.getProperty('shard_count') as Integer
+      int shard_number = project.getProperty('shard_number') as Integer
+      assert shard_count < 65536
+      assert shard_number < shard_count
+      exclude {
+        entry ->
+          // Don't leave out directories. Leaving out a directory means all entries below.
+          if (entry.file.isDirectory()) {
+           return false
+          }
+          def first4 = entry.getRelativePath().toString().md5().substring(0, 4)
+          int hash = Integer.parseInt(first4, 16)
+          return hash % shard_count != shard_number
+      }
+    }
     if (project.hasProperty('jctf_compile_only')) {
         println "JCTF: compiling only"
         systemProperty 'jctf_compile_only', '1'
