@@ -2012,16 +2012,21 @@ public class CodeRewriter {
 
     // Note: Traversing code.instructions(), and not unnecessaryStaticPuts(), to ensure
     // deterministic iteration order.
-    for (Instruction instruction : code.instructions()) {
+    InstructionIterator instructionIterator = code.instructionIterator();
+    while (instructionIterator.hasNext()) {
+      Instruction instruction = instructionIterator.next();
       if (!instruction.isStaticPut() || !unnecessaryStaticPuts.contains(instruction)) {
         continue;
       }
-      StaticPut unnecessaryStaticPut = instruction.asStaticPut();
-      unnecessaryStaticPuts.add(unnecessaryStaticPut);
+      // Get a hold of the in-value.
+      Value inValue = instruction.asStaticPut().inValue();
+
+      // Remove the static-put instruction.
+      instructionIterator.removeOrReplaceByDebugLocalRead();
+
       // Collect, for removal, the instruction that created the value for the static put,
       // if all users are gone. This is done even if these instructions can throw as for
       // the current patterns matched these exceptions are not detectable.
-      Value inValue = unnecessaryStaticPut.inValue();
       if (inValue.numberOfAllUsers() > 0) {
         continue;
       }
