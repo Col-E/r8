@@ -1813,14 +1813,16 @@ public class Enqueuer {
       DexType serviceType = argument.definition.asConstClass().getValue();
       if (!appView.appServices().allServiceTypes().contains(serviceType)) {
         // Should never happen.
-        options.reporter.warning(
-            new StringDiagnostic(
-                "The type `"
-                    + serviceType.toSourceString()
-                    + "` is being passed to the method `"
-                    + invoke.getInvokedMethod()
-                    + "`, but could was found in `META-INF/services/`.",
-                appInfo.originFor(method.method.holder)));
+        if (Log.ENABLED) {
+          options.reporter.warning(
+              new StringDiagnostic(
+                  "The type `"
+                      + serviceType.toSourceString()
+                      + "` is being passed to the method `"
+                      + invoke.getInvokedMethod().toSourceString()
+                      + "`, but was not found in `META-INF/services/`.",
+                  appInfo.originFor(method.method.holder)));
+        }
         return;
       }
 
