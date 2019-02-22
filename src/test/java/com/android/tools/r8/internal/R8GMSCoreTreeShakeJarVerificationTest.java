@@ -10,6 +10,8 @@ import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class R8GMSCoreTreeShakeJarVerificationTest extends GMSCoreCompilationTestBase {
@@ -21,12 +23,26 @@ public class R8GMSCoreTreeShakeJarVerificationTest extends GMSCoreCompilationTes
       int maxSize,
       Consumer<InternalOptions> optionsConsumer)
       throws Exception {
+    return buildAndTreeShakeFromDeployJar(
+        mode, base, hasReference, maxSize, ImmutableList.of(), optionsConsumer);
+  }
+
+  public AndroidApp buildAndTreeShakeFromDeployJar(
+      CompilationMode mode,
+      String base,
+      boolean hasReference,
+      int maxSize,
+      List<String> additionalProguardConfigurations,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    List<String> proguardConfigurations = new ArrayList<>(additionalProguardConfigurations);
+    proguardConfigurations.add(base + PG_CONF);
     AndroidApp app =
         runAndCheckVerification(
             CompilerUnderTest.R8,
             mode,
             hasReference ? base + REFERENCE_APK : null,
-            ImmutableList.of(base + PG_CONF),
+            proguardConfigurations,
             optionsConsumer,
             // Don't pass any inputs. The input will be read from the -injars in the Proguard
             // configuration file.

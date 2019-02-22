@@ -21,9 +21,11 @@ public abstract class GMSCoreCompilationTestBase extends CompilationTestBase {
   public static final String GMSCORE_V8_DIR = "third_party/gmscore/v8/";
   public static final String GMSCORE_V9_DIR = "third_party/gmscore/gmscore_v9/";
   public static final String GMSCORE_V10_DIR = "third_party/gmscore/gmscore_v10/";
+  public static final String GMSCORE_LATEST_DIR = "third_party/gmscore/latest/";
 
   public static final int GMSCORE_V9_MAX_SIZE = 35000000;
   public static final int GMSCORE_V10_MAX_SIZE = 35000000;
+  public static final int GMSCORE_LATEST_MAX_SIZE = 35000000;
 
   static final String GMSCORE_APK = "GMSCore.apk";
 
