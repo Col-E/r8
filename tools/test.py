@@ -9,6 +9,7 @@
 
 import optparse
 import os
+import shutil
 import subprocess
 import sys
 import thread
@@ -38,6 +39,10 @@ ALL_ART_VMS = [
 TIMEOUT_HANDLER_PERIOD = 60 * 18
 
 BUCKET = 'r8-test-results'
+
+NUMBER_OF_TEST_REPORTS = 5
+REPORTS_PATH = os.path.join(utils.BUILD, 'reports')
+REPORT_INDEX = ['tests', 'test', 'index.html']
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -116,6 +121,12 @@ def ParseOptions():
   result.add_option('--r8lib-no-deps', '--r8lib_no_deps',
       default=False, action='store_true',
       help='Run the tests on r8lib without relocated dependencies.')
+  result.add_option('--failed',
+      default=False, action='store_true',
+      help='Run the tests that failed last execution.')
+  result.add_option('--fail-fast', '--fail_fast',
+      default=False, action='store_true',
+      help='Stop on first failure. Passes --fail-fast to gradle test runner.')
   return result.parse_args()
 
 def archive_failures():
@@ -206,6 +217,15 @@ def Main():
   # Add Gradle tasks
   gradle_args.append('cleanTest')
   gradle_args.append('test')
+  if options.fail_fast:
+    gradle_args.append('--fail-fast')
+  if options.failed:
+    args = compute_failed_tests(args)
+    if args is None:
+      return 1
+    if len(args) == 0:
+      print "No failing tests"
+      return 0
   # Test filtering. Must always follow the 'test' task.
   for testFilter in args:
     gradle_args.append('--tests')
@@ -228,6 +248,8 @@ def Main():
       os.remove(timestamp_file)
     gradle_args.append('-Pupdate_test_timestamp=' + timestamp_file)
     thread.start_new_thread(timeout_handler, (timestamp_file,))
+
+  rotate_test_reports()
 
   # Now run tests on selected runtime(s).
   vms_to_test = [options.dex_vm] if options.dex_vm != "all" else ALL_ART_VMS
@@ -282,6 +304,69 @@ def timeout_handler(timestamp_file):
     if last_timestamp and new_timestamp == last_timestamp:
       print_jstacks()
     last_timestamp = new_timestamp
+
+def report_dir_path(index):
+  if index is 0:
+    return REPORTS_PATH
+  return '%s%d' % (REPORTS_PATH, index)
+
+def report_index_path(index):
+  return os.path.join(report_dir_path(index), *REPORT_INDEX)
+
+# Rotate test results so previous results are still accessible.
+def rotate_test_reports():
+  if not os.path.exists(report_dir_path(0)):
+    return
+  i = 1
+  while i < NUMBER_OF_TEST_REPORTS and os.path.exists(report_dir_path(i)):
+    i += 1
+  if i == NUMBER_OF_TEST_REPORTS and os.path.exists(report_dir_path(i)):
+    shutil.rmtree(report_dir_path(i))
+  while i > 0:
+    shutil.move(report_dir_path(i - 1), report_dir_path(i))
+    i -= 1
+
+def compute_failed_tests(args):
+  if len(args) > 1:
+    print "Running with --failed can take an optional path to a report index (or report number)."
+    return None
+  report = report_index_path(0)
+  # If the default report does not exist, fall back to the previous report as it may be a failed
+  # gradle run which has already moved the report to report1, but did not produce a new report.
+  if not os.path.exists(report):
+    report1 = report_index_path(1)
+    if os.path.exists(report1):
+      report = report1
+  if len(args) == 1:
+    try:
+      # try to parse the arg as a report index.
+      index = int(args[0])
+      report = report_index_path(index)
+    except ValueError:
+      # if integer parsing failed assume it is a report file path.
+      report = args[0]
+  if not os.path.exists(report):
+    print "Can't re-run failing, no report at:", report
+    return None
+  print "Reading failed tests in", report
+  failing = set()
+  inFailedSection = False
+  for line in file(report):
+    l = line.strip()
+    if l == "<h2>Failed tests</h2>":
+      inFailedSection = True
+    elif l.startswith("<h2>"):
+      inFailedSection = False
+    prefix = '<a href="classes/'
+    if inFailedSection and l.startswith(prefix):
+      href = l[len(prefix):l.index('">')]
+      # Ignore enties ending with .html which are test classes, not test methods.
+      if not href.endswith('.html'):
+        # Remove the .html and anchor separateor, also, a classMethod test is the static
+        # setup failing so rerun the full class of tests.
+        test = href.replace('.html','').replace('#', '.').replace('.classMethod', '')
+        failing.add(test)
+  return list(failing)
 
 if __name__ == '__main__':
   return_code = Main()
