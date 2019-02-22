@@ -84,7 +84,7 @@ class MainCallStaticMethod {
 }
 
 class StaticFieldInitialized {
-  public static int field = 1;
+  public static Object field = new Object();
 }
 
 class MainGetStaticFieldInitialized {
@@ -119,14 +119,14 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   }
 
   private void checkAllClassesPresentWithDefaultConstructor(
-      Class mainClass, List<Class<?>> programClasses, CodeInspector inspector) {
+      Class<?> mainClass, List<Class<?>> programClasses, CodeInspector inspector) {
     assert programClasses.contains(mainClass);
     assertEquals(programClasses.size(), inspector.allClasses().size());
     inspector.forAllClasses(this::checkPresentWithDefaultConstructor);
   }
 
   private void checkAllClassesPresentOnlyMainWithDefaultConstructor(
-      Class mainClass, List<Class<?>> programClasses, CodeInspector inspector) {
+      Class<?> mainClass, List<Class<?>> programClasses, CodeInspector inspector) {
     assert programClasses.contains(mainClass);
     assertEquals(programClasses.size(), inspector.allClasses().size());
     checkPresentWithDefaultConstructor(inspector.clazz(mainClass));
@@ -137,14 +137,14 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   }
 
   private void checkOnlyMainPresent(
-      Class mainClass, List<Class<?>> programClasses, CodeInspector inspector) {
+      Class<?> mainClass, List<Class<?>> programClasses, CodeInspector inspector) {
     assert programClasses.contains(mainClass);
     assertEquals(1, inspector.allClasses().size());
     inspector.forAllClasses(this::checkPresentWithDefaultConstructor);
   }
 
   private void runTest(
-      Class mainClass,
+      Class<?> mainClass,
       List<Class<?>> programClasses,
       String proguardConfiguration,
       TriConsumer<Class, List<Class<?>>, CodeInspector> r8Checker,
@@ -163,7 +163,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   }
 
   private void runTest(
-      Class mainClass,
+      Class<?> mainClass,
       List<Class<?>> programClasses,
       String proguardConfiguration,
       TriConsumer<Class, List<Class<?>>, CodeInspector> checker)
@@ -174,7 +174,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   @Test
   public void testInstantiation() throws Exception {
     // A new instance call keeps the default constructor.
-    Class mainClass = MainInstantiationSubClass.class;
+    Class<?> mainClass = MainInstantiationSubClass.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
@@ -188,7 +188,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   @Test
   public void testGetClass() throws Exception {
     // Reference to the class constant keeps the default constructor.
-    Class mainClass = MainGetClassSubClass.class;
+    Class<?> mainClass = MainGetClassSubClass.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
@@ -200,7 +200,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   @Test
   public void testCheckCast() throws Exception {
     // Reference to the class constant keeps the default constructor.
-    Class mainClass = MainCheckCastSubClass.class;
+    Class<?> mainClass = MainCheckCastSubClass.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
@@ -216,7 +216,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   @Test
   public void testCheckCastWithoutInlining() throws Exception {
     // Reference to the class constant keeps the default constructor.
-    Class mainClass = MainCheckCastSubClass.class;
+    Class<?> mainClass = MainCheckCastSubClass.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
@@ -229,7 +229,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   @Test
   public void testClassForName() throws Exception {
     // Class.forName with a constant string keeps the default constructor.
-    Class mainClass = MainClassForNameSubClass.class;
+    Class<?> mainClass = MainClassForNameSubClass.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, SuperClass.class, SubClass.class),
@@ -241,7 +241,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   @Test
   public void testStaticFieldWithoutInitializationStaticClassKept() throws Exception {
     // An explicit keep rule keeps the default constructor.
-    Class mainClass = MainGetStaticFieldNotInitialized.class;
+    Class<?> mainClass = MainGetStaticFieldNotInitialized.class;
     String proguardConfiguration = keepMainProguardConfiguration(
         mainClass,
         ImmutableList.of(
@@ -257,7 +257,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   @Test
   public void testStaticFieldWithInitializationStaticClassKept() throws Exception {
     // An explicit keep rule keeps the default constructor.
-    Class mainClass = MainGetStaticFieldInitialized.class;
+    Class<?> mainClass = MainGetStaticFieldInitialized.class;
     String proguardConfiguration = keepMainProguardConfiguration(
         mainClass,
         ImmutableList.of(
@@ -273,7 +273,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   @Test
   public void testStaticMethodStaticClassKept() throws Exception {
     // An explicit keep rule keeps the default constructor.
-    Class mainClass = MainCallStaticMethod.class;
+    Class<?> mainClass = MainCallStaticMethod.class;
     String proguardConfiguration = keepMainProguardConfiguration(
         mainClass,
         ImmutableList.of(
@@ -288,7 +288,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
 
   @Test
   public void testStaticFieldWithoutInitialization() throws Exception {
-    Class mainClass = MainGetStaticFieldNotInitialized.class;
+    Class<?> mainClass = MainGetStaticFieldNotInitialized.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, StaticFieldNotInitialized.class),
@@ -299,7 +299,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
 
   @Test
   public void testStaticFieldWithInitialization() throws Exception {
-    Class mainClass = MainGetStaticFieldInitialized.class;
+    Class<?> mainClass = MainGetStaticFieldInitialized.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, StaticFieldInitialized.class),
@@ -310,7 +310,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   @Test
   public void testStaticMethodStaticClassNotKept() throws Exception {
     // Due to inlining only the main method is left.
-    Class mainClass = MainCallStaticMethod.class;
+    Class<?> mainClass = MainCallStaticMethod.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, StaticMethod.class),
@@ -320,7 +320,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
 
   @Test
   public void testStaticFieldWithoutInitializationWithoutInlining() throws Exception {
-    Class mainClass = MainGetStaticFieldNotInitialized.class;
+    Class<?> mainClass = MainGetStaticFieldNotInitialized.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, StaticFieldNotInitialized.class),
@@ -330,7 +330,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
 
   @Test
   public void testStaticFieldWithInitializationWithoutInlining() throws Exception {
-    Class mainClass = MainGetStaticFieldInitialized.class;
+    Class<?> mainClass = MainGetStaticFieldInitialized.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, StaticFieldInitialized.class),
@@ -340,7 +340,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
 
   @Test
   public void testStaticMethodStaticWithoutInlining() throws Exception {
-    Class mainClass = MainCallStaticMethod.class;
+    Class<?> mainClass = MainCallStaticMethod.class;
     runTest(
         mainClass,
         ImmutableList.of(mainClass, StaticMethod.class),

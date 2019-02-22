@@ -96,6 +96,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -137,6 +138,8 @@ public class Enqueuer {
       Maps.newIdentityHashMap();
   private final Map<DexType, Set<TargetWithContext<DexField>>> staticFieldsWritten =
       Maps.newIdentityHashMap();
+  private final Set<DexField> staticFieldsWrittenOutsideEnclosingStaticInitializer =
+      Sets.newIdentityHashSet();
   private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
 
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
@@ -295,6 +298,32 @@ public class Enqueuer {
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.keptGraphConsumer = keptGraphConsumer;
     this.options = options;
+  }
+
+  private Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer() {
+    Set<DexField> result = Sets.newIdentityHashSet();
+    Set<DexField> visited = Sets.newIdentityHashSet();
+    for (Set<TargetWithContext<DexField>> targetsWithContext : staticFieldsWritten.values()) {
+      for (TargetWithContext<DexField> targetWithContext : targetsWithContext) {
+        DexField staticFieldWritten = targetWithContext.target;
+        if (!visited.add(staticFieldWritten)) {
+          continue;
+        }
+        DexEncodedField encodedStaticFieldWritten =
+            appInfo.resolveFieldOn(staticFieldWritten.clazz, staticFieldWritten);
+        if (encodedStaticFieldWritten != null
+            && encodedStaticFieldWritten.isProgramField(appInfo)) {
+          result.add(encodedStaticFieldWritten.field);
+        }
+      }
+    }
+    result.removeAll(staticFieldsWrittenOutsideEnclosingStaticInitializer);
+    result.removeAll(
+        pinnedItems.stream()
+            .filter(DexReference::isDexField)
+            .map(DexReference::asDexField)
+            .collect(Collectors.toList()));
+    return result;
   }
 
   private static <T> SetWithReason<T> newSetWithoutReasonReporter() {
@@ -582,8 +611,20 @@ public class Enqueuer {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Register Sput `%s`.", field);
       }
+
+      DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
+      if (encodedField != null && encodedField.isProgramField(appInfo)) {
+        boolean isWrittenOutsideEnclosingStaticInitializer =
+            currentMethod.method.holder != encodedField.field.clazz
+                || !currentMethod.isClassInitializer();
+        if (isWrittenOutsideEnclosingStaticInitializer) {
+          staticFieldsWrittenOutsideEnclosingStaticInitializer.add(encodedField.field);
+        }
+      }
+
       // TODO(herhut): We have to add this, but DCR should eliminate dead writes.
-      markStaticFieldAsLive(field, KeepReason.fieldReferencedIn(currentMethod));
+      markStaticFieldAsLive(field, KeepReason.fieldReferencedIn(currentMethod), encodedField);
+
       return true;
     }
 
@@ -1108,13 +1149,17 @@ public class Enqueuer {
   }
 
   private void markStaticFieldAsLive(DexField field, KeepReason reason) {
+    markStaticFieldAsLive(field, reason, appInfo.resolveFieldOn(field.clazz, field));
+  }
+
+  private void markStaticFieldAsLive(
+      DexField field, KeepReason reason, DexEncodedField encodedField) {
     // Mark the type live here, so that the class exists at runtime. Note that this also marks all
     // supertypes as live, so even if the field is actually on a supertype, its class will be live.
     markTypeAsLive(field.clazz);
     markTypeAsLive(field.type);
 
     // Find the actual field.
-    DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
     if (encodedField == null) {
       reportMissingField(field);
       return;
@@ -1974,7 +2019,12 @@ public class Enqueuer {
     /**
      * Set of all fields which may be touched by a put operation. This is actual field definitions.
      */
-    private final SortedSet<DexField> fieldsWritten;
+    private SortedSet<DexField> fieldsWritten;
+    /**
+     * Set of all static fields that are only written inside the <clinit>() method of their
+     * enclosing class.
+     */
+    public SortedSet<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer;
     /**
      * Set of all field ids used in instance field reads, along with access context.
      */
@@ -2121,6 +2171,10 @@ public class Enqueuer {
           instanceFieldReads.keySet(), staticFieldReads.keySet());
       this.fieldsWritten = enqueuer.mergeFieldAccesses(
           instanceFieldWrites.keySet(), staticFieldWrites.keySet());
+      this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
+          ImmutableSortedSet.copyOf(
+              DexField::slowCompareTo,
+              enqueuer.staticFieldsWrittenOnlyInEnclosingStaticInitializer());
       this.pinnedItems = enqueuer.pinnedItems;
       this.virtualInvokes = enqueuer.collectDescriptors(enqueuer.virtualInvokes);
       this.interfaceInvokes = enqueuer.collectDescriptors(enqueuer.interfaceInvokes);
@@ -2149,6 +2203,10 @@ public class Enqueuer {
       assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
     }
 
+    private AppInfoWithLiveness(AppInfoWithLiveness previous, DexApplication application) {
+      this(previous, application, null);
+    }
+
     private AppInfoWithLiveness(
         AppInfoWithLiveness previous,
         DexApplication application,
@@ -2172,7 +2230,9 @@ public class Enqueuer {
       this.fieldsRead = previous.fieldsRead;
       // TODO(herhut): We remove fields that are only written, so maybe update this.
       this.fieldsWritten = previous.fieldsWritten;
-      assert assertNoItemRemoved(previous.pinnedItems, removedClasses);
+      this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
+          previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer;
+      assert removedClasses == null || assertNoItemRemoved(previous.pinnedItems, removedClasses);
       this.pinnedItems = previous.pinnedItems;
       this.mayHaveSideEffects = previous.mayHaveSideEffects;
       this.noSideEffects = previous.noSideEffects;
@@ -2192,7 +2252,10 @@ public class Enqueuer {
       this.neverClassInline = previous.neverClassInline;
       this.neverMerge = previous.neverMerge;
       this.identifierNameStrings = previous.identifierNameStrings;
-      this.prunedTypes = mergeSets(previous.prunedTypes, removedClasses);
+      this.prunedTypes =
+          removedClasses == null
+              ? previous.prunedTypes
+              : mergeSets(previous.prunedTypes, removedClasses);
       this.switchMaps = previous.switchMaps;
       this.ordinalsMaps = previous.ordinalsMaps;
       assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
@@ -2229,6 +2292,9 @@ public class Enqueuer {
           rewriteKeysWhileMergingValues(previous.staticFieldWrites, lense::lookupField);
       this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
       this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
+      this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
+          rewriteItems(
+              previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer, lense::lookupField);
       this.pinnedItems = lense.rewriteReferencesConservatively(previous.pinnedItems);
       this.virtualInvokes = rewriteKeysConservativelyWhileMergingValues(
           previous.virtualInvokes, lense::lookupMethodInAllContexts);
@@ -2304,6 +2370,8 @@ public class Enqueuer {
       this.staticFieldWrites = previous.staticFieldWrites;
       this.fieldsRead = previous.fieldsRead;
       this.fieldsWritten = previous.fieldsWritten;
+      this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
+          previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer;
       this.pinnedItems = previous.pinnedItems;
       this.mayHaveSideEffects = previous.mayHaveSideEffects;
       this.noSideEffects = previous.noSideEffects;
@@ -2326,6 +2394,26 @@ public class Enqueuer {
       this.prunedTypes = previous.prunedTypes;
       this.switchMaps = switchMaps;
       this.ordinalsMaps = ordinalsMaps;
+    }
+
+    public AppInfoWithLiveness withoutStaticFieldsWrites(
+        Collection<DexField> noLongerWrittenFields) {
+      if (noLongerWrittenFields.isEmpty()) {
+        return this;
+      }
+      AppInfoWithLiveness result = new AppInfoWithLiveness(this, app);
+      Predicate<DexField> isFieldWritten = field -> !noLongerWrittenFields.contains(field);
+      result.fieldsWritten = filter(fieldsWritten, isFieldWritten);
+      result.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
+          filter(staticFieldsWrittenOnlyInEnclosingStaticInitializer, isFieldWritten);
+      return result;
+    }
+
+    private <T extends PresortedComparable<T>> SortedSet<T> filter(
+        Set<T> items, Predicate<T> predicate) {
+      return ImmutableSortedSet.copyOf(
+          PresortedComparable::slowCompareTo,
+          items.stream().filter(predicate).collect(Collectors.toList()));
     }
 
     public Reference2IntMap<DexField> getOrdinalsMapFor(DexType enumClass) {
@@ -2399,6 +2487,10 @@ public class Enqueuer {
           || field.clazz.isD8R8SynthesizedClassType()
           // For library classes we don't know whether a field is rewritten.
           || isLibraryField(field);
+    }
+
+    public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexField field) {
+      return staticFieldsWrittenOnlyInEnclosingStaticInitializer.contains(field);
     }
 
     private boolean isLibraryField(DexField field) {

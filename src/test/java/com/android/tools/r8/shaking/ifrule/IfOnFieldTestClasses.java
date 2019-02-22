@@ -13,18 +13,18 @@ class D {
 }
 
 class R1 {
-  public static int id1 = 1;
-  public static int id2 = 2;
+  public static int id1 = System.currentTimeMillis() >= 0 ? 1 : 0;
+  public static int id2 = System.currentTimeMillis() >= 0 ? 2 : 0;
 }
 
 class R2 {
-  public static int id1 = 1;
-  public static int id2 = 2;
+  public static int id1 = System.currentTimeMillis() >= 0 ? 1 : 0;
+  public static int id2 = System.currentTimeMillis() >= 0 ? 2 : 0;
 }
 
 class R {
-  public static int id1 = 1;
-  public static int id2 = 2;
+  public static int id1 = System.currentTimeMillis() >= 0 ? 1 : 0;
+  public static int id2 = System.currentTimeMillis() >= 0 ? 2 : 0;
 }
 
 interface I {
@@ -64,8 +64,8 @@ class MainWithIf {
 class MainWithInner {
 
   public static class InnerR {
-    public static int id1 = 1;
-    public static int id2 = 2;
+    public static int id1 = System.currentTimeMillis() >= 0 ? 1 : 0;
+    public static int id2 = System.currentTimeMillis() >= 0 ? 2 : 0;
   }
 
   public static class InnerD {

@@ -456,6 +456,7 @@ public class CallGraph extends CallSiteInformation {
    */
   public <E extends Exception> void forEachMethod(
       ThrowingBiConsumer<DexEncodedMethod, Predicate<DexEncodedMethod>, E> consumer,
+      Action waveStart,
       Action waveDone,
       ExecutorService executorService)
       throws ExecutionException {
@@ -463,6 +464,7 @@ public class CallGraph extends CallSiteInformation {
       Collection<DexEncodedMethod> methods = extractLeaves();
       assert methods.size() > 0;
       List<Future<?>> futures = new ArrayList<>();
+      waveStart.execute();
       for (DexEncodedMethod method : methods) {
         futures.add(executorService.submit(() -> {
           consumer.accept(method, methods::contains);
