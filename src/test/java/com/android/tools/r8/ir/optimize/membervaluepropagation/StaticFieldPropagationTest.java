@@ -46,8 +46,8 @@ public class StaticFieldPropagationTest extends TestBase {
     MethodSubject mainMethodSubject = classSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
 
-    // TODO(b/124656551): Should get rid of all static-get instructions in main().
-    assertTrue(mainMethodSubject.streamInstructions().anyMatch(InstructionSubject::isStaticGet));
+    // Verify that all static-get instructions have been removed.
+    assertTrue(mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isStaticGet));
   }
 }
 

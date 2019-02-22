@@ -35,7 +35,6 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
@@ -43,8 +42,7 @@ import java.util.function.Predicate;
 
 public class MemberValuePropagation {
 
-  private final AppInfoWithLiveness appInfo;
-  private final InternalOptions options;
+  private final AppView<? extends AppInfoWithLiveness> appView;
 
   private enum RuleType {
     NONE,
@@ -64,8 +62,7 @@ public class MemberValuePropagation {
   }
 
   public MemberValuePropagation(AppView<? extends AppInfoWithLiveness> appView) {
-    this.appInfo = appView.appInfo();
-    this.options = appView.options();
+    this.appView = appView;
   }
 
   private ProguardMemberRuleLookup lookupMemberRule(DexDefinition definition) {
@@ -73,11 +70,11 @@ public class MemberValuePropagation {
       return null;
     }
     DexReference reference = definition.toReference();
-    ProguardMemberRule rule = appInfo.noSideEffects.get(reference);
+    ProguardMemberRule rule = appView.appInfo().noSideEffects.get(reference);
     if (rule != null) {
       return new ProguardMemberRuleLookup(RuleType.ASSUME_NO_SIDE_EFFECTS, rule);
     }
-    rule = appInfo.assumedValues.get(reference);
+    rule = appView.appInfo().assumedValues.get(reference);
     if (rule != null) {
       return new ProguardMemberRuleLookup(RuleType.ASSUME_VALUES, rule);
     }
@@ -97,11 +94,12 @@ public class MemberValuePropagation {
         && rule.hasReturnValue() && rule.getReturnValue().isField()) {
       DexField field = rule.getReturnValue().getField();
       assert typeLattice
-          == TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appInfo);
-      DexEncodedField staticField = appInfo.lookupStaticTarget(field.clazz, field);
+          == TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appView.appInfo());
+      DexEncodedField staticField = appView.appInfo().lookupStaticTarget(field.clazz, field);
       if (staticField != null) {
         Value value = code.createValue(typeLattice, instruction.getLocalInfo());
-        replacement = staticField.getStaticValue().asConstInstruction(false, value);
+        replacement =
+            staticField.getStaticValue().asConstInstruction(false, value, appView.options());
       } else {
         throw new CompilationError(field.clazz.toSourceString() + "." + field.name.toString()
             + " used in assumevalues rule does not exist.");
@@ -125,11 +123,14 @@ public class MemberValuePropagation {
       TypeLatticeElement typeLattice,
       DebugLocalInfo debugLocalInfo) {
     assert typeLattice.isClassType();
-    assert appInfo.dexItemFactory.stringType.isSubtypeOf(
-        typeLattice.asClassTypeLatticeElement().getClassType(), appInfo);
+    assert appView
+        .dexItemFactory()
+        .stringType
+        .isSubtypeOf(typeLattice.asClassTypeLatticeElement().getClassType(), appView.appInfo());
     Value returnedValue = code.createValue(typeLattice, debugLocalInfo);
     ConstString instruction =
-        new ConstString(returnedValue, constant, ThrowingInfo.defaultForConstString(options));
+        new ConstString(
+            returnedValue, constant, ThrowingInfo.defaultForConstString(appView.options()));
     assert !instruction.instructionInstanceCanThrow();
     return instruction;
   }
@@ -186,7 +187,8 @@ public class MemberValuePropagation {
       return;
     }
     // TODO(70550443): Maybe check all methods here.
-    DexEncodedMethod definition = appInfo.lookup(current.getType(), invokedMethod, callingContext);
+    DexEncodedMethod definition =
+        appView.appInfo().lookup(current.getType(), invokedMethod, callingContext);
     ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
     boolean invokeReplaced = false;
     if (lookup != null) {
@@ -206,7 +208,7 @@ public class MemberValuePropagation {
       return;
     }
     // No Proguard rule could replace the instruction check for knowledge about the return value.
-    DexEncodedMethod target = current.lookupSingleTarget(appInfo, callingContext);
+    DexEncodedMethod target = current.lookupSingleTarget(appView.appInfo(), callingContext);
     if (target == null) {
       return;
     }
@@ -215,7 +217,7 @@ public class MemberValuePropagation {
       knownToBeNonNullValue.markNeverNull();
       TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
       assert typeLattice.isNullable() && typeLattice.isReference();
-      knownToBeNonNullValue.narrowing(appInfo, typeLattice.asNonNullable());
+      knownToBeNonNullValue.narrowing(appView.appInfo(), typeLattice.asNonNullable());
       affectedValues.addAll(knownToBeNonNullValue.affectedValues());
     }
     if (target.getOptimizationInfo().returnsConstant()) {
@@ -256,12 +258,13 @@ public class MemberValuePropagation {
     DexField field = current.getField();
 
     // TODO(b/123857022): Should be able to use definitionFor().
-    DexEncodedField target = appInfo.lookupStaticTarget(field.getHolder(), field);
+    DexEncodedField target = appView.appInfo().lookupStaticTarget(field.getHolder(), field);
     if (target == null) {
       return;
     }
     // Check if a this value is known const.
-    Instruction replacement = target.valueAsConstInstruction(appInfo, current.dest());
+    Instruction replacement =
+        target.valueAsConstInstruction(appView.appInfo(), current.dest(), appView.options());
     if (replacement != null) {
       affectedValues.add(replacement.outValue());
       iterator.replaceCurrentInstruction(replacement);
@@ -286,10 +289,10 @@ public class MemberValuePropagation {
       // be updated outside the class constructor, e.g. via reflections), it is safe
       // to assume that the static-get instruction reads the value it initialized value
       // in class initializer and is never null.
-      DexClass holderDefinition = appInfo.definitionFor(field.getHolder());
+      DexClass holderDefinition = appView.appInfo().definitionFor(field.getHolder());
       if (holderDefinition != null
           && holderDefinition.accessFlags.isFinal()
-          && !field.getHolder().initializationOfParentTypesMayHaveSideEffects(appInfo)) {
+          && !field.getHolder().initializationOfParentTypesMayHaveSideEffects(appView.appInfo())) {
         Value outValue = current.dest();
         DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
         if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
@@ -297,12 +300,12 @@ public class MemberValuePropagation {
               classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
           if (info != null
               && ((TrivialClassInitializer) info).field == field
-              && !appInfo.isPinned(field)
+              && !appView.appInfo().isPinned(field)
               && outValue.canBeNull()) {
             outValue.markNeverNull();
             TypeLatticeElement typeLattice = outValue.getTypeLattice();
             assert typeLattice.isNullable() && typeLattice.isReference();
-            outValue.narrowing(appInfo, typeLattice.asNonNullable());
+            outValue.narrowing(appView.appInfo(), typeLattice.asNonNullable());
             affectedValues.addAll(outValue.affectedValues());
           }
         }
@@ -316,10 +319,10 @@ public class MemberValuePropagation {
     // TODO(b/123857022): Should be possible to use definitionFor().
     DexEncodedField target =
         current.isInstancePut()
-            ? appInfo.lookupInstanceTarget(field.getHolder(), field)
-            : appInfo.lookupStaticTarget(field.getHolder(), field);
+            ? appView.appInfo().lookupInstanceTarget(field.getHolder(), field)
+            : appView.appInfo().lookupStaticTarget(field.getHolder(), field);
     // TODO(b/123857022): Should be possible to use `!isFieldRead(field)`.
-    if (target != null && !appInfo.isFieldRead(target.field)) {
+    if (target != null && !appView.appInfo().isFieldRead(target.field)) {
       // Remove writes to dead (i.e. never read) fields.
       iterator.removeOrReplaceByDebugLocalRead();
     }
@@ -356,7 +359,7 @@ public class MemberValuePropagation {
       }
     }
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView.appInfo(), code.method).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }

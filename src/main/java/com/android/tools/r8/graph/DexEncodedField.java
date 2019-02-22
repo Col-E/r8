@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
 
 public class DexEncodedField extends KeyedDexItem<DexField> {
 
@@ -27,6 +28,14 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     this.accessFlags = accessFlags;
     this.annotations = annotations;
     this.staticValue = staticValue;
+  }
+
+  public boolean isProgramField(AppInfo appInfo) {
+    if (field.clazz.isClassType()) {
+      DexClass clazz = appInfo.definitionFor(field.clazz);
+      return clazz != null && clazz.isProgramClass();
+    }
+    return false;
   }
 
   @Override
@@ -110,7 +119,8 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
   }
 
   // Returns a const instructions if this field is a compile time final const.
-  public Instruction valueAsConstInstruction(AppInfoWithLiveness appInfo, Value dest) {
+  public Instruction valueAsConstInstruction(
+      AppInfoWithLiveness appInfo, Value dest, InternalOptions options) {
     // The only way to figure out whether the DexValue contains the final value
     // is ensure the value is not the default or check <clinit> is not present.
     boolean isEffectivelyFinal =
@@ -122,7 +132,7 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     if (accessFlags.isStatic()) {
       DexClass clazz = appInfo.definitionFor(field.clazz);
       assert clazz != null : "Class for the field must be present";
-      return getStaticValue().asConstInstruction(clazz.hasClassInitializer(), dest);
+      return getStaticValue().asConstInstruction(clazz.hasClassInitializer(), dest, options);
     }
     return null;
   }

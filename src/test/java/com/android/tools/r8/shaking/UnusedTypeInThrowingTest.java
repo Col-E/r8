@@ -15,7 +15,7 @@ import org.junit.Test;
 
 class UnusedTypeInThrowing {
 
-  public static final String EXPECTED = "42";
+  public static final String EXPECTED = System.currentTimeMillis() >= 0 ? "42" : null;
 
   public static void main(String[] args) throws UnusedTypeInThrowingThrowable {
     System.out.print(EXPECTED);

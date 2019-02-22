@@ -205,13 +205,13 @@ public class FieldReadsJasminTest extends JasminTestBase {
     empty.addStaticField("sField", "Ljava/lang/String;", "\"8\"");
 
     ClassBuilder main = builder.addClass(MAIN);
-    MethodSignature mainMethod = main.addMainMethod(
+    main.addMainMethod(
         ".limit stack 2",
         ".limit locals 1",
         "  getstatic Empty/sField Ljava/lang/String;",
         "  return");
 
-    ensureFieldExistsAndReadOnlyOnce(builder, main, mainMethod, empty, "sField");
+    ensureNoFields(builder, empty);
   }
 
   @Test

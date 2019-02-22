@@ -70,6 +70,7 @@ import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -146,6 +147,8 @@ public class IRConverter {
   private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private final OptimizationFeedback simpleOptimizationFeedback = new OptimizationFeedbackSimple();
   private DexString highestSortingString;
+
+  private List<Action> onWaveDoneActions = null;
 
   // The argument `appView` is only available when full program optimizations are allowed
   // (i.e., when running R8).
@@ -549,7 +552,8 @@ public class IRConverter {
       callGraph.forEachMethod(
           (method, isProcessedConcurrently) ->
               processMethod(method, feedback, isProcessedConcurrently, callGraph, outlineHandler),
-          feedback::updateVisibleOptimizationInfo,
+          this::waveStart,
+          this::waveDone,
           executorService);
       timing.end();
       assert graphLenseForIR == graphLense();
@@ -631,6 +635,30 @@ public class IRConverter {
         && builder.getSynthesizedClasses()
             .containsAll(appInfo.getSynthesizedClassesForSanityCheck());
     return builder.build();
+  }
+
+  private void waveStart() {
+    onWaveDoneActions = new ArrayList<>();
+  }
+
+  private void waveDone() {
+    delayedOptimizationFeedback.updateVisibleOptimizationInfo();
+    onWaveDoneActions.forEach(Action::execute);
+    onWaveDoneActions = null;
+  }
+
+  public void addWaveDoneAction(Action action) {
+    if (appView == null || !appView.enableWholeProgramOptimizations()) {
+      throw new Unreachable("addWaveDoneAction() should never be used in D8.");
+    }
+    if (!isInWave()) {
+      throw new Unreachable("Attempt to call addWaveDoneAction() outside of wave.");
+    }
+    onWaveDoneActions.add(action);
+  }
+
+  public boolean isInWave() {
+    return onWaveDoneActions != null;
   }
 
   private void computeReachabilitySensitivity(DexApplication application) {
