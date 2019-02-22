@@ -217,9 +217,6 @@ def find_min_xmx(options, args):
 
 def main(argv):
   (options, args) = ParseOptions(argv)
-  if not options.ignore_java_version:
-    utils.check_java_version()
-
   if options.run_all:
     return run_all(options, args)
   if options.find_min_xmx:
@@ -236,6 +233,9 @@ def run_with_options(options, args, extra_args=None):
   if options.golem:
     golem.link_third_party()
     options.out = os.getcwd()
+  if not options.ignore_java_version:
+    utils.check_java_version()
+
   outdir = options.out
   data = None
   if options.app == 'gmscore':
