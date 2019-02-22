@@ -8,17 +8,18 @@ import os
 import sys
 
 LINKED_THIRD_PARTY_DIRECTORIES = [
-    'framework',
-    'benchmarks',
-    'gradle-plugin',
-    'gradle',
     'android_jar',
-    'proguardsettings',
-    'gmscore',
-    'youtube',
+    'benchmarks',
+    'framework',
     'gmail',
-    'r8',
+    'gmscore',
+    'gradle',
+    'gradle-plugin',
     'openjdk',
+    'opensource_apps',
+    'proguardsettings',
+    'r8',
+    'youtube',
 ]
 
 # Path to our internally updated third party
