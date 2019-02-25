@@ -20,7 +20,7 @@ public class ExtraMethodNullTest extends TestBase {
         .addProgramClassesAndInnerClasses(One.class)
         .addKeepMainRule(One.class)
         .run(One.class)
-        .assertFailureWithErrorThatMatches(containsString("java.lang.NullPointerException:"));
+        .assertFailureWithErrorThatMatches(containsString("java.lang.NullPointerException"));
   }
 
   public static class One {
