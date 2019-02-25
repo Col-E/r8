@@ -143,6 +143,7 @@ public class DexItemFactory {
   public final DexString compareToMethodName = createString("compareTo");
   public final DexString compareToIgnoreCaseMethodName = createString("compareToIgnoreCase");
   public final DexString cloneMethodName = createString("clone");
+  public final DexString substringName = createString("substring");
 
   public final DexString valueOfMethodName = createString("valueOf");
   public final DexString toStringMethodName = createString("toString");

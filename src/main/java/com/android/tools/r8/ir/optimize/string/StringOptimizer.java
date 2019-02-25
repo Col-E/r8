@@ -66,6 +66,8 @@ public class StringOptimizer {
   // int String#lastIndexOf(int)
   // int String#compareTo(String)
   // int String#compareToIgnoreCase(String)
+  // String String#substring(int)
+  // String String#substring(int, int)
   public void computeTrivialOperationsOnConstString(IRCode code) {
     if (!code.hasConstString) {
       return;
@@ -77,7 +79,55 @@ public class StringOptimizer {
         continue;
       }
       InvokeVirtual invoke = instr.asInvokeVirtual();
+      if (!invoke.hasOutValue()) {
+        continue;
+      }
       DexMethod invokedMethod = invoke.getInvokedMethod();
+      if (invokedMethod.name == appInfo.dexItemFactory.substringName) {
+        assert invoke.inValues().size() == 2 || invoke.inValues().size() == 3;
+        Value rcv = invoke.getReceiver().getAliasedValue();
+        if (rcv.definition == null
+            || !rcv.definition.isConstString()
+            || rcv.hasLocalInfo()) {
+          continue;
+        }
+        Value beginIndex = invoke.inValues().get(1).getAliasedValue();
+        if (beginIndex.definition == null
+            || !beginIndex.definition.isConstNumber()
+            || beginIndex.hasLocalInfo()) {
+          continue;
+        }
+        int beginIndexValue = beginIndex.definition.asConstNumber().getIntValue();
+        Value endIndex = null;
+        if (invoke.inValues().size() == 3) {
+          endIndex = invoke.inValues().get(2).getAliasedValue();
+          if (endIndex.definition == null
+              || !endIndex.definition.isConstNumber()
+              || endIndex.hasLocalInfo()) {
+            continue;
+          }
+        }
+        String rcvString = rcv.definition.asConstString().getValue().toString();
+        int endIndexValue =
+            endIndex == null
+                ? rcvString.length()
+                : endIndex.definition.asConstNumber().getIntValue();
+        if (beginIndexValue < 0
+            || endIndexValue > rcvString.length()
+            || beginIndexValue > endIndexValue) {
+          // This will raise StringIndexOutOfBoundsException.
+          continue;
+        }
+        String sub = rcvString.substring(beginIndexValue, endIndexValue);
+        Value stringValue =
+            code.createValue(
+                TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
+                invoke.getLocalInfo());
+        it.replaceCurrentInstruction(
+            new ConstString(stringValue, factory.createString(sub), throwingInfo));
+        continue;
+      }
+
       Function<String, Integer> operatorWithNoArg = null;
       BiFunction<String, String, Integer> operatorWithString = null;
       BiFunction<String, Integer, Integer> operatorWithInt = null;
@@ -115,7 +165,7 @@ public class StringOptimizer {
       Value rcv = invoke.getReceiver().getAliasedValue();
       if (rcv.definition == null
           || !rcv.definition.isConstString()
-          || !rcv.isConstant()) {
+          || rcv.hasLocalInfo()) {
         continue;
       }
       DexString rcvString = rcv.definition.asConstString().getValue();
@@ -130,7 +180,7 @@ public class StringOptimizer {
         Value arg = invoke.inValues().get(1).getAliasedValue();
         if (arg.definition == null
             || !arg.definition.isConstString()
-            || !arg.isConstant()) {
+            || arg.hasLocalInfo()) {
           continue;
         }
         int v = operatorWithString.apply(
@@ -143,7 +193,7 @@ public class StringOptimizer {
         Value arg = invoke.inValues().get(1).getAliasedValue();
         if (arg.definition == null
             || !arg.definition.isConstNumber()
-            || !arg.isConstant()) {
+            || arg.hasLocalInfo()) {
           continue;
         }
         int v = operatorWithInt.apply(
@@ -203,7 +253,7 @@ public class StringOptimizer {
       Value in = invoke.getReceiver().getAliasedValue();
       if (in.definition == null
           || !in.definition.isConstClass()
-          || !in.isConstant()) {
+          || in.hasLocalInfo()) {
         continue;
       }
 
