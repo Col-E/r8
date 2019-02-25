@@ -48,6 +48,7 @@ public abstract class RetraceTestBase extends TestBase {
         testForR8(backend)
             .setMode(mode)
             .enableProguardTestOptions()
+            .enableMergeAnnotations()
             .enableInliningAnnotations()
             .addProgramClasses(getClasses())
             .addKeepMainRule(getMainClass())
