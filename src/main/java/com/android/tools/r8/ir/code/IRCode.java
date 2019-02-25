@@ -681,9 +681,6 @@ public class IRCode {
   public boolean verifyNoImpreciseOrBottomTypes() {
     Predicate<Value> verifyValue =
         v -> {
-          assert !v.isNeverNull()
-              || (v.getTypeLattice().isReference()
-                  && v.getTypeLattice().nullability().isDefinitelyNotNull());
           assert v.getTypeLattice().isPreciseType();
           assert !v.getTypeLattice().isFineGrainedType();
           // For now we assume no bottom types on IR values. We may want to reconsider this for

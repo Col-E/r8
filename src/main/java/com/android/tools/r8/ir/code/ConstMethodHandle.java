@@ -23,7 +23,6 @@ public class ConstMethodHandle extends ConstInstruction {
 
   public ConstMethodHandle(Value dest, DexMethodHandle methodHandle) {
     super(dest);
-    dest.markNeverNull();
     this.methodHandle = methodHandle;
   }
 

@@ -25,7 +25,6 @@ public class NewArrayEmpty extends Instruction {
 
   public NewArrayEmpty(Value dest, Value size, DexType type) {
     super(dest, size);
-    dest.markNeverNull();
     this.type = type;
   }
 

@@ -207,8 +207,6 @@ public class Value {
   private Value previousConsecutive = null;
   private LiveIntervals liveIntervals;
   private int needsRegister = -1;
-  // TODO(b/72693244): deprecate once typeLattice is landed.
-  private boolean neverNull = false;
   private boolean isThis = false;
   private boolean isArgument = false;
   private boolean knownToBeBoolean = false;
@@ -762,33 +760,18 @@ public class Value {
     return null;
   }
 
-  public void markNeverNull() {
-    assert !neverNull;
-    neverNull = true;
-
-    // Propagate never null flag change.
-    for (Instruction user : users) {
-      Value value = user.outValue;
-      if (value != null && value.canBeNull() && user.computeNeverNull()) {
-        value.markNeverNull();
-      }
-    }
-    for (Phi phi : phiUsers) {
-      phi.recomputeNeverNull();
-    }
-  }
-
   /**
    * Returns whether this value is known to never be <code>null</code>.
    */
   public boolean isNeverNull() {
-    return neverNull
-        || (definition != null && definition.isNonNull())
-        || (typeLattice.isReference() && typeLattice.nullability().isDefinitelyNotNull());
+    assert typeLattice.isReference();
+    return (definition != null && definition.isNonNull())
+        || typeLattice.nullability().isDefinitelyNotNull();
   }
 
   public boolean canBeNull() {
-    return !neverNull;
+    assert typeLattice.isReference();
+    return typeLattice.nullability().isNullable();
   }
 
   public void markAsArgument() {
@@ -819,13 +802,10 @@ public class Value {
     return false;
   }
 
-  public void markAsThis(boolean receiverCanBeNull) {
+  public void markAsThis() {
     assert isArgument;
     assert !isThis;
     isThis = true;
-    if (!receiverCanBeNull) {
-      markNeverNull();
-    }
   }
 
   /**

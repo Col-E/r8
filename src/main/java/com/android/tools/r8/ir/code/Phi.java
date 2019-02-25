@@ -126,7 +126,6 @@ public class Phi extends Value implements InstructionOrPhi {
       appendOperand(operand);
     }
     removeTrivialPhi(builder);
-    recomputeNeverNull();
   }
 
   public void addOperands(List<Value> operands) {
@@ -147,21 +146,12 @@ public class Phi extends Value implements InstructionOrPhi {
     if (removeTrivialPhi) {
       removeTrivialPhi();
     }
-    recomputeNeverNull();
   }
 
   @Override
   public void markNonDebugLocalRead() {
     if (readType == RegisterReadType.DEBUG) {
       readType = RegisterReadType.NORMAL_AND_DEBUG;
-    }
-  }
-
-  // Implementation assumes that canBeNull may change to neverNull, but
-  // not other way around. This will need to be revised later.
-  void recomputeNeverNull() {
-    if (canBeNull() && operands.stream().allMatch(Value::isNeverNull)) {
-      markNeverNull();
     }
   }
 
@@ -187,10 +177,7 @@ public class Phi extends Value implements InstructionOrPhi {
 
   public void removeOperand(int index) {
     operands.get(index).removePhiUser(this);
-    Value value = operands.remove(index);
-    if (value.canBeNull()) {
-      recomputeNeverNull();
-    }
+    operands.remove(index);
   }
 
   public void removeOperandsByIndex(List<Integer> operandsToRemove) {
@@ -206,7 +193,6 @@ public class Phi extends Value implements InstructionOrPhi {
       current = i + 1;
     }
     operands.addAll(copy.subList(current, copy.size()));
-    recomputeNeverNull();
   }
 
   public void replaceOperandAt(int predIndex, Value newValue) {
@@ -214,9 +200,6 @@ public class Phi extends Value implements InstructionOrPhi {
     operands.set(predIndex, newValue);
     newValue.addPhiUser(this);
     current.removePhiUser(this);
-    if (current.canBeNull() && newValue.isNeverNull()) {
-      recomputeNeverNull();
-    }
   }
 
   void replaceOperand(Value current, Value newValue) {
@@ -225,9 +208,6 @@ public class Phi extends Value implements InstructionOrPhi {
         operands.set(i, newValue);
         newValue.addPhiUser(this);
       }
-    }
-    if (current.canBeNull() && newValue.isNeverNull()) {
-      recomputeNeverNull();
     }
   }
 

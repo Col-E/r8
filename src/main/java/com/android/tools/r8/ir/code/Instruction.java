@@ -74,12 +74,6 @@ public abstract class Instruction implements InstructionOrPhi {
     this.position = position;
   }
 
-  boolean computeNeverNull() {
-    // By default just return the flag from the out value since it never changes.
-    assert outValue != null;
-    return outValue.isNeverNull();
-  }
-
   public String getPositionAsString() {
     return position == null ? "???" : position.toString();
   }

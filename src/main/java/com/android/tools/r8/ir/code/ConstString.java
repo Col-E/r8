@@ -26,7 +26,6 @@ public class ConstString extends ConstInstruction {
 
   public ConstString(Value dest, DexString value, ThrowingInfo throwingInfo) {
     super(dest);
-    dest.markNeverNull();
     this.value = value;
     this.throwingInfo = throwingInfo;
   }

@@ -340,14 +340,14 @@ public class NonNullTracker {
   private boolean isNonNullCandidate(Value knownToBeNonNullValue) {
     TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
     return
-        // redundant
-        !knownToBeNonNullValue.isNeverNull()
+        // e.g., v <- non-null INT ?!
+        typeLattice.isReference()
         // v <- non-null NULL ?!
         && !typeLattice.isNullType()
         // v <- non-null known-to-be-non-null // redundant
         && typeLattice.isNullable()
-        // e.g., v <- non-null INT ?!
-        && typeLattice.isReference();
+        // redundant
+        && !knownToBeNonNullValue.isNeverNull();
   }
 
   public void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
