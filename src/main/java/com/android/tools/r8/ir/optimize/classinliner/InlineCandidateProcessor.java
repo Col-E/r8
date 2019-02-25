@@ -730,8 +730,17 @@ final class InlineCandidateProcessor {
     List<Value> arguments = Lists.newArrayList(invoke.inValues());
 
     // If we got here with invocation on receiver the user is ineligible.
-    if (invoke.isInvokeMethodWithReceiver() && arguments.get(0) == eligibleInstance) {
-      return false;
+    if (invoke.isInvokeMethodWithReceiver()) {
+      if (arguments.get(0) == eligibleInstance) {
+        return false;
+      }
+
+      // TODO(b/124842076) Extend this check to use checksNullReceiverBeforeAnySideEffect.
+      InvokeMethodWithReceiver invokeMethodWithReceiver = invoke.asInvokeMethodWithReceiver();
+      Value receiver = invokeMethodWithReceiver.getReceiver();
+      if (receiver.getTypeLattice().nullability().isNullable()) {
+        return false;
+      }
     }
 
     OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
