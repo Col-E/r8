@@ -437,6 +437,10 @@ allprojects {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
+// TODO(ricow): Remove debug prints
+println("NOTE: Current operating system: " + OperatingSystem.current())
+println("NOTE: Current operating system isWindows: " + OperatingSystem.current().isWindows())
+
 // Check if running with the JDK location from tools/jdk.py.
 if (OperatingSystem.current().isWindows()) {
     println "NOTE: Running with JDK: " + org.gradle.internal.jvm.Jvm.current().javaHome
@@ -452,6 +456,8 @@ if (OperatingSystem.current().isWindows()) {
         println("WARNING: Gradle is running in a non-pinned Java"
                 + ". Gradle Java Home: " + org.gradle.internal.jvm.Jvm.current().javaHome
                 + ". Expected: " + jdkHome)
+    } else {
+        println("NOTE: Running with jdk from tools/jdk.py: " + jdkHome)
     }
 }
 
