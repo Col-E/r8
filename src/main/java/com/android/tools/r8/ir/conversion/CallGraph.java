@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -497,14 +498,14 @@ public class CallGraph extends CallSiteInformation {
 
     private void addClassInitializerTarget(DexClass clazz) {
       assert clazz != null;
-      if (clazz.hasClassInitializer() && !clazz.isLibraryClass()) {
-        DexEncodedMethod possibleTarget = clazz.getClassInitializer();
-        addTarget(possibleTarget);
+      if (clazz.hasClassInitializer() && clazz.isProgramClass()) {
+        addTarget(clazz.getClassInitializer());
       }
     }
 
     private void addClassInitializerTarget(DexType type) {
-      DexClass clazz = appInfo.definitionFor(type.toBaseType(appInfo.dexItemFactory));
+      assert type.isClassType();
+      DexClass clazz = appInfo.definitionFor(type);
       if (clazz != null) {
         addClassInitializerTarget(clazz);
       }
@@ -540,15 +541,19 @@ public class CallGraph extends CallSiteInformation {
       DexEncodedMethod definition = appInfo.lookup(type, method, source.method.holder);
       if (definition != null) {
         assert !source.accessFlags.isBridge() || definition != caller.method;
-        DexClass definitionHolder = appInfo.definitionFor(definition.method.getHolder());
-        assert definitionHolder != null;
-        if (!definitionHolder.isLibraryClass()) {
-          addClassInitializerTarget(definitionHolder);
+        DexClass clazz = appInfo.definitionFor(definition.method.getHolder());
+        assert clazz != null;
+        if (clazz.isProgramClass()) {
+          // For static invokes, the class could be initialized.
+          if (type == Type.STATIC) {
+            addClassInitializerTarget(clazz);
+          }
+
           addTarget(definition);
           // For virtual and interface calls add all potential targets that could be called.
           if (type == Type.VIRTUAL || type == Type.INTERFACE) {
             Set<DexEncodedMethod> possibleTargets;
-            if (definitionHolder.isInterface()) {
+            if (clazz.isInterface()) {
               possibleTargets = appInfo.lookupInterfaceTargets(definition.method);
             } else {
               possibleTargets = appInfo.lookupVirtualTargets(definition.method);
@@ -561,7 +566,12 @@ public class CallGraph extends CallSiteInformation {
 
     private void processFieldAccess(DexField field) {
       // Any field access implicitly calls the class initializer.
-      addClassInitializerTarget(field.getHolder());
+      if (field.clazz.isClassType()) {
+        DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
+        if (encodedField != null && encodedField.isStatic()) {
+          addClassInitializerTarget(field.getHolder());
+        }
+      }
     }
 
     @Override
@@ -608,7 +618,9 @@ public class CallGraph extends CallSiteInformation {
 
     @Override
     public boolean registerNewInstance(DexType type) {
-      addClassInitializerTarget(type);
+      if (type.isClassType()) {
+        addClassInitializerTarget(type);
+      }
       return false;
     }
 
