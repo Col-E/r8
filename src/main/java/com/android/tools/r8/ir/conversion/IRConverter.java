@@ -638,7 +638,7 @@ public class IRConverter {
   }
 
   private void waveStart() {
-    onWaveDoneActions = new ArrayList<>();
+    onWaveDoneActions = Collections.synchronizedList(new ArrayList<>());
   }
 
   private void waveDone() {

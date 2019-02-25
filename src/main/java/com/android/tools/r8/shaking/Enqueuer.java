@@ -2024,7 +2024,7 @@ public class Enqueuer {
      * Set of all static fields that are only written inside the <clinit>() method of their
      * enclosing class.
      */
-    public SortedSet<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer;
+    private SortedSet<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer;
     /**
      * Set of all field ids used in instance field reads, along with access context.
      */
@@ -2396,8 +2396,7 @@ public class Enqueuer {
       this.ordinalsMaps = ordinalsMaps;
     }
 
-    public AppInfoWithLiveness withoutStaticFieldsWrites(
-        Collection<DexField> noLongerWrittenFields) {
+    public AppInfoWithLiveness withoutStaticFieldsWrites(Set<DexField> noLongerWrittenFields) {
       if (noLongerWrittenFields.isEmpty()) {
         return this;
       }
@@ -2490,6 +2489,7 @@ public class Enqueuer {
     }
 
     public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexField field) {
+      assert isFieldWritten(field);
       return staticFieldsWrittenOnlyInEnclosingStaticInitializer.contains(field);
     }
 
