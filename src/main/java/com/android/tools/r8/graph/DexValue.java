@@ -147,11 +147,11 @@ public abstract class DexValue extends DexItem {
 
   /**
    * Whether creating this value as a default value for a field might trigger an allocation.
-   * <p>
-   * This is conservative. It also considers allocations due to class loading when referencing a
+   *
+   * <p>This is conservative. It also considers allocations due to class loading when referencing a
    * field or method.
    */
-  public boolean mayTriggerAllocation() {
+  public boolean mayHaveSideEffects() {
     return true;
   }
 
@@ -177,7 +177,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public boolean mayTriggerAllocation() {
+    public boolean mayHaveSideEffects() {
       return true;
     }
 
@@ -232,7 +232,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public boolean mayTriggerAllocation() {
+    public boolean mayHaveSideEffects() {
       return false;
     }
 
@@ -745,6 +745,12 @@ public abstract class DexValue extends DexItem {
         return instruction;
       }
       return null;
+    }
+
+    @Override
+    public boolean mayHaveSideEffects() {
+      // Assuming that strings do not have side-effects.
+      return false;
     }
   }
 
