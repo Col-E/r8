@@ -94,9 +94,8 @@ def Main():
   if not utils.is_bot() and not options.dry_run:
     raise Exception('You are not a bot, don\'t archive builds')
 
-  if utils.is_old_bot():
-    print("Archiving is disabled on old bots, new bots are archiving, see " +
-          "https://ci.chromium.org/p/r8")
+  if utils.is_new_bot():
+    print("Archiving is disabled on new bots.")
     return
 
   # Create maven release which uses a build that exclude dependencies.
@@ -136,7 +135,7 @@ def Main():
     with open(version_file,'w') as version_writer:
       version_writer.write('version.sha=' + GetGitHash() + '\n')
       version_writer.write(
-          'releaser=go/r8bot (' + os.environ.get('SWARMING_BOT_ID') + ')\n')
+          'releaser=go/r8bot (' + os.environ.get('BUILDBOT_SLAVENAME') + ')\n')
       version_writer.write('version-file.version.code=1\n')
 
     for file in [
