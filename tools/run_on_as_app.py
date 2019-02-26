@@ -783,7 +783,7 @@ def main(argv):
     return
 
   with utils.TempDir() as temp_dir:
-    if not options.no_build or options.golem:
+    if not (options.no_build or options.golem):
       gradle.RunGradle(['r8', 'r8lib'])
 
     if options.version:
