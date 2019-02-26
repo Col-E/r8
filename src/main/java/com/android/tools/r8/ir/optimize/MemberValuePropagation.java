@@ -100,6 +100,9 @@ public class MemberValuePropagation {
         Value value = code.createValue(typeLattice, instruction.getLocalInfo());
         replacement =
             staticField.getStaticValue().asConstInstruction(false, value, appView.options());
+        if (replacement.isDexItemBasedConstString()) {
+          code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
+        }
       } else {
         throw new CompilationError(field.clazz.toSourceString() + "." + field.name.toString()
             + " used in assumevalues rule does not exist.");
@@ -268,6 +271,9 @@ public class MemberValuePropagation {
     if (replacement != null) {
       affectedValues.add(replacement.outValue());
       iterator.replaceCurrentInstruction(replacement);
+      if (replacement.isDexItemBasedConstString()) {
+        code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
+      }
       return;
     }
     ProguardMemberRuleLookup lookup = lookupMemberRule(target);

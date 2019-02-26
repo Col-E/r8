@@ -11,6 +11,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
@@ -779,6 +780,17 @@ public abstract class DexValue extends DexItem {
     @Override
     protected byte getValueKind() {
       return VALUE_STRING;
+    }
+
+    @Override
+    public Instruction asConstInstruction(
+        boolean hasClassInitializer, Value dest, InternalOptions options) {
+      DexItemBasedConstString instruction =
+          new DexItemBasedConstString(
+              dest, value, ThrowingInfo.defaultForConstString(options), classNameComputationInfo);
+      // DexItemBasedConstString cannot throw.
+      assert !instruction.instructionInstanceCanThrow();
+      return instruction;
     }
 
     @Override
