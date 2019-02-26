@@ -689,8 +689,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     assert !accessFlags.isStatic();
     Builder builder =
         builder(this).promoteToStatic().unsetOptimizationInfo().withoutThisParameter();
+    DexEncodedMethod method = builder.build();
+    method.copyMetadata(this);
     setObsolete();
-    return builder.build();
+    return method;
   }
 
   /**
