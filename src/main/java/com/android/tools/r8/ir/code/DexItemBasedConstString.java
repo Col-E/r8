@@ -35,7 +35,6 @@ public class DexItemBasedConstString extends ConstInstruction {
       ThrowingInfo throwingInfo,
       ClassNameComputationInfo classNameComputationInfo) {
     super(dest);
-    dest.markNeverNull();
     this.item = item;
     this.classNameComputationInfo = classNameComputationInfo;
     this.throwingInfo = throwingInfo;

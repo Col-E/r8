@@ -192,7 +192,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
                   receiver, Nullability.definitelyNotNull(), builder.getAppInfo()),
               NO_THROW);
       builder.add(new Argument(receiverValue));
-      receiverValue.markAsThis(false);
+      receiverValue.markAsThis();
     }
 
     // Fill in the Argument instructions in the argument block.

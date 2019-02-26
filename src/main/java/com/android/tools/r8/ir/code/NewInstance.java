@@ -28,7 +28,6 @@ public class NewInstance extends Instruction {
 
   public NewInstance(DexType clazz, Value dest) {
     super(dest);
-    dest.markNeverNull();
     assert clazz != null;
     this.clazz = clazz;
   }

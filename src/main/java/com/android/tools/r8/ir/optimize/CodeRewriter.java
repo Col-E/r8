@@ -1004,14 +1004,14 @@ public class CodeRewriter {
       return;
     }
     Value returnValue = firstExit.returnValue();
-    boolean isNeverNull = returnValue.isNeverNull();
+    boolean isNeverNull = returnValue.getTypeLattice().isReference() && returnValue.isNeverNull();
     for (int i = 1; i < normalExits.size(); i++) {
       Return exit = normalExits.get(i).exit().asReturn();
       Value value = exit.returnValue();
       if (value != returnValue) {
         returnValue = null;
       }
-      isNeverNull = isNeverNull && value.isNeverNull();
+      isNeverNull &= value.getTypeLattice().isReference() && value.isNeverNull();
     }
     if (returnValue != null) {
       if (returnValue.isArgument()) {
@@ -3225,10 +3225,10 @@ public class CodeRewriter {
           }
         } else if (theIf.isZeroTest() && !inValues.get(0).isConstNumber()
             && (theIf.getType() == Type.EQ || theIf.getType() == Type.NE)) {
-          if (inValues.get(0).isNeverNull()) {
+          TypeLatticeElement l = inValues.get(0).getTypeLattice();
+          if (l.isReference() && inValues.get(0).isNeverNull()) {
             simplifyIfWithKnownCondition(code, block, theIf, 1);
           } else {
-            TypeLatticeElement l = inValues.get(0).getTypeLattice();
             if (!l.isPrimitive() && !l.isNullable()) {
               simplifyIfWithKnownCondition(code, block, theIf, 1);
             }

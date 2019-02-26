@@ -29,15 +29,7 @@ public class CheckCast extends Instruction {
   // so that the source and destination are assigned the same register.
   public CheckCast(Value dest, Value value, DexType type) {
     super(dest, value);
-    if (value.isNeverNull()) {
-      dest.markNeverNull();
-    }
     this.type = type;
-  }
-
-  @Override
-  boolean computeNeverNull() {
-    return object().isNeverNull();
   }
 
   public DexType getType() {

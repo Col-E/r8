@@ -885,7 +885,7 @@ public class IRBuilder {
         TypeLatticeElement.fromDexType(method.method.getHolder(), nullability, appInfo);
     Value value = writeRegister(register, receiver, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
-    value.markAsThis(receiverCouldBeNull);
+    value.markAsThis();
   }
 
   public void addNonThisArgument(int register, TypeLatticeElement typeLattice) {

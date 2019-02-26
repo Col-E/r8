@@ -21,7 +21,6 @@ public class ConstMethodType extends ConstInstruction {
 
   public ConstMethodType(Value dest, DexProto methodType) {
     super(dest);
-    dest.markNeverNull();
     this.methodType = methodType;
   }
 

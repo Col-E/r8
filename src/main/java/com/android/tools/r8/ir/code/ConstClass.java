@@ -26,7 +26,6 @@ public class ConstClass extends ConstInstruction {
 
   public ConstClass(Value dest, DexType clazz) {
     super(dest);
-    dest.markNeverNull();
     this.clazz = clazz;
   }
 

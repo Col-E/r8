@@ -21,7 +21,6 @@ public class NonNull extends Instruction {
   public NonNull(Value dest, Value src, Instruction origin) {
     super(dest, src);
     assert !src.isNeverNull();
-    dest.markNeverNull();
     this.origin = origin;
   }
 

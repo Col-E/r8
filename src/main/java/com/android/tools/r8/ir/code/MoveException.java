@@ -26,7 +26,6 @@ public class MoveException extends Instruction {
     super(dest);
     this.exceptionType = exceptionType;
     this.options = options;
-    dest.markNeverNull();
   }
 
   public Value dest() {

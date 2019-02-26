@@ -21,16 +21,6 @@ public class Move extends Instruction {
 
   public Move(Value dest, Value src) {
     super(dest, src);
-    // CodeRewriter.removeOrReplaceByDebugLocalWrite() might add a Move to a dest that is already
-    // marked never-null. Avoid tripping assertion in markNeverNull() in that case.
-    if (src.isNeverNull() && dest.canBeNull()) {
-      dest.markNeverNull();
-    }
-  }
-
-  @Override
-  boolean computeNeverNull() {
-    return src().isNeverNull();
   }
 
   public Value dest() {
