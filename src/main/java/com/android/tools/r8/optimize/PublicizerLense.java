@@ -20,8 +20,6 @@ final class PublicizerLense extends NestedGraphLense {
   private final Set<DexMethod> publicizedMethods;
 
   private PublicizerLense(AppView appView, Set<DexMethod> publicizedMethods) {
-    // This lense does not map any DexItem's at all.
-    // It will just tweak invoke type for publicized methods from invoke-direct to invoke-virtual.
     super(
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -32,6 +30,13 @@ final class PublicizerLense extends NestedGraphLense {
         appView.dexItemFactory());
     this.appView = appView;
     this.publicizedMethods = publicizedMethods;
+  }
+
+  @Override
+  protected boolean isLegitimateToHaveEmptyMappings() {
+    // This lense does not map any DexItem's at all.
+    // It will just tweak invoke type for publicized methods from invoke-direct to invoke-virtual.
+    return true;
   }
 
   @Override
