@@ -814,6 +814,12 @@ public abstract class GraphLense {
     protected final BiMap<DexField, DexField> originalFieldSignatures;
     protected final BiMap<DexMethod, DexMethod> originalMethodSignatures;
 
+    // Overrides this if the sub type needs to be a nested lense while it doesn't have any mappings
+    // at all, e.g., publicizer lense that changes invocation type only.
+    protected boolean isLegitimateToHaveEmptyMappings() {
+      return false;
+    }
+
     public NestedGraphLense(
         Map<DexType, DexType> typeMap,
         Map<DexMethod, DexMethod> methodMap,
@@ -822,6 +828,8 @@ public abstract class GraphLense {
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLense previousLense,
         DexItemFactory dexItemFactory) {
+      assert !typeMap.isEmpty() || !methodMap.isEmpty() || !fieldMap.isEmpty()
+          || isLegitimateToHaveEmptyMappings();
       this.typeMap = typeMap.isEmpty() ? null : typeMap;
       this.methodMap = methodMap;
       this.fieldMap = fieldMap;
