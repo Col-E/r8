@@ -136,7 +136,7 @@ def Main():
     with open(version_file,'w') as version_writer:
       version_writer.write('version.sha=' + GetGitHash() + '\n')
       version_writer.write(
-          'releaser=go/r8bot (' + os.environ.get('BUILDBOT_SLAVENAME') + ')\n')
+          'releaser=go/r8bot (' + os.environ.get('SWARMING_BOT_ID') + ')\n')
       version_writer.write('version-file.version.code=1\n')
 
     for file in [
