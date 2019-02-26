@@ -93,18 +93,7 @@ public final class ClassAndMemberPublicizer {
     if (accessFlags.isPublic()) {
       return false;
     }
-
-    if (appView.dexItemFactory().isClassConstructor(encodedMethod.method)) {
-      return false;
-    }
-
-    if (!accessFlags.isPrivate()) {
-      accessFlags.promoteToPublic();
-      return false;
-    }
-    assert accessFlags.isPrivate();
-
-    if (appView.dexItemFactory().isConstructor(encodedMethod.method)) {
+    if (!accessFlags.isPrivate() || appView.dexItemFactory().isConstructor(encodedMethod.method)) {
       accessFlags.promoteToPublic();
       return false;
     }

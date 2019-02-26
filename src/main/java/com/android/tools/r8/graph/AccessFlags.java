@@ -65,7 +65,7 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
 
   public abstract int getAsDexAccessFlags();
 
-  public final int getOriginalCfAccessFlags() {
+  public final int getOriginalAccessFlags() {
     return originalFlags;
   }
 

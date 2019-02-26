@@ -150,10 +150,11 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
         if (lambda.staticFields().length != 1) {
           throw new LambdaStructureError("has static initializer, but no singleton field");
         }
-        checkAccessFlags("unexpected static initializer access flags",
-            method.accessFlags, CLASS_INITIALIZER_FLAGS);
+        checkAccessFlags(
+            "unexpected static initializer access flags",
+            method.accessFlags.getOriginalAccessFlags(),
+            CLASS_INITIALIZER_FLAGS);
         checkDirectMethodAnnotations(method);
-
       } else if (method.isStatic()) {
         throw new LambdaStructureError(
             "unexpected static method: " + method.method.toSourceString());
@@ -206,8 +207,14 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
   @SafeVarargs
   static <T extends AccessFlags> void checkAccessFlags(
       String message, T actual, T... expected) throws LambdaStructureError {
+    checkAccessFlags(message, actual.materialize(), expected);
+  }
+
+  @SafeVarargs
+  static <T extends AccessFlags> void checkAccessFlags(String message, int actual, T... expected)
+      throws LambdaStructureError {
     for (T flag : expected) {
-      if (flag.materialize() == actual.materialize()) {
+      if (actual == flag.materialize()) {
         return;
       }
     }
