@@ -56,6 +56,12 @@ class StringContentCheckTestMain {
       System.out.println(s1.lastIndexOf("ix"));
       System.out.println(s1.compareTo("prefix-CONST-suffix") == 0);
       System.out.println(s1.compareToIgnoreCase("PREFIX-const-SUFFIX") == 0);
+      // "prefix" exists
+      System.out.println(s1.substring(0, 6));
+      // "suffix" exists
+      System.out.println(s1.substring(13));
+      // "-suffix" doesn't.
+      System.out.println(s1.substring(12));
     }
 
     {
@@ -74,6 +80,7 @@ class StringContentCheckTestMain {
       System.out.println(s2.lastIndexOf("ix"));
       System.out.println(s2.compareTo("prefix-CONST-suffix") == 0);
       System.out.println(s2.compareToIgnoreCase("pre-con-suf") == 0);
+      System.out.println(s2.substring(13));
     }
 
     {
@@ -85,11 +92,21 @@ class StringContentCheckTestMain {
         // expected
       }
     }
+
+    {
+      try {
+        System.out.println("qwerty".substring(8));
+        fail("Should raise StringIndexOutOfBoundsException");
+      } catch (StringIndexOutOfBoundsException e) {
+        // expected
+      }
+    }
   }
 }
 
 @RunWith(Parameterized.class)
 public class StringContentCheckTest extends TestBase {
+  private static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
   private final Backend backend;
   private static final List<Class<?>> CLASSES = ImmutableList.of(
       NeverInline.class,
@@ -122,6 +139,12 @@ public class StringContentCheckTest extends TestBase {
       "true",
       // s1, compareToIgnoreCase(String)
       "true",
+      // s1, substring(int)
+      "prefix",
+      // s1, substring(int, int)
+      "suffix",
+      // s1, substring(int, int)
+      "-suffix",
       // s2, contains(String)
       "false",
       // s2, startsWith(String)
@@ -148,6 +171,8 @@ public class StringContentCheckTest extends TestBase {
       "false",
       // s2, compareToIgnoreCase(String)
       "false",
+      // s2, substring(int, int)
+      "SUFFIX",
       // argCouldBeNull
       "false"
   );
@@ -169,10 +194,10 @@ public class StringContentCheckTest extends TestBase {
   }
 
   private static boolean isStringContentChecker(DexMethod method) {
-    return method.getHolder().toDescriptorString().equals("Ljava/lang/String;")
-        && method.getArity() == 1
+    return method.getHolder().toDescriptorString().equals(STRING_DESCRIPTOR)
         && (method.proto.returnType.isBooleanType()
-            || method.proto.returnType.isIntType())
+            || method.proto.returnType.isIntType()
+            || method.proto.returnType.toDescriptorString().equals(STRING_DESCRIPTOR))
         && (method.name.toString().equals("contains")
             || method.name.toString().equals("startsWith")
             || method.name.toString().equals("endsWith")
@@ -182,7 +207,8 @@ public class StringContentCheckTest extends TestBase {
             || method.name.toString().equals("indexOf")
             || method.name.toString().equals("lastIndexOf")
             || method.name.toString().equals("compareTo")
-            || method.name.toString().equals("compareToIgnoreCase"));
+            || method.name.toString().equals("compareToIgnoreCase")
+            || method.name.toString().equals("substring"));
   }
 
   private long countStringContentChecker(MethodSubject method) {
@@ -218,14 +244,14 @@ public class StringContentCheckTest extends TestBase {
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 26);
+    test(result, 31);
 
     result = testForD8()
         .release()
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 14);
+    test(result, 16);
   }
 
   @Test
@@ -237,6 +263,6 @@ public class StringContentCheckTest extends TestBase {
         .addKeepMainRule(MAIN)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 14);
+    test(result, 16);
   }
 }
