@@ -25,7 +25,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
   }
 
   public RegisterMove(int dst, TypeLatticeElement type, Instruction definition) {
-    assert definition.isOutConstant() || definition.isArgument();
+    assert definition.isOutConstant();
     this.dst = dst;
     this.src = LiveIntervals.NO_REGISTER;
     this.definition = definition;

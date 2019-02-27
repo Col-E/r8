@@ -353,9 +353,18 @@ class SpillMoveSet {
       // Use rematerialization when possible and otherwise generate moves.
       if (move.from.isSpilledAndRematerializable()) {
         assert allocator.unadjustedRealRegisterFromAllocated(move.to.getRegister()) < 256;
-        scheduler.addMove(
-            new RegisterMove(move.to.getRegister(), move.type, move.from.getValue().definition));
-      } else if (move.to.getRegister() != move.from.getRegister()) {
+        Instruction definition = move.from.getValue().definition;
+        if (definition.isOutConstant()) {
+          scheduler.addMove(new RegisterMove(move.to.getRegister(), move.type, definition));
+          continue;
+        } else {
+          // The src value is an argument, so we must create a register move that has a src
+          // register, using the code below, to ensure that other moves that have the argument
+          // register as dest are blocked by this move.
+          assert definition.isArgument();
+        }
+      }
+      if (move.to.getRegister() != move.from.getRegister()) {
         // In case the runtime might have a bound-check elimination bug we make sure to define all
         // indexing constants with an actual const instruction rather than a move. This appears to
         // avoid a bug where the index variable could end up being uninitialized.
