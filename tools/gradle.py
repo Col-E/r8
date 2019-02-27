@@ -31,7 +31,9 @@ def ParseOptions():
   return parser.parse_known_args()
 
 def GetJavaEnv(env):
-  return dict(env if env else os.environ, JAVA_HOME = jdk.GetJdkHome())
+  java_env = dict(env if env else os.environ, JAVA_HOME = jdk.GetJdkHome())
+  java_env['PATH'] = java_env['PATH'] + os.pathsep + os.path.join(jdk.GetJdkHome(), 'bin')
+  return java_env
 
 def PrintCmd(s):
   if type(s) is list:
