@@ -704,7 +704,8 @@ task CompatProguard(type: ShadowJar) {
 
 def baseR8CommandLine(args = []) {
     // Execute r8 commands against a stable r8 with relocated dependencies.
-    return ["java", "-ea", "-jar", r8WithRelocatedDeps.outputs.files[0]] + args
+    return [org.gradle.internal.jvm.Jvm.current().getJavaExecutable(),
+            "-ea", "-jar", r8WithRelocatedDeps.outputs.files[0]] + args
 }
 
 def r8CfCommandLine(input, output, pgconf, args = [], libs = []) {
