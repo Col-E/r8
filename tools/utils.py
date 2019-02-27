@@ -21,6 +21,7 @@ ANDROID_JAR = os.path.join(ANDROID_JAR_DIR, 'android.jar')
 TOOLS_DIR = defines.TOOLS_DIR
 REPO_ROOT = defines.REPO_ROOT
 THIRD_PARTY = defines.THIRD_PARTY
+ANDROID_SDK = os.path.join(THIRD_PARTY, 'android_sdk')
 MEMORY_USE_TMP_FILE = 'memory_use.tmp'
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 BUILD = os.path.join(REPO_ROOT, 'build')
@@ -69,13 +70,17 @@ OPENSOURCE_APPS_SHA_FILE = os.path.join(
     'third_party/opensource_apps.tar.gz.sha1')
 OPENSOURCE_APPS_FOLDER = os.path.join(REPO_ROOT, 'third_party/opensource_apps/')
 
-
-# Common environment setup.
+ANDROID_HOME_ENVIROMENT_NAME = "ANDROID_HOME"
+ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME = "ANDROID_TOOLS_VERSION"
 USER_HOME = os.path.expanduser('~')
-ANDROID_HOME = os.path.join(USER_HOME, 'Android', 'Sdk')
-ANDROID_BUILD_TOOLS_VERSION = '28.0.3'
-ANDROID_BUILD_TOOLS = os.path.join(
-    ANDROID_HOME, 'build-tools', ANDROID_BUILD_TOOLS_VERSION)
+
+def getAndroidHome():
+  return os.environ.get(
+      ANDROID_HOME_ENVIROMENT_NAME, os.path.join(USER_HOME, 'Android', 'Sdk'))
+
+def getAndroidBuildTools():
+  version = os.environ.get(ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME, '28.0.3')
+  return os.path.join(getAndroidHome(), 'build-tools', version)
 
 def Print(s, quiet=False):
   if quiet:
@@ -270,10 +275,9 @@ def download_file_from_cloud_storage(source, destination):
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 
-def create_archive(name):
-  return create_archive(name, [name])
-
-def create_archive(name, sources):
+def create_archive(name, sources=None):
+  if not sources:
+    sources = [name]
   tarname = '%s.tar.gz' % name
   with tarfile.open(tarname, 'w:gz') as tar:
     for source in sources:

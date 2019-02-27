@@ -88,7 +88,7 @@ def align(signed_apk, temp, quiet):
   aligned_apk = os.path.join(temp, 'aligned.apk')
   zipalign_path = (
       'zipalign' if 'build_tools' in os.environ.get('PATH')
-      else os.path.join(utils.ANDROID_BUILD_TOOLS, 'zipalign'))
+      else os.path.join(utils.getAndroidBuildTools(), 'zipalign'))
   cmd = [
     zipalign_path,
     '-f',
