@@ -185,7 +185,7 @@ def ExtractMarker(apk, temp_dir, options):
     cmd = [jdk.GetJavaExecutable(), '-ea', '-jar', r8_jar, 'extractmarker', apk]
   elif os.path.isfile(r8lib_jar):
     cmd = [jdk.GetJavaExecutable(), '-ea', '-cp', r8lib_jar,
-        'com.android.tools.r8.SwissArmyKnife', 'extractmarker', apk]
+        'com.android.tools.r8.ExtractMarker', apk]
   else:
     script = os.path.join(utils.TOOLS_DIR, 'extractmarker.py')
     cmd = ['python', script, apk]
@@ -452,7 +452,7 @@ def BuildAppWithShrinker(
       app, config, checkout_dir, proguard_config_dest)
 
   env = {}
-  env['ANDROID_HOME'] = utils.ANDROID_HOME
+  env['ANDROID_HOME'] = utils.getAndroidHome()
   env['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
 
   releaseTarget = config.get('releaseTarget')
@@ -774,6 +774,9 @@ def main(argv):
     if os.path.exists(WORKING_DIR):
       shutil.rmtree(WORKING_DIR)
     shutil.copytree(utils.OPENSOURCE_APPS_FOLDER, WORKING_DIR)
+    os.environ[utils.ANDROID_HOME_ENVIROMENT_NAME] = os.path.join(
+        utils.ANDROID_SDK)
+    os.environ[utils.ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME] = '28.0.3'
 
   if not os.path.exists(WORKING_DIR):
     os.makedirs(WORKING_DIR)

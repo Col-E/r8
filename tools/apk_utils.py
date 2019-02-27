@@ -26,7 +26,7 @@ def sign(unsigned_apk, signed_apk, keystore, quiet=False):
 def sign_with_apksigner(
     unsigned_apk, signed_apk, keystore, password='android', quiet=False):
   cmd = [
-    os.path.join(utils.ANDROID_BUILD_TOOLS, 'apksigner'),
+    os.path.join(utils.getAndroidBuildTools(), 'apksigner'),
     'sign',
     '-v',
     '--ks', keystore,

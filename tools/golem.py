@@ -9,6 +9,7 @@ import sys
 
 LINKED_THIRD_PARTY_DIRECTORIES = [
     'android_jar',
+    'android_sdk',
     'benchmarks',
     'framework',
     'gmail',

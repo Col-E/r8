@@ -13,9 +13,8 @@ BUILD_TARGETS = ['downloadDeps', 'downloadAndroidCts', 'downloadDx']
 
 def Main():
   gradle.RunGradle(BUILD_TARGETS)
-  # Download opensource_apps and place in build.
   utils.DownloadFromX20(utils.OPENSOURCE_APPS_SHA_FILE)
-
+  utils.DownloadFromX20(utils.ANDROID_SDK + '.tar.gz.sha1')
 
 if __name__ == '__main__':
   sys.exit(Main())
