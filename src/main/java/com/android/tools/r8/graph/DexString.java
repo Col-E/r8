@@ -23,7 +23,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     this.content = content;
   }
 
-  public DexString(String string) {
+  DexString(String string) {
     this.size = string.length();
     this.content = encodeToMutf8(string);
   }
