@@ -4,6 +4,8 @@ dx.bat has been modified so that the code that checks if 'java' if on current pa
 is removed and replaced by a direct reference to it.
 This is done because this relies on a tool found in the SDK and not present in the
 current package.
+Also, the deprecated java.ext.dirs argument has been removed.
+
 Diff:
 
 26,29c26,29
@@ -19,7 +21,7 @@ Diff:
 87c87
 < call "%java_exe%" %javaOpts% -Djava.ext.dirs="%frameworkdir%" -jar "%jarpath%" %params%
 ---
-> call java %javaOpts% -Djava.ext.dirs="%frameworkdir%" -jar "%jarpath%" %params%
+> call java %javaOpts% -jar "%jarpath%" %params%
 
 dexmerger.bat has been copied from dx.bat, and the command line has been updated
 according to the SDK dexmerger bash script to call the right class.
