@@ -94,8 +94,8 @@ def Main():
   if not utils.is_bot() and not options.dry_run:
     raise Exception('You are not a bot, don\'t archive builds')
 
-  if utils.is_new_bot():
-    print("Archiving is disabled on new bots.")
+  if utils.is_old_bot():
+    print("Archiving is disabled on old bots.")
     return
 
   # Create maven release which uses a build that exclude dependencies.

@@ -193,6 +193,9 @@ def fetch_and_print_logs(hash):
         print('\n\n%s had value:\n%s' % (to_print, value))
 
 def run_bot():
+  if utils.is_old_bot():
+    print('Not running on on old bot, please see: https://ci.chromium.org/p/r8')
+    return
   print_magic_file_state()
   # Ensure that there is nothing currently scheduled (broken/stopped run)
   for magic in ALL_MAGIC:
