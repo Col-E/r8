@@ -63,6 +63,7 @@ import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -530,6 +531,9 @@ public class R8 {
       new SourceFileRewriter(appView.appInfo(), options).run();
       timing.end();
 
+      // Collect the already pruned types before creating a new app info without liveness.
+      Set<DexType> prunedTypes = appView.withLiveness().appInfo().getPrunedTypes();
+
       if (!options.mainDexKeepRules.isEmpty()) {
         appView.setAppInfo(new AppInfoWithSubtyping(application));
         // No need to build a new main dex root set
@@ -593,7 +597,9 @@ public class R8 {
             appViewWithLiveness.setAppInfo(
                 appViewWithLiveness
                     .appInfo()
-                    .prunedCopyFrom(application, pruner.getRemovedClasses()));
+                    .prunedCopyFrom(
+                        application,
+                        CollectionUtils.mergeSets(prunedTypes, pruner.getRemovedClasses())));
 
             // Print reasons on the application after pruning, so that we reflect the actual result.
             if (whyAreYouKeepingConsumer != null) {

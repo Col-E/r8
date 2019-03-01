@@ -161,6 +161,9 @@ public class GenericSignatureRewriter {
     public DexType parsedTypeName(String name) {
       DexType type = appInfo.dexItemFactory.createType(getDescriptorFromClassBinaryName(name));
       type = appView.graphLense().lookupType(type);
+      if (appInfo.wasPruned(type)) {
+        type = appInfo.dexItemFactory.objectType;
+      }
       DexString renamedDescriptor = renaming.getOrDefault(type, type.descriptor);
       renamedSignature.append(getClassBinaryNameFromDescriptor(renamedDescriptor.toString()));
       return type;

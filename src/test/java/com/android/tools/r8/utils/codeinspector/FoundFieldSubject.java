@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.naming.MemberNaming;
@@ -125,6 +126,14 @@ public class FoundFieldSubject extends FieldSubject {
   @Override
   public String getFinalSignatureAttribute() {
     return codeInspector.getFinalSignatureAttribute(dexField.annotations);
+  }
+
+  @Override
+  public AnnotationSubject annotation(String name) {
+    DexAnnotation annotation = codeInspector.findAnnotation(name, dexField.annotations);
+    return annotation == null
+        ? new AbsentAnnotationSubject()
+        : new FoundAnnotationSubject(annotation);
   }
 
   @Override
