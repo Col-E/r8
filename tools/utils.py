@@ -496,3 +496,10 @@ def is_bot():
 
 def uncompressed_size(path):
   return sum(z.file_size for z in zipfile.ZipFile(path).infolist())
+
+def getR8Version(path):
+  cmd = [jdk.GetJavaExecutable(), '-cp', path, 'com.android.tools.r8.R8',
+        '--version']
+  output = subprocess.check_output(cmd, stderr = subprocess.STDOUT)
+  # output is on form 'R8 <version>' so we just strip of 'R8 '.
+  return output.splitlines()[0][3:]

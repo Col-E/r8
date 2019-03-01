@@ -26,6 +26,7 @@ def ParseOptions():
   return result.parse_args()
 
 def GetToolVersion(jar_path):
+  # TODO(mkroghj) This would not work for r8-lib, maybe use utils.getR8Version.
   output = subprocess.check_output([
     jdk.GetJavaExecutable(), '-jar', jar_path, '--version'
   ])

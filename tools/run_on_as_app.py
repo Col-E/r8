@@ -198,12 +198,15 @@ def ExtractMarker(apk, temp_dir, options):
   assert len(lines) >= 1
   return lines[-1]
 
-def CheckIsBuiltWithExpectedR8(apk, temp_dir, options):
+def CheckIsBuiltWithExpectedR8(apk, temp_dir, shrinker, options):
   marker = ExtractMarker(apk, temp_dir, options)
   expected_version = (
       options.version
       if options.version
-      else create_maven_release.determine_version())
+      else utils.getR8Version(
+          os.path.join(
+              temp_dir,
+              'r8lib.jar' if IsMinifiedR8(shrinker) else 'r8.jar')))
   if marker.startswith('~~R8'):
     actual_version = json.loads(marker[4:]).get('version')
     if actual_version == expected_version:
@@ -509,7 +512,7 @@ def BuildAppWithShrinker(
     as_utils.MoveFile(unsigned_apk, apk_dest, quiet=options.quiet)
 
   assert ('r8' not in shrinker
-      or CheckIsBuiltWithExpectedR8(apk_dest, temp_dir, options))
+      or CheckIsBuiltWithExpectedR8(apk_dest, temp_dir, shrinker, options))
 
   profile_dest_dir = os.path.join(out_dir, 'profile')
   as_utils.MoveProfileReportTo(profile_dest_dir, stdout, quiet=options.quiet)
