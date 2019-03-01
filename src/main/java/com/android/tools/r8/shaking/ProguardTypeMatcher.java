@@ -168,7 +168,7 @@ public abstract class ProguardTypeMatcher {
 
     @Override
     public boolean matches(DexType type) {
-      throw new IllegalStateException();
+      return true;
     }
 
     @Override
