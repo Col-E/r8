@@ -60,6 +60,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.IfRuleEvaluator;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
@@ -2255,7 +2256,7 @@ public class Enqueuer {
       this.prunedTypes =
           removedClasses == null
               ? previous.prunedTypes
-              : mergeSets(previous.prunedTypes, removedClasses);
+              : CollectionUtils.mergeSets(previous.prunedTypes, removedClasses);
       this.switchMaps = previous.switchMaps;
       this.ordinalsMaps = previous.ordinalsMaps;
       assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
@@ -2310,7 +2311,8 @@ public class Enqueuer {
       // after second tree shaking.
       this.callSites = previous.callSites;
       this.brokenSuperInvokes = lense.rewriteMethodsConservatively(previous.brokenSuperInvokes);
-      this.prunedTypes = rewriteItems(previous.prunedTypes, lense::lookupType);
+      // Don't rewrite pruned types - the removed types are identified by their original name.
+      this.prunedTypes = previous.prunedTypes;
       this.mayHaveSideEffects =
           rewriteReferenceKeys(previous.mayHaveSideEffects, lense::lookupReference);
       this.noSideEffects = rewriteReferenceKeys(previous.noSideEffects, lense::lookupReference);
@@ -2561,13 +2563,6 @@ public class Enqueuer {
       return instantiatedLambdas.contains(type);
     }
 
-    private static <T> Set<T> mergeSets(Collection<T> first, Collection<T> second) {
-      ImmutableSet.Builder<T> builder = ImmutableSet.builder();
-      builder.addAll(first);
-      builder.addAll(second);
-      return builder.build();
-    }
-
     @Override
     public boolean hasLiveness() {
       return true;
@@ -2606,6 +2601,10 @@ public class Enqueuer {
      */
     public boolean wasPruned(DexType type) {
       return prunedTypes.contains(type);
+    }
+
+    public Set<DexType> getPrunedTypes() {
+      return prunedTypes;
     }
 
     public DexEncodedMethod lookup(Type type, DexMethod target, DexType invocationContext) {

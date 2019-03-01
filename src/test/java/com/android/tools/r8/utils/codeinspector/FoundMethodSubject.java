@@ -288,5 +288,4 @@ public class FoundMethodSubject extends MethodSubject {
         ? new AbsentAnnotationSubject()
         : new FoundAnnotationSubject(annotation);
   }
-
 }

@@ -90,4 +90,9 @@ public class AbsentFieldSubject extends FieldSubject {
   public String getFinalSignatureAttribute() {
     return null;
   }
+
+  @Override
+  public AnnotationSubject annotation(String name) {
+    return new AbsentAnnotationSubject();
+  }
 }
