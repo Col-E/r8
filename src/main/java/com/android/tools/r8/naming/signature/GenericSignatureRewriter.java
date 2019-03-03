@@ -188,8 +188,16 @@ public class GenericSignatureRewriter {
         // Pick the renamed inner class from the fully renamed binary name.
         String fullRenamedBinaryName =
             getClassBinaryNameFromDescriptor(renamedDescriptor.toString());
-        renamedSignature.append(
-            fullRenamedBinaryName.substring(enclosingRenamedBinaryName.length() + 1));
+        int innerClassPos = enclosingRenamedBinaryName.length() + 1;
+        if (innerClassPos < fullRenamedBinaryName.length()) {
+          renamedSignature.append(fullRenamedBinaryName.substring(innerClassPos));
+        } else {
+          reporter.warning(
+              new StringDiagnostic(
+                  "Should have retained InnerClasses attribute of " + type + ".",
+                  appView.appInfo().originFor(type)));
+          renamedSignature.append(name);
+        }
       } else {
         // Did not find the class - keep the inner class name as is.
         // TODO(110085899): Warn about missing classes in signatures?

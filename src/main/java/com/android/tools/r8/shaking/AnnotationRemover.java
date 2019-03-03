@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -18,7 +19,12 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class AnnotationRemover {
 
@@ -26,12 +32,18 @@ public class AnnotationRemover {
   private final GraphLense lense;
   private final ProguardKeepAttributes keep;
   private final InternalOptions options;
+  private final Set<DexType> classesToRetainInnerClassAttributeFor;
 
-  public AnnotationRemover(AppInfoWithLiveness appInfo, GraphLense lense, InternalOptions options) {
+  public AnnotationRemover(
+      AppInfoWithLiveness appInfo,
+      GraphLense lense,
+      InternalOptions options,
+      Set<DexType> classesToRetainInnerClassAttributeFor) {
     this.appInfo = appInfo;
     this.lense = lense;
     this.keep = options.getProguardConfiguration().getKeepAttributes();
     this.options = options;
+    this.classesToRetainInnerClassAttributeFor = classesToRetainInnerClassAttributeFor;
   }
 
   /**
@@ -140,6 +152,79 @@ public class AnnotationRemover {
     return this;
   }
 
+  private static boolean hasGenericEnclosingClass(
+      DexProgramClass clazz,
+      Map<DexType, DexProgramClass> enclosingClasses,
+      Set<DexProgramClass> genericClasses) {
+    while (true) {
+      DexProgramClass enclosingClass = enclosingClasses.get(clazz.type);
+      if (enclosingClass == null) {
+        return false;
+      }
+      if (genericClasses.contains(enclosingClass)) {
+        return true;
+      }
+      clazz = enclosingClass;
+    }
+  }
+
+  private static boolean hasSignatureAnnotation(DexProgramClass clazz, DexItemFactory itemFactory) {
+    for (DexAnnotation annotation : clazz.annotations.annotations) {
+      if (DexAnnotation.isSignatureAnnotation(annotation, itemFactory)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public static Set<DexType> computeClassesToRetainInnerClassAttributeFor(
+      AppInfoWithLiveness appInfo, InternalOptions options) {
+    // In case of minification for certain inner classes we need to retain their InnerClass
+    // attributes because their minified name still needs to be in hierarchical format
+    // (enclosing$inner) otherwise the GenericSignatureRewriter can't produce the correct,
+    // renamed signature.
+
+    // More precisely:
+    // - we're going to retain the InnerClass attribute that refers to the same class as 'inner'
+    // - for live, inner, nonstatic classes
+    // - that are enclosed by a class with a generic signature.
+
+    // In compat mode we always keep all InnerClass attributes (if requested).
+    // If not requested we never keep any. In these cases don't compute eligible classes.
+    if (options.forceProguardCompatibility
+        || !options.getProguardConfiguration().getKeepAttributes().innerClasses) {
+      return Collections.emptySet();
+    }
+
+    // Build lookup table and set of the interesting classes.
+    // enclosingClasses.get(clazz) gives the enclosing class of 'clazz'
+    Map<DexType, DexProgramClass> enclosingClasses = new IdentityHashMap<>();
+    Set<DexProgramClass> genericClasses = Sets.newIdentityHashSet();
+
+    Iterable<DexProgramClass> programClasses = appInfo.classes();
+    for (DexProgramClass clazz : programClasses) {
+      if (hasSignatureAnnotation(clazz, options.itemFactory)) {
+        genericClasses.add(clazz);
+      }
+      for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
+        if ((innerClassAttribute.getAccess() & Constants.ACC_STATIC) == 0
+            && innerClassAttribute.getOuter() == clazz.type) {
+          enclosingClasses.put(innerClassAttribute.getInner(), clazz);
+        }
+      }
+    }
+
+    Set<DexType> result = Sets.newIdentityHashSet();
+    for (DexProgramClass clazz : programClasses) {
+      if (clazz.getInnerClassAttributeForThisClass() != null
+          && appInfo.liveTypes.contains(clazz.type)
+          && hasGenericEnclosingClass(clazz, enclosingClasses, genericClasses)) {
+        result.add(clazz.type);
+      }
+    }
+    return result;
+  }
+
   public void run() {
     for (DexProgramClass clazz : appInfo.classes()) {
       stripAttributes(clazz);
@@ -208,6 +293,15 @@ public class AnnotationRemover {
     return false;
   }
 
+  private static boolean hasInnerClassesFromSet(DexProgramClass clazz, Set<DexType> innerClasses) {
+    for (InnerClassAttribute attr : clazz.getInnerClasses()) {
+      if (attr.getOuter() == clazz.type && innerClasses.contains(attr.getInner())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private void stripAttributes(DexProgramClass clazz) {
     // If [clazz] is mentioned by a keep rule, it could be used for reflection, and we therefore
     // need to keep the enclosing method and inner classes attributes, if requested. In Proguard
@@ -215,15 +309,40 @@ public class AnnotationRemover {
     // To ensure reflection from both inner to outer and and outer to inner for kept classes - even
     // if only one side is kept - keep the attributes is any class mentioned in these attributes
     // is kept.
-    if (appInfo.isPinned(clazz.type)
-        || enclosingMethodPinned(clazz)
-        || innerClassPinned(clazz)
-        || options.forceProguardCompatibility) {
+    boolean keptAnyway =
+        appInfo.isPinned(clazz.type)
+            || enclosingMethodPinned(clazz)
+            || innerClassPinned(clazz)
+            || options.forceProguardCompatibility;
+    boolean keepForThisInnerClass = false;
+    boolean keepForThisEnclosingClass = false;
+    if (!keptAnyway) {
+      keepForThisInnerClass = classesToRetainInnerClassAttributeFor.contains(clazz.type);
+      keepForThisEnclosingClass =
+          hasInnerClassesFromSet(clazz, classesToRetainInnerClassAttributeFor);
+    }
+    if (keptAnyway || keepForThisInnerClass || keepForThisEnclosingClass) {
       if (!keep.enclosingMethod) {
         clazz.clearEnclosingMethod();
       }
       if (!keep.innerClasses) {
         clazz.clearInnerClasses();
+      } else if (!keptAnyway) {
+        // We're keeping this only because of classesToRetainInnerClassAttributeFor.
+        final boolean finalKeepForThisInnerClass = keepForThisInnerClass;
+        final boolean finalKeepForThisEnclosingClass = keepForThisEnclosingClass;
+        clazz.removeInnerClasses(
+            ica -> {
+              if (finalKeepForThisInnerClass && ica.getInner() == clazz.type) {
+                return false;
+              }
+              if (finalKeepForThisEnclosingClass
+                  && ica.getOuter() == clazz.type
+                  && classesToRetainInnerClassAttributeFor.contains(ica.getInner())) {
+                return false;
+              }
+              return true;
+            });
       }
     } else {
       // These attributes are only relevant for reflection, and this class is not used for
@@ -232,5 +351,4 @@ public class AnnotationRemover {
       clazz.clearInnerClasses();
     }
   }
-
 }

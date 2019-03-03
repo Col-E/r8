@@ -276,6 +276,7 @@ public class R8 {
       RootSet rootSet;
       String proguardSeedsData = null;
       timing.begin("Strip unused code");
+      Set<DexType> classesToRetainInnerClassAttributeFor = null;
       try {
         Set<DexType> missingClasses = appView.appInfo().getMissingClasses();
         missingClasses = filterMissingClasses(
@@ -352,7 +353,14 @@ public class R8 {
           new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
         }
 
-        new AnnotationRemover(appView.appInfo().withLiveness(), appView.graphLense(), options)
+        classesToRetainInnerClassAttributeFor =
+            AnnotationRemover.computeClassesToRetainInnerClassAttributeFor(
+                appView.appInfo().withLiveness(), options);
+        new AnnotationRemover(
+                appView.appInfo().withLiveness(),
+                appView.graphLense(),
+                options,
+                classesToRetainInnerClassAttributeFor)
             .ensureValid(compatibility)
             .run();
 
@@ -609,7 +617,12 @@ public class R8 {
               }
             }
             // Remove annotations that refer to types that no longer exist.
-            new AnnotationRemover(appView.appInfo().withLiveness(), appView.graphLense(), options)
+            assert classesToRetainInnerClassAttributeFor != null;
+            new AnnotationRemover(
+                    appView.appInfo().withLiveness(),
+                    appView.graphLense(),
+                    options,
+                    classesToRetainInnerClassAttributeFor)
                 .run();
             if (!mainDexClasses.isEmpty()) {
               // Remove types that no longer exists from the computed main dex list.
