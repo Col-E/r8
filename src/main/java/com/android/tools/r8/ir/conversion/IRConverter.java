@@ -950,7 +950,6 @@ public class IRConverter {
     previous = printMethod(code, "IR after null tracking (SSA)", previous);
 
     if (!isDebugMode && options.enableInlining && inliner != null) {
-      // TODO(zerny): Should we support inlining in debug mode? b/62937285
       inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
     }
 

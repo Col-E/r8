@@ -684,13 +684,11 @@ public final class R8Command extends BaseCompilerCommand {
       internal.getProguardConfiguration().getKeepAttributes().lineNumberTable = true;
       internal.getProguardConfiguration().getKeepAttributes().localVariableTable = true;
       internal.getProguardConfiguration().getKeepAttributes().localVariableTypeTable = true;
-      // TODO(zerny): Should we support inlining in debug mode? b/62937285
       internal.enableInlining = false;
       internal.enableClassInlining = false;
       internal.enableHorizontalClassMerging = false;
       internal.enableVerticalClassMerging = false;
       internal.enableClassStaticizer = false;
-      // TODO(zerny): Should we support outlining in debug mode? b/62937285
       internal.outline.enabled = false;
     }
 
