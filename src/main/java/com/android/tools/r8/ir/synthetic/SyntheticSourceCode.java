@@ -238,7 +238,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
   }
 
   @Override
-  public final CatchHandlers<Integer> getCurrentCatchHandlers() {
+  public final CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
     return null;
   }
 

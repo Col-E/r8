@@ -63,7 +63,7 @@ public interface SourceCode {
   // Helper to resolve fill-array data and build new-array instructions (dex code only).
   void resolveAndBuildNewArrayFilledData(int arrayRef, int payloadOffset, IRBuilder builder);
 
-  CatchHandlers<Integer> getCurrentCatchHandlers();
+  CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder);
 
   int getMoveExceptionRegister(int instructionIndex);
 

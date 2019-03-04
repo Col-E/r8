@@ -132,9 +132,7 @@ public class TrivialGotoEliminationTest {
         new Value(
             0,
             TypeLatticeElement.fromDexType(
-                DexItemFactory.catchAllType,
-                Nullability.definitelyNotNull(),
-                appInfo),
+                app.dexItemFactory.throwableType, Nullability.definitelyNotNull(), appInfo),
             null);
     instruction = new Argument(value);
     instruction.setPosition(position);

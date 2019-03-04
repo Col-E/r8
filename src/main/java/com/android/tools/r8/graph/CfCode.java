@@ -174,7 +174,9 @@ public class CfCode extends Code {
             start,
             end,
             target,
-            guard == DexItemFactory.catchAllType ? null : namingLens.lookupInternalName(guard));
+            guard == options.itemFactory.throwableType
+                ? null
+                : namingLens.lookupInternalName(guard));
       }
     }
     for (LocalVariableInfo localVariable : localVariables) {
@@ -280,9 +282,7 @@ public class CfCode extends Code {
     }
     for (CfTryCatch tryCatch : tryCatchRanges) {
       for (DexType guard : tryCatch.guards) {
-        if (guard != DexItemFactory.catchAllType) {
-          registry.registerTypeReference(guard);
-        }
+        registry.registerTypeReference(guard);
       }
     }
   }

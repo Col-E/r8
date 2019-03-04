@@ -2216,7 +2216,7 @@ public class IRBuilder {
     offsets.put(block, freshOffset);
 
     // Copy over the exceptional successors.
-    for (int offset : source.getCurrentCatchHandlers().getUniqueTargets()) {
+    for (int offset : source.getCurrentCatchHandlers(this).getUniqueTargets()) {
       info.addExceptionalSuccessor(offset);
       BlockInfo target = targets.get(offset);
       assert !target.block.isSealed();
@@ -2252,27 +2252,25 @@ public class IRBuilder {
     currentBlock.add(ir);
     if (ir.instructionTypeCanThrow()) {
       assert source.verifyCurrentInstructionCanThrow();
-      CatchHandlers<Integer> catchHandlers = source.getCurrentCatchHandlers();
+      CatchHandlers<Integer> catchHandlers = source.getCurrentCatchHandlers(this);
       if (catchHandlers != null) {
         assert !throwingInstructionInCurrentBlock;
         throwingInstructionInCurrentBlock = true;
         List<BasicBlock> targets = new ArrayList<>(catchHandlers.getAllTargets().size());
         Set<BasicBlock> moveExceptionTargets = Sets.newIdentityHashSet();
-        catchHandlers.forEach((type, targetOffset) -> {
-          DexType exceptionType = type == options.itemFactory.catchAllType
-              ? options.itemFactory.throwableType
-              : type;
-          BasicBlock header = new BasicBlock();
-          header.incrementUnfilledPredecessorCount();
-          ssaWorklist.add(
-              new MoveExceptionWorklistItem(
-                  header, exceptionType, currentInstructionOffset, targetOffset));
-          targets.add(header);
-          BasicBlock target = getTarget(targetOffset);
-          if (!moveExceptionTargets.add(target)) {
-            target.incrementUnfilledPredecessorCount();
-          }
-        });
+        catchHandlers.forEach(
+            (exceptionType, targetOffset) -> {
+              BasicBlock header = new BasicBlock();
+              header.incrementUnfilledPredecessorCount();
+              ssaWorklist.add(
+                  new MoveExceptionWorklistItem(
+                      header, exceptionType, currentInstructionOffset, targetOffset));
+              targets.add(header);
+              BasicBlock target = getTarget(targetOffset);
+              if (!moveExceptionTargets.add(target)) {
+                target.incrementUnfilledPredecessorCount();
+              }
+            });
         currentBlock.linkCatchSuccessors(catchHandlers.getGuards(), targets);
       }
     }

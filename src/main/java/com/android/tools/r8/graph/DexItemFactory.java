@@ -49,6 +49,8 @@ import java.util.function.Function;
 
 public class DexItemFactory {
 
+  public static final String throwableDescriptorString = "Ljava/lang/Throwable;";
+
   private final ConcurrentHashMap<DexString, DexString> strings = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<DexString, DexType> types = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<DexField, DexField> fields = new ConcurrentHashMap<>();
@@ -76,8 +78,6 @@ public class DexItemFactory {
 
   boolean sorted = false;
 
-  public static final DexType catchAllType = new DexType(new DexString("CATCH_ALL"));
-
   // Internal type containing only the null value.
   public static final DexType nullValueType = new DexType(new DexString("NULL"));
 
@@ -86,7 +86,6 @@ public class DexItemFactory {
   private static final IdentityHashMap<DexItem, DexItem> internalSentinels =
       new IdentityHashMap<>(
           ImmutableMap.of(
-              catchAllType, catchAllType,
               nullValueType, nullValueType,
               unknownTypeName, unknownTypeName));
 
@@ -178,7 +177,7 @@ public class DexItemFactory {
   public final DexString methodDescriptor = createString("Ljava/lang/reflect/Method;");
   public final DexString enumDescriptor = createString("Ljava/lang/Enum;");
   public final DexString annotationDescriptor = createString("Ljava/lang/annotation/Annotation;");
-  public final DexString throwableDescriptor = createString("Ljava/lang/Throwable;");
+  public final DexString throwableDescriptor = createString(throwableDescriptorString);
   public final DexString exceptionInInitializerErrorDescriptor =
       createString("Ljava/lang/ExceptionInInitializerError;");
   public final DexString objectsDescriptor = createString("Ljava/util/Objects;");

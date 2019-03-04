@@ -42,7 +42,6 @@ import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
@@ -803,7 +802,7 @@ public class DexBuilder {
         DexType type = handlerGroup.getGuards().get(i);
         BasicBlock target = handlerGroup.getAllTargets().get(i);
         int targetOffset = getInfo(target.entry()).getOffset();
-        if (type == DexItemFactory.catchAllType) {
+        if (type == options.itemFactory.throwableType) {
           assert i == handlerGroup.getGuards().size() - 1;
           catchAllOffset = targetOffset;
         } else {

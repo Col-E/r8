@@ -8,6 +8,7 @@ import static com.google.common.io.ByteStreams.toByteArray;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -205,11 +206,11 @@ public class CfFrontendExamplesTest extends TestBase {
   public void testRegress37658666() throws Exception {
     runTest(
         "regress_37658666.Regress",
-        (expectedBytes, actualBytes) -> {
+        (expected, actual) -> {
           // javac emits LDC(-0.0f) instead of the shorter FCONST_0 FNEG emitted by CfConstNumber.
           String ldc = "methodVisitor.visitLdcInsn(new Float(\"-0.0\"));";
           String constNeg = "methodVisitor.visitInsn(FCONST_0);\nmethodVisitor.visitInsn(FNEG);";
-          assertEquals(asmToString(expectedBytes).replace(ldc, constNeg), asmToString(actualBytes));
+          assertEquals(expected.replace(ldc, constNeg), actual);
         });
   }
 
@@ -294,10 +295,12 @@ public class CfFrontendExamplesTest extends TestBase {
   }
 
   private void runTest(String clazz) throws Exception {
-    runTest(clazz, null);
+    runTest(
+        clazz, (expected, actual) -> assertEquals("Class " + clazz + " differs", expected, actual));
   }
 
-  private void runTest(String clazz, BiConsumer<byte[], byte[]> comparator) throws Exception {
+  private void runTest(String clazz, BiConsumer<String, String> comparator) throws Exception {
+    assert comparator != null;
     String pkg = clazz.substring(0, clazz.lastIndexOf('.'));
     String suffix = "_debuginfo_all";
     Path inputJar = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, pkg + suffix + JAR_EXTENSION);
@@ -324,15 +327,28 @@ public class CfFrontendExamplesTest extends TestBase {
     for (String descriptor : expected.getClassDescriptors()) {
       byte[] expectedBytes = getClassAsBytes(expected, descriptor);
       byte[] actualBytes = getClassAsBytes(actual, descriptor);
-      if (comparator != null) {
-        comparator.accept(expectedBytes, actualBytes);
-      } else if (!Arrays.equals(expectedBytes, actualBytes)) {
-        assertEquals(
-            "Class " + descriptor + " differs",
-            asmToString(expectedBytes),
-            asmToString(actualBytes));
+      if (!Arrays.equals(expectedBytes, actualBytes)) {
+        String expectedString = replaceCatchThrowableByCatchAll(asmToString(expectedBytes));
+        String actualString = asmToString(actualBytes);
+        comparator.accept(expectedString, actualString);
       }
     }
+  }
+
+  private static String replaceCatchThrowableByCatchAll(String content) {
+    String catchThrowablePrefix = "methodVisitor.visitTryCatchBlock(";
+    String catchThrowableSuffix = ", \"java/lang/Throwable\");";
+    StringBuilder expected = new StringBuilder();
+    List<String> expectedLines = StringUtils.splitLines(content);
+    for (String line : expectedLines) {
+      if (line.startsWith(catchThrowablePrefix) && line.endsWith(catchThrowableSuffix)) {
+        expected.append(line.replace("\"java/lang/Throwable\"", "null"));
+      } else {
+        expected.append(line);
+      }
+      expected.append(StringUtils.LINE_SEPARATOR);
+    }
+    return expected.toString();
   }
 
   private static List<String> getSortedDescriptorList(ArchiveClassFileProvider inputJar) {

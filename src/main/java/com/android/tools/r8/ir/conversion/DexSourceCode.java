@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class DexSourceCode implements SourceCode {
 
@@ -202,14 +203,14 @@ public class DexSourceCode implements SourceCode {
   @Override
   public void buildInstruction(
       IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
-    updateCurrentCatchHandlers(instructionIndex);
+    updateCurrentCatchHandlers(instructionIndex, builder.getFactory());
     updateDebugPosition(instructionIndex, builder);
     currentDexInstruction = code.instructions[instructionIndex];
     currentDexInstruction.buildIR(builder);
   }
 
   @Override
-  public CatchHandlers<Integer> getCurrentCatchHandlers() {
+  public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
     return currentCatchHandlers;
   }
 
@@ -246,7 +247,7 @@ public class DexSourceCode implements SourceCode {
     return true;
   }
 
-  private void updateCurrentCatchHandlers(int instructionIndex) {
+  private void updateCurrentCatchHandlers(int instructionIndex, DexItemFactory factory) {
     Try tryRange = getTryForOffset(instructionOffset(instructionIndex));
     if (tryRange == currentTryRange) {
       return;
@@ -255,9 +256,7 @@ public class DexSourceCode implements SourceCode {
     if (tryRange == null) {
       currentCatchHandlers = null;
     } else {
-      currentCatchHandlers = new CatchHandlers<>(
-          getTryHandlerGuards(tryRange),
-          getTryHandlerOffsets(tryRange));
+      currentCatchHandlers = getCurrentCatchHandlers(factory, tryRange);
     }
   }
 
@@ -391,7 +390,7 @@ public class DexSourceCode implements SourceCode {
         }
         builder.ensureBlockWithoutEnqueuing(tryRangeStartAddress);
         // Edge to exceptional successors.
-        for (Integer handlerOffset : getUniqueTryHandlerOffsets(tryRange)) {
+        for (Integer handlerOffset : getUniqueTryHandlerOffsets(tryRange, builder.getFactory())) {
           builder.ensureExceptionalSuccessorBlock(offset, handlerOffset);
         }
         // If the following instruction is a move-result include it in this (the invokes) block.
@@ -437,31 +436,46 @@ public class DexSourceCode implements SourceCode {
     return null;
   }
 
-  private Set<Integer> getUniqueTryHandlerOffsets(Try tryRange) {
-    return new HashSet<>(getTryHandlerOffsets(tryRange));
-  }
-
-  private List<Integer> getTryHandlerOffsets(Try tryRange) {
-    List<Integer> handlerOffsets = new ArrayList<>();
-    TryHandler handler = code.handlers[tryRange.handlerIndex];
-    for (TypeAddrPair pair : handler.pairs) {
-      handlerOffsets.add(pair.addr);
-    }
-    if (handler.catchAllAddr != TryHandler.NO_HANDLER) {
-      handlerOffsets.add(handler.catchAllAddr);
-    }
-    return handlerOffsets;
-  }
-
-  private List<DexType> getTryHandlerGuards(Try tryRange) {
+  private CatchHandlers<Integer> getCurrentCatchHandlers(DexItemFactory factory, Try tryRange) {
     List<DexType> handlerGuards = new ArrayList<>();
+    List<Integer> handlerOffsets = new ArrayList<>();
+    forEachTryRange(
+        tryRange,
+        factory,
+        (type, addr) -> {
+          handlerGuards.add(type);
+          handlerOffsets.add(addr);
+        });
+    return new CatchHandlers<>(handlerGuards, handlerOffsets);
+  }
+
+  private void forEachTryRange(
+      Try tryRange, DexItemFactory factory, BiConsumer<DexType, Integer> fn) {
     TryHandler handler = code.handlers[tryRange.handlerIndex];
     for (TypeAddrPair pair : handler.pairs) {
-      handlerGuards.add(pair.type);
+      fn.accept(pair.type, pair.addr);
+      if (pair.type == factory.throwableType) {
+        return;
+      }
     }
     if (handler.catchAllAddr != TryHandler.NO_HANDLER) {
-      handlerGuards.add(DexItemFactory.catchAllType);
+      fn.accept(factory.throwableType, handler.catchAllAddr);
     }
-    return handlerGuards;
+
+  }
+
+  private Set<Integer> getUniqueTryHandlerOffsets(Try tryRange, DexItemFactory factory) {
+    return new HashSet<>(getTryHandlerOffsets(tryRange, factory));
+  }
+
+  private List<Integer> getTryHandlerOffsets(Try tryRange, DexItemFactory factory) {
+    List<Integer> handlerOffsets = new ArrayList<>();
+    forEachTryRange(
+        tryRange,
+        factory,
+        (type, addr) -> {
+          handlerOffsets.add(addr);
+        });
+    return handlerOffsets;
   }
 }

@@ -581,8 +581,7 @@ public class UninstantiatedTypeOptimization {
               // target.
               return;
             }
-            if (guard != dexItemFactory.catchAllType
-                && !dexItemFactory.npeType.isSubtypeOf(guard, appView.appInfo())) {
+            if (!dexItemFactory.npeType.isSubtypeOf(guard, appView.appInfo())) {
               // TODO(christofferqa): Consider updating previous dominator tree instead of
               // rebuilding it from scratch.
               DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
