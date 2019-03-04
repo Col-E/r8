@@ -193,6 +193,12 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isNewInstance(String type) {
+    return isNewInstance()
+        && ((CfNew) instruction).getType().toString().equals(type);
+  }
+
+  @Override
   public boolean isCheckCast() {
     return instruction instanceof CfCheckCast;
   }

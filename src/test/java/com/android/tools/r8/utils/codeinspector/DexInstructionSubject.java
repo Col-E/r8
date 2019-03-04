@@ -303,6 +303,12 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isNewInstance(String type) {
+    return isNewInstance()
+        && ((NewInstance) instruction).getType().toString().equals(type);
+  }
+
+  @Override
   public boolean isCheckCast() {
     return instruction instanceof CheckCast;
   }
