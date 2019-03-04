@@ -68,6 +68,8 @@ public interface InstructionSubject {
 
   boolean isNewInstance();
 
+  boolean isNewInstance(String type);
+
   boolean isCheckCast();
 
   boolean isCheckCast(String type);
