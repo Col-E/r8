@@ -1453,7 +1453,7 @@ public class Outliner {
     }
 
     @Override
-    public CatchHandlers<Integer> getCurrentCatchHandlers() {
+    public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
       return null;
     }
 

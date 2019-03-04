@@ -79,7 +79,8 @@ public class CfSourceCode implements SourceCode {
     static TryHandlerList computeTryHandlers(
         int instructionOffset,
         List<CfTryCatch> tryCatchRanges,
-        Reference2IntMap<CfLabel> labelOffsets) {
+        Reference2IntMap<CfLabel> labelOffsets,
+        DexItemFactory factory) {
       int startOffset = Integer.MIN_VALUE;
       int endOffset = Integer.MAX_VALUE;
       List<DexType> guards = new ArrayList<>();
@@ -103,7 +104,7 @@ public class CfSourceCode implements SourceCode {
           if (seen.add(guard)) {
             guards.add(guard);
             offsets.add(labelOffsets.getInt(tryCatch.targets.get(i)));
-            seenCatchAll = guard == DexItemFactory.catchAllType;
+            seenCatchAll = guard == factory.throwableType;
           }
         }
         if (seenCatchAll) {
@@ -266,7 +267,7 @@ public class CfSourceCode implements SourceCode {
     CfInstruction instruction = code.getInstructions().get(instructionIndex);
     assert builder.isGeneratingClassFiles() == internalOutputMode.isGeneratingClassFiles();
     if (canThrowHelper(instruction)) {
-      TryHandlerList tryHandlers = getTryHandlers(instructionIndex);
+      TryHandlerList tryHandlers = getTryHandlers(instructionIndex, builder.getFactory());
       if (!tryHandlers.isEmpty()) {
         // Ensure the block starts at the start of the try-range (don't enqueue, not a target).
         builder.ensureBlockWithoutEnqueuing(tryHandlers.startOffset);
@@ -295,11 +296,11 @@ public class CfSourceCode implements SourceCode {
     return -1;
   }
 
-  private TryHandlerList getTryHandlers(int instructionOffset) {
+  private TryHandlerList getTryHandlers(int instructionOffset, DexItemFactory factory) {
     if (cachedTryHandlerList == null || !cachedTryHandlerList.validFor(instructionOffset)) {
       cachedTryHandlerList =
           TryHandlerList.computeTryHandlers(
-              instructionOffset, code.getTryCatchRanges(), labelOffsets);
+              instructionOffset, code.getTryCatchRanges(), labelOffsets, factory);
     }
     return cachedTryHandlerList;
   }
@@ -623,8 +624,9 @@ public class CfSourceCode implements SourceCode {
   }
 
   @Override
-  public CatchHandlers<Integer> getCurrentCatchHandlers() {
-    TryHandlerList tryHandlers = getTryHandlers(instructionOffset(currentInstructionIndex));
+  public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
+    TryHandlerList tryHandlers =
+        getTryHandlers(instructionOffset(currentInstructionIndex), builder.getFactory());
     if (tryHandlers.isEmpty()) {
       return null;
     }

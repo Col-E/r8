@@ -9,7 +9,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
@@ -96,7 +95,11 @@ public class JarSourceCode implements SourceCode {
       this.handler = handler;
       this.start = start;
       this.end = end;
-      this.type = type;
+      this.type = type == null ? "java/lang/Throwable" : type;
+    }
+
+    boolean isCatchAll() {
+      return type.equals("java/lang/Throwable");
     }
 
     int getStart() {
@@ -617,7 +620,7 @@ public class JarSourceCode implements SourceCode {
   }
 
   @Override
-  public CatchHandlers<Integer> getCurrentCatchHandlers() {
+  public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
     if (generatingMethodSynchronization) {
       return null;
     }
@@ -811,7 +814,7 @@ public class JarSourceCode implements SourceCode {
     Set<String> seen = new HashSet<>();
     // The try-catch blocks are ordered by precedence.
     for (TryCatchBlock tryCatchBlock : getPotentialTryHandlers(insn)) {
-      if (tryCatchBlock.getType() == null) {
+      if (tryCatchBlock.isCatchAll()) {
         handlers.add(tryCatchBlock);
         return handlers;
       }
@@ -839,10 +842,10 @@ public class JarSourceCode implements SourceCode {
   private List<DexType> getTryHandlerGuards(List<TryCatchBlock> tryCatchBlocks) {
     List<DexType> guards = new ArrayList<>();
     for (TryCatchBlock tryCatchBlock : tryCatchBlocks) {
-      guards.add(tryCatchBlock.getType() == null
-          ? DexItemFactory.catchAllType
-          : application.getTypeFromName(tryCatchBlock.getType()));
-
+      guards.add(
+          tryCatchBlock.getType() == null
+              ? application.getFactory().throwableType
+              : application.getTypeFromName(tryCatchBlock.getType()));
     }
     return guards;
   }

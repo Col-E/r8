@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -180,9 +179,6 @@ public class DeadCodeRemover {
     for (int i = 0; i < catchHandlers.size(); ++i) {
       DexType guard = catchHandlers.getGuards().get(i);
       BasicBlock target = catchHandlers.getAllTargets().get(i);
-      if (guard == DexItemFactory.catchAllType) {
-        continue;
-      }
 
       // We can exploit subtyping information to eliminate a catch handler if the guard is
       // subsumed by a previous guard.

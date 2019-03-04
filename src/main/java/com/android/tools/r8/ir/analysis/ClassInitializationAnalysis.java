@@ -191,10 +191,6 @@ public class ClassInitializationAnalysis {
       }
 
       DexType guard = catchHandler.guard;
-      if (guard == DexItemFactory.catchAllType) {
-        return AnalysisAssumption.NONE;
-      }
-
       if (exceptionalExit.isInstanceGet()
           || exceptionalExit.isInstancePut()
           || exceptionalExit.isInvokeMethodWithReceiver()) {

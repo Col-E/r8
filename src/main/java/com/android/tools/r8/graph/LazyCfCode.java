@@ -819,7 +819,7 @@ public class LazyCfCode extends Code {
     public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
       List<DexType> guards =
           Collections.singletonList(
-              type == null ? DexItemFactory.catchAllType : createTypeFromInternalType(type));
+              type == null ? factory.throwableType : createTypeFromInternalType(type));
       List<CfLabel> targets = Collections.singletonList(getLabel(handler));
       tryCatchRanges.add(new CfTryCatch(getLabel(start), getLabel(end), guards, targets));
     }

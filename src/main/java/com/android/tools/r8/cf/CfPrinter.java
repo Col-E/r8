@@ -162,7 +162,7 @@ public class CfPrinter {
         assert guard != null;
         builder
             .append(".catch ")
-            .append(guard == DexItemFactory.catchAllType ? "all" : guard.getInternalName())
+            .append(guard.getInternalName()) // Do we wan't to write 'all' here?
             .append(" from ")
             .append(getLabel(tryCatch.start))
             .append(" to ")

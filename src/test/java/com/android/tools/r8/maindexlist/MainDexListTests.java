@@ -888,7 +888,7 @@ public class MainDexListTests extends TestBase {
     }
 
     @Override
-    public CatchHandlers<Integer> getCurrentCatchHandlers() {
+    public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
       return null;
     }
 

@@ -58,7 +58,7 @@ class CfTryCatchSubject implements TryCatchSubject {
 
   @Override
   public boolean hasCatchAll() {
-    return isCatching(DexItemFactory.catchAllType.toDescriptorString());
+    return isCatching(DexItemFactory.throwableDescriptorString);
   }
 
 }

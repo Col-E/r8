@@ -854,7 +854,8 @@ public class BasicBlock {
       List<DexType> guards = catchHandlers.getGuards();
       int lastGuardIndex = guards.size() - 1;
       for (int i = 0; i < guards.size(); i++) {
-        assert guards.get(i) != DexItemFactory.catchAllType || i == lastGuardIndex;
+        assert !guards.get(i).toDescriptorString().equals(DexItemFactory.throwableDescriptorString)
+            || i == lastGuardIndex;
       }
       // Check that all successors except maybe the last are catch successors.
       List<Integer> sortedHandlerIndices = new ArrayList<>(catchHandlers.getAllTargets());
@@ -1533,7 +1534,7 @@ public class BasicBlock {
       ListIterator<BasicBlock> blockIterator,
       BasicBlock fromBlock,
       InternalOptions options) {
-    if (catchHandlers != null && catchHandlers.hasCatchAll()) {
+    if (catchHandlers != null && catchHandlers.hasCatchAll(options.itemFactory)) {
       return;
     }
     List<BasicBlock> catchSuccessors = appendCatchHandlers(fromBlock);

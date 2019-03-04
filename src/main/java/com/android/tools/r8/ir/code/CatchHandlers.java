@@ -71,9 +71,9 @@ public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
     return uniqueTargets;
   }
 
-  public boolean hasCatchAll() {
-    return getGuards().size() > 0 &&
-        getGuards().get(getGuards().size() - 1) == DexItemFactory.catchAllType;
+  public boolean hasCatchAll(DexItemFactory factory) {
+    return getGuards().size() > 0
+        && getGuards().get(getGuards().size() - 1) == factory.throwableType;
   }
 
   public CatchHandlers<T> removeGuard(DexType guardToBeRemoved) {
