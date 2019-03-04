@@ -20,7 +20,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -104,7 +103,6 @@ public class StringToStringTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/119399513")
   public void testD8() throws Exception {
     assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
 
@@ -124,7 +122,6 @@ public class StringToStringTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/119399513")
   public void testR8() throws Exception {
     TestRunResult result = testForR8(backend)
         .addProgramClasses(CLASSES)
