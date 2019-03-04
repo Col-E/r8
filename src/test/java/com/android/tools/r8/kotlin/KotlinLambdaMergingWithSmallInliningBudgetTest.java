@@ -7,7 +7,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
 import org.junit.Test;
 
-public class KotlinLambdaMergingWithFailedInliningTest extends AbstractR8KotlinTestBase {
+public class KotlinLambdaMergingWithSmallInliningBudgetTest extends AbstractR8KotlinTestBase {
   private Consumer<InternalOptions> optionsModifier =
       o -> {
         o.enableTreeShaking = true;
