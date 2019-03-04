@@ -393,8 +393,8 @@ public class Enqueuer {
 
   private void enqueueFirstNonSerializableClassInitializer(DexClass clazz, KeepReason reason) {
     assert clazz.isProgramClass() && clazz.isSerializable(appInfo);
-    // Clime up the class hierarchy. Break out if the definition is not found, or hit the library
-    // classes, which are kept by definition, or encounter the first non-serializable class.
+    // Climb up the class hierarchy. Break out if the definition is not found, or hit the library
+    // classes which are kept by definition, or encounter the first non-serializable class.
     while (clazz != null && clazz.isProgramClass() && clazz.isSerializable(appInfo)) {
       clazz = appInfo.definitionFor(clazz.superType);
     }
