@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -19,6 +20,11 @@ public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
 
   private static final TestKotlinDataClass KOTLIN_INTRINSICS_CLASS =
       new TestKotlinDataClass("kotlin.jvm.internal.Intrinsics");
+
+  public R8KotlinIntrinsicsTest(
+      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
+    super(targetVersion, allowAccessModification);
+  }
 
   @Test
   public void testParameterNullCheckIsInlined() throws Exception {

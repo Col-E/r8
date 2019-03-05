@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -36,6 +37,11 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       TEST_DATA_CLASS.getCopyDefaultSignature();
 
   private Consumer<InternalOptions> disableClassInliner = o -> o.enableClassInlining = false;
+
+  public R8KotlinDataClassTest(
+      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
+    super(targetVersion, allowAccessModification);
+  }
 
   @Test
   public void test_dataclass_gettersOnly() throws Exception {

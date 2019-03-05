@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -63,6 +64,11 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   private Consumer<InternalOptions> disableClassStaticizer =
       opts -> opts.enableClassStaticizer = false;
+
+  public R8KotlinAccessorTest(
+      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
+    super(targetVersion, allowAccessModification);
+  }
 
   @Test
   public void testCompanionProperty_primitivePropertyIsAlwaysInlined() throws Exception {

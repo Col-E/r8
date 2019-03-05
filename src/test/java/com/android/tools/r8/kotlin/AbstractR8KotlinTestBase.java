@@ -4,15 +4,18 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.Code;
@@ -24,7 +27,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -32,7 +34,6 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,63 +43,65 @@ import java.util.function.Consumer;
 import org.junit.Assume;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public abstract class AbstractR8KotlinTestBase extends TestBase {
+public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
 
   // This is the name of the Jasmin-generated class which contains the "main" method which will
   // invoke the tested method.
   private static final String JASMIN_MAIN_CLASS = "TestMain";
 
-  @Parameter(0) public boolean allowAccessModification;
-  @Parameter(1) public KotlinTargetVersion targetVersion;
+  protected final boolean allowAccessModification;
 
   private final List<Path> classpath = new ArrayList<>();
   private final List<Path> extraClasspath = new ArrayList<>();
 
-  @Parameters(name = "allowAccessModification: {0} target: {1}")
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), KotlinTargetVersion.values());
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
+
+  protected AbstractR8KotlinTestBase(
+      KotlinTargetVersion kotlinTargetVersion, boolean allowAccessModification) {
+    super(kotlinTargetVersion);
+    this.allowAccessModification = allowAccessModification;
   }
 
   protected void addExtraClasspath(Path path) {
     extraClasspath.add(path);
   }
 
-  protected static void checkMethodIsInvokedAtLeastOnce(DexCode dexCode,
-      MethodSignature... methodSignatures) {
+  protected static void checkMethodIsInvokedAtLeastOnce(
+      DexCode dexCode, MethodSignature... methodSignatures) {
     for (MethodSignature methodSignature : methodSignatures) {
       checkMethodIsInvokedAtLeastOnce(dexCode, methodSignature);
     }
   }
 
-  private static void checkMethodIsInvokedAtLeastOnce(DexCode dexCode,
-      MethodSignature methodSignature) {
+  private static void checkMethodIsInvokedAtLeastOnce(
+      DexCode dexCode, MethodSignature methodSignature) {
     assertTrue("No invoke to '" + methodSignature.toString() + "'",
         Arrays.stream(dexCode.instructions)
             .filter((instr) -> instr.getMethod() != null)
             .anyMatch((instr) -> instr.getMethod().name.toString().equals(methodSignature.name)));
   }
 
-  protected static void checkMethodIsNeverInvoked(DexCode dexCode,
-      MethodSignature... methodSignatures) {
+  protected static void checkMethodIsNeverInvoked(
+      DexCode dexCode, MethodSignature... methodSignatures) {
     for (MethodSignature methodSignature : methodSignatures) {
       checkMethodIsNeverInvoked(dexCode, methodSignature);
     }
   }
 
-  private static void checkMethodIsNeverInvoked(DexCode dexCode,
-      MethodSignature methodSignature) {
+  private static void checkMethodIsNeverInvoked(DexCode dexCode, MethodSignature methodSignature) {
     assertTrue("At least one invoke to '" + methodSignature.toString() + "'",
         Arrays.stream(dexCode.instructions)
             .filter((instr) -> instr.getMethod() != null)
             .noneMatch((instr) -> instr.getMethod().name.toString().equals(methodSignature.name)));
   }
 
-  protected static void checkMethodsPresence(ClassSubject classSubject,
-      Map<MethodSignature, Boolean> presenceMap) {
+  protected static void checkMethodsPresence(
+      ClassSubject classSubject, Map<MethodSignature, Boolean> presenceMap) {
     presenceMap.forEach(((methodSignature, isPresent) -> {
       MethodSubject methodSubject = classSubject.method(methodSignature);
       String methodDesc = methodSignature.toString();
@@ -118,8 +121,8 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     return classSubject;
   }
 
-  protected FieldSubject checkFieldIsKept(ClassSubject classSubject, String fieldType,
-      String fieldName) {
+  protected FieldSubject checkFieldIsKept(
+      ClassSubject classSubject, String fieldType, String fieldName) {
     // Field must exist in the input.
     checkFieldPresenceInInput(classSubject.getOriginalName(), fieldType, fieldName, true);
     FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
@@ -128,8 +131,13 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     return fieldSubject;
   }
 
-  protected void checkFieldIsAbsent(ClassSubject classSubject, String fieldType,
-      String fieldName) {
+  protected FieldSubject checkFieldIsKept(ClassSubject classSubject, String fieldName) {
+    FieldSubject fieldSubject = classSubject.uniqueFieldWithName(fieldName);
+    assertThat(fieldSubject, isPresent());
+    return fieldSubject;
+  }
+
+  protected void checkFieldIsAbsent(ClassSubject classSubject, String fieldType, String fieldName) {
     // Field must NOT exist in the input.
     checkFieldPresenceInInput(classSubject.getOriginalName(), fieldType, fieldName, false);
     FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
@@ -137,32 +145,47 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     assertFalse(fieldSubject.isPresent());
   }
 
-  protected void checkMethodIsAbsent(ClassSubject classSubject,
-      MethodSignature methodSignature) {
+  protected FieldSubject checkFieldIsAbsent(ClassSubject classSubject, String fieldName) {
+    FieldSubject fieldSubject = classSubject.uniqueFieldWithName(fieldName);
+    assertThat(fieldSubject, not(isPresent()));
+    return fieldSubject;
+  }
+
+  protected void checkMethodIsAbsent(ClassSubject classSubject, MethodSignature methodSignature) {
     checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, false);
     checkMethodPresenceInOutput(classSubject, methodSignature, false);
   }
 
-  protected MethodSubject checkMethodIsKept(ClassSubject classSubject,
-      MethodSignature methodSignature) {
+  protected MethodSubject checkMethodIsKept(
+      ClassSubject classSubject, MethodSignature methodSignature) {
     checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
     return checkMethodIsKeptOrRemoved(classSubject, methodSignature, true);
   }
 
-  protected void checkMethodIsRemoved(ClassSubject classSubject,
-      MethodSignature methodSignature) {
+  protected MethodSubject checkMethodIsKept(ClassSubject classSubject, String methodName) {
+    MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
+    assertThat(methodSubject, isPresent());
+    return methodSubject;
+  }
+
+  protected void checkMethodIsRemoved(ClassSubject classSubject, MethodSignature methodSignature) {
     checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
     checkMethodIsKeptOrRemoved(classSubject, methodSignature, false);
   }
 
-  protected MethodSubject checkMethodIsKeptOrRemoved(ClassSubject classSubject,
-      MethodSignature methodSignature, boolean isPresent) {
+  protected void checkMethodIsRemoved(ClassSubject classSubject, String methodName) {
+    MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
+    assertThat(methodSubject, not(isPresent()));
+  }
+
+  protected MethodSubject checkMethodIsKeptOrRemoved(
+      ClassSubject classSubject, MethodSignature methodSignature, boolean isPresent) {
     checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
     return checkMethodPresenceInOutput(classSubject, methodSignature, isPresent);
   }
 
-  private MethodSubject checkMethodPresenceInOutput(ClassSubject classSubject,
-      MethodSignature methodSignature, boolean isPresent) {
+  private MethodSubject checkMethodPresenceInOutput(
+      ClassSubject classSubject, MethodSignature methodSignature, boolean isPresent) {
     MethodSubject methodSubject = classSubject.method(methodSignature);
     assertNotNull(methodSubject);
 
@@ -272,8 +295,8 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     }
   }
 
-  private void checkMethodPresenceInInput(String className, MethodSignature methodSignature,
-      boolean isPresent) {
+  private void checkMethodPresenceInInput(
+      String className, MethodSignature methodSignature, boolean isPresent) {
     boolean foundMethod = AsmUtils.doesMethodExist(classpath, className,
         methodSignature.name, methodSignature.toDescriptor());
     if (isPresent != foundMethod) {
@@ -285,8 +308,8 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     }
   }
 
-  private void checkFieldPresenceInInput(String className, String fieldType, String fieldName,
-      boolean isPresent) {
+  private void checkFieldPresenceInInput(
+      String className, String fieldType, String fieldName, boolean isPresent) {
     boolean foundField = AsmUtils.doesFieldExist(classpath, className, fieldName, fieldType);
     if (isPresent != foundField) {
       throw new AssertionError(
@@ -296,18 +319,8 @@ public abstract class AbstractR8KotlinTestBase extends TestBase {
     }
   }
 
-  private Path getKotlinJarFile(String folder) {
-    return Paths.get(ToolHelper.TESTS_BUILD_DIR, "kotlinR8TestResources",
-        targetVersion.getFolderName(), folder + FileUtils.JAR_EXTENSION);
-  }
-
-  private Path getJavaJarFile(String folder) {
-    return Paths.get(ToolHelper.TESTS_BUILD_DIR, "kotlinR8TestResources",
-        targetVersion.getFolderName(), folder + ".java" + FileUtils.JAR_EXTENSION);
-  }
-
   @FunctionalInterface
-  interface AndroidAppInspector {
+  public interface AndroidAppInspector {
 
     void inspectApp(AndroidApp androidApp) throws Exception;
   }

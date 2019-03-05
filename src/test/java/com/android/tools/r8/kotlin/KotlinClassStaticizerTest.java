@@ -9,12 +9,18 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 
 public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
+
+  public KotlinClassStaticizerTest(
+      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
+    super(targetVersion, allowAccessModification);
+  }
 
   @Test
   public void testCompanionAndRegularObjects() throws Exception {

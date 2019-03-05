@@ -16,7 +16,7 @@ import java.util.Map;
  *
  * <p>See https://kotlinlang.org/docs/reference/classes.html</p>
  */
-class TestKotlinClass {
+public class TestKotlinClass {
 
   /**
    * This is the suffix appended by Kotlin compiler to getter and setter method names of

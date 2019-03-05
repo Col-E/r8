@@ -5,6 +5,7 @@ package com.android.tools.r8.kotlin;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -17,6 +18,11 @@ import org.junit.Test;
 public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
   private static final String FOLDER = "non_null";
   private static final String STRING = "java.lang.String";
+
+  public SimplifyIfNotNullKotlinTest(
+      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
+    super(targetVersion, allowAccessModification);
+  }
 
   @Test
   public void test_example1() throws Exception {

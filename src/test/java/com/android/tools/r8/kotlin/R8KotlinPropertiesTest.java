@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.TestKotlinClass.KotlinProperty;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
@@ -89,6 +90,11 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
         o.enableVerticalClassMerging = false;
         o.enableClassStaticizer = false;
       };
+
+  public R8KotlinPropertiesTest(
+      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
+    super(targetVersion, allowAccessModification);
+  }
 
   @Test
   public void testMutableProperty_getterAndSetterAreRemoveIfNotUsed() throws Exception {
