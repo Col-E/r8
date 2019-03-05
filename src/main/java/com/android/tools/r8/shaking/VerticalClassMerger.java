@@ -1069,12 +1069,12 @@ public class VerticalClassMerger {
           method -> {
             if (method.isObsolete()) {
               method.unsetObsolete();
-              if (method.hasCode()) {
-                method.getCode().setOwner(method);
-              }
+            }
+            if (method.hasCode()) {
+              method.getCode().setOwner(method);
             }
           });
-      assert Streams.stream(target.methods())
+      assert Streams.concat(Streams.stream(source.methods()), Streams.stream(target.methods()))
           .allMatch(
               method ->
                   !method.isObsolete()

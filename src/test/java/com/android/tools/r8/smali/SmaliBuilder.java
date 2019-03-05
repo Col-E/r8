@@ -4,6 +4,7 @@
 package com.android.tools.r8.smali;
 
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Smali;
@@ -106,8 +107,8 @@ public class SmaliBuilder {
 
   public class InterfaceBuilder extends Builder {
 
-    InterfaceBuilder(String name, String superName) {
-      super(name, superName, ImmutableList.of());
+    InterfaceBuilder(String name, String superName, List<String> implementedInterfaces) {
+      super(name, superName, implementedInterfaces);
     }
 
     public String toString() {
@@ -125,6 +126,7 @@ public class SmaliBuilder {
 
   private String currentClassName;
   private final Map<String, Builder> classes = new HashMap<>();
+  private AndroidApiLevel minApi = AndroidApiLevel.I_MR1;
 
   public SmaliBuilder() {
     // No default class.
@@ -136,6 +138,10 @@ public class SmaliBuilder {
 
   public SmaliBuilder(String name, String superName) {
     addClass(name, superName);
+  }
+
+  public void setMinApi(AndroidApiLevel minApi) {
+    this.minApi = minApi;
   }
 
   private List<String> getSource(String clazz) {
@@ -169,9 +175,13 @@ public class SmaliBuilder {
   }
 
   public void addInterface(String name, String superName) {
+    addInterface(name, superName, ImmutableList.of());
+  }
+
+  public void addInterface(String name, String superName, List<String> implementedInterfaces) {
     assert !classes.containsKey(name);
     currentClassName = name;
-    classes.put(name, new InterfaceBuilder(name, superName));
+    classes.put(name, new InterfaceBuilder(name, superName, implementedInterfaces));
   }
 
   public void setSourceFile(String file) {
@@ -360,7 +370,7 @@ public class SmaliBuilder {
   }
 
   public byte[] compile() throws IOException, RecognitionException, ExecutionException {
-    return Smali.compile(buildSource());
+    return Smali.compile(buildSource(), minApi.getLevel());
   }
 
   public AndroidApp build() throws IOException, RecognitionException, ExecutionException {
