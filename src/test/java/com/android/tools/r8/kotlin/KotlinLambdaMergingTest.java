@@ -9,6 +9,7 @@ import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.lambda.CaptureSignature;
@@ -38,6 +39,11 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
         // not explicitly mentioned by a keep rule.
         opts.forceProguardCompatibility = true;
       };
+
+  public KotlinLambdaMergingTest(
+      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
+    super(targetVersion, allowAccessModification);
+  }
 
   abstract static class LambdaOrGroup {
     abstract boolean match(DexClass clazz);

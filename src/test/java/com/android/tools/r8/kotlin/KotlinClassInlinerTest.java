@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.graph.DexClass;
@@ -32,6 +33,11 @@ import java.util.stream.Stream;
 import org.junit.Test;
 
 public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
+
+  public KotlinClassInlinerTest(
+      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
+    super(targetVersion, allowAccessModification);
+  }
 
   private static boolean isLambda(DexClass clazz) {
     return !clazz.type.getPackageDescriptor().startsWith("kotlin") &&

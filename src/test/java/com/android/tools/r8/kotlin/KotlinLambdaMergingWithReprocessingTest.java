@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -16,6 +17,11 @@ public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTes
       o.enableClassInlining = true;
       o.enableLambdaMerging = true;
     };
+
+  public KotlinLambdaMergingWithReprocessingTest(
+      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
+    super(targetVersion, allowAccessModification);
+  }
 
   @Test
   public void testMergingKStyleLambdasAndReprocessing() throws Exception {

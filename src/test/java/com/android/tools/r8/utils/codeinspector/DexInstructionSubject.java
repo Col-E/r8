@@ -252,6 +252,17 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public String getConstString() {
+    if (instruction instanceof ConstString) {
+      return ((ConstString) instruction).BBBB.toSourceString();
+    }
+    if (instruction instanceof ConstStringJumbo) {
+      return ((ConstStringJumbo) instruction).BBBBBBBB.toSourceString();
+    }
+    return null;
+  }
+
+  @Override
   public boolean isConstClass() {
     return instruction instanceof ConstClass;
   }

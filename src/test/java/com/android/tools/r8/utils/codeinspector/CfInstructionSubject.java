@@ -142,6 +142,14 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public String getConstString() {
+    if (instruction instanceof CfConstString) {
+      return ((CfConstString) instruction).getString().toSourceString();
+    }
+    return null;
+  }
+
+  @Override
   public boolean isConstClass() {
     return instruction instanceof CfConstClass;
   }
