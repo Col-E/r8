@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY;
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
+import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -149,7 +150,31 @@ public class LensCodeRewriter {
           InvokeMethod invoke = current.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           DexType invokedHolder = invokedMethod.getHolder();
+          if (invokedHolder.isArrayType()) {
+            if (invokedMethod.name == appInfo.dexItemFactory.cloneMethodName) {
+              DexType baseType = invokedHolder.toBaseType(appInfo.dexItemFactory);
+              DexType mappedBaseType = graphLense.lookupType(baseType);
+              if (baseType != mappedBaseType) {
+                DexType mappedHolder =
+                    invokedHolder.replaceBaseType(mappedBaseType, appInfo.dexItemFactory);
+                // The clone proto is ()Ljava/lang/Object;, so just reuse it.
+                DexMethod actualTarget =
+                    appInfo.dexItemFactory.createMethod(
+                        mappedHolder, invokedMethod.proto, appInfo.dexItemFactory.cloneMethodName);
+                Invoke newInvoke =
+                    Invoke.create(
+                        VIRTUAL,
+                        actualTarget,
+                        null,
+                        makeOutValue(invoke, code, newSSAValues),
+                        invoke.inValues());
+                iterator.replaceCurrentInstruction(newInvoke);
+              }
+            }
+            continue;
+          }
           if (!invokedHolder.isClassType()) {
+            assert false;
             continue;
           }
           if (invoke.isInvokeDirect()) {

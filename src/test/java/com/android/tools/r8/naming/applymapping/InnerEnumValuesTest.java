@@ -79,10 +79,9 @@ public class InnerEnumValuesTest extends TestBase {
                   : "state_X"; // mapped name without minification
           FieldSubject stateA = enumSubject.uniqueFieldWithName(fieldName);
           assertThat(stateA, isPresent());
-        });
-    // TODO(b/124177369): method signature Object Outer$InnerEnum[]#clone() left in values().
-    //  .run(MAIN)
-    //  .assertSuccessWithOutput(EXPECTED_OUTPUT);
+        })
+        .run(MAIN)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 }
 
