@@ -34,7 +34,6 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
