@@ -1508,7 +1508,7 @@ def printStackTrace(TestResult result) {
     if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
         def out = new StringBuffer()
         def err = new StringBuffer()
-        def command = "tools/retrace.py"
+        def command = "python tools/retrace.py"
         def header = "RETRACED STACKTRACE";
         if (System.getenv('BUILDBOT_BUILDERNAME') != null
                 && !System.getenv('BUILDBOT_BUILDERNAME').endsWith("_release")) {
