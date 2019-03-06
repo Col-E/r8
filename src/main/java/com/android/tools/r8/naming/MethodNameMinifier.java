@@ -91,9 +91,12 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
   private final Equivalence<DexMethod> equivalence;
 
   private final FrontierState frontierState = new FrontierState();
+  private final MemberNamingStrategy strategy;
 
-  MethodNameMinifier(AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
-    super(appView, rootSet);
+  MethodNameMinifier(
+      AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
+    super(appView, rootSet, strategy);
+    this.strategy = strategy;
     equivalence =
         overloadAggressively
             ? MethodSignatureEquivalence.get()
@@ -188,7 +191,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
       DexString renamedName =
           renamingAtThisLevel.computeIfAbsent(
               equivalence.wrap(method),
-              key -> state.assignNewNameFor(method.name, method.proto, useUniqueMemberNames));
+              key ->
+                  state.assignNewNameFor(method, method.name, method.proto, useUniqueMemberNames));
       renaming.put(method, renamedName);
     }
   }
@@ -233,6 +237,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
                           appInfo.dexItemFactory,
                           dictionary,
                           getKeyTransform(),
+                          strategy,
                           useUniqueMemberNames)
                       : parent.createChild());
 
@@ -276,8 +281,11 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     private final NamingState<DexProto, ?> parent;
     private final DexString name;
     private final DexProto proto;
+    private final DexMethod method;
 
-    MethodNamingState(NamingState<DexProto, ?> parent, DexString name, DexProto proto) {
+    MethodNamingState(
+        NamingState<DexProto, ?> parent, DexMethod method, DexString name, DexProto proto) {
+      this.method = method;
       assert parent != null;
       this.parent = parent;
       this.name = name;
@@ -285,11 +293,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     }
 
     DexString assignNewName() {
-      return parent.assignNewNameFor(name, proto, false);
-    }
-
-    void reserveName() {
-      parent.reserveName(name, proto);
+      return parent.assignNewNameFor(method, name, proto, false);
     }
 
     boolean isReserved() {

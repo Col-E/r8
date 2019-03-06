@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassNamingStrategy;
@@ -13,7 +14,9 @@ import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.ClassNameMinifier.Namespace;
 import com.android.tools.r8.naming.ClassNameMinifier.PackageNamingStrategy;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
+import com.android.tools.r8.naming.MemberNameMinifier.MemberNamingStrategy;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
+import com.android.tools.r8.naming.NamingState.InternalState;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
@@ -60,16 +63,19 @@ public class Minifier {
             classRenaming, MethodRenaming.empty(), FieldRenaming.empty(), appInfo)
         .verifyNoCollisions(appInfo.classes(), appInfo.dexItemFactory);
 
+    MemberNamingStrategy minifyMembers = new MinifierMemberNamingStrategy(appView.dexItemFactory());
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appView, rootSet).computeRenaming(desugaredCallSites, timing);
+        new MethodNameMinifier(appView, rootSet, minifyMembers)
+            .computeRenaming(desugaredCallSites, timing);
     timing.end();
 
     assert new MinifiedRenaming(classRenaming, methodRenaming, FieldRenaming.empty(), appInfo)
         .verifyNoCollisions(appInfo.classes(), appInfo.dexItemFactory);
 
     timing.begin("MinifyFields");
-    FieldRenaming fieldRenaming = new FieldNameMinifier(appView, rootSet).computeRenaming(timing);
+    FieldRenaming fieldRenaming =
+        new FieldNameMinifier(appView, rootSet, minifyMembers).computeRenaming(timing);
     timing.end();
 
     NamingLens lens = new MinifiedRenaming(classRenaming, methodRenaming, fieldRenaming, appInfo);
@@ -122,6 +128,28 @@ public class Minifier {
       // 3) this one removes 'L' at the beginning to make the return value a binary form.
       int counter = namespaceCounters.put(namespace, namespaceCounters.getInt(namespace) + 1);
       return StringUtils.numberToIdentifier(packagePrefix, counter, false).substring(1);
+    }
+
+    @Override
+    public boolean bypassDictionary() {
+      return false;
+    }
+  }
+
+  static class MinifierMemberNamingStrategy implements MemberNamingStrategy {
+
+    char[] EMPTY_CHAR_ARRAY = new char[0];
+
+    private final DexItemFactory factory;
+
+    public MinifierMemberNamingStrategy(DexItemFactory factory) {
+      this.factory = factory;
+    }
+
+    @Override
+    public DexString next(DexReference dexReference, InternalState internalState) {
+      int counter = internalState.incrementAndGet();
+      return factory.createString(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, counter, false));
     }
 
     @Override

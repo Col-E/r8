@@ -234,7 +234,8 @@ public class InterfaceMethodNameMinifier {
       sourceMethods.addAll(sourceMethodsMap.get(k));
       for (NamingState<DexProto, ?> namingState : globalStateMap.get(k)) {
         collectedStates.add(
-            new MethodNamingState(namingState, unifiedMethod.name, unifiedMethod.proto));
+            new MethodNamingState(
+                namingState, unifiedMethod, unifiedMethod.name, unifiedMethod.proto));
       }
     }
 
@@ -249,7 +250,7 @@ public class InterfaceMethodNameMinifier {
     }
 
     MethodNamingState originState =
-        new MethodNamingState(originStates.get(key), method.name, method.proto);
+        new MethodNamingState(originStates.get(key), method, method.name, method.proto);
     assignNameForInterfaceMethodInAllStates(collectedStates, sourceMethods, originState);
   }
 
