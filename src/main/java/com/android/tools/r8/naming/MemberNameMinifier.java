@@ -5,8 +5,10 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CachedHashValueDexItem;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.NamingState.InternalState;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
@@ -36,7 +38,8 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   // which is useful for debugging.
   private final BiMap<DexType, NamingState<StateType, ?>> states = HashBiMap.create();
 
-  MemberNameMinifier(AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
+  MemberNameMinifier(
+      AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
     this.appView = appView;
     this.appInfo = appView.appInfo();
     this.rootSet = rootSet;
@@ -45,8 +48,9 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     this.useUniqueMemberNames = options.getProguardConfiguration().isUseUniqueClassMemberNames();
     this.overloadAggressively =
         options.getProguardConfiguration().isOverloadAggressivelyWithoutUseUniqueClassMemberNames();
-    this.globalState = NamingState.createRoot(
-        appInfo.dexItemFactory, dictionary, getKeyTransform(), useUniqueMemberNames);
+    this.globalState =
+        NamingState.createRoot(
+            appInfo.dexItemFactory, dictionary, getKeyTransform(), strategy, useUniqueMemberNames);
   }
 
   abstract Function<StateType, ?> getKeyTransform();
@@ -87,5 +91,11 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     boolean useUniqueMemberNames() {
       return useUniqueMemberNames;
     }
+  }
+
+  interface MemberNamingStrategy {
+    DexString next(DexReference source, InternalState internalState);
+
+    boolean bypassDictionary();
   }
 }

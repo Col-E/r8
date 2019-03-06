@@ -19,8 +19,9 @@ import java.util.function.Function;
 
 class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
 
-  FieldNameMinifier(AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
-    super(appView, rootSet);
+  FieldNameMinifier(
+      AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
+    super(appView, rootSet, strategy);
   }
 
   @Override
@@ -106,7 +107,8 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   private void renameField(DexEncodedField encodedField, NamingState<DexType, ?> state) {
     DexField field = encodedField.field;
     if (!state.isReserved(field.name, field.type)) {
-      renaming.put(field, state.assignNewNameFor(field.name, field.type, useUniqueMemberNames));
+      renaming.put(
+          field, state.assignNewNameFor(field, field.name, field.type, useUniqueMemberNames));
     }
   }
 

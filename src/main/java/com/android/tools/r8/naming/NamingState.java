@@ -5,8 +5,9 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.CachedHashValueDexItem;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.naming.MemberNameMinifier.MemberNamingStrategy;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -27,14 +28,17 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
   private final DexItemFactory itemFactory;
   private final List<String> dictionary;
   private final Function<ProtoType, KeyType> keyTransform;
+  private final MemberNamingStrategy strategy;
   private final boolean useUniqueMemberNames;
 
   static <S, T extends CachedHashValueDexItem> NamingState<T, S> createRoot(
       DexItemFactory itemFactory,
       List<String> dictionary,
       Function<T, S> keyTransform,
+      MemberNamingStrategy strategy,
       boolean useUniqueMemberNames) {
-    return new NamingState<>(null, itemFactory, dictionary, keyTransform, useUniqueMemberNames);
+    return new NamingState<>(
+        null, itemFactory, dictionary, keyTransform, strategy, useUniqueMemberNames);
   }
 
   private NamingState(
@@ -42,16 +46,19 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       DexItemFactory itemFactory,
       List<String> dictionary,
       Function<ProtoType, KeyType> keyTransform,
+      MemberNamingStrategy strategy,
       boolean useUniqueMemberNames) {
     this.parent = parent;
     this.itemFactory = itemFactory;
     this.dictionary = dictionary;
     this.keyTransform = keyTransform;
+    this.strategy = strategy;
     this.useUniqueMemberNames = useUniqueMemberNames;
   }
 
   public NamingState<ProtoType, KeyType> createChild() {
-    return new NamingState<>(this, itemFactory, dictionary, keyTransform, useUniqueMemberNames);
+    return new NamingState<>(
+        this, itemFactory, dictionary, keyTransform, strategy, useUniqueMemberNames);
   }
 
   private InternalState findInternalStateFor(KeyType key) {
@@ -85,12 +92,13 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     return state.getAssignedNameFor(name, key);
   }
 
-  public DexString assignNewNameFor(DexString original, ProtoType proto, boolean markAsUsed) {
+  public DexString assignNewNameFor(
+      DexReference source, DexString original, ProtoType proto, boolean markAsUsed) {
     KeyType key = keyTransform.apply(proto);
     DexString result = getAssignedNameFor(original, key);
     if (result == null) {
       InternalState state = getOrCreateInternalStateFor(key);
-      result = state.getNameFor(original, key, markAsUsed);
+      result = state.getNameFor(source, original, key, markAsUsed);
     }
     return result;
   }
@@ -146,7 +154,6 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
   class InternalState {
 
     private static final int INITIAL_NAME_COUNT = 1;
-    private final char[] EMPTY_CHAR_ARRAY = new char[0];
 
     protected final DexItemFactory itemFactory;
     private final InternalState parentInternalState;
@@ -193,6 +200,10 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       reservedNames.add(name);
     }
 
+    public int incrementAndGet() {
+      return nameCount++;
+    }
+
     DexString getAssignedNameFor(DexString original, KeyType proto) {
       DexString result = null;
       if (renamings != null) {
@@ -215,13 +226,14 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       return result;
     }
 
-    DexString getNameFor(DexString original, KeyType proto, boolean markAsUsed) {
+    DexString getNameFor(
+        DexReference source, DexString original, KeyType proto, boolean markAsUsed) {
       DexString name = getAssignedNameFor(original, proto);
       if (name != null) {
         return name;
       }
       do {
-        name = itemFactory.createString(nextSuggestedName());
+        name = nextSuggestedName(source);
       } while (!isAvailable(name));
       if (markAsUsed) {
         addRenaming(original, proto, name);
@@ -236,11 +248,11 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       renamings.put(original, proto, newName);
     }
 
-    String nextSuggestedName() {
-      if (dictionaryIterator.hasNext()) {
-        return dictionaryIterator.next();
+    DexString nextSuggestedName(DexReference source) {
+      if (!strategy.bypassDictionary() && dictionaryIterator.hasNext()) {
+        return itemFactory.createString(dictionaryIterator.next());
       } else {
-        return StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, nameCount++, false);
+        return strategy.next(source, this);
       }
     }
 
