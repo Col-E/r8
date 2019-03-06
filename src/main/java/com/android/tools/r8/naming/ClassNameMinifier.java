@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -25,8 +24,6 @@ import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
-import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -44,7 +41,9 @@ class ClassNameMinifier {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final AppInfoWithLiveness appInfo;
-  private final Reporter reporter;
+  private final ClassNamingStrategy classNamingStrategy;
+  private final PackageNamingStrategy packageNamingStrategy;
+  private final Iterable<? extends DexClass> classes;
   private final PackageObfuscationMode packageObfuscationMode;
   private final boolean isAccessModificationAllowed;
   private final Set<String> noObfuscationPrefixes = Sets.newHashSet();
@@ -62,11 +61,18 @@ class ClassNameMinifier {
 
   private final Namespace topLevelState;
 
-  ClassNameMinifier(AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
+  ClassNameMinifier(
+      AppView<AppInfoWithLiveness> appView,
+      RootSet rootSet,
+      ClassNamingStrategy classNamingStrategy,
+      PackageNamingStrategy packageNamingStrategy,
+      Iterable<? extends DexClass> classes) {
     this.appView = appView;
     this.appInfo = appView.appInfo();
+    this.classNamingStrategy = classNamingStrategy;
+    this.packageNamingStrategy = packageNamingStrategy;
+    this.classes = classes;
     InternalOptions options = appView.options();
-    this.reporter = options.reporter;
     this.packageObfuscationMode = options.getProguardConfiguration().getPackageObfuscationMode();
     this.isAccessModificationAllowed =
         options.getProguardConfiguration().isAccessModificationAllowed();
@@ -99,8 +105,6 @@ class ClassNameMinifier {
   }
 
   ClassRenaming computeRenaming(Timing timing) {
-    // Use deterministic class order to make sure renaming is deterministic.
-    Iterable<DexProgramClass> classes = appInfo.classesWithDeterministicOrder();
     // Collect names we have to keep.
     timing.begin("reserve");
     for (DexClass clazz : classes) {
@@ -175,7 +179,7 @@ class ClassNameMinifier {
       // return type. As we don't need the class, we can rename it to anything as long as it is
       // unique.
       assert appInfo.definitionFor(type) == null;
-      renaming.put(type, topLevelState.nextTypeName());
+      renaming.put(type, topLevelState.nextTypeName(type));
     }
   }
 
@@ -250,7 +254,7 @@ class ClassNameMinifier {
     if (state == null) {
       state = getStateForClass(type);
     }
-    return state.nextTypeName();
+    return state.nextTypeName(type);
   }
 
   private Namespace getStateForClass(DexType type) {
@@ -344,12 +348,10 @@ class ClassNameMinifier {
     }
   }
 
-  private class Namespace {
+  protected class Namespace {
 
     private final String packageName;
     private final char[] packagePrefix;
-    private int typeCounter = 1;
-    private int packageCounter = 1;
     private final Iterator<String> packageDictionaryIterator;
     private final Iterator<String> classDictionaryIterator;
 
@@ -376,37 +378,37 @@ class ClassNameMinifier {
       return packageName;
     }
 
-    private String nextSuggestedNameForClass() {
+    private DexString nextSuggestedNameForClass(DexType type) {
       StringBuilder nextName = new StringBuilder();
-      if (classDictionaryIterator.hasNext()) {
+      if (!classNamingStrategy.bypassDictionary() && classDictionaryIterator.hasNext()) {
         nextName.append(packagePrefix).append(classDictionaryIterator.next()).append(';');
-        return nextName.toString();
+        return appInfo.dexItemFactory.createString(nextName.toString());
       } else {
-        return StringUtils.numberToIdentifier(packagePrefix, typeCounter++, true);
+        return classNamingStrategy.next(this, type, packagePrefix);
       }
     }
 
-    DexString nextTypeName() {
+    DexString nextTypeName(DexType type) {
       DexString candidate;
       do {
-        candidate = appInfo.dexItemFactory.createString(nextSuggestedNameForClass());
+        candidate = nextSuggestedNameForClass(type);
       } while (usedTypeNames.contains(candidate));
       usedTypeNames.add(candidate);
       return candidate;
     }
 
     private String nextSuggestedNameForSubpackage() {
-      StringBuilder nextName = new StringBuilder();
       // Note that the differences between this method and the other variant for class renaming are
       // 1) this one uses the different dictionary and counter,
       // 2) this one does not append ';' at the end, and
       // 3) this one removes 'L' at the beginning to make the return value a binary form.
-      if (packageDictionaryIterator.hasNext()) {
+      if (!packageNamingStrategy.bypassDictionary() && packageDictionaryIterator.hasNext()) {
+        StringBuilder nextName = new StringBuilder();
         nextName.append(packagePrefix).append(packageDictionaryIterator.next());
+        return nextName.toString().substring(1);
       } else {
-        nextName.append(StringUtils.numberToIdentifier(packagePrefix, packageCounter++, false));
+        return packageNamingStrategy.next(this, packagePrefix);
       }
-      return nextName.toString().substring(1);
     }
 
     String nextPackagePrefix() {
@@ -417,6 +419,20 @@ class ClassNameMinifier {
       usedPackagePrefixes.add(candidate);
       return candidate;
     }
+  }
+
+  protected interface ClassNamingStrategy {
+
+    DexString next(Namespace namespace, DexType type, char[] packagePrefix);
+
+    boolean bypassDictionary();
+  }
+
+  protected interface PackageNamingStrategy {
+
+    String next(Namespace namespace, char[] packagePrefix);
+
+    boolean bypassDictionary();
   }
 
   /**
