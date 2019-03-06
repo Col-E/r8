@@ -115,6 +115,7 @@ public abstract class R8RunArtTestsTest {
   // Test that required to set min-api to a specific value.
   private static Map<String, AndroidApiLevel> needMinSdkVersion =
       new ImmutableMap.Builder<String, AndroidApiLevel>()
+          .put("004-JniTest", AndroidApiLevel.N)
           // Android O
           .put("952-invoke-custom", AndroidApiLevel.O)
           .put("952-invoke-custom-kinds", AndroidApiLevel.O)
@@ -132,10 +133,12 @@ public abstract class R8RunArtTestsTest {
           .put("162-method-resolution", AndroidApiLevel.N)
           .put("616-cha-interface-default", AndroidApiLevel.N)
           .put("1910-transform-with-default", AndroidApiLevel.N)
+          .put("960-default-smali", AndroidApiLevel.N)
           // Interface initializer is not triggered after desugaring.
           .put("962-iface-static", AndroidApiLevel.N)
           // Interface initializer is not triggered after desugaring.
           .put("964-default-iface-init-gen", AndroidApiLevel.N)
+          .put("966-default-conflict", AndroidApiLevel.N)
           // AbstractMethodError (for method not implemented in class) instead of
           // IncompatibleClassChangeError (for conflict of default interface methods).
           .put("968-default-partial-compile-gen", AndroidApiLevel.N)
