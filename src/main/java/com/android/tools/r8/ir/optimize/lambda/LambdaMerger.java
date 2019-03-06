@@ -37,7 +37,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -241,7 +240,7 @@ public final class LambdaMerger {
 
     // Rewrite lambda class references into lambda group class
     // references inside methods from the processing queue.
-    rewriteLambdaReferences(converter, feedback);
+    rewriteLambdaReferences(converter, executorService, feedback);
     this.strategyFactory = null;
   }
 
@@ -316,19 +315,32 @@ public final class LambdaMerger {
     }
   }
 
-  private void rewriteLambdaReferences(IRConverter converter, OptimizationFeedback feedback) {
-    List<DexEncodedMethod> methods =
-        methodsToReprocess
-            .stream()
-            .sorted(DexEncodedMethod::slowCompare)
-            .collect(Collectors.toList());
-    for (DexEncodedMethod method : methods) {
-      DexEncodedMethod mappedMethod =
-          converter.graphLense().mapDexEncodedMethod(method, converter.appInfo);
-      converter.processMethod(mappedMethod, feedback,
-          Predicates.alwaysFalse(), CallSiteInformation.empty(), Outliner::noProcessing);
-      assert mappedMethod.isProcessed();
+  private void rewriteLambdaReferences(
+      IRConverter converter, ExecutorService executorService, OptimizationFeedback feedback)
+      throws ExecutionException {
+    if (methodsToReprocess.isEmpty()) {
+      return;
     }
+    Set<DexEncodedMethod> methods =
+        methodsToReprocess.stream()
+            .map(method -> converter.graphLense().mapDexEncodedMethod(method, converter.appInfo))
+            .collect(Collectors.toSet());
+    List<Future<?>> futures = new ArrayList<>();
+    for (DexEncodedMethod method : methods) {
+      futures.add(
+          executorService.submit(
+              () -> {
+                converter.processMethod(
+                    method,
+                    feedback,
+                    methods::contains,
+                    CallSiteInformation.empty(),
+                    Outliner::noProcessing);
+                assert method.isProcessed();
+                return null;
+              }));
+    }
+    ThreadUtils.awaitFutures(futures);
   }
 
   private void analyzeClass(DexProgramClass clazz) {
