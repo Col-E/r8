@@ -215,7 +215,9 @@ public class ApplicationReader {
         int computedMinApiLevel = options.minApiLevel;
         for (ProgramResource input : dexSources) {
           DexReader dexReader = new DexReader(input);
-          computedMinApiLevel = validateOrComputeMinApiLevel(computedMinApiLevel, dexReader);
+          if (options.passthroughDexCode) {
+            computedMinApiLevel = validateOrComputeMinApiLevel(computedMinApiLevel, dexReader);
+          }
           dexParsers.add(new DexParser(dexReader, classKind, itemFactory, options.reporter));
         }
         options.minApiLevel = computedMinApiLevel;
