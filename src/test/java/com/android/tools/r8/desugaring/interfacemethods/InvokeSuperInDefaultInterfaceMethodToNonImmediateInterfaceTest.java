@@ -7,6 +7,8 @@ package com.android.tools.r8.desugaring.interfacemethods;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -39,13 +41,18 @@ public class InvokeSuperInDefaultInterfaceMethodToNonImmediateInterfaceTest exte
     String expectedOutput = StringUtils.lines("I.m()", "JImpl.m()");
 
     byte[] dex = buildProgramDexFileData();
-    AndroidApp app =
-        AndroidApp.builder().addDexProgramData(buildProgramDexFileData(), Origin.unknown()).build();
-    assertEquals(expectedOutput, runOnArt(app, "TestClass"));
+    if (ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1)) {
+      AndroidApp app =
+          AndroidApp.builder()
+              .addDexProgramData(buildProgramDexFileData(), Origin.unknown())
+              .build();
+      assertEquals(expectedOutput, runOnArt(app, "TestClass"));
+    }
 
     testForR8(Backend.DEX)
         .addProgramDexFileData(dex)
         .addKeepMainRule("TestClass")
+        .setMinApi(AndroidApiLevel.M)
         .run("TestClass")
         .assertSuccessWithOutput(expectedOutput);
   }
