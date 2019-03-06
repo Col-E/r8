@@ -8,6 +8,7 @@ import gradle
 import jdk
 import optparse
 import os
+import resource
 import shutil
 import subprocess
 import sys
@@ -90,6 +91,11 @@ def GetUrl(version_or_path, file_name, is_master):
 def GetMavenUrl(is_master):
   return GetVersionDestination('http://storage.googleapis.com/', '', is_master)
 
+def PrintResourceInfo():
+  (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
+  print('INFO: Open files soft limit: %s' % soft)
+  print('INFO: Open files hard limit: %s' % hard)
+
 def Main():
   (options, args) = ParseOptions()
   if not utils.is_bot() and not options.dry_run:
@@ -99,6 +105,7 @@ def Main():
     print("Archiving is disabled on old bots.")
     return
 
+  PrintResourceInfo()
   # Create maven release which uses a build that exclude dependencies.
   create_maven_release.main(["--out", utils.LIBS])
 
