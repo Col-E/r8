@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.invalidroot;
 
+import com.android.tools.r8.NeverInline;
+
 public class InvalidRootsTestClass {
   private static int ID = 0;
 
@@ -19,7 +21,8 @@ public class InvalidRootsTestClass {
     test.testRootInvalidatesAfterInlining();
   }
 
-  private synchronized void testExtraNeverReturnsNormally() {
+  @NeverInline
+  private void testExtraNeverReturnsNormally() {
     testExtraNeverReturnsNormallyA();
     testExtraNeverReturnsNormallyB();
 
@@ -31,7 +34,8 @@ public class InvalidRootsTestClass {
     }
   }
 
-  private synchronized void testExtraNeverReturnsNormallyA() {
+  @NeverInline
+  private void testExtraNeverReturnsNormallyA() {
     try {
       neverReturnsNormallyExtra(next(), null);
     } catch (RuntimeException re) {
@@ -39,7 +43,8 @@ public class InvalidRootsTestClass {
     }
   }
 
-  private synchronized void testExtraNeverReturnsNormallyB() {
+  @NeverInline
+  private void testExtraNeverReturnsNormallyB() {
     try {
       neverReturnsNormallyExtra(next(), null);
     } catch (RuntimeException re) {
@@ -47,7 +52,8 @@ public class InvalidRootsTestClass {
     }
   }
 
-  private synchronized void testDirectNeverReturnsNormally() {
+  @NeverInline
+  private void testDirectNeverReturnsNormally() {
     try {
       NeverReturnsNormally a = new NeverReturnsNormally();
       System.out.println(a.foo());
@@ -56,7 +62,8 @@ public class InvalidRootsTestClass {
     }
   }
 
-  private synchronized void testInitNeverReturnsNormally() {
+  @NeverInline
+  private void testInitNeverReturnsNormally() {
     try {
       new InitNeverReturnsNormally();
     } catch (RuntimeException re) {
@@ -85,7 +92,8 @@ public class InvalidRootsTestClass {
     }
   }
 
-  private synchronized void testRootInvalidatesAfterInlining() {
+  @NeverInline
+  private void testRootInvalidatesAfterInlining() {
     A a = new A();
     try {
       notInlinedExtraMethod(next(), a);

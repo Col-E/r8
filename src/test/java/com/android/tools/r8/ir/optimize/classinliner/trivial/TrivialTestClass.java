@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.trivial;
 
+import com.android.tools.r8.NeverInline;
+
 public class TrivialTestClass {
   private static int ID = 0;
 
@@ -25,35 +27,42 @@ public class TrivialTestClass {
     test.testCycles();
   }
 
-  private synchronized void testInner() {
+  @NeverInline
+  private void testInner() {
     Inner inner = new Inner("inner{", 123, next() + "}");
     System.out.println(inner.toString() + " " + inner.getPrefix() + " = " + inner.prefix);
   }
 
-  private synchronized void testConstructorMapping1() {
+  @NeverInline
+  private void testConstructorMapping1() {
     ReferencedFields o = new ReferencedFields(next());
     System.out.println(o.getA());
   }
 
-  private synchronized void testConstructorMapping2() {
+  @NeverInline
+  private void testConstructorMapping2() {
     ReferencedFields o = new ReferencedFields(next());
     System.out.println(o.getB());
   }
 
-  private synchronized void testConstructorMapping3() {
+  @NeverInline
+  private void testConstructorMapping3() {
     ReferencedFields o = new ReferencedFields(next(), next());
     System.out.println(o.getA() + o.getB() + o.getConcat());
   }
 
-  private synchronized void testEmptyClass() {
+  @NeverInline
+  private void testEmptyClass() {
     new EmptyClass();
   }
 
-  private synchronized void testEmptyClassWithInitializer() {
+  @NeverInline
+  private void testEmptyClassWithInitializer() {
     new EmptyClassWithInitializer();
   }
 
-  private synchronized void testClassWithFinalizer() {
+  @NeverInline
+  private void testClassWithFinalizer() {
     new ClassWithFinal();
   }
 
@@ -61,7 +70,8 @@ public class TrivialTestClass {
     iface.foo();
   }
 
-  private synchronized void testCallOnIface1() {
+  @NeverInline
+  private void testCallOnIface1() {
     callOnIface1(new Iface1Impl(next()));
   }
 
@@ -69,14 +79,18 @@ public class TrivialTestClass {
     iface.foo();
   }
 
-  private synchronized void testCallOnIface2() {
+  @NeverInline
+  private void testCallOnIface2() {
     callOnIface2(new Iface2Impl(next()));
     System.out.println(Iface2Impl.CONSTANT); // Keep constant referenced
   }
 
-  private synchronized void testCycles() {
+  @NeverInline
+  private void testCycles() {
     new CycleReferenceAB("first").foo(3);
     new CycleReferenceBA("second").foo(4);
+    new CycleReferenceAB("third").foo(5);
+    new CycleReferenceBA("fourth").foo(6);
   }
 
   public class Inner {

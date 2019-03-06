@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.code;
 
+import com.android.tools.r8.NeverInline;
+
 public class C {
   public static class L {
     public final int x;
@@ -25,15 +27,18 @@ public class C {
     }
   }
 
-  public synchronized static int method1() {
+  @NeverInline
+  public static int method1() {
     return new L(1).x;
   }
 
-  public synchronized static int method2() {
+  @NeverInline
+  public static int method2() {
     return new L(1).getX();
   }
 
-  public synchronized static int method3() {
+  @NeverInline
+  public static int method3() {
     return F.I.getX();
   }
 }
