@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.accessrelaxation.privateinstance;
 
+import com.android.tools.r8.NeverInline;
+
 public class Base {
 
-  // NOTE: here and below 'synchronized' is supposed to disable inlining of this method.
-  private synchronized String foo() {
+  @NeverInline
+  private String foo() {
     return "Base::foo()";
   }
 
@@ -14,7 +16,8 @@ public class Base {
     return foo();
   }
 
-  private synchronized String foo1() {
+  @NeverInline
+  private String foo1() {
     return "Base::foo1()";
   }
 
@@ -22,7 +25,8 @@ public class Base {
     return foo1();
   }
 
-  private synchronized String foo2() {
+  @NeverInline
+  private String foo2() {
     return "Base::foo2()";
   }
 

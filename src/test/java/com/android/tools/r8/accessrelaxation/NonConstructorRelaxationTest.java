@@ -6,7 +6,6 @@ package com.android.tools.r8.accessrelaxation;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.accessrelaxation.privateinstance.Base;
@@ -18,8 +17,6 @@ import com.android.tools.r8.accessrelaxation.privatestatic.B;
 import com.android.tools.r8.accessrelaxation.privatestatic.BB;
 import com.android.tools.r8.accessrelaxation.privatestatic.C;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -67,21 +64,22 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 + "java.lang.IllegalAccessErrorB::bar() >> java.lang.IllegalAccessError",
             "B::foo()A::foo()A::baz()A::bar()A::bar(int)",
             "C::blah(int)");
-
+    Class<?> mainClass = C.class;
     if (backend == Backend.CF) {
       // Only run JVM reference once (for CF backend)
-      testForJvm().addTestClasspath().run(C.class).assertSuccessWithOutput(expectedOutput);
+      testForJvm().addTestClasspath().run(mainClass).assertSuccessWithOutput(expectedOutput);
     }
 
     R8TestRunResult result =
         testForR8(backend)
-            .addProgramFiles(ToolHelper.getClassFilesForTestPackage(C.class.getPackage()))
+            .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
             .addOptionsModification(o -> o.enableArgumentRemoval = enableArgumentRemoval)
+            .noMinification()
             .addKeepRules(
                 // Note: we use '-checkdiscard' to indirectly check that the access relaxation is
                 // done which leads to inlining of all pB*** methods so they are removed. Without
                 // access relaxation inlining is not performed and method are kept.
-                "-keep class " + C.class.getCanonicalName() + "{",
+                "-keep class " + mainClass.getCanonicalName() + "{",
                 "  public static void main(java.lang.String[]);",
                 "}",
                 "",
@@ -100,9 +98,8 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 "  *** pBlah1();",
                 "}",
                 "",
-                "-dontobfuscate",
                 "-allowaccessmodification")
-            .run(C.class);
+            .run(mainClass);
 
     assertEquals(
         expectedOutput,
@@ -134,42 +131,60 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
   }
 
   private void testInstanceMethodRelaxation(boolean enableVerticalClassMerging) throws Exception {
-    Class mainClass = TestMain.class;
-    R8Command.Builder builder = loadProgramFiles(backend, mainClass.getPackage());
+    String expectedOutput =
+        StringUtils.lines(
+            "Base::foo()",
+            "Base::foo1()",
+            "Base::foo2()",
+            "Sub1::foo1()",
+            "Itf1::foo1(0) >> Sub1::foo1()",
+            "Sub1::bar1(0)",
+            "Sub2::foo2()",
+            "Itf2::foo2(0) >> Sub2::foo2()",
+            "Sub2::bar2(0)");
+    Class<?> mainClass = TestMain.class;
+    if (backend == Backend.CF) {
+      // Only run JVM reference once (for CF backend)
+      testForJvm().addTestClasspath().run(mainClass).assertSuccessWithOutput(expectedOutput);
+    }
 
-    builder.addProguardConfiguration(
-        ImmutableList.of(
-            "-keep class " + mainClass.getCanonicalName() + "{",
-            "  public static void main(java.lang.String[]);",
-            "}",
-            "",
-            "-checkdiscard class " + Base.class.getCanonicalName() + "{",
-            "  *** p*();",
-            "}",
-            "",
-            "-checkdiscard class " + Sub1.class.getCanonicalName() + "{",
-            "  *** p*();",
-            "}",
-            "",
-            "-checkdiscard class " + Sub2.class.getCanonicalName() + "{",
-            "  *** p*();",
-            "}",
-            "",
-            "-dontobfuscate",
-            "-allowaccessmodification"
-        ),
-        Origin.unknown());
+    R8TestRunResult result =
+        testForR8(backend)
+            .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
+            .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
+            .enableInliningAnnotations()
+            .noMinification()
+            .addKeepRules(
+                "-keep class " + mainClass.getCanonicalName() + "{",
+                "  public static void main(java.lang.String[]);",
+                "}",
+                "",
+                "-checkdiscard class " + Base.class.getCanonicalName() + "{",
+                "  *** p*();",
+                "}",
+                "",
+                "-checkdiscard class " + Sub1.class.getCanonicalName() + "{",
+                "  *** p*();",
+                "}",
+                "",
+                "-checkdiscard class " + Sub2.class.getCanonicalName() + "{",
+                "  *** p*();",
+                "}",
+                "",
+                "-allowaccessmodification"
+            )
+        .run(mainClass);
 
-    AndroidApp app =
-        ToolHelper.runR8(
-            builder.build(),
-            options -> options.enableVerticalClassMerging = enableVerticalClassMerging);
-    compareReferenceJVMAndProcessed(app, mainClass);
+    assertEquals(
+        expectedOutput,
+        result
+            .getStdOut()
+            .replace("java.lang.IncompatibleClassChangeError", "java.lang.IllegalAccessError"));
 
     // When vertical class merging is enabled, Itf1 is merged into Sub1 and Itf2 is merged into
     // Sub2, and as a result of these merges, neither Sub1 nor Sub2 end up in the output because of
     // inlining.
-    CodeInspector codeInspector = new CodeInspector(app);
+    CodeInspector codeInspector = result.inspector();
     assertPublic(codeInspector, Base.class, new MethodSignature("foo", STRING, ImmutableList.of()));
 
     // Base#foo?() can't be publicized due to Itf<1>#foo<1>().
