@@ -29,141 +29,306 @@ if ('R8_BENCHMARK_DIR' in os.environ
     and os.path.isdir(os.environ['R8_BENCHMARK_DIR'])):
   WORKING_DIR = os.environ['R8_BENCHMARK_DIR']
 
-# For running on Golem all APPS are bundled as an x20-dependency and then copied
-# to WORKING_DIR. To update the app-bundle use 'run_on_as_app_x20_packager.py'.
-APPS = {
-  # 'app-name': {
-  #     'git_repo': ...
+class Repo(object):
+  def __init__(self, fields):
+    self.__dict__ = fields
+
+    # If there is only one app in this repository, then give the app the same
+    # name as the repository, if it does not already have one.
+    if len(self.apps) == 1:
+      app = self.apps[0]
+      if not app.name:
+        app.name = self.name
+
+class App(object):
+  def __init__(self, fields):
+    module = fields.get('module', 'app')
+    defaults = {
+      'archives_base_name': module,
+      'build_dir': 'build',
+      'compile_sdk': None,
+      'dir': '.',
+      'flavor': None,
+      'main_dex_rules': None,
+      'module': module,
+      'min_sdk': None,
+      'name': None,
+      'releaseTarget': None,
+      'signed_apk_name': None,
+      'skip': False
+    }
+    self.__dict__ = dict(defaults.items() + fields.items())
+
+# For running on Golem all third-party repositories are bundled as an x20-
+# dependency and then copied to WORKING_DIR. To update the app-bundle use
+# 'run_on_as_app_x20_packager.py'.
+APP_REPOSITORIES = [
+  # ...
+  # Repo({
+  #     'name': ...,
+  #     'url': ...,
   #     'revision': ...,
-  #     'app_module': ... (default app)
-  #     'archives_base_name': ... (default same as app_module)
-  #     'flavor': ... (default no flavor)
-  #     'releaseTarget': ... (default <app_module>:assemble<flavor>Release
-  # },
-  'AnExplorer': {
-      'app_id': 'dev.dworks.apps.anexplorer.pro',
-      'git_repo': 'https://github.com/christofferqa/AnExplorer',
+  #     'apps': [
+  #         {
+  #             'id': ...,
+  #             'dir': ...,
+  #             'module': ... (default app)
+  #             'name': ...,
+  #             'archives_base_name': ... (default same as module)
+  #             'flavor': ... (default no flavor)
+  #             'releaseTarget': ... (default <module>:assemble<flavor>Release
+  #         },
+  #         ...
+  #     ]
+  # }),
+  # ...
+  Repo({
+      'name': 'android-suite',
+      'url': 'https://github.com/christofferqa/android-suite',
+      'revision': '46c96f214711cf6cdcb72cc0c94520ef418e3739',
+      'apps': [
+          App({
+              'id': 'com.numix.calculator',
+              'dir': 'Calculator',
+              'name': 'numix-calculator'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'AnExplorer',
+      'url': 'https://github.com/christofferqa/AnExplorer',
       'revision': '365927477b8eab4052a1882d5e358057ae3dee4d',
-      'flavor': 'googleMobilePro',
-      'signed-apk-name': 'AnExplorer-googleMobileProRelease-4.0.3.apk',
-      'min_sdk': 17
-  },
-  'AntennaPod': {
-      'app_id': 'de.danoeh.antennapod',
-      'git_repo': 'https://github.com/christofferqa/AntennaPod.git',
+      'apps': [
+          App({
+              'id': 'dev.dworks.apps.anexplorer.pro',
+              'flavor': 'googleMobilePro',
+              'signed_apk_name': 'AnExplorer-googleMobileProRelease-4.0.3.apk',
+              'min_sdk': 17
+          })
+      ]
+  }),
+  Repo({
+      'name': 'AntennaPod',
+      'url': 'https://github.com/christofferqa/AntennaPod.git',
       'revision': '77e94f4783a16abe9cc5b78dc2d2b2b1867d8c06',
-      'flavor': 'play',
-      'min_sdk': 14,
-      'compile_sdk': 26
-  },
-  'apps-android-wikipedia': {
-      'app_id': 'org.wikipedia',
-      'git_repo': 'https://github.com/christofferqa/apps-android-wikipedia',
+      'apps': [
+          App({
+              'id': 'de.danoeh.antennapod',
+              'flavor': 'play',
+              'min_sdk': 14,
+              'compile_sdk': 26
+          })
+      ]
+  }),
+  Repo({
+      'name': 'apps-android-wikipedia',
+      'url': 'https://github.com/christofferqa/apps-android-wikipedia',
       'revision': '686e8aa5682af8e6a905054b935dd2daa57e63ee',
-      'flavor': 'prod',
-      'signed-apk-name': 'app-prod-universal-release.apk',
-  },
-  'chanu': {
-      'app_id': 'com.chanapps.four.activity',
-      'git_repo': 'https://github.com/mkj-gram/chanu.git',
+      'apps': [
+          App({
+              'id': 'org.wikipedia',
+              'flavor': 'prod',
+              'signed_apk_name': 'app-prod-universal-release.apk'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'chanu',
+      'url': 'https://github.com/mkj-gram/chanu.git',
       'revision': '04ade1e9c33d707f0850d5eb9d6fa5e8af814a26',
-  },
-  'friendlyeats-android': {
-      'app_id': 'com.google.firebase.example.fireeats',
-      'git_repo': 'https://github.com/christofferqa/friendlyeats-android.git',
+      'apps': [
+          App({
+              'id': 'com.chanapps.four.activity'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'friendlyeats-android',
+      'url': 'https://github.com/christofferqa/friendlyeats-android.git',
       'revision': '10091fa0ec37da12e66286559ad1b6098976b07b',
-  },
-  'Instabug-Android': {
-      'app_id': 'com.example.instabug',
-      'git_repo': 'https://github.com/christofferqa/Instabug-Android.git',
-      'revision': 'b8df78c96630a6537fbc07787b4990afc030cc0f'
-  },
-  'KISS': {
-      'app_id': 'fr.neamar.kiss',
-      'git_repo': 'https://github.com/christofferqa/KISS',
+      'apps': [
+          App({
+              'id': 'com.google.firebase.example.fireeats'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'Instabug-Android',
+      'url': 'https://github.com/christofferqa/Instabug-Android.git',
+      'revision': 'b8df78c96630a6537fbc07787b4990afc030cc0f',
+      'apps': [
+          App({
+             'id': 'com.example.instabug'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'KISS',
+      'url': 'https://github.com/christofferqa/KISS',
       'revision': '093da9ee0512e67192f62951c45a07a616fc3224',
-  },
-  'materialistic': {
-      'app_id': 'io.github.hidroh.materialistic',
-      'git_repo': 'https://github.com/christofferqa/materialistic',
+      'apps': [
+          App({
+              'id': 'fr.neamar.kiss'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'materialistic',
+      'url': 'https://github.com/christofferqa/materialistic',
       'revision': '2b2b2ee25ce9e672d5aab1dc90a354af1522b1d9',
-  },
-  'Minimal-Todo': {
-      'app_id': 'com.avjindersinghsekhon.minimaltodo',
-      'git_repo': 'https://github.com/christofferqa/Minimal-Todo',
+      'apps': [
+          App({
+              'id': 'io.github.hidroh.materialistic'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'Minimal-Todo',
+      'url': 'https://github.com/christofferqa/Minimal-Todo',
       'revision': '9d8c73746762cd376b718858ec1e8783ca07ba7c',
-  },
-  'NewPipe': {
-      'app_id': 'org.schabi.newpipe',
-      'git_repo': 'https://github.com/christofferqa/NewPipe',
+      'apps': [
+          App({
+              'id': 'com.avjindersinghsekhon.minimaltodo'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'NewPipe',
+      'url': 'https://github.com/christofferqa/NewPipe',
       'revision': 'ed543099c7823be00f15d9340f94bdb7cb37d1e6',
-  },
-  'rover-android': {
-      'app_id': 'io.rover.app.debug',
-      'app_module': 'debug-app',
-      'git_repo': 'https://github.com/mkj-gram/rover-android.git',
+      'apps': [
+          App({
+              'id': 'org.schabi.newpipe'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'rover-android',
+      'url': 'https://github.com/mkj-gram/rover-android.git',
       'revision': '859af82ba56fe9035ae9949156c7a88e6012d930',
-  },
-  'Signal-Android': {
-      'app_id': 'org.thoughtcrime.securesms',
-      'app_module': '',
-      'flavor': 'play',
-      'git_repo': 'https://github.com/mkj-gram/Signal-Android.git',
-      'main_dex_rules': 'multidex-config.pro',
+      'apps': [
+          App({
+              'id': 'io.rover.app.debug',
+              'module': 'debug-app'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'Signal-Android',
+      'url': 'https://github.com/mkj-gram/Signal-Android.git',
       'revision': 'a45d0c1fed20fa39e8b9445fe7790326f46b3166',
-      'releaseTarget': 'assemblePlayRelease',
-      'signed-apk-name': 'Signal-play-release-4.32.7.apk',
-  },
-  'Simple-Calendar': {
-      'app_id': 'com.simplemobiletools.calendar.pro',
-      'git_repo': 'https://github.com/christofferqa/Simple-Calendar',
+      'apps': [
+          App({
+              'id': 'org.thoughtcrime.securesms',
+              'module': '',
+              'flavor': 'play',
+              'main_dex_rules': 'multidex-config.pro',
+              'releaseTarget': 'assemblePlayRelease',
+              'signed_apk_name': 'Signal-play-release-4.32.7.apk'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'Simple-Calendar',
+      'url': 'https://github.com/christofferqa/Simple-Calendar',
       'revision': '82dad8c203eea5a0f0ddb513506d8f1de986ef2b',
-      'signed-apk-name': 'calendar-release.apk'
-  },
-  'sqldelight': {
-      'app_id': 'com.example.sqldelight.hockey',
-      'git_repo': 'https://github.com/christofferqa/sqldelight.git',
+      'apps': [
+          App({
+              'id': 'com.simplemobiletools.calendar.pro',
+              'signed_apk_name': 'calendar-release.apk'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'sqldelight',
+      'url': 'https://github.com/christofferqa/sqldelight.git',
       'revision': '2e67a1126b6df05e4119d1e3a432fde51d76cdc8',
-      'app_module': 'sample/android',
-      'archives_base_name': 'android',
-      'min_sdk': 14,
-      'compile_sdk': 28,
-  },
-  'tachiyomi': {
-      'app_id': 'eu.kanade.tachiyomi',
-      'git_repo': 'https://github.com/sgjesse/tachiyomi.git',
+      'apps': [
+          App({
+              'id': 'com.example.sqldelight.hockey',
+              'module': 'sample/android',
+              'archives_base_name': 'android',
+              'min_sdk': 14,
+              'compile_sdk': 28
+          })
+      ]
+  }),
+  Repo({
+      'name': 'tachiyomi',
+      'url': 'https://github.com/sgjesse/tachiyomi.git',
       'revision': 'b15d2fe16864645055af6a745a62cc5566629798',
-      'flavor': 'standard',
-      'releaseTarget': 'app:assembleRelease',
-      'min_sdk': 16
-  },
-  'tivi': {
-      'app_id': 'app.tivi',
-      'git_repo': 'https://github.com/sgjesse/tivi.git',
+      'apps': [
+          App({
+              'id': 'eu.kanade.tachiyomi',
+              'flavor': 'standard',
+              'releaseTarget': 'app:assembleRelease',
+              'min_sdk': 16
+          })
+      ]
+  }),
+  Repo({
+      'name': 'tivi',
+      'url': 'https://github.com/sgjesse/tivi.git',
       'revision': '25c52e3593e7c98da4e537b49b29f6f67f88754d',
-      'min_sdk': 23,
-      'compile_sdk': 28,
-  },
-  'Tusky': {
-      'app_id': 'com.keylesspalace.tusky',
-      'git_repo': 'https://github.com/mkj-gram/Tusky.git',
+      'apps': [
+          App({
+              'id': 'app.tivi',
+              'min_sdk': 23,
+              'compile_sdk': 28
+          })
+      ]
+  }),
+  Repo({
+      'name': 'Tusky',
+      'url': 'https://github.com/mkj-gram/Tusky.git',
       'revision': 'b794f3ab90388add98461ffe70edb65c39351c33',
-      'flavor': 'blue'
-  },
-  'Vungle-Android-SDK': {
-      'app_id': 'com.publisher.vungle.sample',
-      'git_repo': 'https://github.com/mkj-gram/Vungle-Android-SDK.git',
+      'apps': [
+          App({
+              'id': 'com.keylesspalace.tusky',
+              'flavor': 'blue'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'Vungle-Android-SDK',
+      'url': 'https://github.com/mkj-gram/Vungle-Android-SDK.git',
       'revision': '3e231396ea7ce97b2655e03607497c75730e45f6',
-  },
+      'apps': [
+          App({
+              'id': 'com.publisher.vungle.sample'
+          })
+      ]
+  }),
   # This does not build yet.
-  'muzei': {
-      'git_repo': 'https://github.com/sgjesse/muzei.git',
+  Repo({
+      'name': 'muzei',
+      'url': 'https://github.com/sgjesse/muzei.git',
       'revision': 'bed2a5f79c6e08b0a21e3e3f9242232d0848ef74',
-      'app_module': 'main',
-      'archives_base_name': 'muzei',
-      'skip': True,
-  },
-}
+      'apps': [
+          App({
+              'module': 'main',
+              'archives_base_name': 'muzei',
+              'skip': True
+          })
+      ]
+  })
+]
+
+def GetAllApps():
+  apps = []
+  for repo in APP_REPOSITORIES:
+    for app in repo.apps:
+      apps.append((app, repo))
+  return apps
+
+def GetAllAppNames():
+  return [app.name for (app, repo) in GetAllApps()]
+
+def GetAppWithName(query):
+  for (app, repo) in GetAllApps():
+    if app.name == query:
+      return (app, repo)
+  assert False
 
 # TODO(christofferqa): Do not rely on 'emulator-5554' name
 emulator_id = 'emulator-5554'
@@ -221,15 +386,15 @@ def IsMinifiedR8(shrinker):
 def IsTrackedByGit(file):
   return subprocess.check_output(['git', 'ls-files', file]).strip() != ''
 
-def GitClone(git_url, revision, checkout_dir, quiet):
+def GitClone(repo, checkout_dir, quiet):
   result = subprocess.check_output(
-      ['git', 'clone', git_url, checkout_dir]).strip()
+      ['git', 'clone', repo.url, checkout_dir]).strip()
   head_rev = utils.get_HEAD_sha1_for_checkout(checkout_dir)
-  if revision == head_rev:
+  if repo.revision == head_rev:
     return result
   warn('Target revision is not head in {}.'.format(checkout_dir))
   with utils.ChangedWorkingDirectory(checkout_dir, quiet=quiet):
-    subprocess.check_output(['git', 'reset', '--hard', revision])
+    subprocess.check_output(['git', 'reset', '--hard', repo.revision])
   return result
 
 def GitCheckout(file):
@@ -249,10 +414,9 @@ def PercentageDiffAsString(before, after):
   else:
     return '+' + str(round((after - before) / before * 100)) + '%'
 
-def UninstallApkOnEmulator(app, config, options):
-  app_id = config.get('app_id')
+def UninstallApkOnEmulator(app, options):
   process = subprocess.Popen(
-      ['adb', '-s', emulator_id, 'uninstall', app_id],
+      ['adb', '-s', emulator_id, 'uninstall', app.id],
       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   stdout, stderr = process.communicate()
 
@@ -260,13 +424,13 @@ def UninstallApkOnEmulator(app, config, options):
     # Successfully uninstalled
     return
 
-  if 'Unknown package: {}'.format(app_id) in stderr:
+  if 'Unknown package: {}'.format(app.id) in stderr:
     # Application not installed
     return
 
   raise Exception(
       'Unexpected result from `adb uninstall {}\nStdout: {}\nStderr: {}'.format(
-          app_id, stdout, stderr))
+          app.id, stdout, stderr))
 
 def WaitForEmulator():
   stdout = subprocess.check_output(['adb', 'devices'])
@@ -288,21 +452,21 @@ def WaitForEmulator():
     else:
       return True
 
-def GetResultsForApp(app, config, options, temp_dir):
+def GetResultsForApp(app, repo, options, temp_dir):
   # Checkout and build in the build directory.
-  checkout_dir = os.path.join(WORKING_DIR, app)
+  repo_name = repo.name
+  repo_checkout_dir = os.path.join(WORKING_DIR, repo_name)
 
   result = {}
 
-  if not os.path.exists(checkout_dir) and not options.golem:
+  if not os.path.exists(repo_checkout_dir) and not options.golem:
     with utils.ChangedWorkingDirectory(WORKING_DIR, quiet=options.quiet):
-      GitClone(
-          config['git_repo'], config['revision'], checkout_dir, options.quiet)
+      GitClone(repo, repo_checkout_dir, options.quiet)
 
-  checkout_rev = utils.get_HEAD_sha1_for_checkout(checkout_dir)
-  if config['revision'] != checkout_rev:
+  checkout_rev = utils.get_HEAD_sha1_for_checkout(repo_checkout_dir)
+  if repo.revision != checkout_rev:
     msg = 'Checkout is not target revision for {} in {}.'.format(
-        app, checkout_dir)
+        app.name, repo_checkout_dir)
     if options.ignore_versions:
       warn(msg)
     else:
@@ -310,14 +474,16 @@ def GetResultsForApp(app, config, options, temp_dir):
 
   result['status'] = 'success'
 
+  app_checkout_dir = os.path.join(repo_checkout_dir, app.dir)
   result_per_shrinker = BuildAppWithSelectedShrinkers(
-      app, config, options, checkout_dir, temp_dir)
+      app, repo, options, app_checkout_dir, temp_dir)
   for shrinker, shrinker_result in result_per_shrinker.iteritems():
     result[shrinker] = shrinker_result
 
   return result
 
-def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
+def BuildAppWithSelectedShrinkers(
+    app, repo, options, checkout_dir, temp_dir):
   result_per_shrinker = {}
 
   with utils.ChangedWorkingDirectory(checkout_dir, quiet=options.quiet):
@@ -328,8 +494,9 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
       try:
         out_dir = os.path.join(checkout_dir, 'out', shrinker)
         (apk_dest, profile_dest_dir, proguard_config_file) = \
-            BuildAppWithShrinker(app, config, shrinker, checkout_dir, out_dir,
-                temp_dir, options)
+            BuildAppWithShrinker(
+                app, repo, shrinker, checkout_dir, out_dir, temp_dir,
+                options)
         dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
         result['apk_dest'] = apk_dest
         result['build_status'] = 'success'
@@ -349,7 +516,7 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
       if result.get('build_status') == 'success':
         if options.monkey:
           result['monkey_status'] = 'success' if RunMonkey(
-              app, config, options, apk_dest) else 'failed'
+              app, options, apk_dest) else 'failed'
 
         if 'r8' in shrinker and options.r8_compilation_steps > 1:
           recompilation_results = []
@@ -358,7 +525,8 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
           # true.
           out_dir = os.path.join(checkout_dir, 'out', shrinker + '-1')
           (apk_dest, profile_dest_dir, ext_proguard_config_file) = \
-              BuildAppWithShrinker(app, config, shrinker, checkout_dir, out_dir,
+              BuildAppWithShrinker(
+                  app, repo, shrinker, checkout_dir, out_dir,
                   temp_dir, options, keepRuleSynthesisForRecompilation=True)
           dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
           recompilation_result = {
@@ -380,17 +548,16 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
                       if line.strip() and '-printconfiguration' not in line))
 
           # Extract min-sdk and target-sdk
-          (min_sdk, compile_sdk) = as_utils.GetMinAndCompileSdk(app, config,
-              checkout_dir, apk_dest)
+          (min_sdk, compile_sdk) = \
+              as_utils.GetMinAndCompileSdk(app, checkout_dir, apk_dest)
 
           # Now rebuild generated apk.
           previous_apk = apk_dest
 
           # We may need main dex rules when re-compiling with R8 as standalone.
           main_dex_rules = None
-          if config.get('main_dex_rules'):
-            main_dex_rules = os.path.join(
-                checkout_dir, config.get('main_dex_rules'))
+          if app.main_dex_rules:
+            main_dex_rules = os.path.join(checkout_dir, app.main_dex_rules)
 
           for i in range(1, options.r8_compilation_steps):
             try:
@@ -407,18 +574,19 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
               }
               if options.monkey:
                 recompilation_result['monkey_status'] = 'success' if RunMonkey(
-                    app, config, options, recompiled_apk_dest) else 'failed'
+                    app, options, recompiled_apk_dest) else 'failed'
               recompilation_results.append(recompilation_result)
               previous_apk = recompiled_apk_dest
             except Exception as e:
-              warn('Failed to recompile {} with {}'.format(app, shrinker))
+              warn('Failed to recompile {} with {}'.format(
+                  app.name, shrinker))
               recompilation_results.append({ 'build_status': 'failed' })
               break
           result['recompilation_results'] = recompilation_results
 
       result_per_shrinker[shrinker] = result
 
-  if not options.app:
+  if len(options.apps) > 1:
     print('')
     LogResultsForApp(app, result_per_shrinker, options)
     print('')
@@ -426,10 +594,10 @@ def BuildAppWithSelectedShrinkers(app, config, options, checkout_dir, temp_dir):
   return result_per_shrinker
 
 def BuildAppWithShrinker(
-    app, config, shrinker, checkout_dir, out_dir, temp_dir, options,
+    app, repo, shrinker, checkout_dir, out_dir, temp_dir, options,
     keepRuleSynthesisForRecompilation=False):
   print('Building {} with {}{}'.format(
-      app,
+      app.name,
       shrinker,
       ' for recompilation' if keepRuleSynthesisForRecompilation else ''))
 
@@ -441,9 +609,7 @@ def BuildAppWithShrinker(
   # Add 'r8.jar' to top-level build.gradle.
   as_utils.add_r8_dependency(checkout_dir, temp_dir, IsMinifiedR8(shrinker))
 
-  app_module = config.get('app_module', 'app')
-  archives_base_name = config.get('archives_base_name', app_module)
-  flavor = config.get('flavor')
+  archives_base_name = app.archives_base_name
 
   if not os.path.exists(out_dir):
     os.makedirs(out_dir)
@@ -452,16 +618,16 @@ def BuildAppWithShrinker(
   proguard_config_dest = os.path.abspath(
       os.path.join(out_dir, 'proguard-rules.pro'))
   as_utils.SetPrintConfigurationDirective(
-      app, config, checkout_dir, proguard_config_dest)
+      app, checkout_dir, proguard_config_dest)
 
   env = {}
   env['ANDROID_HOME'] = utils.getAndroidHome()
   env['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
 
-  releaseTarget = config.get('releaseTarget')
+  releaseTarget = app.releaseTarget
   if not releaseTarget:
-    releaseTarget = app_module.replace('/', ':') + ':' + 'assemble' + (
-        flavor.capitalize() if flavor else '') + 'Release'
+    releaseTarget = app.module.replace('/', ':') + ':' + 'assemble' + (
+        app.flavor.capitalize() if app.flavor else '') + 'Release'
 
   # Value for property android.enableR8.
   enableR8 = 'r8' in shrinker
@@ -480,14 +646,17 @@ def BuildAppWithShrinker(
   stdout = utils.RunCmd(cmd, env, quiet=options.quiet)
 
   apk_base_name = (archives_base_name
-      + (('-' + flavor) if flavor else '') + '-release')
-  signed_apk_name = config.get('signed-apk-name', apk_base_name + '.apk')
+      + (('-' + app.flavor) if app.flavor else '') + '-release')
+  signed_apk_name = (
+      app.signed_apk_name
+      if app.signed_apk_name
+      else apk_base_name + '.apk')
   unsigned_apk_name = apk_base_name + '-unsigned.apk'
 
-  build_dir = config.get('build_dir', 'build')
-  build_output_apks = os.path.join(app_module, build_dir, 'outputs', 'apk')
-  if flavor:
-    build_output_apks = os.path.join(build_output_apks, flavor, 'release')
+  build_dir = app.build_dir
+  build_output_apks = os.path.join(app.module, build_dir, 'outputs', 'apk')
+  if app.flavor:
+    build_output_apks = os.path.join(build_output_apks, app.flavor, 'release')
   else:
     build_output_apks = os.path.join(build_output_apks, 'release')
 
@@ -526,7 +695,7 @@ def RebuildAppWithShrinker(
   assert 'r8' in shrinker
   assert apk_dest.endswith('.apk')
 
-  print('Rebuilding {} with {}'.format(app, shrinker))
+  print('Rebuilding {} with {}'.format(app.name, shrinker))
 
   # Compile given APK with shrinker to temporary zip file.
   android_jar = utils.get_android_jar(compile_sdk)
@@ -558,21 +727,20 @@ def RebuildAppWithShrinker(
       apk, dex=zip_dest, resources='META-INF/services/*', out=apk_dest,
       quiet=options.quiet)
 
-def RunMonkey(app, config, options, apk_dest):
+def RunMonkey(app, options, apk_dest):
   if not WaitForEmulator():
     return False
 
-  UninstallApkOnEmulator(app, config, options)
+  UninstallApkOnEmulator(app, options)
   InstallApkOnEmulator(apk_dest, options)
 
-  app_id = config.get('app_id')
   number_of_events_to_generate = options.monkey_events
 
   # Intentionally using a constant seed such that the monkey generates the same
   # event sequence for each shrinker.
   random_seed = 42
 
-  cmd = ['adb', 'shell', 'monkey', '-p', app_id, '-s', str(random_seed),
+  cmd = ['adb', 'shell', 'monkey', '-p', app.id, '-s', str(random_seed),
       str(number_of_events_to_generate)]
 
   try:
@@ -582,7 +750,7 @@ def RunMonkey(app, config, options, apk_dest):
   except subprocess.CalledProcessError as e:
     succeeded = False
 
-  UninstallApkOnEmulator(app, config, options)
+  UninstallApkOnEmulator(app, options)
 
   return succeeded
 
@@ -611,7 +779,7 @@ def LogSegmentsForApp(app, result_per_shrinker, options):
 
 
 def LogComparisonResultsForApp(app, result_per_shrinker, options):
-  print(app + ':')
+  print(app.name + ':')
 
   if result_per_shrinker.get('status', 'success') != 'success':
     error_message = result_per_shrinker.get('error_message')
@@ -686,7 +854,7 @@ def ParseOptions(argv):
   result = optparse.OptionParser()
   result.add_option('--app',
                     help='What app to run on',
-                    choices=APPS.keys())
+                    choices=GetAllAppNames())
   result.add_option('--download-only', '--download_only',
                     help='Whether to download apps without any compilation',
                     default=False,
@@ -743,6 +911,11 @@ def ParseOptions(argv):
   result.add_option('--version',
                     help='The version of R8 to use (e.g., 1.4.51)')
   (options, args) = result.parse_args(argv)
+  if options.app:
+    options.apps = [GetAppWithName(options.app)]
+    del options.app
+  else:
+    options.apps = GetAllApps()
   if options.shrinker:
     for shrinker in options.shrinker:
       assert shrinker in SHRINKERS
@@ -761,13 +934,13 @@ def ParseOptions(argv):
       options.shrinker.remove('r8-nolib-full')
   return (options, args)
 
-def download_apps(quiet):
-  # Download apps and place in build
+def clone_repositories(quiet):
+  # Clone repositories into WORKING_DIR.
   with utils.ChangedWorkingDirectory(WORKING_DIR):
-    for app, config in APPS.iteritems():
-      app_dir = os.path.join(WORKING_DIR, app)
-      if not os.path.exists(app_dir):
-        GitClone(config['git_repo'], config['revision'], app_dir, quiet)
+    for name, repo in APP_REPOSITORIES.iteritems():
+      repo_dir = os.path.join(WORKING_DIR, name)
+      if not os.path.exists(repo_dir):
+        GitClone(repo, repo_dir, quiet)
 
 
 def main(argv):
@@ -786,7 +959,7 @@ def main(argv):
     os.makedirs(WORKING_DIR)
 
   if options.download_only:
-    download_apps(options.quiet)
+    clone_repositories(options.quiet)
     return
 
   with utils.TempDir() as temp_dir:
@@ -814,14 +987,11 @@ def main(argv):
 
     result_per_shrinker_per_app = {}
 
-    if options.app:
-      result_per_shrinker_per_app[options.app] = GetResultsForApp(
-          options.app, APPS.get(options.app), options, temp_dir)
-    else:
-      for app, config in sorted(APPS.iteritems(), key=lambda s: s[0].lower()):
-        if not config.get('skip', False):
-          result_per_shrinker_per_app[app] = GetResultsForApp(
-              app, config, options, temp_dir)
+    for (app, repo) in options.apps:
+      if app.skip:
+        continue
+      result_per_shrinker_per_app[app.name] = \
+          GetResultsForApp(app, repo, options, temp_dir)
 
     LogResultsForApps(result_per_shrinker_per_app, options)
 

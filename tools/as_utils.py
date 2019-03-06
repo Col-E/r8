@@ -66,14 +66,12 @@ def remove_r8_dependency(checkout_dir):
       if ('/r8.jar' not in line) and ('/r8lib.jar' not in line):
         f.write(line)
 
-def GetMinAndCompileSdk(app, config, checkout_dir, apk_reference):
-
-  compile_sdk = config.get('compile_sdk', None)
-  min_sdk = config.get('min_sdk', None)
+def GetMinAndCompileSdk(app, checkout_dir, apk_reference):
+  compile_sdk = app.compile_sdk
+  min_sdk = app.min_sdk
 
   if not compile_sdk or not min_sdk:
-    app_module = config.get('app_module', 'app')
-    build_gradle_file = os.path.join(checkout_dir, app_module, 'build.gradle')
+    build_gradle_file = os.path.join(checkout_dir, app.module, 'build.gradle')
     assert os.path.isfile(build_gradle_file), (
         'Expected to find build.gradle file at {}'.format(build_gradle_file))
 
@@ -82,11 +80,11 @@ def GetMinAndCompileSdk(app, config, checkout_dir, apk_reference):
       for line in f.readlines():
         stripped = line.strip()
         if stripped.startswith('compileSdkVersion '):
-          if 'compile_sdk' not in config:
+          if not app.compile_sdk:
             assert not compile_sdk
             compile_sdk = int(stripped[len('compileSdkVersion '):])
         elif stripped.startswith('minSdkVersion '):
-          if 'min_sdk' not in config:
+          if not app.min_sdk:
             assert not min_sdk
             min_sdk = int(stripped[len('minSdkVersion '):])
 
@@ -123,9 +121,8 @@ def IsGradleCompilerTask(x, shrinker):
       or 'transformClassesWithDexBuilderFor' in x
       or 'transformDexArchiveWithDexMergerFor' in x)
 
-def SetPrintConfigurationDirective(app, config, checkout_dir, destination):
-  proguard_config_file = FindProguardConfigurationFile(
-      app, config, checkout_dir)
+def SetPrintConfigurationDirective(app, checkout_dir, destination):
+  proguard_config_file = FindProguardConfigurationFile(app, checkout_dir)
   with open(proguard_config_file) as f:
     lines = f.readlines()
   with open(proguard_config_file, 'w') as f:
@@ -137,11 +134,10 @@ def SetPrintConfigurationDirective(app, config, checkout_dir, destination):
       f.write('\n')
     f.write('-printconfiguration {}\n'.format(destination))
 
-def FindProguardConfigurationFile(app, config, checkout_dir):
-  app_module = config.get('app_module', 'app')
+def FindProguardConfigurationFile(app, checkout_dir):
   candidates = ['proguard-rules.pro', 'proguard-rules.txt', 'proguard.cfg']
   for candidate in candidates:
-    proguard_config_file = os.path.join(checkout_dir, app_module, candidate)
+    proguard_config_file = os.path.join(checkout_dir, app.module, candidate)
     if os.path.isfile(proguard_config_file):
       return proguard_config_file
   # Currently assuming that the Proguard configuration file can be found at
