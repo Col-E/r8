@@ -230,6 +230,11 @@ public class ProguardMapApplier {
     }
 
     private DexType applyClassMappingOnTheFly(DexType from) {
+      if (from.isArrayType()) {
+        DexType baseType = from.toBaseType(appInfo.dexItemFactory);
+        DexType appliedBaseType = applyClassMappingOnTheFly(baseType);
+        return from.replaceBaseType(appliedBaseType, appInfo.dexItemFactory);
+      }
       if (seedMapper.hasMapping(from)) {
         DexType appliedType = lenseBuilder.lookup(from);
         if (appliedType != from) {
