@@ -136,7 +136,7 @@ def Main():
     version = GetGitHash()
 
   destination = GetVersionDestination('gs://', version, is_master)
-  if utils.cloud_storage_exists(destination):
+  if utils.cloud_storage_exists(destination) and not options.dry_run:
     raise Exception('Target archive directory %s already exists' % destination)
   with utils.TempDir() as temp:
     version_file = os.path.join(temp, 'r8-version.properties')
