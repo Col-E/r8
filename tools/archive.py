@@ -98,9 +98,8 @@ def PrintResourceInfo():
 
 def Main():
   (options, args) = ParseOptions()
-  # TODO(126871526): Fix the is_bot check.
-  # if not utils.is_bot() and not options.dry_run:
-  #   raise Exception('You are not a bot, don\'t archive builds')
+  if not utils.is_bot() and not options.dry_run:
+    raise Exception('You are not a bot, don\'t archive builds')
 
   if utils.is_old_bot():
     print("Archiving is disabled on old bots.")
