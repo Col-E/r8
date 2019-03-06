@@ -94,6 +94,7 @@ public class ClassInlinerTest extends TestBase {
     String javaOutput = runOnJava(main);
     TestRunResult result = testForR8(backend)
         .addProgramClasses(classes)
+        .enableInliningAnnotations()
         .addKeepMainRule(main)
         .addKeepRules(
             "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
@@ -172,7 +173,6 @@ public class ClassInlinerTest extends TestBase {
     String javaOutput = runOnJava(main);
     TestRunResult result = testForR8(backend)
         .addProgramClasses(classes)
-        .enableProguardTestOptions()
         .enableInliningAnnotations()
         .addKeepMainRule(main)
         .addKeepRules(
@@ -277,6 +277,7 @@ public class ClassInlinerTest extends TestBase {
     String javaOutput = runOnJava(main);
     TestRunResult result = testForR8(backend)
         .addProgramClasses(classes)
+        .enableInliningAnnotations()
         .addKeepMainRule(main)
         .addKeepRules(
             "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
@@ -316,6 +317,8 @@ public class ClassInlinerTest extends TestBase {
     String javaOutput = runOnJava(main);
     TestRunResult result = testForR8(backend)
         .addProgramClasses(classes)
+        .enableProguardTestOptions()
+        .enableInliningAnnotations()
         .addKeepMainRule(main)
         .addKeepRules(
             "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")

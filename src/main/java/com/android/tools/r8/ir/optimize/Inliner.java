@@ -33,6 +33,8 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ThreadUtils;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,8 +42,10 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class Inliner {
 
@@ -161,24 +165,29 @@ public class Inliner {
     return target;
   }
 
-  public synchronized void processDoubleInlineCallers(
-      IRConverter converter, OptimizationFeedback feedback) {
-    if (doubleInlineCallers.size() > 0) {
-      applyDoubleInlining = true;
-      List<DexEncodedMethod> methods = doubleInlineCallers
-          .stream()
-          .sorted(DexEncodedMethod::slowCompare)
-          .collect(Collectors.toList());
-      for (DexEncodedMethod method : methods) {
-        converter.processMethod(
-            method,
-            feedback,
-            x -> false,
-            CallSiteInformation.empty(),
-            Outliner::noProcessing);
-        assert method.isProcessed();
-      }
+  public void processDoubleInlineCallers(
+      IRConverter converter, ExecutorService executorService, OptimizationFeedback feedback)
+      throws ExecutionException {
+    if (doubleInlineCallers.isEmpty()) {
+      return;
     }
+    applyDoubleInlining = true;
+    List<Future<?>> futures = new ArrayList<>();
+    for (DexEncodedMethod method : doubleInlineCallers) {
+      futures.add(
+          executorService.submit(
+              () -> {
+                converter.processMethod(
+                    method,
+                    feedback,
+                    doubleInlineCallers::contains,
+                    CallSiteInformation.empty(),
+                    Outliner::noProcessing);
+                assert method.isProcessed();
+                return null;
+              }));
+    }
+    ThreadUtils.awaitFutures(futures);
   }
 
   /**

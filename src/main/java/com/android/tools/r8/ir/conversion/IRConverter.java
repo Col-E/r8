@@ -563,7 +563,7 @@ public class IRConverter {
     if (inliner != null) {
       printPhase("Double caller inlining");
       assert graphLenseForIR == graphLense();
-      inliner.processDoubleInlineCallers(this, feedback);
+      inliner.processDoubleInlineCallers(this, executorService, feedback);
       feedback.updateVisibleOptimizationInfo();
       assert graphLenseForIR == graphLense();
     }
