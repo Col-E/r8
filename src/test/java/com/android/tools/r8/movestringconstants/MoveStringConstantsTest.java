@@ -9,6 +9,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -41,6 +42,7 @@ public class MoveStringConstantsTest extends TestBase {
   private void runTest(Consumer<CodeInspector> inspection) throws Exception {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(ForceInline.class));
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(NeverInline.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(Utils.class));
     builder.addLibraryFiles(runtimeJar(backend));
@@ -49,6 +51,7 @@ public class MoveStringConstantsTest extends TestBase {
     builder.addProguardConfiguration(
         ImmutableList.of(
             "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
+            "-neverinline class * { @com.android.tools.r8.NeverInline *; }",
             "-keep class " + TestClass.class.getCanonicalName() + "{ *; }",
             "-dontobfuscate",
             "-allowaccessmodification"

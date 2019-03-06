@@ -5,6 +5,7 @@
 package com.android.tools.r8.movestringconstants;
 
 import com.android.tools.r8.ForceInline;
+import com.android.tools.r8.NeverInline;
 
 public class TestClass {
   public static void main(String[] args) {}
@@ -36,7 +37,8 @@ class Utils {
     }
   }
 
-  private synchronized static void throwException(String message) {
+  @NeverInline
+  private static void throwException(String message) {
     throw new RuntimeException(message);
   }
 }

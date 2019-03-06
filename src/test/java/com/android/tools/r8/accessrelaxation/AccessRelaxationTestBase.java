@@ -38,20 +38,6 @@ abstract class AccessRelaxationTestBase extends TestBase {
     return builder;
   }
 
-  static R8Command.Builder loadProgramFiles(Backend backend, Package p, Class... classes)
-      throws Exception {
-    R8Command.Builder builder = R8Command.builder();
-    builder.addProgramFiles(ToolHelper.getClassFilesForTestPackage(p));
-    for (Class clazz : classes) {
-      builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
-    }
-    builder.setProgramConsumer(emptyConsumer(backend)).addLibraryFiles(runtimeJar(backend));
-    if (backend == Backend.DEX) {
-      builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-    }
-    return builder;
-  }
-
   void compareReferenceJVMAndProcessed(AndroidApp app, Class mainClass) throws Exception {
     // Run on Jvm.
     String jvmOutput = runOnJava(mainClass);
