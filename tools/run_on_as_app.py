@@ -17,6 +17,7 @@ import sys
 import time
 import utils
 import zipfile
+from xml.dom import minidom
 
 import as_utils
 import create_maven_release
@@ -49,6 +50,7 @@ class App(object):
       'compile_sdk': None,
       'dir': '.',
       'flavor': None,
+      'has_instrumentation_tests': False,
       'main_dex_rules': None,
       'module': module,
       'min_sdk': None,
@@ -90,7 +92,8 @@ APP_REPOSITORIES = [
           App({
               'id': 'com.numix.calculator',
               'dir': 'Calculator',
-              'name': 'numix-calculator'
+              'name': 'numix-calculator',
+              'has_instrumentation_tests': True
           })
       ]
   }),
@@ -330,9 +333,6 @@ def GetAppWithName(query):
       return (app, repo)
   assert False
 
-# TODO(christofferqa): Do not rely on 'emulator-5554' name
-emulator_id = 'emulator-5554'
-
 def ComputeSizeOfDexFilesInApk(apk):
   dex_size = 0
   z = zipfile.ZipFile(apk, 'r')
@@ -380,6 +380,12 @@ def CheckIsBuiltWithExpectedR8(apk, temp_dir, shrinker, options):
       'Expected APK to be built with R8 version {} (was: {})'.format(
           expected_version, marker))
 
+def isR8(shrinker):
+  return 'r8' in shrinker
+
+def isR8FullMode(shrinker):
+  return shrinker == 'r8-full' or shrinker == 'r8-nolib-full'
+
 def IsMinifiedR8(shrinker):
   return 'nolib' not in shrinker
 
@@ -401,7 +407,7 @@ def GitCheckout(file):
   return subprocess.check_output(['git', 'checkout', file]).strip()
 
 def InstallApkOnEmulator(apk_dest, options):
-  cmd = ['adb', '-s', emulator_id, 'install', '-r', '-d', apk_dest]
+  cmd = ['adb', '-s', options.emulator_id, 'install', '-r', '-d', apk_dest]
   if options.quiet:
     with open(os.devnull, 'w') as devnull:
       subprocess.check_call(cmd, stdout=devnull)
@@ -416,7 +422,7 @@ def PercentageDiffAsString(before, after):
 
 def UninstallApkOnEmulator(app, options):
   process = subprocess.Popen(
-      ['adb', '-s', emulator_id, 'uninstall', app.id],
+      ['adb', '-s', options.emulator_id, 'uninstall', app.id],
       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   stdout, stderr = process.communicate()
 
@@ -432,20 +438,20 @@ def UninstallApkOnEmulator(app, options):
       'Unexpected result from `adb uninstall {}\nStdout: {}\nStderr: {}'.format(
           app.id, stdout, stderr))
 
-def WaitForEmulator():
+def WaitForEmulator(options):
   stdout = subprocess.check_output(['adb', 'devices'])
-  if '{}\tdevice'.format(emulator_id) in stdout:
+  if '{}\tdevice'.format(options.emulator_id) in stdout:
     return True
 
   print('Emulator \'{}\' not connected; waiting for connection'.format(
-      emulator_id))
+      options.emulator_id))
 
   time_waited = 0
   while True:
     time.sleep(10)
     time_waited += 10
     stdout = subprocess.check_output(['adb', 'devices'])
-    if '{}\tdevice'.format(emulator_id) not in stdout:
+    if '{}\tdevice'.format(options.emulator_id) not in stdout:
       print('... still waiting for connection')
       if time_waited >= 5 * 60:
         return False
@@ -519,70 +525,15 @@ def BuildAppWithSelectedShrinkers(
               app, options, apk_dest) else 'failed'
 
         if 'r8' in shrinker and options.r8_compilation_steps > 1:
-          recompilation_results = []
+          result['recompilation_results'] = \
+              ComputeRecompilationResults(
+                  app, repo, options, checkout_dir, temp_dir, shrinker,
+                  proguard_config_file)
 
-          # Build app with gradle using -D...keepRuleSynthesisForRecompilation=
-          # true.
-          out_dir = os.path.join(checkout_dir, 'out', shrinker + '-1')
-          (apk_dest, profile_dest_dir, ext_proguard_config_file) = \
-              BuildAppWithShrinker(
-                  app, repo, shrinker, checkout_dir, out_dir,
-                  temp_dir, options, keepRuleSynthesisForRecompilation=True)
-          dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
-          recompilation_result = {
-            'apk_dest': apk_dest,
-            'build_status': 'success',
-            'dex_size': ComputeSizeOfDexFilesInApk(apk_dest),
-            'monkey_status': 'skipped'
-          }
-          recompilation_results.append(recompilation_result)
-
-          # Sanity check that keep rules have changed.
-          with open(ext_proguard_config_file) as new:
-            with open(proguard_config_file) as old:
-              assert(
-                  sum(1 for line in new
-                      if line.strip() and '-printconfiguration' not in line)
-                  >
-                  sum(1 for line in old
-                      if line.strip() and '-printconfiguration' not in line))
-
-          # Extract min-sdk and target-sdk
-          (min_sdk, compile_sdk) = \
-              as_utils.GetMinAndCompileSdk(app, checkout_dir, apk_dest)
-
-          # Now rebuild generated apk.
-          previous_apk = apk_dest
-
-          # We may need main dex rules when re-compiling with R8 as standalone.
-          main_dex_rules = None
-          if app.main_dex_rules:
-            main_dex_rules = os.path.join(checkout_dir, app.main_dex_rules)
-
-          for i in range(1, options.r8_compilation_steps):
-            try:
-              recompiled_apk_dest = os.path.join(
-                  checkout_dir, 'out', shrinker, 'app-release-{}.apk'.format(i))
-              RebuildAppWithShrinker(
-                  app, previous_apk, recompiled_apk_dest,
-                  ext_proguard_config_file, shrinker, min_sdk, compile_sdk,
-                  options, temp_dir, main_dex_rules)
-              recompilation_result = {
-                'apk_dest': recompiled_apk_dest,
-                'build_status': 'success',
-                'dex_size': ComputeSizeOfDexFilesInApk(recompiled_apk_dest)
-              }
-              if options.monkey:
-                recompilation_result['monkey_status'] = 'success' if RunMonkey(
-                    app, options, recompiled_apk_dest) else 'failed'
-              recompilation_results.append(recompilation_result)
-              previous_apk = recompiled_apk_dest
-            except Exception as e:
-              warn('Failed to recompile {} with {}'.format(
-                  app.name, shrinker))
-              recompilation_results.append({ 'build_status': 'failed' })
-              break
-          result['recompilation_results'] = recompilation_results
+        if options.run_tests and app.has_instrumentation_tests:
+          result['instrumentation_test_results'] = \
+              ComputeInstrumentationTestResults(
+                  app, options, checkout_dir, out_dir, shrinker)
 
       result_per_shrinker[shrinker] = result
 
@@ -620,30 +571,26 @@ def BuildAppWithShrinker(
   as_utils.SetPrintConfigurationDirective(
       app, checkout_dir, proguard_config_dest)
 
-  env = {}
-  env['ANDROID_HOME'] = utils.getAndroidHome()
-  env['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
+  env_vars = {}
+  env_vars['ANDROID_HOME'] = utils.getAndroidHome()
+  env_vars['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
 
   releaseTarget = app.releaseTarget
   if not releaseTarget:
     releaseTarget = app.module.replace('/', ':') + ':' + 'assemble' + (
         app.flavor.capitalize() if app.flavor else '') + 'Release'
 
-  # Value for property android.enableR8.
-  enableR8 = 'r8' in shrinker
-  # Value for property android.enableR8.fullMode.
-  enableR8FullMode = shrinker == 'r8-full' or shrinker == 'r8-nolib-full'
-  # Build gradlew command line.
-  cmd = ['./gradlew', '--no-daemon', 'clean', releaseTarget,
-         '--profile', '--stacktrace',
-         '-Pandroid.enableR8=' + str(enableR8).lower(),
-         '-Pandroid.enableR8.fullMode=' + str(enableR8FullMode).lower()]
+  # Build using gradle.
+  args = [releaseTarget,
+         '--profile',
+         '-Pandroid.enableR8=' + str(isR8(shrinker)).lower(),
+         '-Pandroid.enableR8.fullMode=' + str(isR8FullMode(shrinker)).lower()]
   if keepRuleSynthesisForRecompilation:
-    cmd.append('-Dcom.android.tools.r8.keepRuleSynthesisForRecompilation=true')
+    args.append('-Dcom.android.tools.r8.keepRuleSynthesisForRecompilation=true')
   if options.gradle_flags:
-    cmd.extend(options.gradle_flags.split(' '))
+    args.extend(options.gradle_flags.split(' '))
 
-  stdout = utils.RunCmd(cmd, env, quiet=options.quiet)
+  stdout = utils.RunGradlew(args, env_vars=env_vars, quiet=options.quiet)
 
   apk_base_name = (archives_base_name
       + (('-' + app.flavor) if app.flavor else '') + '-release')
@@ -688,6 +635,100 @@ def BuildAppWithShrinker(
 
   return (apk_dest, profile_dest_dir, proguard_config_dest)
 
+def ComputeInstrumentationTestResults(
+    app, options, checkout_dir, out_dir, shrinker):
+  args = ['connectedAndroidTest',
+         '-Pandroid.enableR8=' + str(isR8(shrinker)).lower(),
+         '-Pandroid.enableR8.fullMode=' + str(isR8FullMode(shrinker)).lower()]
+  env_vars = { 'ANDROID_SERIAL': options.emulator_id }
+  stdout = \
+      utils.RunGradlew(args, env_vars=env_vars, quiet=options.quiet, fail=False)
+
+  xml_test_result_dest = os.path.join(out_dir, 'test_result')
+  as_utils.MoveXMLTestResultFileTo(
+      xml_test_result_dest, stdout, quiet=options.quiet)
+
+  with open(xml_test_result_dest, 'r') as f:
+    xml_test_result_contents = f.read()
+
+  xml_document = minidom.parseString(xml_test_result_contents)
+  testsuite_element = xml_document.documentElement
+
+  return {
+    'xml_test_result_dest': xml_test_result_dest,
+    'tests': int(testsuite_element.getAttribute('tests')),
+    'failures': int(testsuite_element.getAttribute('failures')),
+    'errors': int(testsuite_element.getAttribute('errors')),
+    'skipped': int(testsuite_element.getAttribute('skipped'))
+  }
+
+def ComputeRecompilationResults(
+    app, repo, options, checkout_dir, temp_dir, shrinker, proguard_config_file):
+  recompilation_results = []
+
+  # Build app with gradle using -D...keepRuleSynthesisForRecompilation=
+  # true.
+  out_dir = os.path.join(checkout_dir, 'out', shrinker + '-1')
+  (apk_dest, profile_dest_dir, ext_proguard_config_file) = \
+      BuildAppWithShrinker(
+          app, repo, shrinker, checkout_dir, out_dir,
+          temp_dir, options, keepRuleSynthesisForRecompilation=True)
+  dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
+  recompilation_result = {
+    'apk_dest': apk_dest,
+    'build_status': 'success',
+    'dex_size': ComputeSizeOfDexFilesInApk(apk_dest),
+    'monkey_status': 'skipped'
+  }
+  recompilation_results.append(recompilation_result)
+
+  # Sanity check that keep rules have changed.
+  with open(ext_proguard_config_file) as new:
+    with open(proguard_config_file) as old:
+      assert(
+          sum(1 for line in new
+              if line.strip() and '-printconfiguration' not in line)
+          >
+          sum(1 for line in old
+              if line.strip() and '-printconfiguration' not in line))
+
+  # Extract min-sdk and target-sdk
+  (min_sdk, compile_sdk) = \
+      as_utils.GetMinAndCompileSdk(app, checkout_dir, apk_dest)
+
+  # Now rebuild generated apk.
+  previous_apk = apk_dest
+
+  # We may need main dex rules when re-compiling with R8 as standalone.
+  main_dex_rules = None
+  if app.main_dex_rules:
+    main_dex_rules = os.path.join(checkout_dir, app.main_dex_rules)
+
+  for i in range(1, options.r8_compilation_steps):
+    try:
+      recompiled_apk_dest = os.path.join(
+          checkout_dir, 'out', shrinker, 'app-release-{}.apk'.format(i))
+      RebuildAppWithShrinker(
+          app, previous_apk, recompiled_apk_dest,
+          ext_proguard_config_file, shrinker, min_sdk, compile_sdk,
+          options, temp_dir, main_dex_rules)
+      recompilation_result = {
+        'apk_dest': recompiled_apk_dest,
+        'build_status': 'success',
+        'dex_size': ComputeSizeOfDexFilesInApk(recompiled_apk_dest)
+      }
+      if options.monkey:
+        recompilation_result['monkey_status'] = 'success' if RunMonkey(
+            app, options, recompiled_apk_dest) else 'failed'
+      recompilation_results.append(recompilation_result)
+      previous_apk = recompiled_apk_dest
+    except Exception as e:
+      warn('Failed to recompile {} with {}'.format(
+          app.name, shrinker))
+      recompilation_results.append({ 'build_status': 'failed' })
+      break
+  return recompilation_results
+
 def RebuildAppWithShrinker(
     app, apk, apk_dest, proguard_config_file, shrinker, min_sdk, compile_sdk,
     options, temp_dir, main_dex_rules):
@@ -727,7 +768,7 @@ def RebuildAppWithShrinker(
       quiet=options.quiet)
 
 def RunMonkey(app, options, apk_dest):
-  if not WaitForEmulator():
+  if not WaitForEmulator(options):
     return False
 
   UninstallApkOnEmulator(app, options)
@@ -739,8 +780,8 @@ def RunMonkey(app, options, apk_dest):
   # event sequence for each shrinker.
   random_seed = 42
 
-  cmd = ['adb', 'shell', 'monkey', '-p', app.id, '-s', str(random_seed),
-      str(number_of_events_to_generate)]
+  cmd = ['adb', '-s', options.emulator_id, 'shell', 'monkey', '-p', app.id,
+      '-s', str(random_seed), str(number_of_events_to_generate)]
 
   try:
     stdout = utils.RunCmd(cmd, quiet=options.quiet)
@@ -755,8 +796,7 @@ def RunMonkey(app, options, apk_dest):
 
 def LogResultsForApps(result_per_shrinker_per_app, options):
   print('')
-  for app, result_per_shrinker in sorted(
-      result_per_shrinker_per_app.iteritems(), key=lambda s: s[0].lower()):
+  for (app, result_per_shrinker) in result_per_shrinker_per_app:
     LogResultsForApp(app, result_per_shrinker, options)
 
 def LogResultsForApp(app, result_per_shrinker, options):
@@ -770,7 +810,7 @@ def LogSegmentsForApp(app, result_per_shrinker, options):
     if shrinker not in result_per_shrinker:
       continue
     result = result_per_shrinker[shrinker];
-    benchmark_name = '{}-{}'.format(options.print_dexsegments, app)
+    benchmark_name = '{}-{}'.format(options.print_dexsegments, app.name)
     utils.print_dexsegments(benchmark_name, [result.get('apk_dest')])
     duration = sum(result.get('profile').values())
     print('%s-Total(RunTimeRaw): %s ms' % (benchmark_name, duration * 1000))
@@ -828,6 +868,7 @@ def LogComparisonResultsForApp(app, result_per_shrinker, options):
           warn('    monkey: {}'.format(monkey_status))
         else:
           success('    monkey: {}'.format(monkey_status))
+
       recompilation_results = result.get('recompilation_results', [])
       i = 0
       for recompilation_result in recompilation_results:
@@ -849,6 +890,23 @@ def LogComparisonResultsForApp(app, result_per_shrinker, options):
               warn(msg)
         i += 1
 
+      if options.run_tests and 'instrumentation_test_results' in result:
+        instrumentation_test_results = \
+            result.get('instrumentation_test_results')
+        succeeded = (
+            instrumentation_test_results.get('failures')
+                + instrumentation_test_results.get('errors')
+                + instrumentation_test_results.get('skipped')) == 0
+        if succeeded:
+          success('    tests: succeeded')
+        else:
+          warn(
+              '    tests: failed (failures: {}, errors: {}, skipped: {})'
+              .format(
+                  instrumentation_test_results.get('failures'),
+                  instrumentation_test_results.get('errors'),
+                  instrumentation_test_results.get('skipped')))
+
 def ParseOptions(argv):
   result = optparse.OptionParser()
   result.add_option('--app',
@@ -858,6 +916,9 @@ def ParseOptions(argv):
                     help='Whether to download apps without any compilation',
                     default=False,
                     action='store_true')
+  result.add_option('--emulator-id', '--emulator_id',
+                    help='Id of the emulator to use',
+                    default='emulator-5554')
   result.add_option('--golem',
                     help='Running on golem, do not download',
                     default=False,
@@ -900,6 +961,10 @@ def ParseOptions(argv):
                     help='Number of times R8 should be run on each app',
                     default=2,
                     type=int)
+  result.add_option('--run-tests', '--run_tests',
+                    help='Whether to run instrumentation tests',
+                    default=False,
+                    action='store_true')
   result.add_option('--sign-apks', '--sign_apks',
                     help='Whether the APKs should be signed',
                     default=False,
@@ -984,13 +1049,13 @@ def main(argv):
         assert os.path.isfile(utils.R8LIB_JAR), 'Cannot build without r8lib.jar'
         shutil.copyfile(utils.R8LIB_JAR, os.path.join(temp_dir, 'r8lib.jar'))
 
-    result_per_shrinker_per_app = {}
+    result_per_shrinker_per_app = []
 
     for (app, repo) in options.apps:
       if app.skip:
         continue
-      result_per_shrinker_per_app[app.name] = \
-          GetResultsForApp(app, repo, options, temp_dir)
+      result_per_shrinker_per_app.append(
+          (app, GetResultsForApp(app, repo, options, temp_dir)))
 
     LogResultsForApps(result_per_shrinker_per_app, options)
 
