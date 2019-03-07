@@ -145,13 +145,15 @@ public class UnusedArgumentsCollector {
       usedSignatures.add(equivalence.wrap(method));
     }
 
+    private void markSignatureAsNoLongerUsed(DexMethod method) {
+      boolean removed = usedSignatures.remove(equivalence.wrap(method));
+      assert removed;
+    }
+
     DexEncodedMethod removeArguments(DexEncodedMethod method, RemovedArgumentsInfo unused) {
       if (unused == null) {
         return null;
       }
-
-      boolean removed = usedSignatures.remove(equivalence.wrap(method.method));
-      assert removed;
       DexProto newProto = protoWithRemovedArguments(method, unused);
       DexMethod newSignature;
       int count = 0;
@@ -170,6 +172,7 @@ public class UnusedArgumentsCollector {
             appView.dexItemFactory().createMethod(method.method.holder, newProto, newName);
         count++;
       } while (!isMethodSignatureAvailable(newSignature));
+      markSignatureAsNoLongerUsed(method.method);
       markSignatureAsUsed(newSignature);
       return method.toTypeSubstitutedMethod(newSignature);
     }
