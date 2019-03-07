@@ -206,8 +206,8 @@ public final class LambdaMerger {
     analyzeReferencesInProgramClasses(app, executorService);
 
     // Analyse more complex aspects of lambda classes including method code.
-    assert converter.appInfo.hasSubtyping();
-    AppInfoWithSubtyping appInfo = converter.appInfo.withSubtyping();
+    assert converter.appInfo().hasSubtyping();
+    AppInfoWithSubtyping appInfo = converter.appInfo().withSubtyping();
     analyzeLambdaClassesStructure(appInfo, executorService);
 
     // Remove invalidated lambdas, compact groups to ensure
@@ -221,9 +221,9 @@ public final class LambdaMerger {
 
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
       DexProgramClass synthesizedClass = entry.getValue();
-      converter.appInfo.addSynthesizedClass(synthesizedClass);
+      converter.appInfo().addSynthesizedClass(synthesizedClass);
       builder.addSynthesizedClass(
-          synthesizedClass, entry.getKey().shouldAddToMainDex(converter.appInfo));
+          synthesizedClass, entry.getKey().shouldAddToMainDex(converter.appInfo()));
       // Eventually, we need to process synthesized methods in the lambda group.
       // Otherwise, abstract SynthesizedCode will be flown to Enqueuer.
       // But that process should not see the holder. Otherwise, lambda calls in the main dispatch
@@ -323,7 +323,7 @@ public final class LambdaMerger {
     }
     Set<DexEncodedMethod> methods =
         methodsToReprocess.stream()
-            .map(method -> converter.graphLense().mapDexEncodedMethod(method, converter.appInfo))
+            .map(method -> converter.graphLense().mapDexEncodedMethod(method, converter.appInfo()))
             .collect(Collectors.toSet());
     List<Future<?>> futures = new ArrayList<>();
     for (DexEncodedMethod method : methods) {

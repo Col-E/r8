@@ -108,7 +108,7 @@ public class IRConverter {
 
   private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
 
-  public final AppInfo appInfo;
+  private final AppInfo appInfoD8; // Used only from D8, null in R8.
   public final AppView<? extends AppInfoWithSubtyping> appView;
   public final Set<DexType> mainDexClasses;
   public final RootSet rootSet;
@@ -153,28 +153,28 @@ public class IRConverter {
   // The argument `appView` is only available when full program optimizations are allowed
   // (i.e., when running R8).
   private IRConverter(
-      AppInfo appInfo,
+      AppView<? extends AppInfoWithLiveness> appView,
       InternalOptions options,
       Timing timing,
       CfgPrinter printer,
-      AppView<? extends AppInfoWithLiveness> appView,
       MainDexClasses mainDexClasses,
-      RootSet rootSet) {
-    assert appInfo != null;
+      RootSet rootSet,
+      AppInfo appInfoD8) {
+    assert (appInfoD8 == null) != (appView == null);
     assert options != null;
     assert options.programConsumer != null;
     assert appView == null
         || appView.appInfo().hasLiveness()
         || appView.graphLense().isIdentityLense();
     this.timing = timing != null ? timing : new Timing("internal");
-    this.appInfo = appInfo;
+    this.appInfoD8 = appInfoD8;
     this.appView = appView;
     this.rootSet = rootSet;
     this.options = options;
     this.printer = printer;
     this.mainDexClasses = mainDexClasses.getClasses();
     this.codeRewriter = new CodeRewriter(this, libraryMethodsReturningReceiver(), options);
-    this.stringConcatRewriter = new StringConcatRewriter(appInfo);
+    this.stringConcatRewriter = new StringConcatRewriter(appInfo());
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(this) : null;
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled()
@@ -187,21 +187,22 @@ public class IRConverter {
         (options.enableDesugaring && !options.canUseJava8Methods())
             ? new Java8MethodRewriter(this) : null;
     this.lambdaMerger =
-        options.enableLambdaMerging ? new LambdaMerger(appInfo, options.reporter) : null;
+        options.enableLambdaMerging ? new LambdaMerger(appInfo(), options.reporter) : null;
     this.covariantReturnTypeAnnotationTransformer =
         options.processCovariantReturnTypeAnnotations
-            ? new CovariantReturnTypeAnnotationTransformer(this, appInfo.dexItemFactory)
+            ? new CovariantReturnTypeAnnotationTransformer(this, appInfo().dexItemFactory)
             : null;
-    this.stringOptimizer = new StringOptimizer(appInfo, options.getInternalOutputMode());
+    this.stringOptimizer = new StringOptimizer(appInfo(), options.getInternalOutputMode());
     this.enableWholeProgramOptimizations =
         appView != null && appView.enableWholeProgramOptimizations();
     if (enableWholeProgramOptimizations) {
-      assert appInfo.hasLiveness();
-      AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
+      assert appInfo().hasLiveness();
+      AppInfoWithLiveness appInfoWithLiveness = appInfo().withLiveness();
       AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       assert rootSet != null;
-      this.nonNullTracker = new NonNullTracker(
-          appInfoWithLiveness, libraryMethodsReturningNonNull(appInfo.dexItemFactory));
+      this.nonNullTracker =
+          new NonNullTracker(
+              appInfoWithLiveness, libraryMethodsReturningNonNull(appInfo().dexItemFactory));
       this.inliner = new Inliner(appViewWithLiveness, this, options, mainDexClasses);
       this.outliner = new Outliner(appInfoWithLiveness, options, this);
       this.memberValuePropagation =
@@ -234,14 +235,16 @@ public class IRConverter {
     this.classInliner =
         (options.enableClassInlining && options.enableInlining && inliner != null)
             ? new ClassInliner(
-            appInfo.dexItemFactory, lambdaRewriter, options.classInliningInstructionLimit)
+                appInfo().dexItemFactory, lambdaRewriter, options.classInliningInstructionLimit)
             : null;
-    this.classStaticizer = options.enableClassStaticizer && appInfo.hasLiveness()
-        ? new ClassStaticizer(appInfo.withLiveness(), this) : null;
+    this.classStaticizer =
+        options.enableClassStaticizer && appInfo().hasLiveness()
+            ? new ClassStaticizer(appInfo().withLiveness(), this)
+            : null;
     this.deadCodeRemover =
-        new DeadCodeRemover(appView, appInfo, codeRewriter, graphLense(), options);
+        new DeadCodeRemover(appView, appInfo(), codeRewriter, graphLense(), options);
     this.idempotentFunctionCallCanonicalizer =
-        new IdempotentFunctionCallCanonicalizer(appInfo.dexItemFactory);
+        new IdempotentFunctionCallCanonicalizer(appInfo().dexItemFactory);
   }
 
   public GraphLense graphLense() {
@@ -260,14 +263,14 @@ public class IRConverter {
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(AppInfo appInfo, InternalOptions options) {
-    this(appInfo, options, null, null, null, MainDexClasses.NONE, null);
+    this(null, options, null, null, MainDexClasses.NONE, null, appInfo);
   }
 
   /**
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(AppInfo appInfo, InternalOptions options, Timing timing, CfgPrinter printer) {
-    this(appInfo, options, timing, printer, null, MainDexClasses.NONE, null);
+    this(null, options, timing, printer, MainDexClasses.NONE, null, appInfo);
   }
 
   /**
@@ -280,7 +283,11 @@ public class IRConverter {
       CfgPrinter printer,
       MainDexClasses mainDexClasses,
       RootSet rootSet) {
-    this(appView.appInfo(), options, timing, printer, appView, mainDexClasses, rootSet);
+    this(appView, options, timing, printer, mainDexClasses, rootSet, null);
+  }
+
+  public AppInfo appInfo() {
+    return appView == null ? appInfoD8 : appView.appInfo();
   }
 
   private boolean enableTwrCloseResourceDesugaring() {
@@ -299,7 +306,7 @@ public class IRConverter {
 
   private Set<DexMethod> libraryMethodsReturningReceiver() {
     Set<DexMethod> methods = new HashSet<>();
-    DexItemFactory dexItemFactory = appInfo.dexItemFactory;
+    DexItemFactory dexItemFactory = appInfo().dexItemFactory;
     dexItemFactory.stringBufferMethods.forEachAppendMethod(methods::add);
     dexItemFactory.stringBuilderMethods.forEachAppendMethod(methods::add);
     return methods;
@@ -317,7 +324,7 @@ public class IRConverter {
 
   private boolean removeLambdaDeserializationMethods() {
     if (lambdaRewriter != null) {
-      return lambdaRewriter.removeLambdaDeserializationMethods(appInfo.classes());
+      return lambdaRewriter.removeLambdaDeserializationMethods(appInfo().classes());
     }
     return false;
   }
@@ -603,7 +610,7 @@ public class IRConverter {
               outliner.identifyOutlineSites(code, method);
             });
         DexProgramClass outlineClass = outliner.buildOutlinerClass(computeOutlineClassType());
-        appInfo.addSynthesizedClass(outlineClass);
+        appInfo().addSynthesizedClass(outlineClass);
         optimizeSynthesizedClass(outlineClass, executorService);
         forEachSelectedOutliningMethod(
             executorService,
@@ -630,10 +637,12 @@ public class IRConverter {
 
     // Check if what we've added to the application builder as synthesized classes are same as
     // what we've added and used through AppInfo.
-    assert appInfo.getSynthesizedClassesForSanityCheck()
+    assert appInfo()
+            .getSynthesizedClassesForSanityCheck()
             .containsAll(builder.getSynthesizedClasses())
-        && builder.getSynthesizedClasses()
-            .containsAll(appInfo.getSynthesizedClassesForSanityCheck());
+        && builder
+            .getSynthesizedClasses()
+            .containsAll(appInfo().getSynthesizedClassesForSanityCheck());
     return builder.build();
   }
 
@@ -682,10 +691,10 @@ public class IRConverter {
               () -> {
                 IRCode code =
                     method.buildIR(
-                        appInfo,
+                        appInfo(),
                         appView.graphLense(),
                         options,
-                        appInfo.originFor(method.method.holder));
+                        appInfo().originFor(method.method.holder));
                 assert code != null;
                 assert !method.getCode().isOutlineCode();
                 // Instead of repeating all the optimizations of rewriteCode(), only run the
@@ -703,7 +712,7 @@ public class IRConverter {
 
   private void collectLambdaMergingCandidates(DexApplication application) {
     if (lambdaMerger != null) {
-      lambdaMerger.collectGroupCandidates(application, appInfo.withLiveness(), options);
+      lambdaMerger.collectGroupCandidates(application, appInfo().withLiveness(), options);
     }
   }
 
@@ -720,7 +729,7 @@ public class IRConverter {
   }
 
   private void clearDexMethodCompilationState() {
-    appInfo.classes().forEach(this::clearDexMethodCompilationState);
+    appInfo().classes().forEach(this::clearDexMethodCompilationState);
   }
 
   private void clearDexMethodCompilationState(DexProgramClass clazz) {
@@ -755,6 +764,7 @@ public class IRConverter {
   private DexType computeOutlineClassType() {
     DexType result;
     int count = 0;
+    AppInfo appInfo = appInfo();
     do {
       String name = OutlineOptions.CLASS_NAME + (count == 0 ? "" : Integer.toString(count));
       count++;
@@ -863,6 +873,7 @@ public class IRConverter {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
     }
+    AppInfo appInfo = appInfo();
     IRCode code =
         method.buildIR(appInfo, graphLense(), options, appInfo.originFor(method.method.holder));
     if (code == null) {
@@ -1157,6 +1168,7 @@ public class IRConverter {
 
     printMethod(code, "Optimized IR (SSA)", previous);
     finalizeIR(method, code, feedback);
+    assert appInfo == appInfo();
   }
 
   private void computeNonNullParamHints(
@@ -1185,8 +1197,8 @@ public class IRConverter {
       // original method signature (this could have changed as a result of, for example, class
       // merging). Then, we find the type that now corresponds to the the original holder.
       DexMethod originalSignature = graphLense().getOriginalMethodSignature(method.method);
-      DexClass originalHolder = appInfo.definitionFor(
-          graphLense().lookupType(originalSignature.holder));
+      DexClass originalHolder =
+          appInfo().definitionFor(graphLense().lookupType(originalSignature.holder));
       if (originalHolder.hasKotlinInfo()) {
         KotlinInfo kotlinInfo = originalHolder.getKotlinInfo();
         if (kotlinInfo.hasNonNullParameterHints()) {
@@ -1248,14 +1260,14 @@ public class IRConverter {
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(method, code, options.itemFactory);
-    CfCode result = builder.build(codeRewriter, graphLense(), options, appInfo);
+    CfCode result = builder.build(codeRewriter, graphLense(), options, appInfo());
     method.setCode(result);
     markProcessed(method, code, feedback);
   }
 
   private void finalizeToDex(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // Workaround massive dex2oat memory use for self-recursive methods.
-    CodeRewriter.disableDex2OatInliningForSelfRecursiveMethods(code, options, appInfo);
+    CodeRewriter.disableDex2OatInliningForSelfRecursiveMethods(code, options, appInfo());
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
     method.setCode(code, registerAllocator, options);
@@ -1298,7 +1310,7 @@ public class IRConverter {
     materializeInstructionBeforeLongOperationsWorkaround(code);
     workaroundForwardingInitializerBug(code);
     LinearScanRegisterAllocator registerAllocator =
-        new LinearScanRegisterAllocator(appInfo, code, options);
+        new LinearScanRegisterAllocator(appInfo(), code, options);
     registerAllocator.allocateRegisters();
     if (options.canHaveExceptionTargetingLoopHeaderBug()) {
       codeRewriter.workaroundExceptionTargetingLoopHeaderBug(code);

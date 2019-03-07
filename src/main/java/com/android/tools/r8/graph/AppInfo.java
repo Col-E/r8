@@ -25,7 +25,7 @@ public class AppInfo {
       new ConcurrentHashMap<>();
   // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve the current
   // class being optimized.
-  private ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses =
+  private final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses =
       new ConcurrentHashMap<>();
 
   public AppInfo(DexApplication application) {
@@ -37,6 +37,7 @@ public class AppInfo {
     this.app = previous.app;
     this.dexItemFactory = app.dexItemFactory;
     this.definitions.putAll(previous.definitions);
+    this.synthesizedClasses.putAll(previous.synthesizedClasses);
   }
 
   protected AppInfo(DirectMappedDexApplication application, GraphLense lense) {

@@ -81,7 +81,6 @@ public final class InterfaceMethodRewriter {
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
   private final AppView<? extends AppInfoWithLiveness> appView;
-  final AppInfo appInfo;
   private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
@@ -123,9 +122,12 @@ public final class InterfaceMethodRewriter {
     assert converter != null;
     this.appView = appView;
     this.converter = converter;
-    this.appInfo = converter.appInfo;
     this.options = options;
     this.factory = options.itemFactory;
+  }
+
+  public AppInfo appInfo() {
+    return converter.appInfo();
   }
 
   // Rewrites the references to static and default interface methods.
@@ -136,6 +138,7 @@ public final class InterfaceMethodRewriter {
     }
 
     ListIterator<BasicBlock> blocks = code.listIterator();
+    AppInfo appInfo = appInfo();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
       InstructionListIterator instructions = block.listIterator();
@@ -220,8 +223,8 @@ public final class InterfaceMethodRewriter {
             //
             // WARNING: This may result in incorrect code on older platforms!
             // Retarget call to an appropriate method of companion class.
-            DexMethod amendedMethod = amendDefaultMethod(
-                appInfo.definitionFor(encodedMethod.method.holder), method);
+            DexMethod amendedMethod =
+                amendDefaultMethod(appInfo.definitionFor(encodedMethod.method.holder), method);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(defaultAsMethodOfCompanionClass(amendedMethod),
                     invokeSuper.outValue(), invokeSuper.arguments()));
@@ -278,11 +281,12 @@ public final class InterfaceMethodRewriter {
         }
       }
     }
+    assert appInfo == appInfo();
   }
 
   private void reportStaticInterfaceMethodHandle(DexMethod referencedFrom, DexMethodHandle handle) {
     if (handle.type.isInvokeStatic()) {
-      DexClass holderClass = appInfo.definitionFor(handle.asMethod().holder);
+      DexClass holderClass = appInfo().definitionFor(handle.asMethod().holder);
       // NOTE: If the class definition is missing we can't check. Let it be handled as any other
       // missing call target.
       if (holderClass == null) {
@@ -328,7 +332,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private boolean isInMainDexList(DexType iface) {
-    return appInfo.isInMainDexList(iface);
+    return appInfo().isInMainDexList(iface);
   }
 
   // Represent a static interface method as a method of companion class.
@@ -397,6 +401,7 @@ public final class InterfaceMethodRewriter {
     // methods to companion class, copy default interface methods to companion classes,
     // make original default methods abstract, remove bridge methods, create dispatch
     // classes if needed.
+    AppInfo appInfo = appInfo();
     for (Entry<DexType, DexProgramClass> entry : processInterfaces(builder, flavour).entrySet()) {
       // Don't need to optimize synthesized class since all of its methods
       // are just moved from interfaces and don't need to be re-processed.
@@ -518,7 +523,7 @@ public final class InterfaceMethodRewriter {
     if (isCompanionClassType(holder)) {
       holder = getInterfaceClassType(holder);
     }
-    DexClass clazz = appInfo.definitionFor(holder);
+    DexClass clazz = appInfo().definitionFor(holder);
     return clazz == null ? Origin.unknown() : clazz.getOrigin();
   }
 
@@ -540,7 +545,7 @@ public final class InterfaceMethodRewriter {
       DexClass implementing,
       DexType iface) {
     DefaultMethodsHelper helper = new DefaultMethodsHelper();
-    DexClass definedInterface = appInfo.definitionFor(iface);
+    DexClass definedInterface = appInfo().definitionFor(iface);
     if (definedInterface == null) {
       warnMissingInterface(classToDesugar, implementing, iface);
       return helper.wrapInCollection();

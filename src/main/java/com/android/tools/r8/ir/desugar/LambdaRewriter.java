@@ -54,7 +54,6 @@ public class LambdaRewriter {
   static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
 
   final IRConverter converter;
-  final AppInfo appInfo;
   final DexItemFactory factory;
 
   final DexMethod objectInitMethod;
@@ -84,8 +83,7 @@ public class LambdaRewriter {
   public LambdaRewriter(IRConverter converter) {
     assert converter != null;
     this.converter = converter;
-    this.factory = converter.appInfo.dexItemFactory;
-    this.appInfo = converter.appInfo;
+    this.factory = converter.appInfo().dexItemFactory;
 
     this.constructorName = factory.createString(Constants.INSTANCE_INITIALIZER_NAME);
     DexProto initProto = factory.createProto(factory.voidType);
@@ -137,7 +135,7 @@ public class LambdaRewriter {
         for (int i = 0; i < methodCount; i++) {
           DexEncodedMethod encoded = directMethods.get(i);
           DexMethod method = encoded.method;
-          if (method.isLambdaDeserializeMethod(appInfo.dexItemFactory)) {
+          if (method.isLambdaDeserializeMethod(converter.appInfo().dexItemFactory)) {
             assert encoded.accessFlags.isStatic();
             assert encoded.accessFlags.isSynthetic();
             clazz.removeDirectMethod(i);
@@ -181,6 +179,7 @@ public class LambdaRewriter {
   /** Generates lambda classes and adds them to the builder. */
   public void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
+    AppInfo appInfo = converter.appInfo();
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
       DexProgramClass synthesizedClass = lambdaClass.getLambdaClass();
       appInfo.addSynthesizedClass(synthesizedClass);
@@ -211,13 +210,11 @@ public class LambdaRewriter {
     return descriptor != null
         ? descriptor
         : putIfAbsent(
-            knownCallSites,
-            callSite,
-            LambdaDescriptor.infer(callSite, this.converter.appInfo));
+            knownCallSites, callSite, LambdaDescriptor.infer(callSite, this.converter.appInfo()));
   }
 
   private boolean isInMainDexList(DexType type) {
-    return converter.appInfo.isInMainDexList(type);
+    return converter.appInfo().isInMainDexList(type);
   }
 
   // Returns a lambda class corresponding to the lambda descriptor and context,
@@ -230,7 +227,8 @@ public class LambdaRewriter {
       lambdaClass = putIfAbsent(knownLambdaClasses, lambdaClassType,
           new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
     }
-    lambdaClass.addSynthesizedFrom(appInfo.definitionFor(accessedFrom).asProgramClass());
+    lambdaClass.addSynthesizedFrom(
+        converter.appInfo().definitionFor(accessedFrom).asProgramClass());
     if (isInMainDexList(accessedFrom)) {
       lambdaClass.addToMainDexList.set(true);
     }
@@ -271,9 +269,10 @@ public class LambdaRewriter {
     Value lambdaInstanceValue = invoke.outValue();
     if (lambdaInstanceValue == null) {
       // The out value might be empty in case it was optimized out.
-      lambdaInstanceValue = code.createValue(
-          TypeLatticeElement.fromDexType(
-              lambdaClass.type, Nullability.maybeNull(), appInfo));
+      lambdaInstanceValue =
+          code.createValue(
+              TypeLatticeElement.fromDexType(
+                  lambdaClass.type, Nullability.maybeNull(), converter.appInfo()));
     }
 
     // For stateless lambdas we replace InvokeCustom instruction with StaticGet

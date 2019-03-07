@@ -186,7 +186,7 @@ public class CodeRewriter {
       Set<DexMethod> libraryMethodsReturningReceiver,
       InternalOptions options) {
     this.converter = converter;
-    this.appInfo = converter.appInfo;
+    this.appInfo = converter.appInfo();
     this.appView = converter.appView;
     this.options = options;
     this.dexItemFactory = appInfo.dexItemFactory;

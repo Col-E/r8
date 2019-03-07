@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
@@ -59,7 +60,7 @@ public final class TwrCloseResourceRewriter {
 
   public TwrCloseResourceRewriter(IRConverter converter) {
     this.converter = converter;
-    this.factory = converter.appInfo.dexItemFactory;
+    this.factory = converter.appInfo().dexItemFactory;
 
     DexType twrUtilityClass = factory.createType(UTILITY_CLASS_DESCRIPTOR);
     DexProto twrCloseResourceProto = factory.createProto(
@@ -71,6 +72,7 @@ public final class TwrCloseResourceRewriter {
   // Rewrites calls to $closeResource() method. Can be invoked concurrently.
   public void rewriteMethodCode(IRCode code) {
     InstructionIterator iterator = code.instructionIterator();
+    AppInfo appInfo = converter.appInfo();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       if (!instruction.isInvokeStatic()) {
@@ -89,8 +91,7 @@ public final class TwrCloseResourceRewriter {
           new InvokeStatic(twrCloseResourceMethod, null, invoke.inValues()));
 
       // Mark as a class referencing utility class.
-      referencingClasses.add(
-          converter.appInfo.definitionFor(code.method.method.holder).asProgramClass());
+      referencingClasses.add(appInfo.definitionFor(code.method.method.holder).asProgramClass());
     }
   }
 
@@ -106,8 +107,9 @@ public final class TwrCloseResourceRewriter {
     //    right attributes, but it still does not guarantee much since we also
     //    need to look into code and doing this seems an overkill
     //
-    return original.name == converter.appInfo.dexItemFactory.twrCloseResourceMethodName
-        && original.proto == converter.appInfo.dexItemFactory.twrCloseResourceMethodProto;
+    DexItemFactory dexItemFactory = converter.appInfo().dexItemFactory;
+    return original.name == dexItemFactory.twrCloseResourceMethodName
+        && original.proto == dexItemFactory.twrCloseResourceMethodProto;
   }
 
   public void synthesizeUtilityClass(
@@ -147,9 +149,10 @@ public final class TwrCloseResourceRewriter {
     code.setUpContext(utilityClass);
 
     // Process created class and method.
-    boolean addToMainDexList = referencingClasses.stream()
-        .anyMatch(clazz -> converter.appInfo.isInMainDexList(clazz.type));
-    converter.appInfo.addSynthesizedClass(utilityClass);
+    AppInfo appInfo = converter.appInfo();
+    boolean addToMainDexList =
+        referencingClasses.stream().anyMatch(clazz -> appInfo.isInMainDexList(clazz.type));
+    appInfo.addSynthesizedClass(utilityClass);
     converter.optimizeSynthesizedClass(utilityClass, executorService);
     builder.addSynthesizedClass(utilityClass, addToMainDexList);
   }

@@ -11,6 +11,7 @@ import com.android.tools.r8.code.InvokeSuper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
@@ -310,6 +311,8 @@ final class InterfaceProcessor {
     if (appView != null && appView.appInfo().isPinned(method.method)) {
       return true;
     }
+    AppInfo appInfo = rewriter.appInfo();
+    assert appView == null || appInfo == appView.appInfo();
     if (method.accessFlags.isBridge()) {
       Deque<DexType> worklist = new ArrayDeque<>();
       Set<DexType> seenBefore = new HashSet<>();
@@ -322,7 +325,7 @@ final class InterfaceProcessor {
         if (!seenBefore.add(superType)) {
           continue;
         }
-        DexClass clazz = rewriter.appInfo.definitionFor(superType);
+        DexClass clazz = appInfo.definitionFor(superType);
         if (clazz != null) {
           if (clazz.lookupVirtualMethod(method.method) != null) {
             return false;
