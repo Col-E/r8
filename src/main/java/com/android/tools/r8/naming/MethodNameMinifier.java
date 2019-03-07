@@ -159,7 +159,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
   private void assignNamesToClassesMethods(DexType type, boolean doPrivates) {
     DexClass holder = appInfo.definitionFor(type);
-    if (holder != null && !holder.isLibraryClass()) {
+    boolean shouldAssignName = holder != null && !alwaysReserveMemberNames(holder);
+    if (shouldAssignName) {
       Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel = new HashMap<>();
       NamingState<DexProto, ?> state =
           computeStateIfAbsent(type, k -> minifierState.getState(holder.superType).createChild());
@@ -243,7 +244,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
       DexClass holder = appInfo.definitionFor(type);
       if (holder != null) {
-        boolean keepAll = holder.isLibraryClass() || holder.accessFlags.isAnnotation();
+        boolean keepAll = alwaysReserveMemberNames(holder) || holder.accessFlags.isAnnotation();
         for (DexEncodedMethod method : shuffleMethods(holder.methods(), options)) {
           // TODO(christofferqa): Wouldn't it be sufficient only to reserve names for non-private
           //  methods?

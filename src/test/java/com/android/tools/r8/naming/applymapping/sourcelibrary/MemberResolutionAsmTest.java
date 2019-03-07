@@ -31,7 +31,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -75,7 +74,6 @@ public class MemberResolutionAsmTest extends AsmTestBase {
   //      new NoMapping();
   //    }
   //  }
-  @Ignore("b/126503704")
   @Test
   public void test_noMapping() throws Exception {
     String main = "NoMappingMain";
@@ -158,7 +156,6 @@ public class MemberResolutionAsmTest extends AsmTestBase {
   //      new B().x(); // IllegalAccessError
   //    }
   //  }
-  @Ignore("b/126503704")
   @Test
   public void test_swapping() throws Exception {
     String main = "Main";

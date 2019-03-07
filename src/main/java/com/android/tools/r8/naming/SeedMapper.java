@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Mappings read from the given ProGuard map.
@@ -86,5 +87,9 @@ public class SeedMapper implements ProguardMap {
   @Override
   public ClassNamingForMapApplier getClassNaming(DexType type) {
     return mappings.get(type.descriptor.toString());
+  }
+
+  public Set<String> getKeyset() {
+    return mappings.keySet();
   }
 }

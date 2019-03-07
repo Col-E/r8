@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 class ToBeRenamedForMultiDimensionalArrayTest {
@@ -68,7 +67,6 @@ public class MultiDimensionalArrayTest extends TestBase {
             ToolHelper.getClassAsBytes(MultiDimensionalArrayTestMain.class));
   }
 
-  @Ignore("b/126503704")
   @Test
   public void test() throws Exception {
     Path mapPath = temp.newFile("test-mapping.txt").toPath();

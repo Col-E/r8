@@ -78,17 +78,18 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     if (holder == null) {
       return;
     }
+    // If there is a mapping file, it can be that fields in libraries should be renamed and
+    // therefore not reserved.
     NamingState<DexType, ?> newState = computeStateIfAbsent(type, t -> state.createChild());
-    holder.forEachField(field -> reserveFieldName(field, newState, holder.isLibraryClass()));
+    holder.forEachField(
+        field -> reserveFieldName(field, newState, alwaysReserveMemberNames(holder)));
     type.forAllExtendsSubtypes(subtype -> reserveNamesInSubtypes(subtype, newState));
   }
 
   private void reserveFieldName(
-      DexEncodedField encodedField,
-      NamingState<DexType, ?> state,
-      boolean isLibrary) {
+      DexEncodedField encodedField, NamingState<DexType, ?> state, boolean alwaysReserve) {
     DexField field = encodedField.field;
-    if (isLibrary || rootSet.noObfuscation.contains(field)) {
+    if (alwaysReserve || rootSet.noObfuscation.contains(field)) {
       state.reserveName(field.name, field.type);
     }
   }

@@ -17,7 +17,6 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -61,7 +60,6 @@ public class InnerEnumValuesTest extends TestBase {
             "    " + InnerEnum.class.getTypeName() + "[] values() -> values"));
   }
 
-  @Ignore("b/126503704")
   @Test
   public void b124177369() throws Exception {
     CodeInspector inspector = testForR8(Backend.CF)

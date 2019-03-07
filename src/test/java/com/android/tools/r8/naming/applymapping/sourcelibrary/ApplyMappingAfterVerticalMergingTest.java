@@ -79,7 +79,6 @@ public class ApplyMappingAfterVerticalMergingTest extends TestBase {
     this.backend = backend;
   }
 
-  @Ignore("b/127434575")
   @Test
   public void b121042934() throws Exception {
     Path mapPath = temp.newFile("test-mapping.txt").toPath();

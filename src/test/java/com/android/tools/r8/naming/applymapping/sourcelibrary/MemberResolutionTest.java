@@ -21,7 +21,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -90,7 +89,6 @@ public class MemberResolutionTest extends TestBase {
     this.backend = backend;
   }
 
-  @Ignore("b/126503704")
   @Test
   public void testPrivateMethodsWithSameName() throws Exception {
     String pkg = this.getClass().getPackage().getName();

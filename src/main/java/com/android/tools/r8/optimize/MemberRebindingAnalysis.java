@@ -32,6 +32,7 @@ public class MemberRebindingAnalysis {
   private final AppInfoWithLiveness appInfo;
   private final GraphLense lense;
   private final InternalOptions options;
+  private final boolean searchInLibrary;
 
   private final MemberRebindingLense.Builder builder;
 
@@ -41,12 +42,13 @@ public class MemberRebindingAnalysis {
     this.lense = appView.graphLense();
     this.options = options;
     this.builder = MemberRebindingLense.builder(appInfo);
+    this.searchInLibrary = options.getProguardConfiguration().hasApplyMappingFile();
   }
 
   private DexMethod validTargetFor(DexMethod target, DexMethod original) {
     DexClass clazz = appInfo.definitionFor(target.getHolder());
     assert clazz != null;
-    if (!clazz.isLibraryClass()) {
+    if (searchInLibrary || !clazz.isLibraryClass()) {
       return target;
     }
     DexType newHolder;
@@ -63,7 +65,7 @@ public class MemberRebindingAnalysis {
       BiFunction<DexClass, DexField, DexEncodedField> lookup) {
     DexClass clazz = appInfo.definitionFor(target.getHolder());
     assert clazz != null;
-    if (!clazz.isLibraryClass()) {
+    if (searchInLibrary || !clazz.isLibraryClass()) {
       return target;
     }
     DexType newHolder;
@@ -131,8 +133,7 @@ public class MemberRebindingAnalysis {
         continue;
       }
       DexClass originalClass = appInfo.definitionFor(method.holder);
-      // We can safely ignore calls to library classes, as those cannot be rebound.
-      if (originalClass == null || originalClass.isLibraryClass()) {
+      if (originalClass == null || (!searchInLibrary && originalClass.isLibraryClass())) {
         continue;
       }
       DexEncodedMethod target = lookupTarget.apply(method);

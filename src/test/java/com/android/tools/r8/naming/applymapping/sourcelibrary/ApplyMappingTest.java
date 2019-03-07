@@ -70,7 +70,6 @@ public class ApplyMappingTest extends TestBase {
     out = temp.newFolder("out").toPath();
   }
 
-  @Ignore("b/126503704")
   @Test
   public void test044_apply() throws Exception {
     Path flag =
@@ -130,7 +129,6 @@ public class ApplyMappingTest extends TestBase {
     return new CodeInspector(outputApp);
   }
 
-  @Ignore("b/126503704")
   @Test
   public void test_naming001_rule105() throws Exception {
     // keep rules to reserve D and E, along with a proguard map.
@@ -165,7 +163,6 @@ public class ApplyMappingTest extends TestBase {
     assertEquals("peek", m.invokedMethod().name.toSourceString());
   }
 
-  @Ignore("b/126503704")
   @Test
   public void test_naming001_rule106() throws Exception {
     // keep rules just to rename E

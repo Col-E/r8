@@ -34,7 +34,7 @@ import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.naming.ProguardMapApplier;
+import com.android.tools.r8.naming.ProguardMapMinifier;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.naming.SourceFileRewriter;
@@ -420,24 +420,6 @@ public class R8 {
 
       if (appView.appInfo().hasLiveness()) {
         AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-
-        if (options.getProguardConfiguration().hasApplyMappingFile()) {
-          SeedMapper seedMapper =
-              SeedMapper.seedMapperFromFile(
-                  options.getProguardConfiguration().getApplyMappingFile());
-          timing.begin("apply-mapping");
-          GraphLense applyMappingLense =
-              new ProguardMapApplier(appView.withLiveness(), seedMapper).run(timing);
-          rootSet = rootSet.rewrittenWithLense(applyMappingLense);
-          appView.setGraphLense(applyMappingLense);
-          application = application.asDirect().rewrittenWithLense(appView.graphLense());
-          appView.setAppInfo(
-              appView
-                  .appInfo()
-                  .withLiveness()
-                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
-          timing.end();
-        }
         appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness, options).run());
         if (options.enableHorizontalClassMerging) {
           StaticClassMerger staticClassMerger =
@@ -576,7 +558,9 @@ public class R8 {
 
       appView.setAppInfo(new AppInfoWithSubtyping(application));
 
-      if (options.enableTreeShaking || options.enableMinification) {
+      if (options.enableTreeShaking
+          || options.enableMinification
+          || options.getProguardConfiguration().hasApplyMappingFile()) {
         timing.begin("Post optimization code stripping");
         try {
 
@@ -646,7 +630,15 @@ public class R8 {
 
       // Perform minification.
       NamingLens namingLens;
-      if (options.enableMinification) {
+      if (options.getProguardConfiguration().hasApplyMappingFile()) {
+        SeedMapper seedMapper =
+            SeedMapper.seedMapperFromFile(options.getProguardConfiguration().getApplyMappingFile());
+        timing.begin("apply-mapping");
+        namingLens =
+            new ProguardMapMinifier(appView.withLiveness(), rootSet, seedMapper, desugaredCallSites)
+                .run(timing);
+        timing.end();
+      } else if (options.enableMinification) {
         timing.begin("Minification");
         namingLens = new Minifier(appView.withLiveness(), rootSet, desugaredCallSites).run(timing);
         timing.end();
