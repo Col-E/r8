@@ -4,9 +4,14 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.DescriptorUtils;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
 public abstract class TestBaseBuilder<
         C extends BaseCommand,
@@ -48,6 +53,35 @@ public abstract class TestBaseBuilder<
   @Override
   public T addLibraryFiles(Collection<Path> files) {
     builder.addLibraryFiles(files);
+    return self();
+  }
+
+  @Override
+  public T addLibraryClasses(Collection<Class<?>> classes) {
+    builder.addLibraryResourceProvider(
+        new ClassFileResourceProvider() {
+          final Map<String, ProgramResource> resources;
+
+          {
+            ImmutableMap.Builder<String, ProgramResource> builder = ImmutableMap.builder();
+            classes.forEach(
+                c ->
+                    builder.put(
+                        DescriptorUtils.javaTypeToDescriptor(c.getTypeName()),
+                        ProgramResource.fromFile(Kind.CF, ToolHelper.getClassFileForTestClass(c))));
+            resources = builder.build();
+          }
+
+          @Override
+          public Set<String> getClassDescriptors() {
+            return resources.keySet();
+          }
+
+          @Override
+          public ProgramResource getProgramResource(String descriptor) {
+            return resources.get(descriptor);
+          }
+        });
     return self();
   }
 

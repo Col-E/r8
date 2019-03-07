@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.TestBase.Backend.DEX;
 
+import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -13,12 +14,15 @@ import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -58,9 +62,41 @@ public abstract class TestCompileResult<
     }
   }
 
-  public CR addRunClasspath(List<Path> classpath) {
+  public CR addRunClasspathFiles(Path... classpath) {
+    return addRunClasspathFiles(Arrays.asList(classpath));
+  }
+
+  public CR addRunClasspathFiles(List<Path> classpath) {
     additionalRunClassPath.addAll(classpath);
     return self();
+  }
+
+  public CR addRunClasspathClasses(Class<?>... classpath) {
+    return addRunClasspathClasses(Arrays.asList(classpath));
+  }
+
+  public CR addRunClasspathClasses(List<Class<?>> classpath) {
+    try {
+      Path path = state.getNewTempFolder().resolve("runtime-classes.jar");
+      ArchiveConsumer consumer = new ArchiveConsumer(path);
+      for (Class clazz : classpath) {
+        consumer.accept(
+            ByteDataView.of(ToolHelper.getClassAsBytes(clazz)),
+            DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()),
+            null);
+      }
+      consumer.finished(null);
+      additionalRunClassPath.addAll(Collections.singletonList(path));
+      return self();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public Path writeToZip() throws IOException {
+    Path file = state.getNewTempFolder().resolve("out.zip");
+    writeToZip(file);
+    return file;
   }
 
   public CR writeToZip(Path file) throws IOException {

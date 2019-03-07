@@ -124,6 +124,11 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
   }
 
   @Override
+  public JvmTestBuilder addLibraryClasses(Collection<Class<?>> classes) {
+    throw new Unimplemented("No support for changing the Java runtime library.");
+  }
+
+  @Override
   public JvmTestBuilder addProgramClasses(Collection<Class<?>> classes) {
     addProgramResources(ListUtils.map(classes, ClassFileResource::new));
     return self();

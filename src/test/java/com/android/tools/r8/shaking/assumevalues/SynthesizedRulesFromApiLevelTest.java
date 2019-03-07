@@ -177,7 +177,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
               syntheticProguardRules ->
                   checkSynthesizedRuleExpectation(syntheticProguardRules, synthesizedRule))
           .inspect(inspector)
-          .addRunClasspath(ImmutableList.of(buildMockAndroidRuntimeLibrary(runtimeApiLevel)))
+          .addRunClasspathFiles(ImmutableList.of(buildMockAndroidRuntimeLibrary(runtimeApiLevel)))
           .run(mainClassName)
           .assertSuccessWithOutput(expectedOutput);
     } else {
@@ -188,7 +188,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           .addKeepRules(additionalKeepRules)
           .compile()
           .inspectProguardConfiguration(this::noSynthesizedRules)
-          .addRunClasspath(
+          .addRunClasspathFiles(
               ImmutableList.of(mockAndroidRuntimeLibrary(AndroidApiLevel.D.getLevel())))
           .run(mainClassName)
           .assertSuccessWithOutput(expectedResultForCompat(AndroidApiLevel.D));
