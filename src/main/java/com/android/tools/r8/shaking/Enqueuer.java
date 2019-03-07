@@ -2642,7 +2642,8 @@ public class Enqueuer {
       assert method != null;
       assert refinedReceiverType.isSubtypeOf(method.holder, this);
       if (method.holder.isArrayType()) {
-        assert method.name == dexItemFactory.cloneMethodName;
+        // For javac output this will only be clone(), but in general the methods from Object can
+        // be invoked with an array type holder.
         return null;
       }
       DexClass holder = definitionFor(method.holder);
