@@ -1436,8 +1436,6 @@ tasks.withType(Test) {
     // See https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.Test.html.
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(coresPerFork) ?: 1
     forkEvery = 0
-    // Use the Concurrent Mark Sweep GC (CMS) to keep memory usage at a resonable level.
-    jvmArgs = ["-XX:+UseConcMarkSweepGC"]
     if (project.hasProperty('disable_assertions')) {
         enableAssertions = false
     }
