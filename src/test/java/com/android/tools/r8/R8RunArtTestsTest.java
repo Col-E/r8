@@ -792,7 +792,7 @@ public abstract class R8RunArtTestsTest {
               "370-dex-v37",
               TestCondition.match(
                   TestCondition.tools(DexTool.JACK, DexTool.DX),
-                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.D8),
+                  TestCondition.compilers(CompilerUnderTest.D8),
                   TestCondition
                       .runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4, DexVm.Version.V5_1_1,
                           DexVm.Version.V6_0_1)))
