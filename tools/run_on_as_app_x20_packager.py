@@ -18,24 +18,24 @@ def main():
 
   print 'Removing directories that do not match checked out revision'
   with utils.ChangedWorkingDirectory(working_dir):
-    for app, config in run_on_as_app.APPS.iteritems():
-      app_dir = os.path.join(working_dir, app)
-      if os.path.exists(app_dir) \
-          and utils.get_HEAD_sha1_for_checkout(app_dir) != config['revision']:
-        print 'Removing %s' % app_dir
-        shutil.rmtree(app_dir)
+    for repo in run_on_as_app.APP_REPOSITORIES:
+      repo_dir = os.path.join(working_dir, repo.name)
+      if os.path.exists(repo_dir) \
+          and utils.get_HEAD_sha1_for_checkout(repo_dir) != repo.revision:
+        print 'Removing %s' % repo_dir
+        shutil.rmtree(repo_dir)
 
   print 'Downloading all missing apps'
-  run_on_as_app.download_apps(quiet=False)
+  run_on_as_app.clone_repositories(quiet=False)
 
   # Package all files as x20 dependency
   parent_dir = os.path.dirname(working_dir)
   with utils.ChangedWorkingDirectory(parent_dir):
     print 'Creating archive for opensource_apps (this may take some time)'
     working_dir_name = os.path.basename(working_dir)
-    app_dirs = [working_dir_name + '/' + name
-                for name in run_on_as_app.APPS.keys()]
-    filename = utils.create_archive("opensource_apps", app_dirs)
+    repo_dirs = [working_dir_name + '/' + repo.name
+                 for repo in run_on_as_app.APP_REPOSITORIES]
+    filename = utils.create_archive("opensource_apps", repo_dirs)
     sha1 = utils.get_sha1(filename)
     dest = os.path.join(upload_to_x20.GMSCORE_DEPS, sha1)
     upload_to_x20.uploadFile(filename, dest)
