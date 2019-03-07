@@ -250,7 +250,6 @@ def osString = OperatingSystem.current().isLinux() ? "linux" :
 def cloudDependencies = [
         "tests"      : [
                 "2017-10-04/art",
-                "2016-12-19/art"
         ],
         "third_party": [
                 "android_cts_baseline",
@@ -1555,14 +1554,6 @@ test {
     if (project.hasProperty('dex_vm') && project.property('dex_vm') != 'default') {
         println "Running with non default vm: " + project.property('dex_vm')
         systemProperty 'dex_vm', project.property('dex_vm')
-        if (project.property('dex_vm').startsWith('4.4.4') ||
-            project.property('dex_vm').startsWith('5.1.1') ||
-            project.property('dex_vm').startsWith('6.0.1')) {
-            // R8 and D8 compute the dex file version number based on the input.
-            // Jack generates dex files with version 37 which art 5.1.1 and 6.0.1 will not run.
-            // Therefore we skip the jack generated art tests with those art versions.
-            exclude "com/android/tools/r8/art/jack/**"
-        }
     }
 
     if (project.hasProperty('one_line_per_test')) {
@@ -1591,6 +1582,7 @@ test {
     if (project.hasProperty('only_internal')) {
         include "com/android/tools/r8/internal/**"
     }
+
     if (project.hasProperty('tool')) {
         if (project.property('tool') == 'r8') {
             exclude "com/android/tools/r8/art/*/d8/**"
@@ -1610,7 +1602,6 @@ test {
     }
     if (!project.hasProperty('all_tests')) {
         exclude "com/android/tools/r8/art/dx/**"
-        exclude "com/android/tools/r8/art/jack/**"
     }
     if (!project.hasProperty('jctf') && !project.hasProperty('only_jctf')) {
         exclude "com/android/tools/r8/jctf/**"
