@@ -1001,8 +1001,8 @@ def ParseOptions(argv):
 def clone_repositories(quiet):
   # Clone repositories into WORKING_DIR.
   with utils.ChangedWorkingDirectory(WORKING_DIR):
-    for name, repo in APP_REPOSITORIES.iteritems():
-      repo_dir = os.path.join(WORKING_DIR, name)
+    for repo in APP_REPOSITORIES:
+      repo_dir = os.path.join(WORKING_DIR, repo.name)
       if not os.path.exists(repo_dir):
         GitClone(repo, repo_dir, quiet)
 
