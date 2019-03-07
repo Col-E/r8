@@ -131,6 +131,11 @@ public class ExternalR8TestBuilder
   }
 
   @Override
+  public ExternalR8TestBuilder addApplyMapping(String proguardMap) {
+    throw new Unimplemented("No support for adding mapfile content yet");
+  }
+
+  @Override
   public ExternalR8TestBuilder addDataEntryResources(DataEntryResource... resources) {
     throw new Unimplemented("No support for adding data entry resources");
   }

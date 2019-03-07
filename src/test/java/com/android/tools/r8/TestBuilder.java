@@ -90,9 +90,7 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
     return addLibraryClasses(Arrays.asList(classes));
   }
 
-  public T addLibraryClasses(Collection<Class<?>> classes) {
-    return addLibraryFiles(getFilesForClasses(classes));
-  }
+  public abstract T addLibraryClasses(Collection<Class<?>> classes);
 
   public T addLibraryFiles(Path... files) {
     return addLibraryFiles(Arrays.asList(files));

@@ -181,6 +181,11 @@ public class ProguardTestBuilder
   }
 
   @Override
+  public ProguardTestBuilder addApplyMapping(String proguardMap) {
+    throw new Unimplemented("No support for adding mapfile content yet");
+  }
+
+  @Override
   public ProguardTestBuilder addDataEntryResources(DataEntryResource... resources) {
     throw new Unimplemented("No support for adding data entry resources");
   }
