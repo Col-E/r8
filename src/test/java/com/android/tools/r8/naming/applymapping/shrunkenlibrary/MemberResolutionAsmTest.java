@@ -1,7 +1,7 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.naming.applymapping;
+package com.android.tools.r8.naming.applymapping.shrunkenlibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
@@ -16,6 +16,12 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.naming.applymapping.shared.NoMappingDumps.HasMappingDump;
+import com.android.tools.r8.naming.applymapping.shared.NoMappingDumps.NoMappingDump;
+import com.android.tools.r8.naming.applymapping.shared.NoMappingDumps.NoMappingMainDump;
+import com.android.tools.r8.naming.applymapping.shared.SwappingDump.ADump;
+import com.android.tools.r8.naming.applymapping.shared.SwappingDump.BDump;
+import com.android.tools.r8.naming.applymapping.shared.SwappingDump.MainDump;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
@@ -25,6 +31,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -68,6 +75,7 @@ public class MemberResolutionAsmTest extends AsmTestBase {
   //      new NoMapping();
   //    }
   //  }
+  @Ignore("b/127434575")
   @Test
   public void test_noMapping() throws Exception {
     String main = "NoMappingMain";
@@ -118,13 +126,14 @@ public class MemberResolutionAsmTest extends AsmTestBase {
     assertThat(x, isRenamed());
     assertEquals("a", x.getFinalName());
 
+    // To ensure still getting illegal-access error we need to rename consistently.
     ClassSubject sub = codeInspector.clazz("NoMapping");
     assertThat(sub, isPresent());
     assertThat(sub, isRenamed());
     assertEquals("Y", sub.getFinalName());
-    MethodSubject y = sub.method("void", "foo", ImmutableList.of());
+    MethodSubject y = sub.method("void", "a", ImmutableList.of());
     assertThat(y, isPresent());
-    assertThat(y, not(isRenamed()));
+    assertThat(y, isRenamed());
     assertEquals("foo", y.getFinalName());
   }
 
@@ -151,6 +160,7 @@ public class MemberResolutionAsmTest extends AsmTestBase {
   //      new B().x(); // IllegalAccessError
   //    }
   //  }
+  @Ignore("b/127434575")
   @Test
   public void test_swapping() throws Exception {
     String main = "Main";

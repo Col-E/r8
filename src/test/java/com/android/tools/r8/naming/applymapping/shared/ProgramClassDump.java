@@ -1,8 +1,9 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.naming.applymapping;
+package com.android.tools.r8.naming.applymapping.shared;
 
+import com.android.tools.r8.naming.applymapping.shared.ProgramWithLibraryClasses.LibraryClass;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
@@ -29,7 +30,7 @@ import org.objectweb.asm.Opcodes;
 //     void a() -> foo
 //   B -> AnotherLibraryClass:
 //     void a() -> foo
-class ProgramClassDump implements Opcodes {
+public class ProgramClassDump implements Opcodes {
 
   public static byte[] dump () throws Exception {
 

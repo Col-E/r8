@@ -1,26 +1,20 @@
-// Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.naming.applymapping;
+package com.android.tools.r8.naming.applymapping.sourcelibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -76,91 +70,7 @@ public class ApplyMappingTest extends TestBase {
     out = temp.newFolder("out").toPath();
   }
 
-  @Ignore("b/121305642")
-  @Test
-  public void test044_obfuscate_and_apply() throws Exception {
-    // keep rules that allow obfuscations while keeping everything.
-    Path flagForObfuscation =
-        Paths.get(ToolHelper.EXAMPLES_DIR, "naming044", "keep-rules-005.txt");
-    Path proguardMap = out.resolve(MAPPING);
-    class ProguardMapConsumer implements StringConsumer {
-      String map;
-
-      @Override
-      public void accept(String string, DiagnosticsHandler handler) {
-        map = string;
-      }
-    }
-    ProguardMapConsumer mapConsumer = new ProguardMapConsumer();
-    runR8(
-        ToolHelper.addProguardConfigurationConsumer(
-                getCommandForApps(out, flagForObfuscation, NAMING044_JAR)
-                    .setProguardMapConsumer(mapConsumer),
-                pgConfig -> {
-                  pgConfig.setPrintMapping(true);
-                  pgConfig.setPrintMappingFile(proguardMap);
-                })
-            .build());
-
-    // Obviously, dumped map and resource inside the app should be *identical*.
-    ClassNameMapper mapperFromFile = ClassNameMapper.mapperFromFile(proguardMap);
-    ClassNameMapper mapperFromApp = ClassNameMapper.mapperFromString(mapConsumer.map);
-    assertEquals(mapperFromFile, mapperFromApp);
-
-    Path instrOut = temp.newFolder("instr").toPath();
-    Path flag = Paths.get(ToolHelper.EXAMPLES_DIR, "applymapping044", "keep-rules.txt");
-    AndroidApp instrApp =
-        runR8(
-            ToolHelper.addProguardConfigurationConsumer(
-                    getCommandForInstrumentation(instrOut, flag, out, APPLYMAPPING044_JAR)
-                        .setDisableMinification(true),
-                    pgConfig -> pgConfig.setApplyMappingFile(proguardMap))
-                .build());
-
-    CodeInspector inspector = createDexInspector(instrApp);
-    MethodSubject main = inspector.clazz("applymapping044.Main").method(CodeInspector.MAIN);
-    Iterator<InvokeInstructionSubject> iterator =
-        main.iterateInstructions(InstructionSubject::isInvoke);
-    // B#m()
-    String b = iterator.next().holder().toString();
-    assertEquals("naming044.B", mapperFromApp.deobfuscateClassName(b));
-    // sub.SubB#n()
-    String subB = iterator.next().holder().toString();
-    assertEquals("naming044.sub.SubB", mapperFromApp.deobfuscateClassName(subB));
-    // Skip A#<init>
-    iterator.next();
-    // Skip B#<init>
-    iterator.next();
-    // B#f(A)
-    InvokeInstructionSubject f = iterator.next();
-    DexType a1 = f.invokedMethod().proto.parameters.values[0];
-    assertNotEquals("naming044.A", a1.toString());
-    assertEquals("naming044.A", mapperFromApp.deobfuscateClassName(a1.toString()));
-    assertNotEquals("f", f.invokedMethod().name.toString());
-    // Skip AsubB#<init>
-    iterator.next();
-    // AsubB#f(A)
-    InvokeInstructionSubject overloaded_f = iterator.next();
-    DexMethod aSubB_f = overloaded_f.invokedMethod();
-    DexType a2 = aSubB_f.proto.parameters.values[0];
-    assertNotEquals("naming044.A", a2.toString());
-    assertEquals("naming044.A", mapperFromApp.deobfuscateClassName(a2.toString()));
-    assertNotEquals("f", aSubB_f.name.toString());
-    // B#f == AsubB#f
-    assertEquals(f.invokedMethod().name.toString(), aSubB_f.name.toString());
-    // sub.SubB#<init>(int)
-    InvokeInstructionSubject subBinit = iterator.next();
-    assertNotEquals("naming044.sub.SubB", subBinit.holder().toString());
-    assertEquals("naming044.sub.SubB",
-        mapperFromApp.deobfuscateClassName(subBinit.holder().toString()));
-    // sub.SubB#f(A)
-    InvokeInstructionSubject original_f = iterator.next();
-    DexMethod subB_f = original_f.invokedMethod();
-    DexType a3 = subB_f.proto.parameters.values[0];
-    assertEquals(a2, a3);
-    assertNotEquals("f", original_f.invokedMethod().name.toString());
-  }
-
+  @Ignore("b/126503704")
   @Test
   public void test044_apply() throws Exception {
     Path flag =
@@ -169,6 +79,7 @@ public class ApplyMappingTest extends TestBase {
         runR8(
             getCommandForInstrumentation(out, flag, NAMING044_JAR, APPLYMAPPING044_JAR)
                 .setDisableMinification(true)
+                .setOutput(out, outputMode(Backend.CF))
                 .build());
 
     // Make sure the given proguard map is indeed applied.
@@ -219,6 +130,7 @@ public class ApplyMappingTest extends TestBase {
     return new CodeInspector(outputApp);
   }
 
+  @Ignore("b/126503704")
   @Test
   public void test_naming001_rule105() throws Exception {
     // keep rules to reserve D and E, along with a proguard map.
@@ -253,6 +165,7 @@ public class ApplyMappingTest extends TestBase {
     assertEquals("peek", m.invokedMethod().name.toSourceString());
   }
 
+  @Ignore("b/126503704")
   @Test
   public void test_naming001_rule106() throws Exception {
     // keep rules just to rename E
@@ -286,18 +199,6 @@ public class ApplyMappingTest extends TestBase {
     }
     assertNotNull(newInstance);
     assertEquals( "La/a;", newInstance.getType().toSmaliString());
-  }
-
-  @Test
-  public void test_minification_conflict_mapping() throws Exception {
-    Path flag = Paths.get(
-        ToolHelper.EXAMPLES_DIR, "minification", "keep-rules-apply-conflict-mapping.txt");
-    try {
-      runR8(getCommandForApps(out, flag, MINIFICATION_JAR).build());
-      fail("Expect to detect renaming conflict");
-    } catch (CompilationFailedException e) {
-      assertTrue(e.getCause().getMessage().contains("functionFromIntToInt"));
-    }
   }
 
   private R8Command.Builder getCommandForInstrumentation(

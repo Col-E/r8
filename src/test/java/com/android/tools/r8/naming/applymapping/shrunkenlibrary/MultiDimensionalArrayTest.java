@@ -1,7 +1,7 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.naming;
+package com.android.tools.r8.naming.applymapping.shrunkenlibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 class ToBeRenamedForMultiDimensionalArrayTest {
@@ -66,13 +67,14 @@ public class MultiDimensionalArrayTest extends TestBase {
         ToolHelper.getClassAsBytes(MultiDimensionalArrayTestMain.class));
   }
 
+  @Ignore("b/127434575")
   @Test
   public void test() throws Exception {
     Path mapPath = temp.newFile("test-mapping.txt").toPath();
-    List<String> pgMap = ImmutableList.of(
-        "com.android.tools.r8.naming.ToBeRenamedForMultiDimensionalArrayTest -> X:",
-        "  java.lang.String foo() -> bar"
-    );
+    List<String> pgMap =
+        ImmutableList.of(
+            ToBeRenamedForMultiDimensionalArrayTest.class.getTypeName() + "-> X:",
+            "  java.lang.String foo() -> bar");
     FileUtils.writeTextFile(mapPath, pgMap);
 
     AndroidApp app = buildAndroidApp(classes);

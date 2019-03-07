@@ -1,44 +1,43 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.naming.applymapping;
+package com.android.tools.r8.naming.applymapping.shrunkenlibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.naming.applymapping.Outer.InnerEnum;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.naming.applymapping.shrunkenlibrary.Outer.InnerEnum;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.nio.file.Path;
-import java.util.Collection;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class InnerEnumValuesTest extends TestBase {
-  private static final Class<?> MAIN = TestApp.class;
+  private static Class<?> MAIN = TestApp.class;
   private static final String RENAMED_NAME = "x.y.z$ie";
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("STATE_A", "STATE_B");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines(
+      "STATE_A", "STATE_B", "STATE_A", "STATE_B");
 
   private static Path mappingFile;
   private final Backend backend;
-  private final boolean minification;
 
-  @Parameterized.Parameters(name = "Backend: {0} minification: {1}")
-  public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+  @Parameterized.Parameters(name = "Backend: {0}")
+  public static Backend[] data() {
+    return Backend.values();
   }
 
-  public InnerEnumValuesTest(Backend backend, boolean minification) {
+  public InnerEnumValuesTest(Backend backend) {
     this.backend = backend;
-    this.minification = minification;
   }
 
   @Before
@@ -50,7 +49,7 @@ public class InnerEnumValuesTest extends TestBase {
         StringUtils.lines(
             Outer.class.getTypeName() + " -> " + "x.y.z:",
             "    void <init>() -> <init>",
-            InnerEnum.class.getTypeName() + " -> " + RENAMED_NAME + ":",
+            InnerEnum.class.getTypeName() + " -> " + "x.y.z$ie:",
             "    " + InnerEnum.class.getTypeName() + " STATE_A -> state_X",
             "    " + InnerEnum.class.getTypeName() + " STATE_B -> state_Y",
             "    " + InnerEnum.class.getTypeName() + "[] $VALUES -> XY",
@@ -60,28 +59,28 @@ public class InnerEnumValuesTest extends TestBase {
             "    " + InnerEnum.class.getTypeName() + "[] values() -> values"));
   }
 
+  @Ignore("b/127434575")
   @Test
   public void b124177369() throws Exception {
-    testForR8(backend)
-        .addProgramClassesAndInnerClasses(Outer.class)
-        .addProgramClasses(MAIN)
-        .addKeepMainRule(MAIN)
-        .addKeepRules("-applymapping " + mappingFile.toAbsolutePath())
-        .minification(minification)
-        .compile()
-        .inspect(inspector -> {
-          ClassSubject enumSubject = inspector.clazz(RENAMED_NAME);
-          assertThat(enumSubject, isPresent());
-          assertEquals(minification, enumSubject.isRenamed());
-          String fieldName =
-              minification
-                  ? "a"        // minified name
-                  : "state_X"; // mapped name without minification
-          FieldSubject stateA = enumSubject.uniqueFieldWithName(fieldName);
-          assertThat(stateA, isPresent());
-        })
-        .run(MAIN)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+    CodeInspector inspector =
+        testForR8(backend)
+            .addProgramClassesAndInnerClasses(
+                com.android.tools.r8.naming.applymapping.shrunkenlibrary.Outer.class)
+            .addProgramClasses(MAIN)
+            .addKeepMainRule(MAIN)
+            .addKeepRules("-dontoptimize")
+            .addKeepRules("-applymapping " + mappingFile.toAbsolutePath())
+            .compile()
+            .run(MAIN)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
+            .inspector();
+    ClassSubject classSubject = inspector.clazz(RENAMED_NAME);
+    FieldSubject fieldX = classSubject.uniqueFieldWithName("STATE_A");
+    assertThat(fieldX, isPresent());
+    assertEquals(fieldX.getFinalName(), "state_X");
+    FieldSubject fieldY = classSubject.uniqueFieldWithName("STATE_B");
+    assertThat(fieldY, isPresent());
+    assertEquals(fieldY.getFinalName(), "state_Y");
   }
 }
 
@@ -97,5 +96,7 @@ class TestApp {
     for (InnerEnum i : InnerEnum.values()) {
       System.out.println(i);
     }
+    System.out.println(InnerEnum.STATE_A);
+    System.out.println(InnerEnum.STATE_B);
   }
 }

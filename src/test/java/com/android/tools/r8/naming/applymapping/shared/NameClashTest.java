@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.naming.applymapping;
+package com.android.tools.r8.naming.applymapping.shared;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
@@ -10,6 +10,9 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.naming.applymapping.shared.ProgramWithLibraryClasses.AnotherLibraryClass;
+import com.android.tools.r8.naming.applymapping.shared.ProgramWithLibraryClasses.LibraryClass;
+import com.android.tools.r8.naming.applymapping.shared.ProgramWithLibraryClasses.ProgramClass;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -20,34 +23,6 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-class LibraryClass {
-  static String LIB_MSG = "LibraryClass::foo";
-  void foo() {
-    System.out.println(LIB_MSG);
-  }
-}
-
-class AnotherLibraryClass {
-  static String ANOTHERLIB_MSG = "AnotherLibraryClass::foo";
-  void foo() {
-    System.out.println(ANOTHERLIB_MSG);
-  }
-}
-
-class ProgramClass extends LibraryClass {
-  static String PRG_MSG = "ProgramClass::bar";
-  void bar() {
-    System.out.println(PRG_MSG);
-  }
-
-  public static void main(String[] args) {
-    new AnotherLibraryClass().foo();
-    ProgramClass instance = new ProgramClass();
-    instance.foo();
-    instance.bar();
-  }
-}
 
 public class NameClashTest extends TestBase {
 
@@ -73,9 +48,12 @@ public class NameClashTest extends TestBase {
         temporaryFolder.newFile("prgMinifiedLib.jar").toPath().toAbsolutePath();
     writeToJar(prgJarThatUsesMinifiedLib, ImmutableList.of(ProgramClassDump.dump()));
     libJar = temporaryFolder.newFile("lib.jar").toPath().toAbsolutePath();
-    writeToJar(libJar, ImmutableList.of(
-        ToolHelper.getClassAsBytes(LibraryClass.class),
-        ToolHelper.getClassAsBytes(AnotherLibraryClass.class)));
+    writeToJar(
+        libJar,
+        ImmutableList.of(
+            ToolHelper.getClassAsBytes(ProgramWithLibraryClasses.class),
+            ToolHelper.getClassAsBytes(LibraryClass.class),
+            ToolHelper.getClassAsBytes(AnotherLibraryClass.class)));
   }
 
   @Before
@@ -220,6 +198,7 @@ public class NameClashTest extends TestBase {
     }
   }
 
+  @Ignore("b/123092153")
   @Test
   public void testR8_prgClassRenamedToExistingPrgClass() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToExistingClassName());
@@ -262,6 +241,7 @@ public class NameClashTest extends TestBase {
     }
   }
 
+  @Ignore("b/123092153")
   @Test
   public void testR8_prgClassesRenamedToSameName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToTheSameClassName());

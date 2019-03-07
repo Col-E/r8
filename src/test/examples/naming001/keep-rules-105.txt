@@ -6,6 +6,7 @@
 
 -keep class naming001.D {
   public static void main(...);
+  public void keep();
 }
 
 -applymapping mapping-105.txt

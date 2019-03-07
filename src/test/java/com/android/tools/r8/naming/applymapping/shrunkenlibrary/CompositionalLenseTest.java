@@ -1,7 +1,7 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.naming.applymapping;
+package com.android.tools.r8.naming.applymapping.shrunkenlibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.junit.Assert.assertEquals;
@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -66,15 +67,16 @@ public class CompositionalLenseTest extends TestBase {
     this.backend = backend;
   }
 
+  @Ignore("b/127434575")
   @Test
   public void test() throws Exception {
     Path mapPath = temp.newFile("test-mapping.txt").toPath();
-    List<String> pgMap = ImmutableList.of(
-        "com.android.tools.r8.naming.applymapping.Base -> X:",
-        "  void foo() -> bar",
-        "com.android.tools.r8.naming.applymapping.Sub -> Y:",
-        "  void foo() -> bar"
-    );
+    List<String> pgMap =
+        ImmutableList.of(
+            Base.class.getTypeName() + " -> X:",
+            "  void foo() -> bar",
+            Sub.class.getTypeName() + " -> Y:",
+            "  void foo() -> bar");
     FileUtils.writeTextFile(mapPath, pgMap);
 
     AndroidApp app = readClasses(CLASSES);
