@@ -101,3 +101,19 @@ Both the use of `transient` and the use of the annotation `SerializedName` allow
 the fields to be renamed by R8 to the same name, but GSON serialization will
 work as expected.
 
+# R8 full mode
+
+In full mode, R8 performs more aggressive optimizations, meaning that additional
+ProGuard configuration rules may be required. This section highlights some
+common issues that have been seen when using full mode.
+
+## Retrofit
+
+### Object instantiated with Retrofit's `create()` method is always replaced with `null`
+
+This happens because Retrofit uses reflection to return an object that
+implements a given interface. The issue can be resolved by using the most recent
+keep rules from the Retrofit library.
+
+See also https://github.com/square/retrofit/issues/3005 ("Insufficient keep
+rules for R8 in full mode").
