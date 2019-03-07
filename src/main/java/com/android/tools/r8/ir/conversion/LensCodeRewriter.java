@@ -151,25 +151,24 @@ public class LensCodeRewriter {
           DexMethod invokedMethod = invoke.getInvokedMethod();
           DexType invokedHolder = invokedMethod.getHolder();
           if (invokedHolder.isArrayType()) {
-            if (invokedMethod.name == appInfo.dexItemFactory.cloneMethodName) {
-              DexType baseType = invokedHolder.toBaseType(appInfo.dexItemFactory);
-              DexType mappedBaseType = graphLense.lookupType(baseType);
-              if (baseType != mappedBaseType) {
-                DexType mappedHolder =
-                    invokedHolder.replaceBaseType(mappedBaseType, appInfo.dexItemFactory);
-                // The clone proto is ()Ljava/lang/Object;, so just reuse it.
-                DexMethod actualTarget =
-                    appInfo.dexItemFactory.createMethod(
-                        mappedHolder, invokedMethod.proto, appInfo.dexItemFactory.cloneMethodName);
-                Invoke newInvoke =
-                    Invoke.create(
-                        VIRTUAL,
-                        actualTarget,
-                        null,
-                        makeOutValue(invoke, code, newSSAValues),
-                        invoke.inValues());
-                iterator.replaceCurrentInstruction(newInvoke);
-              }
+            DexType baseType = invokedHolder.toBaseType(appInfo.dexItemFactory);
+            DexType mappedBaseType = graphLense.lookupType(baseType);
+            if (baseType != mappedBaseType) {
+              DexType mappedHolder =
+                  invokedHolder.replaceBaseType(mappedBaseType, appInfo.dexItemFactory);
+              // Just reuse proto and name, as no methods on array types can be renamed nor
+              // change signature.
+              DexMethod actualTarget =
+                  appInfo.dexItemFactory.createMethod(
+                      mappedHolder, invokedMethod.proto, invokedMethod.name);
+              Invoke newInvoke =
+                  Invoke.create(
+                      VIRTUAL,
+                      actualTarget,
+                      null,
+                      makeOutValue(invoke, code, newSSAValues),
+                      invoke.inValues());
+              iterator.replaceCurrentInstruction(newInvoke);
             }
             continue;
           }

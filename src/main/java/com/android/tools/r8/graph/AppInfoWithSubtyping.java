@@ -120,7 +120,8 @@ public class AppInfoWithSubtyping extends AppInfo {
   // For mapping invoke virtual instruction to target methods.
   public Set<DexEncodedMethod> lookupVirtualTargets(DexMethod method) {
     if (method.holder.isArrayType()) {
-      assert method.name == dexItemFactory.cloneMethodName;
+      // For javac output this will only be clone(), but in general the methods from Object can
+      // be invoked with an array type holder.
       return null;
     }
     DexClass root = definitionFor(method.holder);
