@@ -186,6 +186,23 @@ def MoveProfileReportTo(dest_dir, build_stdout, quiet=False):
     MoveDir(os.path.join(html_dir, dir_name), os.path.join(dest_dir, dir_name),
         quiet=quiet)
 
+def MoveXMLTestResultFileTo(xml_test_result_dest, test_stdout, quiet=False):
+  xml_test_result_file = None
+  xml_result_reporter_message = 'XML test result file generated at '
+  for line in test_stdout:
+    if xml_result_reporter_message in line:
+      index_from = (
+          line.index(xml_result_reporter_message)
+              + len(xml_result_reporter_message))
+      index_to = line.index('.xml') + len('.xml')
+      xml_test_result_file = line[index_from:index_to]
+      break
+
+  assert os.path.isfile(xml_test_result_file), (
+      'Expected to find XML file at {}'.format(xml_test_result_file))
+
+  MoveFile(xml_test_result_file, xml_test_result_dest, quiet=quiet)
+
 def ParseProfileReport(profile_dir):
   html_file = os.path.join(profile_dir, 'index.html')
   assert os.path.isfile(html_file)

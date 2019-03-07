@@ -129,7 +129,7 @@ class ProgressLogger(object):
       print('')
       sys.stdout.write(ProgressLogger.UP)
 
-def RunCmd(cmd, env_vars=None, quiet=False):
+def RunCmd(cmd, env_vars=None, quiet=False, fail=True):
   PrintCmd(cmd, env=env_vars, quiet=quiet)
   env = os.environ.copy()
   if env_vars:
@@ -158,9 +158,26 @@ def RunCmd(cmd, env_vars=None, quiet=False):
       if exit_code or failed:
         for line in stdout:
           Warn(line)
-        raise subprocess.CalledProcessError(
-            exit_code or -1, cmd, output='\n'.join(stdout))
+        if fail:
+          raise subprocess.CalledProcessError(
+              exit_code or -1, cmd, output='\n'.join(stdout))
       return stdout
+
+def RunGradlew(
+    args, clean=True, stacktrace=True, use_daemon=False, env_vars=None,
+    quiet=False, fail=True):
+  cmd = ['./gradlew']
+  if clean:
+    assert 'clean' not in args
+    cmd.append('clean')
+  if stacktrace:
+    assert '--stacktrace' not in args
+    cmd.append('--stacktrace')
+  if not use_daemon:
+    assert '--no-daemon' not in args
+    cmd.append('--no-daemon')
+  cmd.extend(args)
+  return RunCmd(cmd, env_vars=env_vars, quiet=quiet, fail=fail)
 
 def IsWindows():
   return defines.IsWindows()
