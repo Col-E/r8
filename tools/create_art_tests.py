@@ -9,12 +9,9 @@ from string import Template
 
 OUTPUT_DIR = os.path.join('build', 'generated', 'test', 'java', 'com',
                           'android', 'tools', 'r8', 'art')
-# Test that comes from Jack are generated from the legacy snapshot.
-JACK_TEST = os.path.join('tests', '2016-12-19', 'art')
 TEST_DIR = os.path.join('tests', '2017-10-04', 'art')
 TOOLCHAINS = [
     ("dx", os.path.join(TEST_DIR, "dx")),
-    ("jack", os.path.join(JACK_TEST, "jack")),
     ("none", os.path.join(TEST_DIR, "dx")),
 ]
 TOOLS = ["r8", "d8", "r8cf"]
