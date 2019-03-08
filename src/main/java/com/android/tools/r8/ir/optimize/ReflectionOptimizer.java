@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.getSimpleClassNameFromD
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -135,26 +136,32 @@ public class ReflectionOptimizer {
     assert code.isConsistentSSA();
   }
 
-  public static String computeClassName(
-      DexString descriptor, DexClass holder, ClassNameComputationInfo classNameComputationInfo) {
+  public static DexString computeClassName(
+      DexString descriptor,
+      DexClass holder,
+      ClassNameComputationInfo classNameComputationInfo,
+      DexItemFactory dexItemFactory) {
     return computeClassName(
         descriptor.toString(),
         holder,
         classNameComputationInfo.classNameComputationOption,
+        dexItemFactory,
         classNameComputationInfo.arrayDepth);
   }
 
-  public static String computeClassName(
-      String descriptor,
-      DexClass holder,
-      ClassNameComputationOption classNameComputationOption) {
-    return computeClassName(descriptor, holder, classNameComputationOption, 0);
-  }
-
-  public static String computeClassName(
+  public static DexString computeClassName(
       String descriptor,
       DexClass holder,
       ClassNameComputationOption classNameComputationOption,
+      DexItemFactory dexItemFactory) {
+    return computeClassName(descriptor, holder, classNameComputationOption, dexItemFactory, 0);
+  }
+
+  public static DexString computeClassName(
+      String descriptor,
+      DexClass holder,
+      ClassNameComputationOption classNameComputationOption,
+      DexItemFactory dexItemFactory,
       int arrayDepth) {
     String name;
     switch (classNameComputationOption) {
@@ -195,8 +202,6 @@ public class ReflectionOptimizer {
         throw new Unreachable(
             "Unexpected ClassNameComputationOption: '" + classNameComputationOption + "'");
     }
-    return name;
+    return dexItemFactory.createString(name);
   }
-
-
 }

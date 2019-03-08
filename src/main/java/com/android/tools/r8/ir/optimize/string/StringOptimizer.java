@@ -273,9 +273,9 @@ public class StringOptimizer {
       String descriptor = baseType.toDescriptorString();
       boolean assumeTopLevel = descriptor.indexOf(INNER_CLASS_SEPARATOR) < 0;
       DexItemBasedConstString deferred = null;
-      String name = null;
+      DexString name = null;
       if (invokedMethod == factory.classMethods.getName) {
-        if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder)) {
+        if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder.type)) {
           deferred =
               new DexItemBasedConstString(
                   invoke.outValue(),
@@ -283,7 +283,7 @@ public class StringOptimizer {
                   throwingInfo,
                   new ClassNameComputationInfo(NAME, arrayDepth));
         } else {
-          name = computeClassName(descriptor, holder, NAME, arrayDepth);
+          name = computeClassName(descriptor, holder, NAME, factory, arrayDepth);
         }
       } else if (invokedMethod == factory.classMethods.getTypeName) {
         // TODO(b/119426668): desugar Type#getTypeName
@@ -299,7 +299,7 @@ public class StringOptimizer {
           if (!assumeTopLevel) {
             continue;
           }
-          if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder)) {
+          if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder.type)) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),
@@ -307,20 +307,20 @@ public class StringOptimizer {
                     throwingInfo,
                     new ClassNameComputationInfo(CANONICAL_NAME, arrayDepth));
           } else {
-            name = computeClassName(descriptor, holder, CANONICAL_NAME, arrayDepth);
+            name = computeClassName(descriptor, holder, CANONICAL_NAME, factory, arrayDepth);
           }
         }
       } else if (invokedMethod == factory.classMethods.getSimpleName) {
         // Always returns an empty string if the target type is an anonymous class.
         if (holder.isAnonymousClass()) {
-          name = "";
+          name = factory.createString("");
         } else {
           // b/120130435: If an outer class is shrunk, we may compute a wrong simple name.
           // Leave it as-is so that the class's simple name is consistent across the app.
           if (!assumeTopLevel) {
             continue;
           }
-          if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder)) {
+          if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder.type)) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),
@@ -328,7 +328,7 @@ public class StringOptimizer {
                     throwingInfo,
                     new ClassNameComputationInfo(SIMPLE_NAME, arrayDepth));
           } else {
-            name = computeClassName(descriptor, holder, SIMPLE_NAME, arrayDepth);
+            name = computeClassName(descriptor, holder, SIMPLE_NAME, factory, arrayDepth);
           }
         }
       }
@@ -337,8 +337,7 @@ public class StringOptimizer {
             code.createValue(
                 TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
                 invoke.getLocalInfo());
-        ConstString constString =
-            new ConstString(stringValue, factory.createString(name), throwingInfo);
+        ConstString constString = new ConstString(stringValue, name, throwingInfo);
         it.replaceCurrentInstruction(constString);
       } else if (deferred != null) {
         it.replaceCurrentInstruction(deferred);

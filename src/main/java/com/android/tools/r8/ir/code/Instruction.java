@@ -505,7 +505,7 @@ public abstract class Instruction implements InstructionOrPhi {
   }
 
   public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+      AppInfo appInfo, AppView<? extends AppInfo> appView, DexType context) {
     return instructionInstanceCanThrow();
   }
 

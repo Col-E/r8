@@ -428,6 +428,14 @@ public class AppInfo {
   }
 
   /**
+   * Implements resolution of a field descriptor against the holder of the field. See also {@link
+   * #resolveFieldOn}.
+   */
+  public DexEncodedField resolveField(DexField field) {
+    return resolveFieldOn(field.clazz, field);
+  }
+
+  /**
    * Implements resolution of a field descriptor against a type.
    * <p>
    * See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.2">

@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
@@ -29,7 +28,6 @@ public class DeadCodeRemover {
   private final AppView<? extends AppInfoWithLiveness> appView;
   private final AppInfo appInfo;
   private final CodeRewriter codeRewriter;
-  private final GraphLense graphLense;
   private final InternalOptions options;
   private final boolean enableWholeProgramOptimizations;
 
@@ -37,15 +35,17 @@ public class DeadCodeRemover {
       AppView<? extends AppInfoWithLiveness> appView,
       AppInfo appInfo,
       CodeRewriter codeRewriter,
-      GraphLense graphLense,
       InternalOptions options) {
     this.appView = appView;
     this.appInfo = appInfo;
     this.codeRewriter = codeRewriter;
-    this.graphLense = graphLense;
     this.options = options;
     this.enableWholeProgramOptimizations =
         appView != null && appView.enableWholeProgramOptimizations();
+  }
+
+  public AppInfo appInfo() {
+    return appView != null ? appView.appInfo() : appInfo;
   }
 
   public void run(IRCode code) {
@@ -57,8 +57,8 @@ public class DeadCodeRemover {
     do {
       worklist.addAll(code.blocks);
       for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
-        removeDeadInstructions(worklist, code, block, appView, appInfo);
-        removeDeadPhis(worklist, code, block, appView, appInfo);
+        removeDeadInstructions(worklist, code, block);
+        removeDeadPhis(worklist, code, block);
       }
     } while (removeUnneededCatchHandlers(code));
     assert code.isConsistentSSA();
@@ -88,16 +88,11 @@ public class DeadCodeRemover {
     }
   }
 
-  private static void removeDeadPhis(
-      Queue<BasicBlock> worklist,
-      IRCode code,
-      BasicBlock block,
-      AppView<? extends AppInfoWithLiveness> appView,
-      AppInfo appInfo) {
+  private void removeDeadPhis(Queue<BasicBlock> worklist, IRCode code, BasicBlock block) {
     Iterator<Phi> phiIt = block.getPhis().iterator();
     while (phiIt.hasNext()) {
       Phi phi = phiIt.next();
-      if (phi.isDead(appView, appInfo, code)) {
+      if (phi.isDead(appView, appInfo(), code)) {
         phiIt.remove();
         for (Value operand : phi.getOperands()) {
           operand.removePhiUser(phi);
@@ -107,12 +102,7 @@ public class DeadCodeRemover {
     }
   }
 
-  private static void removeDeadInstructions(
-      Queue<BasicBlock> worklist,
-      IRCode code,
-      BasicBlock block,
-      AppView<? extends AppInfoWithLiveness> appView,
-      AppInfo appInfo) {
+  private void removeDeadInstructions(Queue<BasicBlock> worklist, IRCode code, BasicBlock block) {
     InstructionListIterator iterator = block.listIterator(block.getInstructions().size());
     while (iterator.hasPrevious()) {
       Instruction current = iterator.previous();
@@ -122,11 +112,11 @@ public class DeadCodeRemover {
           && !current.outValue().isUsed()) {
         current.setOutValue(null);
       }
-      if (!current.canBeDeadCode(appView, appInfo, code)) {
+      if (!current.canBeDeadCode(appView, appInfo(), code)) {
         continue;
       }
       Value outValue = current.outValue();
-      if (outValue != null && !outValue.isDead(appView, appInfo, code)) {
+      if (outValue != null && !outValue.isDead(appView, appInfo(), code)) {
         continue;
       }
       updateWorklist(worklist, current);
@@ -173,7 +163,7 @@ public class DeadCodeRemover {
    * Returns the catch handlers of the given block that are dead, if any.
    */
   private Collection<CatchHandler<BasicBlock>> getDeadCatchHandlers(BasicBlock block) {
-    AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
+    AppInfoWithLiveness appInfoWithLiveness = appInfo().withLiveness();
     ImmutableList.Builder<CatchHandler<BasicBlock>> builder = ImmutableList.builder();
     CatchHandlers<BasicBlock> catchHandlers = block.getCatchHandlers();
     for (int i = 0; i < catchHandlers.size(); ++i) {
@@ -185,7 +175,7 @@ public class DeadCodeRemover {
       boolean isSubsumedByPreviousGuard = false;
       for (int j = 0; j < i; ++j) {
         DexType previousGuard = catchHandlers.getGuards().get(j);
-        if (guard.isSubtypeOf(previousGuard, appInfo)) {
+        if (guard.isSubtypeOf(previousGuard, appInfo())) {
           isSubsumedByPreviousGuard = true;
           break;
         }
@@ -198,7 +188,7 @@ public class DeadCodeRemover {
       // We can exploit that a catch handler must be dead if its guard is never instantiated
       // directly or indirectly.
       if (appInfoWithLiveness != null && options.enableUninstantiatedTypeOptimization) {
-        DexClass clazz = appInfo.definitionFor(guard);
+        DexClass clazz = appInfo().definitionFor(guard);
         if (clazz != null
             && clazz.isProgramClass()
             && !appInfoWithLiveness.isInstantiatedDirectlyOrIndirectly(guard)) {
