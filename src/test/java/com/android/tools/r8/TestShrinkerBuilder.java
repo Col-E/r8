@@ -82,6 +82,13 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
+  public T addKeepClassAndDefaultConstructor(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      addKeepRules("-keep class " + clazz.getTypeName() + " { <init>(); }");
+    }
+    return self();
+  }
+
   public T addKeepPackageRules(Package pkg) {
     return addKeepRules("-keep class " + pkg.getName() + ".*");
   }

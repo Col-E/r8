@@ -106,6 +106,8 @@ public class MemberNaming {
 
     abstract void write(Writer builder) throws IOException;
 
+    boolean isQualified() { return name.indexOf(DescriptorUtils.JAVA_PACKAGE_SEPARATOR) != -1; }
+
     @Override
     public String toString() {
       try {

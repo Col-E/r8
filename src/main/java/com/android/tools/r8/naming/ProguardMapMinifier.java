@@ -20,6 +20,7 @@ import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MemberNameMinifier.MemberNamingStrategy;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.naming.Minifier.MinificationPackageNamingStrategy;
 import com.android.tools.r8.naming.NamingState.InternalState;
@@ -80,16 +81,22 @@ public class ProguardMapMinifier {
       mappedClasses.add(dexClass);
       classNaming.forAllMethodNaming(
           memberNaming -> {
-            DexMethod originalMethod =
-                ((MethodSignature) memberNaming.getOriginalSignature()).toDexMethod(factory, type);
+            Signature signature =  memberNaming.getOriginalSignature();
+            if (signature.isQualified()) {
+              return;
+            }
+            DexMethod originalMethod = ((MethodSignature) signature).toDexMethod(factory, type);
             assert !memberNames.containsKey(originalMethod);
             memberNames.put(
                 originalMethod, factory.createString(memberNaming.getRenamedName()));
           });
       classNaming.forAllFieldNaming(
           memberNaming -> {
-            DexField originalField =
-                ((FieldSignature) memberNaming.getOriginalSignature()).toDexField(factory, type);
+            Signature signature =  memberNaming.getOriginalSignature();
+            if (signature.isQualified()) {
+              return;
+            }
+            DexField originalField = ((FieldSignature) signature).toDexField(factory, type);
             assert !memberNames.containsKey(originalField);
             memberNames.put(
                 originalField, factory.createString(memberNaming.getRenamedName()));

@@ -191,7 +191,7 @@ public class ProguardMapApplier {
       // e.g., private methods with same names, could be mapped to a wrong renamed name.
       classNaming.forAllFieldNaming(memberNaming -> {
         FieldSignature signature = (FieldSignature) memberNaming.getOriginalSignature();
-        if (!appliedMemberSignature.contains(signature)) {
+        if (!signature.isQualified() && !appliedMemberSignature.contains(signature)) {
           DexField pretendedOriginalField = signature.toDexField(appInfo.dexItemFactory, from);
           if (appInfo.definitionFor(pretendedOriginalField) == null) {
             applyFieldMapping(pretendedOriginalField, memberNaming);
@@ -200,7 +200,7 @@ public class ProguardMapApplier {
       });
       classNaming.forAllMethodNaming(memberNaming -> {
         MethodSignature signature = (MethodSignature) memberNaming.getOriginalSignature();
-        if (!appliedMemberSignature.contains(signature)) {
+        if (!signature.isQualified() && !appliedMemberSignature.contains(signature)) {
           DexMethod pretendedOriginalMethod = signature.toDexMethod(appInfo.dexItemFactory, from);
           if (appInfo.definitionFor(pretendedOriginalMethod) == null) {
             applyMethodMapping(pretendedOriginalMethod, memberNaming);
