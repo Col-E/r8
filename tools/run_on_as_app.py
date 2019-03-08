@@ -555,7 +555,7 @@ def BuildAppWithShrinker(
   # Add settings.gradle file if it is not present to prevent gradle from finding
   # the settings.gradle file in the r8 root when apps are placed under
   # $R8/build.
-  as_utils.add_settings_gradle(checkout_dir, app)
+  as_utils.add_settings_gradle(checkout_dir, app.name)
 
   # Add 'r8.jar' to top-level build.gradle.
   as_utils.add_r8_dependency(checkout_dir, temp_dir, IsMinifiedR8(shrinker))
