@@ -61,6 +61,7 @@ class TintResources extends ResourceWrapper {
   }
 }
 
+@Ignore("b/127434575")
 @RunWith(Parameterized.class)
 public class ApplyMappingAfterVerticalMergingTest extends TestBase {
   private static final Class<?>[] CLASSES = {
