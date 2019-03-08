@@ -134,11 +134,11 @@ class IdentifierMinifier {
       DexReference original = dexItemBasedValueString.getValue();
       DexString replacement =
           dexItemBasedValueString.getClassNameComputationInfo().needsToComputeClassName()
-              ? appInfo.dexItemFactory.createString(
-                  computeClassName(
-                      lens.lookupDescriptor(original.asDexType()),
-                      appInfo.definitionFor(original.asDexType()),
-                      dexItemBasedValueString.getClassNameComputationInfo()))
+              ? computeClassName(
+                  lens.lookupDescriptor(original.asDexType()),
+                  appInfo.definitionFor(original.asDexType()),
+                  dexItemBasedValueString.getClassNameComputationInfo(),
+                  appInfo.dexItemFactory)
               : lens.lookupName(original, appInfo.dexItemFactory);
       encodedField.setStaticValue(new DexValueString(replacement));
     }
@@ -164,11 +164,11 @@ class IdentifierMinifier {
           DexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
           DexString replacement =
               cnst.getClassNameComputationInfo().needsToComputeClassName()
-                  ? appInfo.dexItemFactory.createString(
-                      computeClassName(
-                          lens.lookupDescriptor(cnst.getItem().asDexType()),
-                          appInfo.definitionFor(cnst.getItem().asDexType()),
-                          cnst.getClassNameComputationInfo()))
+                  ? computeClassName(
+                      lens.lookupDescriptor(cnst.getItem().asDexType()),
+                      appInfo.definitionFor(cnst.getItem().asDexType()),
+                      cnst.getClassNameComputationInfo(),
+                      appInfo.dexItemFactory)
                   : lens.lookupName(cnst.getItem(), appInfo.dexItemFactory);
           ConstString constString = new ConstString(cnst.AA, replacement);
           constString.setOffset(instruction.getOffset());
@@ -184,11 +184,11 @@ class IdentifierMinifier {
           CfDexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
           DexString replacement =
               cnst.getClassNameComputationInfo().needsToComputeClassName()
-                  ? appInfo.dexItemFactory.createString(
-                      computeClassName(
-                          lens.lookupDescriptor(cnst.getItem().asDexType()),
-                          appInfo.definitionFor(cnst.getItem().asDexType()),
-                          cnst.getClassNameComputationInfo()))
+                  ? computeClassName(
+                      lens.lookupDescriptor(cnst.getItem().asDexType()),
+                      appInfo.definitionFor(cnst.getItem().asDexType()),
+                      cnst.getClassNameComputationInfo(),
+                      appInfo.dexItemFactory)
                   : lens.lookupName(cnst.getItem(), appInfo.dexItemFactory);
           instructions.set(i, new CfConstString(replacement));
         }

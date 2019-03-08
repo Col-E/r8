@@ -44,6 +44,7 @@ import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
+import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
@@ -115,6 +116,7 @@ public class IRConverter {
 
   private final Timing timing;
   private final Outliner outliner;
+  private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
   private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
@@ -174,6 +176,10 @@ public class IRConverter {
     this.printer = printer;
     this.mainDexClasses = mainDexClasses.getClasses();
     this.codeRewriter = new CodeRewriter(this, libraryMethodsReturningReceiver(), options);
+    this.classInitializerDefaultsOptimization =
+        options.debug
+            ? null
+            : new ClassInitializerDefaultsOptimization(appInfo(), appView, this, options);
     this.stringConcatRewriter = new StringConcatRewriter(appInfo());
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(this) : null;
     this.interfaceMethodRewriter =
@@ -241,8 +247,7 @@ public class IRConverter {
         options.enableClassStaticizer && appInfo().hasLiveness()
             ? new ClassStaticizer(appInfo().withLiveness(), this)
             : null;
-    this.deadCodeRemover =
-        new DeadCodeRemover(appView, appInfo(), codeRewriter, graphLense(), options);
+    this.deadCodeRemover = new DeadCodeRemover(appView, appInfo(), codeRewriter, options);
     this.idempotentFunctionCallCanonicalizer =
         new IdempotentFunctionCallCanonicalizer(appInfo().dexItemFactory);
   }
@@ -1019,8 +1024,8 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
-    if (!isDebugMode) {
-      codeRewriter.collectClassInitializerDefaults(method, code);
+    if (classInitializerDefaultsOptimization != null && !isDebugMode) {
+      classInitializerDefaultsOptimization.optimize(method, code);
     }
     if (Log.ENABLED) {
       Log.debug(getClass(), "Intermediate (SSA) flow graph for %s:\n%s",
@@ -1230,7 +1235,8 @@ public class IRConverter {
               || Streams.stream(code.instructions())
                   .anyMatch(
                       instruction ->
-                          instruction.instructionMayHaveSideEffects(appView, method.method.holder));
+                          instruction.instructionMayHaveSideEffects(
+                              appInfo(), appView, method.method.holder));
       if (!mayHaveSideEffects) {
         feedback.methodMayNotHaveSideEffects(method);
       }

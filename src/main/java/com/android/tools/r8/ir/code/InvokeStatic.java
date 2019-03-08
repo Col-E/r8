@@ -136,7 +136,7 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+      AppInfo appInfo, AppView<? extends AppInfo> appView, DexType context) {
     if (appView == null || !appView.enableWholeProgramOptimizations()) {
       return true;
     }
@@ -180,6 +180,6 @@ public class InvokeStatic extends InvokeMethod {
   @Override
   public boolean canBeDeadCode(
       AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
+    return !instructionMayHaveSideEffects(appInfo, appView, code.method.method.holder);
   }
 }

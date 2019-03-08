@@ -85,27 +85,32 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
-    if (appView == null || !appView.enableWholeProgramOptimizations()) {
-      return true;
-    }
+      AppInfo appInfo, AppView<? extends AppInfo> appView, DexType context) {
+    assert appView == null || appView.appInfo() == appInfo;
 
-    DexType baseType = getValue().toBaseType(appView.dexItemFactory());
+    DexType baseType = getValue().toBaseType(appInfo.dexItemFactory);
     if (baseType.isPrimitiveType()) {
       return false;
     }
 
-    DexClass clazz = appView.appInfo().definitionFor(baseType);
-    if (clazz != null && clazz.isProgramClass()) {
-      return false;
+    if (appView != null && appView.enableWholeProgramOptimizations()) {
+      DexClass clazz = appView.appInfo().definitionFor(baseType);
+      if (clazz != null && clazz.isProgramClass()) {
+        return false;
+      }
+    } else {
+      if (baseType == context) {
+        return false;
+      }
     }
+
     return true;
   }
 
   @Override
   public boolean canBeDeadCode(
       AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
+    return !instructionMayHaveSideEffects(appInfo, appView, code.method.method.holder);
   }
 
   @Override
