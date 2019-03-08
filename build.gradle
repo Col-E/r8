@@ -250,6 +250,7 @@ def osString = OperatingSystem.current().isLinux() ? "linux" :
 def cloudDependencies = [
         "tests"      : [
                 "2017-10-04/art",
+                "2016-12-19/art"
         ],
         "third_party": [
                 "android_cts_baseline",
