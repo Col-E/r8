@@ -80,6 +80,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
+  private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
   private final Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking =
       new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects = new IdentityHashMap<>();
@@ -201,6 +202,9 @@ public class RootSetBuilder {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
           markClass(clazz, rule);
         }
+      } else if (rule instanceof MemberValuePropagationRule) {
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else if (rule instanceof ProguardAssumeValuesRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
@@ -275,6 +279,7 @@ public class RootSetBuilder {
         keepUnusedArguments,
         neverClassInline,
         neverMerge,
+        neverPropagateValue,
         mayHaveSideEffects,
         noSideEffects,
         assumedValues,
@@ -993,6 +998,18 @@ public class RootSetBuilder {
         default:
           throw new Unreachable();
       }
+    } else if (context instanceof MemberValuePropagationRule) {
+      switch (((MemberValuePropagationRule) context).getType()) {
+        case NEVER:
+          if (item.isDexEncodedField()) {
+            neverPropagateValue.add(item.asDexEncodedField().field);
+          } else if (item.isDexEncodedMethod()) {
+            neverPropagateValue.add(item.asDexEncodedMethod().method);
+          }
+          break;
+        default:
+          throw new Unreachable();
+      }
     } else if (context instanceof ProguardIdentifierNameStringRule) {
       if (item.isDexEncodedField()) {
         identifierNameStrings.add(item.asDexEncodedField().field);
@@ -1025,6 +1042,7 @@ public class RootSetBuilder {
     public final Set<DexMethod> keepUnusedArguments;
     public final Set<DexType> neverClassInline;
     public final Set<DexType> neverMerge;
+    public final Set<DexReference> neverPropagateValue;
     public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
     public final Map<DexReference, ProguardMemberRule> noSideEffects;
     public final Map<DexReference, ProguardMemberRule> assumedValues;
@@ -1047,6 +1065,7 @@ public class RootSetBuilder {
         Set<DexMethod> keepUnusedArguments,
         Set<DexType> neverClassInline,
         Set<DexType> neverMerge,
+        Set<DexReference> neverPropagateValue,
         Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
         Map<DexReference, ProguardMemberRule> noSideEffects,
         Map<DexReference, ProguardMemberRule> assumedValues,
@@ -1066,6 +1085,7 @@ public class RootSetBuilder {
       this.keepUnusedArguments = keepUnusedArguments;
       this.neverClassInline = neverClassInline;
       this.neverMerge = Collections.unmodifiableSet(neverMerge);
+      this.neverPropagateValue = neverPropagateValue;
       this.mayHaveSideEffects = mayHaveSideEffects;
       this.noSideEffects = noSideEffects;
       this.assumedValues = assumedValues;
@@ -1090,6 +1110,8 @@ public class RootSetBuilder {
           lense.rewriteMutableMethodsConservatively(previous.keepUnusedArguments);
       this.neverClassInline = lense.rewriteMutableTypesConservatively(previous.neverClassInline);
       this.neverMerge = lense.rewriteTypesConservatively(previous.neverMerge);
+      this.neverPropagateValue =
+          lense.rewriteMutableReferencesConservatively(previous.neverPropagateValue);
       this.mayHaveSideEffects =
           rewriteMutableReferenceKeys(previous.mayHaveSideEffects, lense::lookupReference);
       this.noSideEffects =

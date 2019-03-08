@@ -212,7 +212,7 @@ public class MemberValuePropagation {
     }
     // No Proguard rule could replace the instruction check for knowledge about the return value.
     DexEncodedMethod target = current.lookupSingleTarget(appView.appInfo(), callingContext);
-    if (target == null) {
+    if (target == null || appView.appInfo().neverPropagateValue.contains(target.method)) {
       return;
     }
     if (target.getOptimizationInfo().neverReturnsNull()
@@ -262,7 +262,7 @@ public class MemberValuePropagation {
 
     // TODO(b/123857022): Should be able to use definitionFor().
     DexEncodedField target = appView.appInfo().lookupStaticTarget(field.getHolder(), field);
-    if (target == null) {
+    if (target == null || appView.appInfo().neverPropagateValue.contains(target.field)) {
       return;
     }
     // Check if a this value is known const.
@@ -326,8 +326,11 @@ public class MemberValuePropagation {
         current.isInstancePut()
             ? appView.appInfo().lookupInstanceTarget(field.getHolder(), field)
             : appView.appInfo().lookupStaticTarget(field.getHolder(), field);
+    if (target == null || appView.appInfo().neverPropagateValue.contains(target.field)) {
+      return;
+    }
     // TODO(b/123857022): Should be possible to use `!isFieldRead(field)`.
-    if (target != null && !appView.appInfo().isFieldRead(target.field)) {
+    if (!appView.appInfo().isFieldRead(target.field)) {
       // Remove writes to dead (i.e. never read) fields.
       iterator.removeOrReplaceByDebugLocalRead();
     }

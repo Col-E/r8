@@ -2117,6 +2117,11 @@ public class Enqueuer {
      */
     public final Set<DexType> neverMerge;
     /**
+     * All methods and fields whose value *must* never be propagated due to a configuration
+     * directive. (testing only).
+     */
+    public final Set<DexReference> neverPropagateValue;
+    /**
      * All items with -identifiernamestring rule.
      * Bound boolean value indicates the rule is explicitly specified by users (<code>true</code>)
      * or not, i.e., implicitly added by R8 (<code>false</code>).
@@ -2195,6 +2200,7 @@ public class Enqueuer {
       this.keepUnusedArguments = enqueuer.rootSet.keepUnusedArguments;
       this.neverClassInline = enqueuer.rootSet.neverClassInline;
       this.neverMerge = enqueuer.rootSet.neverMerge;
+      this.neverPropagateValue = enqueuer.rootSet.neverPropagateValue;
       this.identifierNameStrings = joinIdentifierNameStrings(
           enqueuer.rootSet.identifierNameStrings, enqueuer.identifierNameStrings);
       this.prunedTypes = Collections.emptySet();
@@ -2252,6 +2258,7 @@ public class Enqueuer {
       this.keepUnusedArguments = previous.keepUnusedArguments;
       this.neverClassInline = previous.neverClassInline;
       this.neverMerge = previous.neverMerge;
+      this.neverPropagateValue = previous.neverPropagateValue;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes =
           removedClasses == null
@@ -2336,6 +2343,8 @@ public class Enqueuer {
               .collect(Collectors.toList()));
       this.neverClassInline = rewriteItems(previous.neverClassInline, lense::lookupType);
       this.neverMerge = rewriteItems(previous.neverMerge, lense::lookupType);
+      this.neverPropagateValue =
+          lense.rewriteReferencesConservatively(previous.neverPropagateValue);
       this.identifierNameStrings =
           lense.rewriteReferencesConservatively(previous.identifierNameStrings);
       // Switchmap classes should never be affected by renaming.
@@ -2392,6 +2401,7 @@ public class Enqueuer {
       this.keepUnusedArguments = previous.keepUnusedArguments;
       this.neverClassInline = previous.neverClassInline;
       this.neverMerge = previous.neverMerge;
+      this.neverPropagateValue = previous.neverPropagateValue;
       this.identifierNameStrings = previous.identifierNameStrings;
       this.prunedTypes = previous.prunedTypes;
       this.switchMaps = switchMaps;

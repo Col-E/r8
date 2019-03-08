@@ -4,18 +4,14 @@
 package com.android.tools.r8.accessrelaxation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -158,9 +154,9 @@ class CtorTestMain {
 
 @RunWith(Parameterized.class)
 public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
-  private static final String INIT= "<init>";
-  private static final List<Class> CLASSES =
-      ImmutableList.of(L1.class, L2_1.class, L2_2.class, L3_1.class, L3_2.class);
+  private static final Class<?>[] CLASSES = {
+      L1.class, L2_1.class, L2_2.class, L3_1.class, L3_2.class
+  };
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
@@ -173,11 +169,25 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
 
   @Test
   public void test() throws Exception {
+    String expectedOutput =
+        StringUtils.lines(
+            "private_x",
+            "21_main_y",
+            "22_L2_1_y",
+            "31_L2_1_y_41",
+            "22_32_main_z");
     Class mainClass = CtorTestMain.class;
-    R8Command.Builder builder =
-        loadProgramFiles(backend, Iterables.concat(CLASSES, ImmutableList.of(mainClass)));
-    builder.addProguardConfiguration(
-        ImmutableList.of(
+
+    R8TestRunResult result =
+        testForR8(backend)
+            .addProgramClasses(mainClass)
+            .addProgramClasses(CLASSES)
+            .addOptionsModification(o -> {
+              o.enableInlining = false;
+              o.enableVerticalClassMerging = false;
+            })
+            .noMinification()
+        .addKeepRules(
             "-keep class " + mainClass.getCanonicalName() + "{",
             "  public static void main(java.lang.String[]);",
             "}",
@@ -186,21 +196,16 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
             "  <init>(...);",
             "}",
             "",
-            "-dontobfuscate",
-            "-allowaccessmodification"
-        ),
-        Origin.unknown());
+            "-allowaccessmodification")
+        .run(mainClass);
 
-    AndroidApp app =
-        ToolHelper.runR8(
-            builder.build(),
-            options -> {
-              options.enableInlining = false;
-              options.enableVerticalClassMerging = false;
-            });
-    compareReferenceJVMAndProcessed(app, mainClass);
+    assertEquals(
+        expectedOutput,
+        result
+            .getStdOut()
+            .replace("java.lang.IncompatibleClassChangeError", "java.lang.IllegalAccessError"));
 
-    CodeInspector codeInspector = new CodeInspector(app);
+    CodeInspector codeInspector = result.inspector();
     for (Class clazz : CLASSES) {
       ClassSubject classSubject = codeInspector.clazz(clazz);
       assertThat(classSubject, isPresent());

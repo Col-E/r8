@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.accessrelaxation.privatestatic;
 
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
+
 public class B extends A implements I {
   public String bar() {
     try {
@@ -13,7 +16,9 @@ public class B extends A implements I {
     }
   }
 
-  private synchronized static String blah(int i) {
+  @NeverInline
+  @NeverPropagateValue
+  private static String blah(int i) {
     return "B::blah(int)";
   }
 
