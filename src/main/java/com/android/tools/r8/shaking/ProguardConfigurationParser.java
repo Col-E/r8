@@ -1368,7 +1368,7 @@ public class ProguardConfigurationParser {
     }
 
     private boolean isOptionalArgumentGiven() {
-      return !eof() && !hasNextChar('-');
+      return !eof() && !hasNextChar('-') && !hasNextChar('@');
     }
 
     private boolean acceptChar(char c) {

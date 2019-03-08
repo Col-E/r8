@@ -2086,6 +2086,25 @@ public class ProguardConfigurationParserTest extends TestBase {
     }
   }
 
+  @Test
+  public void parseOptionalArgumentsFollowedByArobaseInclude() throws Exception {
+    Path includeFile = writeTextToTempFile(
+        "-renamesourcefileattribute SRC"
+    );
+    Path proguardConfig = writeTextToTempFile(
+        "-printconfiguration",
+        "@" + includeFile.toAbsolutePath()
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertTrue(config.isPrintConfiguration());
+    assertNull(config.getPrintConfigurationFile());
+    assertEquals("SRC", config.getRenameSourceFileAttribute());
+  }
+
   private void testFlagWithFilenames(
       String flag,
       List<String> values,
@@ -2101,7 +2120,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseSingleFleNameOptions() {
+  public void parseSingleFileNameOptions() {
     List<String> fileNames = ImmutableList.of(
         "xxx",
         "xxx" + File.pathSeparatorChar + "xxx");
