@@ -452,7 +452,7 @@ public class UninstantiatedTypeOptimization {
     if (isAlwaysNull(fieldType)) {
       // Before trying to remove this instruction, we need to be sure that the field actually
       // exists. Otherwise this instruction would throw a NoSuchFieldError exception.
-      DexEncodedField field = appView.appInfo().definitionFor(instruction.getField());
+      DexEncodedField field = appView.definitionFor(instruction.getField());
       if (field == null) {
         return;
       }
@@ -460,7 +460,7 @@ public class UninstantiatedTypeOptimization {
       // We also need to be sure that this field instruction cannot trigger static class
       // initialization.
       if (field.field.clazz != code.method.method.holder) {
-        DexClass enclosingClass = appView.appInfo().definitionFor(code.method.method.holder);
+        DexClass enclosingClass = appView.definitionFor(code.method.method.holder);
         if (enclosingClass == null
             || enclosingClass.classInitializationMayHaveSideEffects(appView.appInfo())) {
           return;
@@ -608,7 +608,7 @@ public class UninstantiatedTypeOptimization {
 
   private boolean isAlwaysNull(DexType type) {
     if (type.isClassType()) {
-      DexClass clazz = appView.appInfo().definitionFor(type);
+      DexClass clazz = appView.definitionFor(type);
       return clazz != null
           && clazz.isProgramClass()
           && !appView.appInfo().isInstantiatedDirectlyOrIndirectly(type);

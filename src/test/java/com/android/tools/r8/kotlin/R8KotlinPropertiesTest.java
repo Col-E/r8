@@ -389,127 +389,148 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
   public void testCompanionProperty_primitivePropertyCannotBeInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector,
-          "properties.CompanionProperties");
-      ClassSubject companionClass = checkClassIsKept(codeInspector,
-          COMPANION_PROPERTY_CLASS.getClassName());
-      String propertyName = "primitiveProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, "int", propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, "properties.CompanionProperties");
 
-      MemberNaming.MethodSignature getter = COMPANION_PROPERTY_CLASS
-          .getGetterForProperty(propertyName);
-      MemberNaming.MethodSignature setter = COMPANION_PROPERTY_CLASS
-          .getSetterForProperty(propertyName);
+          // Companion class has been removed because of class staticizing.
+          String companionClassName = COMPANION_PROPERTY_CLASS.getClassName();
+          checkClassIsRemoved(codeInspector, companionClassName);
 
-      // Getter and setter cannot be inlined because we don't know if null check semantic is
-      // preserved.
-      checkMethodIsKept(companionClass, getter);
-      checkMethodIsKept(companionClass, setter);
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-      }
-    });
+          String propertyName = "primitiveProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, "int", propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
   public void testCompanionProperty_privatePropertyIsAlwaysInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePrivateProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector,
-          "properties.CompanionProperties");
-      ClassSubject companionClass = checkClassIsKept(codeInspector,
-          COMPANION_PROPERTY_CLASS.getClassName());
-      String propertyName = "privateProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, "properties.CompanionProperties");
 
-      MemberNaming.MethodSignature getter = COMPANION_PROPERTY_CLASS
-          .getGetterForProperty(propertyName);
-      MemberNaming.MethodSignature setter = COMPANION_PROPERTY_CLASS
-          .getSetterForProperty(propertyName);
+          // Companion class has been removed because of class staticizing.
+          String companionClassName = COMPANION_PROPERTY_CLASS.getClassName();
+          checkClassIsRemoved(codeInspector, companionClassName);
 
-      // Because the getter/setter are private, they can only be called from another method in the
-      // class. If this is an instance method, they will be called on 'this' which is known to be
-      // non-null, thus the getter/setter can be inlined if their code is small enough.
-      // Because the backing field is private, they will call into an accessor (static) method. If
-      // access relaxation is enabled, this accessor can be removed.
-      checkMethodIsAbsent(companionClass, getter);
-      checkMethodIsAbsent(companionClass, setter);
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-      }
-    });
+          String propertyName = "privateProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+          MemberNaming.MethodSignature getter =
+              COMPANION_PROPERTY_CLASS.getGetterForProperty(propertyName);
+          MemberNaming.MethodSignature setter =
+              COMPANION_PROPERTY_CLASS.getSetterForProperty(propertyName);
+
+          // Because the getter/setter are private, they can only be called from another method in
+          // the class. If this is an instance method, they will be called on 'this' which is known
+          // to be non-null, thus the getter/setter can be inlined if their code is small enough.
+          // Because the backing field is private, they will call into an accessor (static) method.
+          // If access relaxation is enabled, this accessor can be removed.
+          checkMethodIsAbsent(outerClass, getter);
+          checkMethodIsAbsent(outerClass, setter);
+
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
   public void testCompanionProperty_internalPropertyCannotBeInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector,
-          "properties.CompanionProperties");
-      ClassSubject companionClass = checkClassIsKept(codeInspector,
-          COMPANION_PROPERTY_CLASS.getClassName());
-      String propertyName = "internalProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, "properties.CompanionProperties");
 
-      MemberNaming.MethodSignature getter = COMPANION_PROPERTY_CLASS
-          .getGetterForProperty(propertyName);
-      MemberNaming.MethodSignature setter = COMPANION_PROPERTY_CLASS
-          .getSetterForProperty(propertyName);
+          // Companion class has been removed because of class staticizing.
+          String companionClassName = COMPANION_PROPERTY_CLASS.getClassName();
+          checkClassIsRemoved(codeInspector, companionClassName);
 
-      // Getter and setter cannot be inlined because we don't know if null check semantic is
-      // preserved.
-      checkMethodIsKept(companionClass, getter);
-      checkMethodIsKept(companionClass, setter);
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-      }
-    });
+          String propertyName = "internalProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+          MemberNaming.MethodSignature getter =
+              COMPANION_PROPERTY_CLASS.getGetterForProperty(propertyName);
+          MemberNaming.MethodSignature setter =
+              COMPANION_PROPERTY_CLASS.getSetterForProperty(propertyName);
+
+          // Getter and setter cannot be inlined because we don't know if null check semantic is
+          // preserved.
+          checkMethodIsMoved(companionClassName, outerClass, getter);
+          checkMethodIsMoved(companionClassName, outerClass, setter);
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
   public void testCompanionProperty_publicPropertyCannotBeInlined() throws Exception {
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector,
-          "properties.CompanionProperties");
-      ClassSubject companionClass = checkClassIsKept(codeInspector,
-          COMPANION_PROPERTY_CLASS.getClassName());
-      String propertyName = "publicProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, "properties.CompanionProperties");
 
-      MemberNaming.MethodSignature getter = COMPANION_PROPERTY_CLASS
-          .getGetterForProperty(propertyName);
-      MemberNaming.MethodSignature setter = COMPANION_PROPERTY_CLASS
-          .getSetterForProperty(propertyName);
+          // Companion class has been removed because of class staticizing.
+          String companionClassName = COMPANION_PROPERTY_CLASS.getClassName();
+          checkClassIsRemoved(codeInspector, companionClassName);
 
-      // Getter and setter cannot be inlined because we don't know if null check semantic is
-      // preserved.
-      checkMethodIsKept(companionClass, getter);
-      checkMethodIsKept(companionClass, setter);
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-      }
-    });
+          String propertyName = "publicProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+          MemberNaming.MethodSignature getter =
+              COMPANION_PROPERTY_CLASS.getGetterForProperty(propertyName);
+          MemberNaming.MethodSignature setter =
+              COMPANION_PROPERTY_CLASS.getSetterForProperty(propertyName);
+
+          // Getter and setter cannot be inlined because we don't know if null check semantic is
+          // preserved.
+          checkMethodIsMoved(companionClassName, outerClass, getter);
+          checkMethodIsMoved(companionClassName, outerClass, setter);
+
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
@@ -517,30 +538,28 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-      ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
-      String propertyName = "privateLateInitProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, testedClass.getOuterClassName());
 
-      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+          // Companion class has been removed because of class staticizing.
+          String companionClassName = testedClass.getClassName();
+          checkClassIsRemoved(codeInspector, companionClassName);
 
-      // Because the getter/setter are private, they can only be called from another method in the
-      // class. If this is an instance method, they will be called on 'this' which is known to be
-      // non-null, thus the getter/setter can be inlined if their code is small enough.
-      // Because the backing field is private, they will call into an accessor (static) method. If
-      // access relaxation is enabled, this accessor can be removed.
-      checkMethodIsAbsent(companionClass, getter);
-      checkMethodIsAbsent(companionClass, setter);
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-      }
-    });
+          String propertyName = "privateLateInitProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
@@ -548,23 +567,32 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_useInternalLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-      ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
-      String propertyName = "internalLateInitProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, testedClass.getOuterClassName());
 
-      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+          // Companion class has been removed because of class staticizing.
+          String companionClassName = testedClass.getClassName();
+          checkClassIsRemoved(codeInspector, companionClassName);
 
-      // Getter and setter cannot be inlined because we don't know if null check semantic is
-      // preserved.
-      checkMethodIsKept(companionClass, getter);
-      checkMethodIsKept(companionClass, setter);
-      assertTrue(fieldSubject.getField().accessFlags.isPublic());
-    });
+          String propertyName = "internalLateInitProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+          MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+          MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+          // Getter and setter cannot be inlined because we don't know if null check semantic is
+          // preserved.
+          checkMethodIsMoved(companionClassName, outerClass, getter);
+          checkMethodIsMoved(companionClassName, outerClass, setter);
+          assertTrue(fieldSubject.getField().accessFlags.isPublic());
+        });
   }
 
   @Test
@@ -572,23 +600,32 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePublicLateInitProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-      ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
-      String propertyName = "publicLateInitProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, testedClass.getOuterClassName());
 
-      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+          // Companion class has been removed because of class staticizing.
+          String companionClassName = testedClass.getClassName();
+          checkClassIsRemoved(codeInspector, companionClassName);
 
-      // Getter and setter cannot be inlined because we don't know if null check semantic is
-      // preserved.
-      checkMethodIsKept(companionClass, getter);
-      checkMethodIsKept(companionClass, setter);
-      assertTrue(fieldSubject.getField().accessFlags.isPublic());
-    });
+          String propertyName = "publicLateInitProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+          MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+          MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+
+          // Getter and setter cannot be inlined because we don't know if null check semantic is
+          // preserved.
+          checkMethodIsMoved(companionClassName, outerClass, getter);
+          checkMethodIsMoved(companionClassName, outerClass, setter);
+          assertTrue(fieldSubject.getField().accessFlags.isPublic());
+        });
   }
 
   @Test
@@ -773,26 +810,28 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePrimitiveProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
-      String propertyName = "primitiveProp";
-      FieldSubject fieldSubject = checkFieldIsKept(objectClass, "int", propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
+          String propertyName = "primitiveProp";
+          FieldSubject fieldSubject = checkFieldIsKept(objectClass, "int", propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
 
-      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-      MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+          MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+          MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
+          checkMethodIsRemoved(objectClass, getter);
+          checkMethodIsRemoved(objectClass, setter);
 
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-        checkMethodIsRemoved(objectClass, getter);
-        checkMethodIsRemoved(objectClass, setter);
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-        checkMethodIsKept(objectClass, getter);
-        checkMethodIsKept(objectClass, setter);
-      }
-    });
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
@@ -826,25 +865,29 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_useInternalProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
-      String propertyName = "internalProp";
-      FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
+          String propertyName = "internalProp";
+          FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
 
-      // We expect getter to be inlined when access (of the backing field) is relaxed to public.
-      // Note: the setter is considered as a regular method (because of KotlinC adding extra null
-      // checks), thus we cannot say if the setter would be inlined or not by R8.
-      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-        checkMethodIsRemoved(objectClass, getter);
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-        checkMethodIsKept(objectClass, getter);
-      }
-    });
+          // We expect getter to be inlined when access (of the backing field) is relaxed to public.
+          // Note: the setter is considered as a regular method (because of KotlinC adding extra
+          // null checks), thus we cannot say if the setter would be inlined or not by R8.
+          MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+          checkMethodIsRemoved(objectClass, getter);
+
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
@@ -852,26 +895,29 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     final TestKotlinClass testedClass = FILE_PROPERTY_CLASS;
     String mainClass = addMainToClasspath(
         "properties.FilePropertiesKt", "fileProperties_usePublicProp");
-    runTest(PACKAGE_NAME, mainClass, disableAggressiveClassOptimizations, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
-      String propertyName = "publicProp";
-      FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PACKAGE_NAME,
+        mainClass,
+        disableAggressiveClassOptimizations,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject objectClass = checkClassIsKept(codeInspector, testedClass.getClassName());
+          String propertyName = "publicProp";
+          FieldSubject fieldSubject = checkFieldIsKept(objectClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
 
-      // We expect getter to be inlined when access (of the backing field) is relaxed to public.
-      // On the other hand, the setter is considered as a regular method (because of null checks),
-      // thus we cannot say if it can be inlined or not.
-      MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+          // We expect getter to be inlined when access (of the backing field) is relaxed to public.
+          // On the other hand, the setter is considered as a regular method (because of null
+          // checks), thus we cannot say if it can be inlined or not.
+          MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+          checkMethodIsRemoved(objectClass, getter);
 
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-        checkMethodIsRemoved(objectClass, getter);
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-        checkMethodIsKept(objectClass, getter);
-      }
-    });
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test

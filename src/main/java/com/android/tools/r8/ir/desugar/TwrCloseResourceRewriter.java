@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
@@ -51,6 +52,7 @@ public final class TwrCloseResourceRewriter {
   public static final String UTILITY_CLASS_NAME = "$r8$twr$utility";
   public static final String UTILITY_CLASS_DESCRIPTOR = "L$r8$twr$utility;";
 
+  private final AppView<? extends AppInfo> appView;
   private final IRConverter converter;
   private final DexItemFactory factory;
 
@@ -58,9 +60,10 @@ public final class TwrCloseResourceRewriter {
 
   private final Set<DexProgramClass> referencingClasses = Sets.newConcurrentHashSet();
 
-  public TwrCloseResourceRewriter(IRConverter converter) {
+  public TwrCloseResourceRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
+    this.appView = appView;
     this.converter = converter;
-    this.factory = converter.appInfo().dexItemFactory;
+    this.factory = appView.dexItemFactory();
 
     DexType twrUtilityClass = factory.createType(UTILITY_CLASS_DESCRIPTOR);
     DexProto twrCloseResourceProto = factory.createProto(
@@ -72,14 +75,14 @@ public final class TwrCloseResourceRewriter {
   // Rewrites calls to $closeResource() method. Can be invoked concurrently.
   public void rewriteMethodCode(IRCode code) {
     InstructionIterator iterator = code.instructionIterator();
-    AppInfo appInfo = converter.appInfo();
+    AppInfo appInfo = appView.appInfo();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       if (!instruction.isInvokeStatic()) {
         continue;
       }
       InvokeStatic invoke = instruction.asInvokeStatic();
-      if (!isSynthesizedCloseResourceMethod(invoke.getInvokedMethod(), converter)) {
+      if (!isSynthesizedCloseResourceMethod(invoke.getInvokedMethod(), appView)) {
         continue;
       }
 
@@ -95,8 +98,9 @@ public final class TwrCloseResourceRewriter {
     }
   }
 
-  public static boolean isSynthesizedCloseResourceMethod(DexMethod method, IRConverter converter) {
-    DexMethod original = converter.graphLense().getOriginalMethodSignature(method);
+  public static boolean isSynthesizedCloseResourceMethod(
+      DexMethod method, AppView<? extends AppInfo> appView) {
+    DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
     assert original != null;
     // We consider all methods of *any* class with expected name and signature
     // to be synthesized by java 9 compiler for try-with-resources, reasoning:
@@ -107,7 +111,7 @@ public final class TwrCloseResourceRewriter {
     //    right attributes, but it still does not guarantee much since we also
     //    need to look into code and doing this seems an overkill
     //
-    DexItemFactory dexItemFactory = converter.appInfo().dexItemFactory;
+    DexItemFactory dexItemFactory = appView.appInfo().dexItemFactory;
     return original.name == dexItemFactory.twrCloseResourceMethodName
         && original.proto == dexItemFactory.twrCloseResourceMethodProto;
   }
@@ -149,7 +153,7 @@ public final class TwrCloseResourceRewriter {
     code.setUpContext(utilityClass);
 
     // Process created class and method.
-    AppInfo appInfo = converter.appInfo();
+    AppInfo appInfo = appView.appInfo();
     boolean addToMainDexList =
         referencingClasses.stream().anyMatch(clazz -> appInfo.isInMainDexList(clazz.type));
     appInfo.addSynthesizedClass(utilityClass);

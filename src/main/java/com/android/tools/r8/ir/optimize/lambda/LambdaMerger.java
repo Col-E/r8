@@ -8,6 +8,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
@@ -100,7 +101,7 @@ public final class LambdaMerger {
   // should not be happening very frequently and we ignore possible overhead.
   private final Set<DexEncodedMethod> methodsToReprocess = Sets.newIdentityHashSet();
 
-  private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
   private final DexItemFactory factory;
   private final Kotlin kotlin;
   private final DiagnosticsHandler reporter;
@@ -112,11 +113,11 @@ public final class LambdaMerger {
   // Lambda visitor throwing Unreachable on each lambdas it sees.
   private final LambdaTypeVisitor lambdaChecker;
 
-  public LambdaMerger(AppInfo appInfo, DiagnosticsHandler reporter) {
-    this.appInfo = appInfo;
-    this.factory = appInfo.dexItemFactory;
+  public LambdaMerger(AppView<? extends AppInfo> appView) {
+    this.appView = appView;
+    this.factory = appView.dexItemFactory();
     this.kotlin = factory.kotlin;
-    this.reporter = reporter;
+    this.reporter = appView.options().reporter;
 
     this.lambdaInvalidator = new LambdaTypeVisitor(factory, this::isMergeableLambda,
         this::invalidateLambda);
@@ -206,13 +207,14 @@ public final class LambdaMerger {
     analyzeReferencesInProgramClasses(app, executorService);
 
     // Analyse more complex aspects of lambda classes including method code.
-    assert converter.appInfo().hasSubtyping();
-    AppInfoWithSubtyping appInfo = converter.appInfo().withSubtyping();
-    analyzeLambdaClassesStructure(appInfo, executorService);
+    assert appView.appInfo().hasSubtyping();
+    AppInfoWithSubtyping appInfoWithSubtyping = appView.appInfo().withSubtyping();
+    analyzeLambdaClassesStructure(appInfoWithSubtyping, executorService);
 
     // Remove invalidated lambdas, compact groups to ensure
     // sequential lambda ids, create group lambda classes.
-    Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups(appInfo);
+    Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses =
+        finalizeLambdaGroups(appInfoWithSubtyping);
 
     // Switch to APPLY strategy.
     this.strategyFactory = ApplyStrategy::new;
@@ -221,9 +223,8 @@ public final class LambdaMerger {
 
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
       DexProgramClass synthesizedClass = entry.getValue();
-      converter.appInfo().addSynthesizedClass(synthesizedClass);
-      builder.addSynthesizedClass(
-          synthesizedClass, entry.getKey().shouldAddToMainDex(converter.appInfo()));
+      appView.appInfo().addSynthesizedClass(synthesizedClass);
+      builder.addSynthesizedClass(synthesizedClass, entry.getKey().shouldAddToMainDex(appView));
       // Eventually, we need to process synthesized methods in the lambda group.
       // Otherwise, abstract SynthesizedCode will be flown to Enqueuer.
       // But that process should not see the holder. Otherwise, lambda calls in the main dispatch
@@ -323,7 +324,7 @@ public final class LambdaMerger {
     }
     Set<DexEncodedMethod> methods =
         methodsToReprocess.stream()
-            .map(method -> converter.graphLense().mapDexEncodedMethod(method, converter.appInfo()))
+            .map(method -> converter.graphLense().mapDexEncodedMethod(method, appView.appInfo()))
             .collect(Collectors.toSet());
     List<Future<?>> futures = new ArrayList<>();
     for (DexEncodedMethod method : methods) {
@@ -379,8 +380,12 @@ public final class LambdaMerger {
 
   private final class AnalysisStrategy extends CodeProcessor {
     private AnalysisStrategy(DexEncodedMethod method, IRCode code) {
-      super(LambdaMerger.this.appInfo,
-          LambdaMerger.this::strategyProvider, lambdaInvalidator, method, code);
+      super(
+          LambdaMerger.this.appView,
+          LambdaMerger.this::strategyProvider,
+          lambdaInvalidator,
+          method,
+          code);
     }
 
     @Override
@@ -416,8 +421,12 @@ public final class LambdaMerger {
 
   private final class ApplyStrategy extends CodeProcessor {
     private ApplyStrategy(DexEncodedMethod method, IRCode code) {
-      super(LambdaMerger.this.appInfo,
-          LambdaMerger.this::strategyProvider, lambdaChecker, method, code);
+      super(
+          LambdaMerger.this.appView,
+          LambdaMerger.this::strategyProvider,
+          lambdaChecker,
+          method,
+          code);
     }
 
     @Override

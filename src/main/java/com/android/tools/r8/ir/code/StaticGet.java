@@ -18,7 +18,6 @@ import com.android.tools.r8.code.SgetWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
@@ -32,7 +31,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import org.objectweb.asm.Opcodes;
 
 public class StaticGet extends FieldInstruction {
@@ -95,18 +93,19 @@ public class StaticGet extends FieldInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     // Not applicable for D8.
-    if (appView == null || !appView.enableWholeProgramOptimizations()) {
+    if (!appView.enableWholeProgramOptimizations()) {
       return false;
     }
+
     // static-get can be dead as long as it cannot have any of the following:
     // * NoSuchFieldError (resolution failure)
     // * IllegalAccessError (not visible from the access context)
     // * side-effects in <clinit>
     // TODO(b/123857022): Should be possible to use definitionFor().
-    DexEncodedField resolvedField = appInfo.resolveFieldOn(getField().getHolder(), getField());
+    AppInfo appInfo = appView.appInfo();
+    DexEncodedField resolvedField = appInfo.resolveField(getField());
     if (resolvedField == null) {
       return false;
     }
@@ -188,7 +187,7 @@ public class StaticGet extends FieldInstruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forStaticGet(

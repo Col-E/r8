@@ -229,7 +229,7 @@ public class VerticalClassMerger {
 
   public VerticalClassMerger(
       DexApplication application,
-      AppView<AppInfoWithLiveness> appView,
+      AppView<? extends AppInfoWithLiveness> appView,
       ExecutorService executorService,
       InternalOptions options,
       Timing timing,
@@ -1761,7 +1761,7 @@ public class VerticalClassMerger {
           checkTypeReference(field.clazz);
           checkTypeReference(field.type);
 
-          DexEncodedField definition = appView.appInfo().definitionFor(field);
+          DexEncodedField definition = appView.definitionFor(field);
           if (definition == null || !definition.accessFlags.isPublic()) {
             foundIllegalAccess = true;
           }
@@ -1780,7 +1780,7 @@ public class VerticalClassMerger {
           for (DexType type : method.proto.parameters.values) {
             checkTypeReference(type);
           }
-          DexEncodedMethod definition = appView.appInfo().definitionFor(method);
+          DexEncodedMethod definition = appView.definitionFor(method);
           if (definition == null || !definition.accessFlags.isPublic()) {
             foundIllegalAccess = true;
           }
@@ -1794,7 +1794,7 @@ public class VerticalClassMerger {
         DexType baseType =
             appView.graphLense().lookupType(type.toBaseType(appView.dexItemFactory()));
         if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
-          DexClass clazz = appView.appInfo().definitionFor(baseType);
+          DexClass clazz = appView.definitionFor(baseType);
           if (clazz == null || !clazz.accessFlags.isPublic()) {
             foundIllegalAccess = true;
           }

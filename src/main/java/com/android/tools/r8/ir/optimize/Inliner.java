@@ -81,7 +81,7 @@ public class Inliner {
   public boolean isBlackListed(DexMethod method) {
     return blackList.contains(appView.graphLense().getOriginalMethodSignature(method))
         || appView.appInfo().neverInline.contains(method)
-        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, converter);
+        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, appView);
   }
 
   private ConstraintWithTarget instructionAllowedForInlining(
@@ -117,7 +117,7 @@ public class Inliner {
       return false;
     }
     // The class needs also to be visible for us to have access.
-    DexClass targetClass = appView.appInfo().definitionFor(target.method.holder);
+    DexClass targetClass = appView.definitionFor(target.method.holder);
     return isVisibleWithFlags(target.method.holder, method.method.holder, targetClass.accessFlags);
   }
 
@@ -438,7 +438,7 @@ public class Inliner {
           callerPosition,
           origin);
       if (!target.isProcessed()) {
-        new LensCodeRewriter(appView, options).rewrite(code, target);
+        new LensCodeRewriter(appView).rewrite(code, target);
       }
       return new InlineeWithReason(code, reason);
     }

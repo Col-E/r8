@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -69,18 +68,15 @@ abstract class NamingTestBase {
 
     ExecutorService executor = ThreadUtils.getExecutorService(1);
 
-    AppView<AppInfoWithSubtyping> appView =
-        new AppView<>(new AppInfoWithSubtyping(program), GraphLense.getIdentityLense(), options);
+    AppView<? extends AppInfoWithSubtyping> appView =
+        AppView.createForR8(new AppInfoWithSubtyping(program), options);
     RootSet rootSet =
         new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
 
     Enqueuer enqueuer = new Enqueuer(appView, options, null);
     AppInfoWithLiveness appInfo =
         enqueuer.traceApplication(rootSet, configuration.getDontWarnPatterns(), executor, timing);
-    return new Minifier(
-        new AppView<>(appInfo, GraphLense.getIdentityLense(), options),
-        rootSet,
-        Collections.emptySet())
+    return new Minifier(AppView.createForR8(appInfo, options), rootSet, Collections.emptySet())
         .run(timing);
   }
 

@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
@@ -33,7 +32,6 @@ import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
@@ -80,7 +78,7 @@ public final class InterfaceMethodRewriter {
   public static final String DEFAULT_METHOD_PREFIX = "$default$";
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfo> appView;
   private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
@@ -115,19 +113,12 @@ public final class InterfaceMethodRewriter {
     ExcludeDexResources
   }
 
-  public InterfaceMethodRewriter(
-      AppView<? extends AppInfoWithLiveness> appView,
-      IRConverter converter,
-      InternalOptions options) {
+  public InterfaceMethodRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
     assert converter != null;
     this.appView = appView;
     this.converter = converter;
-    this.options = options;
-    this.factory = options.itemFactory;
-  }
-
-  public AppInfo appInfo() {
-    return converter.appInfo();
+    this.options = appView.options();
+    this.factory = appView.dexItemFactory();
   }
 
   // Rewrites the references to static and default interface methods.
@@ -138,7 +129,7 @@ public final class InterfaceMethodRewriter {
     }
 
     ListIterator<BasicBlock> blocks = code.listIterator();
-    AppInfo appInfo = appInfo();
+    AppInfo appInfo = appView.appInfo();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
       InstructionListIterator instructions = block.listIterator();
@@ -281,12 +272,11 @@ public final class InterfaceMethodRewriter {
         }
       }
     }
-    assert appInfo == appInfo();
   }
 
   private void reportStaticInterfaceMethodHandle(DexMethod referencedFrom, DexMethodHandle handle) {
     if (handle.type.isInvokeStatic()) {
-      DexClass holderClass = appInfo().definitionFor(handle.asMethod().holder);
+      DexClass holderClass = appView.definitionFor(handle.asMethod().holder);
       // NOTE: If the class definition is missing we can't check. Let it be handled as any other
       // missing call target.
       if (holderClass == null) {
@@ -332,7 +322,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private boolean isInMainDexList(DexType iface) {
-    return appInfo().isInMainDexList(iface);
+    return appView.appInfo().isInMainDexList(iface);
   }
 
   // Represent a static interface method as a method of companion class.
@@ -401,7 +391,7 @@ public final class InterfaceMethodRewriter {
     // methods to companion class, copy default interface methods to companion classes,
     // make original default methods abstract, remove bridge methods, create dispatch
     // classes if needed.
-    AppInfo appInfo = appInfo();
+    AppInfo appInfo = appView.appInfo();
     for (Entry<DexType, DexProgramClass> entry : processInterfaces(builder, flavour).entrySet()) {
       // Don't need to optimize synthesized class since all of its methods
       // are just moved from interfaces and don't need to be re-processed.
@@ -439,15 +429,14 @@ public final class InterfaceMethodRewriter {
     for (Entry<DexLibraryClass, Set<DexProgramClass>> entry : requiredDispatchClasses.entrySet()) {
       synthesizedMethods.addAll(processor.process(entry.getKey(), entry.getValue()));
     }
-    if (converter.enableWholeProgramOptimizations) {
-      AppView<? extends AppInfoWithSubtyping> appView = converter.appView;
+    if (appView.enableWholeProgramOptimizations()) {
       appView.setGraphLense(graphLensBuilder.build(appView.dexItemFactory(), appView.graphLense()));
     }
     return processor.syntheticClasses;
   }
 
   private Set<DexEncodedMethod> processClasses(Builder<?> builder, Flavor flavour) {
-    ClassProcessor processor = new ClassProcessor(this);
+    ClassProcessor processor = new ClassProcessor(appView, this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, false)) {
         processor.process(clazz);
@@ -523,7 +512,7 @@ public final class InterfaceMethodRewriter {
     if (isCompanionClassType(holder)) {
       holder = getInterfaceClassType(holder);
     }
-    DexClass clazz = appInfo().definitionFor(holder);
+    DexClass clazz = appView.definitionFor(holder);
     return clazz == null ? Origin.unknown() : clazz.getOrigin();
   }
 
@@ -545,7 +534,7 @@ public final class InterfaceMethodRewriter {
       DexClass implementing,
       DexType iface) {
     DefaultMethodsHelper helper = new DefaultMethodsHelper();
-    DexClass definedInterface = appInfo().definitionFor(iface);
+    DexClass definedInterface = appView.definitionFor(iface);
     if (definedInterface == null) {
       warnMissingInterface(classToDesugar, implementing, iface);
       return helper.wrapInCollection();

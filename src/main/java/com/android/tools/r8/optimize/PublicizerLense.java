@@ -55,7 +55,7 @@ final class PublicizerLense extends NestedGraphLense {
     GraphLenseLookupResult lookup =
         appView.graphLense().lookupMethod(method, context, Type.VIRTUAL);
     DexMethod signatureInCurrentWorld = lookup.getMethod();
-    DexClass clazz = appView.appInfo().definitionFor(signatureInCurrentWorld.holder);
+    DexClass clazz = appView.definitionFor(signatureInCurrentWorld.holder);
     assert clazz != null;
     DexEncodedMethod actualEncodedTarget = clazz.lookupVirtualMethod(signatureInCurrentWorld);
     assert actualEncodedTarget != null;

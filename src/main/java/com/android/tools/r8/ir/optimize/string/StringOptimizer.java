@@ -12,6 +12,7 @@ import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.computeClassN
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -33,7 +34,6 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.utils.InternalOutputMode;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -41,15 +41,14 @@ import java.util.function.Function;
 
 public class StringOptimizer {
 
-  private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
   private final DexItemFactory factory;
   private final ThrowingInfo throwingInfo;
 
-  public StringOptimizer(AppInfo appInfo, InternalOutputMode outputMode) {
-    this.appInfo = appInfo;
-    this.factory = appInfo.dexItemFactory;
-    this.throwingInfo =
-        outputMode.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
+  public StringOptimizer(AppView<? extends AppInfo> appView) {
+    this.appView = appView;
+    this.factory = appView.dexItemFactory();
+    this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
   }
 
   // int String#length()
@@ -83,7 +82,7 @@ public class StringOptimizer {
         continue;
       }
       DexMethod invokedMethod = invoke.getInvokedMethod();
-      if (invokedMethod.name == appInfo.dexItemFactory.substringName) {
+      if (invokedMethod.name == factory.substringName) {
         assert invoke.inValues().size() == 2 || invoke.inValues().size() == 3;
         Value rcv = invoke.getReceiver().getAliasedValue();
         if (rcv.definition == null
@@ -121,7 +120,7 @@ public class StringOptimizer {
         String sub = rcvString.substring(beginIndexValue, endIndexValue);
         Value stringValue =
             code.createValue(
-                TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
+                TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull()),
                 invoke.getLocalInfo());
         it.replaceCurrentInstruction(
             new ConstString(stringValue, factory.createString(sub), throwingInfo));
@@ -234,7 +233,8 @@ public class StringOptimizer {
       // case, the result of this optimization can lead to a regression if the corresponding class
       // is in a deep package hierarchy.
       if (!code.options.testing.forceNameReflectionOptimization
-          && !hasPotentialReadOutside(appInfo, code.method, EscapeAnalysis.escape(code, out))) {
+          && !hasPotentialReadOutside(
+              appView.appInfo(), code.method, EscapeAnalysis.escape(code, out))) {
         continue;
       }
 
@@ -265,7 +265,7 @@ public class StringOptimizer {
       if (!baseType.isClassType()) {
         continue;
       }
-      DexClass holder = appInfo.definitionFor(baseType);
+      DexClass holder = appView.definitionFor(baseType);
       if (holder == null) {
         continue;
       }
@@ -335,7 +335,7 @@ public class StringOptimizer {
       if (name != null) {
         Value stringValue =
             code.createValue(
-                TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
+                TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull()),
                 invoke.getLocalInfo());
         ConstString constString = new ConstString(stringValue, name, throwingInfo);
         it.replaceCurrentInstruction(constString);
@@ -401,7 +401,7 @@ public class StringOptimizer {
         if (inType.isNullType()) {
           Value nullStringValue =
               code.createValue(
-                  TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
+                  TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull()),
                   invoke.getLocalInfo());
           ConstString nullString =
               new ConstString(nullStringValue, factory.createString("null"), throwingInfo);

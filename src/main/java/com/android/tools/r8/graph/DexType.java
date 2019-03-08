@@ -160,68 +160,70 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     type.directSubtypes = NO_DIRECT_SUBTYPE;
   }
 
-  public boolean isSubtypeOf(DexType other, AppInfo appInfo) {
-    return this == other || isStrictSubtypeOf(other, appInfo);
+  public boolean isSubtypeOf(DexType other, DexDefinitionSupplier definitions) {
+    return this == other || isStrictSubtypeOf(other, definitions);
   }
 
   public boolean hasSubtypes() {
     return !directSubtypes.isEmpty();
   }
 
-  public boolean isStrictSubtypeOf(DexType other, AppInfo appInfo) {
+  public boolean isStrictSubtypeOf(DexType other, DexDefinitionSupplier definitions) {
     // For all erroneous cases, saying `no`---not a strict subtype---is conservative.
-    return isStrictSubtypeOf(other, appInfo, false);
+    return isStrictSubtypeOf(other, definitions, false);
   }
 
   // Depending on optimizations, conservative answer of subtype relation may vary.
   // Pass different `orElse` in that case.
-  public boolean isStrictSubtypeOf(DexType other, AppInfo appInfo, boolean orElse) {
+  public boolean isStrictSubtypeOf(
+      DexType other, DexDefinitionSupplier definitions, boolean orElse) {
     if (this == other) {
       return false;
     }
     // Treat the object class special as it is always the supertype, even in the case of broken
     // subtype chains.
-    if (this == appInfo.dexItemFactory.objectType) {
+    if (this == definitions.dexItemFactory().objectType) {
       return false;
     }
-    if (other == appInfo.dexItemFactory.objectType) {
+    if (other == definitions.dexItemFactory().objectType) {
       return true;
     }
     if (this.hierarchyLevel == INTERFACE_LEVEL) {
-      return isInterfaceSubtypeOf(this, other, appInfo);
+      return isInterfaceSubtypeOf(this, other, definitions);
     }
     if (other.hierarchyLevel == INTERFACE_LEVEL) {
-      return other.directSubtypes.stream().anyMatch(subtype -> this.isSubtypeOf(subtype,
-          appInfo));
+      return other.directSubtypes.stream().anyMatch(subtype -> isSubtypeOf(subtype, definitions));
     }
-    return isSubtypeOfClass(other, appInfo, orElse);
+    return isSubtypeOfClass(other, definitions, orElse);
   }
 
-  private boolean isInterfaceSubtypeOf(DexType candidate, DexType other, AppInfo appInfo) {
-    if (candidate == other || other == appInfo.dexItemFactory.objectType) {
+  private boolean isInterfaceSubtypeOf(
+      DexType candidate, DexType other, DexDefinitionSupplier definitions) {
+    if (candidate == other || other == definitions.dexItemFactory().objectType) {
       return true;
     }
-    DexClass candidateHolder = appInfo.definitionFor(candidate);
+    DexClass candidateHolder = definitions.definitionFor(candidate);
     if (candidateHolder == null) {
       return false;
     }
     for (DexType iface : candidateHolder.interfaces.values) {
       assert iface.hierarchyLevel == INTERFACE_LEVEL;
-      if (isInterfaceSubtypeOf(iface, other, appInfo)) {
+      if (isInterfaceSubtypeOf(iface, other, definitions)) {
         return true;
       }
     }
     return false;
   }
 
-  private boolean isSubtypeOfClass(DexType other, AppInfo appInfo, boolean orElse) {
+  private boolean isSubtypeOfClass(
+      DexType other, DexDefinitionSupplier definitions, boolean orElse) {
     DexType self = this;
     if (other.hierarchyLevel == UNKNOWN_LEVEL) {
       // We have no definition for this class, hence it is not part of the hierarchy.
       return orElse;
     }
     while (other.hierarchyLevel < self.hierarchyLevel) {
-      DexClass holder = appInfo.definitionFor(self);
+      DexClass holder = definitions.definitionFor(self);
       assert holder != null && !holder.isInterface();
       self = holder.superType;
     }

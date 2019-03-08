@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
@@ -75,8 +74,7 @@ public class DebugLocalsChange extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     return false;
   }
 

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -43,18 +44,22 @@ public class SwitchUtils {
   /**
    * Looks for a switch statement over the enum companion class of the form
    *
-   * <blockquote><pre>
+   * <blockquote>
+   *
+   * <pre>
    * switch(CompanionClass.$switchmap$field[enumValue.ordinal()]) {
    *   ...
    * }
-   * </pre></blockquote>
+   * </pre>
    *
-   * and extracts the components and the index and ordinal maps. See
-   * {@link EnumOrdinalMapCollector} and
-   * {@link SwitchMapCollector} for details.
+   * </blockquote>
+   *
+   * and extracts the components and the index and ordinal maps. See {@link EnumOrdinalMapCollector}
+   * and {@link SwitchMapCollector} for details.
    */
-  public static EnumSwitchInfo analyzeSwitchOverEnum(Instruction switchInsn,
-      AppInfoWithLiveness appInfo) {
+  public static EnumSwitchInfo analyzeSwitchOverEnum(
+      Instruction switchInsn, AppView<? extends AppInfoWithLiveness> appView) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
     Instruction input = switchInsn.inValues().get(0).definition;
     if (input == null || !input.isArrayGet()) {
       return null;

@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
@@ -46,15 +47,18 @@ public final class Java8MethodRewriter {
   public static final String UTILITY_CLASS_NAME_PREFIX = "$r8$java8methods$utility";
   private static final String UTILITY_CLASS_DESCRIPTOR_PREFIX = "L$r8$java8methods$utility";
   private final Set<DexType> holders = Sets.newConcurrentHashSet();
+
+  private final AppView<? extends AppInfo> appView;
   private final IRConverter converter;
   private final DexItemFactory factory;
   private final RewritableMethods rewritableMethods;
 
   private Map<DexMethod, MethodGenerator> methodGenerators = new ConcurrentHashMap<>();
 
-  public Java8MethodRewriter(IRConverter converter) {
+  public Java8MethodRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
+    this.appView = appView;
     this.converter = converter;
-    this.factory = converter.appInfo().dexItemFactory;
+    this.factory = appView.dexItemFactory();
     this.rewritableMethods = new RewritableMethods(factory);
   }
 
@@ -99,7 +103,7 @@ public final class Java8MethodRewriter {
       return;
     }
     Set<DexProgramClass> referencingClasses = Sets.newConcurrentHashSet();
-    AppInfo appInfo = converter.appInfo();
+    AppInfo appInfo = appView.appInfo();
     for (DexType holder : holders) {
       DexClass definitionFor = appInfo.definitionFor(holder);
       if (definitionFor == null) {

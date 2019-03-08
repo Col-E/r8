@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexReference;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
@@ -45,8 +44,7 @@ public class GenerateMainDexList {
       DexApplication application =
           new ApplicationReader(app, options, timing).read(executor).toDirect();
       AppView<? extends AppInfoWithSubtyping> appView =
-          new AppView<>(
-              new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
+          AppView.createForR8(new AppInfoWithSubtyping(application), options);
       RootSet mainDexRootSet =
           new RootSetBuilder(appView, application, options.mainDexKeepRules, options).run(executor);
 

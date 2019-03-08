@@ -413,11 +413,9 @@ final class StaticizingProcessor {
               new StaticGet(
                   code.createValue(
                       TypeLatticeElement.fromDexType(
-                          field.type, maybeNull(), classStaticizer.appInfo),
+                          field.type, maybeNull(), classStaticizer.appView.appInfo()),
                       outValue.getLocalInfo()),
-                  field
-              )
-          );
+                  field));
         }
         continue;
       }
@@ -438,11 +436,13 @@ final class StaticizingProcessor {
         if (hostType != null) {
           DexMethod newMethod = factory().createMethod(hostType, method.proto, method.name);
           Value outValue = invoke.outValue();
-          Value newOutValue = method.proto.returnType.isVoidType() ? null
-              : code.createValue(
-                  TypeLatticeElement.fromDexType(
-                      method.proto.returnType, maybeNull(), classStaticizer.appInfo),
-                  outValue == null ? null : outValue.getLocalInfo());
+          Value newOutValue =
+              method.proto.returnType.isVoidType()
+                  ? null
+                  : code.createValue(
+                      TypeLatticeElement.fromDexType(
+                          method.proto.returnType, maybeNull(), classStaticizer.appView.appInfo()),
+                      outValue == null ? null : outValue.getLocalInfo());
           it.replaceCurrentInstruction(
               new InvokeStatic(newMethod, newOutValue, invoke.inValues()));
         }
@@ -490,7 +490,7 @@ final class StaticizingProcessor {
       // Consider moving static members from candidate into host.
       DexType hostType = candidate.hostType();
       if (candidateClass.type != hostType) {
-        DexClass hostClass = classStaticizer.appInfo.definitionFor(hostType);
+        DexClass hostClass = classStaticizer.appView.definitionFor(hostType);
         assert hostClass != null;
         if (!classMembersConflict(candidateClass, hostClass)) {
           // Move all members of the candidate class into host class.

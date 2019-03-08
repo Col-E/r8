@@ -37,7 +37,7 @@ public class ProguardMapApplier {
   private final GraphLense previousLense;
   private final SeedMapper seedMapper;
 
-  public ProguardMapApplier(AppView<AppInfoWithLiveness> appView, SeedMapper seedMapper) {
+  public ProguardMapApplier(AppView<? extends AppInfoWithLiveness> appView, SeedMapper seedMapper) {
     assert appView.graphLense().isContextFreeForMethods();
     this.appInfo = appView.appInfo();
     this.previousLense = appView.graphLense();

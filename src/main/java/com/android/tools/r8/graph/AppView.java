@@ -8,20 +8,38 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.InternalOptions;
 
-public class AppView<T extends AppInfo> {
+public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   private T appInfo;
   private AppServices appServices;
   private final DexItemFactory dexItemFactory;
+  private final boolean enableWholeProgramOptimizations;
   private GraphLense graphLense;
   private final InternalOptions options;
   private VerticallyMergedClasses verticallyMergedClasses;
 
-  public AppView(T appInfo, GraphLense graphLense, InternalOptions options) {
+  private AppView(
+      T appInfo,
+      boolean enableWholeProgramOptimizations,
+      GraphLense graphLense,
+      InternalOptions options) {
     this.appInfo = appInfo;
     this.dexItemFactory = appInfo != null ? appInfo.dexItemFactory : null;
+    this.enableWholeProgramOptimizations = enableWholeProgramOptimizations;
     this.graphLense = graphLense;
     this.options = options;
+  }
+
+  public static <T extends AppInfo> AppView<T> createForD8(T appInfo, InternalOptions options) {
+    boolean enableWholeProgramOptimizations = false;
+    return new AppView<>(
+        appInfo, enableWholeProgramOptimizations, GraphLense.getIdentityLense(), options);
+  }
+
+  public static <T extends AppInfo> AppView<T> createForR8(T appInfo, InternalOptions options) {
+    boolean enableWholeProgramOptimizations = true;
+    return new AppView<>(
+        appInfo, enableWholeProgramOptimizations, GraphLense.getIdentityLense(), options);
   }
 
   public T appInfo() {
@@ -40,14 +58,33 @@ public class AppView<T extends AppInfo> {
     this.appServices = appServices;
   }
 
+  @Override
+  public final DexDefinition definitionFor(DexReference reference) {
+    return appInfo().definitionFor(reference);
+  }
+
+  @Override
+  public final DexEncodedField definitionFor(DexField field) {
+    return appInfo().definitionFor(field);
+  }
+
+  @Override
+  public final DexEncodedMethod definitionFor(DexMethod method) {
+    return appInfo().definitionFor(method);
+  }
+
+  @Override
+  public final DexClass definitionFor(DexType type) {
+    return appInfo().definitionFor(type);
+  }
+
+  @Override
   public DexItemFactory dexItemFactory() {
     return dexItemFactory;
   }
 
-  // TODO(b/114469298): If we at some point replace all occurences of AppInfo with AppView,
-  // then this method should return false when we are running with D8.
   public boolean enableWholeProgramOptimizations() {
-    return true;
+    return enableWholeProgramOptimizations;
   }
 
   public GraphLense graphLense() {
@@ -79,7 +116,7 @@ public class AppView<T extends AppInfo> {
   private class AppViewWithLiveness extends AppView<AppInfoWithLiveness> {
 
     private AppViewWithLiveness() {
-      super(null, null, null);
+      super(null, false, null, null);
     }
 
     @Override
@@ -107,6 +144,11 @@ public class AppView<T extends AppInfo> {
     @Override
     public DexItemFactory dexItemFactory() {
       return AppView.this.dexItemFactory();
+    }
+
+    @Override
+    public boolean enableWholeProgramOptimizations() {
+      return AppView.this.enableWholeProgramOptimizations();
     }
 
     @Override

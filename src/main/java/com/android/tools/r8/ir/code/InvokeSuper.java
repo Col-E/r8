@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeSuperRange;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -115,7 +116,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeSuper(

@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class AppInfo {
+public class AppInfo implements DexDefinitionSupplier {
 
   public final DexApplication app;
   public final DexItemFactory dexItemFactory;
@@ -48,6 +48,11 @@ public class AppInfo {
     this(application);
   }
 
+  @Override
+  public DexItemFactory dexItemFactory() {
+    return dexItemFactory;
+  }
+
   public void addSynthesizedClass(DexProgramClass clazz) {
     assert clazz.type.isD8R8SynthesizedClassType();
     DexProgramClass previous = synthesizedClasses.put(clazz.type, clazz);
@@ -76,6 +81,7 @@ public class AppInfo {
     return app.classesWithDeterministicOrder();
   }
 
+  @Override
   public DexDefinition definitionFor(DexReference reference) {
     if (reference.isDexType()) {
       return definitionFor(reference.asDexType());
@@ -87,6 +93,7 @@ public class AppInfo {
     return definitionFor(reference.asDexField());
   }
 
+  @Override
   public DexClass definitionFor(DexType type) {
     DexProgramClass cached = synthesizedClasses.get(type);
     if (cached != null) {
@@ -101,6 +108,7 @@ public class AppInfo {
     return definition == null ? Origin.unknown() : definition.origin;
   }
 
+  @Override
   public DexEncodedMethod definitionFor(DexMethod method) {
     DexType holderType = method.getHolder();
     DexEncodedMethod cached = (DexEncodedMethod) getDefinitions(holderType).get(method);
@@ -111,6 +119,7 @@ public class AppInfo {
     return cached;
   }
 
+  @Override
   public DexEncodedField definitionFor(DexField field) {
     return (DexEncodedField) getDefinitions(field.getHolder()).get(field);
   }

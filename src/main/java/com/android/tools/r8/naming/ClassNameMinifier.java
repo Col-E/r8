@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 
 class ClassNameMinifier {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final AppInfoWithLiveness appInfo;
   private final ClassNamingStrategy classNamingStrategy;
   private final PackageNamingStrategy packageNamingStrategy;
@@ -62,7 +62,7 @@ class ClassNameMinifier {
   private final Namespace topLevelState;
 
   ClassNameMinifier(
-      AppView<AppInfoWithLiveness> appView,
+      AppView<? extends AppInfoWithLiveness> appView,
       RootSet rootSet,
       ClassNamingStrategy classNamingStrategy,
       PackageNamingStrategy packageNamingStrategy,

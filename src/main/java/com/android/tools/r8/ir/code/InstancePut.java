@@ -15,7 +15,7 @@ import com.android.tools.r8.code.IputShort;
 import com.android.tools.r8.code.IputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -150,7 +150,7 @@ public class InstancePut extends FieldInstruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInstancePut(

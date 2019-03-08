@@ -95,7 +95,7 @@ final class LambdaClass {
         : factory.createField(lambdaClassType, lambdaClassType, rewriter.instanceFieldName);
 
     // We have to register this new class as a subtype of object.
-    rewriter.converter.appInfo().registerNewType(type, factory.objectType);
+    rewriter.converter.appView.appInfo().registerNewType(type, factory.objectType);
   }
 
   // Generate unique lambda class type for lambda descriptor and instantiation point context.
@@ -153,7 +153,7 @@ final class LambdaClass {
             synthesizeVirtualMethods(mainMethod),
             rewriter.factory.getSkipNameValidationForTesting());
     // Optimize main method.
-    rewriter.converter.appInfo().addSynthesizedClass(clazz);
+    rewriter.converter.appView.appInfo().addSynthesizedClass(clazz);
     rewriter.converter.optimizeSynthesizedMethod(clazz.lookupVirtualMethod(mainMethod));
 
     // The method addSynthesizedFrom() may be called concurrently. To avoid a Concurrent-
@@ -348,7 +348,7 @@ final class LambdaClass {
     // If the lambda$ method is an instance-private method on an interface we convert it into a
     // public static method as it will be placed on the companion class.
     if (implHandle.type.isInvokeDirect()
-        && rewriter.converter.appInfo().definitionFor(implMethod.holder).isInterface()) {
+        && rewriter.converter.appView.definitionFor(implMethod.holder).isInterface()) {
       DexProto implProto = implMethod.proto;
       DexType[] implParams = implProto.parameters.values;
       DexType[] newParams = new DexType[implParams.length + 1];
@@ -470,11 +470,11 @@ final class LambdaClass {
     abstract boolean ensureAccessibility();
 
     DexClass definitionFor(DexType type) {
-      return rewriter.converter.appInfo().app.definitionFor(type);
+      return rewriter.converter.appView.appInfo().app.definitionFor(type);
     }
 
     DexProgramClass programDefinitionFor(DexType type) {
-      return rewriter.converter.appInfo().app.programDefinitionFor(type);
+      return rewriter.converter.appView.appInfo().app.programDefinitionFor(type);
     }
   }
 

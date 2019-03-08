@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -25,7 +24,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -505,13 +503,12 @@ public abstract class Instruction implements InstructionOrPhi {
   }
 
   public boolean instructionMayHaveSideEffects(
-      AppInfo appInfo, AppView<? extends AppInfo> appView, DexType context) {
+      AppView<? extends AppInfo> appView, DexType context) {
     return instructionInstanceCanThrow();
   }
 
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     return !instructionInstanceCanThrow();
   }
 
@@ -1260,7 +1257,7 @@ public abstract class Instruction implements InstructionOrPhi {
    */
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return false;

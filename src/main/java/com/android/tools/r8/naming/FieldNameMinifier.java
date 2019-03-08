@@ -20,7 +20,9 @@ import java.util.function.Function;
 class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
 
   FieldNameMinifier(
-      AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
+      AppView<? extends AppInfoWithLiveness> appView,
+      RootSet rootSet,
+      MemberNamingStrategy strategy) {
     super(appView, rootSet, strategy);
   }
 

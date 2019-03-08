@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -53,6 +54,7 @@ public class LambdaRewriter {
   static final String EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
   static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
 
+  private final AppView<? extends AppInfo> appView;
   final IRConverter converter;
   final DexItemFactory factory;
 
@@ -80,10 +82,11 @@ public class LambdaRewriter {
     return clazz.getName().startsWith(LAMBDA_CLASS_NAME_PREFIX);
   }
 
-  public LambdaRewriter(IRConverter converter) {
+  public LambdaRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
     assert converter != null;
+    this.appView = appView;
     this.converter = converter;
-    this.factory = converter.appInfo().dexItemFactory;
+    this.factory = appView.dexItemFactory();
 
     this.constructorName = factory.createString(Constants.INSTANCE_INITIALIZER_NAME);
     DexProto initProto = factory.createProto(factory.voidType);
@@ -135,7 +138,7 @@ public class LambdaRewriter {
         for (int i = 0; i < methodCount; i++) {
           DexEncodedMethod encoded = directMethods.get(i);
           DexMethod method = encoded.method;
-          if (method.isLambdaDeserializeMethod(converter.appInfo().dexItemFactory)) {
+          if (method.isLambdaDeserializeMethod(appView.dexItemFactory())) {
             assert encoded.accessFlags.isStatic();
             assert encoded.accessFlags.isSynthetic();
             clazz.removeDirectMethod(i);
@@ -161,9 +164,9 @@ public class LambdaRewriter {
       // This call may cause methodMapping to be updated.
       lambdaClass.target.ensureAccessibility();
     }
-    if (converter.enableWholeProgramOptimizations && !methodMapping.isEmpty()) {
-      converter.appView.setGraphLense(
-          new LambdaRewriterGraphLense(methodMapping, converter.appView.graphLense(), factory));
+    if (appView.enableWholeProgramOptimizations() && !methodMapping.isEmpty()) {
+      appView.setGraphLense(
+          new LambdaRewriterGraphLense(methodMapping, appView.graphLense(), factory));
     }
   }
 
@@ -179,7 +182,7 @@ public class LambdaRewriter {
   /** Generates lambda classes and adds them to the builder. */
   public void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
-    AppInfo appInfo = converter.appInfo();
+    AppInfo appInfo = appView.appInfo();
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
       DexProgramClass synthesizedClass = lambdaClass.getLambdaClass();
       appInfo.addSynthesizedClass(synthesizedClass);
@@ -210,11 +213,11 @@ public class LambdaRewriter {
     return descriptor != null
         ? descriptor
         : putIfAbsent(
-            knownCallSites, callSite, LambdaDescriptor.infer(callSite, this.converter.appInfo()));
+            knownCallSites, callSite, LambdaDescriptor.infer(callSite, appView.appInfo()));
   }
 
   private boolean isInMainDexList(DexType type) {
-    return converter.appInfo().isInMainDexList(type);
+    return appView.appInfo().isInMainDexList(type);
   }
 
   // Returns a lambda class corresponding to the lambda descriptor and context,
@@ -227,8 +230,7 @@ public class LambdaRewriter {
       lambdaClass = putIfAbsent(knownLambdaClasses, lambdaClassType,
           new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
     }
-    lambdaClass.addSynthesizedFrom(
-        converter.appInfo().definitionFor(accessedFrom).asProgramClass());
+    lambdaClass.addSynthesizedFrom(appView.definitionFor(accessedFrom).asProgramClass());
     if (isInMainDexList(accessedFrom)) {
       lambdaClass.addToMainDexList.set(true);
     }
@@ -272,7 +274,7 @@ public class LambdaRewriter {
       lambdaInstanceValue =
           code.createValue(
               TypeLatticeElement.fromDexType(
-                  lambdaClass.type, Nullability.maybeNull(), converter.appInfo()));
+                  lambdaClass.type, Nullability.maybeNull(), appView.appInfo()));
     }
 
     // For stateless lambdas we replace InvokeCustom instruction with StaticGet
