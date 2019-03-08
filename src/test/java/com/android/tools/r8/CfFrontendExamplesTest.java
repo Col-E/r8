@@ -346,7 +346,7 @@ public class CfFrontendExamplesTest extends TestBase {
       } else {
         expected.append(line);
       }
-      expected.append(StringUtils.LINE_SEPARATOR);
+      expected.append('\n');
     }
     return expected.toString();
   }
