@@ -382,6 +382,10 @@ public class ProguardConfigurationParser {
       } else if (allowTestOptions && acceptString("nevermerge")) {
         ClassMergingRule rule = parseClassMergingRule(ClassMergingRule.Type.NEVER, optionStart);
         configurationBuilder.addRule(rule);
+      } else if (allowTestOptions && acceptString("neverpropagatevalue")) {
+        MemberValuePropagationRule rule =
+            parseMemberValuePropagationRule(MemberValuePropagationRule.Type.NEVER, optionStart);
+        configurationBuilder.addRule(rule);
       } else if (acceptString("useuniqueclassmembernames")) {
         configurationBuilder.setUseUniqueClassMemberNames(true);
       } else if (acceptString("adaptclassstrings")) {
@@ -643,6 +647,18 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       ClassMergingRule.Builder keepRuleBuilder =
           ClassMergingRule.builder().setOrigin(origin).setStart(start).setType(type);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
+    }
+
+    private MemberValuePropagationRule parseMemberValuePropagationRule(
+        MemberValuePropagationRule.Type type, Position start)
+        throws ProguardRuleParserException {
+      MemberValuePropagationRule .Builder keepRuleBuilder =
+          MemberValuePropagationRule.builder().setOrigin(origin).setStart(start).setType(type);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));

@@ -73,6 +73,8 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
     R8TestRunResult result =
         testForR8(backend)
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
+            .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
             .addOptionsModification(o -> o.enableArgumentRemoval = enableArgumentRemoval)
             .noMinification()
             .addKeepRules(

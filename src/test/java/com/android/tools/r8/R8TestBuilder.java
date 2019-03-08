@@ -41,6 +41,7 @@ public class R8TestBuilder
   private boolean enableInliningAnnotations = false;
   private boolean enableClassInliningAnnotations = false;
   private boolean enableMergeAnnotations = false;
+  private boolean enableMemberValuePropagationAnnotations = false;
   private boolean enableConstantArgumentAnnotations = false;
   private boolean enableUnusedArgumentAnnotations = false;
   private boolean enableSideEffectAnnotations = false;
@@ -60,6 +61,7 @@ public class R8TestBuilder
     if (enableInliningAnnotations
         || enableClassInliningAnnotations
         || enableMergeAnnotations
+        || enableMemberValuePropagationAnnotations
         || enableConstantArgumentAnnotations
         || enableUnusedArgumentAnnotations
         || enableSideEffectAnnotations) {
@@ -172,6 +174,15 @@ public class R8TestBuilder
     if (!enableMergeAnnotations) {
       enableMergeAnnotations = true;
       addInternalKeepRules("-nevermerge @com.android.tools.r8.NeverMerge class *");
+    }
+    return self();
+  }
+
+  public R8TestBuilder enableMemberValuePropagationAnnotations() {
+    if (!enableMemberValuePropagationAnnotations) {
+      enableMemberValuePropagationAnnotations = true;
+      addInternalKeepRules(
+          "-neverpropagatevalue class * { @com.android.tools.r8.NeverPropagateValue *; }");
     }
     return self();
   }

@@ -4,13 +4,17 @@
 
 package com.android.tools.r8.accessrelaxation.privatestatic;
 
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
+
 public class A {
   public String foo() {
     return "A::foo()" + baz() + bar() + bar(0);
   }
 
-  // NOTE: here and below 'synchronized' is supposed to disable inlining of this method.
-  private synchronized static String baz() {
+  @NeverInline
+  @NeverPropagateValue
+  private static String baz() {
     return "A::baz()";
   }
 
@@ -18,7 +22,9 @@ public class A {
     return baz();
   }
 
-  private synchronized static String bar() {
+  @NeverInline
+  @NeverPropagateValue
+  private static String bar() {
     return "A::bar()";
   }
 
@@ -26,7 +32,9 @@ public class A {
     return bar();
   }
 
-  private synchronized static String bar(int i) {
+  @NeverInline
+  @NeverPropagateValue
+  private static String bar(int i) {
     return "A::bar(int)";
   }
 
@@ -34,7 +42,9 @@ public class A {
     return bar(1);
   }
 
-  private synchronized static String blah(int i) {
+  @NeverInline
+  @NeverPropagateValue
+  private static String blah(int i) {
     return "A::blah(int)";
   }
 

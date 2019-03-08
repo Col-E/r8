@@ -4,8 +4,13 @@
 
 package com.android.tools.r8.accessrelaxation.privatestatic;
 
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
+
 public class BB extends A {
-  private synchronized static String blah(int i) {
+  @NeverInline
+  @NeverPropagateValue
+  private static String blah(int i) {
     return "BB::blah(int)";
   }
 
