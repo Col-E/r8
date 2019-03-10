@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
@@ -113,7 +112,7 @@ public class NewInstance extends Instruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forNewInstance(

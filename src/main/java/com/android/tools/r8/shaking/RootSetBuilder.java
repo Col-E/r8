@@ -328,7 +328,7 @@ public class RootSetBuilder {
             // -keep rule may vary (due to back references). So, we need to try all pairs of -if
             // rule and live types.
             for (DexType type : liveTypes) {
-              DexClass clazz = appView.appInfo().definitionFor(type);
+              DexClass clazz = appView.definitionFor(type);
               if (clazz == null) {
                 continue;
               }
@@ -343,7 +343,7 @@ public class RootSetBuilder {
                   // `sourceType` is still available until the second round of tree shaking. This
                   // way
                   // we can still retrieve the access flags of `sourceType`.
-                  DexClass sourceClass = appView.appInfo().definitionFor(sourceType);
+                  DexClass sourceClass = appView.definitionFor(sourceType);
                   assert sourceClass != null;
                   evaluateIfRule(ifRule, sourceClass, clazz);
                 }
@@ -740,8 +740,7 @@ public class RootSetBuilder {
         && appView.verticallyMergedClasses().getSourcesFor(clazz.type).stream()
             .filter(
                 sourceType ->
-                    appView.appInfo().definitionFor(sourceType).accessFlags.isInterface()
-                        == isInterface)
+                    appView.definitionFor(sourceType).accessFlags.isInterface() == isInterface)
             .anyMatch(rule.getInheritanceClassName()::matches);
   }
 
@@ -871,7 +870,7 @@ public class RootSetBuilder {
     if (type.isPrimitiveType()) {
       return;
     }
-    DexClass definition = appView.appInfo().definitionFor(type);
+    DexClass definition = appView.definitionFor(type);
     if (definition == null || definition.isLibraryClass()) {
       return;
     }
@@ -916,7 +915,7 @@ public class RootSetBuilder {
         if (options.isInterfaceMethodDesugaringEnabled()
             && encodedMethod.hasCode()
             && (encodedMethod.isPrivateMethod() || encodedMethod.isStaticMember())) {
-          DexClass holder = appView.appInfo().definitionFor(encodedMethod.method.getHolder());
+          DexClass holder = appView.definitionFor(encodedMethod.method.getHolder());
           if (holder != null && holder.isInterface()) {
             if (rule.isSpecific()) {
               options.reporter.warning(

@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -848,17 +847,12 @@ public class Value {
     }
   }
 
-  public boolean isDead(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+  public boolean isDead(AppView<? extends AppInfo> appView, IRCode code) {
     // Totally unused values are trivially dead.
-    return !isUsed() || isDead(appView, appInfo, code, new HashSet<>());
+    return !isUsed() || isDead(appView, code, new HashSet<>());
   }
 
-  protected boolean isDead(
-      AppView<? extends AppInfoWithLiveness> appView,
-      AppInfo appInfo,
-      IRCode code,
-      Set<Value> active) {
+  protected boolean isDead(AppView<? extends AppInfo> appView, IRCode code, Set<Value> active) {
     // Give up when the dependent set of values reach a given threshold (otherwise this fails with
     // a StackOverflowError on Art003_omnibus_opcodesTest).
     if (active.size() > 100) {
@@ -874,18 +868,18 @@ public class Value {
     // currently active values.
     active.add(this);
     for (Instruction instruction : uniqueUsers()) {
-      if (!instruction.canBeDeadCode(appView, appInfo, code)) {
+      if (!instruction.canBeDeadCode(appView, code)) {
         return false;
       }
       Value outValue = instruction.outValue();
       if (outValue != null
           && !active.contains(outValue)
-          && !outValue.isDead(appView, appInfo, code, active)) {
+          && !outValue.isDead(appView, code, active)) {
         return false;
       }
     }
     for (Phi phi : uniquePhiUsers()) {
-      if (!active.contains(phi) && !phi.isDead(appView, appInfo, code, active)) {
+      if (!active.contains(phi) && !phi.isDead(appView, code, active)) {
         return false;
       }
     }

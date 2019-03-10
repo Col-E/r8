@@ -107,7 +107,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeVirtual(
@@ -116,8 +116,8 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppInfo appInfo, AppView<? extends AppInfo> appView, DexType context) {
-    if (appView == null || !appView.enableWholeProgramOptimizations()) {
+      AppView<? extends AppInfo> appView, DexType context) {
+    if (!appView.enableWholeProgramOptimizations()) {
       return true;
     }
 
@@ -140,8 +140,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
-    return !instructionMayHaveSideEffects(appInfo, appView, code.method.method.holder);
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 }

@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.List;
 
 public abstract class JumpInstruction extends Instruction {
@@ -34,8 +33,7 @@ public abstract class JumpInstruction extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     return false;
   }
 

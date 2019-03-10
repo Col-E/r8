@@ -12,7 +12,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -153,21 +152,20 @@ public class CodeRewriter {
   private static final int SELF_RECURSION_LIMIT = 4;
 
   public final IRConverter converter;
-  private final AppInfo appInfo;
+
   private final AppView<? extends AppInfo> appView;
   private final DexItemFactory dexItemFactory;
   private final Set<DexMethod> libraryMethodsReturningReceiver;
   private final InternalOptions options;
 
   public CodeRewriter(
+      AppView<? extends AppInfo> appView,
       IRConverter converter,
-      Set<DexMethod> libraryMethodsReturningReceiver,
-      InternalOptions options) {
+      Set<DexMethod> libraryMethodsReturningReceiver) {
+    this.appView = appView;
     this.converter = converter;
-    this.appInfo = converter.appInfo();
-    this.appView = converter.appView;
-    this.options = options;
-    this.dexItemFactory = appInfo.dexItemFactory;
+    this.options = appView.options();
+    this.dexItemFactory = appView.dexItemFactory();
     this.libraryMethodsReturningReceiver = libraryMethodsReturningReceiver;
   }
 
@@ -884,8 +882,8 @@ public class CodeRewriter {
         // Pattern match a switch on a switch map as input.
         if (insn.isSwitch()) {
           Switch switchInsn = insn.asSwitch();
-          EnumSwitchInfo info = SwitchUtils
-              .analyzeSwitchOverEnum(switchInsn, appInfo.withLiveness());
+          EnumSwitchInfo info =
+              SwitchUtils.analyzeSwitchOverEnum(switchInsn, appView.withLiveness());
           if (info != null) {
             Int2IntMap targetMap = new Int2IntArrayMap();
             IntList keys = new IntArrayList(switchInsn.numberOfKeys());
@@ -1018,7 +1016,7 @@ public class CodeRewriter {
   public void identifyInvokeSemanticsForInlining(
       DexEncodedMethod method,
       IRCode code,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfo> appView,
       OptimizationFeedback feedback) {
     if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
@@ -1058,7 +1056,7 @@ public class CodeRewriter {
       return;
     }
 
-    DexClass clazz = appInfo.definitionFor(method.method.holder);
+    DexClass clazz = appView.definitionFor(method.method.holder);
     if (clazz == null) {
       return;
     }
@@ -1129,6 +1127,7 @@ public class CodeRewriter {
       return;
     }
 
+    AppInfo appInfo = appView.appInfo();
     DexClass clazz = appInfo.definitionFor(method.method.holder);
     if (clazz == null) {
       return;
@@ -1364,7 +1363,7 @@ public class CodeRewriter {
    * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
   public static boolean checksNullBeforeSideEffect(
-      IRCode code, Value value, AppView<? extends AppInfoWithSubtyping> appView) {
+      IRCode code, Value value, AppView<? extends AppInfo> appView) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instr, it) -> {
@@ -1412,8 +1411,7 @@ public class CodeRewriter {
               // We found a NPE check on the value.
               return InstructionEffect.DESIRED_EFFECT;
             }
-          } else if (instr.instructionMayHaveSideEffects(
-              appView.appInfo(), appView, code.method.method.holder)) {
+          } else if (instr.instructionMayHaveSideEffects(appView, code.method.method.holder)) {
             // If the current instruction is const-string, this could load the parameter name.
             // Just make sure it is indeed not throwing.
             if (instr.isConstString() && !instr.instructionInstanceCanThrow()) {
@@ -1430,7 +1428,7 @@ public class CodeRewriter {
   // declare a method called checkParameterIsNotNull(parameter, message) or
   // throwParameterIsNullException(parameterName) in a package that starts with "kotlin".
   private static boolean isKotlinNullCheck(
-      Instruction instr, Value value, AppView<? extends AppInfoWithSubtyping> appView) {
+      Instruction instr, Value value, AppView<? extends AppInfo> appView) {
     if (!instr.isInvokeStatic()) {
       return false;
     }
@@ -1485,7 +1483,7 @@ public class CodeRewriter {
    * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
   private static boolean triggersClassInitializationBeforeSideEffect(
-      DexType clazz, IRCode code, AppView<? extends AppInfoWithSubtyping> appView) {
+      DexType clazz, IRCode code, AppView<? extends AppInfo> appView) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instruction, it) -> {
@@ -1500,7 +1498,7 @@ public class CodeRewriter {
               // We found an instruction that preserves initialization of the class.
               return InstructionEffect.DESIRED_EFFECT;
             }
-          } else if (instruction.instructionMayHaveSideEffects(appView.appInfo(), appView, clazz)) {
+          } else if (instruction.instructionMayHaveSideEffects(appView, clazz)) {
             // We found a side effect before class initialization.
             return InstructionEffect.OTHER_EFFECT;
           }
@@ -1581,17 +1579,16 @@ public class CodeRewriter {
 
   private boolean checkArgumentType(InvokeMethod invoke, int argumentIndex) {
     // TODO(sgjesse): Insert cast if required.
+    AppInfo appInfo = appView.appInfo();
     TypeLatticeElement returnType =
         TypeLatticeElement.fromDexType(
             invoke.getInvokedMethod().proto.returnType, maybeNull(), appInfo);
     TypeLatticeElement argumentType =
         TypeLatticeElement.fromDexType(
             getArgumentType(invoke, argumentIndex), maybeNull(), appInfo);
-    if (appView != null && appView.enableWholeProgramOptimizations()) {
-      return argumentType.lessThanOrEqual(returnType, appInfo);
-    } else {
-      return argumentType.equals(returnType);
-    }
+    return appView.enableWholeProgramOptimizations()
+        ? argumentType.lessThanOrEqual(returnType, appInfo)
+        : argumentType.equals(returnType);
   }
 
   private DexType getArgumentType(InvokeMethod invoke, int argumentIndex) {
@@ -1609,6 +1606,7 @@ public class CodeRewriter {
     if (options.isGeneratingClassFiles()) {
       return;
     }
+    AppInfo appInfo = appView.appInfo();
     AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
     Set<Value> needToWidenValues = Sets.newIdentityHashSet();
     Set<Value> needToNarrowValues = Sets.newIdentityHashSet();
@@ -1877,6 +1875,7 @@ public class CodeRewriter {
   // Returns true if the given check-cast instruction was removed.
   private boolean removeCheckCastInstructionIfTrivial(
       CheckCast checkCast, InstructionIterator it, IRCode code) {
+    AppInfo appInfo = appView.appInfo();
     Value inValue = checkCast.object();
     Value outValue = checkCast.outValue();
     DexType castType = checkCast.getType();
@@ -1901,7 +1900,7 @@ public class CodeRewriter {
     // We might see chains of casts on subtypes. It suffices to cast to the lowest subtype,
     // as that will fail if a cast on a supertype would have failed.
     Predicate<Instruction> isCheckcastToSubtype =
-        user -> user.isCheckCast() && user.asCheckCast().getType().isSubtypeOf(castType, appInfo);
+        user -> user.isCheckCast() && user.asCheckCast().getType().isSubtypeOf(castType, appView);
     if (!checkCast.getBlock().hasCatchHandlers()
         && outValue.isUsed()
         && outValue.numberOfPhiUsers() == 0
@@ -1941,6 +1940,7 @@ public class CodeRewriter {
   }
 
   private boolean isTypeInaccessibleInCurrentContext(DexType type, DexEncodedMethod context) {
+    AppInfo appInfo = appView.appInfo();
     DexType baseType = type.toBaseType(appInfo.dexItemFactory);
     if (baseType.isPrimitiveType()) {
       return false;
@@ -1965,6 +1965,7 @@ public class CodeRewriter {
       return false;
     }
 
+    AppInfo appInfo = appView.appInfo();
     Value inValue = instanceOf.value();
     TypeLatticeElement inType = inValue.getTypeLattice();
     TypeLatticeElement instanceOfType =
@@ -2013,6 +2014,7 @@ public class CodeRewriter {
   }
 
   private boolean isNeverInstantiatedDirectlyOrIndirectly(DexType type) {
+    AppInfo appInfo = appView.appInfo();
     assert appInfo.hasLiveness();
     assert type.isClassType();
     DexClass clazz = appInfo.definitionFor(type);
@@ -2929,7 +2931,7 @@ public class CodeRewriter {
     }
     Set<Value> affectedValues = code.removeUnreachableBlocks();
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView.appInfo(), code.method).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }
@@ -3130,7 +3132,7 @@ public class CodeRewriter {
       }
 
       if (dominatorTree.get().dominatedBy(block, dominator)) {
-        if (newValue.getTypeLattice().lessThanOrEqual(value.getTypeLattice(), appInfo)) {
+        if (newValue.getTypeLattice().lessThanOrEqual(value.getTypeLattice(), appView.appInfo())) {
           value.replaceUsers(newValue);
           block.listIterator(constNumber).removeOrReplaceByDebugLocalRead();
           constantWithValueIterator.remove();
@@ -3154,7 +3156,7 @@ public class CodeRewriter {
   // null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
   public void processMethodsNeverReturningNormally(IRCode code) {
-    AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
+    AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
     if (appInfoWithLiveness == null) {
       return;
     }
@@ -3623,7 +3625,7 @@ public class CodeRewriter {
       if (type == dexItemFactory.throwableType) {
         return true;
       }
-      DexClass dexClass = appInfo.definitionFor(type);
+      DexClass dexClass = appView.definitionFor(type);
       if (dexClass == null) {
         throw new CompilationError("Class or interface " + type.toSourceString() +
             " required for desugaring of try-with-resources is not found.");
@@ -3635,7 +3637,7 @@ public class CodeRewriter {
 
   private Value addConstString(IRCode code, InstructionListIterator iterator, String s) {
     TypeLatticeElement typeLattice =
-        TypeLatticeElement.stringClassType(appInfo, definitelyNotNull());
+        TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull());
     Value value = code.createValue(typeLattice);
     ThrowingInfo throwingInfo =
         options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
@@ -3667,8 +3669,10 @@ public class CodeRewriter {
     assert !block.hasCatchHandlers();
     DexType javaLangSystemType = dexItemFactory.createType("Ljava/lang/System;");
     DexType javaIoPrintStreamType = dexItemFactory.createType("Ljava/io/PrintStream;");
-    Value out = code.createValue(
-        TypeLatticeElement.fromDexType(javaIoPrintStreamType, definitelyNotNull(), appInfo));
+    Value out =
+        code.createValue(
+            TypeLatticeElement.fromDexType(
+                javaIoPrintStreamType, definitelyNotNull(), appView.appInfo()));
 
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     DexMethod print = dexItemFactory.createMethod(javaIoPrintStreamType, proto, "print");
@@ -3733,7 +3737,9 @@ public class CodeRewriter {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, nul)));
         iterator = isNotNullBlock.listIterator();
         iterator.setInsertionPosition(position);
-        value = code.createValue(TypeLatticeElement.classClassType(appInfo, definitelyNotNull()));
+        value =
+            code.createValue(
+                TypeLatticeElement.classClassType(appView.appInfo(), definitelyNotNull()));
         iterator.add(new InvokeVirtual(dexItemFactory.objectMethods.getClass, value,
             ImmutableList.of(arguments.get(i))));
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));

@@ -150,7 +150,7 @@ public class CallGraph extends CallSiteInformation {
 
   public static CallGraph build(
       DexApplication application,
-      AppView<AppInfoWithLiveness> appView,
+      AppView<? extends AppInfoWithLiveness> appView,
       InternalOptions options,
       Timing timing) {
     CallGraph graph = new CallGraph(options);
@@ -488,7 +488,7 @@ public class CallGraph extends CallSiteInformation {
     private final Node caller;
     private final CallGraph graph;
 
-    InvokeExtractor(AppView<AppInfoWithLiveness> appView, Node caller, CallGraph graph) {
+    InvokeExtractor(AppView<? extends AppInfoWithLiveness> appView, Node caller, CallGraph graph) {
       super(appView.dexItemFactory());
       this.appInfo = appView.appInfo();
       this.graphLense = appView.graphLense();

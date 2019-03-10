@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 
 public class DebugPosition extends Instruction {
 
@@ -59,8 +58,7 @@ public class DebugPosition extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     return false;
   }
 

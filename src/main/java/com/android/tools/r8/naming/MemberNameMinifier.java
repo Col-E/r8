@@ -22,7 +22,7 @@ import java.util.function.Function;
 
 abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueDexItem> {
 
-  protected final AppView<AppInfoWithLiveness> appView;
+  protected final AppView<? extends AppInfoWithLiveness> appView;
   protected final AppInfoWithLiveness appInfo;
   protected final RootSet rootSet;
   protected final InternalOptions options;
@@ -41,7 +41,9 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   private final BiMap<DexType, NamingState<StateType, ?>> states = HashBiMap.create();
 
   MemberNameMinifier(
-      AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
+      AppView<? extends AppInfoWithLiveness> appView,
+      RootSet rootSet,
+      MemberNamingStrategy strategy) {
     this.appView = appView;
     this.appInfo = appView.appInfo();
     this.rootSet = rootSet;

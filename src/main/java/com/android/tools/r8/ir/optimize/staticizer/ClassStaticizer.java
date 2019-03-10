@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -43,7 +45,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
 public final class ClassStaticizer {
-  final AppInfoWithLiveness appInfo;
+
+  final AppView<? extends AppInfoWithLiveness> appView;
   final DexItemFactory factory;
   final IRConverter converter;
 
@@ -86,7 +89,7 @@ public final class ClassStaticizer {
     }
 
     DexClass hostClass() {
-      DexClass hostClass = appInfo.definitionFor(hostType());
+      DexClass hostClass = appView.definitionFor(hostType());
       assert hostClass != null;
       return hostClass;
     }
@@ -100,9 +103,9 @@ public final class ClassStaticizer {
   // The map storing all the potential candidates for staticizing.
   final ConcurrentHashMap<DexType, CandidateInfo> candidates = new ConcurrentHashMap<>();
 
-  public ClassStaticizer(AppInfoWithLiveness appInfo, IRConverter converter) {
-    this.appInfo = appInfo;
-    this.factory = appInfo.dexItemFactory;
+  public ClassStaticizer(AppView<? extends AppInfoWithLiveness> appView, IRConverter converter) {
+    this.appView = appView;
+    this.factory = appView.dexItemFactory();
     this.converter = converter;
   }
 
@@ -178,6 +181,7 @@ public final class ClassStaticizer {
   }
 
   private boolean isPinned(DexClass clazz, DexEncodedField singletonField) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
     if (appInfo.isPinned(clazz.type) || appInfo.isPinned(singletonField.field)) {
       return true;
     }
@@ -423,7 +427,8 @@ public final class ClassStaticizer {
 
     // Check constructor.
     InvokeDirect invoke = instruction.asInvokeDirect();
-    DexEncodedMethod methodInvoked = appInfo.lookupDirectTarget(invoke.getInvokedMethod());
+    DexEncodedMethod methodInvoked =
+        appView.appInfo().lookupDirectTarget(invoke.getInvokedMethod());
     List<Value> values = invoke.inValues();
 
     if (values.lastIndexOf(candidateValue) != 0 ||
@@ -450,7 +455,7 @@ public final class ClassStaticizer {
     // Allow single assignment to a singleton field.
     StaticPut staticPut = instruction.asStaticPut();
     DexEncodedField fieldAccessed =
-        appInfo.lookupStaticTarget(staticPut.getField().clazz, staticPut.getField());
+        appView.appInfo().lookupStaticTarget(staticPut.getField().clazz, staticPut.getField());
     return fieldAccessed == info.singletonField;
   }
 
@@ -465,7 +470,7 @@ public final class ClassStaticizer {
       return null;
     }
 
-    assert candidateInfo.singletonField == appInfo.lookupStaticTarget(field.clazz, field)
+    assert candidateInfo.singletonField == appView.appInfo().lookupStaticTarget(field.clazz, field)
         : "Added reference after collectCandidates(...)?";
 
     Value singletonValue = staticGet.dest();
@@ -499,6 +504,7 @@ public final class ClassStaticizer {
           }
           return candidateInfo.invalidate();
         }
+        AppInfo appInfo = appView.appInfo();
         DexEncodedMethod methodInvoked = user.isInvokeDirect()
             ? appInfo.lookupDirectTarget(methodReferenced)
             : appInfo.lookupVirtualTarget(methodReferenced.holder, methodReferenced);

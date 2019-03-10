@@ -53,7 +53,7 @@ public class TopDownClassHierarchyTraversal {
 
     // Add super classes to worklist.
     if (clazz.superType != null) {
-      DexClass definition = appView.appInfo().definitionFor(clazz.superType);
+      DexClass definition = appView.definitionFor(clazz.superType);
       if (definition != null && definition.isProgramClass()) {
         addAncestorsToWorklist(definition.asProgramClass(), worklist, visited, appView);
       }
@@ -61,7 +61,7 @@ public class TopDownClassHierarchyTraversal {
 
     // Add super interfaces to worklist.
     for (DexType interfaceType : clazz.interfaces.values) {
-      DexClass definition = appView.appInfo().definitionFor(interfaceType);
+      DexClass definition = appView.definitionFor(interfaceType);
       if (definition != null && definition.isProgramClass()) {
         addAncestorsToWorklist(definition.asProgramClass(), worklist, visited, appView);
       }

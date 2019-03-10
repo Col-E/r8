@@ -113,7 +113,7 @@ public class Devirtualizer {
           continue;
         }
         DexType holderType = target.method.getHolder();
-        DexClass holderClass = appView.appInfo().definitionFor(holderType);
+        DexClass holderClass = appView.definitionFor(holderType);
         // Make sure we are not landing on another interface, e.g., interface's default method.
         if (holderClass == null || holderClass.isInterface()) {
           continue;

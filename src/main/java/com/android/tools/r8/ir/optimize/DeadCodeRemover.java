@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -25,27 +24,12 @@ import java.util.Queue;
 
 public class DeadCodeRemover {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
-  private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
   private final CodeRewriter codeRewriter;
-  private final InternalOptions options;
-  private final boolean enableWholeProgramOptimizations;
 
-  public DeadCodeRemover(
-      AppView<? extends AppInfoWithLiveness> appView,
-      AppInfo appInfo,
-      CodeRewriter codeRewriter,
-      InternalOptions options) {
+  public DeadCodeRemover(AppView<? extends AppInfo> appView, CodeRewriter codeRewriter) {
     this.appView = appView;
-    this.appInfo = appInfo;
     this.codeRewriter = codeRewriter;
-    this.options = options;
-    this.enableWholeProgramOptimizations =
-        appView != null && appView.enableWholeProgramOptimizations();
-  }
-
-  public AppInfo appInfo() {
-    return appView != null ? appView.appInfo() : appInfo;
   }
 
   public void run(IRCode code) {
@@ -92,7 +76,7 @@ public class DeadCodeRemover {
     Iterator<Phi> phiIt = block.getPhis().iterator();
     while (phiIt.hasNext()) {
       Phi phi = phiIt.next();
-      if (phi.isDead(appView, appInfo(), code)) {
+      if (phi.isDead(appView, code)) {
         phiIt.remove();
         for (Value operand : phi.getOperands()) {
           operand.removePhiUser(phi);
@@ -112,11 +96,11 @@ public class DeadCodeRemover {
           && !current.outValue().isUsed()) {
         current.setOutValue(null);
       }
-      if (!current.canBeDeadCode(appView, appInfo(), code)) {
+      if (!current.canBeDeadCode(appView, code)) {
         continue;
       }
       Value outValue = current.outValue();
-      if (outValue != null && !outValue.isDead(appView, appInfo(), code)) {
+      if (outValue != null && !outValue.isDead(appView, code)) {
         continue;
       }
       updateWorklist(worklist, current);
@@ -134,7 +118,7 @@ public class DeadCodeRemover {
     for (BasicBlock block : code.blocks) {
       if (block.hasCatchHandlers()) {
         if (block.canThrow()) {
-          if (enableWholeProgramOptimizations) {
+          if (appView.enableWholeProgramOptimizations()) {
             Collection<CatchHandler<BasicBlock>> deadCatchHandlers = getDeadCatchHandlers(block);
             if (!deadCatchHandlers.isEmpty()) {
               for (CatchHandler<BasicBlock> catchHandler : deadCatchHandlers) {
@@ -163,7 +147,7 @@ public class DeadCodeRemover {
    * Returns the catch handlers of the given block that are dead, if any.
    */
   private Collection<CatchHandler<BasicBlock>> getDeadCatchHandlers(BasicBlock block) {
-    AppInfoWithLiveness appInfoWithLiveness = appInfo().withLiveness();
+    AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
     ImmutableList.Builder<CatchHandler<BasicBlock>> builder = ImmutableList.builder();
     CatchHandlers<BasicBlock> catchHandlers = block.getCatchHandlers();
     for (int i = 0; i < catchHandlers.size(); ++i) {
@@ -175,7 +159,7 @@ public class DeadCodeRemover {
       boolean isSubsumedByPreviousGuard = false;
       for (int j = 0; j < i; ++j) {
         DexType previousGuard = catchHandlers.getGuards().get(j);
-        if (guard.isSubtypeOf(previousGuard, appInfo())) {
+        if (guard.isSubtypeOf(previousGuard, appView)) {
           isSubsumedByPreviousGuard = true;
           break;
         }
@@ -187,8 +171,8 @@ public class DeadCodeRemover {
 
       // We can exploit that a catch handler must be dead if its guard is never instantiated
       // directly or indirectly.
-      if (appInfoWithLiveness != null && options.enableUninstantiatedTypeOptimization) {
-        DexClass clazz = appInfo().definitionFor(guard);
+      if (appInfoWithLiveness != null && appView.options().enableUninstantiatedTypeOptimization) {
+        DexClass clazz = appView.definitionFor(guard);
         if (clazz != null
             && clazz.isProgramClass()
             && !appInfoWithLiveness.isInstantiatedDirectlyOrIndirectly(guard)) {

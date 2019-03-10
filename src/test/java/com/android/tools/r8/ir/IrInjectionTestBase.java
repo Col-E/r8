@@ -6,6 +6,7 @@ package com.android.tools.r8.ir;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -131,11 +132,10 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
     public String run() throws IOException {
       AppInfo appInfo = new AppInfo(application);
-      IRConverter converter = new IRConverter(appInfo, options);
+      IRConverter converter = new IRConverter(AppView.createForD8(appInfo, options));
       converter.replaceCodeForTesting(method, code);
       AndroidApp app = writeDex(application, options);
       return runOnArtRaw(app, DEFAULT_MAIN_CLASS_NAME).stdout;
     }
   }
-
 }

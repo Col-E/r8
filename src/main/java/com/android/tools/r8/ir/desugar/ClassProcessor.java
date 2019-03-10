@@ -5,8 +5,11 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -26,13 +29,17 @@ import java.util.Set;
 // Adds default interface methods into the class when needed.
 final class ClassProcessor {
 
+  private final AppView<? extends AppInfo> appView;
+  private final DexItemFactory dexItemFactory;
   private final InterfaceMethodRewriter rewriter;
   // Set of already processed classes.
   private final Set<DexClass> processedClasses = Sets.newIdentityHashSet();
   // Maps already created methods into default methods they were generated based on.
   private final Map<DexEncodedMethod, DexEncodedMethod> createdMethods = new IdentityHashMap<>();
 
-  ClassProcessor(InterfaceMethodRewriter rewriter) {
+  ClassProcessor(AppView<? extends AppInfo> appView, InterfaceMethodRewriter rewriter) {
+    this.appView = appView;
+    this.dexItemFactory = appView.dexItemFactory();
     this.rewriter = rewriter;
   }
 
@@ -60,8 +67,8 @@ final class ClassProcessor {
     DexType superType = clazz.superType;
     // If superClass definition is missing, just skip this part and let real processing of its
     // subclasses report the error if it is required.
-    DexClass superClass = superType == null ? null : rewriter.appInfo().definitionFor(superType);
-    if (superClass != null && superType != rewriter.factory.objectType) {
+    DexClass superClass = superType == null ? null : appView.definitionFor(superType);
+    if (superClass != null && superType != dexItemFactory.objectType) {
       if (superClass.isInterface()) {
         throw new CompilationError("Interface `" + superClass.toSourceString()
             + "` used as super class of `" + clazz.toSourceString() + "`.");
@@ -96,13 +103,13 @@ final class ClassProcessor {
 
   private DexEncodedMethod addForwardingMethod(DexEncodedMethod defaultMethod, DexClass clazz) {
     DexMethod method = defaultMethod.method;
-    DexClass target = rewriter.appInfo().definitionFor(method.holder);
+    DexClass target = appView.definitionFor(method.holder);
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
     assert target != null && !target.isLibraryClass();
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
-    DexMethod newMethod = rewriter.factory.createMethod(clazz.type, method.proto, method.name);
+    DexMethod newMethod = dexItemFactory.createMethod(clazz.type, method.proto, method.name);
     MethodAccessFlags newFlags = defaultMethod.accessFlags.copy();
     // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
     newFlags.setSynthetic();
@@ -140,7 +147,7 @@ final class ClassProcessor {
     // methods is supposed to fail with a compilation error.
     // Note that this last assumption will be broken if Object API is augmented with a new method in
     // the future.
-    while (current.type != rewriter.factory.objectType) {
+    while (current.type != dexItemFactory.objectType) {
       for (DexType type : current.interfaces.values) {
         helper.merge(rewriter.getOrCreateInterfaceInfo(clazz, current, type));
       }
@@ -168,7 +175,7 @@ final class ClassProcessor {
       if (current.superType == null) {
         break;
       } else {
-        DexClass superClass = rewriter.appInfo().definitionFor(current.superType);
+        DexClass superClass = appView.definitionFor(current.superType);
         if (superClass != null) {
           current = superClass;
         } else {
@@ -206,11 +213,11 @@ final class ClassProcessor {
       DexType superType = current.superType;
       DexClass superClass = null;
       if (superType != null) {
-        superClass = rewriter.appInfo().definitionFor(superType);
+        superClass = appView.definitionFor(superType);
         // It's available or we would have failed while analyzing the hierarchy for interfaces.
         assert superClass != null;
       }
-      if (superClass == null || superType == rewriter.factory.objectType) {
+      if (superClass == null || superType == dexItemFactory.objectType) {
         // Note that default interface methods must never have same
         // name/signature as any method in java.lang.Object (JLS §9.4.1.2).
 

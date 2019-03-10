@@ -268,8 +268,7 @@ public class R8 {
       inputApp.closeInternalArchiveProviders();
 
       AppView<AppInfoWithSubtyping> appView =
-          new AppView<>(
-              new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
+          AppView.createForR8(new AppInfoWithSubtyping(application), options);
       appView.setAppServices(AppServices.builder(appView).build());
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
@@ -420,7 +419,7 @@ public class R8 {
 
       if (appView.appInfo().hasLiveness()) {
         AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-        appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness, options).run());
+        appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
         if (options.enableHorizontalClassMerging) {
           StaticClassMerger staticClassMerger =
               new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);
@@ -477,9 +476,8 @@ public class R8 {
         }
 
         // Collect switch maps and ordinals maps.
-        appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness, options).run());
-        appViewWithLiveness.setAppInfo(
-            new EnumOrdinalMapCollector(appViewWithLiveness, options).run());
+        appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
+        appViewWithLiveness.setAppInfo(new EnumOrdinalMapCollector(appViewWithLiveness).run());
       }
 
       appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLense()));
@@ -488,9 +486,7 @@ public class R8 {
       Set<DexCallSite> desugaredCallSites;
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
-        IRConverter converter =
-            new IRConverter(
-                appView.withLiveness(), options, timing, printer, mainDexClasses, rootSet);
+        IRConverter converter = new IRConverter(appView, timing, printer, mainDexClasses, rootSet);
         application = converter.optimize(application, executorService);
         desugaredCallSites = converter.getDesugaredCallSites();
       } finally {

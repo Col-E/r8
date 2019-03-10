@@ -49,7 +49,6 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -92,28 +91,17 @@ public class ClassInitializerDefaultsOptimization {
     }
   }
 
-  private final AppInfo appInfo;
   private final AppView<? extends AppInfo> appView;
   private final IRConverter converter;
   private final DexItemFactory dexItemFactory;
-  private final InternalOptions options;
 
   private WaveDoneAction waveDoneAction = null;
 
   public ClassInitializerDefaultsOptimization(
-      AppInfo appInfo,
-      AppView<? extends AppInfo> appView,
-      IRConverter converter,
-      InternalOptions options) {
-    this.appInfo = appInfo;
+      AppView<? extends AppInfo> appView, IRConverter converter) {
     this.appView = appView;
     this.converter = converter;
-    this.dexItemFactory = appInfo.dexItemFactory;
-    this.options = options;
-  }
-
-  public AppInfo appInfo() {
-    return appView != null ? appView.appInfo() : appInfo;
+    this.dexItemFactory = appView.dexItemFactory();
   }
 
   public void optimize(DexEncodedMethod method, IRCode code) {
@@ -121,7 +109,7 @@ public class ClassInitializerDefaultsOptimization {
       return;
     }
 
-    DexClass clazz = appInfo().definitionFor(method.method.holder);
+    DexClass clazz = appView.definitionFor(method.method.holder);
     if (clazz == null) {
       return;
     }
@@ -142,7 +130,7 @@ public class ClassInitializerDefaultsOptimization {
 
     // Set initial values for static fields from the definitive static put instructions collected.
     for (StaticPut put : finalFieldPuts) {
-      DexEncodedField field = appInfo().resolveField(put.getField());
+      DexEncodedField field = appView.appInfo().resolveField(put.getField());
       DexType fieldType = field.field.type;
       Value inValue = put.inValue();
       if (fieldType == dexItemFactory.stringType) {
@@ -216,14 +204,14 @@ public class ClassInitializerDefaultsOptimization {
     // that the field is no longer written.
     if (appView != null && appView.enableWholeProgramOptimizations() && converter.isInWave()) {
       if (appView.appInfo().hasLiveness()) {
-        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+        AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
         AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
 
         // First collect all the candidate fields that are *potentially* no longer being written to.
         Set<DexField> candidates =
             finalFieldPuts.stream()
                 .map(FieldInstruction::getField)
-                .map(field -> appInfo().resolveField(field).field)
+                .map(field -> appInfoWithLiveness.resolveField(field).field)
                 .filter(appInfoWithLiveness::isStaticFieldWrittenOnlyInEnclosingStaticInitializer)
                 .collect(Collectors.toSet());
 
@@ -286,13 +274,13 @@ public class ClassInitializerDefaultsOptimization {
   }
 
   private DexValue getDexStringValueForInvoke(DexMethod invokedMethod, DexType holder) {
-    DexClass clazz = appInfo().definitionFor(holder);
+    DexClass clazz = appView.definitionFor(holder);
     if (clazz == null) {
       assert false;
       return null;
     }
 
-    if (options.enableMinification && !converter.rootSet.noObfuscation.contains(holder)) {
+    if (appView.options().enableMinification && !converter.rootSet.noObfuscation.contains(holder)) {
       if (invokedMethod == dexItemFactory.classMethods.getName) {
         return new DexItemBasedValueString(holder, new ClassNameComputationInfo(NAME));
       }
@@ -341,10 +329,10 @@ public class ClassInitializerDefaultsOptimization {
           Instruction instruction = it.next();
           if (instruction.isStaticGet()) {
             StaticGet get = instruction.asStaticGet();
-            DexEncodedField field = appInfo().resolveField(get.getField());
+            DexEncodedField field = appView.appInfo().resolveField(get.getField());
             if (field != null && field.field.clazz == clazz.type) {
               isReadBefore.add(field.field);
-            } else if (instruction.instructionMayHaveSideEffects(appInfo(), appView, clazz.type)) {
+            } else if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {
               // Reading another field is only OK if the read does not have side-effects.
               return finalFieldPut.values();
             }
@@ -384,7 +372,7 @@ public class ClassInitializerDefaultsOptimization {
               // Writing another field is not OK.
               return finalFieldPut.values();
             }
-          } else if (instruction.instructionMayHaveSideEffects(appInfo(), appView, clazz.type)) {
+          } else if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {
             // Some other instruction that has side-effects. Stop here.
             return finalFieldPut.values();
           } else {

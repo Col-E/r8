@@ -7,7 +7,6 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder;
@@ -84,8 +83,7 @@ public class PrintSeeds {
       DexApplication application =
           new ApplicationReader(command.getInputApp(), options, timing).read(executor).toDirect();
       AppView<? extends AppInfoWithSubtyping> appView =
-          new AppView<>(
-              new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
+          AppView.createForR8(new AppInfoWithSubtyping(application), options);
       RootSet rootSet =
           new RootSetBuilder(
                   appView, application, options.getProguardConfiguration().getRules(), options)

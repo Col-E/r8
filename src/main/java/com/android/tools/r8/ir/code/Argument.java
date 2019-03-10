@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 
 /**
  * Argument pseudo instruction used to introduce values for all arguments for SSA conversion.
@@ -28,8 +27,7 @@ public class Argument extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appview, AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appview, IRCode code) {
     // Never remove argument instructions. That would change the signature of the method.
     // TODO(b/65810338): If we can tell that a method never uses an argument we might be able to
     // rewrite the signature and call-sites.

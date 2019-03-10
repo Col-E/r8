@@ -9,7 +9,6 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
@@ -31,9 +30,8 @@ public abstract class NonNullTrackerTestBase extends TestBase {
     AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(mainClass));
     DexApplication dexApplication =
         new ApplicationReader(app, TEST_OPTIONS, timing).read().toDirect();
-    AppView<AppInfoWithSubtyping> appView =
-        new AppView<>(
-            new AppInfoWithSubtyping(dexApplication), GraphLense.getIdentityLense(), TEST_OPTIONS);
+    AppView<? extends AppInfoWithSubtyping> appView =
+        AppView.createForR8(new AppInfoWithSubtyping(dexApplication), TEST_OPTIONS);
     ExecutorService executorService = ThreadUtils.getExecutorService(TEST_OPTIONS);
     RootSet rootSet =
         new RootSetBuilder(

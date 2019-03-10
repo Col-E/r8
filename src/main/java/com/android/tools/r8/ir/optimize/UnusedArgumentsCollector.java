@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 
 public class UnusedArgumentsCollector {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithLiveness> appView;
 
   private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
   private final Map<DexMethod, RemovedArgumentsInfo> removedArguments = new IdentityHashMap<>();
@@ -81,7 +81,7 @@ public class UnusedArgumentsCollector {
     }
   }
 
-  public UnusedArgumentsCollector(AppView<AppInfoWithLiveness> appView) {
+  public UnusedArgumentsCollector(AppView<? extends AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 

@@ -51,14 +51,13 @@ import java.util.Set;
 // Also moves static interface methods into a companion class.
 final class InterfaceProcessor {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfo> appView;
   private final InterfaceMethodRewriter rewriter;
 
   // All created companion and dispatch classes indexed by interface type.
   final Map<DexType, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
 
-  InterfaceProcessor(
-      AppView<? extends AppInfoWithLiveness> appView, InterfaceMethodRewriter rewriter) {
+  InterfaceProcessor(AppView<? extends AppInfo> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.rewriter = rewriter;
   }
@@ -308,11 +307,12 @@ final class InterfaceProcessor {
   // methods. Bridge methods that does not override an implementation in a super-interface must
   // also be kept (such a situation can happen if the vertical class merger merges two interfaces).
   private boolean interfaceMethodRemovalChangesApi(DexEncodedMethod method, DexClass iface) {
-    if (appView != null && appView.appInfo().isPinned(method.method)) {
-      return true;
+    if (appView.enableWholeProgramOptimizations()) {
+      AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
+      if (appInfoWithLiveness.isPinned(method.method)) {
+        return true;
+      }
     }
-    AppInfo appInfo = rewriter.appInfo();
-    assert appView == null || appInfo == appView.appInfo();
     if (method.accessFlags.isBridge()) {
       Deque<DexType> worklist = new ArrayDeque<>();
       Set<DexType> seenBefore = new HashSet<>();
@@ -325,7 +325,7 @@ final class InterfaceProcessor {
         if (!seenBefore.add(superType)) {
           continue;
         }
-        DexClass clazz = appInfo.definitionFor(superType);
+        DexClass clazz = appView.definitionFor(superType);
         if (clazz != null) {
           if (clazz.lookupVirtualMethod(method.method) != null) {
             return false;

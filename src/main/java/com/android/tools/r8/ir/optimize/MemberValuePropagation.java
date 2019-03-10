@@ -295,7 +295,7 @@ public class MemberValuePropagation {
       // be updated outside the class constructor, e.g. via reflections), it is safe
       // to assume that the static-get instruction reads the value it initialized value
       // in class initializer and is never null.
-      DexClass holderDefinition = appView.appInfo().definitionFor(field.getHolder());
+      DexClass holderDefinition = appView.definitionFor(field.getHolder());
       if (holderDefinition != null
           && holderDefinition.accessFlags.isFinal()
           && !field.getHolder().initializationOfParentTypesMayHaveSideEffects(appView.appInfo())) {

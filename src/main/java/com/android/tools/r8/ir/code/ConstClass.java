@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 
 public class ConstClass extends ConstInstruction {
 
@@ -85,16 +84,14 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppInfo appInfo, AppView<? extends AppInfo> appView, DexType context) {
-    assert appView == null || appView.appInfo() == appInfo;
-
-    DexType baseType = getValue().toBaseType(appInfo.dexItemFactory);
+      AppView<? extends AppInfo> appView, DexType context) {
+    DexType baseType = getValue().toBaseType(appView.dexItemFactory());
     if (baseType.isPrimitiveType()) {
       return false;
     }
 
-    if (appView != null && appView.enableWholeProgramOptimizations()) {
-      DexClass clazz = appView.appInfo().definitionFor(baseType);
+    if (appView.enableWholeProgramOptimizations()) {
+      DexClass clazz = appView.definitionFor(baseType);
       if (clazz != null && clazz.isProgramClass()) {
         return false;
       }
@@ -108,9 +105,8 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
-    return !instructionMayHaveSideEffects(appInfo, appView, code.method.method.holder);
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 
   @Override

@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.analysis;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -196,7 +196,7 @@ public class ClassInitializationAnalysis {
           || exceptionalExit.isInvokeMethodWithReceiver()) {
         // If an instance-get, instance-put, or instance-invoke instruction does not fail with a
         // NullPointerException, then the receiver class must have been initialized.
-        if (!dexItemFactory.npeType.isSubtypeOf(guard, appView.appInfo())) {
+        if (!dexItemFactory.npeType.isSubtypeOf(guard, appView)) {
           continue;
         }
       }
@@ -205,7 +205,7 @@ public class ClassInitializationAnalysis {
           || exceptionalExit.isInvokeStatic()) {
         // If a static-get, static-put, or invoke-static does not fail with an ExceptionIn-
         // InitializerError, then the holder class must have been initialized.
-        if (!dexItemFactory.exceptionInInitializerErrorType.isSubtypeOf(guard, appView.appInfo())) {
+        if (!dexItemFactory.exceptionInInitializerErrorType.isSubtypeOf(guard, appView)) {
           continue;
         }
       }
@@ -246,7 +246,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInstanceGet(
         InstanceGet instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       return forInstanceGetOrPut(instruction, type, appView, mode, assumption);
@@ -255,7 +255,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInstancePut(
         InstancePut instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       return forInstanceGetOrPut(instruction, type, appView, mode, assumption);
@@ -264,7 +264,7 @@ public class ClassInitializationAnalysis {
     private static boolean forInstanceGetOrPut(
         FieldInstruction instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       assert instruction.isInstanceGet() || instruction.isInstancePut();
@@ -284,7 +284,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeDirect(
         InvokeDirect instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -299,7 +299,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeStatic(
         InvokeStatic instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -312,7 +312,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeSuper(
         InvokeSuper instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -328,7 +328,7 @@ public class ClassInitializationAnalysis {
         return false;
       }
       DexMethod method = instruction.getInvokedMethod();
-      DexClass enclosingClass = appView.appInfo().definitionFor(method.holder);
+      DexClass enclosingClass = appView.definitionFor(method.holder);
       if (enclosingClass == null) {
         return false;
       }
@@ -341,13 +341,13 @@ public class ClassInitializationAnalysis {
         return false;
       }
       DexType holder = resolutionResult.asSingleTarget().method.holder;
-      return holder.isSubtypeOf(type, appView.appInfo());
+      return holder.isSubtypeOf(type, appView);
     }
 
     public static boolean forInvokeVirtual(
         InvokeVirtual instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -368,13 +368,13 @@ public class ClassInitializationAnalysis {
         return false;
       }
       DexType holder = resolutionResult.asSingleTarget().method.holder;
-      return holder.isSubtypeOf(type, appView.appInfo());
+      return holder.isSubtypeOf(type, appView);
     }
 
     public static boolean forNewInstance(
         NewInstance instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       return isTypeInitializedBy(type, instruction.clazz, appView, mode);
@@ -383,7 +383,7 @@ public class ClassInitializationAnalysis {
     public static boolean forStaticGet(
         StaticGet instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       return forStaticGetOrPut(instruction, type, appView, mode, assumption);
@@ -392,7 +392,7 @@ public class ClassInitializationAnalysis {
     public static boolean forStaticPut(
         StaticPut instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       return forStaticGetOrPut(instruction, type, appView, mode, assumption);
@@ -401,7 +401,7 @@ public class ClassInitializationAnalysis {
     private static boolean forStaticGetOrPut(
         FieldInstruction instruction,
         DexType type,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode,
         AnalysisAssumption assumption) {
       assert instruction.isStaticGet() || instruction.isStaticPut();
@@ -415,12 +415,12 @@ public class ClassInitializationAnalysis {
     private static boolean isTypeInitializedBy(
         DexType typeToBeInitialized,
         DexType typeKnownToBeInitialized,
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfo> appView,
         Query mode) {
       if (mode == Query.DIRECTLY) {
         return typeKnownToBeInitialized == typeToBeInitialized;
       } else {
-        return typeKnownToBeInitialized.isSubtypeOf(typeToBeInitialized, appView.appInfo());
+        return typeKnownToBeInitialized.isSubtypeOf(typeToBeInitialized, appView);
       }
     }
   }

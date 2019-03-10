@@ -35,7 +35,7 @@ import java.util.Set;
 
 public class ProguardMapMinifier {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
   private final SeedMapper seedMapper;
@@ -43,7 +43,7 @@ public class ProguardMapMinifier {
   private final DexItemFactory factory;
 
   public ProguardMapMinifier(
-      AppView<AppInfoWithLiveness> appView,
+      AppView<? extends AppInfoWithLiveness> appView,
       RootSet rootSet,
       SeedMapper seedMapper,
       Set<DexCallSite> desugaredCallSites) {

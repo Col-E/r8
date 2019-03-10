@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
@@ -69,19 +70,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LensCodeRewriter {
 
-  private final AppInfoWithSubtyping appInfo;
-  private final GraphLense graphLense;
-  private final VerticallyMergedClasses verticallyMergedClasses;
+  private final AppView<? extends AppInfo> appView;
   private final InternalOptions options;
 
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
 
-  public LensCodeRewriter(
-      AppView<? extends AppInfoWithSubtyping> appView, InternalOptions options) {
-    this.appInfo = appView.appInfo();
-    this.graphLense = appView.graphLense();
-    this.verticallyMergedClasses = appView.verticallyMergedClasses();
-    this.options = options;
+  public LensCodeRewriter(AppView<? extends AppInfoWithSubtyping> appView) {
+    this.appView = appView;
+    this.options = appView.options();
   }
 
   private Value makeOutValue(Instruction insn, IRCode code, Set<Value> collector) {
@@ -98,6 +94,9 @@ public class LensCodeRewriter {
    * Replace type appearances, invoke targets and field accesses with actual definitions.
    */
   public void rewrite(IRCode code, DexEncodedMethod method) {
+    AppInfo appInfo = appView.appInfo();
+    GraphLense graphLense = appView.graphLense();
+
     Set<Value> newSSAValues = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.blocks.listIterator();
     boolean mayHaveUnreachableBlocks = false;
@@ -381,12 +380,13 @@ public class LensCodeRewriter {
   // A and B although this will lead to invalid code, because this code pattern does generally
   // not occur in practice (it leads to a verification error on the JVM, but not on Art).
   private void checkInvokeDirect(DexMethod method, InvokeDirect invoke) {
+    VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
     if (verticallyMergedClasses == null) {
       // No need to check the invocation.
       return;
     }
     DexMethod invokedMethod = invoke.getInvokedMethod();
-    if (invokedMethod.name != appInfo.dexItemFactory.constructorMethodName) {
+    if (invokedMethod.name != appView.dexItemFactory().constructorMethodName) {
       // Not a constructor call.
       return;
     }
@@ -431,7 +431,7 @@ public class LensCodeRewriter {
     List<BasicBlock> deadCatchHandlers = new ArrayList<>();
     for (int i = 0; i < guards.size(); i++) {
       // The type may have changed due to class merging.
-      DexType guard = graphLense.lookupType(guards.get(i));
+      DexType guard = appView.graphLense().lookupType(guards.get(i));
       boolean guardSeenBefore = !previouslySeenGuards.add(guard);
       if (guardSeenBefore) {
         deadCatchHandlers.add(targets.get(i));
@@ -458,7 +458,7 @@ public class LensCodeRewriter {
         newArgument = rewriteDexMethodType(argument.asDexValueMethodType());
       } else if (argument instanceof DexValueType) {
         DexType oldType = ((DexValueType) argument).value;
-        DexType newType = graphLense.lookupType(oldType);
+        DexType newType = appView.graphLense().lookupType(oldType);
         if (newType != oldType) {
           newArgument = new DexValueType(newType);
         }
@@ -489,7 +489,7 @@ public class LensCodeRewriter {
       DexMethod invokedMethod = methodHandle.asMethod();
       MethodHandleType oldType = methodHandle.type;
       GraphLenseLookupResult lenseLookup =
-          graphLense.lookupMethod(invokedMethod, context.method, oldType.toInvokeType());
+          appView.graphLense().lookupMethod(invokedMethod, context.method, oldType.toInvokeType());
       DexMethod rewrittenTarget = lenseLookup.getMethod();
       DexMethod actualTarget;
       MethodHandleType newType;
@@ -505,8 +505,9 @@ public class LensCodeRewriter {
         // we cannot member rebind. We therefore keep the receiver and also pin the receiver
         // with a keep rule (see Enqueuer.registerMethodHandle).
         actualTarget =
-            appInfo.dexItemFactory.createMethod(
-                invokedMethod.holder, rewrittenTarget.proto, rewrittenTarget.name);
+            appView
+                .dexItemFactory()
+                .createMethod(invokedMethod.holder, rewrittenTarget.proto, rewrittenTarget.name);
         newType = oldType;
         if (oldType.isInvokeDirect()) {
           // For an invoke direct, the rewritten target must have the same holder as the original.
@@ -526,7 +527,7 @@ public class LensCodeRewriter {
       }
     } else {
       DexField field = methodHandle.asField();
-      DexField actualField = graphLense.lookupField(field);
+      DexField actualField = appView.graphLense().lookupField(field);
       if (actualField != field) {
         return new DexMethodHandle(methodHandle.type, actualField);
       }
@@ -537,8 +538,9 @@ public class LensCodeRewriter {
   private DexValueMethodType rewriteDexMethodType(DexValueMethodType type) {
     DexProto oldProto = type.value;
     DexProto newProto =
-        appInfo.dexItemFactory.applyClassMappingToProto(
-            oldProto, graphLense::lookupType, protoFixupCache);
+        appView
+            .dexItemFactory()
+            .applyClassMappingToProto(oldProto, appView.graphLense()::lookupType, protoFixupCache);
     return newProto != oldProto ? new DexValueMethodType(newProto) : type;
   }
 
@@ -557,7 +559,7 @@ public class LensCodeRewriter {
     if (!receiver.getTypeLattice().isClassType()) {
       return target;
     }
-    DexEncodedMethod encodedTarget = appInfo.definitionFor(target);
+    DexEncodedMethod encodedTarget = appView.definitionFor(target);
     if (encodedTarget == null
         || !canInvokeTargetWithInvokeVirtual(encodedTarget)
         || !hasAccessToInvokeTargetFromContext(encodedTarget, context)) {
@@ -565,12 +567,14 @@ public class LensCodeRewriter {
       return target;
     }
     DexType receiverType =
-        graphLense.lookupType(receiver.getTypeLattice().asClassTypeLatticeElement().getClassType());
+        appView
+            .graphLense()
+            .lookupType(receiver.getTypeLattice().asClassTypeLatticeElement().getClassType());
     if (receiverType == target.holder) {
       // Virtual invoke is already as specific as it can get.
       return target;
     }
-    DexEncodedMethod newTarget = appInfo.lookupVirtualTarget(receiverType, target);
+    DexEncodedMethod newTarget = appView.appInfo().lookupVirtualTarget(receiverType, target);
     if (newTarget == null || newTarget.method == target) {
       // Most likely due to a missing class, or invoke is already as specific as it gets.
       return target;
@@ -594,7 +598,7 @@ public class LensCodeRewriter {
       // It is always safe to invoke a method from the same enclosing class.
       return true;
     }
-    DexClass clazz = appInfo.definitionFor(holder);
+    DexClass clazz = appView.definitionFor(holder);
     if (clazz == null) {
       // Conservatively report an illegal access.
       return false;

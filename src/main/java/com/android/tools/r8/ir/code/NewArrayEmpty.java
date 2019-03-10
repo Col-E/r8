@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 
 public class NewArrayEmpty extends Instruction {
 
@@ -73,14 +72,13 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     if (instructionInstanceCanThrow()) {
       return false;
     }
     // This would belong better in instructionInstanceCanThrow, but that is not passed an appInfo.
-    DexType baseType = type.toBaseType(appInfo.dexItemFactory);
-    return baseType.isPrimitiveType() || appInfo.definitionFor(baseType) != null;
+    DexType baseType = type.toBaseType(appView.dexItemFactory());
+    return baseType.isPrimitiveType() || appView.definitionFor(baseType) != null;
   }
 
   @Override

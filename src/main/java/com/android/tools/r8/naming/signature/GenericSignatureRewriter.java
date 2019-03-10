@@ -28,17 +28,17 @@ import java.util.function.Supplier;
 
 public class GenericSignatureRewriter {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final AppInfoWithLiveness appInfo;
   private final Map<DexType, DexString> renaming;
   private final Reporter reporter;
 
-  public GenericSignatureRewriter(AppView<AppInfoWithLiveness> appView) {
+  public GenericSignatureRewriter(AppView<? extends AppInfoWithLiveness> appView) {
     this(appView, Maps.newIdentityHashMap());
   }
 
   public GenericSignatureRewriter(
-      AppView<AppInfoWithLiveness> appView, Map<DexType, DexString> renaming) {
+      AppView<? extends AppInfoWithLiveness> appView, Map<DexType, DexString> renaming) {
     this.appView = appView;
     this.appInfo = appView.appInfo();
     this.renaming = renaming;

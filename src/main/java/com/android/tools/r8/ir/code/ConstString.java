@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.io.UTFDataFormatException;
 
 public class ConstString extends ConstInstruction {
@@ -116,8 +115,7 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     // No side-effect, such as throwing an exception, in CF.
     return code.options.isGeneratingClassFiles() || !instructionInstanceCanThrow();
   }

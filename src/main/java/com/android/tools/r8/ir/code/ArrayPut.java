@@ -24,7 +24,6 @@ import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Arrays;
 
 public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruction {
@@ -130,8 +129,7 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
   }
 
   @Override
-  public boolean canBeDeadCode(
-      AppView<? extends AppInfoWithLiveness> appView, AppInfo appInfo, IRCode code) {
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     // ArrayPut has side-effects on input values.
     return false;
   }

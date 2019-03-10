@@ -36,11 +36,11 @@ public class MemberRebindingAnalysis {
 
   private final MemberRebindingLense.Builder builder;
 
-  public MemberRebindingAnalysis(AppView<AppInfoWithLiveness> appView, InternalOptions options) {
+  public MemberRebindingAnalysis(AppView<? extends AppInfoWithLiveness> appView) {
     assert appView.graphLense().isContextFreeForMethods();
     this.appInfo = appView.appInfo();
     this.lense = appView.graphLense();
-    this.options = options;
+    this.options = appView.options();
     this.builder = MemberRebindingLense.builder(appInfo);
     this.searchInLibrary = options.getProguardConfiguration().hasApplyMappingFile();
   }

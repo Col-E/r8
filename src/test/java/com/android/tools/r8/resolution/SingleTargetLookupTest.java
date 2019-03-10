@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
@@ -105,8 +104,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
     AndroidApp app = readClassesAndAsmDump(CLASSES, ASM_CLASSES);
     DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
     AppView<? extends AppInfoWithSubtyping> appView =
-        new AppView<>(
-            new AppInfoWithSubtyping(application), GraphLense.getIdentityLense(), options);
+        AppView.createForR8(new AppInfoWithSubtyping(application), options);
 
     ExecutorService executor = Executors.newSingleThreadExecutor();
     RootSet rootSet =
