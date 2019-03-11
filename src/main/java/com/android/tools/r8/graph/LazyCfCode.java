@@ -669,11 +669,6 @@ public class LazyCfCode extends Code {
     }
 
     @Override
-    public void visitMethodInsn(int opcode, String owner, String name, String desc) {
-      visitMethodInsn(opcode, owner, name, desc, false);
-    }
-
-    @Override
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
       DexMethod method = application.getMethod(owner, name, desc);
       instructions.add(new CfInvoke(opcode, method, itf));
