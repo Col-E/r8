@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -32,7 +33,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class ClassNameMapper implements ProguardMap {
 
@@ -50,7 +50,7 @@ public class ClassNameMapper implements ProguardMap {
 
     @Override
     public ClassNamingForNameMapper.Builder classNamingBuilder(
-        String renamedName, String originalName) {
+        String renamedName, String originalName, Position position) {
       ClassNamingForNameMapper.Builder classNamingBuilder =
           ClassNamingForNameMapper.builder(renamedName, originalName);
       mapBuilder.put(renamedName, classNamingBuilder);
@@ -179,10 +179,6 @@ public class ClassNameMapper implements ProguardMap {
     for (ClassNamingForNameMapper naming : classNamingForNameMappers) {
       naming.write(writer);
     }
-  }
-
-  public void forAllClassNamings(Consumer<ClassNaming> consumer) {
-    classNameMappings.values().forEach(consumer);
   }
 
   @Override

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -47,18 +48,21 @@ public class MemberNaming {
     return result;
   }
 
-  /**
-   * Original signature of the member
-   */
+  /** Original signature of the member. */
   final Signature signature;
-  /**
-   * Renamed signature where the name (but not the types) have been renamed.
-   */
+  /** Renamed signature where the name (but not the types) have been renamed. */
   final Signature renamedSignature;
+  /** Position of the member in the file. */
+  final Position position;
 
   public MemberNaming(Signature signature, String renamedName) {
+    this(signature, renamedName, Position.UNKNOWN);
+  }
+
+  public MemberNaming(Signature signature, String renamedName, Position position) {
     this.signature = signature;
     this.renamedSignature = signature.asRenamed(renamedName);
+    this.position = position;
   }
 
   public Signature getOriginalSignature() {
@@ -79,6 +83,10 @@ public class MemberNaming {
 
   public boolean isMethodNaming() {
     return signature.kind() == SignatureKind.METHOD;
+  }
+
+  public Position getPosition() {
+    return position;
   }
 
   @Override

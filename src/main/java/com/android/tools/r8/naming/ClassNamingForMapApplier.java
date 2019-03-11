@@ -10,6 +10,8 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
+import com.android.tools.r8.position.Position;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
@@ -32,12 +34,16 @@ public class ClassNamingForMapApplier implements ClassNaming {
   public static class Builder extends ClassNaming.Builder {
     private final String originalName;
     private final String renamedName;
+    private final Position position;
+    private final Reporter reporter;
     private final Map<MethodSignature, MemberNaming> methodMembers = new HashMap<>();
     private final Map<FieldSignature, MemberNaming> fieldMembers = new HashMap<>();
 
-    private Builder(String renamedName, String originalName) {
+    private Builder(String renamedName, String originalName, Position position, Reporter reporter) {
       this.originalName = originalName;
       this.renamedName = renamedName;
+      this.position = position;
+      this.reporter = reporter;
     }
 
     @Override
@@ -45,16 +51,27 @@ public class ClassNamingForMapApplier implements ClassNaming {
       // Unlike {@link ClassNamingForNameMapper.Builder#addMemberEntry},
       // the key is original signature.
       if (entry.isMethodNaming()) {
-        methodMembers.put((MethodSignature) entry.getOriginalSignature(), entry);
+        MethodSignature signature = (MethodSignature) entry.getOriginalSignature();
+        if (methodMembers.put(signature, entry) != null) {
+          reporter.error(
+              ProguardMapError.duplicateSourceMember(
+                  signature.toString(), this.originalName, entry.position));
+        }
       } else {
-        fieldMembers.put((FieldSignature) entry.getOriginalSignature(), entry);
+        FieldSignature signature = (FieldSignature) entry.getOriginalSignature();
+        if (fieldMembers.put(signature, entry) != null) {
+          reporter.error(
+              ProguardMapError.duplicateSourceMember(
+                  signature.toString(), this.originalName, entry.position));
+        }
       }
       return this;
     }
 
     @Override
     public ClassNamingForMapApplier build() {
-      return new ClassNamingForMapApplier(renamedName, originalName, methodMembers, fieldMembers);
+      return new ClassNamingForMapApplier(
+          renamedName, originalName, position, methodMembers, fieldMembers);
     }
 
     @Override
@@ -66,28 +83,37 @@ public class ClassNamingForMapApplier implements ClassNaming {
         String obfuscatedName) {}
   }
 
-  static Builder builder(String renamedName, String originalName) {
-    return new Builder(renamedName, originalName);
+  static Builder builder(
+      String renamedName, String originalName, Position position, Reporter reporter) {
+    return new Builder(renamedName, originalName, position, reporter);
   }
 
   private final String originalName;
   final String renamedName;
+  final Position position;
 
   private final ImmutableMap<MethodSignature, MemberNaming> methodMembers;
   private final ImmutableMap<FieldSignature, MemberNaming> fieldMembers;
 
   // Constructor to help chaining {@link ClassNamingForMapApplier} according to class hierarchy.
   ClassNamingForMapApplier(ClassNamingForMapApplier proxy) {
-    this(proxy.renamedName, proxy.originalName, proxy.methodMembers, proxy.fieldMembers);
+    this(
+        proxy.renamedName,
+        proxy.originalName,
+        proxy.position,
+        proxy.methodMembers,
+        proxy.fieldMembers);
   }
 
   private ClassNamingForMapApplier(
       String renamedName,
       String originalName,
+      Position position,
       Map<MethodSignature, MemberNaming> methodMembers,
       Map<FieldSignature, MemberNaming> fieldMembers) {
     this.renamedName = renamedName;
     this.originalName = originalName;
+    this.position = position;
     this.methodMembers = ImmutableMap.copyOf(methodMembers);
     this.fieldMembers = ImmutableMap.copyOf(fieldMembers);
   }

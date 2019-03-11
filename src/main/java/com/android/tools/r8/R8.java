@@ -628,7 +628,8 @@ public class R8 {
       NamingLens namingLens;
       if (options.getProguardConfiguration().hasApplyMappingFile()) {
         SeedMapper seedMapper =
-            SeedMapper.seedMapperFromFile(options.getProguardConfiguration().getApplyMappingFile());
+            SeedMapper.seedMapperFromFile(
+                options.reporter, options.getProguardConfiguration().getApplyMappingFile());
         timing.begin("apply-mapping");
         namingLens =
             new ProguardMapMinifier(appView.withLiveness(), rootSet, seedMapper, desugaredCallSites)

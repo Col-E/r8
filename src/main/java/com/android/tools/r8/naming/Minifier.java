@@ -156,5 +156,10 @@ public class Minifier {
     public boolean bypassDictionary() {
       return false;
     }
+
+    @Override
+    public boolean breakOnNotAvailable(DexReference source, DexString name) {
+      return false;
+    }
   }
 }

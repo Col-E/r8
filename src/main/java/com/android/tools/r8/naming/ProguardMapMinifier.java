@@ -24,8 +24,10 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.naming.Minifier.MinificationPackageNamingStrategy;
 import com.android.tools.r8.naming.NamingState.InternalState;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -64,8 +66,9 @@ public class ProguardMapMinifier {
 
     Map<DexType, DexString> mappedNames = new IdentityHashMap<>();
     List<DexClass> mappedClasses = new ArrayList<>();
-    Map<DexReference, DexString> memberNames = new IdentityHashMap<>();
+    Map<DexReference, MemberNaming> memberNames = new IdentityHashMap<>();
     for (String key : seedMapper.getKeyset()) {
+      ClassNamingForMapApplier classNaming = seedMapper.getMapping(key);
       DexType type = factory.lookupType(factory.createString(key));
       if (type == null) {
         // The map contains additional mapping of classes compared to what we have seen. This should
@@ -76,32 +79,46 @@ public class ProguardMapMinifier {
       if (dexClass == null) {
         continue;
       }
-      ClassNamingForMapApplier classNaming = seedMapper.getClassNaming(type);
-      mappedNames.put(type, factory.createString(classNaming.renamedName));
+      DexString mappedName = factory.createString(classNaming.renamedName);
+      DexType mappedType = factory.lookupType(mappedName);
+      // The mappedType has to be available:
+      // - If it is null we have not seen it.
+      // - If the mapped type is itself the name is already reserved (by itself).
+      // - If the there is no definition for the mapped type we will not get a naming clash.
+      // Otherwise, there will be a naming conflict.
+      if (mappedType != null && type != mappedType && appInfo.definitionFor(mappedType) != null) {
+        appView
+            .options()
+            .reporter
+            .error(
+                ApplyMappingError.mapToExistingClass(
+                    type.toString(), mappedType.toString(), classNaming.position));
+      }
+      mappedNames.put(type, mappedName);
       mappedClasses.add(dexClass);
       classNaming.forAllMethodNaming(
           memberNaming -> {
-            Signature signature =  memberNaming.getOriginalSignature();
+            Signature signature = memberNaming.getOriginalSignature();
             if (signature.isQualified()) {
               return;
             }
             DexMethod originalMethod = ((MethodSignature) signature).toDexMethod(factory, type);
             assert !memberNames.containsKey(originalMethod);
-            memberNames.put(
-                originalMethod, factory.createString(memberNaming.getRenamedName()));
+            memberNames.put(originalMethod, memberNaming);
           });
       classNaming.forAllFieldNaming(
           memberNaming -> {
-            Signature signature =  memberNaming.getOriginalSignature();
+            Signature signature = memberNaming.getOriginalSignature();
             if (signature.isQualified()) {
               return;
             }
             DexField originalField = ((FieldSignature) signature).toDexField(factory, type);
             assert !memberNames.containsKey(originalField);
-            memberNames.put(
-                originalField, factory.createString(memberNaming.getRenamedName()));
+            memberNames.put(originalField, memberNaming);
           });
     }
+
+    appView.options().reporter.failIfPendingErrors();
 
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(
@@ -118,7 +135,8 @@ public class ProguardMapMinifier {
     timing.end();
 
     ApplyMappingMemberNamingStrategy nameStrategy =
-        new ApplyMappingMemberNamingStrategy(memberNames);
+        new ApplyMappingMemberNamingStrategy(
+            memberNames, appInfo.dexItemFactory, appView.options().reporter);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
         new MethodNameMinifier(appView, rootSet, nameStrategy)
@@ -129,6 +147,8 @@ public class ProguardMapMinifier {
     FieldRenaming fieldRenaming =
         new FieldNameMinifier(appView, rootSet, nameStrategy).computeRenaming(timing);
     timing.end();
+
+    appView.options().reporter.failIfPendingErrors();
 
     NamingLens lens =
         new MinifiedRenaming(classRenaming, methodRenaming, fieldRenaming, appView.appInfo());
@@ -156,16 +176,21 @@ public class ProguardMapMinifier {
 
   static class ApplyMappingMemberNamingStrategy implements MemberNamingStrategy {
 
-    private final Map<DexReference, DexString> mappedNames;
+    private final Map<DexReference, MemberNaming> mappedNames;
+    private final DexItemFactory factory;
+    private final Reporter reporter;
 
-    public ApplyMappingMemberNamingStrategy(Map<DexReference, DexString> mappedNames) {
+    public ApplyMappingMemberNamingStrategy(
+        Map<DexReference, MemberNaming> mappedNames, DexItemFactory factory, Reporter reporter) {
       this.mappedNames = mappedNames;
+      this.factory = factory;
+      this.reporter = reporter;
     }
 
     @Override
     public DexString next(DexReference reference, InternalState internalState) {
       if (mappedNames.containsKey(reference)) {
-        return mappedNames.get(reference);
+        return factory.createString(mappedNames.get(reference).getRenamedName());
       } else if (reference.isDexMethod()) {
         return reference.asDexMethod().name;
       } else {
@@ -176,6 +201,20 @@ public class ProguardMapMinifier {
 
     @Override
     public boolean bypassDictionary() {
+      return true;
+    }
+
+    @Override
+    public boolean breakOnNotAvailable(DexReference source, DexString name) {
+      // This is an error where we have renamed a member to an name that exists in a subtype or
+      // renamed a field to something that exists in a subclass.
+      MemberNaming memberNaming = mappedNames.get(source);
+      assert source.isDexMethod() || source.isDexField();
+      reporter.error(
+          ApplyMappingError.mapToExistingMember(
+              source.toSourceString(),
+              name.toString(),
+              memberNaming == null ? Position.UNKNOWN : memberNaming.position));
       return true;
     }
   }

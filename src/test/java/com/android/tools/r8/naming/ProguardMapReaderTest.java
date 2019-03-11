@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.position.Position;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -51,7 +52,7 @@ public class ProguardMapReaderTest {
   public void parseIdentifierArrowAmbiguity1() throws IOException {
     ClassNameMapper mapper = ClassNameMapper.mapperFromString("a->b:");
     ClassNameMapper.Builder builder = ClassNameMapper.builder();
-    builder.classNamingBuilder("b", "a");
+    builder.classNamingBuilder("b", "a", Position.UNKNOWN);
     Assert.assertEquals(builder.build(), mapper);
   }
 
@@ -59,7 +60,7 @@ public class ProguardMapReaderTest {
   public void parseIdentifierArrowAmbiguity2() throws IOException {
     ClassNameMapper mapper = ClassNameMapper.mapperFromString("-->b:");
     ClassNameMapper.Builder builder = ClassNameMapper.builder();
-    builder.classNamingBuilder("b", "-");
+    builder.classNamingBuilder("b", "-", Position.UNKNOWN);
     Assert.assertEquals(builder.build(), mapper);
   }
 
