@@ -193,7 +193,8 @@ public class IRConverter {
       AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
       assert rootSet != null;
-      this.classStaticizer = new ClassStaticizer(appViewWithLiveness, this);
+      this.classStaticizer =
+          options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
       this.nonNullTracker =
           new NonNullTracker(
               appInfoWithLiveness, libraryMethodsReturningNonNull(appView.dexItemFactory()));

@@ -121,13 +121,6 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
     return classSubject;
   }
 
-  protected void checkClassIsRemoved(CodeInspector inspector, String className) {
-    checkClassExistsInInput(className);
-    ClassSubject classSubject = inspector.clazz(className);
-    assertNotNull(classSubject);
-    assertThat(classSubject, not(isPresent()));
-  }
-
   protected FieldSubject checkFieldIsKept(
       ClassSubject classSubject, String fieldType, String fieldName) {
     // Field must exist in the input.
@@ -145,6 +138,8 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
   }
 
   protected void checkFieldIsAbsent(ClassSubject classSubject, String fieldType, String fieldName) {
+    // Field must NOT exist in the input.
+    checkFieldPresenceInInput(classSubject.getOriginalName(), fieldType, fieldName, false);
     FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
     assertNotNull(fieldSubject);
     assertFalse(fieldSubject.isPresent());
@@ -165,12 +160,6 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
       ClassSubject classSubject, MethodSignature methodSignature) {
     checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
     return checkMethodIsKeptOrRemoved(classSubject, methodSignature, true);
-  }
-
-  protected MethodSubject checkMethodIsMoved(
-      String inputClassName, ClassSubject outputClassSubject, MethodSignature methodSignature) {
-    checkMethodPresenceInInput(inputClassName, methodSignature, true);
-    return checkMethodPresenceInOutput(outputClassSubject, methodSignature, true);
   }
 
   protected MethodSubject checkMethodIsKept(ClassSubject classSubject, String methodName) {
