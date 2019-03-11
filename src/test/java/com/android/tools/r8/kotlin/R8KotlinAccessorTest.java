@@ -75,28 +75,31 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePrimitiveProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-      String propertyName = "primitiveProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, "int", propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PROPERTIES_PACKAGE_NAME,
+        mainClass,
+        disableClassStaticizer,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, testedClass.getOuterClassName());
+          String propertyName = "primitiveProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, "int", propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
 
-      MemberNaming.MethodSignature getterAccessor = testedClass
-          .getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-      MemberNaming.MethodSignature setterAccessor = testedClass
-          .getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          MemberNaming.MethodSignature getterAccessor =
+              testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          MemberNaming.MethodSignature setterAccessor =
+              testedClass.getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          checkMethodIsRemoved(outerClass, getterAccessor);
+          checkMethodIsRemoved(outerClass, setterAccessor);
 
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-        checkMethodIsRemoved(outerClass, getterAccessor);
-        checkMethodIsRemoved(outerClass, setterAccessor);
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-        checkMethodIsKept(outerClass, getterAccessor);
-        checkMethodIsKept(outerClass, setterAccessor);
-      }
-    });
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
@@ -104,29 +107,31 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePrivateProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-      String propertyName = "privateProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PROPERTIES_PACKAGE_NAME,
+        mainClass,
+        disableClassStaticizer,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, testedClass.getOuterClassName());
+          String propertyName = "privateProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
 
-      MemberNaming.MethodSignature getterAccessor = testedClass
-          .getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-      MemberNaming.MethodSignature setterAccessor = testedClass
-          .getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          MemberNaming.MethodSignature getterAccessor =
+              testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          MemberNaming.MethodSignature setterAccessor =
+              testedClass.getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          checkMethodIsRemoved(outerClass, getterAccessor);
+          checkMethodIsRemoved(outerClass, setterAccessor);
 
-        checkMethodIsRemoved(outerClass, getterAccessor);
-        checkMethodIsRemoved(outerClass, setterAccessor);
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-
-        checkMethodIsKept(outerClass, getterAccessor);
-        checkMethodIsKept(outerClass, setterAccessor);
-      }
-    });
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
@@ -134,28 +139,31 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_useInternalProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-      String propertyName = "internalProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PROPERTIES_PACKAGE_NAME,
+        mainClass,
+        disableClassStaticizer,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, testedClass.getOuterClassName());
+          String propertyName = "internalProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
 
-      MemberNaming.MethodSignature getterAccessor = testedClass
-          .getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-      MemberNaming.MethodSignature setterAccessor = testedClass
-          .getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          MemberNaming.MethodSignature getterAccessor =
+              testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          MemberNaming.MethodSignature setterAccessor =
+              testedClass.getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          checkMethodIsRemoved(outerClass, getterAccessor);
+          checkMethodIsRemoved(outerClass, setterAccessor);
 
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-        checkMethodIsRemoved(outerClass, getterAccessor);
-        checkMethodIsRemoved(outerClass, setterAccessor);
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-        checkMethodIsKept(outerClass, getterAccessor);
-        checkMethodIsKept(outerClass, setterAccessor);
-      }
-    });
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
@@ -163,28 +171,31 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePublicProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-      String propertyName = "publicProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PROPERTIES_PACKAGE_NAME,
+        mainClass,
+        disableClassStaticizer,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, testedClass.getOuterClassName());
+          String propertyName = "publicProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
 
-      MemberNaming.MethodSignature getterAccessor = testedClass
-          .getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-      MemberNaming.MethodSignature setterAccessor = testedClass
-          .getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          MemberNaming.MethodSignature getterAccessor =
+              testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          MemberNaming.MethodSignature setterAccessor =
+              testedClass.getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          checkMethodIsRemoved(outerClass, getterAccessor);
+          checkMethodIsRemoved(outerClass, setterAccessor);
 
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-        checkMethodIsRemoved(outerClass, getterAccessor);
-        checkMethodIsRemoved(outerClass, setterAccessor);
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-        checkMethodIsKept(outerClass, getterAccessor);
-        checkMethodIsKept(outerClass, setterAccessor);
-      }
-    });
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+          }
+        });
   }
 
   @Test
@@ -192,27 +203,32 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, disableClassStaticizer, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject outerClass = checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-      String propertyName = "privateLateInitProp";
-      FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-      assertTrue(fieldSubject.getField().accessFlags.isStatic());
+    runTest(
+        PROPERTIES_PACKAGE_NAME,
+        mainClass,
+        disableClassStaticizer,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
+          ClassSubject outerClass =
+              checkClassIsKept(codeInspector, testedClass.getOuterClassName());
+          String propertyName = "privateLateInitProp";
+          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+          assertTrue(fieldSubject.getField().accessFlags.isStatic());
 
-      MemberNaming.MethodSignature getterAccessor = testedClass
-          .getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-      MemberNaming.MethodSignature setterAccessor = testedClass
-          .getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-      if (allowAccessModification) {
-        assertTrue(fieldSubject.getField().accessFlags.isPublic());
-        checkMethodIsRemoved(outerClass, getterAccessor);
-        checkMethodIsRemoved(outerClass, setterAccessor);
-      } else {
-        assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-        checkMethodIsKept(outerClass, getterAccessor);
-        checkMethodIsKept(outerClass, setterAccessor);
-      }
-    });
+          MemberNaming.MethodSignature getterAccessor =
+              testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          MemberNaming.MethodSignature setterAccessor =
+              testedClass.getSetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
+          checkMethodIsRemoved(outerClass, setterAccessor);
+
+          if (allowAccessModification) {
+            assertTrue(fieldSubject.getField().accessFlags.isPublic());
+            checkMethodIsRemoved(outerClass, getterAccessor);
+          } else {
+            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+            checkMethodIsKept(outerClass, getterAccessor);
+          }
+        });
   }
 
   @Test
@@ -276,23 +292,18 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
           CodeInspector codeInspector = new CodeInspector(app);
           ClassSubject outerClass =
               checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-          ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
+
+          // Companion class has been removed because of class staticizing.
+          String companionClassName = testedClass.getClassName();
+          checkClassIsRemoved(codeInspector, companionClassName);
+
           String propertyName = "property";
-          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-          assertTrue(fieldSubject.getField().accessFlags.isStatic());
+          checkFieldIsAbsent(outerClass, JAVA_LANG_STRING, propertyName);
 
           // The getter is always inlined since it just calls into the accessor.
-          MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-          checkMethodIsAbsent(companionClass, getter);
-
           MemberNaming.MethodSignature getterAccessor =
               testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-          if (allowAccessModification) {
-            assertTrue(fieldSubject.getField().accessFlags.isPublic());
-          } else {
-            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-          }
-          checkMethodIsKept(outerClass, getterAccessor);
+          checkMethodIsRemoved(outerClass, getterAccessor);
         });
   }
 

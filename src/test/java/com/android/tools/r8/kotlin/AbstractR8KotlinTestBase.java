@@ -145,8 +145,6 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
   }
 
   protected void checkFieldIsAbsent(ClassSubject classSubject, String fieldType, String fieldName) {
-    // Field must NOT exist in the input.
-    checkFieldPresenceInInput(classSubject.getOriginalName(), fieldType, fieldName, false);
     FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
     assertNotNull(fieldSubject);
     assertFalse(fieldSubject.isPresent());
