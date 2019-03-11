@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.utils.IdentifierUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -185,7 +186,8 @@ public class ProguardMapReader implements AutoCloseable {
       skipWhitespace();
       String after = parseType(false);
       expect(':');
-      ClassNaming.Builder currentClassBuilder = mapBuilder.classNamingBuilder(after, before);
+      ClassNaming.Builder currentClassBuilder =
+          mapBuilder.classNamingBuilder(after, before, getPosition());
       if (nextLine()) {
         parseMemberMappings(currentClassBuilder);
       }
@@ -260,7 +262,8 @@ public class ProguardMapReader implements AutoCloseable {
           }
         }
         if (activeMemberNaming == null) {
-          activeMemberNaming = new MemberNaming(previousSignature, previousRenamedName);
+          activeMemberNaming =
+              new MemberNaming(previousSignature, previousRenamedName, getPosition());
         }
       }
 
@@ -280,7 +283,7 @@ public class ProguardMapReader implements AutoCloseable {
         if (activeMemberNaming != null) {
           classNamingBuilder.addMemberEntry(activeMemberNaming);
         }
-        activeMemberNaming = new MemberNaming(signature, renamedName);
+        activeMemberNaming = new MemberNaming(signature, renamedName, getPosition());
       } else {
 
         // Note that at this point originalRange may be null which either means, it's the same as
@@ -302,6 +305,10 @@ public class ProguardMapReader implements AutoCloseable {
         lastRound = true;
       }
     }
+  }
+
+  private TextPosition getPosition() {
+    return new TextPosition(0, lineNo, 1);
   }
 
   // Parsing of components

@@ -76,7 +76,7 @@ public class NameClashTest extends TestBase {
   // 2) otherwise, those classes/members will be renamed if minification is enabled, resulting in
   //   no name clash, which is definitely not intended.
 
-  private String mappingToExistingClassName() {
+  private String mappingToAlreadyMappedName() {
     return StringUtils.lines(
         LibraryClass.class.getTypeName()
             + " -> " + AnotherLibraryClass.class.getTypeName() + ":",
@@ -100,6 +100,13 @@ public class NameClashTest extends TestBase {
         ProgramClass.class.getTypeName() + " -> " + ProgramClass.class.getTypeName() + ":",
         "  void bar() -> bar"
     );
+  }
+
+  private String mappingToExistingClassName() {
+    return StringUtils.lines(
+        LibraryClass.class.getTypeName() + " -> " + ProgramClass.class.getTypeName() + ":",
+        "  void foo() -> bar",
+        AnotherLibraryClass.class.getTypeName() + " -> B:");
   }
 
   private String mappingToTheSameMethodName() {
@@ -188,7 +195,7 @@ public class NameClashTest extends TestBase {
 
   @Test
   public void testProguard_prgClassRenamedToExistingPrgClass() throws Exception {
-    FileUtils.writeTextFile(mappingFile, mappingToExistingClassName());
+    FileUtils.writeTextFile(mappingFile, mappingToAlreadyMappedName());
     try {
       testProguard_inputJar(mappingFile);
       fail("Expect compilation failure.");
@@ -198,22 +205,22 @@ public class NameClashTest extends TestBase {
     }
   }
 
-  @Ignore("b/123092153")
   @Test
   public void testR8_prgClassRenamedToExistingPrgClass() throws Exception {
-    FileUtils.writeTextFile(mappingFile, mappingToExistingClassName());
+    FileUtils.writeTextFile(mappingFile, mappingToAlreadyMappedName());
     try {
       testR8_inputJar(mappingFile);
       fail("Expect compilation failure.");
     } catch (CompilationFailedException e) {
-      assertThat(e.getCause().getMessage(), containsString("Program type already present"));
-      assertThat(e.getCause().getMessage(), containsString("AnotherLibraryClass"));
+      assertThat(e.getCause().getMessage(), containsString("map to same name"));
+      assertThat(e.getCause().getMessage(), containsString("$AnotherLibraryClass"));
+      assertThat(e.getCause().getMessage(), containsString("$LibraryClass"));
     }
   }
 
   @Test
   public void testProguard_originalLibClassRenamedToExistingLibClass() throws Exception {
-    FileUtils.writeTextFile(mappingFile, mappingToExistingClassName());
+    FileUtils.writeTextFile(mappingFile, mappingToAlreadyMappedName());
     try {
       testProguard_originalLibraryJar(mappingFile);
       fail("Expect compilation failure.");
@@ -223,11 +230,17 @@ public class NameClashTest extends TestBase {
     }
   }
 
-  @Ignore("b/123092153")
   @Test
-  public void testR8_originalLibClassRenamedToExistingLibClass() throws Exception {
-    FileUtils.writeTextFile(mappingFile, mappingToExistingClassName());
-    testR8_originalLibraryJar(mappingFile);
+  public void testR8_originalLibClassRenamedToSameLibClass() throws Exception {
+    FileUtils.writeTextFile(mappingFile, mappingToAlreadyMappedName());
+    try {
+      testR8_originalLibraryJar(mappingFile);
+      fail("Expect compilation failure.");
+    } catch (CompilationFailedException e) {
+      assertThat(e.getCause().getMessage(), containsString("map to same name"));
+      assertThat(e.getCause().getMessage(), containsString("$AnotherLibraryClass"));
+      assertThat(e.getCause().getMessage(), containsString("$LibraryClass"));
+    }
   }
 
   @Test
@@ -241,7 +254,6 @@ public class NameClashTest extends TestBase {
     }
   }
 
-  @Ignore("b/123092153")
   @Test
   public void testR8_prgClassesRenamedToSameName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToTheSameClassName());
@@ -249,7 +261,7 @@ public class NameClashTest extends TestBase {
       testR8_inputJar(mappingFile);
       fail("Expect compilation failure.");
     } catch (CompilationFailedException e) {
-      assertThat(e.getCause().getMessage(), containsString("Program type already present"));
+      assertThat(e.getCause().getMessage(), containsString("map to same name"));
       assertThat(e.getCause().getMessage(), containsString("Clash"));
     }
   }
@@ -266,11 +278,16 @@ public class NameClashTest extends TestBase {
     }
   }
 
-  @Ignore("b/123092153")
   @Test
   public void testR8_originalLibClassesRenamedToSameName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToTheSameClassName());
-    testR8_originalLibraryJar(mappingFile);
+    try {
+      testR8_originalLibraryJar(mappingFile);
+      fail("Expect compilation failure.");
+    } catch (CompilationFailedException e) {
+      assertThat(e.getCause().getMessage(), containsString("map to same name"));
+      assertThat(e.getCause().getMessage(), containsString("Clash"));
+    }
   }
 
   @Test
@@ -286,7 +303,6 @@ public class NameClashTest extends TestBase {
     }
   }
 
-  @Ignore("b/123092153")
   @Test
   public void testR8_prgMethodRenamedToExistingName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToExistingMethodName());
@@ -294,9 +310,13 @@ public class NameClashTest extends TestBase {
       testR8_inputJar(mappingFile);
       fail("Expect compilation failure.");
     } catch (CompilationFailedException e) {
-      assertThat(e.getMessage(), containsString("method 'void bar()' can't be mapped to 'bar'"));
-      assertThat(e.getMessage(), containsString("it would conflict with method 'foo'"));
-      assertThat(e.getMessage(), containsString("which is already being mapped to 'bar'"));
+      assertThat(e.getCause().getMessage(), containsString("cannot be mapped to 'bar'"));
+      assertThat(
+          e.getCause().getMessage(),
+          containsString(
+              "because it is in conflict with an existing member with the same signature."));
+      assertThat(
+          e.getCause().getMessage(), containsString(ProgramClass.class.getTypeName() + ".bar()"));
     }
   }
 
@@ -312,11 +332,21 @@ public class NameClashTest extends TestBase {
     }
   }
 
-  @Ignore("b/123092153")
   @Test
   public void testR8_originalLibMethodRenamedToExistingName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToExistingMethodName());
-    testR8_originalLibraryJar(mappingFile);
+    try {
+      testR8_originalLibraryJar(mappingFile);
+      fail("Expect compilation failure.");
+    } catch (CompilationFailedException e) {
+      assertThat(e.getCause().getMessage(), containsString("cannot be mapped to 'bar'"));
+      assertThat(
+          e.getCause().getMessage(),
+          containsString(
+              "because it is in conflict with an existing member with the same signature."));
+      assertThat(
+          e.getCause().getMessage(), containsString(ProgramClass.class.getTypeName() + ".bar()"));
+    }
   }
 
   @Test
@@ -332,7 +362,6 @@ public class NameClashTest extends TestBase {
     }
   }
 
-  @Ignore("b/123092153")
   @Test
   public void testR8_prgMethodRenamedToSameName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToTheSameMethodName());
@@ -340,9 +369,13 @@ public class NameClashTest extends TestBase {
       testR8_inputJar(mappingFile);
       fail("Expect compilation failure.");
     } catch (CompilationFailedException e) {
-      assertThat(e.getMessage(), containsString("method 'void bar()' can't be mapped to 'bar'"));
-      assertThat(e.getMessage(), containsString("it would conflict with method 'foo'"));
-      assertThat(e.getMessage(), containsString("which is already being mapped to 'bar'"));
+      assertThat(e.getCause().getMessage(), containsString("cannot be mapped to 'clash'"));
+      assertThat(
+          e.getCause().getMessage(),
+          containsString(
+              "because it is in conflict with an existing member with the same signature."));
+      assertThat(
+          e.getCause().getMessage(), containsString(ProgramClass.class.getTypeName() + ".bar()"));
     }
   }
 
@@ -358,11 +391,36 @@ public class NameClashTest extends TestBase {
     }
   }
 
-  @Ignore("b/123092153")
   @Test
   public void testR8_originalLibMethodRenamedToSameName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToTheSameMethodName());
-    testR8_originalLibraryJar(mappingFile);
+    try {
+      testR8_originalLibraryJar(mappingFile);
+      fail("Expect compilation failure.");
+    } catch (CompilationFailedException e) {
+      assertThat(e.getCause().getMessage(), containsString("cannot be mapped to 'clash'"));
+      assertThat(
+          e.getCause().getMessage(),
+          containsString(
+              "because it is in conflict with an existing member with the same signature."));
+      assertThat(
+          e.getCause().getMessage(), containsString(ProgramClass.class.getTypeName() + ".bar()"));
+    }
+  }
+
+  @Test
+  public void testR8_originalLibClassRenamedToExistingName() throws Exception {
+    FileUtils.writeTextFile(mappingFile, mappingToExistingClassName());
+    try {
+      testR8_originalLibraryJar(mappingFile);
+      fail("Expect compilation failure.");
+    } catch (CompilationFailedException e) {
+      assertThat(e.getCause().getMessage(), containsString("cannot be mapped to"));
+      assertThat(
+          e.getCause().getMessage(),
+          containsString("because it is in conflict with an existing class with the same name."));
+      assertThat(e.getCause().getMessage(), containsString(ProgramClass.class.getTypeName()));
+    }
   }
 
   @Test

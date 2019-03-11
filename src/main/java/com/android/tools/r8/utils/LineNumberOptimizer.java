@@ -180,7 +180,8 @@ public class LineNumberOptimizer {
               () ->
                   classNameMapperBuilder.classNamingBuilder(
                       DescriptorUtils.descriptorToJavaType(renamedClassName.toString()),
-                      originalType.toSourceString()));
+                      originalType.toSourceString(),
+                      com.android.tools.r8.position.Position.UNKNOWN));
 
       // If the class is renamed add it to the classNamingBuilder.
       addClassToClassNaming(originalType, renamedClassName, onDemandClassNamingBuilder);

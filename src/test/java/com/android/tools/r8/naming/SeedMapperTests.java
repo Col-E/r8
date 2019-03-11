@@ -1,0 +1,165 @@
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.naming;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessagesImpl;
+import com.android.tools.r8.position.TextPosition;
+import com.android.tools.r8.utils.AbortException;
+import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.Reporter;
+import java.io.IOException;
+import java.nio.file.Path;
+import org.junit.Test;
+
+public class SeedMapperTests extends TestBase {
+
+  private Path getApplyMappingFile(String... pgMap) throws IOException {
+    Path mapPath = temp.newFile().toPath();
+    FileUtils.writeTextFile(mapPath, pgMap);
+    return mapPath;
+  }
+
+  @Test
+  public void testNoDuplicates() throws IOException {
+    Path applyMappingFile =
+        getApplyMappingFile(
+            "A.B.C -> a:",
+            "  int aaaa(B) -> a",
+            "  int bbbb(B) -> b",
+            "  void cccc() -> a",
+            "  B foo       -> a",
+            "A.B.D -> b:",
+            "  int aaaa(B) -> a");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
+    testDiagnosticMessages.assertNoMessages();
+  }
+
+  @Test
+  public void testDuplicateSourceClasses() throws IOException {
+    Path applyMappingFile = getApplyMappingFile("A.B.C -> a:", "A.B.C -> b:");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    try {
+      SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
+      fail("Should have thrown an error");
+    } catch (AbortException e) {
+      assertEquals(1, testDiagnosticMessages.getErrors().size());
+      Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
+      assertEquals(
+          String.format(ProguardMapError.DUPLICATE_SOURCE_MESSAGE, "A.B.C"),
+          diagnostic.getDiagnosticMessage());
+      assertEquals(2, ((TextPosition) diagnostic.getPosition()).getLine());
+    }
+  }
+
+  @Test
+  public void testDuplicateSourceMethods() throws IOException {
+    Path applyMappingFile =
+        getApplyMappingFile(
+            "A.B.C -> a:",
+            "  int aaaa(B) -> a",
+            "  int aaaa(B) -> a",
+            "A.B.D -> b:");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    try {
+      SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
+      fail("Should have thrown an error");
+    } catch (AbortException e) {
+      assertEquals(1, testDiagnosticMessages.getErrors().size());
+      Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
+      assertEquals(
+          String.format(ProguardMapError.DUPLICATE_SOURCE_MESSAGE, "int aaaa(B)"),
+          diagnostic.getDiagnosticMessage());
+      assertEquals(3, ((TextPosition) diagnostic.getPosition()).getLine());
+    }
+  }
+
+  @Test
+  public void testDuplicateSourceFields() throws IOException {
+    Path applyMappingFile =
+        getApplyMappingFile(
+            "A.B.C -> a:",
+            "  int aaaa -> a",
+            "  int aaaa -> a",
+            "A.B.D -> b:");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    try {
+      SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
+      fail("Should have thrown an error");
+    } catch (AbortException e) {
+      assertEquals(1, testDiagnosticMessages.getErrors().size());
+      Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
+      assertEquals(
+          String.format(ProguardMapError.DUPLICATE_SOURCE_MESSAGE, "int aaaa"),
+          diagnostic.getDiagnosticMessage());
+      assertEquals(3, ((TextPosition) diagnostic.getPosition()).getLine());
+    }
+  }
+
+  @Test
+  public void testDuplicateClassTargets() throws IOException {
+    Path applyMappingFile = getApplyMappingFile("A.B.C -> a:", "A.B.D -> a:");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    try {
+      SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
+      fail("Should have thrown an error");
+    } catch (AbortException e) {
+      assertEquals(1, testDiagnosticMessages.getErrors().size());
+      Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
+      assertEquals(
+          String.format(ProguardMapError.DUPLICATE_TARGET_MESSAGE, "A.B.D", "A.B.C", "a"),
+          diagnostic.getDiagnosticMessage());
+      assertEquals(2, ((TextPosition) diagnostic.getPosition()).getLine());
+    }
+  }
+
+  @Test
+  public void testSameNameMethodTargets() throws IOException {
+    Path applyMappingFile =
+        getApplyMappingFile(
+            "A.B.C -> A:",
+            "  int foo(A) -> a",
+            "  int bar(B) -> a",
+            "  int baz(A,B) -> a",
+            "A.B.D -> b:");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
+    testDiagnosticMessages.assertNoMessages();
+  }
+
+  @Test
+  public void testDuplicateMethodTargets() throws IOException {
+    Path applyMappingFile =
+        getApplyMappingFile(
+            "A.B.C -> a:",
+            "  int foo(A) -> a",
+            "  int bar(A) -> a",
+            "A.B.D -> b:");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    try {
+      SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
+      fail("Should have thrown an error");
+    } catch (AbortException e) {
+      assertEquals(1, testDiagnosticMessages.getErrors().size());
+      Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
+      assertEquals(
+          String.format(ProguardMapError.DUPLICATE_TARGET_MESSAGE, "int bar(A)", "int foo(A)", "a"),
+          diagnostic.getDiagnosticMessage());
+      assertEquals(2, ((TextPosition) diagnostic.getPosition()).getLine());
+    }
+  }
+}

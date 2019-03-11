@@ -106,5 +106,7 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     DexString next(DexReference source, InternalState internalState);
 
     boolean bypassDictionary();
+
+    boolean breakOnNotAvailable(DexReference source, DexString name);
   }
 }

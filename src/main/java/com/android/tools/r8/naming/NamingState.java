@@ -234,7 +234,7 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       }
       do {
         name = nextSuggestedName(source);
-      } while (!isAvailable(name));
+      } while (!isAvailable(name) && !strategy.breakOnNotAvailable(source, name));
       if (markAsUsed) {
         addRenaming(original, proto, name);
       }
