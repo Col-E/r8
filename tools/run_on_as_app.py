@@ -124,6 +124,17 @@ APP_REPOSITORIES = [
       ]
   }),
   Repo({
+    'name': 'applymapping',
+    'url': 'https://github.com/mkj-gram/applymapping',
+    'revision': 'f94a6726859b2a832752bb349a56ce405441e31f',
+    'apps': [
+      App({
+        'id': 'com.example.applymapping',
+        'has_instrumentation_tests': True
+      })
+    ]
+  }),
+  Repo({
       'name': 'apps-android-wikipedia',
       'url': 'https://github.com/christofferqa/apps-android-wikipedia',
       'revision': '686e8aa5682af8e6a905054b935dd2daa57e63ee',
