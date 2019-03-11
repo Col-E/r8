@@ -5,7 +5,8 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -14,6 +15,7 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 
 public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
@@ -35,12 +37,19 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
         false,
         (app) -> {
           CodeInspector inspector = new CodeInspector(app);
-          assertThat(inspector.clazz("class_staticizer.Regular$Companion"), not(isPresent()));
-          assertThat(inspector.clazz("class_staticizer.Derived$Companion"), not(isPresent()));
+          assertThat(inspector.clazz("class_staticizer.Regular$Companion"), isPresent());
+          assertThat(inspector.clazz("class_staticizer.Derived$Companion"), isPresent());
 
           ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
           assertThat(utilClass, isPresent());
-          assertTrue(utilClass.allMethods().stream().allMatch(FoundMethodSubject::isStatic));
+          AtomicInteger nonStaticMethodCount = new AtomicInteger();
+          utilClass.forAllMethods(
+              method -> {
+                if (!method.isStatic()) {
+                  nonStaticMethodCount.incrementAndGet();
+                }
+              });
+          assertEquals(4, nonStaticMethodCount.get());
         });
 
     // With class staticizer.
