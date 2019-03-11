@@ -48,6 +48,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class SharedClassWritingTest {
@@ -110,6 +111,7 @@ public class SharedClassWritingTest {
         synthesizedFrom);
   }
 
+  @Ignore("b/128281550")
   @Test
   public void manyFilesWithSharedSynthesizedClass() throws ExecutionException, IOException {
 
