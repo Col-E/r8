@@ -138,7 +138,7 @@ APP_REPOSITORIES = [
   Repo({
       'name': 'chanu',
       'url': 'https://github.com/mkj-gram/chanu.git',
-      'revision': '04ade1e9c33d707f0850d5eb9d6fa5e8af814a26',
+      'revision': 'f5dae10b965974f7bf7cf75b8fa80ba9c844f102',
       'apps': [
           App({
               'id': 'com.chanapps.four.activity'
@@ -208,7 +208,7 @@ APP_REPOSITORIES = [
   Repo({
       'name': 'rover-android',
       'url': 'https://github.com/mkj-gram/rover-android.git',
-      'revision': '859af82ba56fe9035ae9949156c7a88e6012d930',
+      'revision': 'a5e155a1ed7d19b1cecd9a7b075e2852623a06bf',
       'apps': [
           App({
               'id': 'io.rover.app.debug',
@@ -219,7 +219,7 @@ APP_REPOSITORIES = [
   Repo({
       'name': 'Signal-Android',
       'url': 'https://github.com/mkj-gram/Signal-Android.git',
-      'revision': 'a45d0c1fed20fa39e8b9445fe7790326f46b3166',
+      'revision': 'cd542cab9bf860e71504ecb1caaf0a8476ba3989',
       'apps': [
           App({
               'id': 'org.thoughtcrime.securesms',
@@ -284,7 +284,7 @@ APP_REPOSITORIES = [
   Repo({
       'name': 'Tusky',
       'url': 'https://github.com/mkj-gram/Tusky.git',
-      'revision': 'b794f3ab90388add98461ffe70edb65c39351c33',
+      'revision': 'e7fbd190fb53bf9fde72253b816920cb6fe34518',
       'apps': [
           App({
               'id': 'com.keylesspalace.tusky',
@@ -295,7 +295,7 @@ APP_REPOSITORIES = [
   Repo({
       'name': 'Vungle-Android-SDK',
       'url': 'https://github.com/mkj-gram/Vungle-Android-SDK.git',
-      'revision': '3e231396ea7ce97b2655e03607497c75730e45f6',
+      'revision': '138d3f18c027b61b195c98911f1c5ab7d87ad18b',
       'apps': [
           App({
               'id': 'com.publisher.vungle.sample'
