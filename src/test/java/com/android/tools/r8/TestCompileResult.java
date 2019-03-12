@@ -47,19 +47,34 @@ public abstract class TestCompileResult<
 
   protected abstract RR createRunResult(ProcessResult result);
 
+  @Deprecated
   public RR run(Class<?> mainClass) throws IOException {
     return run(mainClass.getTypeName());
   }
 
+  @Deprecated
   public RR run(String mainClass) throws IOException {
     switch (getBackend()) {
       case DEX:
-        return runArt(additionalRunClassPath, mainClass);
+        return runArt(null, additionalRunClassPath, mainClass);
       case CF:
-        return runJava(additionalRunClassPath, mainClass);
+        return runJava(null, additionalRunClassPath, mainClass);
       default:
         throw new Unreachable();
     }
+  }
+
+  public RR run(TestRuntime runtime, Class<?> mainClass) throws IOException {
+    return run(runtime, mainClass.getTypeName());
+  }
+
+  public RR run(TestRuntime runtime, String mainClass) throws IOException {
+    assert getBackend() == runtime.getBackend();
+    if (runtime.isDex()) {
+      return runArt(runtime.asDex().getVm(), additionalRunClassPath, mainClass);
+    }
+    assert runtime.isCf();
+    return runJava(runtime, additionalRunClassPath, mainClass);
   }
 
   public CR addRunClasspathFiles(Path... classpath) {
@@ -171,7 +186,10 @@ public abstract class TestCompileResult<
     }
   }
 
-  private RR runJava(List<Path> additionalClassPath, String mainClass) throws IOException {
+  private RR runJava(TestRuntime runtime, List<Path> additionalClassPath, String mainClass)
+      throws IOException {
+    // TODO(b/127785410): Always assume a non-null runtime.
+    assert runtime == null || TestParametersBuilder.isSystemJdk(runtime.asCf().getVm());
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.ClassFile);
     List<Path> classPath = ImmutableList.<Path>builder()
@@ -182,14 +200,15 @@ public abstract class TestCompileResult<
     return createRunResult(result);
   }
 
-  private RR runArt(List<Path> additionalClassPath, String mainClass) throws IOException {
+  private RR runArt(DexVm vm, List<Path> additionalClassPath, String mainClass) throws IOException {
+    // TODO(b/127785410): Always assume a non-null runtime.
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.DexIndexed);
     List<String> classPath = ImmutableList.<String>builder()
         .addAll(additionalClassPath.stream().map(Path::toString).collect(Collectors.toList()))
         .add(out.toString())
         .build();
-    ProcessResult result = ToolHelper.runArtRaw(classPath, mainClass, dummy -> {});
+    ProcessResult result = ToolHelper.runArtRaw(classPath, mainClass, dummy -> {}, vm);
     return createRunResult(result);
   }
 

@@ -1559,6 +1559,14 @@ test {
         systemProperty 'dex_vm', project.property('dex_vm')
     }
 
+    // Forward vm configurations for test parameters.
+    if (project.hasProperty('dex_vms')) {
+        systemProperty 'dex_vms', project.property('dex_vms')
+    }
+    if (project.hasProperty('cf_vms')) {
+        systemProperty 'cf_vms', project.property('cf_vms')
+    }
+
     if (project.hasProperty('one_line_per_test')) {
         beforeTest { desc ->
             println "Start executing test ${desc.name} [${desc.className}]"

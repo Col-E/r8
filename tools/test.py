@@ -257,11 +257,20 @@ def Main():
   if options.dex_vm == 'all' and options.only_jctf:
     vms_to_test = ["default",  "5.1.1"]
 
+  # The full set of VMs is configured in the first run, then set to empty below.
+  dex_vms_property = ':'.join(vms_to_test)
   for art_vm in vms_to_test:
-    vm_kind_to_test = "_" + options.dex_vm_kind if art_vm != "default" else ""
-    return_code = gradle.RunGradle(gradle_args + ['-Pdex_vm=%s' % (art_vm + vm_kind_to_test)],
-                                   throw_on_failure=False)
-
+    vm_suffix = "_" + options.dex_vm_kind if art_vm != "default" else ""
+    return_code = gradle.RunGradle(
+        gradle_args + [
+          '-Pdex_vm=%s' % art_vm + vm_suffix,
+          '-Pdex_vms=%s' % dex_vms_property
+        ] +
+        # Only run the CF VMs on the 'default' configuration.
+        ([] if art_vm == "default" else ['-Pcf_vms=']),
+        throw_on_failure=False)
+    # Only run the full set of DEX VMs on the first run.
+    dex_vms_property = ""
     if options.generate_golden_files_to:
       sha1 = '%s' % utils.get_HEAD_sha1()
       with utils.ChangedWorkingDirectory(options.generate_golden_files_to):

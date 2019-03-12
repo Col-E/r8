@@ -33,11 +33,20 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
     return self();
   }
 
-  public abstract RR run(String mainClass)
+  @Deprecated
+  public abstract RR run(String mainClass) throws IOException, CompilationFailedException;
+
+  public abstract RR run(TestRuntime runtime, String mainClass)
       throws IOException, CompilationFailedException;
 
+  @Deprecated
   public RR run(Class mainClass) throws IOException, CompilationFailedException {
     return run(mainClass.getTypeName());
+  }
+
+  public RR run(TestRuntime runtime, Class mainClass)
+      throws IOException, CompilationFailedException {
+    return run(runtime, mainClass.getTypeName());
   }
 
   public abstract DebugTestConfig debugConfig();

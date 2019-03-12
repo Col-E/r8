@@ -158,6 +158,10 @@ public class TestBase {
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
+  public static TestParametersBuilder getTestParameters() {
+    return TestParametersBuilder.builder();
+  }
+
   /**
    * Check if tests should also run Proguard when applicable.
    */

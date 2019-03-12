@@ -40,7 +40,7 @@ public class GenerateMainDexListTestBuilder
   }
 
   @Override
-  public GenerateMainDexListRunResult run(Class mainClass)
+  public GenerateMainDexListRunResult run(TestRuntime runtime, String mainClass)
       throws IOException, CompilationFailedException {
     throw new Unimplemented("No support for running with a main class");
   }

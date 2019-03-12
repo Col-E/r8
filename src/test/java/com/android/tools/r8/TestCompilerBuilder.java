@@ -90,6 +90,12 @@ public abstract class TestCompilerBuilder<
   }
 
   @Override
+  public RR run(TestRuntime runtime, String mainClass)
+      throws IOException, CompilationFailedException {
+    return compile().run(runtime, mainClass);
+  }
+
+  @Override
   public DebugTestConfig debugConfig() {
     // Rethrow exceptions since debug config is usually used in a delayed wrapper which
     // does not declare exceptions.

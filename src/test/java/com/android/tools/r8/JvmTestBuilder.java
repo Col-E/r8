@@ -113,6 +113,13 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return new JvmTestRunResult(builder.build(), result);
   }
 
+  public JvmTestRunResult run(TestRuntime runtime, String mainClass) throws IOException {
+    assert runtime.isCf();
+    assert TestParametersBuilder.isSystemJdk(runtime.asCf().getVm());
+    ProcessResult result = ToolHelper.runJava(classpath, mainClass);
+    return new JvmTestRunResult(builder.build(), result);
+  }
+
   @Override
   public DebugTestConfig debugConfig() {
     return new CfDebugTestConfig().addPaths(classpath);

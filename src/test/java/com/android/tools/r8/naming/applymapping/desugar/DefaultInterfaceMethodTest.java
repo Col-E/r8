@@ -8,9 +8,11 @@ import static org.hamcrest.CoreMatchers.containsString;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import java.util.Collection;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,54 +39,56 @@ public class DefaultInterfaceMethodTest extends TestBase {
   }
 
   @Parameters(name = "{0}")
-  public static Backend[] data() {
-    return Backend.values();
+  public static Collection<TestParameters> params() {
+    return getTestParameters().withCfRuntimes().withDexRuntimes().build();
   }
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
-  public DefaultInterfaceMethodTest(Backend backend) {
-    this.backend = backend;
+  public DefaultInterfaceMethodTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
   public void testJvm() throws Throwable {
-    Assume.assumeTrue(backend == Backend.CF);
+    Assume.assumeTrue(parameters.isCfRuntime());
     testForJvm()
         .addProgramClasses(LibraryInterface.class, ProgramClass.class)
-        .run(ProgramClass.class)
+        .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testFullProgram() throws Throwable {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramClasses(LibraryInterface.class, ProgramClass.class)
         .addKeepMainRule(ProgramClass.class)
-        .run(ProgramClass.class)
+        .apply(parameters::setMinApiForRuntime)
+        .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testLibraryLinkedWithProgram() throws Throwable {
     R8TestCompileResult libraryResult =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addProgramClasses(LibraryInterface.class)
             .addKeepRules("-keep class " + LibraryInterface.class.getTypeName() + " { *; }")
+            .apply(parameters::setMinApiForRuntime)
             .compile();
 
     R8TestRunResult result =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .noTreeShaking()
-            .noMinification()
             .addProgramClasses(ProgramClass.class)
             .addLibraryClasses(LibraryInterface.class)
             .addApplyMapping(libraryResult.getProguardMap())
+            .apply(parameters::setMinApiForRuntime)
             .compile()
             .addRunClasspathFiles(libraryResult.writeToZip())
-            .run(ProgramClass.class);
+            .run(parameters.getRuntime(), ProgramClass.class);
 
-    if (backend == Backend.DEX && willDesugarDefaultInterfaceMethods()) {
+    if (willDesugarDefaultInterfaceMethods(parameters.getRuntime())) {
       // TODO(b/127779880): The use of the default lambda will fail in case of desugaring.
       result.assertFailureWithErrorThatMatches(containsString("AbstractMethodError"));
     } else {
@@ -92,7 +96,8 @@ public class DefaultInterfaceMethodTest extends TestBase {
     }
   }
 
-  private static boolean willDesugarDefaultInterfaceMethods() {
-    return ToolHelper.getMinApiLevelForDexVm().getLevel() < AndroidApiLevel.N.getLevel();
+  private static boolean willDesugarDefaultInterfaceMethods(TestRuntime runtime) {
+    return runtime.isDex()
+        && runtime.asDex().getMinApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
   }
 }
