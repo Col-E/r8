@@ -5,11 +5,11 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.Enqueuer;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -68,16 +68,17 @@ abstract class NamingTestBase {
 
     ExecutorService executor = ThreadUtils.getExecutorService(1);
 
-    AppView<? extends AppInfoWithSubtyping> appView =
+    AppView<AppInfoWithSubtyping> appView =
         AppView.createForR8(new AppInfoWithSubtyping(program), options);
+    appView.setAppServices(AppServices.builder(appView).build());
+
     RootSet rootSet =
         new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
 
     Enqueuer enqueuer = new Enqueuer(appView, options, null);
-    AppInfoWithLiveness appInfo =
-        enqueuer.traceApplication(rootSet, configuration.getDontWarnPatterns(), executor, timing);
-    return new Minifier(AppView.createForR8(appInfo, options), rootSet, Collections.emptySet())
-        .run(timing);
+    appView.setAppInfo(
+        enqueuer.traceApplication(rootSet, configuration.getDontWarnPatterns(), executor, timing));
+    return new Minifier(appView.withLiveness(), rootSet, Collections.emptySet()).run(timing);
   }
 
   static <T> Collection<Object[]> createTests(List<String> tests, Map<String, T> inspections) {

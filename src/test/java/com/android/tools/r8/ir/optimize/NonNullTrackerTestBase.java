@@ -7,6 +7,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.shaking.Enqueuer;
@@ -32,6 +33,7 @@ public abstract class NonNullTrackerTestBase extends TestBase {
         new ApplicationReader(app, TEST_OPTIONS, timing).read().toDirect();
     AppView<? extends AppInfoWithSubtyping> appView =
         AppView.createForR8(new AppInfoWithSubtyping(dexApplication), TEST_OPTIONS);
+    appView.setAppServices(AppServices.builder(appView).build());
     ExecutorService executorService = ThreadUtils.getExecutorService(TEST_OPTIONS);
     RootSet rootSet =
         new RootSetBuilder(
