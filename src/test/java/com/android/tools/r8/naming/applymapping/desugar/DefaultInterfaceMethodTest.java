@@ -9,10 +9,10 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import java.util.Collection;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,8 +39,8 @@ public class DefaultInterfaceMethodTest extends TestBase {
   }
 
   @Parameters(name = "{0}")
-  public static Collection<TestParameters> params() {
-    return getTestParameters().withCfRuntimes().withDexRuntimes().build();
+  public static TestParametersCollection params() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
   private final TestParameters parameters;

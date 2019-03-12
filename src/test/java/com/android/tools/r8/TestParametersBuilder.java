@@ -8,9 +8,8 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -33,6 +32,10 @@ public class TestParametersBuilder {
 
   public static TestParametersBuilder builder() {
     return new TestParametersBuilder();
+  }
+
+  public TestParametersBuilder withAllRuntimes() {
+    return withCfRuntimes().withDexRuntimes();
   }
 
   /** Add specific runtime if available. */
@@ -126,15 +129,15 @@ public class TestParametersBuilder {
     return this;
   }
 
-  public Collection<TestParameters> build() {
-    List<TestParameters> parameters = new ArrayList<>();
+  public TestParametersCollection build() {
+    ImmutableList.Builder<TestParameters> parameters = ImmutableList.builder();
     availableCfVms.stream()
         .filter(cfRuntimePredicate)
         .forEach(vm -> parameters.add(new TestParameters(new CfRuntime(vm))));
     availableDexVms.stream()
         .filter(vm -> dexRuntimePredicate.test(vm.getVersion()))
         .forEach(vm -> parameters.add(new TestParameters(new DexRuntime(vm))));
-    return parameters;
+    return new TestParametersCollection(parameters.build());
   }
 
   // Public method to check that the CF runtime coincides with the system runtime.

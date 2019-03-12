@@ -13,12 +13,14 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -60,6 +62,20 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
 
   // Test runner code follows.
 
+  // Result of the shared compilation.
+  private static class CompilationResult {
+    final R8TestCompileResult library;
+    final R8TestCompileResult program;
+    final Path libraryPath;
+
+    public CompilationResult(
+        R8TestCompileResult library, R8TestCompileResult program, Path libraryPath) {
+      this.library = library;
+      this.program = program;
+      this.libraryPath = libraryPath;
+    }
+  }
+
   private static final Class<?>[] LIBRARY_CLASSES = {
     NeverMerge.class, LibraryBase.class, LibrarySubclass.class
   };
@@ -69,37 +85,30 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
   };
 
   @Parameterized.Parameters(name = "{0}")
-  public static Collection<TestParameters> data() {
-    return getTestParameters().withCfRuntimes().withDexRuntimes().build();
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
+
+  private static Function<Backend, CompilationResult> compilationResults =
+      memoizeFunction(ApplyMappingAfterVerticalMergingMethodTest::compile);
 
   @ClassRule
   public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
 
-  // Cached compilation results.
-  private static R8TestCompileResult cfCompiledLibrary = null;
-  private static R8TestCompileResult cfCompiledProgram = null;
-  private static Path cfCompiledLibraryPath = null;
-
-  private static R8TestCompileResult dexCompiledLibrary = null;
-  private static R8TestCompileResult dexCompiledProgram = null;
-  private static Path dexCompiledLibraryPath = null;
-
   @BeforeClass
-  public static void compile() throws Exception {
-    if (data().stream().anyMatch(TestParameters::isCfRuntime)) {
-      cfCompiledLibrary = doCompileLibrary(Backend.CF);
-      cfCompiledProgram = doCompileProgram(Backend.CF, cfCompiledLibrary.getProguardMap());
-      cfCompiledLibraryPath = cfCompiledLibrary.writeToZip();
-    }
-    if (data().stream().anyMatch(TestParameters::isDexRuntime)) {
-      dexCompiledLibrary = doCompileLibrary(Backend.DEX);
-      dexCompiledProgram = doCompileProgram(Backend.DEX, dexCompiledLibrary.getProguardMap());
-      dexCompiledLibraryPath = dexCompiledLibrary.writeToZip();
-    }
+  public static void forceCompilation() {
+    data().stream().forEach(p -> compilationResults.apply(p.getBackend()));
   }
 
-  private static R8TestCompileResult doCompileLibrary(Backend backend) throws Exception {
+  public static CompilationResult compile(Backend backend)
+      throws ExecutionException, CompilationFailedException, IOException {
+    R8TestCompileResult library = compileLibrary(backend);
+    R8TestCompileResult program = compileProgram(backend, library.getProguardMap());
+    return new CompilationResult(library, program, library.writeToZip());
+  }
+
+  private static R8TestCompileResult compileLibrary(Backend backend)
+      throws CompilationFailedException, IOException, ExecutionException {
     return testForR8(staticTemp, backend)
         .enableInliningAnnotations()
         .addProgramClasses(LIBRARY_CLASSES)
@@ -113,7 +122,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
         });
   }
 
-  private static R8TestCompileResult doCompileProgram(Backend backend, String proguardMap)
+  private static R8TestCompileResult compileProgram(Backend backend, String proguardMap)
       throws CompilationFailedException {
     return testForR8(staticTemp, backend)
         .noTreeShaking()
@@ -123,24 +132,6 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
         .addLibraryClasses(LIBRARY_CLASSES)
         .setMinApi(AndroidApiLevel.B)
         .compile();
-  }
-
-  private static Path getCompiledLibraryPath(Backend backend) {
-    switch (backend) {
-      case CF: return cfCompiledLibraryPath;
-      case DEX: return dexCompiledLibraryPath;
-      default:
-        throw new Unreachable();
-    }
-  }
-
-  private static R8TestCompileResult getCompiledProgram(Backend backend) {
-    switch (backend) {
-      case CF: return cfCompiledProgram;
-      case DEX: return dexCompiledProgram;
-      default:
-        throw new Unreachable();
-    }
   }
 
   private TestParameters parameters;
@@ -161,8 +152,10 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
 
   @Test
   public void b121042934() throws Exception {
-    getCompiledProgram(parameters.getBackend())
-        .addRunClasspathFiles(getCompiledLibraryPath(parameters.getBackend()))
+    CompilationResult compilationResult = compilationResults.apply(parameters.getBackend());
+    compilationResult
+        .program
+        .addRunClasspathFiles(compilationResult.libraryPath)
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED_SUCCESS);
   }

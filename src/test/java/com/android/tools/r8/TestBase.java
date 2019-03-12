@@ -37,6 +37,8 @@ import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -72,6 +74,11 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 
 public class TestBase {
+
+  public enum Backend {
+    CF,
+    DEX
+  }
 
   public enum R8Mode {
     Full,
@@ -142,11 +149,6 @@ public class TestBase {
     return testForMainDexListGenerator(temp);
   }
 
-  public enum Backend {
-    CF,
-    DEX
-  };
-
   // Actually running Proguard should only be during development.
   private static final boolean RUN_PROGUARD = System.getProperty("run_proguard") != null;
   // Actually running r8.jar in a forked process.
@@ -160,6 +162,19 @@ public class TestBase {
 
   public static TestParametersBuilder getTestParameters() {
     return TestParametersBuilder.builder();
+  }
+
+  protected static <S, T> Function<S, T> memoizeFunction(ThrowableFunction<S, T> fn) {
+    return CacheBuilder.newBuilder()
+        .build(
+            CacheLoader.from(
+                b -> {
+                  try {
+                    return fn.applyWithRuntimeException(b);
+                  } catch (Throwable e) {
+                    throw new RuntimeException(e);
+                  }
+                }));
   }
 
   /**
