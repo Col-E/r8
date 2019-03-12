@@ -793,9 +793,11 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.tools(DexTool.JACK, DexTool.DX),
                   TestCondition.compilers(CompilerUnderTest.D8),
-                  TestCondition
-                      .runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4, DexVm.Version.V5_1_1,
-                          DexVm.Version.V6_0_1)))
+                  TestCondition.runtimes(
+                      DexVm.Version.V4_0_4,
+                      DexVm.Version.V4_4_4,
+                      DexVm.Version.V5_1_1,
+                      DexVm.Version.V6_0_1)))
           // Array index out of bounds exception.
           .put("449-checker-bce", TestCondition.any())
           // Fails: get_vreg_jni.cc:46] Check failed: value == 42u (value=314630384, 42u=42)
@@ -804,16 +806,24 @@ public abstract class R8RunArtTestsTest {
           .put(
               "454-get-vreg",
               TestCondition.match(
-                  TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4,
-                      DexVm.Version.V5_1_1, DexVm.Version.V6_0_1, DexVm.Version.V7_0_0)))
+                  TestCondition.runtimes(
+                      DexVm.Version.V4_0_4,
+                      DexVm.Version.V4_4_4,
+                      DexVm.Version.V5_1_1,
+                      DexVm.Version.V6_0_1,
+                      DexVm.Version.V7_0_0)))
           .put("454-get-vreg", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Fails: regs_jni.cc:42] Check failed: GetVReg(m, 0, kIntVReg, &value)
           // The R8/D8 code does not put values in the same registers as the tests expects.
           .put(
               "457-regs",
               TestCondition.match(
-                  TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4,
-                      DexVm.Version.V5_1_1, DexVm.Version.V6_0_1, DexVm.Version.V7_0_0)))
+                  TestCondition.runtimes(
+                      DexVm.Version.V4_0_4,
+                      DexVm.Version.V4_4_4,
+                      DexVm.Version.V5_1_1,
+                      DexVm.Version.V6_0_1,
+                      DexVm.Version.V7_0_0)))
           .put("457-regs", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Class not found.
           .put("529-checker-unresolved", TestCondition.any())
@@ -868,17 +878,35 @@ public abstract class R8RunArtTestsTest {
           .put("974-verify-interface-super", beforeAndroidN) // --min-sdk = 24
           .put("975-iface-private", beforeAndroidN) // --min-sdk = 24
           // Uses dex file version 37 and therefore only runs on Android N and above.
-          .put("972-iface-super-multidex",
-              TestCondition.match(TestCondition.tools(DexTool.JACK, DexTool.DX),
-                  TestCondition
-                      .runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4, DexVm.Version.V5_1_1,
-                          DexVm.Version.V6_0_1)))
+          .put(
+              "972-iface-super-multidex",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.JACK, DexTool.DX),
+                  TestCondition.runtimes(
+                      DexVm.Version.V4_0_4,
+                      DexVm.Version.V4_4_4,
+                      DexVm.Version.V5_1_1,
+                      DexVm.Version.V6_0_1)))
           // Uses dex file version 37 and therefore only runs on Android N and above.
-          .put("978-virtual-interface",
-              TestCondition.match(TestCondition.tools(DexTool.JACK, DexTool.DX),
-                  TestCondition
-                      .runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4, DexVm.Version.V5_1_1,
-                          DexVm.Version.V6_0_1)))
+          .put(
+              "978-virtual-interface",
+              TestCondition.or(
+                  TestCondition.match(
+                      TestCondition.tools(DexTool.JACK, DexTool.DX),
+                      TestCondition.compilers(CompilerUnderTest.D8),
+                      TestCondition.runtimes(
+                          DexVm.Version.V4_0_4,
+                          DexVm.Version.V4_4_4,
+                          DexVm.Version.V5_1_1,
+                          DexVm.Version.V6_0_1)),
+                  // On V4_0_4 and V4_4_4 the test will throw a verification error.
+                  TestCondition.match(
+                      TestCondition.tools(DexTool.JACK, DexTool.DX),
+                      TestCondition.compilers(
+                          CompilerUnderTest.R8,
+                          CompilerUnderTest.R8_AFTER_D8,
+                          CompilerUnderTest.D8_AFTER_R8CF),
+                      TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4))))
           .put("979-const-method-handle", beforeAndroidP)
           .build();
 

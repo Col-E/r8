@@ -213,6 +213,10 @@ public class TestCondition {
                 .collect(Collectors.toSet())));
   }
 
+  public static TestCondition or(TestCondition... conditions) {
+    return new OrTestCondition(conditions);
+  }
+
   public static TestCondition match(
       ToolSet tools,
       CompilerSet compilers,
@@ -283,5 +287,43 @@ public class TestCondition {
       DexVm.Version version,
       CompilationMode compilationMode) {
     return test(dexTool, compilerUnderTest, Runtime.fromDexVmVersion(version), compilationMode);
+  }
+
+  public static class OrTestCondition extends TestCondition {
+
+    private final TestCondition[] conditions;
+
+    public OrTestCondition(TestCondition[] conditions) {
+      super(null, null, null, null);
+      this.conditions = conditions;
+    }
+
+    @Override
+    public boolean test(
+        DexTool dexTool,
+        CompilerUnderTest compilerUnderTest,
+        Runtime runtime,
+        CompilationMode compilationMode) {
+      for (TestCondition condition : conditions) {
+        if (condition.test(dexTool, compilerUnderTest, runtime, compilationMode)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public boolean test(
+        DexTool dexTool,
+        CompilerUnderTest compilerUnderTest,
+        DexVm.Version version,
+        CompilationMode compilationMode) {
+      for (TestCondition condition : conditions) {
+        if (condition.test(dexTool, compilerUnderTest, version, compilationMode)) {
+          return true;
+        }
+      }
+      return false;
+    }
   }
 }
