@@ -82,6 +82,13 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
+  public T addKeepClassAndMembersRulesWithAllowObfuscation(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      addKeepRules("-keep,allowobfuscation class " + clazz.getTypeName() + " { *; }");
+    }
+    return self();
+  }
+
   public T addKeepClassAndDefaultConstructor(Class<?>... classes) {
     for (Class<?> clazz : classes) {
       addKeepRules("-keep class " + clazz.getTypeName() + " { <init>(); }");
