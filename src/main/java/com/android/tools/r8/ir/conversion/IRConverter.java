@@ -193,19 +193,22 @@ public class IRConverter {
       AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
       assert rootSet != null;
+      this.classInliner =
+          options.enableClassInlining && options.enableInlining
+              ? new ClassInliner(appViewWithLiveness, lambdaRewriter)
+              : null;
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
       this.nonNullTracker =
           new NonNullTracker(
-              appInfoWithLiveness, libraryMethodsReturningNonNull(appView.dexItemFactory()));
-      this.inliner = new Inliner(appViewWithLiveness, this, options, mainDexClasses);
-      this.outliner = new Outliner(appInfoWithLiveness, options, this);
+              appViewWithLiveness, libraryMethodsReturningNonNull(appView.dexItemFactory()));
+      this.inliner = new Inliner(appViewWithLiveness, mainDexClasses);
+      this.outliner = new Outliner(appViewWithLiveness, this);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness);
       if (!appInfoWithLiveness.identifierNameStrings.isEmpty() && options.enableMinification) {
-        this.identifierNameStringMarker =
-            new IdentifierNameStringMarker(appInfoWithLiveness, options);
+        this.identifierNameStringMarker = new IdentifierNameStringMarker(appViewWithLiveness);
       } else {
         this.identifierNameStringMarker = null;
       }
@@ -217,6 +220,7 @@ public class IRConverter {
               : null;
       this.typeChecker = new TypeChecker(appView);
     } else {
+      this.classInliner = null;
       this.classStaticizer = null;
       this.nonNullTracker = null;
       this.inliner = null;
@@ -228,18 +232,9 @@ public class IRConverter {
       this.uninstantiatedTypeOptimization = null;
       this.typeChecker = null;
     }
-    this.classInliner =
-        (options.enableClassInlining && options.enableInlining && inliner != null)
-            ? new ClassInliner(
-                appView.dexItemFactory(), lambdaRewriter, options.classInliningInstructionLimit)
-            : null;
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
     this.idempotentFunctionCallCanonicalizer =
         new IdempotentFunctionCallCanonicalizer(appView.dexItemFactory());
-  }
-
-  public GraphLense graphLense() {
-    return appView != null ? appView.graphLense() : GraphLense.getIdentityLense();
   }
 
   public Set<DexCallSite> getDesugaredCallSites() {
@@ -309,12 +304,11 @@ public class IRConverter {
     }
   }
 
-  private Set<DexEncodedMethod> staticizeClasses(
-      OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
+  private void staticizeClasses(OptimizationFeedback feedback, ExecutorService executorService)
+      throws ExecutionException {
     if (classStaticizer != null) {
-      return classStaticizer.staticizeCandidates(feedback, executorService);
+      classStaticizer.staticizeCandidates(feedback, executorService);
     }
-    return ImmutableSet.of();
   }
 
   private void collectStaticizerCandidates(DexApplication application) {
@@ -519,7 +513,7 @@ public class IRConverter {
     printPhase("Primary optimization pass");
 
     // Process the application identifying outlining candidates.
-    GraphLense graphLenseForIR = graphLense();
+    GraphLense graphLenseForIR = appView.graphLense();
     OptimizationFeedbackDelayed feedback = delayedOptimizationFeedback;
     {
       timing.begin("Build call graph");
@@ -535,16 +529,16 @@ public class IRConverter {
           this::waveDone,
           executorService);
       timing.end();
-      assert graphLenseForIR == graphLense();
+      assert graphLenseForIR == appView.graphLense();
     }
 
     // Second inlining pass for dealing with double inline callers.
     if (inliner != null) {
       printPhase("Double caller inlining");
-      assert graphLenseForIR == graphLense();
+      assert graphLenseForIR == appView.graphLense();
       inliner.processDoubleInlineCallers(this, executorService, feedback);
       feedback.updateVisibleOptimizationInfo();
-      assert graphLenseForIR == graphLense();
+      assert graphLenseForIR == appView.graphLense();
     }
 
     // TODO(b/112831361): Implement support for staticizeClasses in CF backend.
@@ -654,7 +648,6 @@ public class IRConverter {
   private void forEachSelectedOutliningMethod(
       ExecutorService executorService, BiConsumer<IRCode, DexEncodedMethod> consumer)
       throws ExecutionException {
-    assert appView != null;
     assert !options.skipIR;
     Set<DexEncodedMethod> methods = outliner.getMethodsSelectedForOutlining();
     List<Future<?>> futures = new ArrayList<>();
@@ -663,11 +656,7 @@ public class IRConverter {
           executorService.submit(
               () -> {
                 IRCode code =
-                    method.buildIR(
-                        appView.appInfo(),
-                        appView.graphLense(),
-                        options,
-                        appView.appInfo().originFor(method.method.holder));
+                    method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
                 assert code != null;
                 assert !method.getCode().isOutlineCode();
                 // Instead of repeating all the optimizations of rewriteCode(), only run the
@@ -685,7 +674,7 @@ public class IRConverter {
 
   private void collectLambdaMergingCandidates(DexApplication application) {
     if (lambdaMerger != null) {
-      lambdaMerger.collectGroupCandidates(application, appView.appInfo().withLiveness(), options);
+      lambdaMerger.collectGroupCandidates(application, appView.withLiveness());
     }
   }
 
@@ -846,9 +835,7 @@ public class IRConverter {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
     }
-    AppInfo appInfo = appView.appInfo();
-    IRCode code =
-        method.buildIR(appInfo, graphLense(), options, appInfo.originFor(method.method.holder));
+    IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
     if (code == null) {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
@@ -878,7 +865,7 @@ public class IRConverter {
       if (lensCodeRewriter != null) {
         lensCodeRewriter.rewrite(code, method);
       } else {
-        assert graphLense().isIdentityLense();
+        assert appView.graphLense().isIdentityLense();
       }
     }
 
@@ -899,7 +886,7 @@ public class IRConverter {
     // assert fails, then the types that we have inferred are unsound, or the method does not type
     // check. In the latter case, the type checker should be extended to detect the issue such that
     // we will return with finalizeEmptyThrowingCode() above.
-    assert code.verifyTypes(appInfo, appView, graphLense());
+    assert code.verifyTypes(appView);
 
     if (classStaticizer != null) {
       classStaticizer.fixupMethodCode(method, code);
@@ -917,11 +904,12 @@ public class IRConverter {
       memberValuePropagation.rewriteWithConstantValues(
           code, method.method.holder, isProcessedConcurrently);
     }
-    if (options.enableSwitchMapRemoval && appInfo.hasLiveness()) {
+    if (options.enableSwitchMapRemoval) {
+      assert appView.enableWholeProgramOptimizations();
       codeRewriter.removeSwitchMaps(code);
     }
     if (options.disableAssertions) {
-      codeRewriter.disableAssertions(appInfo, method, code, feedback);
+      codeRewriter.disableAssertions(appView, method, code, feedback);
     }
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
@@ -939,9 +927,9 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after inlining (SSA)", previous);
 
-    if (appInfo.hasLiveness()) {
+    if (appView.appInfo().hasLiveness()) {
       // Reflection optimization 1. getClass() -> const-class
-      ReflectionOptimizer.rewriteGetClass(appInfo.withLiveness(), code);
+      ReflectionOptimizer.rewriteGetClass(appView.withLiveness(), code);
     }
 
     if (!isDebugMode) {
@@ -957,14 +945,14 @@ public class IRConverter {
     }
 
     if (devirtualizer != null) {
-      assert code.verifyTypes(appInfo, appView, graphLense());
+      assert code.verifyTypes(appView);
       devirtualizer.devirtualizeInvokeInterface(code, method.method.getHolder());
     }
     if (uninstantiatedTypeOptimization != null) {
       uninstantiatedTypeOptimization.rewrite(method, code);
     }
 
-    assert code.verifyTypes(appInfo, appView, graphLense());
+    assert code.verifyTypes(appView);
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
         code, appView.enableWholeProgramOptimizations());
 
@@ -979,8 +967,7 @@ public class IRConverter {
     codeRewriter.simplifyIf(code);
     // TODO(b/123284765) This produces a runtime-crash in Q. Activate again when fixed.
     // codeRewriter.redundantConstNumberRemoval(code);
-    new RedundantFieldLoadElimination(appInfo, code, appView.enableWholeProgramOptimizations())
-        .run();
+    new RedundantFieldLoadElimination(appView, code).run();
 
     if (options.testing.invertConditionals) {
       invertConditionalsForTesting(code);
@@ -1022,7 +1009,7 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after lambda desugaring (SSA)", previous);
 
-    assert code.verifyTypes(appInfo, appView, graphLense());
+    assert code.verifyTypes(appView);
 
     previous = printMethod(code, "IR before class inlining (SSA)", previous);
 
@@ -1031,7 +1018,7 @@ public class IRConverter {
       // lambda, it does not get collected by merger.
       assert options.enableInlining && inliner != null;
       classInliner.processMethodCode(
-          appInfo.withLiveness(),
+          appView.withLiveness(),
           codeRewriter,
           stringOptimizer,
           method,
@@ -1169,9 +1156,9 @@ public class IRConverter {
       // These hints are on the original holder. To find the original holder, we first find the
       // original method signature (this could have changed as a result of, for example, class
       // merging). Then, we find the type that now corresponds to the the original holder.
-      DexMethod originalSignature = graphLense().getOriginalMethodSignature(method.method);
+      DexMethod originalSignature = appView.graphLense().getOriginalMethodSignature(method.method);
       DexClass originalHolder =
-          appView.definitionFor(graphLense().lookupType(originalSignature.holder));
+          appView.definitionFor(appView.graphLense().lookupType(originalSignature.holder));
       if (originalHolder.hasKotlinInfo()) {
         KotlinInfo kotlinInfo = originalHolder.getKotlinInfo();
         if (kotlinInfo.hasNonNullParameterHints()) {
@@ -1232,15 +1219,15 @@ public class IRConverter {
 
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert !method.getCode().isDexCode();
-    CfBuilder builder = new CfBuilder(method, code, options.itemFactory);
-    CfCode result = builder.build(codeRewriter, graphLense(), options, appView.appInfo());
+    CfBuilder builder = new CfBuilder(appView, method, code);
+    CfCode result = builder.build(codeRewriter);
     method.setCode(result);
     markProcessed(method, code, feedback);
   }
 
   private void finalizeToDex(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // Workaround massive dex2oat memory use for self-recursive methods.
-    CodeRewriter.disableDex2OatInliningForSelfRecursiveMethods(code, options, appView.appInfo());
+    CodeRewriter.disableDex2OatInliningForSelfRecursiveMethods(appView, code);
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
     method.setCode(code, registerAllocator, options);

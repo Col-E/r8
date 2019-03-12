@@ -293,8 +293,8 @@ public class CodeRewriter {
   // For method with many self-recursive calls, insert a try-catch to disable inlining.
   // Marshmallow dex2oat aggressively inlines and eats up all the memory on devices.
   public static void disableDex2OatInliningForSelfRecursiveMethods(
-      IRCode code, InternalOptions options, AppInfo appInfo) {
-    if (!options.canHaveDex2OatInliningIssue() || code.hasCatchHandlers()) {
+      AppView<? extends AppInfo> appView, IRCode code) {
+    if (!appView.options().canHaveDex2OatInliningIssue() || code.hasCatchHandlers()) {
       // Catch handlers disables inlining, so if the method already has catch handlers
       // there is nothing to do.
       return;
@@ -317,13 +317,9 @@ public class CodeRewriter {
       splitIterator.previous();
       BasicBlock newBlock = splitIterator.split(code, 1);
       // Generate rethrow block.
-      DexType guard = options.itemFactory.throwableType;
-      BasicBlock rethrowBlock = BasicBlock.createRethrowBlock(
-          code,
-          lastSelfRecursiveCall.getPosition(),
-          guard,
-          appInfo,
-          options);
+      DexType guard = appView.dexItemFactory().throwableType;
+      BasicBlock rethrowBlock =
+          BasicBlock.createRethrowBlock(code, lastSelfRecursiveCall.getPosition(), guard, appView);
       code.blocks.add(rethrowBlock);
       // Add catch handler to the block containing the last recursive call.
       newBlock.addCatchHandler(rethrowBlock, guard);
@@ -1606,8 +1602,7 @@ public class CodeRewriter {
     if (options.isGeneratingClassFiles()) {
       return;
     }
-    AppInfo appInfo = appView.appInfo();
-    AppInfoWithLiveness appInfoWithLiveness = appInfo.withLiveness();
+    AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
     Set<Value> needToWidenValues = Sets.newIdentityHashSet();
     Set<Value> needToNarrowValues = Sets.newIdentityHashSet();
     InstructionIterator iterator = code.instructionIterator();
@@ -1647,15 +1642,16 @@ public class CodeRewriter {
             if (target != null) {
               DexMethod invokedMethod = target.method;
               // Check if the invoked method is known to return one of its arguments.
-              DexEncodedMethod definition = appInfo.definitionFor(invokedMethod);
+              DexEncodedMethod definition = appView.definitionFor(invokedMethod);
               if (definition != null && definition.getOptimizationInfo().returnsArgument()) {
                 int argumentIndex = definition.getOptimizationInfo().getReturnedArgument();
                 // Replace the out value of the invoke with the argument and ignore the out value.
                 if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
                   Value argument = invoke.arguments().get(argumentIndex);
                   assert outValue.verifyCompatible(argument.outType());
-                  if (argument.getTypeLattice().lessThanOrEqual(
-                      outValue.getTypeLattice(), appInfo)) {
+                  if (argument
+                      .getTypeLattice()
+                      .lessThanOrEqual(outValue.getTypeLattice(), appView)) {
                     needToNarrowValues.addAll(outValue.affectedValues());
                   } else {
                     needToWidenValues.addAll(outValue.affectedValues());
@@ -1670,7 +1666,7 @@ public class CodeRewriter {
       }
     }
     if (!needToWidenValues.isEmpty() || !needToNarrowValues.isEmpty()) {
-      TypeAnalysis analysis = new TypeAnalysis(appInfo, code.method);
+      TypeAnalysis analysis = new TypeAnalysis(appView, code.method);
       // If out value of invoke < argument (e.g., losing non-null info), widen users type.
       if (!needToWidenValues.isEmpty()) {
         analysis.widening(needToWidenValues);
@@ -1684,10 +1680,11 @@ public class CodeRewriter {
   }
 
   /**
-   * For supporting assert javac adds the static field $assertionsDisabled to all classes which
-   * have methods with assertions. This is used to support the Java VM -ea flag.
+   * For supporting assert javac adds the static field $assertionsDisabled to all classes which have
+   * methods with assertions. This is used to support the Java VM -ea flag.
    *
-   * The class:
+   * <p>The class:
+   *
    * <pre>
    * class A {
    *   void m() {
@@ -1695,7 +1692,9 @@ public class CodeRewriter {
    *   }
    * }
    * </pre>
+   *
    * Is compiled into:
+   *
    * <pre>
    * class A {
    *   static boolean $assertionsDisabled;
@@ -1713,7 +1712,9 @@ public class CodeRewriter {
    *   }
    * }
    * </pre>
+   *
    * With the rewriting below (and other rewritings) the resulting code is:
+   *
    * <pre>
    * class A {
    *   void m() {
@@ -1722,7 +1723,10 @@ public class CodeRewriter {
    * </pre>
    */
   public void disableAssertions(
-      AppInfo appInfo, DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+      AppView<? extends AppInfo> appView,
+      DexEncodedMethod method,
+      IRCode code,
+      OptimizationFeedback feedback) {
     if (method.isClassInitializer()) {
       if (!hasJavacClinitAssertionCode(code)) {
         return;
@@ -1732,7 +1736,7 @@ public class CodeRewriter {
     } else {
       // If the clinit of this class did not have have code to turn on assertions don't try to
       // remove assertion code from the method.
-      DexClass clazz = appInfo.definitionFor(method.method.holder);
+      DexClass clazz = appView.definitionFor(method.method.holder);
       if (clazz == null) {
         return;
       }
@@ -2931,7 +2935,7 @@ public class CodeRewriter {
     }
     Set<Value> affectedValues = code.removeUnreachableBlocks();
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView.appInfo(), code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView, code.method).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }

@@ -7,8 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
@@ -20,9 +19,9 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterNullCheck;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableSet;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -35,14 +34,13 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
       int expectedNumberOfNonNull,
       Consumer<IRCode> testAugmentedIRCode)
       throws Exception {
-    AppInfoWithLiveness appInfo = build(testClass);
-    CodeInspector codeInspector = new CodeInspector(appInfo.app);
-    DexEncodedMethod foo = codeInspector.clazz(testClass.getName()).method(signature).getMethod();
-    IRCode irCode =
-        foo.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
+    AppView<? extends AppInfoWithLiveness> appView = build(testClass);
+    CodeInspector codeInspector = new CodeInspector(appView.appInfo().app);
+    MethodSubject fooSubject = codeInspector.clazz(testClass.getName()).method(signature);
+    IRCode irCode = fooSubject.buildIR();
     checkCountOfNonNull(irCode, 0);
 
-    NonNullTracker nonNullTracker = new NonNullTracker(appInfo, ImmutableSet.of());
+    NonNullTracker nonNullTracker = new NonNullTracker(appView, ImmutableSet.of());
 
     nonNullTracker.addNonNull(irCode);
     assertTrue(irCode.isConsistentSSA());

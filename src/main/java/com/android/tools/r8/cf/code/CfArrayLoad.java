@@ -75,7 +75,7 @@ public class CfArrayLoad extends CfInstruction {
     assert array.type.isObject();
     ValueType memberType = ValueType.fromMemberType(type);
     if (array.preciseType != null) {
-      value = state.push(array.preciseType.toArrayElementType(builder.getFactory()));
+      value = state.push(array.preciseType.toArrayElementType(builder.appView.dexItemFactory()));
       assert state.peek().type == memberType;
     } else {
       value = state.push(memberType);

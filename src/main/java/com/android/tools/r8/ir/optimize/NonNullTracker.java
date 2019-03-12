@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -40,13 +41,13 @@ import java.util.function.Predicate;
 
 public class NonNullTracker {
 
-  private final AppInfoWithLiveness appInfo;
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final Set<DexMethod> libraryMethodsReturningNonNull;
 
   public NonNullTracker(
-      AppInfoWithLiveness appInfo,
+      AppView<? extends AppInfoWithLiveness> appView,
       Set<DexMethod> libraryMethodsReturningNonNull) {
-    this.appInfo = appInfo;
+    this.appView = appView;
     this.libraryMethodsReturningNonNull = libraryMethodsReturningNonNull;
   }
 
@@ -121,7 +122,9 @@ public class NonNullTracker {
         }
         if (current.isInvokeMethod() && !current.isInvokePolymorphic()) {
           DexEncodedMethod singleTarget =
-              current.asInvokeMethod().lookupSingleTarget(appInfo, code.method.method.getHolder());
+              current
+                  .asInvokeMethod()
+                  .lookupSingleTarget(appView.appInfo(), code.method.method.getHolder());
           if (singleTarget != null
               && singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits() != null) {
             BitSet facts = singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits();
@@ -218,7 +221,7 @@ public class NonNullTracker {
       }
     }
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appInfo, code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView, code.method).narrowing(affectedValues);
     }
   }
 
@@ -500,7 +503,7 @@ public class NonNullTracker {
     // Since z is defined as "z = (T) x", and x is nullable, it is no longer sound to have that z
     // is not nullable. This is fixed by rerunning the type analysis for the affected values.
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appInfo, code.method).widening(affectedValues);
+      new TypeAnalysis(appView, code.method).widening(affectedValues);
     }
   }
 

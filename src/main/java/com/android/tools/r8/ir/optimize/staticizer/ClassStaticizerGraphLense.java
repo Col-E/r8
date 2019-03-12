@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
@@ -16,17 +16,17 @@ import com.google.common.collect.ImmutableMap;
 class ClassStaticizerGraphLense extends NestedGraphLense {
 
   ClassStaticizerGraphLense(
-      GraphLense previous,
-      DexItemFactory factory,
+      AppView<? extends AppInfo> appView,
       BiMap<DexField, DexField> fieldMapping,
       BiMap<DexMethod, DexMethod> methodMapping) {
-    super(ImmutableMap.of(),
+    super(
+        ImmutableMap.of(),
         methodMapping,
         fieldMapping,
         fieldMapping.inverse(),
         methodMapping.inverse(),
-        previous,
-        factory);
+        appView.graphLense(),
+        appView.dexItemFactory());
   }
 
   @Override

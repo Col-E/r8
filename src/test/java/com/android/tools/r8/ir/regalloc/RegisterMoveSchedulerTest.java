@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -106,7 +107,7 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public BasicBlock inlineInvoke(
-        AppInfo appInfo,
+        AppView<? extends AppInfo> appView,
         IRCode code,
         IRCode inlinee,
         ListIterator<BasicBlock> blockIterator,

@@ -29,6 +29,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -751,8 +752,7 @@ public class MainDexListTests extends TestBase {
                 DexAnnotationSet.empty(),
                 ParameterAnnotationsList.empty(),
                 code);
-        IRCode ir =
-            code.buildIR(method, null, GraphLense.getIdentityLense(), options, Origin.unknown());
+        IRCode ir = code.buildIR(method, AppView.createForR8(null, options), Origin.unknown());
         RegisterAllocator allocator = new LinearScanRegisterAllocator(appInfo, ir, options);
         method.setCode(ir, allocator, options);
         directMethods[i] = method;

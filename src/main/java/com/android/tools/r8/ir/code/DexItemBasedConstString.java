@@ -126,12 +126,13 @@ public class DexItemBasedConstString extends ConstInstruction {
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return helper.getFactory().stringType;
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+    return appView.dexItemFactory().stringType;
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.stringClassType(appInfo, Nullability.definitelyNotNull());
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+    return TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull());
   }
 }

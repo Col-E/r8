@@ -58,7 +58,6 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -71,13 +70,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LensCodeRewriter {
 
   private final AppView<? extends AppInfo> appView;
-  private final InternalOptions options;
 
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
 
   public LensCodeRewriter(AppView<? extends AppInfoWithSubtyping> appView) {
     this.appView = appView;
-    this.options = appView.options();
   }
 
   private Value makeOutValue(Instruction insn, IRCode code, Set<Value> collector) {
@@ -102,7 +99,7 @@ public class LensCodeRewriter {
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
-      if (block.hasCatchHandlers() && options.enableVerticalClassMerging) {
+      if (block.hasCatchHandlers() && appView.options().enableVerticalClassMerging) {
         boolean anyGuardsRenamed = block.renameGuardsInCatchHandlers(graphLense);
         if (anyGuardsRenamed) {
           mayHaveUnreachableBlocks |= unlinkDeadCatchHandlers(block);
@@ -341,7 +338,9 @@ public class LensCodeRewriter {
           if (newExceptionType != moveException.getExceptionType()) {
             iterator.replaceCurrentInstruction(
                 new MoveException(
-                    makeOutValue(moveException, code, newSSAValues), newExceptionType, options));
+                    makeOutValue(moveException, code, newSSAValues),
+                    newExceptionType,
+                    appView.options()));
           }
         } else if (current.isNewArrayEmpty()) {
           NewArrayEmpty newArrayEmpty = current.asNewArrayEmpty();
@@ -366,7 +365,7 @@ public class LensCodeRewriter {
       code.removeUnreachableBlocks();
     }
     if (!newSSAValues.isEmpty()) {
-      new TypeAnalysis(appInfo, method).widening(newSSAValues);
+      new TypeAnalysis(appView, method).widening(newSSAValues);
     }
     assert code.isConsistentSSA();
   }
@@ -400,17 +399,20 @@ public class LensCodeRewriter {
       if (newInstance.clazz != invokedMethod.holder
           && verticallyMergedClasses.hasBeenMergedIntoSubtype(invokedMethod.holder)) {
         // Generated code will not work. Fail with a compilation error.
-        throw options.reporter.fatalError(
-            String.format(
-                "Unable to rewrite `invoke-direct %s.<init>(new %s, ...)` in method `%s` after "
-                    + "type `%s` was merged into `%s`. Please add the following rule to your "
-                    + "Proguard configuration file: `-keep,allowobfuscation class %s`.",
-                invokedMethod.holder.toSourceString(),
-                newInstance.clazz,
-                method.toSourceString(),
-                invokedMethod.holder,
-                verticallyMergedClasses.getTargetFor(invokedMethod.holder),
-                invokedMethod.holder.toSourceString()));
+        throw appView
+            .options()
+            .reporter
+            .fatalError(
+                String.format(
+                    "Unable to rewrite `invoke-direct %s.<init>(new %s, ...)` in method `%s` after "
+                        + "type `%s` was merged into `%s`. Please add the following rule to your "
+                        + "Proguard configuration file: `-keep,allowobfuscation class %s`.",
+                    invokedMethod.holder.toSourceString(),
+                    newInstance.clazz,
+                    method.toSourceString(),
+                    invokedMethod.holder,
+                    verticallyMergedClasses.getTargetFor(invokedMethod.holder),
+                    invokedMethod.holder.toSourceString()));
       }
     }
   }

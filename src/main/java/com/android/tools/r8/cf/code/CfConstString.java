@@ -55,6 +55,7 @@ public class CfConstString extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    builder.addConstString(state.push(builder.getFactory().stringType).register, string);
+    builder.addConstString(
+        state.push(builder.appView.dexItemFactory().stringType).register, string);
   }
 }

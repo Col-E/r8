@@ -108,7 +108,8 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     return type;
   }
 
@@ -125,7 +126,7 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(type, Nullability.definitelyNotNull(), appInfo);
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+    return TypeLatticeElement.fromDexType(type, Nullability.definitelyNotNull(), appView);
   }
 }

@@ -48,6 +48,7 @@ public class CfInstanceOf extends CfInstruction {
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     int value = state.pop().register;
-    builder.addInstanceOf(state.push(builder.getFactory().booleanType).register, value, type);
+    builder.addInstanceOf(
+        state.push(builder.appView.dexItemFactory().booleanType).register, value, type);
   }
 }

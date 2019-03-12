@@ -97,14 +97,14 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     return exceptionType;
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(
-        exceptionType, Nullability.definitelyNotNull(), appInfo);
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+    return TypeLatticeElement.fromDexType(exceptionType, Nullability.definitelyNotNull(), appView);
   }
 
   public DexType getExceptionType() {

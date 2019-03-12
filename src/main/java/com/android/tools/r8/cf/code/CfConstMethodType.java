@@ -49,6 +49,7 @@ public class CfConstMethodType extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    builder.addConstMethodType(state.push(builder.getFactory().methodTypeType).register, type);
+    builder.addConstMethodType(
+        state.push(builder.appView.dexItemFactory().methodTypeType).register, type);
   }
 }

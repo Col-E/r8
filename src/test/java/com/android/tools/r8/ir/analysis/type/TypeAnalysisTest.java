@@ -13,10 +13,10 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstString;
@@ -38,6 +38,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Smali;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +52,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -67,16 +67,17 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   private final String dirName;
   private final String smaliFileName;
-  private final Consumer<AppInfo> inspection;
+  private final BiConsumer<AppView<? extends AppInfo>, CodeInspector> inspection;
 
-  public TypeAnalysisTest(String test, Consumer<AppInfo> inspection) {
+  public TypeAnalysisTest(
+      String test, BiConsumer<AppView<? extends AppInfo>, CodeInspector> inspection) {
     dirName = test.substring(0, test.lastIndexOf('/'));
     smaliFileName = test.substring(test.lastIndexOf('/') + 1) + ".smali";
     this.inspection = inspection;
   }
 
   @Parameters(name = "{0}")
-  public static Collection<Object[]> data() throws Exception {
+  public static Collection<Object[]> data() {
     List<String> tests = Arrays.asList(
         "arithmetic/Arithmetic",
         "fibonacci/Fibonacci",
@@ -88,7 +89,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         "type-confusion-regression5/TestObject"
     );
 
-    Map<String, Consumer<AppInfo>> inspections = new HashMap<>();
+    Map<String, BiConsumer<AppView<? extends AppInfo>, CodeInspector>> inspections =
+        new HashMap<>();
     inspections.put("arithmetic/Arithmetic", TypeAnalysisTest::arithmetic);
     inspections.put("fibonacci/Fibonacci", TypeAnalysisTest::fibonacci);
     inspections.put("fill-array-data/FillArrayData", TypeAnalysisTest::fillArrayData);
@@ -100,7 +102,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
     List<Object[]> testCases = new ArrayList<>();
     for (String test : tests) {
-      Consumer<AppInfo> inspection = inspections.get(test);
+      BiConsumer<AppView<? extends AppInfo>, CodeInspector> inspection = inspections.get(test);
       testCases.add(new Object[]{test, inspection});
     }
     return testCases;
@@ -117,7 +119,9 @@ public class TypeAnalysisTest extends SmaliTestBase {
     DexApplication dexApplication =
         new ApplicationReader(app, TEST_OPTIONS, new Timing("TypeAnalysisTest.appReader"))
             .read().toDirect();
-    inspection.accept(new AppInfo(dexApplication));
+    inspection.accept(
+        AppView.createForR8(new AppInfo(dexApplication), TEST_OPTIONS),
+        new CodeInspector(dexApplication));
   }
 
   private static void forEachOutValue(
@@ -132,16 +136,15 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // Simple one path with a lot of arithmetic operations.
-  private static void arithmetic(AppInfo appInfo) {
-    CodeInspector inspector = new CodeInspector(appInfo.app);
-    DexEncodedMethod subtract =
-        inspector.clazz("Test")
+  private static void arithmetic(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+    MethodSubject subtractSubject =
+        inspector
+            .clazz("Test")
             .method(
-                new MethodSignature("subtractConstants8bitRegisters", "int", ImmutableList.of()))
-            .getMethod();
-    IRCode irCode =
-        subtract.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, subtract);
+                new MethodSignature("subtractConstants8bitRegisters", "int", ImmutableList.of()));
+    DexEncodedMethod subtract = subtractSubject.getMethod();
+    IRCode irCode = subtractSubject.buildIR();
+    TypeAnalysis analysis = new TypeAnalysis(appView, subtract);
     analysis.widening(subtract, irCode);
     forEachOutValue(irCode, (v, l) -> {
       // v9 <- 9 (INT_OR_FLOAT), which is never used later, hence imprecise.
@@ -150,31 +153,25 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // A couple branches, along with some recursive calls.
-  private static void fibonacci(AppInfo appInfo) {
-    CodeInspector inspector = new CodeInspector(appInfo.app);
-    DexEncodedMethod fib =
-        inspector.clazz("Test")
-            .method(new MethodSignature("fibonacci", "int", ImmutableList.of("int")))
-            .getMethod();
-    IRCode irCode =
-        fib.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, fib);
+  private static void fibonacci(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+    MethodSubject fibSubject =
+        inspector
+            .clazz("Test")
+            .method(new MethodSignature("fibonacci", "int", ImmutableList.of("int")));
+    DexEncodedMethod fib = fibSubject.getMethod();
+    IRCode irCode = fibSubject.buildIR();
+    TypeAnalysis analysis = new TypeAnalysis(appView, fib);
     analysis.widening(fib, irCode);
-    forEachOutValue(irCode, (v, l) -> {
-      assertEither(l, INT, NULL);
-    });
+    forEachOutValue(irCode, (v, l) -> assertEither(l, INT, NULL));
   }
 
   // fill-array-data
-  private static void fillArrayData(AppInfo appInfo) {
-    CodeInspector inspector = new CodeInspector(appInfo.app);
-    DexEncodedMethod test1 =
-        inspector.clazz("Test")
-            .method(new MethodSignature("test1", "int[]", ImmutableList.of()))
-            .getMethod();
-    IRCode irCode =
-        test1.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, test1);
+  private static void fillArrayData(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+    MethodSubject test1Subject =
+        inspector.clazz("Test").method(new MethodSignature("test1", "int[]", ImmutableList.of()));
+    DexEncodedMethod test1 = test1Subject.getMethod();
+    IRCode irCode = test1Subject.buildIR();
+    TypeAnalysis analysis = new TypeAnalysis(appView, test1);
     analysis.widening(test1, irCode);
     Value array = null;
     InstructionIterator iterator = irCode.instructionIterator();
@@ -199,15 +196,12 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // filled-new-array
-  private static void filledNewArray(AppInfo appInfo) {
-    CodeInspector inspector = new CodeInspector(appInfo.app);
-    DexEncodedMethod test4 =
-        inspector.clazz("Test")
-            .method(new MethodSignature("test4", "int[]", ImmutableList.of()))
-            .getMethod();
-    IRCode irCode =
-        test4.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, test4);
+  private static void filledNewArray(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+    MethodSubject test4Subject =
+        inspector.clazz("Test").method(new MethodSignature("test4", "int[]", ImmutableList.of()));
+    DexEncodedMethod test4 = test4Subject.getMethod();
+    IRCode irCode = test4Subject.buildIR();
+    TypeAnalysis analysis = new TypeAnalysis(appView, test4);
     analysis.widening(test4, irCode);
     Value array = null;
     InstructionIterator iterator = irCode.instructionIterator();
@@ -232,15 +226,12 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // Make sure the analysis does not hang.
-  private static void infiniteLoop(AppInfo appInfo) {
-    CodeInspector inspector = new CodeInspector(appInfo.app);
-    DexEncodedMethod loop2 =
-        inspector.clazz("Test")
-            .method(new MethodSignature("loop2", "void", ImmutableList.of()))
-            .getMethod();
-    IRCode irCode =
-        loop2.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, loop2);
+  private static void infiniteLoop(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+    MethodSubject loop2Subject =
+        inspector.clazz("Test").method(new MethodSignature("loop2", "void", ImmutableList.of()));
+    DexEncodedMethod loop2 = loop2Subject.getMethod();
+    IRCode irCode = loop2Subject.buildIR();
+    TypeAnalysis analysis = new TypeAnalysis(appView, loop2);
     analysis.widening(loop2, irCode);
     forEachOutValue(irCode, (v, l) -> {
       if (l.isClassType()) {
@@ -253,15 +244,14 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // move-exception
-  private static void tryCatch(AppInfo appInfo) {
-    CodeInspector inspector = new CodeInspector(appInfo.app);
-    DexEncodedMethod test2 =
-        inspector.clazz("Test")
-            .method(new MethodSignature("test2_throw", "int", ImmutableList.of()))
-            .getMethod();
-    IRCode irCode =
-        test2.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, test2);
+  private static void tryCatch(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+    MethodSubject test2Subject =
+        inspector
+            .clazz("Test")
+            .method(new MethodSignature("test2_throw", "int", ImmutableList.of()));
+    DexEncodedMethod test2 = test2Subject.getMethod();
+    IRCode irCode = test2Subject.buildIR();
+    TypeAnalysis analysis = new TypeAnalysis(appView, test2);
     analysis.widening(test2, irCode);
     forEachOutValue(irCode, (v, l) -> {
       if (l.isClassType()) {
@@ -273,23 +263,22 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // One very complicated example.
-  private static void typeConfusion(AppInfo appInfo) {
-    CodeInspector inspector = new CodeInspector(appInfo.app);
-    DexEncodedMethod method =
-        inspector.clazz("TestObject")
+  private static void typeConfusion(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+    MethodSubject methodSubject =
+        inspector
+            .clazz("TestObject")
             .method(
-                new MethodSignature("a", "void",
-                    ImmutableList.of("Test", "Test", "Test", "Test")))
-            .getMethod();
-    DexType test = appInfo.dexItemFactory.createType("LTest;");
-    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-        ArrayLength.class, INT,
-        ConstString.class, TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
-        CheckCast.class, TypeLatticeElement.fromDexType(test, maybeNull(), appInfo),
-        NewInstance.class, TypeLatticeElement.fromDexType(test, definitelyNotNull(), appInfo));
-    IRCode irCode =
-        method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
+                new MethodSignature("a", "void", ImmutableList.of("Test", "Test", "Test", "Test")));
+    DexEncodedMethod method = methodSubject.getMethod();
+    DexType test = appView.dexItemFactory().createType("LTest;");
+    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+        ImmutableMap.of(
+            ArrayLength.class, INT,
+            ConstString.class, TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
+            CheckCast.class, TypeLatticeElement.fromDexType(test, maybeNull(), appView),
+            NewInstance.class, TypeLatticeElement.fromDexType(test, definitelyNotNull(), appView));
+    IRCode irCode = methodSubject.buildIR();
+    TypeAnalysis analysis = new TypeAnalysis(appView, method);
     analysis.widening(method, irCode);
     forEachOutValue(irCode, (v, l) -> {
       verifyTypeEnvironment(expectedLattices, v, l);
@@ -306,21 +295,20 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // One more complicated example.
-  private static void typeConfusion5(AppInfo appInfo) {
-    CodeInspector inspector = new CodeInspector(appInfo.app);
-    DexEncodedMethod method =
-        inspector.clazz("TestObject")
-            .method(
-                new MethodSignature("onClick", "void", ImmutableList.of("Test")))
-            .getMethod();
-    DexType test = appInfo.dexItemFactory.createType("LTest;");
-    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-      ConstString.class, TypeLatticeElement.stringClassType(appInfo, definitelyNotNull()),
-      InstanceOf.class, INT,
-      StaticGet.class, TypeLatticeElement.fromDexType(test, maybeNull(), appInfo));
-    IRCode irCode =
-        method.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, method);
+  private static void typeConfusion5(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+    MethodSubject methodSubject =
+        inspector
+            .clazz("TestObject")
+            .method(new MethodSignature("onClick", "void", ImmutableList.of("Test")));
+    DexEncodedMethod method = methodSubject.getMethod();
+    DexType test = appView.dexItemFactory().createType("LTest;");
+    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+        ImmutableMap.of(
+            ConstString.class, TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
+            InstanceOf.class, INT,
+            StaticGet.class, TypeLatticeElement.fromDexType(test, maybeNull(), appView));
+    IRCode irCode = methodSubject.buildIR();
+    TypeAnalysis analysis = new TypeAnalysis(appView, method);
     analysis.widening(method, irCode);
     forEachOutValue(irCode, (v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }

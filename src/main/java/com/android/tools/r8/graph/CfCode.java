@@ -215,23 +215,16 @@ public class CfCode extends Code {
 
   @Override
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
-      Origin origin) {
+      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
     assert getOwner() == encodedMethod;
-    return internalBuild(
-        encodedMethod, encodedMethod, appInfo, graphLense, options, null, null, origin);
+    return internalBuild(encodedMethod, encodedMethod, appView, null, null, origin);
   }
 
   @Override
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
+      AppView<? extends AppInfo> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
@@ -239,27 +232,18 @@ public class CfCode extends Code {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     return internalBuild(
-        context,
-        encodedMethod,
-        appInfo,
-        graphLense,
-        options,
-        valueNumberGenerator,
-        callerPosition,
-        origin);
+        context, encodedMethod, appView, valueNumberGenerator, callerPosition, origin);
   }
 
   private IRCode internalBuild(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
+      AppView<? extends AppInfo> appView,
       ValueNumberGenerator generator,
       Position callerPosition,
       Origin origin) {
     // TODO(b/109789541): Implement CF->IR->DEX for synchronized methods.
-    if (options.isGeneratingDex() && encodedMethod.accessFlags.isSynchronized()) {
+    if (appView.options().isGeneratingDex() && encodedMethod.accessFlags.isSynchronized()) {
       throw new Unimplemented(
           "Converting CfCode to IR not supported for DEX output of synchronized methods.");
     }
@@ -267,12 +251,11 @@ public class CfCode extends Code {
         new CfSourceCode(
             this,
             encodedMethod,
-            graphLense.getOriginalMethodSignature(encodedMethod.method),
+            appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
             callerPosition,
             origin,
-            options.getInternalOutputMode());
-    return new IRBuilder(encodedMethod, appInfo, source, options, origin, generator, graphLense)
-        .build(context);
+            appView.options().getInternalOutputMode());
+    return new IRBuilder(encodedMethod, appView, source, origin, generator).build(context);
   }
 
   @Override

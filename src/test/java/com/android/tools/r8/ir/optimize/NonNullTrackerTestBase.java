@@ -24,31 +24,26 @@ import com.google.common.collect.ImmutableList;
 import java.util.concurrent.ExecutorService;
 
 public abstract class NonNullTrackerTestBase extends TestBase {
-  protected static final InternalOptions TEST_OPTIONS = new InternalOptions();
 
-  protected AppInfoWithLiveness build(Class<?> mainClass) throws Exception {
+  protected AppView<? extends AppInfoWithLiveness> build(Class<?> mainClass) throws Exception {
     Timing timing = new Timing(getClass().getSimpleName());
     AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(mainClass));
-    DexApplication dexApplication =
-        new ApplicationReader(app, TEST_OPTIONS, timing).read().toDirect();
+    InternalOptions options = new InternalOptions();
+    DexApplication dexApplication = new ApplicationReader(app, options, timing).read().toDirect();
     AppView<? extends AppInfoWithSubtyping> appView =
-        AppView.createForR8(new AppInfoWithSubtyping(dexApplication), TEST_OPTIONS);
+        AppView.createForR8(new AppInfoWithSubtyping(dexApplication), options);
     appView.setAppServices(AppServices.builder(appView).build());
-    ExecutorService executorService = ThreadUtils.getExecutorService(TEST_OPTIONS);
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
     RootSet rootSet =
         new RootSetBuilder(
-            appView,
-            dexApplication,
-            ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})),
-            TEST_OPTIONS)
-        .run(executorService);
-    Enqueuer enqueuer =
-        new Enqueuer(appView, TEST_OPTIONS, null);
-    return enqueuer.traceApplication(
-        rootSet,
-        ProguardClassFilter.empty(),
-        executorService,
-        timing);
+                appView,
+                dexApplication,
+                ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})),
+                options)
+            .run(executorService);
+    Enqueuer enqueuer = new Enqueuer(appView, options, null);
+    return AppView.createForR8(
+        enqueuer.traceApplication(rootSet, ProguardClassFilter.empty(), executorService, timing),
+        options);
   }
-
 }

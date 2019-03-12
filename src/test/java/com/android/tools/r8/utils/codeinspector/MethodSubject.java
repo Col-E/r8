@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.google.common.collect.Streams;
@@ -14,7 +15,11 @@ import java.util.stream.Stream;
 
 public abstract class MethodSubject extends MemberSubject {
 
-  public abstract IRCode buildIR();
+  public final IRCode buildIR() {
+    return buildIR(new DexItemFactory());
+  }
+
+  public abstract IRCode buildIR(DexItemFactory dexItemFactory);
 
   public abstract boolean isAbstract();
 

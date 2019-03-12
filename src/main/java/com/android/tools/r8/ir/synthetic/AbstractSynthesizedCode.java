@@ -6,9 +6,9 @@ package com.android.tools.r8.ir.synthetic;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
 
 public abstract class AbstractSynthesizedCode extends Code {
@@ -37,21 +36,15 @@ public abstract class AbstractSynthesizedCode extends Code {
 
   @Override
   public final IRCode buildIR(
-      DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
-      Origin origin) {
+      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
     assert getOwner() == encodedMethod;
     IRBuilder builder =
         new IRBuilder(
             encodedMethod,
-            appInfo,
+            appView,
             getSourceCodeProvider().get(null),
-            options,
             origin,
-            new ValueNumberGenerator(),
-            graphLense);
+            new ValueNumberGenerator());
     return builder.build(encodedMethod);
   }
 
@@ -59,9 +52,7 @@ public abstract class AbstractSynthesizedCode extends Code {
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
+      AppView<? extends AppInfo> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
@@ -69,12 +60,10 @@ public abstract class AbstractSynthesizedCode extends Code {
     IRBuilder builder =
         new IRBuilder(
             encodedMethod,
-            appInfo,
+            appView,
             getSourceCodeProvider().get(callerPosition),
-            options,
             origin,
-            valueNumberGenerator,
-            graphLense);
+            valueNumberGenerator);
     return builder.build(context);
   }
 

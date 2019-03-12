@@ -6,6 +6,7 @@ package com.android.tools.r8.cf;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -103,9 +104,8 @@ public class TypeVerificationHelper {
   private final TypeInfo LONG;
   private final TypeInfo DOUBLE;
 
+  private final AppView<? extends AppInfo> appView;
   private final IRCode code;
-  private final DexItemFactory factory;
-  private final AppInfo appInfo;
 
   private Map<Value, TypeInfo> types;
   private Map<NewInstance, NewInstanceInfo> newInstanceInfos = new IdentityHashMap<>();
@@ -113,18 +113,15 @@ public class TypeVerificationHelper {
   // Flag to indicate that we are computing types in the fixed point.
   private boolean computingVerificationTypes = false;
 
-  public TypeVerificationHelper(IRCode code, DexItemFactory factory, AppInfo appInfo) {
+  public TypeVerificationHelper(AppView<? extends AppInfo> appView, IRCode code) {
+    this.appView = appView;
     this.code = code;
-    this.factory = factory;
-    this.appInfo = appInfo;
-    INT = new InitializedTypeInfo(factory.intType);
-    FLOAT = new InitializedTypeInfo(factory.floatType);
-    LONG = new InitializedTypeInfo(factory.longType);
-    DOUBLE = new InitializedTypeInfo(factory.doubleType);
-  }
 
-  public DexItemFactory getFactory() {
-    return factory;
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    INT = new InitializedTypeInfo(dexItemFactory.intType);
+    FLOAT = new InitializedTypeInfo(dexItemFactory.floatType);
+    LONG = new InitializedTypeInfo(dexItemFactory.longType);
+    DOUBLE = new InitializedTypeInfo(dexItemFactory.doubleType);
   }
 
   public TypeInfo createInitializedType(DexType type) {
@@ -188,13 +185,13 @@ public class TypeVerificationHelper {
     Iterator<DexType> iterator = types.iterator();
     TypeLatticeElement result = getLatticeElement(iterator.next());
     while (iterator.hasNext()) {
-      result = result.join(getLatticeElement(iterator.next()), appInfo);
+      result = result.join(getLatticeElement(iterator.next()), appView.appInfo());
     }
     // All types are reference types so the join is either a class or an array.
     if (result.isClassType()) {
       return result.asClassTypeLatticeElement().getClassType();
     } else if (result.isArrayType()) {
-      return result.asArrayTypeLatticeElement().getArrayType(factory);
+      return result.asArrayTypeLatticeElement().getArrayType(appView.dexItemFactory());
     }
     throw new CompilationError("Unexpected join " + result + " of types: " +
         String.join(", ",
@@ -220,7 +217,7 @@ public class TypeVerificationHelper {
   }
 
   private TypeLatticeElement getLatticeElement(DexType type) {
-    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appInfo);
+    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appView.appInfo());
   }
 
   public Map<Value, TypeInfo> computeVerificationTypes() {
@@ -273,7 +270,7 @@ public class TypeVerificationHelper {
                   nullsUsedInPhis.add(instruction.asConstNumber());
                 }
               }
-              DexType type = instruction.computeVerificationType(this);
+              DexType type = instruction.computeVerificationType(appView, this);
               types.put(outValue, createInitializedType(type));
               addUsers(outValue, worklist);
             }
@@ -316,7 +313,7 @@ public class TypeVerificationHelper {
   private DexType computeVerificationType(Value value) {
     return value.isPhi()
         ? value.asPhi().computeVerificationType(this)
-        : value.definition.computeVerificationType(this);
+        : value.definition.computeVerificationType(appView, this);
   }
 
   private static void addUsers(Value value, Set<Value> worklist) {

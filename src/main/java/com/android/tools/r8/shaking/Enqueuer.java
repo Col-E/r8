@@ -311,8 +311,7 @@ public class Enqueuer {
         if (!visited.add(staticFieldWritten)) {
           continue;
         }
-        DexEncodedField encodedStaticFieldWritten =
-            appInfo.resolveFieldOn(staticFieldWritten.clazz, staticFieldWritten);
+        DexEncodedField encodedStaticFieldWritten = appInfo.resolveField(staticFieldWritten);
         if (encodedStaticFieldWritten != null
             && encodedStaticFieldWritten.isProgramField(appInfo)) {
           result.add(encodedStaticFieldWritten.field);
@@ -614,7 +613,7 @@ public class Enqueuer {
         Log.verbose(getClass(), "Register Sput `%s`.", field);
       }
 
-      DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
+      DexEncodedField encodedField = appInfo.resolveField(field);
       if (encodedField != null && encodedField.isProgramField(appInfo)) {
         boolean isWrittenOutsideEnclosingStaticInitializer =
             currentMethod.method.holder != encodedField.field.clazz
@@ -1151,7 +1150,7 @@ public class Enqueuer {
   }
 
   private void markStaticFieldAsLive(DexField field, KeepReason reason) {
-    markStaticFieldAsLive(field, reason, appInfo.resolveFieldOn(field.clazz, field));
+    markStaticFieldAsLive(field, reason, appInfo.resolveField(field));
   }
 
   private void markStaticFieldAsLive(
@@ -1281,7 +1280,7 @@ public class Enqueuer {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking instance field `%s` as reachable.", field);
     }
-    DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
+    DexEncodedField encodedField = appInfo.resolveField(field);
     if (encodedField == null) {
       reportMissingField(field);
       return;
@@ -1760,7 +1759,7 @@ public class Enqueuer {
   private void handleReflectiveBehavior(DexEncodedMethod method) {
     DexType originHolder = method.method.holder;
     Origin origin = appInfo.originFor(originHolder);
-    IRCode code = method.buildIR(appInfo, appView.graphLense(), options, origin);
+    IRCode code = method.buildIR(appView, origin);
     Iterator<Instruction> iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();

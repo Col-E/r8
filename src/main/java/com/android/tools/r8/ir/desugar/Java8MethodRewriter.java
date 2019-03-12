@@ -71,7 +71,7 @@ public final class Java8MethodRewriter {
       }
       InvokeStatic invoke = instruction.asInvokeStatic();
 
-      MethodGenerator generator = getMethodGeneratorOrNull(converter, invoke.getInvokedMethod());
+      MethodGenerator generator = getMethodGeneratorOrNull(invoke.getInvokedMethod());
       if (generator == null) {
         continue;
       }
@@ -151,8 +151,8 @@ public final class Java8MethodRewriter {
     }
   }
 
-  private MethodGenerator getMethodGeneratorOrNull(IRConverter converter, DexMethod method) {
-    DexMethod original = converter.graphLense().getOriginalMethodSignature(method);
+  private MethodGenerator getMethodGeneratorOrNull(DexMethod method) {
+    DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
     assert original != null;
     return rewritableMethods.getGenerator(
         original.holder.descriptor, original.name, original.proto);

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import java.util.ArrayList;
 import java.util.List;
@@ -100,30 +101,31 @@ public interface InstructionListIterator
    * Inline the code in {@code inlinee} into {@code code}, replacing the invoke instruction at the
    * position after the cursor.
    *
-   * The instruction at the position after cursor must be an invoke that matches the signature for
-   * the code in {@code inlinee}.
+   * <p>The instruction at the position after cursor must be an invoke that matches the signature
+   * for the code in {@code inlinee}.
    *
-   * With one exception (see below) both the calling code and the inlinee can have catch handlers.
+   * <p>With one exception (see below) both the calling code and the inlinee can have catch
+   * handlers.
    *
-   * <strong>EXCEPTION:</strong> If the invoke instruction is covered by catch handlers, and the
+   * <p><strong>EXCEPTION:</strong> If the invoke instruction is covered by catch handlers, and the
    * code for {@code inlinee} always throws (does not have a normal return) inlining is currently
    * <strong>NOT</strong> supported.
    *
-   * @param appInfo {@link AppInfo} to retrieve class definition.
+   * @param appView {@link AppView} to retrieve class definition.
    * @param code the IR code for the block this iterator originates from.
    * @param inlinee the IR code for the block this iterator originates from.
    * @param blockIterator basic block iterator used to iterate the blocks. This must be positioned
-   * just after the block for which this is the instruction iterator. After this method returns it
-   * will be positioned just after the basic block returned.
+   *     just after the block for which this is the instruction iterator. After this method returns
+   *     it will be positioned just after the basic block returned.
    * @param blocksToRemove list passed where blocks that where detached from the graph, but not
-   * removed are added. When inlining an inlinee that always throws blocks in the <code>code</code>
-   * can be detached, and not simply removed unsing the passed <code>blockIterator</code>. When
-   * iterating using <code>blockIterator</code> after then method returns the blocks in this list
-   * must be skipped when iterating with the active <code>blockIterator</code> and ultimately
-   * removed.
+   *     removed are added. When inlining an inlinee that always throws blocks in the <code>code
+   *     </code> can be detached, and not simply removed unsing the passed <code>blockIterator
+   *     </code>. When iterating using <code>blockIterator</code> after then method returns the
+   *     blocks in this list must be skipped when iterating with the active <code>blockIterator
+   *     </code> and ultimately removed.
    * @param downcast tells the inliner to issue a check cast operation.
    * @return the basic block with the instructions right after the inlining. This can be a block
-   * which can also be in the <code>blocksToRemove</code> list.
+   *     which can also be in the <code>blocksToRemove</code> list.
    */
   // TODO(sgjesse): Refactor to avoid the need for passing code.
   // TODO(sgjesse): Refactor to avoid the need for passing blocksToRemove.
@@ -131,19 +133,17 @@ public interface InstructionListIterator
   // TODO(sgjesse): Maybe find a better place for this method.
   // TODO(sgjesse): Support inlinee with throwing instructions for invokes with existing handlers.
   BasicBlock inlineInvoke(
-      AppInfo appInfo,
+      AppView<? extends AppInfo> appView,
       IRCode code,
       IRCode inlinee,
       ListIterator<BasicBlock> blockIterator,
       List<BasicBlock> blocksToRemove,
       DexType downcast);
 
-  /**
-   * See {@link #inlineInvoke(AppInfo, IRCode, IRCode, ListIterator, List, DexType)}.
-   */
-  default BasicBlock inlineInvoke(AppInfo appInfo, IRCode code, IRCode inlinee) {
+  /** See {@link #inlineInvoke(AppView, IRCode, IRCode, ListIterator, List, DexType)}. */
+  default BasicBlock inlineInvoke(AppView<? extends AppInfo> appView, IRCode code, IRCode inlinee) {
     List<BasicBlock> blocksToRemove = new ArrayList<>();
-    BasicBlock result = inlineInvoke(appInfo, code, inlinee, null, blocksToRemove, null);
+    BasicBlock result = inlineInvoke(appView, code, inlinee, null, blocksToRemove, null);
     code.removeBlocks(blocksToRemove);
     return result;
   }

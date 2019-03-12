@@ -436,7 +436,6 @@ public class R8 {
                   application,
                   appViewWithLiveness,
                   executorService,
-                  options,
                   timing,
                   mainDexClasses);
           appView.setGraphLense(verticalClassMerger.run());

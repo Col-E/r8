@@ -5,16 +5,15 @@ package com.android.tools.r8.ir.regalloc;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.PriorityQueue;
 import org.junit.Test;
@@ -48,11 +47,9 @@ public class Regress68656641 extends SmaliTestBase {
         1,
         "    return-void");
     AndroidApp application = buildApplication(builder);
-    AppInfo appInfo = getAppInfo(application);
     // Build the code, and split the code into three blocks.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    return method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
+    return methodSubject.buildIR();
   }
 
   @Test

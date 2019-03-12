@@ -124,67 +124,52 @@ public class JarCode extends Code {
 
   @Override
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
-      Origin origin) {
-    return internalBuildPossiblyWithLocals(
-        encodedMethod, encodedMethod, appInfo, graphLense, options, null, null);
+      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
+    return internalBuildPossiblyWithLocals(encodedMethod, encodedMethod, appView, null, null);
   }
 
   @Override
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
+      AppView<? extends AppInfo> appView,
       ValueNumberGenerator generator,
       Position callerPosition,
       Origin origin) {
     assert generator != null;
     return internalBuildPossiblyWithLocals(
-        context, encodedMethod, appInfo, graphLense, options, generator, callerPosition);
+        context, encodedMethod, appView, generator, callerPosition);
   }
 
   private IRCode internalBuildPossiblyWithLocals(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
+      AppView<? extends AppInfo> appView,
       ValueNumberGenerator generator,
       Position callerPosition) {
     assert getOwner() == encodedMethod;
     triggerDelayedParsingIfNeccessary();
-    if (!keepLocals(encodedMethod, options)) {
+    if (!keepLocals(encodedMethod, appView.options())) {
       // We strip locals here because we will not be able to recover from invalid info.
       node.localVariables.clear();
-      return internalBuild(
-          context, encodedMethod, appInfo, graphLense, options, generator, callerPosition);
+      return internalBuild(context, encodedMethod, appView, generator, callerPosition);
     } else {
-      return internalBuildWithLocals(
-          context, encodedMethod, appInfo, graphLense, options, generator, callerPosition);
+      return internalBuildWithLocals(context, encodedMethod, appView, generator, callerPosition);
     }
   }
 
   private IRCode internalBuildWithLocals(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
+      AppView<? extends AppInfo> appView,
       ValueNumberGenerator generator,
       Position callerPosition) {
     try {
-      return internalBuild(
-          context, encodedMethod, appInfo, graphLense, options, generator, callerPosition);
+      return internalBuild(context, encodedMethod, appView, generator, callerPosition);
     } catch (InvalidDebugInfoException e) {
-      options.warningInvalidDebugInfo(encodedMethod, origin, e);
+      appView.options().warningInvalidDebugInfo(encodedMethod, origin, e);
       node.localVariables.clear();
-      return internalBuild(
-          context, encodedMethod, appInfo, graphLense, options, generator, callerPosition);
+      return internalBuild(context, encodedMethod, appView, generator, callerPosition);
     }
   }
 
@@ -201,21 +186,18 @@ public class JarCode extends Code {
   private IRCode internalBuild(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
+      AppView<? extends AppInfo> appView,
       ValueNumberGenerator generator,
       Position callerPosition) {
-    assert node.localVariables.isEmpty() || keepLocals(encodedMethod, options);
+    assert node.localVariables.isEmpty() || keepLocals(encodedMethod, appView.options());
     JarSourceCode source =
         new JarSourceCode(
             method.getHolder(),
             node,
             application,
-            graphLense.getOriginalMethodSignature(encodedMethod.method),
+            appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
             callerPosition);
-    IRBuilder builder =
-        new IRBuilder(encodedMethod, appInfo, source, options, origin, generator, graphLense);
+    IRBuilder builder = new IRBuilder(encodedMethod, appView, source, origin, generator);
     return builder.build(context);
   }
 
@@ -246,7 +228,7 @@ public class JarCode extends Code {
       DexType invocationContext) {
     InliningConstraintVisitor visitor =
         new InliningConstraintVisitor(
-            application, appView.appInfo(), graphLense, encodedMethod, invocationContext);
+            application, appView, graphLense, encodedMethod, invocationContext);
 
     if (appView.options().enableDesugaring
         && appView.options().interfaceMethodDesugaring == OffOrAuto.Auto

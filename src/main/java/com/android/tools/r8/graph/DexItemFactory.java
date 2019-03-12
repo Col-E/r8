@@ -1065,7 +1065,7 @@ public class DexItemFactory {
   }
 
   public ReferenceTypeLatticeElement createReferenceTypeLatticeElement(
-      DexType type, Nullability nullability, AppInfo appInfo) {
+      DexType type, Nullability nullability, DexDefinitionSupplier definitions) {
     ReferenceTypeLatticeElement primary = referenceTypeLatticeElements.get(type);
     if (primary != null) {
       return nullability == primary.nullability()
@@ -1083,13 +1083,13 @@ public class DexItemFactory {
             // It is expensive to walk through type hierarchy; collect implemented interfaces; and
             // compute the least upper bound of two interface sets. Hence, lazy computations.
             // Most likely during lattice join. See {@link ClassTypeLatticeElement#getInterfaces}.
-            primary = new ClassTypeLatticeElement(type, maybeNull(), appInfo);
+            primary = new ClassTypeLatticeElement(type, maybeNull(), definitions);
           }
         } else {
           assert type.isArrayType();
           DexType elementType = type.toArrayElementType(this);
           TypeLatticeElement elementTypeLattice =
-              TypeLatticeElement.fromDexType(elementType, maybeNull(), appInfo, true);
+              TypeLatticeElement.fromDexType(elementType, maybeNull(), definitions, true);
           primary = new ArrayTypeLatticeElement(elementTypeLattice, maybeNull());
         }
         referenceTypeLatticeElements.put(type, primary);

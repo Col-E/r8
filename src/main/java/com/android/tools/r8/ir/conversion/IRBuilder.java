@@ -13,12 +13,12 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
@@ -102,7 +102,6 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.Sets;
@@ -136,6 +135,7 @@ import java.util.Set;
  * http://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf
  */
 public class IRBuilder {
+
   private static final TypeLatticeElement INT = TypeLatticeElement.INT;
   private static final TypeLatticeElement FLOAT = TypeLatticeElement.FLOAT;
   private static final TypeLatticeElement LONG = TypeLatticeElement.LONG;
@@ -170,16 +170,8 @@ public class IRBuilder {
     }
   }
 
-  public DexItemFactory getFactory() {
-    return options.itemFactory;
-  }
-
-  public AppInfo getAppInfo() {
-    return appInfo;
-  }
-
   public TypeLatticeElement getTypeLattice(DexType type, Nullability nullability) {
-    return TypeLatticeElement.fromDexType(type, nullability, appInfo);
+    return TypeLatticeElement.fromDexType(type, nullability, appView);
   }
 
   // SSA construction uses a worklist of basic blocks reachable from the entry and their
@@ -394,7 +386,7 @@ public class IRBuilder {
   final private ValueNumberGenerator valueNumberGenerator;
   private final DexEncodedMethod method;
   private DexEncodedMethod context;
-  private final AppInfo appInfo;
+  public final AppView<? extends AppInfo> appView;
   private final Origin origin;
   final RewrittenPrototypeDescription prototypeChanges;
   private ListIterator<RemovedArgumentInfo> removedArgumentsIterator;
@@ -406,7 +398,6 @@ public class IRBuilder {
   private SourceCode source;
 
   private boolean throwingInstructionInCurrentBlock = false;
-  private final InternalOptions options;
 
   // Pending local reads.
   private Value previousLocalValue = null;
@@ -431,44 +422,33 @@ public class IRBuilder {
 
   public IRBuilder(
       DexEncodedMethod method,
-      AppInfo appInfo,
+      AppView<? extends AppInfo> appView,
       SourceCode source,
-      InternalOptions options,
       Origin origin) {
-    this(
-        method,
-        appInfo,
-        source,
-        options,
-        origin,
-        new ValueNumberGenerator(),
-        GraphLense.getIdentityLense());
+    this(method, appView, source, origin, new ValueNumberGenerator());
   }
 
   public IRBuilder(
       DexEncodedMethod method,
-      AppInfo appInfo,
+      AppView<? extends AppInfo> appView,
       SourceCode source,
-      InternalOptions options,
       Origin origin,
-      ValueNumberGenerator valueNumberGenerator,
-      GraphLense graphLense) {
+      ValueNumberGenerator valueNumberGenerator) {
     assert source != null;
     this.method = method;
-    this.appInfo = appInfo;
+    this.appView = appView;
     this.source = source;
     this.valueNumberGenerator =
         valueNumberGenerator != null ? valueNumberGenerator : new ValueNumberGenerator();
-    this.options = options;
     this.origin = origin;
 
     if (method.isProcessed()) {
       // NOTE: This is currently assuming that we never remove additional arguments from methods
       // after they have already been processed once.
-      assert verifyMethodSignature(method, graphLense);
+      assert verifyMethodSignature(method, appView.graphLense());
       this.prototypeChanges = RewrittenPrototypeDescription.none();
     } else {
-      this.prototypeChanges = graphLense.lookupPrototypeChanges(method.method);
+      this.prototypeChanges = appView.graphLense().lookupPrototypeChanges(method.method);
 
       if (Log.ENABLED && prototypeChanges.getRemovedArgumentsInfo().hasRemovedArguments()) {
         Log.info(
@@ -490,12 +470,8 @@ public class IRBuilder {
     return true;
   }
 
-  public boolean isGeneratingClassFiles() {
-    return options.isGeneratingClassFiles();
-  }
-
   public boolean isDebugMode() {
-    return options.debug || method.getOptimizationInfo().isReachabilitySensitive();
+    return appView.options().debug || method.getOptimizationInfo().isReachabilitySensitive();
   }
 
   public Int2ReferenceSortedMap<BlockInfo> getCFG() {
@@ -618,7 +594,7 @@ public class IRBuilder {
     // Package up the IR code.
     IRCode ir =
         new IRCode(
-            options,
+            appView.options(),
             method,
             blocks,
             valueNumberGenerator,
@@ -641,10 +617,9 @@ public class IRBuilder {
     if (hasImpreciseValues || impreciseInstructions != null) {
       // In DEX we may need to constrain all values and instructions to precise types.
       assert source instanceof DexSourceCode;
-      new TypeConstraintResolver(this, options.reporter)
-          .resolve(impreciseInstructions, ir, appInfo, method, context);
+      new TypeConstraintResolver(appView, this).resolve(impreciseInstructions, ir, method, context);
     } else {
-      new TypeAnalysis(appInfo, context).widening(method, ir);
+      new TypeAnalysis(appView, context).widening(method, ir);
     }
 
     assert ir.isConsistentSSA();
@@ -656,7 +631,7 @@ public class IRBuilder {
   }
 
   public void constrainType(Value value, ValueTypeConstraint constraint) {
-    value.constrainType(constraint, method.method, origin, options.reporter);
+    value.constrainType(constraint, method.method, origin, appView.options().reporter);
   }
 
   private void addImpreciseInstruction(ImpreciseMemberTypeInstruction instruction) {
@@ -819,9 +794,10 @@ public class IRBuilder {
     Position position = source.getCanonicalDebugPositionAtOffset(moveExceptionItem.targetOffset);
     if (moveExceptionDest >= 0) {
       TypeLatticeElement typeLattice =
-          TypeLatticeElement.fromDexType(moveExceptionItem.guard, definitelyNotNull(), appInfo);
+          TypeLatticeElement.fromDexType(moveExceptionItem.guard, definitelyNotNull(), appView);
       Value out = writeRegister(moveExceptionDest, typeLattice, ThrowingInfo.NO_THROW, null);
-      MoveException moveException = new MoveException(out, moveExceptionItem.guard, options);
+      MoveException moveException =
+          new MoveException(out, moveExceptionItem.guard, appView.options());
       moveException.setPosition(position);
       currentBlock.add(moveException);
     }
@@ -882,7 +858,7 @@ public class IRBuilder {
     boolean receiverCouldBeNull = context != null && context != method;
     Nullability nullability = receiverCouldBeNull ? maybeNull() : definitelyNotNull();
     TypeLatticeElement receiver =
-        TypeLatticeElement.fromDexType(method.method.getHolder(), nullability, appInfo);
+        TypeLatticeElement.fromDexType(method.method.getHolder(), nullability, appView);
     Value value = writeRegister(register, receiver, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
     value.markAsThis();
@@ -1065,7 +1041,7 @@ public class IRBuilder {
   public void addCheckCast(int value, DexType type) {
     Value in = readRegister(value, ValueTypeConstraint.OBJECT);
     TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(type, in.getTypeLattice().nullability(), appInfo);
+        TypeLatticeElement.fromDexType(type, in.getTypeLattice().nullability(), appView);
     Value out = writeRegister(value, castTypeLattice, ThrowingInfo.CAN_THROW);
     CheckCast instruction = new CheckCast(out, in, type);
     assert instruction.instructionTypeCanThrow();
@@ -1110,7 +1086,7 @@ public class IRBuilder {
 
   public void addConstClass(int dest, DexType type) {
     TypeLatticeElement typeLattice =
-        TypeLatticeElement.classClassType(appInfo, definitelyNotNull());
+        TypeLatticeElement.classClassType(appView, definitelyNotNull());
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstClass instruction = new ConstClass(out, type);
     assert instruction.instructionTypeCanThrow();
@@ -1118,7 +1094,7 @@ public class IRBuilder {
   }
 
   public void addConstMethodHandle(int dest, DexMethodHandle methodHandle) {
-    if (!options.canUseConstantMethodHandle()) {
+    if (!appView.options().canUseConstantMethodHandle()) {
       throw new ApiLevelException(
           AndroidApiLevel.P,
           "Const-method-handle",
@@ -1126,14 +1102,14 @@ public class IRBuilder {
     }
     TypeLatticeElement typeLattice =
         TypeLatticeElement.fromDexType(
-            appInfo.dexItemFactory.methodHandleType, definitelyNotNull(), appInfo);
+            appView.dexItemFactory().methodHandleType, definitelyNotNull(), appView);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstMethodHandle instruction = new ConstMethodHandle(out, methodHandle);
     add(instruction);
   }
 
   public void addConstMethodType(int dest, DexProto methodType) {
-    if (!options.canUseConstantMethodType()) {
+    if (!appView.options().canUseConstantMethodType()) {
       throw new ApiLevelException(
           AndroidApiLevel.P,
           "Const-method-type",
@@ -1141,19 +1117,21 @@ public class IRBuilder {
     }
     TypeLatticeElement typeLattice =
         TypeLatticeElement.fromDexType(
-            appInfo.dexItemFactory.methodTypeType, definitelyNotNull(), appInfo);
+            appView.dexItemFactory().methodTypeType, definitelyNotNull(), appView);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstMethodType instruction = new ConstMethodType(out, methodType);
     add(instruction);
   }
 
   private ThrowingInfo throwingInfoForConstStrings() {
-    return options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
+    return appView.options().isGeneratingClassFiles()
+        ? ThrowingInfo.NO_THROW
+        : ThrowingInfo.CAN_THROW;
   }
 
   public void addConstString(int dest, DexString string) {
     TypeLatticeElement typeLattice =
-        TypeLatticeElement.stringClassType(appInfo, definitelyNotNull());
+        TypeLatticeElement.stringClassType(appView, definitelyNotNull());
     ThrowingInfo throwingInfo = throwingInfoForConstStrings();
     add(new ConstString(writeRegister(dest, typeLattice, throwingInfo), string, throwingInfo));
   }
@@ -1161,7 +1139,7 @@ public class IRBuilder {
   public void addDexItemBasedConstString(int dest, DexReference item) {
     assert method.getOptimizationInfo().useIdentifierNameString();
     TypeLatticeElement typeLattice =
-        TypeLatticeElement.stringClassType(appInfo, definitelyNotNull());
+        TypeLatticeElement.stringClassType(appView, definitelyNotNull());
     ThrowingInfo throwingInfo = throwingInfoForConstStrings();
     Value out = writeRegister(dest, typeLattice, throwingInfo);
     DexItemBasedConstString instruction = new DexItemBasedConstString(out, item, throwingInfo);
@@ -1347,11 +1325,12 @@ public class IRBuilder {
 
   public void addInstanceGet(int dest, int object, DexField field) {
     Value in = readRegister(object, ValueTypeConstraint.OBJECT);
-    Value out = writeRegister(
-        dest,
-        TypeLatticeElement.fromDexType(field.type, maybeNull(), appInfo),
-        ThrowingInfo.CAN_THROW);
-    out.setKnownToBeBoolean(field.type == getFactory().booleanType);
+    Value out =
+        writeRegister(
+            dest,
+            TypeLatticeElement.fromDexType(field.type, maybeNull(), appView),
+            ThrowingInfo.CAN_THROW);
+    out.setKnownToBeBoolean(field.type == appView.dexItemFactory().booleanType);
     InstanceGet instruction = new InstanceGet(out, in, field);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -1376,27 +1355,27 @@ public class IRBuilder {
       Type type, DexItem item, DexProto callSiteProto, List<Value> arguments, boolean itf) {
     if (type == Type.POLYMORPHIC) {
       assert item instanceof DexMethod;
-      if (!options.canUseInvokePolymorphic()) {
+      if (!appView.options().canUseInvokePolymorphic()) {
         throw new ApiLevelException(
             AndroidApiLevel.O,
             "MethodHandle.invoke and MethodHandle.invokeExact",
             null /* sourceString */);
-      } else if (!options.canUseInvokePolymorphicOnVarHandle()
-          && ((DexMethod) item).getHolder() == options.itemFactory.varHandleType) {
+      } else if (!appView.options().canUseInvokePolymorphicOnVarHandle()
+          && ((DexMethod) item).getHolder() == appView.dexItemFactory().varHandleType) {
         throw new ApiLevelException(
             AndroidApiLevel.P,
             "Call to polymorphic signature of VarHandle",
             null /* sourceString */);
       }
     }
-    if (appInfo != null && type == Type.VIRTUAL) {
+    if (type == Type.VIRTUAL) {
       // If an invoke-virtual targets a private method in the current class overriding will
       // not apply (see jvm spec on method resolution 5.4.3.3 and overriding 5.4.5) and
       // therefore we use an invoke-direct instead. We need to do this as the Android Runtime
       // will not allow invoke-virtual of a private method.
       DexMethod invocationMethod = (DexMethod) item;
       if (invocationMethod.holder == method.method.holder) {
-        DexEncodedMethod directTarget = appInfo.lookupDirectTarget(invocationMethod);
+        DexEncodedMethod directTarget = appView.appInfo().lookupDirectTarget(invocationMethod);
         if (directTarget != null && invocationMethod.holder == directTarget.method.holder) {
           type = Type.DIRECT;
         }
@@ -1506,7 +1485,7 @@ public class IRBuilder {
     }
     checkInvokeArgumentRegisters(registerIndex, argumentRegisterCount);
     // Note: We only call this register variant from DEX inputs where isInterface does not matter.
-    assert !isGeneratingClassFiles();
+    assert appView.options().isGeneratingDex();
     addInvoke(type, method, callSiteProto, arguments, false /* isInterface */);
   }
 
@@ -1531,7 +1510,7 @@ public class IRBuilder {
   }
 
   public void addMultiNewArray(DexType type, int dest, int[] dimensions) {
-    assert isGeneratingClassFiles();
+    assert appView.options().isGeneratingClassFiles();
     List<Value> arguments = new ArrayList<>(dimensions.length);
     for (int dimension : dimensions) {
       arguments.add(readRegister(dimension, ValueTypeConstraint.INT));
@@ -1571,7 +1550,7 @@ public class IRBuilder {
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
     // Note: We only call this register variant from DEX inputs where isInterface does not matter.
-    assert !isGeneratingClassFiles();
+    assert appView.options().isGeneratingDex();
     addInvoke(type, method, callSiteProto, arguments, false /* isInterface */);
   }
 
@@ -1589,7 +1568,7 @@ public class IRBuilder {
     }
     checkInvokeArgumentRegisters(register, firstArgumentRegister + argumentCount);
     // Note: We only call this register variant from DEX inputs where isInterface does not matter.
-    assert !isGeneratingClassFiles();
+    assert appView.options().isGeneratingDex();
     addInvoke(Invoke.Type.NEW_ARRAY, type, null, arguments, false /* isInterface */);
   }
 
@@ -1630,7 +1609,7 @@ public class IRBuilder {
     Value outValue =
         writeRegister(
             dest,
-            TypeLatticeElement.fromDexType(outType, maybeNull(), appInfo),
+            TypeLatticeElement.fromDexType(outType, maybeNull(), appView),
             ThrowingInfo.CAN_THROW);
     outValue.setKnownToBeBoolean(outType.isBooleanType());
     invoke.setOutValue(outValue);
@@ -1648,7 +1627,7 @@ public class IRBuilder {
     Value in = readNumericRegister(value, type);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Instruction instruction;
-    if (options.canUseNotInstruction()) {
+    if (appView.options().canUseNotInstruction()) {
       instruction = new Not(type, out, in);
     } else {
       Value minusOne = readLiteral(ValueTypeConstraint.fromNumericType(type), -1);
@@ -1662,7 +1641,7 @@ public class IRBuilder {
     assert type.isArrayType();
     Value in = readRegister(size, ValueTypeConstraint.INT);
     TypeLatticeElement arrayTypeLattice =
-        TypeLatticeElement.fromDexType(type, definitelyNotNull(), appInfo);
+        TypeLatticeElement.fromDexType(type, definitelyNotNull(), appView);
     Value out = writeRegister(dest, arrayTypeLattice, ThrowingInfo.CAN_THROW);
     NewArrayEmpty instruction = new NewArrayEmpty(out, in, type);
     assert instruction.instructionTypeCanThrow();
@@ -1679,7 +1658,7 @@ public class IRBuilder {
 
   public void addNewInstance(int dest, DexType type) {
     TypeLatticeElement instanceType =
-        TypeLatticeElement.fromDexType(type, definitelyNotNull(), appInfo);
+        TypeLatticeElement.fromDexType(type, definitelyNotNull(), appView);
     Value out = writeRegister(dest, instanceType, ThrowingInfo.CAN_THROW);
     NewInstance instruction = new NewInstance(type, out);
     assert instruction.instructionTypeCanThrow();
@@ -1687,7 +1666,7 @@ public class IRBuilder {
   }
 
   public void addReturn(int value) {
-    if (method.method.proto.returnType == appInfo.dexItemFactory.voidType) {
+    if (method.method.proto.returnType == appView.dexItemFactory().voidType) {
       assert prototypeChanges.hasBeenChangedToReturnVoid();
       addReturn();
     } else {
@@ -1710,11 +1689,12 @@ public class IRBuilder {
   }
 
   public void addStaticGet(int dest, DexField field) {
-    Value out = writeRegister(
-        dest,
-        TypeLatticeElement.fromDexType(field.type, maybeNull(), appInfo),
-        ThrowingInfo.CAN_THROW);
-    out.setKnownToBeBoolean(field.type == getFactory().booleanType);
+    Value out =
+        writeRegister(
+            dest,
+            TypeLatticeElement.fromDexType(field.type, maybeNull(), appView),
+            ThrowingInfo.CAN_THROW);
+    out.setKnownToBeBoolean(field.type == appView.dexItemFactory().booleanType);
     StaticGet instruction = new StaticGet(out, field);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -1932,9 +1912,9 @@ public class IRBuilder {
     Value in2 = readNumericRegister(right, type);
     Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
     Instruction instruction;
-    if (options.canUseNotInstruction() &&
-        in2.isConstNumber() &&
-        in2.getConstInstruction().asConstNumber().isIntegerNegativeOne(type)) {
+    if (appView.options().canUseNotInstruction()
+        && in2.isConstNumber()
+        && in2.getConstInstruction().asConstNumber().isIntegerNegativeOne(type)) {
       instruction = new Not(type, out, in1);
     } else {
       instruction = new Xor(type, out, in1, in2);
@@ -1947,7 +1927,7 @@ public class IRBuilder {
     assert isNonLongIntegerType(type);
     Value in1 = readNumericRegister(value, type);
     Instruction instruction;
-    if (options.canUseNotInstruction() && constant == -1) {
+    if (appView.options().canUseNotInstruction() && constant == -1) {
       Value out = writeNumericRegister(dest, type, ThrowingInfo.NO_THROW);
       instruction = new Not(type, out, in1);
     } else {

@@ -44,7 +44,6 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
@@ -203,7 +202,6 @@ public class VerticalClassMerger {
   private final ExecutorService executorService;
   private final GraphLense graphLense;
   private final MethodPoolCollection methodPoolCollection;
-  private final InternalOptions options;
   private final Timing timing;
   private Collection<DexMethod> invokes;
 
@@ -231,7 +229,6 @@ public class VerticalClassMerger {
       DexApplication application,
       AppView<? extends AppInfoWithLiveness> appView,
       ExecutorService executorService,
-      InternalOptions options,
       Timing timing,
       MainDexClasses mainDexClasses) {
     this.application = application;
@@ -240,7 +237,6 @@ public class VerticalClassMerger {
     this.executorService = executorService;
     this.graphLense = appView.graphLense();
     this.methodPoolCollection = new MethodPoolCollection(application);
-    this.options = options;
     this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder();
     this.timing = timing;
     this.mainDexClasses = mainDexClasses;
@@ -1632,7 +1628,7 @@ public class VerticalClassMerger {
   }
 
   private boolean disallowInlining(DexEncodedMethod method, DexType invocationContext) {
-    if (options.enableInlining) {
+    if (appView.options().enableInlining) {
       if (method.getCode().isJarCode()) {
         JarCode jarCode = method.getCode().asJarCode();
         ConstraintWithTarget constraint =

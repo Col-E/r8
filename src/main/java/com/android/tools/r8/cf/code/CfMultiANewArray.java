@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.InternalOptions;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfMultiANewArray extends CfInstruction {
@@ -53,7 +54,8 @@ public class CfMultiANewArray extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    if (!builder.isGeneratingClassFiles()) {
+    InternalOptions options = builder.appView.options();
+    if (options.isGeneratingDex()) {
       // TODO(b/109789539): Implement this case (see JarSourceCode.buildPrelude()/buildPostlude()).
       throw new Unimplemented("CfMultiANewArray to DEX backend");
     }

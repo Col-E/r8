@@ -388,14 +388,14 @@ public abstract class GraphLense {
   public abstract DexMethod getRenamedMethodSignature(DexMethod originalMethod);
 
   public DexEncodedMethod mapDexEncodedMethod(
-      DexEncodedMethod originalEncodedMethod, AppInfo appInfo) {
+      DexEncodedMethod originalEncodedMethod, DexDefinitionSupplier definitions) {
     DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method);
     // Note that:
     // * Even if `newMethod` is the same as `originalEncodedMethod.method`, we still need to look it
     //   up, since `originalEncodedMethod` may be obsolete.
     // * We can't directly use AppInfo#definitionFor(DexMethod) since definitions may not be
     //   updated either yet.
-    DexClass newHolder = appInfo.definitionFor(newMethod.holder);
+    DexClass newHolder = definitions.definitionFor(newMethod.holder);
     assert newHolder != null;
     DexEncodedMethod newEncodedMethod = newHolder.lookupMethod(newMethod);
     assert newEncodedMethod != null;

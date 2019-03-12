@@ -16,6 +16,8 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -24,6 +26,7 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.util.List;
 import java.util.ListIterator;
@@ -51,56 +54,54 @@ public class IrInjectionTestBase extends SmaliTestBase {
     }
   }
 
-  protected DexEncodedMethod getMethod(DexApplication application, MethodSignature signature) {
-    return getMethod(application,
-        signature.clazz, signature.returnType, signature.name, signature.parameterTypes);
+  protected MethodSubject getMethodSubject(DexApplication application, MethodSignature signature) {
+    return getMethodSubject(
+        application,
+        signature.clazz,
+        signature.returnType,
+        signature.name,
+        signature.parameterTypes);
   }
 
-  protected DexEncodedMethod getMethod(
+  protected MethodSubject getMethodSubject(
       DexApplication application,
       String className,
       String returnType,
       String methodName,
       List<String> parameters) {
     CodeInspector inspector = new CodeInspector(application);
-    return getMethod(inspector, className, returnType, methodName, parameters);
+    return getMethodSubject(inspector, className, returnType, methodName, parameters);
   }
 
   public class TestApplication {
 
     public final DexApplication application;
-    public final AppInfo appInfo;
+    public final AppView<? extends AppInfo> appView;
+    public final RootSet rootSet;
+
     public final DexEncodedMethod method;
     public final IRCode code;
     public final List<IRCode> additionalCode;
-    public final ValueNumberGenerator valueNumberGenerator;
-    public final InternalOptions options;
     public final AndroidAppConsumers consumers;
 
-    public TestApplication(
-        DexApplication application,
-        DexEncodedMethod method,
-        IRCode code,
-        ValueNumberGenerator valueNumberGenerator,
-        InternalOptions options) {
-      this(application, method, code, null, valueNumberGenerator, options);
+    public final ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
+
+    public TestApplication(AppView<? extends AppInfo> appView, MethodSubject method) {
+      this(appView, null, method, null);
     }
 
     public TestApplication(
-        DexApplication application,
-        DexEncodedMethod method,
-        IRCode code,
-        List<IRCode> additionalCode,
-        ValueNumberGenerator valueNumberGenerator,
-        InternalOptions options) {
-      this.application = application;
-      this.appInfo = new AppInfo(application);
-      this.method = method;
-      this.code = code;
+        AppView<? extends AppInfo> appView,
+        RootSet rootSet,
+        MethodSubject method,
+        List<IRCode> additionalCode) {
+      this.application = appView.appInfo().app;
+      this.appView = appView;
+      this.rootSet = rootSet;
+      this.method = method.getMethod();
+      this.code = method.buildIR(appView.dexItemFactory());
       this.additionalCode = additionalCode;
-      this.valueNumberGenerator = valueNumberGenerator;
-      this.options = options;
-      consumers = new AndroidAppConsumers(options);
+      this.consumers = new AndroidAppConsumers(appView.options());
     }
 
     public int countArgumentInstructions() {
@@ -131,10 +132,10 @@ public class IrInjectionTestBase extends SmaliTestBase {
     }
 
     public String run() throws IOException {
-      AppInfo appInfo = new AppInfo(application);
-      IRConverter converter = new IRConverter(AppView.createForD8(appInfo, options));
+      Timing timing = new Timing(getClass().getSimpleName());
+      IRConverter converter = new IRConverter(appView, timing, null, MainDexClasses.NONE, rootSet);
       converter.replaceCodeForTesting(method, code);
-      AndroidApp app = writeDex(application, options);
+      AndroidApp app = writeDex(application, appView.options());
       return runOnArtRaw(app, DEFAULT_MAIN_CLASS_NAME).stdout;
     }
   }

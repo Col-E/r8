@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -25,16 +26,15 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class ClassInliner {
-  private final DexItemFactory factory;
+
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final LambdaRewriter lambdaRewriter;
-  private final int totalMethodInstructionLimit;
   private final ConcurrentHashMap<DexClass, Boolean> knownClasses = new ConcurrentHashMap<>();
 
-  public ClassInliner(DexItemFactory factory,
-      LambdaRewriter lambdaRewriter, int totalMethodInstructionLimit) {
-    this.factory = factory;
+  public ClassInliner(
+      AppView<? extends AppInfoWithLiveness> appView, LambdaRewriter lambdaRewriter) {
+    this.appView = appView;
     this.lambdaRewriter = lambdaRewriter;
-    this.totalMethodInstructionLimit = totalMethodInstructionLimit;
   }
 
   // Process method code and inline eligible class instantiations, in short:
@@ -115,7 +115,7 @@ public final class ClassInliner {
   //   }
   //
   public final void processMethodCode(
-      AppInfoWithLiveness appInfo,
+      AppView<? extends AppInfoWithLiveness> appView,
       CodeRewriter codeRewriter,
       StringOptimizer stringOptimizer,
       DexEncodedMethod method,
@@ -144,11 +144,10 @@ public final class ClassInliner {
         Instruction root = rootsIterator.next();
         InlineCandidateProcessor processor =
             new InlineCandidateProcessor(
-                factory,
-                appInfo,
+                appView,
                 lambdaRewriter,
                 inliner,
-                clazz -> isClassEligible(appInfo, clazz),
+                clazz -> isClassEligible(appView, clazz),
                 isProcessedConcurrently,
                 method,
                 root);
@@ -169,7 +168,8 @@ public final class ClassInliner {
         }
 
         // Is inlining allowed.
-        if (processor.getEstimatedCombinedSizeForInlining() >= totalMethodInstructionLimit) {
+        if (processor.getEstimatedCombinedSizeForInlining()
+            >= appView.options().classInliningInstructionLimit) {
           continue;
         }
 
@@ -201,10 +201,10 @@ public final class ClassInliner {
     }
   }
 
-  private boolean isClassEligible(AppInfoWithLiveness appInfo, DexClass clazz) {
+  private boolean isClassEligible(AppView<? extends AppInfoWithLiveness> appView, DexClass clazz) {
     Boolean eligible = knownClasses.get(clazz);
     if (eligible == null) {
-      Boolean computed = computeClassEligible(appInfo, clazz);
+      Boolean computed = computeClassEligible(appView, clazz);
       Boolean existing = knownClasses.putIfAbsent(clazz, computed);
       assert existing == null || existing == computed;
       eligible = existing == null ? computed : existing;
@@ -216,24 +216,26 @@ public final class ClassInliner {
   //   - is not an abstract class or interface
   //   - does not declare finalizer
   //   - does not trigger any static initializers except for its own
-  private boolean computeClassEligible(AppInfoWithLiveness appInfo, DexClass clazz) {
+  private boolean computeClassEligible(
+      AppView<? extends AppInfoWithLiveness> appView, DexClass clazz) {
     if (clazz == null
         || clazz.isLibraryClass()
         || clazz.accessFlags.isAbstract()
         || clazz.accessFlags.isInterface()
-        || appInfo.neverClassInline.contains(clazz.type)) {
+        || appView.appInfo().neverClassInline.contains(clazz.type)) {
       return false;
     }
 
     // Class must not define finalizer.
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     for (DexEncodedMethod method : clazz.virtualMethods()) {
-      if (method.method.name == factory.finalizeMethodName &&
-          method.method.proto == factory.objectMethods.finalize.proto) {
+      if (method.method.name == dexItemFactory.finalizeMethodName
+          && method.method.proto == dexItemFactory.objectMethods.finalize.proto) {
         return false;
       }
     }
 
     // Check for static initializers in this class or any of interfaces it implements.
-    return !clazz.initializationOfParentTypesMayHaveSideEffects(appInfo);
+    return !clazz.initializationOfParentTypesMayHaveSideEffects(appView.appInfo());
   }
 }

@@ -5,18 +5,15 @@
 package com.android.tools.r8.ir;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.LinearFlowInstructionIterator;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ListIterator;
 import org.junit.Test;
@@ -53,12 +50,10 @@ public class LinearFlowIteratorTest extends TestBase {
     appBuilder.addClassProgramData(jasminBuilder.buildClasses());
 
     // Build the code, and split the code into three blocks.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     AndroidApp app = compileWithD8(appBuilder.build());
-    AppInfo appInfo = getAppInfo(app);
-    DexEncodedMethod method = getMethod(app, "foo", "void", "bar", ImmutableList.of("int"));
-    IRCode code =
-        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
+    MethodSubject methodSubject =
+        getMethodSubject(app, "foo", "void", "bar", ImmutableList.of("int"));
+    IRCode code = methodSubject.buildIR();
     ListIterator<BasicBlock> blocks = code.listIterator();
     blocks.next();
     InstructionListIterator iter = blocks.next().listIterator();
@@ -91,12 +86,9 @@ public class LinearFlowIteratorTest extends TestBase {
     appBuilder.addClassProgramData(jasminBuilder.buildClasses());
 
     // Build the code, and split the code into three blocks.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
     AndroidApp app = compileWithD8(appBuilder.build());
-    AppInfo appInfo = getAppInfo(app);
-    DexEncodedMethod method = getMethod(app, "foo", "void", "bar", ImmutableList.of("int"));
-    IRCode code =
-        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
+    MethodSubject method = getMethodSubject(app, "foo", "void", "bar", ImmutableList.of("int"));
+    IRCode code = method.buildIR();
     ListIterator<BasicBlock> blocks = code.listIterator();
     InstructionListIterator iter = blocks.next().listIterator();
     iter.nextUntil(i -> !i.isArgument());

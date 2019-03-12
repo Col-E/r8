@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import java.util.List;
 import java.util.ListIterator;
@@ -46,14 +47,14 @@ public class LinearFlowInstructionIterator implements InstructionIterator, Instr
 
   @Override
   public BasicBlock inlineInvoke(
-      AppInfo appInfo,
+      AppView<? extends AppInfo> appView,
       IRCode code,
       IRCode inlinee,
       ListIterator<BasicBlock> blockIterator,
       List<BasicBlock> blocksToRemove,
       DexType downcast) {
     return currentBlockIterator.inlineInvoke(
-        appInfo, code, inlinee, blockIterator, blocksToRemove, downcast);
+        appView, code, inlinee, blockIterator, blocksToRemove, downcast);
   }
 
   @Override

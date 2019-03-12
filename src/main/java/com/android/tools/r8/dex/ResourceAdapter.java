@@ -97,7 +97,7 @@ public class ResourceAdapter {
 
   // Returns true for files in META-INF/services/ that are never used by the application.
   public boolean shouldBeDeleted(DataEntryResource file) {
-    if (appView != null && appView.appInfo().hasLiveness()) {
+    if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
       if (file.getName().startsWith(AppServices.SERVICE_DIRECTORY_NAME)) {
         String serviceName = file.getName().substring(AppServices.SERVICE_DIRECTORY_NAME.length());

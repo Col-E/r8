@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -18,8 +20,8 @@ import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming;
@@ -27,6 +29,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.Arrays;
@@ -47,15 +50,16 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
-  public IRCode buildIR() {
+  public IRCode buildIR(DexItemFactory dexItemFactory) {
+    InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
+    options.programConsumer = DexIndexedConsumer.emptyConsumer();
+
     DexEncodedMethod method = getMethod();
     return method
         .getCode()
         .buildIR(
             method,
-            new AppInfo(codeInspector.application),
-            GraphLense.getIdentityLense(),
-            new InternalOptions(),
+            AppView.createForD8(new AppInfo(codeInspector.application), options),
             Origin.unknown());
   }
 

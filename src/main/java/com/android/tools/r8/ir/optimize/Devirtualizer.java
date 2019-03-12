@@ -221,7 +221,7 @@ public class Devirtualizer {
       }
     }
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView.appInfo(), code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView, code.method).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }

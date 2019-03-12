@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.analysis.type;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   private Set<DexType> lazyInterfaces;
-  private AppInfo appInfoForLazyInterfacesComputation;
+  private DexDefinitionSupplier definitionsForLazyInterfacesComputation;
 
   public ClassTypeLatticeElement(
       DexType classType, Nullability nullability, Set<DexType> interfaces) {
@@ -29,18 +29,18 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   public ClassTypeLatticeElement(
-      DexType classType, Nullability nullability, AppInfo appInfo) {
-    this(classType, nullability, null, appInfo);
+      DexType classType, Nullability nullability, DexDefinitionSupplier definitions) {
+    this(classType, nullability, null, definitions);
   }
 
   private ClassTypeLatticeElement(
       DexType classType,
       Nullability nullability,
       Set<DexType> interfaces,
-      AppInfo appInfo) {
+      DexDefinitionSupplier definitions) {
     super(nullability, classType);
     assert classType.isClassType();
-    appInfoForLazyInterfacesComputation = appInfo;
+    definitionsForLazyInterfacesComputation = definitions;
     lazyInterfaces = interfaces;
   }
 
@@ -55,10 +55,10 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     }
     synchronized (this) {
       if (lazyInterfaces == null) {
-        Set<DexType> itfs = type.implementedInterfaces(appInfoForLazyInterfacesComputation);
+        Set<DexType> itfs = type.implementedInterfaces(definitionsForLazyInterfacesComputation);
         lazyInterfaces =
-            computeLeastUpperBoundOfInterfaces(appInfoForLazyInterfacesComputation, itfs, itfs);
-        appInfoForLazyInterfacesComputation = null;
+            computeLeastUpperBoundOfInterfaces(definitionsForLazyInterfacesComputation, itfs, itfs);
+        definitionsForLazyInterfacesComputation = null;
       }
     }
     return lazyInterfaces;
@@ -70,7 +70,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
       return this;
     }
     return new ClassTypeLatticeElement(
-        type, nullability, lazyInterfaces, appInfoForLazyInterfacesComputation);
+        type, nullability, lazyInterfaces, definitionsForLazyInterfacesComputation);
   }
 
   @Override
@@ -84,9 +84,10 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public boolean isBasedOnMissingClass(AppInfo appInfo) {
-    return getClassType().isMissingOrHasMissingSuperType(appInfo)
-        || getInterfaces().stream().anyMatch(type -> type.isMissingOrHasMissingSuperType(appInfo));
+  public boolean isBasedOnMissingClass(DexDefinitionSupplier definitions) {
+    return getClassType().isMissingOrHasMissingSuperType(definitions)
+        || getInterfaces().stream()
+            .anyMatch(type -> type.isMissingOrHasMissingSuperType(definitions));
   }
 
   @Override
@@ -116,8 +117,9 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     return (isNullable() ? 1 : -1) * type.hashCode();
   }
 
-  ClassTypeLatticeElement join(ClassTypeLatticeElement other, AppInfo appInfo) {
-    DexType lubType = getClassType().computeLeastUpperBoundOfClasses(appInfo, other.getClassType());
+  ClassTypeLatticeElement join(ClassTypeLatticeElement other, DexDefinitionSupplier definitions) {
+    DexType lubType =
+        getClassType().computeLeastUpperBoundOfClasses(definitions, other.getClassType());
     Set<DexType> c1lubItfs = getInterfaces();
     Set<DexType> c2lubItfs = other.getInterfaces();
     Set<DexType> lubItfs = null;
@@ -125,7 +127,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
       lubItfs = c1lubItfs;
     }
     if (lubItfs == null) {
-      lubItfs = computeLeastUpperBoundOfInterfaces(appInfo, c1lubItfs, c2lubItfs);
+      lubItfs = computeLeastUpperBoundOfInterfaces(definitions, c1lubItfs, c2lubItfs);
     }
     Nullability nullability = nullability().join(other.nullability());
     return new ClassTypeLatticeElement(lubType, nullability, lubItfs);
@@ -147,12 +149,12 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   static Set<DexType> computeLeastUpperBoundOfInterfaces(
-      AppInfo appInfo, Set<DexType> s1, Set<DexType> s2) {
-    Set<DexType> cached = appInfo.dexItemFactory.leastUpperBoundOfInterfacesTable.get(s1, s2);
+      DexDefinitionSupplier definitions, Set<DexType> s1, Set<DexType> s2) {
+    Set<DexType> cached = definitions.dexItemFactory().leastUpperBoundOfInterfacesTable.get(s1, s2);
     if (cached != null) {
       return cached;
     }
-    cached = appInfo.dexItemFactory.leastUpperBoundOfInterfacesTable.get(s2, s1);
+    cached = definitions.dexItemFactory().leastUpperBoundOfInterfacesTable.get(s2, s1);
     if (cached != null) {
       return cached;
     }
@@ -181,7 +183,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
       // Otherwise, this type is freshly visited.
       markers.add(marker);
       // Put super interfaces into the worklist.
-      DexClass itfClass = appInfo.definitionFor(itf);
+      DexClass itfClass = definitions.definitionFor(itf);
       if (itfClass != null) {
         for (DexType superItf : itfClass.interfaces.values) {
           markers = seen.computeIfAbsent(superItf, k -> new HashSet<>());
@@ -207,7 +209,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
       // If there is a strict sub interface of this interface, it is not the least element.
       boolean notTheLeast = false;
       for (DexType other : commonlyVisited) {
-        if (other.isStrictSubtypeOf(itf, appInfo)) {
+        if (other.isStrictSubtypeOf(itf, definitions)) {
           notTheLeast = true;
           break;
         }
@@ -220,8 +222,8 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     Set<DexType> lub = lubBuilder.build();
     // Cache the computation result only if the given two sets of interfaces are different.
     if (s1.size() != s2.size() || !s1.containsAll(s2)) {
-      synchronized (appInfo.dexItemFactory.leastUpperBoundOfInterfacesTable) {
-        appInfo.dexItemFactory.leastUpperBoundOfInterfacesTable.put(s1, s2, lub);
+      synchronized (definitions.dexItemFactory().leastUpperBoundOfInterfacesTable) {
+        definitions.dexItemFactory().leastUpperBoundOfInterfacesTable.put(s1, s2, lub);
       }
     }
     return lub;

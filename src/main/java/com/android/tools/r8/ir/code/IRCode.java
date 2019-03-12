@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -486,14 +485,13 @@ public class IRCode {
     return true;
   }
 
-  public boolean verifyTypes(
-      AppInfo appInfo, AppView<? extends AppInfo> appView, GraphLense graphLense) {
+  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
     // We can only type check the program if we have subtyping information. Therefore, we do not
     // require that the program type checks in D8.
-    if (appView != null && appView.enableWholeProgramOptimizations()) {
+    if (appView.enableWholeProgramOptimizations()) {
       assert new TypeChecker(appView).check(this);
     }
-    assert blocks.stream().allMatch(block -> block.verifyTypes(appInfo, graphLense));
+    assert blocks.stream().allMatch(block -> block.verifyTypes(appView));
     return true;
   }
 

@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -215,28 +214,16 @@ public class DexCode extends Code {
 
   @Override
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
-      Origin origin) {
+      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
     assert getOwner() == encodedMethod;
     DexSourceCode source =
         new DexSourceCode(
             this,
             encodedMethod,
-            graphLense.getOriginalMethodSignature(encodedMethod.method),
-            null,
-            appInfo);
+            appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
+            null);
     IRBuilder builder =
-        new IRBuilder(
-            encodedMethod,
-            appInfo,
-            source,
-            options,
-            origin,
-            new ValueNumberGenerator(),
-            graphLense);
+        new IRBuilder(encodedMethod, appView, source, origin, new ValueNumberGenerator());
     return builder.build(encodedMethod);
   }
 
@@ -244,9 +231,7 @@ public class DexCode extends Code {
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
+      AppView<? extends AppInfo> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
@@ -255,12 +240,9 @@ public class DexCode extends Code {
         new DexSourceCode(
             this,
             encodedMethod,
-            graphLense.getOriginalMethodSignature(encodedMethod.method),
-            callerPosition,
-            appInfo);
-    IRBuilder builder =
-        new IRBuilder(
-            encodedMethod, appInfo, source, options, origin, valueNumberGenerator, graphLense);
+            appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
+            callerPosition);
+    IRBuilder builder = new IRBuilder(encodedMethod, appView, source, origin, valueNumberGenerator);
     return builder.build(context);
   }
 

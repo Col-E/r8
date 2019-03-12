@@ -40,7 +40,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   private final CallSiteInformation callSiteInformation;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final InliningInfo info;
-  private final InternalOptions options;
   private final int inliningInstructionLimit;
   private int instructionAllowance;
 
@@ -51,7 +50,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       IRCode code,
       CallSiteInformation callSiteInformation,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
-      InternalOptions options,
       int inliningInstructionLimit,
       int inliningInstructionAllowance) {
     this.appView = appView;
@@ -61,7 +59,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     this.callSiteInformation = callSiteInformation;
     this.isProcessedConcurrently = isProcessedConcurrently;
     info = Log.ENABLED ? new InliningInfo(method) : null;
-    this.options = options;
     this.inliningInstructionLimit = inliningInstructionLimit;
     this.instructionAllowance = inliningInstructionAllowance;
   }
@@ -185,6 +182,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
+    InternalOptions options = appView.options();
     if (options.testing.validInliningReasons != null
         && !options.testing.validInliningReasons.contains(reason)) {
       return false;
@@ -433,7 +431,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       // Abort if inlining could lead to an explosion in the number of control flow
       // resolution blocks that setup the register state before the actual catch handler.
       if (estimatedNumberOfControlFlowResolutionBlocks
-          >= options.inliningControlFlowResolutionBlocksThreshold) {
+          >= appView.options().inliningControlFlowResolutionBlocksThreshold) {
         return true;
       }
     }
@@ -450,7 +448,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public void updateTypeInformationIfNeeded(
       IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {
-    if (inliner.options.enableNonNullTracking) {
+    if (appView.options().enableNonNullTracking) {
       BasicBlock state = IteratorUtils.peekNext(blockIterator);
       // Move the cursor back to where the first inlinee block was added.
       while (blockIterator.hasPrevious() && blockIterator.previous() != block) {
@@ -459,8 +457,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       assert IteratorUtils.peekNext(blockIterator) == block;
 
       // Kick off the tracker to add non-null IRs only to the inlinee blocks.
-      new NonNullTracker(appView.appInfo(),
-          IRConverter.libraryMethodsReturningNonNull(appView.dexItemFactory()))
+      new NonNullTracker(
+              appView, IRConverter.libraryMethodsReturningNonNull(appView.dexItemFactory()))
           .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
       assert !blockIterator.hasNext();
 

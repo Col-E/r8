@@ -17,6 +17,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
@@ -147,7 +148,8 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     // This method is not called for ArrayGet on primitive array.
     assert this.outValue.getTypeLattice().isReference();
     DexType arrayType = helper.getDexType(array());
@@ -155,7 +157,7 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
       // JVM 8 §4.10.1.9.aaload: Array component type of null is null.
       return arrayType;
     }
-    return arrayType.toArrayElementType(helper.getFactory());
+    return arrayType.toArrayElementType(appView.dexItemFactory());
   }
 
   @Override
@@ -170,7 +172,7 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
     ArrayTypeLatticeElement arrayTypeLattice = array().getTypeLattice().isArrayType()
         ? array().getTypeLattice().asArrayTypeLatticeElement()
         : null;

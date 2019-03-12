@@ -11,8 +11,8 @@ import com.android.tools.r8.code.MoveObject;
 import com.android.tools.r8.code.MoveObjectFrom16;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -106,13 +106,13 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return object().getTypeLattice().checkCast(appInfo, type);
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+    return object().getTypeLattice().checkCast(appView, type);
   }
 
   @Override
-  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
-    assert super.verifyTypes(appInfo, graphLense);
+  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
+    assert super.verifyTypes(appView);
 
     TypeLatticeElement inType = object().getTypeLattice();
 
@@ -120,12 +120,12 @@ public class CheckCast extends Instruction {
 
     TypeLatticeElement outType = outValue().getTypeLattice();
     TypeLatticeElement castType =
-        TypeLatticeElement.fromDexType(getType(), inType.nullability(), appInfo);
+        TypeLatticeElement.fromDexType(getType(), inType.nullability(), appView);
 
-    if (inType.lessThanOrEqual(castType, appInfo)) {
+    if (inType.lessThanOrEqual(castType, appView)) {
       // Cast can be removed. Check that it is sound to replace all users of the out-value by the
       // in-value.
-      assert inType.lessThanOrEqual(outType, appInfo);
+      assert inType.lessThanOrEqual(outType, appView);
 
       // TODO(b/72693244): Consider checking equivalence. This requires that the types are always
       // as precise as possible, though, meaning that almost all changes to the IR must be followed
@@ -163,7 +163,8 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     return type;
   }
 

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
@@ -65,6 +66,7 @@ abstract class NamingTestBase {
     ProguardConfiguration configuration =
         ToolHelper.loadProguardConfiguration(dexItemFactory, configPaths);
     InternalOptions options = new InternalOptions(configuration, new Reporter());
+    options.programConsumer = DexIndexedConsumer.emptyConsumer();
 
     ExecutorService executor = ThreadUtils.getExecutorService(1);
 

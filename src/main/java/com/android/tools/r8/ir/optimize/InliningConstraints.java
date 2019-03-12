@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -22,7 +23,7 @@ import java.util.Collection;
 // Computes the inlining constraint for a given instruction.
 public class InliningConstraints {
 
-  private AppInfoWithLiveness appInfo;
+  private AppView<? extends AppInfoWithLiveness> appView;
 
   private boolean allowStaticInterfaceMethodCalls = true;
 
@@ -38,14 +39,12 @@ public class InliningConstraints {
   // type A to B, to create a temporary view of what the world would look like after class merging.
   private GraphLense graphLense;
 
-  public InliningConstraints(AppInfoWithLiveness appInfo) {
-    this(appInfo, GraphLense.getIdentityLense());
-  }
-
-  public InliningConstraints(AppInfoWithLiveness appInfo, GraphLense graphLense) {
+  public InliningConstraints(
+      AppView<? extends AppInfoWithLiveness> appView, GraphLense graphLense) {
     assert graphLense.isContextFreeForMethods();
-    this.appInfo = appInfo;
-    this.graphLense = graphLense;
+    assert appView.graphLense() != graphLense || graphLense.isIdentityLense();
+    this.appView = appView;
+    this.graphLense = graphLense; // Note: Intentionally *not* appView.graphLense().
   }
 
   public void disallowStaticInterfaceMethodCalls() {
@@ -77,11 +76,11 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forCheckCast(DexType type, DexType invocationContext) {
-    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appView);
   }
 
   public ConstraintWithTarget forConstClass(DexType type, DexType invocationContext) {
-    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appView);
   }
 
   public ConstraintWithTarget forConstInstruction() {
@@ -111,17 +110,17 @@ public class InliningConstraints {
   public ConstraintWithTarget forInstanceGet(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        lookup, appInfo.lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
+        lookup, appView.appInfo().lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
   }
 
   public ConstraintWithTarget forInstanceOf(DexType type, DexType invocationContext) {
-    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appView);
   }
 
   public ConstraintWithTarget forInstancePut(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        lookup, appInfo.lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
+        lookup, appView.appInfo().lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
   }
 
   public ConstraintWithTarget forInvoke(DexMethod method, Type type, DexType invocationContext) {
@@ -151,20 +150,22 @@ public class InliningConstraints {
 
   public ConstraintWithTarget forInvokeDirect(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
-    return forSingleTargetInvoke(lookup, appInfo.lookupDirectTarget(lookup), invocationContext);
+    return forSingleTargetInvoke(
+        lookup, appView.appInfo().lookupDirectTarget(lookup), invocationContext);
   }
 
   public ConstraintWithTarget forInvokeInterface(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
-    return forVirtualInvoke(lookup, appInfo.lookupInterfaceTargets(lookup), invocationContext);
+    return forVirtualInvoke(
+        lookup, appView.appInfo().lookupInterfaceTargets(lookup), invocationContext);
   }
 
   public ConstraintWithTarget forInvokeMultiNewArray(DexType type, DexType invocationContext) {
-    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appView);
   }
 
   public ConstraintWithTarget forInvokeNewArray(DexType type, DexType invocationContext) {
-    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appView);
   }
 
   public ConstraintWithTarget forInvokePolymorphic(DexMethod method, DexType invocationContext) {
@@ -173,7 +174,8 @@ public class InliningConstraints {
 
   public ConstraintWithTarget forInvokeStatic(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
-    return forSingleTargetInvoke(lookup, appInfo.lookupStaticTarget(lookup), invocationContext);
+    return forSingleTargetInvoke(
+        lookup, appView.appInfo().lookupStaticTarget(lookup), invocationContext);
   }
 
   public ConstraintWithTarget forInvokeSuper(DexMethod method, DexType invocationContext) {
@@ -183,7 +185,8 @@ public class InliningConstraints {
 
   public ConstraintWithTarget forInvokeVirtual(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
-    return forVirtualInvoke(lookup, appInfo.lookupVirtualTargets(lookup), invocationContext);
+    return forVirtualInvoke(
+        lookup, appView.appInfo().lookupVirtualTargets(lookup), invocationContext);
   }
 
   public ConstraintWithTarget forJumpInstruction() {
@@ -208,7 +211,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forNewArrayEmpty(DexType type, DexType invocationContext) {
-    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appView);
   }
 
   public ConstraintWithTarget forNewArrayFilledData() {
@@ -216,7 +219,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forNewInstance(DexType type, DexType invocationContext) {
-    return ConstraintWithTarget.classIsVisible(invocationContext, type, appInfo);
+    return ConstraintWithTarget.classIsVisible(invocationContext, type, appView);
   }
 
   public ConstraintWithTarget forNonNull() {
@@ -234,13 +237,13 @@ public class InliningConstraints {
   public ConstraintWithTarget forStaticGet(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        lookup, appInfo.lookupStaticTarget(lookup.clazz, lookup), invocationContext);
+        lookup, appView.appInfo().lookupStaticTarget(lookup.clazz, lookup), invocationContext);
   }
 
   public ConstraintWithTarget forStaticPut(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        lookup, appInfo.lookupStaticTarget(lookup.clazz, lookup), invocationContext);
+        lookup, appView.appInfo().lookupStaticTarget(lookup.clazz, lookup), invocationContext);
   }
 
   public ConstraintWithTarget forStore() {
@@ -267,16 +270,16 @@ public class InliningConstraints {
       DexField field, DexEncodedField target, DexType invocationContext) {
     // Resolve the field if possible and decide whether the instruction can inlined.
     DexType fieldHolder = graphLense.lookupType(field.clazz);
-    DexClass fieldClass = appInfo.definitionFor(fieldHolder);
+    DexClass fieldClass = appView.definitionFor(fieldHolder);
     if (target != null && fieldClass != null) {
       ConstraintWithTarget fieldConstraintWithTarget =
           ConstraintWithTarget.deriveConstraint(
-              invocationContext, fieldHolder, target.accessFlags, appInfo);
+              invocationContext, fieldHolder, target.accessFlags, appView);
       ConstraintWithTarget classConstraintWithTarget =
           ConstraintWithTarget.deriveConstraint(
-              invocationContext, fieldHolder, fieldClass.accessFlags, appInfo);
+              invocationContext, fieldHolder, fieldClass.accessFlags, appView);
       return ConstraintWithTarget.meet(
-          fieldConstraintWithTarget, classConstraintWithTarget, appInfo);
+          fieldConstraintWithTarget, classConstraintWithTarget, appView);
     }
     return ConstraintWithTarget.NEVER;
   }
@@ -288,7 +291,7 @@ public class InliningConstraints {
     }
     if (target != null) {
       DexType methodHolder = graphLense.lookupType(target.method.holder);
-      DexClass methodClass = appInfo.definitionFor(methodHolder);
+      DexClass methodClass = appView.definitionFor(methodHolder);
       if (methodClass != null) {
         if (!allowStaticInterfaceMethodCalls && methodClass.isInterface() && target.hasCode()) {
           // See b/120121170.
@@ -297,13 +300,13 @@ public class InliningConstraints {
 
         ConstraintWithTarget methodConstraintWithTarget =
             ConstraintWithTarget.deriveConstraint(
-                invocationContext, methodHolder, target.accessFlags, appInfo);
+                invocationContext, methodHolder, target.accessFlags, appView);
         // We also have to take the constraint of the enclosing class into account.
         ConstraintWithTarget classConstraintWithTarget =
             ConstraintWithTarget.deriveConstraint(
-                invocationContext, methodHolder, methodClass.accessFlags, appInfo);
+                invocationContext, methodHolder, methodClass.accessFlags, appView);
         return ConstraintWithTarget.meet(
-            methodConstraintWithTarget, classConstraintWithTarget, appInfo);
+            methodConstraintWithTarget, classConstraintWithTarget, appView);
       }
     }
     return ConstraintWithTarget.NEVER;
@@ -320,7 +323,7 @@ public class InliningConstraints {
 
     // Perform resolution and derive inlining constraints based on the accessibility of the
     // resolution result.
-    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
     DexEncodedMethod resolutionTarget = resolutionResult.asResultOfResolve();
     if (resolutionTarget == null) {
       // This will fail at runtime.
@@ -328,11 +331,11 @@ public class InliningConstraints {
     }
 
     DexType methodHolder = graphLense.lookupType(resolutionTarget.method.holder);
-    DexClass methodClass = appInfo.definitionFor(methodHolder);
+    DexClass methodClass = appView.definitionFor(methodHolder);
     assert methodClass != null;
     ConstraintWithTarget methodConstraintWithTarget =
         ConstraintWithTarget.deriveConstraint(
-            invocationContext, methodHolder, resolutionTarget.accessFlags, appInfo);
+            invocationContext, methodHolder, resolutionTarget.accessFlags, appView);
     // We also have to take the constraint of the enclosing class of the resolution result
     // into account. We do not allow inlining this method if it is calling something that
     // is inaccessible. Inlining in that case could move the code to another package making a
@@ -340,9 +343,9 @@ public class InliningConstraints {
     // we have to make sure that inlining cannot make it inaccessible.
     ConstraintWithTarget classConstraintWithTarget =
         ConstraintWithTarget.deriveConstraint(
-            invocationContext, methodHolder, methodClass.accessFlags, appInfo);
+            invocationContext, methodHolder, methodClass.accessFlags, appView);
     ConstraintWithTarget result =
-        ConstraintWithTarget.meet(methodConstraintWithTarget, classConstraintWithTarget, appInfo);
+        ConstraintWithTarget.meet(methodConstraintWithTarget, classConstraintWithTarget, appView);
     if (result == ConstraintWithTarget.NEVER) {
       return result;
     }
@@ -351,11 +354,11 @@ public class InliningConstraints {
     // of the method itself.
     for (DexEncodedMethod target : targets) {
       methodHolder = graphLense.lookupType(target.method.holder);
-      assert appInfo.definitionFor(methodHolder) != null;
+      assert appView.definitionFor(methodHolder) != null;
       methodConstraintWithTarget =
           ConstraintWithTarget.deriveConstraint(
-              invocationContext, methodHolder, target.accessFlags, appInfo);
-      result = ConstraintWithTarget.meet(result, methodConstraintWithTarget, appInfo);
+              invocationContext, methodHolder, target.accessFlags, appView);
+      result = ConstraintWithTarget.meet(result, methodConstraintWithTarget, appView);
       if (result == ConstraintWithTarget.NEVER) {
         return result;
       }
