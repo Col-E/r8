@@ -140,31 +140,31 @@ public class MemberRebindingAnalysis {
       DexEncodedMethod target = lookupTarget.apply(method);
       // TODO(b/128404854) Rebind to the lowest library class or program class. For now we allow
       //  searching in library for methods, but this should be done on classpath instead.
-      if (!originalClass.isLibraryClass() && target != null && target.method != method) {
+      if (target != null && target.method != method) {
         DexClass targetClass = appInfo.definitionFor(target.method.holder);
+        if (!originalClass.isLibraryClass()) {
+          // In Java bytecode, it is only possible to target interface methods that are in one of
+          // the immediate super-interfaces via a super-invocation (see IndirectSuperInterfaceTest).
+          // To avoid introducing an IncompatibleClassChangeError at runtime we therefore insert a
+          // bridge method when we are about to rebind to an interface method that is not the
+          // original target.
+          if (needsBridgeForInterfaceMethod(originalClass, targetClass, invokeType)) {
+            target =
+                insertBridgeForInterfaceMethod(
+                    method, target, originalClass.asProgramClass(), targetClass, lookupTarget);
+          }
 
-        // In Java bytecode, it is only possible to target interface methods that are in one of
-        // the immediate super-interfaces via a super-invocation (see IndirectSuperInterfaceTest).
-        // To avoid introducing an IncompatibleClassChangeError at runtime we therefore insert a
-        // bridge method when we are about to rebind to an interface method that is not the
-        // original target.
-        if (needsBridgeForInterfaceMethod(originalClass, targetClass, invokeType)) {
-          target =
-              insertBridgeForInterfaceMethod(
-                  method, target, originalClass.asProgramClass(), targetClass, lookupTarget);
+          // If the target class is not public but the targeted method is, we might run into
+          // visibility problems when rebinding.
+          final DexEncodedMethod finalTarget = target;
+          Set<DexEncodedMethod> contexts = methodsWithContexts.get(method);
+          if (contexts.stream().anyMatch(context ->
+              mayNeedBridgeForVisibility(context.method.getHolder(), finalTarget))) {
+            target =
+                insertBridgeForVisibilityIfNeeded(
+                    method, target, originalClass, targetClass, lookupTarget);
+          }
         }
-
-        // If the target class is not public but the targeted method is, we might run into
-        // visibility problems when rebinding.
-        final DexEncodedMethod finalTarget = target;
-        Set<DexEncodedMethod> contexts = methodsWithContexts.get(method);
-        if (contexts.stream().anyMatch(context ->
-            mayNeedBridgeForVisibility(context.method.getHolder(), finalTarget))) {
-          target =
-              insertBridgeForVisibilityIfNeeded(
-                  method, target, originalClass, targetClass, lookupTarget);
-        }
-
         builder.map(method, lense.lookupMethod(validTargetFor(target.method, method)));
       }
     }
