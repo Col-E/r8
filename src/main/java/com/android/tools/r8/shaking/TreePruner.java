@@ -178,9 +178,6 @@ public class TreePruner {
     if (firstUnreachable == -1) {
       return null;
     }
-    if (Log.ENABLED) {
-      Log.debug(getClass(), "Removing method: " + methods.get(firstUnreachable));
-    }
     ArrayList<DexEncodedMethod> reachableMethods = new ArrayList<>(methods.size());
     for (int i = 0; i < firstUnreachable; i++) {
       reachableMethods.add(methods.get(i));
@@ -246,7 +243,7 @@ public class TreePruner {
       return null;
     }
     if (Log.ENABLED) {
-      Log.debug(getClass(), "Removing field: " + fields.get(firstUnreachable));
+      Log.debug(getClass(), "Removing field %s.", fields.get(firstUnreachable));
     }
     usagePrinter.printUnusedField(fields.get(firstUnreachable));
     ArrayList<DexEncodedField> reachableOrReferencedFields = new ArrayList<>(fields.size());
