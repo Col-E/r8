@@ -80,6 +80,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED_SUCCESS);
   }
 
+  @Ignore("b/121042934")
   @Test
   public void b121042934() throws Exception {
     R8TestCompileResult libraryResult = testForR8(backend)
