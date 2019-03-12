@@ -207,7 +207,7 @@ final class InlineCandidateProcessor {
     //      of class inlining
     //
 
-    if (eligibleClassDefinition.instanceFields().length > 0) {
+    if (eligibleClassDefinition.instanceFields().size() > 0) {
       return false;
     }
     if (eligibleClassDefinition.type.hasSubtypes()) {

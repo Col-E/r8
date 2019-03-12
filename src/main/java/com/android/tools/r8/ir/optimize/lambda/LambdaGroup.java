@@ -110,16 +110,16 @@ public abstract class LambdaGroup {
     return lambdas.get(lambda).id;
   }
 
-  protected final DexEncodedField[] lambdaCaptureFields(DexType lambda) {
+  protected final List<DexEncodedField> lambdaCaptureFields(DexType lambda) {
     assert lambdas.containsKey(lambda);
     return lambdas.get(lambda).clazz.instanceFields();
   }
 
   protected final DexEncodedField lambdaSingletonField(DexType lambda) {
     assert lambdas.containsKey(lambda);
-    DexEncodedField[] fields = lambdas.get(lambda).clazz.staticFields();
-    assert fields.length < 2;
-    return fields.length == 0 ? null : fields[0];
+    List<DexEncodedField> fields = lambdas.get(lambda).clazz.staticFields();
+    assert fields.size() < 2;
+    return fields.size() == 0 ? null : fields.get(0);
   }
 
   // Contains less than 2 elements?

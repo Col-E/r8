@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset.Entry;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -259,14 +258,14 @@ public class StaticClassMerger {
     if (appView.appInfo().neverMerge.contains(clazz.type)) {
       return MergeGroup.DONT_MERGE;
     }
-    if (clazz.staticFields().length + clazz.directMethods().size() + clazz.virtualMethods().size()
+    if (clazz.staticFields().size() + clazz.directMethods().size() + clazz.virtualMethods().size()
         == 0) {
       return MergeGroup.DONT_MERGE;
     }
-    if (clazz.instanceFields().length > 0) {
+    if (clazz.instanceFields().size() > 0) {
       return MergeGroup.DONT_MERGE;
     }
-    if (Arrays.stream(clazz.staticFields())
+    if (clazz.staticFields().stream()
         .anyMatch(field -> appView.appInfo().isPinned(field.field))) {
       return MergeGroup.DONT_MERGE;
     }
@@ -284,7 +283,7 @@ public class StaticClassMerger {
                     // TODO(christofferqa): Remove the invariant that the graph lense should not
                     // modify any methods from the sets alwaysInline and noSideEffects.
                     || appView.appInfo().alwaysInline.contains(method.method)
-                    || appView.appInfo().noSideEffects.keySet().contains(method))) {
+                    || appView.appInfo().noSideEffects.keySet().contains(method.method))) {
       return MergeGroup.DONT_MERGE;
     }
     if (clazz.classInitializationMayHaveSideEffects(appView.appInfo())) {
@@ -311,6 +310,7 @@ public class StaticClassMerger {
     // Disallow interfaces from being representatives, since interface methods require desugaring.
     return !clazz.isInterface();
   }
+
   private boolean merge(DexProgramClass clazz, MergeGroup group) {
     assert satisfiesMergeCriteria(clazz) == group;
     assert group != MergeGroup.DONT_MERGE;
@@ -451,15 +451,15 @@ public class StaticClassMerger {
         .allMatch(method -> method.accessFlags.isPrivate() || method.accessFlags.isPublic())) {
       return false;
     }
-    if (!Arrays.stream(clazz.staticFields())
-        .allMatch(method -> method.accessFlags.isPrivate() || method.accessFlags.isPublic())) {
+    if (!clazz.staticFields().stream()
+        .allMatch(field -> field.accessFlags.isPrivate() || field.accessFlags.isPublic())) {
       return false;
     }
 
     // Note that a class is only considered a candidate if it has no instance fields and all of its
     // virtual methods are private. Therefore, we don't need to consider check if there are any
     // package-private or protected instance fields or virtual methods here.
-    assert Arrays.stream(clazz.instanceFields()).count() == 0;
+    assert clazz.instanceFields().size() == 0;
     assert clazz.virtualMethods().stream().allMatch(method -> method.accessFlags.isPrivate());
 
     // Check that no methods access package-private or protected members.
@@ -485,8 +485,8 @@ public class StaticClassMerger {
     }
 
     assert targetClass.accessFlags.isAtLeastAsVisibleAs(sourceClass.accessFlags);
-    assert sourceClass.instanceFields().length == 0;
-    assert targetClass.instanceFields().length == 0;
+    assert sourceClass.instanceFields().size() == 0;
+    assert targetClass.instanceFields().size() == 0;
 
     numberOfMergedClasses++;
 
@@ -534,27 +534,31 @@ public class StaticClassMerger {
   }
 
   private DexEncodedField[] mergeFields(
-      DexEncodedField[] sourceFields, DexEncodedField[] targetFields, DexProgramClass targetClass) {
-    DexEncodedField[] result = new DexEncodedField[sourceFields.length + targetFields.length];
+      List<DexEncodedField> sourceFields,
+      List<DexEncodedField> targetFields,
+      DexProgramClass targetClass) {
+    DexEncodedField[] result = new DexEncodedField[sourceFields.size() + targetFields.size()];
 
     // Move all target fields to result.
-    System.arraycopy(targetFields, 0, result, 0, targetFields.length);
+    int index = 0;
+    for (DexEncodedField targetField : targetFields) {
+      result[index++] = targetField;
+    }
 
     // Move source fields to result one by one, renaming them if needed.
     FieldSignatureEquivalence equivalence = FieldSignatureEquivalence.get();
     Set<Wrapper<DexField>> existingFields =
-        Arrays.stream(targetFields)
+        targetFields.stream()
             .map(targetField -> equivalence.wrap(targetField.field))
             .collect(Collectors.toSet());
 
     Predicate<DexField> availableFieldSignatures =
         field -> !existingFields.contains(equivalence.wrap(field));
 
-    int i = targetFields.length;
     for (DexEncodedField sourceField : sourceFields) {
       DexEncodedField sourceFieldAfterMove =
           renameFieldIfNeeded(sourceField, targetClass, availableFieldSignatures);
-      result[i++] = sourceFieldAfterMove;
+      result[index++] = sourceFieldAfterMove;
 
       DexField originalField =
           fieldMapping.inverse().getOrDefault(sourceField.field, sourceField.field);
@@ -563,6 +567,7 @@ public class StaticClassMerger {
       existingFields.add(equivalence.wrap(sourceFieldAfterMove.field));
     }
 
+    assert index == result.length;
     return result;
   }
 

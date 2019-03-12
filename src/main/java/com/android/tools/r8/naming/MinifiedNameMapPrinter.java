@@ -72,7 +72,7 @@ public class MinifiedNameMapPrinter {
     }
   }
 
-  private void writeFields(DexEncodedField[] fields, StringBuilder out) {
+  private void writeFields(List<DexEncodedField> fields, StringBuilder out) {
     for (DexEncodedField encodedField : fields) {
       DexField field = encodedField.field;
       DexString renamed = namingLens.lookupName(field);

@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.optimize.lambda.CaptureSignature;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import java.util.List;
 
 // Encapsulates the logic of deep-checking of the lambda class assumptions.
 //
@@ -118,14 +119,14 @@ abstract class KotlinLambdaClassValidator
     }
   }
 
-  abstract int getInstanceInitializerSize(DexEncodedField[] captures);
+  abstract int getInstanceInitializerSize(List<DexEncodedField> captures);
 
   abstract int validateInstanceInitializerEpilogue(
       com.android.tools.r8.code.Instruction[] instructions, int index) throws LambdaStructureError;
 
   private void validateInstanceInitializer(DexClass lambda, Code code)
       throws LambdaStructureError {
-    DexEncodedField[] captures = lambda.instanceFields();
+    List<DexEncodedField> captures = lambda.instanceFields();
     com.android.tools.r8.code.Instruction[] instructions = code.asDexCode().instructions;
     int index = 0;
 
@@ -142,7 +143,7 @@ abstract class KotlinLambdaClassValidator
     assert index == instructions.length;
   }
 
-  private int validateInstanceInitializerParameterMapping(DexEncodedField[] captures,
+  private int validateInstanceInitializerParameterMapping(List<DexEncodedField> captures,
       Instruction[] instructions, int index) throws LambdaStructureError {
     int wideFieldsSeen = 0;
     for (DexEncodedField field : captures) {

@@ -23,8 +23,11 @@ import java.util.function.Predicate;
 
 public abstract class DexClass extends DexDefinition {
 
-  public interface MethodSetter {
+  public interface FieldSetter {
+    void setField(int index, DexEncodedField field);
+  }
 
+  public interface MethodSetter {
     void setMethod(int index, DexEncodedMethod method);
   }
 
@@ -171,8 +174,8 @@ public abstract class DexClass extends DexDefinition {
     assert verifyNoDuplicateMethods();
   }
 
-  public void setDirectMethods(DexEncodedMethod[] values) {
-    directMethods = MoreObjects.firstNonNull(values, NO_METHODS);
+  public void setDirectMethods(DexEncodedMethod[] methods) {
+    directMethods = MoreObjects.firstNonNull(methods, NO_METHODS);
     assert verifyCorrectnessOfMethodHolders(directMethods());
     assert verifyNoDuplicateMethods();
   }
@@ -221,14 +224,14 @@ public abstract class DexClass extends DexDefinition {
     assert verifyNoDuplicateMethods();
   }
 
-  public void setVirtualMethods(DexEncodedMethod[] values) {
-    virtualMethods = MoreObjects.firstNonNull(values, NO_METHODS);
+  public void setVirtualMethods(DexEncodedMethod[] methods) {
+    virtualMethods = MoreObjects.firstNonNull(methods, NO_METHODS);
     assert verifyCorrectnessOfMethodHolders(virtualMethods());
     assert verifyNoDuplicateMethods();
   }
 
   private boolean verifyCorrectnessOfMethodHolder(DexEncodedMethod method) {
-    assert method.method.holder == type
+    assert method.method.getHolder() == type
         : "Expected method `"
             + method.method.toSourceString()
             + "` to have holder `"
@@ -340,12 +343,53 @@ public abstract class DexClass extends DexDefinition {
     }
   }
 
-  public DexEncodedField[] staticFields() {
-    return staticFields;
+  public List<DexEncodedField> staticFields() {
+    assert staticFields != null;
+    if (InternalOptions.assertionsEnabled()) {
+      return Collections.unmodifiableList(Arrays.asList(staticFields));
+    }
+    return Arrays.asList(staticFields);
   }
 
-  public void setStaticFields(DexEncodedField[] values) {
-    staticFields = MoreObjects.firstNonNull(values, NO_FIELDS);
+  public void appendStaticField(DexEncodedField field) {
+    DexEncodedField[] newFields = new DexEncodedField[staticFields.length + 1];
+    System.arraycopy(staticFields, 0, newFields, 0, staticFields.length);
+    newFields[staticFields.length] = field;
+    staticFields = newFields;
+    assert verifyCorrectnessOfFieldHolder(field);
+    assert verifyNoDuplicateFields();
+  }
+
+  public void appendStaticFields(Collection<DexEncodedField> fields) {
+    DexEncodedField[] newFields = new DexEncodedField[staticFields.length + fields.size()];
+    System.arraycopy(staticFields, 0, newFields, 0, staticFields.length);
+    int i = staticFields.length;
+    for (DexEncodedField field : fields) {
+      newFields[i] = field;
+      i++;
+    }
+    staticFields = newFields;
+    assert verifyCorrectnessOfFieldHolders(fields);
+    assert verifyNoDuplicateFields();
+  }
+
+  public void removeStaticField(int index) {
+    DexEncodedField[] newFields = new DexEncodedField[staticFields.length - 1];
+    System.arraycopy(staticFields, 0, newFields, 0, index);
+    System.arraycopy(staticFields, index + 1, newFields, index, staticFields.length - index - 1);
+    staticFields = newFields;
+  }
+
+  public void setStaticField(int index, DexEncodedField field) {
+    staticFields[index] = field;
+    assert verifyCorrectnessOfFieldHolder(field);
+    assert verifyNoDuplicateFields();
+  }
+
+  public void setStaticFields(DexEncodedField[] fields) {
+    staticFields = MoreObjects.firstNonNull(fields, NO_FIELDS);
+    assert verifyCorrectnessOfFieldHolders(staticFields());
+    assert verifyNoDuplicateFields();
   }
 
   public boolean definesStaticField(DexField field) {
@@ -357,12 +401,80 @@ public abstract class DexClass extends DexDefinition {
     return false;
   }
 
-  public DexEncodedField[] instanceFields() {
-    return instanceFields;
+  public List<DexEncodedField> instanceFields() {
+    assert instanceFields != null;
+    if (InternalOptions.assertionsEnabled()) {
+      return Collections.unmodifiableList(Arrays.asList(instanceFields));
+    }
+    return Arrays.asList(instanceFields);
   }
 
-  public void setInstanceFields(DexEncodedField[] values) {
-    instanceFields = MoreObjects.firstNonNull(values, NO_FIELDS);
+  public void appendInstanceField(DexEncodedField field) {
+    DexEncodedField[] newFields = new DexEncodedField[instanceFields.length + 1];
+    System.arraycopy(instanceFields, 0, newFields, 0, instanceFields.length);
+    newFields[instanceFields.length] = field;
+    instanceFields = newFields;
+    assert verifyCorrectnessOfFieldHolder(field);
+    assert verifyNoDuplicateFields();
+  }
+
+  public void appendInstanceFields(Collection<DexEncodedField> fields) {
+    DexEncodedField[] newFields = new DexEncodedField[instanceFields.length + fields.size()];
+    System.arraycopy(instanceFields, 0, newFields, 0, instanceFields.length);
+    int i = instanceFields.length;
+    for (DexEncodedField field : fields) {
+      newFields[i] = field;
+      i++;
+    }
+    instanceFields = newFields;
+    assert verifyCorrectnessOfFieldHolders(fields);
+    assert verifyNoDuplicateFields();
+  }
+
+  public void removeInstanceField(int index) {
+    DexEncodedField[] newFields = new DexEncodedField[instanceFields.length - 1];
+    System.arraycopy(instanceFields, 0, newFields, 0, index);
+    System.arraycopy(
+        instanceFields, index + 1, newFields, index, instanceFields.length - index - 1);
+    instanceFields = newFields;
+  }
+
+  public void setInstanceField(int index, DexEncodedField field) {
+    instanceFields[index] = field;
+    assert verifyCorrectnessOfFieldHolder(field);
+    assert verifyNoDuplicateFields();
+  }
+
+  public void setInstanceFields(DexEncodedField[] fields) {
+    instanceFields = MoreObjects.firstNonNull(fields, NO_FIELDS);
+    assert verifyCorrectnessOfFieldHolders(instanceFields());
+    assert verifyNoDuplicateFields();
+  }
+
+  private boolean verifyCorrectnessOfFieldHolder(DexEncodedField field) {
+    assert field.field.getHolder() == type
+        : "Expected field `"
+            + field.field.toSourceString()
+            + "` to have holder `"
+            + type.toSourceString()
+            + "`";
+    return true;
+  }
+
+  private boolean verifyCorrectnessOfFieldHolders(Iterable<DexEncodedField> fields) {
+    for (DexEncodedField field : fields) {
+      assert verifyCorrectnessOfFieldHolder(field);
+    }
+    return true;
+  }
+
+  private boolean verifyNoDuplicateFields() {
+    Set<DexField> unique = Sets.newIdentityHashSet();
+    for (DexEncodedField field : fields()) {
+      boolean changed = unique.add(field.field);
+      assert changed : "Duplicate field `" + field.field.toSourceString() + "`";
+    }
+    return true;
   }
 
   public DexEncodedField[] allFieldsSorted() {
@@ -380,14 +492,14 @@ public abstract class DexClass extends DexDefinition {
    * Find static field in this class matching field
    */
   public DexEncodedField lookupStaticField(DexField field) {
-    return lookupTarget(staticFields(), field);
+    return lookupTarget(staticFields, field);
   }
 
   /**
    * Find instance field in this class matching field.
    */
   public DexEncodedField lookupInstanceField(DexField field) {
-    return lookupTarget(instanceFields(), field);
+    return lookupTarget(instanceFields, field);
   }
 
   /**
@@ -598,7 +710,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {
-    return Arrays.stream(staticFields())
+    return staticFields().stream()
         .anyMatch(field -> field.getStaticValue().mayHaveSideEffects());
   }
 
@@ -669,6 +781,8 @@ public abstract class DexClass extends DexDefinition {
   public boolean isValid() {
     assert !isInterface()
         || Arrays.stream(virtualMethods).noneMatch(method -> method.accessFlags.isFinal());
+    assert verifyCorrectnessOfFieldHolders(fields());
+    assert verifyNoDuplicateFields();
     assert verifyCorrectnessOfMethodHolders(methods());
     assert verifyNoDuplicateMethods();
     return true;

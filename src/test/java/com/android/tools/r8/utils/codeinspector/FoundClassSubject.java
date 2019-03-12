@@ -114,12 +114,12 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public void forAllFields(Consumer<FoundFieldSubject> inspection) {
     CodeInspector.forAll(
-        Arrays.asList(dexClass.staticFields()),
+        dexClass.staticFields(),
         (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),
         this,
         inspection);
     CodeInspector.forAll(
-        Arrays.asList(dexClass.instanceFields()),
+        dexClass.instanceFields(),
         (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),
         this,
         inspection);
@@ -180,7 +180,7 @@ public class FoundClassSubject extends ClassSubject {
     return dexClass.accessFlags.isAnnotation();
   }
 
-  private DexEncodedField findField(DexEncodedField[] fields, DexField dexField) {
+  private DexEncodedField findField(List<DexEncodedField> fields, DexField dexField) {
     for (DexEncodedField field : fields) {
       if (field.field.equals(dexField)) {
         return field;

@@ -111,30 +111,30 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
   }
 
   void validateStaticFields(Kotlin kotlin, DexClass lambda) throws LambdaStructureError {
-    DexEncodedField[] staticFields = lambda.staticFields();
-    if (staticFields.length == 1) {
-      DexEncodedField field = staticFields[0];
+    List<DexEncodedField> staticFields = lambda.staticFields();
+    if (staticFields.size() == 1) {
+      DexEncodedField field = staticFields.get(0);
       if (field.field.name != kotlin.functional.kotlinStyleLambdaInstanceName ||
           field.field.type != lambda.type || !field.accessFlags.isPublic() ||
           !field.accessFlags.isFinal() || !field.accessFlags.isStatic()) {
         throw new LambdaStructureError("unexpected static field " + field.toSourceString());
       }
       // No state if the lambda is a singleton.
-      if (lambda.instanceFields().length > 0) {
+      if (lambda.instanceFields().size() > 0) {
         throw new LambdaStructureError("has instance fields along with INSTANCE");
       }
       checkAccessFlags("static field access flags", field.accessFlags, SINGLETON_FIELD_FLAGS);
       checkFieldAnnotations(field);
 
-    } else if (staticFields.length > 1) {
+    } else if (staticFields.size() > 1) {
       throw new LambdaStructureError(
-          "only one static field max expected, found " + staticFields.length);
+          "only one static field max expected, found " + staticFields.size());
     }
   }
 
   String validateInstanceFields(DexClass lambda, boolean accessRelaxed)
       throws LambdaStructureError {
-    DexEncodedField[] instanceFields = lambda.instanceFields();
+    List<DexEncodedField> instanceFields = lambda.instanceFields();
     for (DexEncodedField field : instanceFields) {
       checkAccessFlags("capture field access flags", field.accessFlags,
           accessRelaxed ? CAPTURE_FIELD_FLAGS_RELAXED : CAPTURE_FIELD_FLAGS);
@@ -147,7 +147,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
     for (DexEncodedMethod method : lambda.directMethods()) {
       if (method.isClassInitializer()) {
         // We expect to see class initializer only if there is a singleton field.
-        if (lambda.staticFields().length != 1) {
+        if (lambda.staticFields().size() != 1) {
           throw new LambdaStructureError("has static initializer, but no singleton field");
         }
         checkAccessFlags(
@@ -163,15 +163,15 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
         // Lambda class is expected to have one constructor
         // with parameters matching capture signature.
         DexType[] parameters = method.method.proto.parameters.values;
-        DexEncodedField[] instanceFields = lambda.instanceFields();
-        if (parameters.length != instanceFields.length) {
+        List<DexEncodedField> instanceFields = lambda.instanceFields();
+        if (parameters.length != instanceFields.size()) {
           throw new LambdaStructureError("constructor parameters don't match captured values.");
         }
         for (int i = 0; i < parameters.length; i++) {
           // Kotlin compiler sometimes reshuffles the parameters so that their order
           // in the constructor don't match order of capture fields. We could add
           // support for it, but it happens quite rarely so don't bother for now.
-          if (parameters[i] != instanceFields[i].field.type) {
+          if (parameters[i] != instanceFields.get(i).field.type) {
             throw new LambdaStructureError(
                 "constructor parameters don't match captured values.", false);
           }

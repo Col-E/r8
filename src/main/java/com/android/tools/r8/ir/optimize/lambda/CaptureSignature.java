@@ -16,6 +16,7 @@ import it.unimi.dsi.fastutil.ints.IntLists;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
+import java.util.List;
 import java.util.function.IntFunction;
 
 // While mapping fields representing lambda captures we rearrange fields to make sure
@@ -106,8 +107,8 @@ public final class CaptureSignature {
   }
 
   // Compute capture signature based on lambda class capture fields.
-  public static String getCaptureSignature(DexEncodedField[] fields) {
-    return getCaptureSignature(fields.length, i -> fields[i].field.type);
+  public static String getCaptureSignature(List<DexEncodedField> fields) {
+    return getCaptureSignature(fields.size(), i -> fields.get(i).field.type);
   }
 
   // Compute capture signature based on type list.
@@ -118,7 +119,7 @@ public final class CaptureSignature {
   // Having a list of fields of lambda captured values, maps one of them into
   // an index of the appropriate field in normalized capture signature.
   public static int mapFieldIntoCaptureIndex(
-      String capture, DexEncodedField[] lambdaFields, DexField fieldToMap) {
+      String capture, List<DexEncodedField> lambdaFields, DexField fieldToMap) {
     char fieldKind = fieldToMap.type.toShorty();
     int numberOfSameCaptureKind = 0;
     int result = -1;

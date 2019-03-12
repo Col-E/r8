@@ -225,7 +225,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   public boolean hasMethodsOrFields() {
-    int numberOfFields = staticFields().length + instanceFields().length;
+    int numberOfFields = staticFields().size() + instanceFields().size();
     int numberOfMethods = directMethods().size() + virtualMethods().size();
     return numberOfFields + numberOfMethods > 0;
   }

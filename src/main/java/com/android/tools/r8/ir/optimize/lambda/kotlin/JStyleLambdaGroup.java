@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Lists;
+import java.util.List;
 import java.util.function.IntFunction;
 
 // Represents a j-style lambda group created to combine several lambda classes
@@ -152,8 +153,8 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
     }
 
     @Override
-    int getInstanceInitializerSize(DexEncodedField[] captures) {
-      return captures.length + 2;
+    int getInstanceInitializerSize(List<DexEncodedField> captures) {
+      return captures.size() + 2;
     }
 
     @Override

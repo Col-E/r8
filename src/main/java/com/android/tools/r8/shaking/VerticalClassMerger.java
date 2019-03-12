@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClass.FieldSetter;
 import com.android.tools.r8.graph.DexClass.MethodSetter;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -1255,11 +1256,11 @@ public class VerticalClassMerger {
     }
 
     private DexEncodedField[] mergeFields(
-        DexEncodedField[] sourceFields,
-        DexEncodedField[] targetFields,
+        Collection<DexEncodedField> sourceFields,
+        Collection<DexEncodedField> targetFields,
         Predicate<DexField> availableFieldSignatures,
         Set<DexString> existingFieldNames) {
-      DexEncodedField[] result = new DexEncodedField[sourceFields.length + targetFields.length];
+      DexEncodedField[] result = new DexEncodedField[sourceFields.size() + targetFields.size()];
       // Add fields from source
       int i = 0;
       for (DexEncodedField field : sourceFields) {
@@ -1270,21 +1271,10 @@ public class VerticalClassMerger {
         i++;
       }
       // Add fields from target.
-      System.arraycopy(targetFields, 0, result, i, targetFields.length);
-      return result;
-    }
-
-    private DexEncodedMethod[] mergeMethods(
-        Collection<DexEncodedMethod> sourceMethods, List<DexEncodedMethod> targetMethods) {
-      DexEncodedMethod[] result = new DexEncodedMethod[sourceMethods.size() + targetMethods.size()];
-      // Add methods from source.
-      int i = 0;
-      for (DexEncodedMethod method : sourceMethods) {
-        result[i] = method;
+      for (DexEncodedField field : targetFields) {
+        result[i] = field;
         i++;
       }
-      // Add methods from target.
-      System.arraycopy(targetMethods, 0, result, i, targetMethods.size());
       return result;
     }
 
@@ -1429,8 +1419,8 @@ public class VerticalClassMerger {
       for (DexProgramClass clazz : appInfo.classes()) {
         fixupMethods(clazz.directMethods(), clazz::setDirectMethod);
         fixupMethods(clazz.virtualMethods(), clazz::setVirtualMethod);
-        clazz.setStaticFields(substituteTypesIn(clazz.staticFields()));
-        clazz.setInstanceFields(substituteTypesIn(clazz.instanceFields()));
+        fixupFields(clazz.staticFields(), clazz::setStaticField);
+        fixupFields(clazz.instanceFields(), clazz::setInstanceField);
       }
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         synthesizedBridge.updateMethodSignatures(this::fixupMethod);
@@ -1457,22 +1447,21 @@ public class VerticalClassMerger {
       }
     }
 
-    private DexEncodedField[] substituteTypesIn(DexEncodedField[] fields) {
+    private void fixupFields(List<DexEncodedField> fields, FieldSetter setter) {
       if (fields == null) {
-        return null;
+        return;
       }
-      for (int i = 0; i < fields.length; i++) {
-        DexEncodedField encodedField = fields[i];
+      for (int i = 0; i < fields.size(); i++) {
+        DexEncodedField encodedField = fields.get(i);
         DexField field = encodedField.field;
         DexType newType = fixupType(field.type);
         DexType newHolder = fixupType(field.clazz);
         DexField newField = application.dexItemFactory.createField(newHolder, newType, field.name);
         if (newField != encodedField.field) {
           lense.move(encodedField.field, newField);
-          fields[i] = encodedField.toTypeSubstitutedField(newField);
+          setter.setField(i, encodedField.toTypeSubstitutedField(newField));
         }
       }
-      return fields;
     }
 
     private DexMethod fixupMethod(DexMethod method) {

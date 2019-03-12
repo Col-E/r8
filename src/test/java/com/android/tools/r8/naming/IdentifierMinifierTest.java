@@ -302,8 +302,8 @@ public class IdentifierMinifierTest extends TestBase {
   }
 
   private static int countRenamedClassIdentifier(
-      CodeInspector inspector, DexEncodedField[] fields) {
-    return Arrays.stream(fields)
+      CodeInspector inspector, List<DexEncodedField> fields) {
+    return fields.stream()
         .filter(encodedField -> encodedField.getStaticValue() instanceof DexValueString)
         .reduce(0, (cnt, encodedField) -> {
           String cnstString =

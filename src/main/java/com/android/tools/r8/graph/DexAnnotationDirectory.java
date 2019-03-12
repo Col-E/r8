@@ -8,7 +8,6 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.OrderedMergingIterator;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -38,11 +37,10 @@ public class DexAnnotationDirectory extends DexItem {
         parameterAnnotations.add(method);
       }
     }
-    assert isSorted(Arrays.asList(clazz.staticFields()));
-    assert isSorted(Arrays.asList(clazz.instanceFields()));
+    assert isSorted(clazz.staticFields());
+    assert isSorted(clazz.instanceFields());
     OrderedMergingIterator<DexEncodedField, DexField> fields =
-        new OrderedMergingIterator<>(
-            Arrays.asList(clazz.staticFields()), Arrays.asList(clazz.instanceFields()));
+        new OrderedMergingIterator<>(clazz.staticFields(), clazz.instanceFields());
     fieldAnnotations = new ArrayList<>();
     while (fields.hasNext()) {
       DexEncodedField field = fields.next();
@@ -67,7 +65,6 @@ public class DexAnnotationDirectory extends DexItem {
   public List<DexEncodedField> getFieldAnnotations() {
     return fieldAnnotations;
   }
-
 
   /**
    * DexAnnotationDirectory of a class can be canonicalized only if a clazz has annotations and

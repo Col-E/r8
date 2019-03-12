@@ -94,7 +94,7 @@ public class DuplicateDefinitionsTest extends JasminTestBase {
     assertThat(clazz, isPresent());
 
     // Redundant fields have been removed.
-    assertEquals(1, clazz.getDexClass().instanceFields().length);
-    assertEquals(1, clazz.getDexClass().staticFields().length);
+    assertEquals(1, clazz.getDexClass().instanceFields().size());
+    assertEquals(1, clazz.getDexClass().staticFields().size());
   }
 }

@@ -21,7 +21,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -109,8 +108,14 @@ public class TreePruner {
         if (reachableVirtualMethods != null) {
           clazz.setVirtualMethods(reachableVirtualMethods);
         }
-        clazz.setInstanceFields(reachableFields(clazz.instanceFields()));
-        clazz.setStaticFields(reachableFields(clazz.staticFields()));
+        DexEncodedField[] reachableInstanceFields = reachableFields(clazz.instanceFields());
+        if (reachableInstanceFields != null) {
+          clazz.setInstanceFields(reachableInstanceFields);
+        }
+        DexEncodedField[] reachableStaticFields = reachableFields(clazz.staticFields());
+        if (reachableStaticFields != null) {
+          clazz.setStaticFields(reachableStaticFields);
+        }
         clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
         clazz.removeEnclosingMethod(this::isAttributeReferencingPrunedItem);
         usagePrinter.visited();
@@ -173,6 +178,9 @@ public class TreePruner {
     if (firstUnreachable == -1) {
       return null;
     }
+    if (Log.ENABLED) {
+      Log.debug(getClass(), "Removing method: " + methods.get(firstUnreachable));
+    }
     ArrayList<DexEncodedMethod> reachableMethods = new ArrayList<>(methods.size());
     for (int i = 0; i < firstUnreachable; i++) {
       reachableMethods.add(methods.get(i));
@@ -221,36 +229,37 @@ public class TreePruner {
         usagePrinter.printUnusedMethod(method);
       }
     }
-    return reachableMethods.toArray(new DexEncodedMethod[reachableMethods.size()]);
+    return reachableMethods.isEmpty()
+        ? DexEncodedMethod.EMPTY_ARRAY
+        : reachableMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
   }
 
-  private DexEncodedField[] reachableFields(DexEncodedField[] fields) {
+  private DexEncodedField[] reachableFields(List<DexEncodedField> fields) {
     Predicate<DexField> isReachableOrReferencedField =
         field ->
             appInfo.liveFields.contains(field)
                 || appInfo.isFieldRead(field)
                 || appInfo.isFieldWritten(field);
-    int firstUnreachable =
-        firstUnreachableIndex(Arrays.asList(fields), isReachableOrReferencedField);
+    int firstUnreachable = firstUnreachableIndex(fields, isReachableOrReferencedField);
     // Return the original array if all fields are used.
     if (firstUnreachable == -1) {
-      return fields;
+      return null;
     }
     if (Log.ENABLED) {
-      Log.debug(getClass(), "Removing field: " + fields[firstUnreachable]);
+      Log.debug(getClass(), "Removing field: " + fields.get(firstUnreachable));
     }
-    usagePrinter.printUnusedField(fields[firstUnreachable]);
-    ArrayList<DexEncodedField> reachableOrReferencedFields = new ArrayList<>(fields.length);
+    usagePrinter.printUnusedField(fields.get(firstUnreachable));
+    ArrayList<DexEncodedField> reachableOrReferencedFields = new ArrayList<>(fields.size());
     for (int i = 0; i < firstUnreachable; i++) {
-      reachableOrReferencedFields.add(fields[i]);
+      reachableOrReferencedFields.add(fields.get(i));
     }
-    for (int i = firstUnreachable + 1; i < fields.length; i++) {
-      DexEncodedField field = fields[i];
+    for (int i = firstUnreachable + 1; i < fields.size(); i++) {
+      DexEncodedField field = fields.get(i);
       if (isReachableOrReferencedField.test(field.field)) {
         reachableOrReferencedFields.add(field);
       } else {
         if (Log.ENABLED) {
-          Log.debug(getClass(), "Removing field: " + field);
+          Log.debug(getClass(), "Removing field %s.", field.field);
         }
         usagePrinter.printUnusedField(field);
       }

@@ -50,7 +50,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 final class StaticizingProcessor {
 
@@ -125,7 +124,7 @@ final class StaticizingProcessor {
       // CHECK: instance initializer used to create an instance is trivial.
       // NOTE: Along with requirement that candidate does not have instance
       // fields this should guarantee that the constructor is empty.
-      assert candidateClass.instanceFields().length == 0;
+      assert candidateClass.instanceFields().size() == 0;
       assert constructorUsed.isProcessed();
       TrivialInitializer trivialInitializer =
           constructorUsed.getOptimizationInfo().getTrivialInitializerInfo();
@@ -231,7 +230,7 @@ final class StaticizingProcessor {
         //       extend java.lang.Object guarantees that the constructor is actually
         //       empty and does not need to be inlined.
         assert candidateInfo.candidate.superType == factory().objectType;
-        assert candidateInfo.candidate.instanceFields().length == 0;
+        assert candidateInfo.candidate.instanceFields().size() == 0;
 
         Value singletonValue = instruction.outValue();
         assert singletonValue != null;
@@ -319,7 +318,7 @@ final class StaticizingProcessor {
   // From staticizer's viewpoint, `sp` is trivial in the sense that it is composed of values that
   // refer to the same singleton field. If so, we can safely relax the assertion; remove uses of
   // field reads; remove quasi-trivial phis; and then remove original field reads.
-  private boolean testAndcollectPhisComposedOfSameFieldRead(
+  private boolean testAndCollectPhisComposedOfSameFieldRead(
       Set<Phi> phisToCheck, DexField field, Set<Phi> trivialPhis) {
     for (Phi phi : phisToCheck) {
       Set<Phi> chainedPhis = Sets.newIdentityHashSet();
@@ -336,7 +335,7 @@ final class StaticizingProcessor {
         }
       }
       if (!chainedPhis.isEmpty()) {
-        if (!testAndcollectPhisComposedOfSameFieldRead(chainedPhis, field, trivialPhis)) {
+        if (!testAndCollectPhisComposedOfSameFieldRead(chainedPhis, field, trivialPhis)) {
           return false;
         }
       }
@@ -353,7 +352,7 @@ final class StaticizingProcessor {
     // However, it may be not true if re-processing introduces phis after optimizing common suffix.
     Set<Phi> trivialPhis = Sets.newIdentityHashSet();
     boolean hasTrivialPhis =
-        testAndcollectPhisComposedOfSameFieldRead(dest.uniquePhiUsers(), field, trivialPhis);
+        testAndCollectPhisComposedOfSameFieldRead(dest.uniquePhiUsers(), field, trivialPhis);
     assert dest.numberOfPhiUsers() == 0 || hasTrivialPhis;
     Set<Instruction> users = new HashSet<>(dest.uniqueUsers());
     // If that is the case, method calls we want to fix up include users of those phis.
@@ -511,12 +510,13 @@ final class StaticizingProcessor {
 
   private boolean classMembersConflict(DexClass a, DexClass b) {
     assert Streams.stream(a.methods()).allMatch(DexEncodedMethod::isStatic);
-    assert a.instanceFields().length == 0;
-    return Stream.of(a.staticFields()).anyMatch(fld -> b.lookupField(fld.field) != null) ||
-        Streams.stream(a.methods()).anyMatch(method -> b.lookupMethod(method.method) != null);
+    assert a.instanceFields().size() == 0;
+    return a.staticFields().stream().anyMatch(fld -> b.lookupField(fld.field) != null)
+        || Streams.stream(a.methods()).anyMatch(method -> b.lookupMethod(method.method) != null);
   }
 
-  private void moveMembersIntoHost(Set<DexEncodedMethod> staticizedMethods,
+  private void moveMembersIntoHost(
+      Set<DexEncodedMethod> staticizedMethods,
       DexProgramClass candidateClass,
       DexType hostType, DexClass hostClass,
       BiMap<DexMethod, DexMethod> methodMapping,
@@ -524,26 +524,36 @@ final class StaticizingProcessor {
     candidateToHostMapping.put(candidateClass.type, hostType);
 
     // Process static fields.
-    // Append fields first.
-    if (candidateClass.staticFields().length > 0) {
-      DexEncodedField[] oldFields = hostClass.staticFields();
-      DexEncodedField[] extraFields = candidateClass.staticFields();
-      DexEncodedField[] newFields = new DexEncodedField[oldFields.length + extraFields.length];
-      System.arraycopy(oldFields, 0, newFields, 0, oldFields.length);
-      System.arraycopy(extraFields, 0, newFields, oldFields.length, extraFields.length);
-      hostClass.setStaticFields(newFields);
-    }
-
-    // Fixup field types.
-    DexEncodedField[] staticFields = hostClass.staticFields();
-    for (int i = 0; i < staticFields.length; i++) {
-      DexEncodedField field = staticFields[i];
+    int numOfHostStaticFields = hostClass.staticFields().size();
+    DexEncodedField[] newFields =
+        candidateClass.staticFields().size() > 0
+            ? new DexEncodedField[numOfHostStaticFields + candidateClass.staticFields().size()]
+            : new DexEncodedField[numOfHostStaticFields];
+    List<DexEncodedField> oldFields = hostClass.staticFields();
+    for (int i = 0; i < oldFields.size(); i++) {
+      DexEncodedField field = oldFields.get(i);
       DexField newField = mapCandidateField(field.field, candidateClass.type, hostType);
       if (newField != field.field) {
-        staticFields[i] = field.toTypeSubstitutedField(newField);
+        newFields[i] = field.toTypeSubstitutedField(newField);
         fieldMapping.put(field.field, newField);
+      } else {
+        newFields[i] = field;
       }
     }
+    if (candidateClass.staticFields().size() > 0) {
+      List<DexEncodedField> extraFields = candidateClass.staticFields();
+      for (int i = 0; i < extraFields.size(); i++) {
+        DexEncodedField field = extraFields.get(i);
+        DexField newField = mapCandidateField(field.field, candidateClass.type, hostType);
+        if (newField != field.field) {
+          newFields[numOfHostStaticFields + i] = field.toTypeSubstitutedField(newField);
+          fieldMapping.put(field.field, newField);
+        } else {
+          newFields[numOfHostStaticFields + i] = field;
+        }
+      }
+    }
+    hostClass.setStaticFields(newFields);
 
     // Process static methods.
     List<DexEncodedMethod> extraMethods = candidateClass.directMethods();

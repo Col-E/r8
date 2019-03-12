@@ -144,18 +144,18 @@ public final class ClassStaticizer {
       }
 
       // High-level limitations on what classes we consider eligible.
-      if (cls.isInterface() || // Must not be an interface or an abstract class.
-          cls.accessFlags.isAbstract() ||
+      if (cls.isInterface() // Must not be an interface or an abstract class.
+          || cls.accessFlags.isAbstract()
           // Don't support candidates with instance fields
-          cls.instanceFields().length > 0 ||
+          || cls.instanceFields().size() > 0
           // Only support classes directly extending java.lang.Object
-          cls.superType != factory.objectType ||
+          || cls.superType != factory.objectType
           // Instead of requiring the class being final,
           // just ensure it does not have subtypes
-          cls.type.hasSubtypes() ||
+          || cls.type.hasSubtypes()
           // Staticizing classes implementing interfaces is more
           // difficult, so don't support it until we really need it.
-          !cls.interfaces.isEmpty()) {
+          || !cls.interfaces.isEmpty()) {
         notEligible.add(cls.type);
       }
     });

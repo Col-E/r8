@@ -233,11 +233,11 @@ final public class ResourceShrinker {
 
     private void processAnnotations(DexProgramClass classDef) {
       Stream<DexAnnotation> instanceFieldAnnotations =
-          Arrays.stream(classDef.instanceFields())
+          classDef.instanceFields().stream()
               .filter(DexEncodedField::hasAnnotation)
               .flatMap(f -> Arrays.stream(f.annotations.annotations));
       Stream<DexAnnotation> staticFieldAnnotations =
-          Arrays.stream(classDef.staticFields())
+          classDef.staticFields().stream()
               .filter(DexEncodedField::hasAnnotation)
               .flatMap(f -> Arrays.stream(f.annotations.annotations));
       Stream<DexAnnotation> virtualMethodAnnotations =

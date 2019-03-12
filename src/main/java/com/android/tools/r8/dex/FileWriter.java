@@ -561,8 +561,8 @@ public class FileWriter {
         item -> mixedSectionOffsets.getOffsetFor(item.parameterAnnotationsList));
   }
 
-  private void writeEncodedFields(DexEncodedField[] fields) {
-    assert PresortedComparable.isSorted(Arrays.asList(fields));
+  private void writeEncodedFields(List<DexEncodedField> fields) {
+    assert PresortedComparable.isSorted(fields);
     int currentOffset = 0;
     for (DexEncodedField field : fields) {
       int nextOffset = mapping.getOffsetFor(field.field);
@@ -599,8 +599,8 @@ public class FileWriter {
   private void writeClassData(DexProgramClass clazz) {
     assert clazz.hasMethodsOrFields();
     mixedSectionOffsets.setOffsetFor(clazz, dest.position());
-    dest.putUleb128(clazz.staticFields().length);
-    dest.putUleb128(clazz.instanceFields().length);
+    dest.putUleb128(clazz.staticFields().size());
+    dest.putUleb128(clazz.instanceFields().size());
     dest.putUleb128(clazz.directMethods().size());
     dest.putUleb128(clazz.virtualMethods().size());
     writeEncodedFields(clazz.staticFields());
