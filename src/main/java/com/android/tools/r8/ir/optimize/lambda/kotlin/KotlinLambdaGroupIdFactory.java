@@ -87,6 +87,21 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
     return null;
   }
 
+  public static boolean hasValidAnnotations(Kotlin kotlin, DexClass lambda) {
+    if (!lambda.annotations.isEmpty()) {
+      for (DexAnnotation annotation : lambda.annotations.annotations) {
+        if (DexAnnotation.isSignatureAnnotation(annotation, kotlin.factory)) {
+          continue;
+        }
+        if (annotation.annotation.type == kotlin.metadata.kotlinMetadataType) {
+          continue;
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
   String validateAnnotations(Kotlin kotlin, DexClass lambda) throws LambdaStructureError {
     String signature = null;
     if (!lambda.annotations.isEmpty()) {
@@ -103,10 +118,12 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
           continue;
         }
 
+        assert !hasValidAnnotations(kotlin, lambda);
         throw new LambdaStructureError(
             "unexpected annotation: " + annotation.annotation.type.toSourceString());
       }
     }
+    assert hasValidAnnotations(kotlin, lambda);
     return signature;
   }
 
