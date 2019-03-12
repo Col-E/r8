@@ -904,10 +904,10 @@ public class InternalOptions {
   // This happens rarely, but it can happen in debug mode where the move
   // put a value into a new register which has associated locals information.
   //
-  // See b/120985556.
+  // Fixed in Android Q, see b/120985556.
   public boolean canHaveArtInstanceOfVerifierBug() {
-    // TODO(ager): Update this with an actual bound when the issue has been fixed.
-    return true;
+    assert isGeneratingDex();
+    return minApiLevel < AndroidApiLevel.Q.getLevel();
   }
 
   // Some Art Lollipop version do not deal correctly with long-to-int conversions.
