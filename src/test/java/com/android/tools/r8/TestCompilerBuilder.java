@@ -126,9 +126,10 @@ public abstract class TestCompilerBuilder<
   }
 
   public T setMinApi(AndroidApiLevel minApiLevel) {
-    // Should we ignore min-api calls when backend == CF?
-    this.defaultMinApiLevel = null;
-    builder.setMinApiLevel(minApiLevel.getLevel());
+    if (backend == Backend.DEX) {
+      this.defaultMinApiLevel = null;
+      builder.setMinApiLevel(minApiLevel.getLevel());
+    }
     return self();
   }
 

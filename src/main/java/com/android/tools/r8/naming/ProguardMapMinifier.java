@@ -99,9 +99,7 @@ public class ProguardMapMinifier {
       classNaming.forAllMethodNaming(
           memberNaming -> {
             Signature signature = memberNaming.getOriginalSignature();
-            if (signature.isQualified()) {
-              return;
-            }
+            assert !signature.isQualified();
             DexMethod originalMethod = ((MethodSignature) signature).toDexMethod(factory, type);
             assert !memberNames.containsKey(originalMethod);
             memberNames.put(originalMethod, memberNaming);
@@ -109,9 +107,7 @@ public class ProguardMapMinifier {
       classNaming.forAllFieldNaming(
           memberNaming -> {
             Signature signature = memberNaming.getOriginalSignature();
-            if (signature.isQualified()) {
-              return;
-            }
+            assert !signature.isQualified();
             DexField originalField = ((FieldSignature) signature).toDexField(factory, type);
             assert !memberNames.containsKey(originalField);
             memberNames.put(originalField, memberNaming);

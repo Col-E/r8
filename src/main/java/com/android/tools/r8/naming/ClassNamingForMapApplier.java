@@ -48,6 +48,11 @@ public class ClassNamingForMapApplier implements ClassNaming {
 
     @Override
     public ClassNaming.Builder addMemberEntry(MemberNaming entry) {
+      // Ignore all qualified signatures as they are the result of optimizations and thus the member
+      // is not kept/visible for apply mapping.
+      if (entry.signature.isQualified()) {
+        return this;
+      }
       // Unlike {@link ClassNamingForNameMapper.Builder#addMemberEntry},
       // the key is original signature.
       if (entry.isMethodNaming()) {
