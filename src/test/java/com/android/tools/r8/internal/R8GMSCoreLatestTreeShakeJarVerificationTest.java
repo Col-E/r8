@@ -10,6 +10,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class R8GMSCoreLatestTreeShakeJarVerificationTest
@@ -18,6 +19,7 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
   private String proguardMap1 = null;
   private String proguardMap2 = null;
 
+  @Ignore("b/128416563")
   @Test
   public void buildAndTreeShakeFromDeployJar() throws Exception {
     List<String> additionalProguardConfiguration =
