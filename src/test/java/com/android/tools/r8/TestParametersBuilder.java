@@ -7,10 +7,10 @@ import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.errors.Unreachable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -129,7 +129,6 @@ public class TestParametersBuilder {
   public Collection<TestParameters> build() {
     List<TestParameters> parameters = new ArrayList<>();
     availableCfVms.stream()
-        .filter(TestParametersBuilder::isSupportedJdk)
         .filter(cfRuntimePredicate)
         .forEach(vm -> parameters.add(new TestParameters(new CfRuntime(vm))));
     availableDexVms.stream()
@@ -140,16 +139,14 @@ public class TestParametersBuilder {
 
   // Public method to check that the CF runtime coincides with the system runtime.
   public static boolean isSystemJdk(CfVm vm) {
-    return vm == TestRuntime.CfVm.JDK8 && isSystemJdkJava8()
-        || vm == TestRuntime.CfVm.JDK9 && isSystemJdkJava9();
-  }
-
-  private static boolean isSystemJdkJava8() {
-    return System.getProperty("java.version").startsWith("8.");
-  }
-
-  private static boolean isSystemJdkJava9() {
-    return System.getProperty("java.version").startsWith("9.");
+    String version = System.getProperty("java.version");
+    switch (vm) {
+      case JDK8:
+        return version.startsWith("1.8.");
+      case JDK9:
+        return version.startsWith("9.");
+    }
+    throw new Unreachable();
   }
 
   // Currently the only supported VM is the system VM. This should be extended to start supporting
@@ -164,9 +161,13 @@ public class TestParametersBuilder {
       return Arrays.stream(cfVmsProperty.split(":"))
           .filter(s -> !s.isEmpty())
           .map(TestRuntime.CfVm::fromName)
+          .filter(TestParametersBuilder::isSupportedJdk)
           .collect(Collectors.toList());
     } else {
-      return Collections.singletonList(TestRuntime.CfVm.JDK9);
+      // TODO(b/127785410) Support multiple VMs at the same time.
+      return Arrays.stream(TestRuntime.CfVm.values())
+          .filter(TestParametersBuilder::isSystemJdk)
+          .collect(Collectors.toList());
     }
   }
 
