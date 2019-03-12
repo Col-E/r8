@@ -33,6 +33,7 @@ public class CfArrayLength extends CfInstruction {
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     Slot array = state.pop();
     assert array.type.isObject();
-    builder.addArrayLength(state.push(builder.getFactory().intType).register, array.register);
+    builder.addArrayLength(
+        state.push(builder.appView.dexItemFactory().intType).register, array.register);
   }
 }

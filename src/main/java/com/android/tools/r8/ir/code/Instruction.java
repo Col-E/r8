@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
@@ -1195,7 +1194,8 @@ public abstract class Instruction implements InstructionOrPhi {
 
   public abstract void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper);
 
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     assert outValue == null || !outValue.getTypeLattice().isReference();
     throw new Unreachable("Instruction without object outValue cannot compute verification type");
   }
@@ -1210,13 +1210,13 @@ public abstract class Instruction implements InstructionOrPhi {
   }
 
   // TODO(b/72693244): maybe rename to computeOutType once TypeVerificationHelper is gone?
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
     assert outValue == null;
     throw new Unimplemented(
         "Implement type lattice evaluation for: " + getInstructionName());
   }
 
-  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
+  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
     // TODO(b/72693244): for instructions with invariant out type, we can verify type directly here.
     if (outValue != null) {
       TypeLatticeElement outTypeLatticeElement = outValue.getTypeLattice();
@@ -1224,12 +1224,12 @@ public abstract class Instruction implements InstructionOrPhi {
         DexType outBaseType =
             outTypeLatticeElement
                 .asArrayTypeLatticeElement()
-                .getArrayType(appInfo.dexItemFactory)
-                .toBaseType(appInfo.dexItemFactory);
-        assert graphLense.lookupType(outBaseType) == outBaseType;
+                .getArrayType(appView.dexItemFactory())
+                .toBaseType(appView.dexItemFactory());
+        assert appView.graphLense().lookupType(outBaseType) == outBaseType;
       } else if (outTypeLatticeElement.isClassType()) {
         DexType outType = outTypeLatticeElement.asClassTypeLatticeElement().getClassType();
-        assert graphLense.lookupType(outType) == outType;
+        assert appView.graphLense().lookupType(outType) == outType;
       }
     }
     return true;

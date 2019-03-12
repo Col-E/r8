@@ -33,7 +33,7 @@ import org.junit.Test;
 public class TargetLookupTest extends SmaliTestBase {
 
   @Test
-  public void lookupDirect() throws Exception {
+  public void lookupDirect() {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addDefaultConstructor();

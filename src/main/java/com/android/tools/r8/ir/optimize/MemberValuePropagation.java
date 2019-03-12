@@ -220,7 +220,7 @@ public class MemberValuePropagation {
         && current.outValue().canBeNull()) {
       Value knownToBeNonNullValue = current.outValue();
       TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-      knownToBeNonNullValue.narrowing(appView.appInfo(), typeLattice.asNonNullable());
+      knownToBeNonNullValue.narrowing(appView, typeLattice.asNonNullable());
       affectedValues.addAll(knownToBeNonNullValue.affectedValues());
     }
     if (target.getOptimizationInfo().returnsConstant()) {
@@ -310,7 +310,7 @@ public class MemberValuePropagation {
               && outValue.getTypeLattice().isReference()
               && outValue.canBeNull()) {
             TypeLatticeElement typeLattice = outValue.getTypeLattice();
-            outValue.narrowing(appView.appInfo(), typeLattice.asNonNullable());
+            outValue.narrowing(appView, typeLattice.asNonNullable());
             affectedValues.addAll(outValue.affectedValues());
           }
         }
@@ -367,7 +367,7 @@ public class MemberValuePropagation {
       }
     }
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView.appInfo(), code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView, code.method).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }

@@ -11,9 +11,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.IRCode;
@@ -32,10 +32,10 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
@@ -49,16 +49,16 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       boolean npeCaught,
       BiConsumer<AppInfoWithLiveness, IRCode> inspector)
       throws Exception {
-    AppInfoWithLiveness appInfo = build(mainClass);
-    CodeInspector codeInspector = new CodeInspector(appInfo.app);
+    AppView<? extends AppInfoWithLiveness> appView = build(mainClass);
+    CodeInspector codeInspector = new CodeInspector(appView.appInfo().app);
+    MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();
-    IRCode irCode =
-        foo.buildIR(appInfo, GraphLense.getIdentityLense(), TEST_OPTIONS, Origin.unknown());
-    NonNullTracker nonNullTracker = new NonNullTracker(appInfo, ImmutableSet.of());
+    IRCode irCode = fooSubject.buildIR();
+    NonNullTracker nonNullTracker = new NonNullTracker(appView, ImmutableSet.of());
     nonNullTracker.addNonNull(irCode);
-    TypeAnalysis analysis = new TypeAnalysis(appInfo, foo);
+    TypeAnalysis analysis = new TypeAnalysis(appView, foo);
     analysis.widening(foo, irCode);
-    inspector.accept(appInfo, irCode);
+    inspector.accept(appView.appInfo(), irCode);
     verifyLastInvoke(irCode, npeCaught);
   }
 

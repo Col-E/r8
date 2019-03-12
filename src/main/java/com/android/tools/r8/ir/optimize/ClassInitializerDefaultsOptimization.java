@@ -202,7 +202,7 @@ public class ClassInitializerDefaultsOptimization {
 
     // If we are in R8, and we have removed all static-put instructions to some field, then record
     // that the field is no longer written.
-    if (appView != null && appView.enableWholeProgramOptimizations() && converter.isInWave()) {
+    if (appView.enableWholeProgramOptimizations() && converter.isInWave()) {
       if (appView.appInfo().hasLiveness()) {
         AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
         AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();

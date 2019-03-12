@@ -70,6 +70,7 @@ public class CfDexItemBasedConstString extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    builder.addDexItemBasedConstString(state.push(builder.getFactory().stringType).register, item);
+    builder.addDexItemBasedConstString(
+        state.push(builder.appView.dexItemFactory().stringType).register, item);
   }
 }

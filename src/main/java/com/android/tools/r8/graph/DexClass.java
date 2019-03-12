@@ -542,12 +542,12 @@ public abstract class DexClass extends DexDefinition {
     return null;
   }
 
-  public boolean hasMissingSuperType(AppInfo appInfo) {
-    if (superType != null && superType.isMissingOrHasMissingSuperType(appInfo)) {
+  public boolean hasMissingSuperType(DexDefinitionSupplier definitions) {
+    if (superType != null && superType.isMissingOrHasMissingSuperType(definitions)) {
       return true;
     }
     for (DexType interfaceType : interfaces.values) {
-      if (interfaceType.isMissingOrHasMissingSuperType(appInfo)) {
+      if (interfaceType.isMissingOrHasMissingSuperType(definitions)) {
         return true;
       }
     }

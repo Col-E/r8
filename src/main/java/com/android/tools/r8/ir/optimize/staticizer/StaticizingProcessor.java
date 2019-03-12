@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.staticizer;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -30,6 +31,7 @@ import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer.CandidateInfo;
+import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -52,6 +54,7 @@ import java.util.stream.Stream;
 
 final class StaticizingProcessor {
 
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final ClassStaticizer classStaticizer;
   private final ExecutorService executorService;
 
@@ -61,13 +64,16 @@ final class StaticizingProcessor {
   private final Map<DexField, CandidateInfo> singletonFields = new IdentityHashMap<>();
   private final Map<DexType, DexType> candidateToHostMapping = new IdentityHashMap<>();
 
-  StaticizingProcessor(ClassStaticizer classStaticizer, ExecutorService executorService) {
+  StaticizingProcessor(
+      AppView<? extends AppInfoWithLiveness> appView,
+      ClassStaticizer classStaticizer,
+      ExecutorService executorService) {
+    this.appView = appView;
     this.classStaticizer = classStaticizer;
     this.executorService = executorService;
   }
 
-  /** @return the set of methods that have been reprocessed as a result of staticizing. */
-  final Set<DexEncodedMethod> run(OptimizationFeedback feedback) throws ExecutionException {
+  final void run(OptimizationFeedback feedback) throws ExecutionException {
     // Filter out candidates based on the information we collected while examining methods.
     finalEligibilityCheck();
 
@@ -90,8 +96,6 @@ final class StaticizingProcessor {
     methods.addAll(referencingExtraMethods);
     methods.addAll(hostClassInits.keySet());
     processMethodsConcurrently(methods, this::rewriteReferences, feedback);
-
-    return methods;
   }
 
   private void finalEligibilityCheck() {
@@ -484,8 +488,7 @@ final class StaticizingProcessor {
         }
       }
       candidateClass.setVirtualMethods(DexEncodedMethod.EMPTY_ARRAY);
-      candidateClass.setDirectMethods(
-          newDirectMethods.toArray(new DexEncodedMethod[newDirectMethods.size()]));
+      candidateClass.setDirectMethods(newDirectMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
 
       // Consider moving static members from candidate into host.
       DexType hostType = candidate.hostType();
@@ -501,12 +504,7 @@ final class StaticizingProcessor {
     }
 
     if (!methodMapping.isEmpty() || !fieldMapping.isEmpty()) {
-      classStaticizer.converter.appView.setGraphLense(
-          new ClassStaticizerGraphLense(
-              classStaticizer.converter.graphLense(),
-              classStaticizer.factory,
-              fieldMapping,
-              methodMapping));
+      appView.setGraphLense(new ClassStaticizerGraphLense(appView, fieldMapping, methodMapping));
     }
     return staticizedMethods;
   }

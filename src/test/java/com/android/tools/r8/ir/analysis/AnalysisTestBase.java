@@ -9,10 +9,8 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -55,11 +53,7 @@ public abstract class AnalysisTestBase extends TestBase {
   public void buildAndCheckIR(String methodName, Consumer<IRCode> irInspector) throws Exception {
     CodeInspector inspector = new CodeInspector(app);
     MethodSubject methodSubject = inspector.clazz(className).uniqueMethodWithName(methodName);
-    IRCode code =
-        methodSubject
-            .getMethod()
-            .buildIR(appInfo, GraphLense.getIdentityLense(), options, Origin.unknown());
-    irInspector.accept(code);
+    irInspector.accept(methodSubject.buildIR());
   }
 
   @SuppressWarnings("unchecked")

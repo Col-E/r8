@@ -9,6 +9,7 @@ import com.android.tools.r8.code.FilledNewArray;
 import com.android.tools.r8.code.FilledNewArrayRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -97,8 +98,8 @@ public class InvokeNewArray extends Invoke {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(type, Nullability.definitelyNotNull(), appInfo);
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+    return TypeLatticeElement.fromDexType(type, Nullability.definitelyNotNull(), appView);
   }
 
   @Override
@@ -107,7 +108,8 @@ public class InvokeNewArray extends Invoke {
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     throw cfUnsupported();
   }
 

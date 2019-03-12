@@ -112,7 +112,7 @@ public class InstanceGet extends FieldInstruction {
     // * NullPointerException (null receiver).
     // TODO(b/123857022): Should be possible to use definitionFor().
     AppInfo appInfo = appView.appInfo();
-    DexEncodedField resolvedField = appInfo.resolveFieldOn(getField().getHolder(), getField());
+    DexEncodedField resolvedField = appInfo.resolveField(getField());
     if (resolvedField == null) {
       return false;
     }
@@ -167,12 +167,13 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(getField().type, Nullability.maybeNull(), appInfo);
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+    return TypeLatticeElement.fromDexType(getField().type, Nullability.maybeNull(), appView);
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     return getField().type;
   }
 

@@ -958,7 +958,7 @@ public class TestBase {
     System.out.println(SmaliWriter.smali(app, options));
   }
 
-  protected DexEncodedMethod getMethod(
+  protected MethodSubject getMethodSubject(
       CodeInspector inspector,
       String className,
       String returnType,
@@ -968,7 +968,21 @@ public class TestBase {
     assertTrue(clazz.isPresent());
     MethodSubject method = clazz.method(returnType, methodName, parameters);
     assertTrue(method.isPresent());
-    return method.getMethod();
+    return method;
+  }
+
+  protected MethodSubject getMethodSubject(
+      AndroidApp application,
+      String className,
+      String returnType,
+      String methodName,
+      List<String> parameters) {
+    try {
+      CodeInspector inspector = new CodeInspector(application);
+      return getMethodSubject(inspector, className, returnType, methodName, parameters);
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   protected DexEncodedMethod getMethod(
@@ -977,12 +991,16 @@ public class TestBase {
       String returnType,
       String methodName,
       List<String> parameters) {
-    try {
-      CodeInspector inspector = new CodeInspector(application);
-      return getMethod(inspector, className, returnType, methodName, parameters);
-    } catch (Exception e) {
-      return null;
-    }
+    return getMethodSubject(application, className, returnType, methodName, parameters).getMethod();
+  }
+
+  protected DexEncodedMethod getMethod(
+      CodeInspector inspector,
+      String className,
+      String returnType,
+      String methodName,
+      List<String> parameters) {
+    return getMethodSubject(inspector, className, returnType, methodName, parameters).getMethod();
   }
 
   protected static void checkInstructions(

@@ -134,20 +134,19 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
       return;
     }
     // Now, `field` is reference. Find its definition and check if it's renamed.
-    DexType holderType = field.getHolder();
-    DexClass holder = appInfo.definitionFor(holderType);
+    DexClass holder = appInfo.definitionFor(field.clazz);
     // We don't care pruned types or library classes.
     if (holder == null || holder.isLibraryClass()) {
       return;
     }
-    definition = appInfo.resolveFieldOn(holderType, field);
+    definition = appInfo.resolveField(field);
     if (definition == null) {
       // The program is already broken in the sense that it has an unresolvable field reference.
       // Leave it as-is.
       return;
     }
     assert definition.field != field;
-    assert definition.field.getHolder() != holderType;
+    assert definition.field.clazz != field.clazz;
     // If the definition is renamed,
     if (renaming.containsKey(definition.field)) {
       // Assign the same, renamed name as the definition to the reference.

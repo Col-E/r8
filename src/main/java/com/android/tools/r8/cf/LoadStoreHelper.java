@@ -5,6 +5,7 @@ package com.android.tools.r8.cf;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -31,17 +32,18 @@ import java.util.Map;
 
 public class LoadStoreHelper {
 
+  private final AppView<? extends AppInfo> appView;
   private final IRCode code;
   private final TypeVerificationHelper typesHelper;
-  private final AppInfo appInfo;
 
   private Map<Value, ConstInstruction> clonableConstants = null;
   private ListIterator<BasicBlock> blockIterator = null;
 
-  public LoadStoreHelper(IRCode code, TypeVerificationHelper typesHelper, AppInfo appInfo) {
+  public LoadStoreHelper(
+      AppView<? extends AppInfo> appView, IRCode code, TypeVerificationHelper typesHelper) {
+    this.appView = appView;
     this.code = code;
     this.typesHelper = typesHelper;
-    this.appInfo = appInfo;
   }
 
   private static boolean hasLocalInfoOrUsersOutsideThisBlock(Value value, BasicBlock block) {
@@ -140,11 +142,11 @@ public class LoadStoreHelper {
   }
 
   private StackValue createStackValue(Value value, int height) {
-    return StackValue.create(typesHelper.getTypeInfo(value), height, appInfo);
+    return StackValue.create(typesHelper.getTypeInfo(value), height, appView);
   }
 
   private StackValue createStackValue(DexType type, int height) {
-    return StackValue.create(typesHelper.createInitializedType(type), height, appInfo);
+    return StackValue.create(typesHelper.createInitializedType(type), height, appView);
   }
 
   public void loadInValues(Instruction instruction, InstructionListIterator it) {

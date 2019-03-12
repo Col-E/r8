@@ -19,16 +19,16 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -52,7 +52,6 @@ import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.PhiOptimizations;
 import com.android.tools.r8.ir.optimize.peepholes.BasicBlockMuncher;
-import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
@@ -76,11 +75,10 @@ public class CfBuilder {
   private static final int SUFFIX_SHARING_OVERHEAD = 30;
   private static final int IINC_PATTERN_SIZE = 4;
 
-  private final DexItemFactory factory;
+  public final AppView<? extends AppInfo> appView;
   private final DexEncodedMethod method;
   private final IRCode code;
 
-  private TypeVerificationHelper typeVerificationHelper;
   private Map<BasicBlock, CfLabel> labels;
   private Set<CfLabel> emittedLabels;
   private List<CfInstruction> instructions;
@@ -97,13 +95,9 @@ public class CfBuilder {
   private final Int2ReferenceMap<LocalVariableInfo> openLocalVariables =
       new Int2ReferenceOpenHashMap<>();
 
-  private AppInfo appInfo;
-
   private Map<NewInstance, List<InvokeDirect>> initializers;
   private List<InvokeDirect> thisInitializers;
   private Map<NewInstance, CfLabel> newInstanceLabels;
-
-  private InternalOptions options;
 
   // Internal structure maintaining the stack height.
   private static class StackHeightTracker {
@@ -131,32 +125,22 @@ public class CfBuilder {
     }
   }
 
-  public CfBuilder(DexEncodedMethod method, IRCode code, DexItemFactory factory) {
+  public CfBuilder(AppView<? extends AppInfo> appView, DexEncodedMethod method, IRCode code) {
+    this.appView = appView;
     this.method = method;
     this.code = code;
-    this.factory = factory;
   }
 
-  public DexItemFactory getFactory() {
-    return factory;
-  }
-
-  public CfCode build(
-      CodeRewriter rewriter,
-      GraphLense graphLense,
-      InternalOptions options,
-      AppInfo appInfo) {
-    this.options = options;
-    this.appInfo = appInfo;
+  public CfCode build(CodeRewriter rewriter) {
     computeInitializers();
-    typeVerificationHelper = new TypeVerificationHelper(code, factory, appInfo);
+    TypeVerificationHelper typeVerificationHelper = new TypeVerificationHelper(appView, code);
     typeVerificationHelper.computeVerificationTypes();
     rewriter.converter.deadCodeRemover.run(code);
     rewriteNots();
-    LoadStoreHelper loadStoreHelper = new LoadStoreHelper(code, typeVerificationHelper, appInfo);
+    LoadStoreHelper loadStoreHelper = new LoadStoreHelper(appView, code, typeVerificationHelper);
     loadStoreHelper.insertLoadsAndStores();
     // Run optimizations on phis and basic blocks in a fixpoint.
-    if (!options.testing.disallowLoadStoreOptimization) {
+    if (!appView.options().testing.disallowLoadStoreOptimization) {
       PhiOptimizations phiOptimizations = new PhiOptimizations();
       boolean reachedFixpoint = false;
       phiOptimizations.optimize(code);
@@ -166,7 +150,7 @@ public class CfBuilder {
       }
     }
     assert code.isConsistentSSA();
-    registerAllocator = new CfRegisterAllocator(code, options, typeVerificationHelper);
+    registerAllocator = new CfRegisterAllocator(appView, code, typeVerificationHelper);
     registerAllocator.allocateRegisters();
     loadStoreHelper.insertPhiMoves(registerAllocator);
 
@@ -181,16 +165,16 @@ public class CfBuilder {
     CodeRewriter.collapseTrivialGotos(method, code);
     DexBuilder.removeRedundantDebugPositions(code);
     CfCode code = buildCfCode();
-    assert verifyInvokeInterface(code, appInfo);
+    assert verifyInvokeInterface(code, appView);
     return code;
   }
 
-  private static boolean verifyInvokeInterface(CfCode code, AppInfo appInfo) {
+  private static boolean verifyInvokeInterface(CfCode code, DexDefinitionSupplier definitions) {
     for (CfInstruction instruction : code.instructions) {
       if (instruction instanceof CfInvoke) {
         CfInvoke invoke = (CfInvoke) instruction;
         if (invoke.getMethod().holder.isClassType()) {
-          DexClass holder = appInfo.definitionFor(invoke.getMethod().holder);
+          DexClass holder = definitions.definitionFor(invoke.getMethod().holder);
           assert holder == null || holder.isInterface() == invoke.isInterface();
         }
       }
@@ -199,7 +183,7 @@ public class CfBuilder {
   }
 
   public DexField resolveField(DexField field) {
-    DexEncodedField resolvedField = appInfo.resolveFieldOn(field.clazz, field);
+    DexEncodedField resolvedField = appView.appInfo().resolveField(field);
     return resolvedField == null ? field : resolvedField.field;
   }
 
@@ -229,7 +213,8 @@ public class CfBuilder {
     for (Instruction user : value.uniqueUsers()) {
       if (user instanceof InvokeDirect
           && user.inValues().get(0) == value
-          && user.asInvokeDirect().getInvokedMethod().name == factory.constructorMethodName) {
+          && user.asInvokeDirect().getInvokedMethod().name
+              == appView.dexItemFactory().constructorMethodName) {
         initializers.add(user.asInvokeDirect());
       }
     }
@@ -488,7 +473,7 @@ public class CfBuilder {
             // Ignore synthetic positions prior to any actual position, except when inlined
             // (that is, callerPosition != null).
             && !(currentPosition.isNone() && position.synthetic && position.callerPosition == null)
-            && (options.debug || instruction.instructionTypeCanThrow());
+            && (appView.options().debug || instruction.instructionTypeCanThrow());
     if (!didLocalsChange && !didPositionChange) {
       return;
     }

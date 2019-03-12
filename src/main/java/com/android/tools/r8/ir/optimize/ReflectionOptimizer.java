@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.getClassNameFromDescrip
 import static com.android.tools.r8.utils.DescriptorUtils.getSimpleClassNameFromDescriptor;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -75,8 +76,9 @@ public class ReflectionOptimizer {
   }
 
   // Rewrite getClass() call to const-class if the type of the given instance is effectively final.
-  public static void rewriteGetClass(AppInfoWithLiveness appInfo, IRCode code) {
+  public static void rewriteGetClass(AppView<? extends AppInfoWithLiveness> appView, IRCode code) {
     InstructionIterator it = code.instructionIterator();
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     while (it.hasNext()) {
       Instruction current = it.next();
       // Conservatively bail out if the containing block has catch handlers.
@@ -90,7 +92,7 @@ public class ReflectionOptimizer {
       InvokeVirtual invoke = current.asInvokeVirtual();
       DexMethod invokedMethod = invoke.getInvokedMethod();
       // Class<?> Object#getClass() is final and cannot be overridden.
-      if (invokedMethod != appInfo.dexItemFactory.objectMethods.getClass) {
+      if (invokedMethod != dexItemFactory.objectMethods.getClass) {
         continue;
       }
       Value in = invoke.getReceiver();
@@ -103,31 +105,32 @@ public class ReflectionOptimizer {
           || inType.isNullable()) {
         continue;
       }
-      DexType type = inType.isClassType()
-          ? inType.asClassTypeLatticeElement().getClassType()
-          : inType.asArrayTypeLatticeElement().getArrayType(appInfo.dexItemFactory);
-      DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+      DexType type =
+          inType.isClassType()
+              ? inType.asClassTypeLatticeElement().getClassType()
+              : inType.asArrayTypeLatticeElement().getArrayType(dexItemFactory);
+      DexType baseType = type.toBaseType(dexItemFactory);
       // Make sure base type is a class type.
       if (!baseType.isClassType()) {
         continue;
       }
       // Only consider program class, e.g., platform can introduce sub types in different versions.
-      DexClass clazz = appInfo.definitionFor(baseType);
+      DexClass clazz = appView.definitionFor(baseType);
       if (clazz == null || !clazz.isProgramClass()) {
         continue;
       }
       // Only consider effectively final class. Exception: new Base().getClass().
       if (!baseType.hasSubtypes()
-          || !appInfo.isInstantiatedIndirectly(baseType)
+          || !appView.appInfo().isInstantiatedIndirectly(baseType)
           || (!in.isPhi() && in.definition.isCreatingInstanceOrArray())) {
         // Make sure the target (base) type is visible.
         ConstraintWithTarget constraints =
-            ConstraintWithTarget.classIsVisible(code.method.method.getHolder(), baseType, appInfo);
+            ConstraintWithTarget.classIsVisible(code.method.method.getHolder(), baseType, appView);
         if (constraints == ConstraintWithTarget.NEVER) {
           continue;
         }
         TypeLatticeElement typeLattice =
-            TypeLatticeElement.classClassType(appInfo, definitelyNotNull());
+            TypeLatticeElement.classClassType(appView, definitelyNotNull());
         Value value = code.createValue(typeLattice, invoke.getLocalInfo());
         ConstClass constClass = new ConstClass(value, type);
         it.replaceCurrentInstruction(constClass);

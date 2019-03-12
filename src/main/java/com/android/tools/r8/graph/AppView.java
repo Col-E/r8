@@ -10,36 +10,34 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
+  private enum WholeProgramOptimizations {
+    ON,
+    OFF
+  }
+
   private T appInfo;
   private AppServices appServices;
   private final DexItemFactory dexItemFactory;
-  private final boolean enableWholeProgramOptimizations;
+  private final WholeProgramOptimizations wholeProgramOptimizations;
   private GraphLense graphLense;
   private final InternalOptions options;
   private VerticallyMergedClasses verticallyMergedClasses;
 
   private AppView(
-      T appInfo,
-      boolean enableWholeProgramOptimizations,
-      GraphLense graphLense,
-      InternalOptions options) {
+      T appInfo, WholeProgramOptimizations wholeProgramOptimizations, InternalOptions options) {
     this.appInfo = appInfo;
     this.dexItemFactory = appInfo != null ? appInfo.dexItemFactory : null;
-    this.enableWholeProgramOptimizations = enableWholeProgramOptimizations;
-    this.graphLense = graphLense;
+    this.wholeProgramOptimizations = wholeProgramOptimizations;
+    this.graphLense = GraphLense.getIdentityLense();
     this.options = options;
   }
 
   public static <T extends AppInfo> AppView<T> createForD8(T appInfo, InternalOptions options) {
-    boolean enableWholeProgramOptimizations = false;
-    return new AppView<>(
-        appInfo, enableWholeProgramOptimizations, GraphLense.getIdentityLense(), options);
+    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options);
   }
 
   public static <T extends AppInfo> AppView<T> createForR8(T appInfo, InternalOptions options) {
-    boolean enableWholeProgramOptimizations = true;
-    return new AppView<>(
-        appInfo, enableWholeProgramOptimizations, GraphLense.getIdentityLense(), options);
+    return new AppView<>(appInfo, WholeProgramOptimizations.ON, options);
   }
 
   public T appInfo() {
@@ -84,7 +82,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   }
 
   public boolean enableWholeProgramOptimizations() {
-    return enableWholeProgramOptimizations;
+    return wholeProgramOptimizations == WholeProgramOptimizations.ON;
   }
 
   public GraphLense graphLense() {
@@ -116,7 +114,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private class AppViewWithLiveness extends AppView<AppInfoWithLiveness> {
 
     private AppViewWithLiveness() {
-      super(null, false, null, null);
+      super(null, null, null);
     }
 
     @Override

@@ -8,6 +8,7 @@ import static org.objectweb.asm.Opcodes.ASM6;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -36,7 +37,7 @@ import org.objectweb.asm.tree.TryCatchBlockNode;
 public class InliningConstraintVisitor extends MethodVisitor {
 
   private final JarApplicationReader application;
-  private final AppInfoWithLiveness appInfo;
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final GraphLense graphLense;
   private final InliningConstraints inliningConstraints;
   private final DexEncodedMethod method;
@@ -46,16 +47,16 @@ public class InliningConstraintVisitor extends MethodVisitor {
 
   public InliningConstraintVisitor(
       JarApplicationReader application,
-      AppInfoWithLiveness appInfo,
+      AppView<? extends AppInfoWithLiveness> appView,
       GraphLense graphLense,
       DexEncodedMethod method,
       DexType invocationContext) {
     super(ASM6);
     assert graphLense.isContextFreeForMethods();
     this.application = application;
-    this.appInfo = appInfo;
+    this.appView = appView;
     this.graphLense = graphLense;
-    this.inliningConstraints = new InliningConstraints(appInfo, graphLense);
+    this.inliningConstraints = new InliningConstraints(appView, graphLense);
     this.method = method;
     this.invocationContext = invocationContext;
 
@@ -73,7 +74,7 @@ public class InliningConstraintVisitor extends MethodVisitor {
   }
 
   private void updateConstraint(ConstraintWithTarget other) {
-    constraint = ConstraintWithTarget.meet(constraint, other, appInfo);
+    constraint = ConstraintWithTarget.meet(constraint, other, appView);
   }
 
   // Used to signal that the result is ready, such that we do not need to visit all instructions of
@@ -180,7 +181,7 @@ public class InliningConstraintVisitor extends MethodVisitor {
         type = Invoke.Type.VIRTUAL;
         // Instructions that target a private method in the same class translates to invoke-direct.
         if (target.holder == method.method.holder) {
-          DexClass clazz = appInfo.definitionFor(target.holder);
+            DexClass clazz = appView.definitionFor(target.holder);
           if (clazz != null && clazz.lookupDirectMethod(target) != null) {
             type = Invoke.Type.DIRECT;
           }

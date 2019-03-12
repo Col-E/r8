@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -29,10 +30,9 @@ import java.util.List;
 // TODO(ager): Evaluate speed/size for computing active field sets in a fixed-point computation.
 public class RedundantFieldLoadElimination {
 
-  private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
   private final DexEncodedMethod method;
   private final IRCode code;
-  private final boolean enableWholeProgramOptimizations;
   private final DominatorTree dominatorTree;
 
   // Maps keeping track of fields that have an already loaded value at basic block entry.
@@ -46,12 +46,10 @@ public class RedundantFieldLoadElimination {
   private HashMap<FieldAndObject, Instruction> activeInstanceFields;
   private HashMap<DexField, Instruction> activeStaticFields;
 
-  public RedundantFieldLoadElimination(
-      AppInfo appInfo, IRCode code, boolean enableWholeProgramOptimizations) {
-    this.appInfo = appInfo;
+  public RedundantFieldLoadElimination(AppView<? extends AppInfo> appView, IRCode code) {
+    this.appView = appView;
     this.method = code.method;
     this.code = code;
-    this.enableWholeProgramOptimizations = enableWholeProgramOptimizations;
     dominatorTree = new DominatorTree(code);
   }
 
@@ -80,10 +78,11 @@ public class RedundantFieldLoadElimination {
   }
 
   private boolean couldBeVolatile(DexField field) {
-    if (!enableWholeProgramOptimizations && field.getHolder() != method.method.getHolder()) {
+    if (!appView.enableWholeProgramOptimizations()
+        && field.getHolder() != method.method.getHolder()) {
       return true;
     }
-    DexEncodedField definition = appInfo.definitionFor(field);
+    DexEncodedField definition = appView.definitionFor(field);
     return definition == null || definition.accessFlags.isVolatile();
   }
 

@@ -27,7 +27,6 @@ import com.android.tools.r8.code.MoveResultObject;
 import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.code.SwitchPayload;
 import com.android.tools.r8.code.Throw;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
@@ -79,11 +78,7 @@ public class DexSourceCode implements SourceCode {
   private final DexMethod originalMethod;
 
   public DexSourceCode(
-      DexCode code,
-      DexEncodedMethod method,
-      DexMethod originalMethod,
-      Position callerPosition,
-      AppInfo appInfo) {
+      DexCode code, DexEncodedMethod method, DexMethod originalMethod, Position callerPosition) {
     this.code = code;
     this.method = method;
     this.originalMethod = originalMethod;
@@ -172,7 +167,7 @@ public class DexSourceCode implements SourceCode {
       if (nextRemovedArgument != null && nextRemovedArgument.getArgumentIndex() == argumentIndex) {
         type =
             TypeLatticeElement.fromDexType(
-                nextRemovedArgument.getType(), Nullability.maybeNull(), builder.getAppInfo());
+                nextRemovedArgument.getType(), Nullability.maybeNull(), builder.appView);
         builder.addConstantOrUnusedArgument(register);
         nextRemovedArgument =
             removedArgumentIterator.hasNext() ? removedArgumentIterator.next() : null;
@@ -181,7 +176,7 @@ public class DexSourceCode implements SourceCode {
             TypeLatticeElement.fromDexType(
                 method.method.proto.parameters.values[usedArgumentIndex++],
                 Nullability.maybeNull(),
-                builder.getAppInfo());
+                builder.appView);
         builder.addNonThisArgument(register, type);
       }
       register += type.requiredRegisters();
@@ -203,7 +198,7 @@ public class DexSourceCode implements SourceCode {
   @Override
   public void buildInstruction(
       IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
-    updateCurrentCatchHandlers(instructionIndex, builder.getFactory());
+    updateCurrentCatchHandlers(instructionIndex, builder.appView.dexItemFactory());
     updateDebugPosition(instructionIndex, builder);
     currentDexInstruction = code.instructions[instructionIndex];
     currentDexInstruction.buildIR(builder);
@@ -390,7 +385,8 @@ public class DexSourceCode implements SourceCode {
         }
         builder.ensureBlockWithoutEnqueuing(tryRangeStartAddress);
         // Edge to exceptional successors.
-        for (Integer handlerOffset : getUniqueTryHandlerOffsets(tryRange, builder.getFactory())) {
+        for (Integer handlerOffset :
+            getUniqueTryHandlerOffsets(tryRange, builder.appView.dexItemFactory())) {
           builder.ensureExceptionalSuccessorBlock(offset, handlerOffset);
         }
         // If the following instruction is a move-result include it in this (the invokes) block.
@@ -470,12 +466,7 @@ public class DexSourceCode implements SourceCode {
 
   private List<Integer> getTryHandlerOffsets(Try tryRange, DexItemFactory factory) {
     List<Integer> handlerOffsets = new ArrayList<>();
-    forEachTryRange(
-        tryRange,
-        factory,
-        (type, addr) -> {
-          handlerOffsets.add(addr);
-        });
+    forEachTryRange(tryRange, factory, (type, addr) -> handlerOffsets.add(addr));
     return handlerOffsets;
   }
 }

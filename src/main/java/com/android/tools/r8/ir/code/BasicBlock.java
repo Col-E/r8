@@ -7,6 +7,7 @@ import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -79,9 +80,8 @@ public class BasicBlock {
     return true;
   }
 
-  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
-    assert instructions.stream()
-        .allMatch(instruction -> instruction.verifyTypes(appInfo, graphLense));
+  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
+    assert instructions.stream().allMatch(instruction -> instruction.verifyTypes(appView));
     return true;
   }
 
@@ -1305,14 +1305,15 @@ public class BasicBlock {
   }
 
   public static BasicBlock createRethrowBlock(
-      IRCode code, Position position, DexType guard, AppInfo appInfo, InternalOptions options) {
+      IRCode code, Position position, DexType guard, AppView<? extends AppInfo> appView) {
     TypeLatticeElement guardTypeLattice =
-        TypeLatticeElement.fromDexType(guard, Nullability.definitelyNotNull(), appInfo);
+        TypeLatticeElement.fromDexType(guard, Nullability.definitelyNotNull(), appView.appInfo());
     BasicBlock block = new BasicBlock();
-    MoveException moveException = new MoveException(
-        new Value(code.valueNumberGenerator.next(), guardTypeLattice, null),
-        guard,
-        options);
+    MoveException moveException =
+        new MoveException(
+            new Value(code.valueNumberGenerator.next(), guardTypeLattice, null),
+            guard,
+            appView.options());
     moveException.setPosition(position);
     Throw throwInstruction = new Throw(moveException.outValue);
     throwInstruction.setPosition(position);

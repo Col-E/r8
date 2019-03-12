@@ -4,15 +4,16 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AccessFlags;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -49,8 +50,6 @@ import java.util.function.Predicate;
 public class Inliner {
 
   protected final AppView<? extends AppInfoWithLiveness> appView;
-  private final IRConverter converter;
-  final InternalOptions options;
   final MainDexClasses mainDexClasses;
 
   // State for inlining methods which are known to be called twice.
@@ -63,12 +62,8 @@ public class Inliner {
 
   public Inliner(
       AppView<? extends AppInfoWithLiveness> appView,
-      IRConverter converter,
-      InternalOptions options,
       MainDexClasses mainDexClasses) {
     this.appView = appView;
-    this.converter = converter;
-    this.options = options;
     this.mainDexClasses = mainDexClasses;
     fillInBlackList(appView.appInfo());
   }
@@ -96,7 +91,8 @@ public class Inliner {
 
   public ConstraintWithTarget computeInliningConstraint(IRCode code, DexEncodedMethod method) {
     ConstraintWithTarget result = ConstraintWithTarget.ALWAYS;
-    InliningConstraints inliningConstraints = new InliningConstraints(appView.appInfo());
+    InliningConstraints inliningConstraints =
+        new InliningConstraints(appView, GraphLense.getIdentityLense());
     InstructionIterator it = code.instructionIterator();
     while (it.hasNext()) {
       Instruction instruction = it.next();
@@ -281,7 +277,7 @@ public class Inliner {
         DexType contextHolder,
         DexType targetHolder,
         AccessFlags flags,
-        AppInfo appInfo) {
+        DexDefinitionSupplier definitions) {
       if (flags.isPublic()) {
         return ALWAYS;
       } else if (flags.isPrivate()) {
@@ -291,7 +287,7 @@ public class Inliner {
         if (targetHolder.isSamePackage(contextHolder)) {
           // Even though protected, this is visible via the same package from the context.
           return new ConstraintWithTarget(Constraint.PACKAGE, targetHolder);
-        } else if (contextHolder.isSubtypeOf(targetHolder, appInfo)) {
+        } else if (contextHolder.isSubtypeOf(targetHolder, definitions)) {
           return new ConstraintWithTarget(Constraint.SUBCLASS, targetHolder);
         }
         return NEVER;
@@ -303,27 +299,29 @@ public class Inliner {
     }
 
     public static ConstraintWithTarget classIsVisible(
-        DexType context, DexType clazz, AppInfo appInfo) {
+        DexType context, DexType clazz, DexDefinitionSupplier definitions) {
       if (clazz.isArrayType()) {
-        return classIsVisible(context, clazz.toArrayElementType(appInfo.dexItemFactory), appInfo);
+        return classIsVisible(
+            context, clazz.toArrayElementType(definitions.dexItemFactory()), definitions);
       }
 
       if (clazz.isPrimitiveType()) {
         return ALWAYS;
       }
 
-      DexClass definition = appInfo.definitionFor(clazz);
-      return definition == null ? NEVER
-          : deriveConstraint(context, clazz, definition.accessFlags, appInfo);
+      DexClass definition = definitions.definitionFor(clazz);
+      return definition == null
+          ? NEVER
+          : deriveConstraint(context, clazz, definition.accessFlags, definitions);
     }
 
     public static ConstraintWithTarget meet(
-        ConstraintWithTarget one, ConstraintWithTarget other, AppInfo appInfo) {
+        ConstraintWithTarget one, ConstraintWithTarget other, DexDefinitionSupplier definitions) {
       if (one.equals(other)) {
         return one;
       }
       if (other.constraint.ordinal() < one.constraint.ordinal()) {
-        return meet(other, one, appInfo);
+        return meet(other, one, definitions);
       }
       // From now on, one.constraint.ordinal() <= other.constraint.ordinal()
       if (one == NEVER) {
@@ -349,7 +347,7 @@ public class Inliner {
           return NEVER;
         }
         assert other.constraint == Constraint.SUBCLASS;
-        if (one.targetHolder.isSubtypeOf(other.targetHolder, appInfo)) {
+        if (one.targetHolder.isSubtypeOf(other.targetHolder, definitions)) {
           return one;
         }
         return NEVER;
@@ -379,10 +377,10 @@ public class Inliner {
       assert Constraint.SUBCLASS.isSet(constraint);
       assert one.constraint == other.constraint;
       assert one.targetHolder != other.targetHolder;
-      if (one.targetHolder.isSubtypeOf(other.targetHolder, appInfo)) {
+      if (one.targetHolder.isSubtypeOf(other.targetHolder, definitions)) {
         return one;
       }
-      if (other.targetHolder.isSubtypeOf(one.targetHolder, appInfo)) {
+      if (other.targetHolder.isSubtypeOf(one.targetHolder, definitions)) {
         return other;
       }
       // SUBCLASS of x and SUBCLASS of y while x and y are not a subtype of each other.
@@ -425,18 +423,10 @@ public class Inliner {
         DexEncodedMethod context,
         ValueNumberGenerator generator,
         AppView<? extends AppInfoWithSubtyping> appView,
-        InternalOptions options,
         Position callerPosition) {
       // Build the IR for a yet not processed method, and perform minimal IR processing.
       Origin origin = appView.appInfo().originFor(target.method.holder);
-      IRCode code = target.buildInliningIR(
-          context,
-          appView.appInfo(),
-          appView.graphLense(),
-          options,
-          generator,
-          callerPosition,
-          origin);
+      IRCode code = target.buildInliningIR(context, appView, generator, callerPosition, origin);
       if (!target.isProcessed()) {
         new LensCodeRewriter(appView).rewrite(code, target);
       }
@@ -565,7 +555,7 @@ public class Inliner {
       IRCode code,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation) {
-
+    InternalOptions options = appView.options();
     DefaultInliningOracle oracle =
         createDefaultOracle(
             method,
@@ -574,7 +564,6 @@ public class Inliner {
             callSiteInformation,
             options.inliningInstructionLimit,
             options.inliningInstructionAllowance - numberOfInstructions(code));
-
     performInliningImpl(oracle, oracle, method, code);
   }
 
@@ -585,7 +574,6 @@ public class Inliner {
       CallSiteInformation callSiteInformation,
       int inliningInstructionLimit,
       int inliningInstructionAllowance) {
-
     return new DefaultInliningOracle(
         appView,
         this,
@@ -593,7 +581,6 @@ public class Inliner {
         code,
         callSiteInformation,
         isProcessedConcurrently,
-        options,
         inliningInstructionLimit,
         inliningInstructionAllowance);
   }
@@ -628,10 +615,10 @@ public class Inliner {
             }
             assert invokePosition.callerPosition == null
                 || invokePosition.getOutermostCaller().method
-                    == converter.graphLense().getOriginalMethodSignature(context.method);
+                    == appView.graphLense().getOriginalMethodSignature(context.method);
 
-            InlineeWithReason inlinee = result.buildInliningIR(
-                context, code.valueNumberGenerator, appView, options, invokePosition);
+            InlineeWithReason inlinee =
+                result.buildInliningIR(context, code.valueNumberGenerator, appView, invokePosition);
             if (inlinee != null) {
               if (strategy.willExceedBudget(inlinee, block)) {
                 continue;
@@ -652,7 +639,7 @@ public class Inliner {
               iterator.previous();
               strategy.markInlined(inlinee);
               iterator.inlineInvoke(
-                  appView.appInfo(), code, inlinee.code, blockIterator, blocksToRemove, downcast);
+                  appView, code, inlinee.code, blockIterator, blocksToRemove, downcast);
 
               classInitializationAnalysis.notifyCodeHasChanged();
               strategy.updateTypeInformationIfNeeded(inlinee.code, blockIterator, block);

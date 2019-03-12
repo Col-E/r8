@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -130,23 +131,39 @@ public class SmaliTestBase extends TestBase {
     }
   }
 
-  protected DexEncodedMethod getMethod(Path appPath, MethodSignature signature) {
+  protected MethodSubject getMethodSubject(Path appPath, MethodSignature signature) {
     try {
       CodeInspector inspector = new CodeInspector(appPath);
-      return getMethod(inspector, signature);
+      return getMethodSubject(inspector, signature);
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
     }
   }
 
-  protected DexEncodedMethod getMethod(CodeInspector inspector, MethodSignature signature) {
-    return getMethod(
+  protected MethodSubject getMethodSubject(CodeInspector inspector, MethodSignature signature) {
+    return getMethodSubject(
         inspector, signature.clazz, signature.returnType, signature.name, signature.parameterTypes);
   }
 
+  protected MethodSubject getMethodSubject(AndroidApp application, MethodSignature signature) {
+    return getMethodSubject(
+        application,
+        signature.clazz,
+        signature.returnType,
+        signature.name,
+        signature.parameterTypes);
+  }
+
+  protected DexEncodedMethod getMethod(Path appPath, MethodSignature signature) {
+    return getMethodSubject(appPath, signature).getMethod();
+  }
+
+  protected DexEncodedMethod getMethod(CodeInspector inspector, MethodSignature signature) {
+    return getMethodSubject(inspector, signature).getMethod();
+  }
+
   protected DexEncodedMethod getMethod(AndroidApp application, MethodSignature signature) {
-    return getMethod(application,
-        signature.clazz, signature.returnType, signature.name, signature.parameterTypes);
+    return getMethodSubject(application, signature).getMethod();
   }
 
   /**
@@ -220,8 +237,9 @@ public class SmaliTestBase extends TestBase {
     assertEquals(1, getNumberOfProgramClasses(processdApplication));
 
     // Return the processed method for inspection.
-    return getMethod(
-        processdApplication, DEFAULT_CLASS_NAME, returnType, DEFAULT_METHOD_NAME, parameters);
+    return getMethodSubject(
+            processdApplication, DEFAULT_CLASS_NAME, returnType, DEFAULT_METHOD_NAME, parameters)
+        .getMethod();
   }
 
   public String runArt(AndroidApp application) {

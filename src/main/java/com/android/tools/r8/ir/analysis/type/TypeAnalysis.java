@@ -8,7 +8,8 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
 
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -35,20 +36,22 @@ public class TypeAnalysis {
 
   private Mode mode = Mode.UNSET;
 
-  private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
   private final DexEncodedMethod context;
 
   private final Deque<Value> worklist = new ArrayDeque<>();
 
-  public TypeAnalysis(
-      AppInfo appInfo, DexEncodedMethod encodedMethod, boolean mayHaveImpreciseTypes) {
-    this.appInfo = appInfo;
-    this.context = encodedMethod;
-    this.mayHaveImpreciseTypes = mayHaveImpreciseTypes;
+  public TypeAnalysis(AppView<? extends AppInfo> appView, DexEncodedMethod encodedMethod) {
+    this(appView, encodedMethod, false);
   }
 
-  public TypeAnalysis(AppInfo appInfo, DexEncodedMethod encodedMethod) {
-    this(appInfo, encodedMethod, false);
+  public TypeAnalysis(
+      AppView<? extends AppInfo> appView,
+      DexEncodedMethod encodedMethod,
+      boolean mayHaveImpreciseTypes) {
+    this.appView = appView;
+    this.context = encodedMethod;
+    this.mayHaveImpreciseTypes = mayHaveImpreciseTypes;
   }
 
   private void analyze() {
@@ -101,18 +104,21 @@ public class TypeAnalysis {
         TypeLatticeElement derived;
         if (argumentsSeen < 0) {
           // Receiver
-          derived = fromDexType(encodedMethod.method.holder,
-              // Now we try inlining even when the receiver could be null.
-              encodedMethod == context ? definitelyNotNull() : maybeNull(), appInfo);
+          derived =
+              fromDexType(
+                  encodedMethod.method.holder,
+                  // Now we try inlining even when the receiver could be null.
+                  encodedMethod == context ? definitelyNotNull() : maybeNull(),
+                  appView);
         } else {
           DexType argType = encodedMethod.method.proto.parameters.values[argumentsSeen];
-          derived = fromDexType(argType, maybeNull(), appInfo);
+          derived = fromDexType(argType, maybeNull(), appView);
         }
         argumentsSeen++;
         updateTypeOfValue(outValue, derived);
         // Note that we don't need to enqueue the out value of arguments here because it's constant.
       } else if (instruction.hasInvariantOutType()) {
-        TypeLatticeElement derived = instruction.evaluate(appInfo);
+        TypeLatticeElement derived = instruction.evaluate(appView);
         updateTypeOfValue(outValue, derived);
       } else {
         enqueue(outValue);
@@ -126,9 +132,7 @@ public class TypeAnalysis {
   private void analyzeValue(Value value) {
     TypeLatticeElement previous = value.getTypeLattice();
     TypeLatticeElement derived =
-        value.isPhi()
-            ? value.asPhi().computePhiType(appInfo)
-            : value.definition.evaluate(appInfo);
+        value.isPhi() ? value.asPhi().computePhiType(appView) : value.definition.evaluate(appView);
     assert mayHaveImpreciseTypes || derived.isPreciseType();
     assert !previous.isPreciseType() || derived.isPreciseType();
     updateTypeOfValue(value, derived);
@@ -146,10 +150,10 @@ public class TypeAnalysis {
       return;
     }
     if (mode == Mode.WIDENING) {
-      value.widening(appInfo, type);
+      value.widening(appView, type);
     } else {
       assert mode == Mode.NARROWING;
-      value.narrowing(appInfo, type);
+      value.narrowing(appView, type);
     }
 
     // propagate the type change to (instruction) users if any.
@@ -166,12 +170,12 @@ public class TypeAnalysis {
   }
 
   public static DexType getRefinedReceiverType(
-      AppInfoWithSubtyping appInfo, InvokeMethodWithReceiver invoke) {
+      DexDefinitionSupplier definitions, InvokeMethodWithReceiver invoke) {
     DexType receiverType = invoke.getInvokedMethod().getHolder();
     TypeLatticeElement lattice = invoke.getReceiver().getTypeLattice();
     if (lattice.isClassType()) {
       DexType refinedType = lattice.asClassTypeLatticeElement().getClassType();
-      if (refinedType.isSubtypeOf(receiverType, appInfo)) {
+      if (refinedType.isSubtypeOf(receiverType, definitions)) {
         return refinedType;
       }
     }

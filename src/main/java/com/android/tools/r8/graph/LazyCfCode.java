@@ -58,7 +58,6 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
@@ -176,36 +175,23 @@ public class LazyCfCode extends Code {
 
   @Override
   public IRCode buildIR(
-      DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
-      Origin origin) {
+      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
     assert getOwner() == encodedMethod;
-    return asCfCode().buildIR(encodedMethod, appInfo, graphLense, options, origin);
+    return asCfCode().buildIR(encodedMethod, appView, origin);
   }
 
   @Override
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppInfo appInfo,
-      GraphLense graphLense,
-      InternalOptions options,
+      AppView<? extends AppInfo> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
     assert getOwner() == encodedMethod;
     return asCfCode()
         .buildInliningIR(
-            context,
-            encodedMethod,
-            appInfo,
-            graphLense,
-            options,
-            valueNumberGenerator,
-            callerPosition,
-            origin);
+            context, encodedMethod, appView, valueNumberGenerator, callerPosition, origin);
   }
 
   @Override

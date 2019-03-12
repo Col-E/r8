@@ -6,27 +6,62 @@ package com.android.tools.r8.ir;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppServices;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.ProguardClassFilter;
+import com.android.tools.r8.shaking.ProguardKeepRule;
+import com.android.tools.r8.shaking.RootSetBuilder;
+import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import org.junit.Test;
 
 public class InlineTest extends IrInjectionTestBase {
 
-  TestApplication codeForMethodReplaceTest(int a, int b) throws Exception {
+  public TestApplication buildTestApplication(
+      DexApplication application,
+      InternalOptions options,
+      MethodSubject method,
+      List<IRCode> additionalCode)
+      throws ExecutionException {
+    AppView<AppInfoWithSubtyping> appView =
+        AppView.createForR8(new AppInfoWithSubtyping(application), options);
+    appView.setAppServices(AppServices.builder(appView).build());
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
+    RootSet rootSet =
+        new RootSetBuilder(
+                appView,
+                application,
+                ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})),
+                options)
+            .run(executorService);
+    Timing timing = new Timing(getClass().getSimpleName());
+    Enqueuer enqueuer = new Enqueuer(appView, options, null);
+    appView.setAppInfo(
+        enqueuer.traceApplication(rootSet, ProguardClassFilter.empty(), executorService, timing));
+
+    return new TestApplication(appView, rootSet, method, additionalCode);
+  }
+
+  private TestApplication codeForMethodReplaceTest(int a, int b) throws ExecutionException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -73,25 +108,22 @@ public class InlineTest extends IrInjectionTestBase {
     );
 
     InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
 
-    DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodASubject = getMethodSubject(application, signatureA);
+    IRCode codeA = methodASubject.buildIR(options.itemFactory);
 
-    DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodBSubject = getMethodSubject(application, signatureB);
+    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
 
-    return new TestApplication(application, method, code,
-        ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
+    return buildTestApplication(
+        application, options, methodSubject, ImmutableList.of(codeA, codeB));
   }
 
-  public void runInlineTest(int a, int b, int expectedA, int expectedB) throws Exception {
+  private void runInlineTest(int a, int b, int expectedA, int expectedB) throws Exception {
     // Run code without inlining.
     TestApplication test = codeForMethodReplaceTest(a, b);
     String result = test.run();
@@ -102,18 +134,18 @@ public class InlineTest extends IrInjectionTestBase {
     // Run code inlining a.
     test = codeForMethodReplaceTest(a, b);
     iterator = test.code.entryBlock().listIterator();
-    iterator.nextUntil(instruction -> instruction.isInvoke());
+    iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
 
     // Run code inlining b (where a is actually called).
     test = codeForMethodReplaceTest(a, b);
     iterator = test.code.entryBlock().listIterator();
-    iterator.nextUntil(instruction -> instruction.isInvoke());
+    iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }
@@ -124,7 +156,8 @@ public class InlineTest extends IrInjectionTestBase {
     runInlineTest(1, 2, 3, 1);
   }
 
-  TestApplication codeForMethodReplaceReturnVoidTest(int a, int b) throws Exception {
+  private TestApplication codeForMethodReplaceReturnVoidTest(int a, int b)
+      throws ExecutionException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -157,19 +190,15 @@ public class InlineTest extends IrInjectionTestBase {
     );
 
     InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
 
-    DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodASubject = getMethodSubject(application, signatureA);
+    IRCode codeA = methodASubject.buildIR(options.itemFactory);
 
-    return new TestApplication(application, method, code,
-        ImmutableList.of(codeA), valueNumberGenerator, options);
+    return buildTestApplication(application, options, methodSubject, ImmutableList.of(codeA));
   }
 
   @Test
@@ -184,14 +213,14 @@ public class InlineTest extends IrInjectionTestBase {
     // Run code inlining a.
     test = codeForMethodReplaceReturnVoidTest(1, 2);
     iterator = test.code.entryBlock().listIterator();
-    iterator.nextUntil(instruction -> instruction.isInvoke());
+    iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(1), result);
   }
 
-  TestApplication codeForMultipleMethodReplaceTest(int a, int b) throws Exception {
+  private TestApplication codeForMultipleMethodReplaceTest(int a, int b) throws ExecutionException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     MethodSignature signature = builder.addStaticMethod(
@@ -238,33 +267,29 @@ public class InlineTest extends IrInjectionTestBase {
     );
 
     InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
 
     // Build three copies of a and b for inlining three times.
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
-      DexEncodedMethod methodA = getMethod(application, signatureA);
-      IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+      MethodSubject methodASubject = getMethodSubject(application, signatureA);
+      IRCode codeA = methodASubject.buildIR(options.itemFactory);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
-      DexEncodedMethod methodB = getMethod(application, signatureB);
-      IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+      MethodSubject methodBSubject = getMethodSubject(application, signatureB);
+      IRCode codeB = methodBSubject.buildIR(options.itemFactory);
       additionalCode.add(codeB);
     }
 
-    return new TestApplication(application, method, code,
-        additionalCode, valueNumberGenerator, options);
+    return buildTestApplication(application, options, methodSubject, additionalCode);
   }
 
-  public void runInlineMultipleTest(int a, int b, int expectedA, int expectedB) throws Exception {
+  private void runInlineMultipleTest(int a, int b, int expectedA, int expectedB) throws Exception {
     // Run code without inlining.
     TestApplication test = codeForMultipleMethodReplaceTest(a, b);
     String result = test.run();
@@ -280,11 +305,11 @@ public class InlineTest extends IrInjectionTestBase {
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
       iterator = block.listIterator();
-      Instruction invoke = iterator.nextUntil(instruction -> instruction.isInvoke());
+      Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
       if (invoke != null) {
         iterator.previous();
         iterator.inlineInvoke(
-            test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+            test.appView, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         assert blocksToRemove.isEmpty();
       }
     }
@@ -298,11 +323,11 @@ public class InlineTest extends IrInjectionTestBase {
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
       iterator = block.listIterator();
-      Instruction invoke = iterator.nextUntil(instruction -> instruction.isInvoke());
+      Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
       if (invoke != null) {
         iterator.previous();
         iterator.inlineInvoke(
-            test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+            test.appView, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         assert blocksToRemove.isEmpty();
       }
     }
@@ -316,8 +341,8 @@ public class InlineTest extends IrInjectionTestBase {
     runInlineMultipleTest(1, 2, 7, 8);
   }
 
-  TestApplication codeForMethodReplaceTestWithCatchHandler(int a, int b, boolean twoGuards)
-      throws Exception {
+  private TestApplication codeForMethodReplaceTestWithCatchHandler(int a, int b, boolean twoGuards)
+      throws ExecutionException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -375,25 +400,22 @@ public class InlineTest extends IrInjectionTestBase {
     );
 
     InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
 
-    DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodASubject = getMethodSubject(application, signatureA);
+    IRCode codeA = methodASubject.buildIR(options.itemFactory);
 
-    DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodBSubject = getMethodSubject(application, signatureB);
+    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
 
-    return new TestApplication(application, method, code,
-        ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
+    return buildTestApplication(
+        application, options, methodSubject, ImmutableList.of(codeA, codeB));
   }
 
-  public void runInlineCallerHasCatchHandlersTest(
+  private void runInlineCallerHasCatchHandlersTest(
       int a, int b, boolean twoGuards, int expectedA, int expectedB) throws Exception {
     // Run code without inlining.
     TestApplication test = codeForMethodReplaceTestWithCatchHandler(a, b, twoGuards);
@@ -405,18 +427,18 @@ public class InlineTest extends IrInjectionTestBase {
     // Run code inlining a.
     test = codeForMethodReplaceTestWithCatchHandler(a, b, twoGuards);
     iterator = test.code.blocks.get(1).listIterator();
-    iterator.nextUntil(instruction -> instruction.isInvoke());
+    iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
 
     // Run code inlining b (where a is actually called).
     test = codeForMethodReplaceTestWithCatchHandler(a, b, twoGuards);
     iterator = test.code.blocks.get(1).listIterator();
-    iterator.nextUntil(instruction -> instruction.isInvoke());
+    iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }
@@ -429,7 +451,8 @@ public class InlineTest extends IrInjectionTestBase {
     runInlineCallerHasCatchHandlersTest(1, 2, true, 3, 1);
   }
 
-  TestApplication codeForInlineCanThrow(int a, int b, boolean twoGuards) throws Exception {
+  private TestApplication codeForInlineCanThrow(int a, int b, boolean twoGuards)
+      throws ExecutionException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -490,26 +513,23 @@ public class InlineTest extends IrInjectionTestBase {
     );
 
     InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
 
-    DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodASubject = getMethodSubject(application, signatureA);
+    IRCode codeA = methodASubject.buildIR(options.itemFactory);
 
-    DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodBSubject = getMethodSubject(application, signatureB);
+    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
 
-    return new TestApplication(application, method, code,
-        ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
+    return buildTestApplication(
+        application, options, methodSubject, ImmutableList.of(codeA, codeB));
   }
 
-  public void runInlineCanThrow(
-      int a, int b, boolean twoGuards, int expectedA, int expectedB) throws Exception {
+  private void runInlineCanThrow(int a, int b, boolean twoGuards, int expectedA, int expectedB)
+      throws Exception {
     // Run code without inlining.
     TestApplication test = codeForInlineCanThrow(a, b, twoGuards);
     String result = test.run();
@@ -520,18 +540,18 @@ public class InlineTest extends IrInjectionTestBase {
     // Run code inlining a.
     test = codeForInlineCanThrow(a, b, twoGuards);
     iterator = test.code.entryBlock().listIterator();
-    iterator.nextUntil(instruction -> instruction.isInvoke());
+    iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
 
     // Run code inlining b (where a is actually called).
     test = codeForInlineCanThrow(a, b, twoGuards);
     iterator = test.code.entryBlock().listIterator();
-    iterator.nextUntil(instruction -> instruction.isInvoke());
+    iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }
@@ -544,7 +564,7 @@ public class InlineTest extends IrInjectionTestBase {
     runInlineCanThrow(2, 0, true, -2, -1);
   }
 
-  private TestApplication codeForInlineAlwaysThrows(boolean twoGuards) throws Exception {
+  private TestApplication codeForInlineAlwaysThrows(boolean twoGuards) throws ExecutionException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -604,22 +624,19 @@ public class InlineTest extends IrInjectionTestBase {
     );
 
     InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
 
-    DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodASubject = getMethodSubject(application, signatureA);
+    IRCode codeA = methodASubject.buildIR(options.itemFactory);
 
-    DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodBSubject = getMethodSubject(application, signatureB);
+    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
 
-    return new TestApplication(application, method, code,
-        ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
+    return buildTestApplication(
+        application, options, methodSubject, ImmutableList.of(codeA, codeB));
   }
 
   private void runInlineAlwaysThrows(boolean twoGuards, int expectedA, int expectedB)
@@ -636,7 +653,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.entryBlock().listIterator();
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
 
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
@@ -646,7 +663,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.entryBlock().listIterator();
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }
@@ -657,7 +674,8 @@ public class InlineTest extends IrInjectionTestBase {
     runInlineAlwaysThrows(true, -2, -1);
   }
 
-  private TestApplication codeForInlineAlwaysThrowsMultiple(boolean twoGuards) throws Exception {
+  private TestApplication codeForInlineAlwaysThrowsMultiple(boolean twoGuards)
+      throws ExecutionException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -719,30 +737,26 @@ public class InlineTest extends IrInjectionTestBase {
     );
 
     InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
 
     // Build three copies of a and b for inlining three times.
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
-      DexEncodedMethod methodA = getMethod(application, signatureA);
-      IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+      MethodSubject methodASubject = getMethodSubject(application, signatureA);
+      IRCode codeA = methodASubject.buildIR(options.itemFactory);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
-      DexEncodedMethod methodB = getMethod(application, signatureB);
-      IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+      MethodSubject methodBSubject = getMethodSubject(application, signatureB);
+      IRCode codeB = methodBSubject.buildIR(options.itemFactory);
       additionalCode.add(codeB);
     }
 
-    return new TestApplication(
-        application, method, code, additionalCode, valueNumberGenerator, options);
+    return buildTestApplication(application, options, methodSubject, additionalCode);
   }
 
   private void runInlineAlwaysThrowsMultiple(boolean twoGuards, int expectedA, int expectedB)
@@ -770,7 +784,7 @@ public class InlineTest extends IrInjectionTestBase {
         if (invoke != null) {
           iterator.previous();
           iterator.inlineInvoke(
-              test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+              test.appView, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         }
       }
       test.code.removeBlocks(blocksToRemove);
@@ -794,7 +808,7 @@ public class InlineTest extends IrInjectionTestBase {
         if (invoke != null) {
           iterator.previous();
           iterator.inlineInvoke(
-              test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+              test.appView, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         }
       }
       test.code.removeBlocks(blocksToRemove);
@@ -809,8 +823,8 @@ public class InlineTest extends IrInjectionTestBase {
     runInlineAlwaysThrowsMultiple(true, -2, -1);
   }
 
-  private TestApplication codeForInlineAlwaysThrowsMultipleWithControlFlow(
-      int a, boolean twoGuards) throws Exception {
+  private TestApplication codeForInlineAlwaysThrowsMultipleWithControlFlow(int a, boolean twoGuards)
+      throws ExecutionException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -879,30 +893,26 @@ public class InlineTest extends IrInjectionTestBase {
     );
 
     InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
 
     // Build three copies of a and b for inlining three times.
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
-      DexEncodedMethod methodA = getMethod(application, signatureA);
-      IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+      MethodSubject methodASubject = getMethodSubject(application, signatureA);
+      IRCode codeA = methodASubject.buildIR(options.itemFactory);
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
-      DexEncodedMethod methodB = getMethod(application, signatureB);
-      IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+      MethodSubject methodBSubject = getMethodSubject(application, signatureB);
+      IRCode codeB = methodBSubject.buildIR(options.itemFactory);
       additionalCode.add(codeB);
     }
 
-    return new TestApplication(
-        application, method, code, additionalCode, valueNumberGenerator, options);
+    return buildTestApplication(application, options, methodSubject, additionalCode);
   }
 
   private void runInlineAlwaysThrowsMultipleWithControlFlow(
@@ -930,7 +940,7 @@ public class InlineTest extends IrInjectionTestBase {
         if (invoke != null) {
           iterator.previous();
           iterator.inlineInvoke(
-              test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+              test.appView, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         }
       }
       test.code.removeBlocks(blocksToRemove);
@@ -954,7 +964,7 @@ public class InlineTest extends IrInjectionTestBase {
         if (invoke != null) {
           iterator.previous();
           iterator.inlineInvoke(
-              test.appInfo, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
+              test.appView, test.code, inlinee.next(), blocksIterator, blocksToRemove, null);
         }
       }
       test.code.removeBlocks(blocksToRemove);
@@ -975,7 +985,7 @@ public class InlineTest extends IrInjectionTestBase {
 
   private TestApplication codeForInlineWithHandlersCanThrow(
       int a, int b, int c, boolean twoGuards, boolean callerHasCatchAll, boolean inlineeHasCatchAll)
-      throws Exception {
+      throws ExecutionException {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = "";
@@ -1129,22 +1139,19 @@ public class InlineTest extends IrInjectionTestBase {
     );
 
     InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code = method.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
 
-    DexEncodedMethod methodA = getMethod(application, signatureA);
-    IRCode codeA = methodA.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodASubject = getMethodSubject(application, signatureA);
+    IRCode codeA = methodASubject.buildIR(options.itemFactory);
 
-    DexEncodedMethod methodB = getMethod(application, signatureB);
-    IRCode codeB = methodB.buildInliningIRForTesting(options, valueNumberGenerator, appInfo);
+    MethodSubject methodBSubject = getMethodSubject(application, signatureB);
+    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
 
-    return new TestApplication(application, method, code,
-        ImmutableList.of(codeA, codeB), valueNumberGenerator, options);
+    return buildTestApplication(
+        application, options, methodSubject, ImmutableList.of(codeA, codeB));
   }
 
   private void runInlineWithHandlersCanThrow(int a, int b, int c,
@@ -1164,7 +1171,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(1).listIterator();
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(0));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
     result = test.run();
     assertEquals(Integer.toString(expectedA), result);
 
@@ -1174,7 +1181,7 @@ public class InlineTest extends IrInjectionTestBase {
     iterator = test.code.blocks.get(1).listIterator();
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
-    iterator.inlineInvoke(test.appInfo, test.code, test.additionalCode.get(1));
+    iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));
     result = test.run();
     assertEquals(Integer.toString(expectedB), result);
   }

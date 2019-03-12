@@ -80,7 +80,7 @@ public class InvokePolymorphic extends InvokeMethod {
   @Override
   public void buildCf(CfBuilder builder) {
     DexMethod dexMethod = getInvokedMethod();
-    DexItemFactory factory = builder.getFactory();
+    DexItemFactory factory = builder.appView.dexItemFactory();
     // When we translate InvokeVirtual on MethodHandle/VarHandle into InvokePolymorphic,
     // we translate the invoked prototype into a generic prototype that simply accepts Object[].
     // To translate InvokePolymorphic back into InvokeVirtual, use the original prototype

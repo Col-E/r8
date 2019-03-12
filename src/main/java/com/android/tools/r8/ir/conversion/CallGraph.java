@@ -567,7 +567,7 @@ public class CallGraph extends CallSiteInformation {
     private void processFieldAccess(DexField field) {
       // Any field access implicitly calls the class initializer.
       if (field.clazz.isClassType()) {
-        DexEncodedField encodedField = appInfo.resolveFieldOn(field.clazz, field);
+        DexEncodedField encodedField = appInfo.resolveField(field);
         if (encodedField != null && encodedField.isStatic()) {
           addClassInitializerTarget(field.getHolder());
         }

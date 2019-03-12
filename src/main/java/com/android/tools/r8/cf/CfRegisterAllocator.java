@@ -7,6 +7,8 @@ import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
 import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
 import com.android.tools.r8.ir.code.Dup;
@@ -56,8 +58,8 @@ import java.util.TreeSet;
  */
 public class CfRegisterAllocator implements RegisterAllocator {
 
+  private final AppView<? extends AppInfo> appView;
   private final IRCode code;
-  private final InternalOptions options;
   private final TypeVerificationHelper typeHelper;
 
   // Mapping from basic blocks to the set of values live at entry to that basic block.
@@ -112,9 +114,9 @@ public class CfRegisterAllocator implements RegisterAllocator {
   private int maxArgumentRegisterNumber = -1;
 
   public CfRegisterAllocator(
-      IRCode code, InternalOptions options, TypeVerificationHelper typeHelper) {
+      AppView<? extends AppInfo> appView, IRCode code, TypeVerificationHelper typeHelper) {
+    this.appView = appView;
     this.code = code;
-    this.options = options;
     this.typeHelper = typeHelper;
   }
 
@@ -143,7 +145,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   @Override
   public InternalOptions getOptions() {
-    return options;
+    return appView.options();
   }
 
   @Override
@@ -155,7 +157,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
     // register allocation. We just treat the method as being in debug mode in order to keep
     // locals alive for their entire live range. In release mode the liveness is all that matters
     // and we do not actually want locals information in the output.
-    if (options.debug) {
+    if (appView.options().debug) {
       LinearScanRegisterAllocator.computeDebugInfo(blocks, liveIntervals, this, liveAtEntrySets);
     }
   }
@@ -176,7 +178,8 @@ public class CfRegisterAllocator implements RegisterAllocator {
   private ImmutableList<BasicBlock> computeLivenessInformation() {
     ImmutableList<BasicBlock> blocks = code.numberInstructions();
     liveAtEntrySets = code.computeLiveAtEntrySets();
-    LinearScanRegisterAllocator.computeLiveRanges(options, code, liveAtEntrySets, liveIntervals);
+    LinearScanRegisterAllocator.computeLiveRanges(
+        appView.options(), code, liveAtEntrySets, liveIntervals);
     return blocks;
   }
 

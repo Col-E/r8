@@ -9,8 +9,8 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -21,10 +21,10 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ import org.junit.Test;
 
 public class SplitBlockTest extends IrInjectionTestBase {
 
-  TestApplication codeWithoutCatchHandlers() throws Exception {
+  private TestApplication codeWithoutCatchHandlers() {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -61,15 +61,11 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    AppView<? extends AppInfo> appView = AppView.createForD8(new AppInfo(application), options);
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code =
-        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
-
-    return new TestApplication(application, method, code, valueNumberGenerator, options);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
+    return new TestApplication(appView, methodSubject);
   }
 
   @Test
@@ -141,7 +137,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     }
   }
 
-  TestApplication codeWithCatchHandlers(boolean shouldThrow, boolean twoGuards) throws Exception {
+  private TestApplication codeWithCatchHandlers(boolean shouldThrow, boolean twoGuards) {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -181,17 +177,14 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    AppView<? extends AppInfo> appView = AppView.createForD8(new AppInfo(application), options);
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code =
-        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
-    return new TestApplication(application, method, code, valueNumberGenerator, options);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
+    return new TestApplication(appView, methodSubject);
   }
 
-  public void hasCatchandlerIfThrowing(BasicBlock block) {
+  private void hasCatchandlerIfThrowing(BasicBlock block) {
     boolean throwing = false;
     for (Instruction instruction : block.getInstructions()) {
       throwing |= instruction.instructionTypeCanThrow();
@@ -199,7 +192,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     assertEquals(throwing, block.hasCatchHandlers());
   }
 
-  public void runCatchHandlerTest(boolean codeThrows, boolean twoGuards) throws Exception {
+  private void runCatchHandlerTest(boolean codeThrows, boolean twoGuards) throws Exception {
     final int secondBlockInstructions = 4;
     final int initialBlockCount = twoGuards ? 7 : 6;
     // Try split between all instructions in second block.
@@ -237,7 +230,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     runCatchHandlerTest(true, true);
   }
 
-  public void runCatchHandlerSplitThreeTest(boolean codeThrows, boolean twoGuards)
+  private void runCatchHandlerSplitThreeTest(boolean codeThrows, boolean twoGuards)
       throws Exception {
     final int secondBlockInstructions = 4;
     final int initialBlockCount = twoGuards ? 7 : 6;
@@ -277,7 +270,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     runCatchHandlerSplitThreeTest(true, true);
   }
 
-  TestApplication codeWithIf(boolean hitTrueBranch) throws Exception {
+  private TestApplication codeWithIf(boolean hitTrueBranch) {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -308,18 +301,14 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    AppView<? extends AppInfo> appView = AppView.createForD8(new AppInfo(application), options);
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code =
-        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
-
-    return new TestApplication(application, method, code, valueNumberGenerator, options);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
+    return new TestApplication(appView, methodSubject);
   }
 
-  public void runWithIfTest(boolean hitTrueBranch) throws Exception {
+  private void runWithIfTest(boolean hitTrueBranch) throws Exception {
     final int initialBlockCount = 3;
     final int argumentInstructions = 2;
     final int firstBlockInstructions = 3;
@@ -358,7 +347,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     runWithIfTest(true);
   }
 
-  public void splitBeforeReturn(boolean hitTrueBranch) throws Exception {
+  private void splitBeforeReturn(boolean hitTrueBranch) throws Exception {
     TestApplication test = codeWithIf(hitTrueBranch);
     IRCode code = test.code;
     // Locate the exit blocks and split before the return.
@@ -397,7 +386,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     splitBeforeReturn(true);
   }
 
-  TestApplication codeWithSwitch(boolean hitCase) throws Exception {
+  private TestApplication codeWithSwitch(boolean hitCase) {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -436,18 +425,14 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
-    AppInfo appInfo = new AppInfo(application);
+    AppView<? extends AppInfo> appView = AppView.createForD8(new AppInfo(application), options);
 
     // Return the processed method for inspection.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code =
-        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
-
-    return new TestApplication(application, method, code, valueNumberGenerator, options);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
+    return new TestApplication(appView, methodSubject);
   }
 
-  public void runWithSwitchTest(boolean hitCase) throws Exception {
+  private void runWithSwitchTest(boolean hitCase) throws Exception {
     final int initialBlockCount = 5;
     final int argumentInstructions = 1;
     final int firstBlockInstructions = 2;

@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.type;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 
@@ -77,8 +77,8 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public boolean isBasedOnMissingClass(AppInfo appInfo) {
-    return memberTypeLattice.isBasedOnMissingClass(appInfo);
+  public boolean isBasedOnMissingClass(DexDefinitionSupplier definitions) {
+    return memberTypeLattice.isBasedOnMissingClass(definitions);
   }
 
   @Override
@@ -119,7 +119,8 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
     return (isNullable() ? 1 : -1) * memberTypeLattice.hashCode();
   }
 
-  ReferenceTypeLatticeElement join(ArrayTypeLatticeElement other, AppInfo appInfo) {
+  ReferenceTypeLatticeElement join(
+      ArrayTypeLatticeElement other, DexDefinitionSupplier definitions) {
     TypeLatticeElement aMember = getArrayMemberTypeAsMemberType();
     TypeLatticeElement bMember = other.getArrayMemberTypeAsMemberType();
     if (aMember.equals(bMember)) {
@@ -129,18 +130,22 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
     Nullability nullability = nullability().join(other.nullability());
     if (aMember.isArrayType() && bMember.isArrayType()) {
       ReferenceTypeLatticeElement join =
-          aMember.asArrayTypeLatticeElement().join(bMember.asArrayTypeLatticeElement(), appInfo);
+          aMember
+              .asArrayTypeLatticeElement()
+              .join(bMember.asArrayTypeLatticeElement(), definitions);
       return join == null ? null : new ArrayTypeLatticeElement(join, nullability);
     }
     if (aMember.isClassType() && bMember.isClassType()) {
       ClassTypeLatticeElement join =
-          aMember.asClassTypeLatticeElement().join(bMember.asClassTypeLatticeElement(), appInfo);
+          aMember
+              .asClassTypeLatticeElement()
+              .join(bMember.asClassTypeLatticeElement(), definitions);
       return join == null ? null : new ArrayTypeLatticeElement(join, nullability);
     }
     if (aMember.isPrimitive() || bMember.isPrimitive()) {
-      return objectClassType(appInfo, nullability);
+      return objectClassType(definitions, nullability);
     }
-    return objectArrayType(appInfo, nullability);
+    return objectArrayType(definitions, nullability);
   }
 
 }

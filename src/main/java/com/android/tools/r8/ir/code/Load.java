@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -69,7 +70,8 @@ public class Load extends Instruction {
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     return helper.getDexType(src());
   }
 
@@ -79,7 +81,7 @@ public class Load extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
     return src().getTypeLattice();
   }
 

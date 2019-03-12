@@ -74,6 +74,6 @@ public class CfConstClass extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    builder.addConstClass(state.push(builder.getFactory().classType).register, type);
+    builder.addConstClass(state.push(builder.appView.dexItemFactory().classType).register, type);
   }
 }

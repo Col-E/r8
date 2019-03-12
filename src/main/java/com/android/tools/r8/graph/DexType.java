@@ -105,9 +105,9 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     setLevel(INTERFACE_LEVEL);
   }
 
-  public boolean isMissingOrHasMissingSuperType(AppInfo appInfo) {
-    DexClass clazz = appInfo.definitionFor(this);
-    return clazz == null || clazz.hasMissingSuperType(appInfo);
+  public boolean isMissingOrHasMissingSuperType(DexDefinitionSupplier definitions) {
+    DexClass clazz = definitions.definitionFor(this);
+    return clazz == null || clazz.hasMissingSuperType(definitions);
   }
 
   public boolean isInterface() {
@@ -286,37 +286,38 @@ public class DexType extends DexReference implements PresortedComparable<DexType
 
   /**
    * Collect all interfaces that this type directly or indirectly implements.
-   * @param appInfo where the definition of a certain {@link DexType} is looked up.
+   *
+   * @param definitions where the definition of a certain {@link DexType} is looked up.
    * @return a set of interfaces of {@link DexType}.
    */
-  public Set<DexType> implementedInterfaces(AppInfo appInfo) {
+  public Set<DexType> implementedInterfaces(DexDefinitionSupplier definitions) {
     if (implementedInterfaces != null) {
       return implementedInterfaces;
     }
     synchronized (this) {
       if (implementedInterfaces == null) {
         Set<DexType> interfaces = Sets.newIdentityHashSet();
-        implementedInterfaces(appInfo, interfaces);
+        implementedInterfaces(definitions, interfaces);
         implementedInterfaces = interfaces;
       }
     }
     return implementedInterfaces;
   }
 
-  private void implementedInterfaces(AppInfo appInfo, Set<DexType> interfaces) {
-    DexClass dexClass = appInfo.definitionFor(this);
+  private void implementedInterfaces(DexDefinitionSupplier definitions, Set<DexType> interfaces) {
+    DexClass dexClass = definitions.definitionFor(this);
     // Loop to traverse the super type hierarchy of the current type.
     while (dexClass != null) {
       if (dexClass.isInterface()) {
         interfaces.add(dexClass.type);
       }
       for (DexType itf : dexClass.interfaces.values) {
-        itf.implementedInterfaces(appInfo, interfaces);
+        itf.implementedInterfaces(definitions, interfaces);
       }
       if (dexClass.superType == null) {
         break;
       }
-      dexClass = appInfo.definitionFor(dexClass.superType);
+      dexClass = definitions.definitionFor(dexClass.superType);
     }
   }
 
@@ -623,11 +624,11 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return type.directSubtypes.contains(this);
   }
 
-  public DexType computeLeastUpperBoundOfClasses(AppInfo appInfo, DexType other) {
+  public DexType computeLeastUpperBoundOfClasses(DexDefinitionSupplier definitions, DexType other) {
     if (this == other) {
       return this;
     }
-    DexType objectType = appInfo.dexItemFactory.objectType;
+    DexType objectType = definitions.dexItemFactory().objectType;
     // If we have no definition for either class, stop proceeding.
     if (hierarchyLevel == UNKNOWN_LEVEL || other.hierarchyLevel == UNKNOWN_LEVEL) {
       return objectType;
@@ -648,7 +649,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     DexClass dexClass;
     // Make both of other and this in the same level.
     while (t2.hierarchyLevel > t1.hierarchyLevel) {
-      dexClass = appInfo.definitionFor(t2);
+      dexClass = definitions.definitionFor(t2);
       if (dexClass == null || dexClass.superType == null) {
         return objectType;
       }
@@ -660,13 +661,13 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     // (It will stop at anytime when either one's definition is not found.)
     DexType lubType = t1;
     while (t2 != lubType) {
-      dexClass = appInfo.definitionFor(t2);
+      dexClass = definitions.definitionFor(t2);
       if (dexClass == null) {
         lubType = objectType;
         break;
       }
       t2 = dexClass.superType;
-      dexClass = appInfo.definitionFor(lubType);
+      dexClass = definitions.definitionFor(lubType);
       if (dexClass == null) {
         lubType = objectType;
         break;

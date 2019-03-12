@@ -70,7 +70,8 @@ public class Store extends Instruction {
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     return helper.getDexType(src());
   }
 
@@ -80,7 +81,7 @@ public class Store extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
     return src().getTypeLattice();
   }
 

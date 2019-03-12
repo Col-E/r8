@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -333,7 +334,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
 
   @Override
   public BasicBlock inlineInvoke(
-      AppInfo appInfo,
+      AppView<? extends AppInfo> appView,
       IRCode code,
       IRCode inlinee,
       ListIterator<BasicBlock> blocksIterator,
@@ -372,7 +373,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       Value receiver = invoke.inValues().get(0);
       TypeLatticeElement castTypeLattice =
           TypeLatticeElement.fromDexType(
-              downcast, receiver.getTypeLattice().nullability(), appInfo);
+              downcast, receiver.getTypeLattice().nullability(), appView);
       CheckCast castInstruction =
           new CheckCast(code.createValue(castTypeLattice), receiver, downcast);
       castInstruction.setPosition(invoke.getPosition());
@@ -422,7 +423,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     assert entryBlock.getInstructions().stream().noneMatch(Instruction::isArgument);
 
     // Actual arguments are flown to the inlinee.
-    new TypeAnalysis(appInfo, inlinee.method).narrowing(argumentUsers);
+    new TypeAnalysis(appView, inlinee.method).narrowing(argumentUsers);
 
     // The inline entry is the first block now the argument instructions are gone.
     BasicBlock inlineEntry = inlinee.entryBlock();
@@ -432,7 +433,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     if (!normalExits.isEmpty()) {
       // Ensure and locate the single return instruction of the inlinee.
       InstructionListIterator inlineeIterator =
-          ensureSingleReturnInstruction(appInfo, inlinee, normalExits);
+          ensureSingleReturnInstruction(appView, inlinee, normalExits);
 
       // Replace the invoke value with the return value if non-void.
       assert inlineeIterator.peekNext().isReturn();
@@ -441,8 +442,10 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
         Return returnInstruction = inlineeIterator.peekNext().asReturn();
         invoke.outValue().replaceUsers(returnInstruction.returnValue());
         // The return type is flown to the original context.
-        new TypeAnalysis(appInfo, code.method).narrowing(
-            Iterables.concat(ImmutableList.of(returnInstruction.returnValue()), affectedValues));
+        new TypeAnalysis(appView, code.method)
+            .narrowing(
+                Iterables.concat(
+                    ImmutableList.of(returnInstruction.returnValue()), affectedValues));
       }
 
       // Split before return and unlink return.
@@ -517,7 +520,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   }
 
   private InstructionListIterator ensureSingleReturnInstruction(
-      AppInfo appInfo, IRCode code, List<BasicBlock> normalExits) {
+      AppView<? extends AppInfo> appView, IRCode code, List<BasicBlock> normalExits) {
     if (normalExits.size() == 1) {
       InstructionListIterator it = normalExits.get(0).listIterator();
       it.nextUntil(Instruction::isReturn);
@@ -550,7 +553,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
                 null,
                 RegisterReadType.NORMAL);
         phi.addOperands(operands);
-        new TypeAnalysis(appInfo, code.method).widening(ImmutableSet.of(phi));
+        new TypeAnalysis(appView, code.method).widening(ImmutableSet.of(phi));
         value = phi;
       }
       newReturn = new Return(value);

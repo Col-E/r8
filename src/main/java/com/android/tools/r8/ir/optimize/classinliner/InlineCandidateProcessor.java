@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.classinliner;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
@@ -13,7 +14,6 @@ import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialInstanceInitializer;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.OptimizationInfo;
@@ -58,8 +58,7 @@ final class InlineCandidateProcessor {
   private static final ImmutableSet<If.Type> ALLOWED_ZERO_TEST_TYPES =
       ImmutableSet.of(If.Type.EQ, If.Type.NE);
 
-  private final DexItemFactory factory;
-  private final AppInfoWithLiveness appInfo;
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final LambdaRewriter lambdaRewriter;
   private final Inliner inliner;
   private final Predicate<DexClass> isClassEligible;
@@ -82,21 +81,19 @@ final class InlineCandidateProcessor {
   private int estimatedCombinedSizeForInlining = 0;
 
   InlineCandidateProcessor(
-      DexItemFactory factory,
-      AppInfoWithLiveness appInfo,
+      AppView<? extends AppInfoWithLiveness> appView,
       LambdaRewriter lambdaRewriter,
       Inliner inliner,
       Predicate<DexClass> isClassEligible,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       DexEncodedMethod method,
       Instruction root) {
-    this.factory = factory;
+    this.appView = appView;
     this.lambdaRewriter = lambdaRewriter;
     this.inliner = inliner;
     this.isClassEligible = isClassEligible;
     this.method = method;
     this.root = root;
-    this.appInfo = appInfo;
     this.isProcessedConcurrently = isProcessedConcurrently;
   }
 
@@ -123,7 +120,7 @@ final class InlineCandidateProcessor {
       isDesugaredLambda = eligibleClassDefinition != null;
     }
     if (eligibleClassDefinition == null) {
-      eligibleClassDefinition = appInfo.definitionFor(eligibleClass);
+      eligibleClassDefinition = appView.definitionFor(eligibleClass);
     }
     return eligibleClassDefinition != null;
   }
@@ -229,9 +226,11 @@ final class InlineCandidateProcessor {
     assert info == null || info instanceof TrivialClassInitializer;
     DexField instanceField = root.asStaticGet().getField();
     // Singleton instance field must NOT be pinned.
-    return info != null &&
-        ((TrivialClassInitializer) info).field == instanceField &&
-        !appInfo.isPinned(eligibleClassDefinition.lookupStaticField(instanceField).field);
+    return info != null
+        && ((TrivialClassInitializer) info).field == instanceField
+        && !appView
+            .appInfo()
+            .isPinned(eligibleClassDefinition.lookupStaticField(instanceField).field);
   }
 
   /**
@@ -273,7 +272,7 @@ final class InlineCandidateProcessor {
           // Eligible constructor call (for new instance roots only).
           if (user.isInvokeDirect()) {
             InvokeDirect invoke = user.asInvokeDirect();
-            if (factory.isConstructor(invoke.getInvokedMethod())) {
+            if (appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())) {
               boolean isCorrespondingConstructorCall =
                   root.isNewInstance()
                       && !invoke.inValues().isEmpty()
@@ -414,10 +413,10 @@ final class InlineCandidateProcessor {
     boolean needToRemoveUnreachableBlocks = false;
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       // Remove the call to superclass constructor.
-      if (root.isNewInstance() &&
-          user.isInvokeDirect() &&
-          factory.isConstructor(user.asInvokeDirect().getInvokedMethod()) &&
-          user.asInvokeDirect().getInvokedMethod().holder == eligibleClassDefinition.superType) {
+      if (root.isNewInstance()
+          && user.isInvokeDirect()
+          && appView.dexItemFactory().isConstructor(user.asInvokeDirect().getInvokedMethod())
+          && user.asInvokeDirect().getInvokedMethod().holder == eligibleClassDefinition.superType) {
         removeInstruction(user);
         continue;
       }
@@ -491,14 +490,14 @@ final class InlineCandidateProcessor {
     if (value != null) {
       FieldValueHelper helper =
           fieldHelpers.computeIfAbsent(
-              fieldRead.getField(), field -> new FieldValueHelper(field, code, root, appInfo));
+              fieldRead.getField(), field -> new FieldValueHelper(field, code, root, appView));
       Value newValue = helper.getValueForFieldRead(fieldRead.getBlock(), fieldRead);
       value.replaceUsers(newValue);
       for (FieldValueHelper fieldValueHelper : fieldHelpers.values()) {
         fieldValueHelper.replaceValue(value, newValue);
       }
       assert value.numberOfAllUsers() == 0;
-      new TypeAnalysis(appInfo, code.method).widening(code.method, code);
+      new TypeAnalysis(appView, code.method).widening(code.method, code);
     }
     removeInstruction(fieldRead);
   }
@@ -525,7 +524,7 @@ final class InlineCandidateProcessor {
 
   private InliningInfo isEligibleConstructorCall(
       InvokeDirect invoke, DexEncodedMethod singleTarget, Supplier<InliningOracle> defaultOracle) {
-    assert factory.isConstructor(invoke.getInvokedMethod());
+    assert appView.dexItemFactory().isConstructor(invoke.getInvokedMethod());
     assert isEligibleSingleTarget(singleTarget);
 
     // Must be a constructor called on the receiver.
@@ -559,7 +558,7 @@ final class InlineCandidateProcessor {
     // NOTE: since we already classified the class as eligible, it does not have
     //       any class initializers in superclass chain or in superinterfaces, see
     //       details in ClassInliner::computeClassEligible(...).
-    if (eligibleClassDefinition.superType != factory.objectType) {
+    if (eligibleClassDefinition.superType != appView.dexItemFactory().objectType) {
       TrivialInitializer info = singleTarget.getOptimizationInfo().getTrivialInitializerInfo();
       if (!(info instanceof TrivialInstanceInitializer)) {
         return null;
@@ -650,7 +649,7 @@ final class InlineCandidateProcessor {
 
     // We should not inline a method if the invocation has type interface or virtual and the
     // signature of the invocation resolves to a private or static method.
-    ResolutionResult resolutionResult = appInfo.resolveMethod(callee.holder, callee);
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(callee.holder, callee);
     if (resolutionResult.hasSingleTarget()
         && !resolutionResult.asSingleTarget().isVirtualMethod()) {
       return null;
@@ -686,7 +685,8 @@ final class InlineCandidateProcessor {
   }
 
   private boolean isExtraMethodCall(InvokeMethod invoke) {
-    if (invoke.isInvokeDirect() && factory.isConstructor(invoke.getInvokedMethod())) {
+    if (invoke.isInvokeDirect()
+        && appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())) {
       return false;
     }
     if (invoke.isInvokeMethodWithReceiver()
@@ -845,10 +845,10 @@ final class InlineCandidateProcessor {
   }
 
   private boolean isTrivialInitializer(DexMethod method) {
-    if (method == appInfo.dexItemFactory.objectMethods.constructor) {
+    if (method == appView.dexItemFactory().objectMethods.constructor) {
       return true;
     }
-    DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
+    DexEncodedMethod encodedMethod = appView.definitionFor(method);
     return encodedMethod != null
         && encodedMethod.getOptimizationInfo().getTrivialInitializerInfo() != null;
   }
@@ -858,10 +858,10 @@ final class InlineCandidateProcessor {
     if (isDesugaredLambda && inlineeHolder == eligibleClass) {
       return true;
     }
-    if (appInfo.isPinned(inlineeHolder)) {
+    if (appView.appInfo().isPinned(inlineeHolder)) {
       return false;
     }
-    DexClass inlineeClass = appInfo.definitionFor(inlineeHolder);
+    DexClass inlineeClass = appView.definitionFor(inlineeHolder);
     assert inlineeClass != null;
 
     KotlinInfo kotlinInfo = inlineeClass.getKotlinInfo();
@@ -879,7 +879,7 @@ final class InlineCandidateProcessor {
   private DexEncodedMethod findSingleTarget(InvokeMethod invoke) {
     if (isExtraMethodCall(invoke)) {
       DexType invocationContext = method.method.holder;
-      return invoke.lookupSingleTarget(appInfo, invocationContext);
+      return invoke.lookupSingleTarget(appView.appInfo(), invocationContext);
     }
     // We don't use computeSingleTarget(...) on invoke since it sometimes fails to
     // find the single target, while this code may be more successful since we exactly
@@ -908,7 +908,7 @@ final class InlineCandidateProcessor {
       // return false.
       return true;
     }
-    if (!singleTarget.isInliningCandidate(method, Reason.SIMPLE, appInfo)) {
+    if (!singleTarget.isInliningCandidate(method, Reason.SIMPLE, appView.appInfo())) {
       // If `singleTarget` is not an inlining candidate, we won't be able to inline it here.
       //
       // Note that there may be some false negatives here since the method may

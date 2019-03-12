@@ -8,14 +8,12 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.IdentityHashMap;
@@ -31,26 +29,22 @@ import java.util.Map;
  */
 public class EnumOrdinalMapCollector {
 
-  private final AppInfoWithLiveness appInfo;
-  private final GraphLense graphLense;
-  private final InternalOptions options;
+  private final AppView<? extends AppInfoWithLiveness> appView;
 
   private final Map<DexType, Reference2IntMap<DexField>> ordinalsMaps = new IdentityHashMap<>();
 
   public EnumOrdinalMapCollector(AppView<? extends AppInfoWithLiveness> appView) {
-    this.appInfo = appView.appInfo();
-    this.graphLense = appView.graphLense();
-    this.options = appView.options();
+    this.appView = appView;
   }
 
   public AppInfoWithLiveness run() {
-    for (DexProgramClass clazz : appInfo.classes()) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       processClasses(clazz);
     }
     if (!ordinalsMaps.isEmpty()) {
-      return appInfo.addEnumOrdinalMaps(ordinalsMaps);
+      return appView.appInfo().addEnumOrdinalMaps(ordinalsMaps);
     }
-    return appInfo;
+    return appView.appInfo();
   }
 
   private void processClasses(DexProgramClass clazz) {
@@ -59,8 +53,7 @@ public class EnumOrdinalMapCollector {
       return;
     }
     DexEncodedMethod initializer = clazz.getClassInitializer();
-    IRCode code =
-        initializer.getCode().buildIR(initializer, appInfo, graphLense, options, clazz.origin);
+    IRCode code = initializer.getCode().buildIR(initializer, appView, clazz.origin);
     Reference2IntMap<DexField> ordinalsMap = new Reference2IntArrayMap<>();
     ordinalsMap.defaultReturnValue(-1);
     InstructionIterator it = code.instructionIterator();
@@ -83,7 +76,7 @@ public class EnumOrdinalMapCollector {
           continue;
         }
         InvokeDirect invoke = ctorCall.asInvokeDirect();
-        if (!appInfo.dexItemFactory.isConstructor(invoke.getInvokedMethod())
+        if (!appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())
             || invoke.arguments().size() < 3) {
           continue;
         }

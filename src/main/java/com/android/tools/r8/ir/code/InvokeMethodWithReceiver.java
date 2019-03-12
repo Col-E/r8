@@ -4,10 +4,10 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
@@ -48,8 +48,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public boolean verifyTypes(AppInfo appInfo, GraphLense graphLense) {
-    assert super.verifyTypes(appInfo, graphLense);
+  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
+    assert super.verifyTypes(appView);
 
     TypeLatticeElement receiverType = getReceiver().getTypeLattice();
     assert receiverType.isPreciseType();

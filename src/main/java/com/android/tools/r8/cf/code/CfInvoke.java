@@ -113,7 +113,8 @@ public class CfInvoke extends CfInstruction {
         }
       case Opcodes.INVOKEVIRTUAL:
         {
-          canonicalMethod = builder.getFactory().polymorphicMethods.canonicalize(method);
+          canonicalMethod =
+              builder.appView.dexItemFactory().polymorphicMethods.canonicalize(method);
           if (canonicalMethod == null) {
             type = Type.VIRTUAL;
             canonicalMethod = method;

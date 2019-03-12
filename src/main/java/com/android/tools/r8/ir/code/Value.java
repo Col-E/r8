@@ -892,7 +892,7 @@ public class Value {
         && getConstInstruction().asConstNumber().isZero();
   }
 
-  public void widening(AppInfo appInfo, TypeLatticeElement newType) {
+  public void widening(AppView<? extends AppInfo> appView, TypeLatticeElement newType) {
     // TODO(b/72693244): Enable assertion.
     // During WIDENING (due to fix-point iteration), type update is monotonically upwards,
     //   i.e., towards something wider.
@@ -902,7 +902,7 @@ public class Value {
     typeLattice = newType;
   }
 
-  public void narrowing(AppInfo appInfo, TypeLatticeElement newType) {
+  public void narrowing(AppView<? extends AppInfo> appView, TypeLatticeElement newType) {
     // TODO(b/72693244): Enable assertion.
     // During NARROWING (e.g., after inlining), type update is monotonically downwards,
     //   i.e., towards something narrower, with more specific type info.

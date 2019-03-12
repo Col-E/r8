@@ -10,13 +10,11 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.Arrays;
@@ -62,30 +60,26 @@ import java.util.stream.Collectors;
  */
 public class SwitchMapCollector {
 
-  private final AppInfoWithLiveness appInfo;
-  private final GraphLense graphLense;
-  private final InternalOptions options;
+  private final AppView<? extends AppInfoWithLiveness> appView;
   private final DexString switchMapPrefix;
   private final DexType intArrayType;
 
   private final Map<DexField, Int2ReferenceMap<DexField>> switchMaps = new IdentityHashMap<>();
 
   public SwitchMapCollector(AppView<? extends AppInfoWithLiveness> appView) {
-    this.appInfo = appView.appInfo();
-    this.graphLense = appView.graphLense();
-    this.options = appView.options();
-    switchMapPrefix = appInfo.dexItemFactory.createString("$SwitchMap$");
-    intArrayType = appInfo.dexItemFactory.createType("[I");
+    this.appView = appView;
+    switchMapPrefix = appView.dexItemFactory().createString("$SwitchMap$");
+    intArrayType = appView.dexItemFactory().createType("[I");
   }
 
   public AppInfoWithLiveness run() {
-    for (DexProgramClass clazz : appInfo.classes()) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       processClasses(clazz);
     }
     if (!switchMaps.isEmpty()) {
-      return appInfo.addSwitchMaps(switchMaps);
+      return appView.appInfo().addSwitchMaps(switchMaps);
     }
-    return appInfo;
+    return appView.appInfo();
   }
 
   private void processClasses(DexProgramClass clazz) {
@@ -96,8 +90,7 @@ public class SwitchMapCollector {
     List<DexEncodedField> switchMapFields = Arrays.stream(clazz.staticFields())
         .filter(this::maybeIsSwitchMap).collect(Collectors.toList());
     if (!switchMapFields.isEmpty()) {
-      IRCode initializer =
-          clazz.getClassInitializer().buildIR(appInfo, graphLense, options, clazz.origin);
+      IRCode initializer = clazz.getClassInitializer().buildIR(appView, clazz.origin);
       switchMapFields.forEach(field -> extractSwitchMap(field, initializer));
     }
   }
@@ -121,9 +114,10 @@ public class SwitchMapCollector {
             return;
           }
           InvokeVirtual invoke = value.asInvokeVirtual();
-          DexClass holder = appInfo.definitionFor(invoke.getInvokedMethod().holder);
-          if (holder == null ||
-              (!holder.accessFlags.isEnum() && holder.type != appInfo.dexItemFactory.enumType)) {
+          DexClass holder = appView.definitionFor(invoke.getInvokedMethod().holder);
+          if (holder == null
+              || (!holder.accessFlags.isEnum()
+                  && holder.type != appView.dexItemFactory().enumType)) {
             return;
           }
           Instruction enumGet = invoke.arguments().get(0).definition;
@@ -131,7 +125,7 @@ public class SwitchMapCollector {
             return;
           }
           DexField enumField = enumGet.asStaticGet().getField();
-          if (!appInfo.definitionFor(enumField.getHolder()).accessFlags.isEnum()) {
+          if (!appView.definitionFor(enumField.getHolder()).accessFlags.isEnum()) {
             return;
           }
           if (switchMap.put(integerIndex, enumField) != null) {

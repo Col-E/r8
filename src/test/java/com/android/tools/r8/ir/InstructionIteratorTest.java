@@ -4,18 +4,15 @@
 
 package com.android.tools.r8.ir;
 
-import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.ListIterator;
@@ -33,7 +30,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
    * <p>First block: Argument instructions Second block: Add instruction Third block: Return
    * instruction
    */
-  IRCode simpleCode() {
+  private IRCode simpleCode() {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -48,13 +45,10 @@ public class InstructionIteratorTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
-    AppInfo appInfo = getAppInfo(application);
 
     // Build the code, and split the code into three blocks.
-    ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
-    DexEncodedMethod method = getMethod(application, signature);
-    IRCode code =
-        method.buildInliningIRForTesting(new InternalOptions(), valueNumberGenerator, appInfo);
+    MethodSubject methodSubject = getMethodSubject(application, signature);
+    IRCode code = methodSubject.buildIR();
     ListIterator<BasicBlock> blocks = code.listIterator();
     InstructionListIterator iter = blocks.next().listIterator();
     iter.nextUntil(i -> !i.isArgument());

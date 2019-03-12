@@ -136,13 +136,14 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.classClassType(appInfo, Nullability.definitelyNotNull());
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+    return TypeLatticeElement.classClassType(appView, Nullability.definitelyNotNull());
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return helper.getFactory().classType;
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+    return appView.dexItemFactory().classType;
   }
 
   @Override

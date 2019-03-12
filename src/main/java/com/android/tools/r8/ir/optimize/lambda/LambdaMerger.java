@@ -34,7 +34,6 @@ import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -147,29 +146,35 @@ public final class LambdaMerger {
   // We do this before methods are being processed to guarantee stable order of
   // lambdas inside each group.
   public final void collectGroupCandidates(
-      DexApplication app, AppInfoWithLiveness infoWithLiveness, InternalOptions options) {
-    assert infoWithLiveness != null;
+      DexApplication app, AppView<? extends AppInfoWithLiveness> appView) {
     // Collect lambda groups.
     app.classes().stream()
-        .filter(cls -> !infoWithLiveness.isPinned(cls.type))
-        .filter(cls -> cls.hasKotlinInfo() &&
-            cls.getKotlinInfo().isSyntheticClass() &&
-            cls.getKotlinInfo().asSyntheticClass().isLambda())
+        .filter(cls -> !appView.appInfo().isPinned(cls.type))
+        .filter(
+            cls ->
+                cls.hasKotlinInfo()
+                    && cls.getKotlinInfo().isSyntheticClass()
+                    && cls.getKotlinInfo().asSyntheticClass().isLambda())
         .sorted((a, b) -> a.type.slowCompareTo(b.type)) // Ensure stable ordering.
-        .forEachOrdered(lambda -> {
-          try {
-            LambdaGroupId id = KotlinLambdaGroupIdFactory.create(kotlin, lambda, options);
-            LambdaGroup group = groups.computeIfAbsent(id, LambdaGroupId::createGroup);
-            group.add(lambda);
-            lambdas.put(lambda.type, group);
-          } catch (LambdaStructureError error) {
-            if (error.reportable) {
-              reporter.info(
-                  new StringDiagnostic("Unrecognized Kotlin lambda [" +
-                      lambda.type.toSourceString() + "]: " + error.getMessage()));
-            }
-          }
-        });
+        .forEachOrdered(
+            lambda -> {
+              try {
+                LambdaGroupId id =
+                    KotlinLambdaGroupIdFactory.create(kotlin, lambda, appView.options());
+                LambdaGroup group = groups.computeIfAbsent(id, LambdaGroupId::createGroup);
+                group.add(lambda);
+                lambdas.put(lambda.type, group);
+              } catch (LambdaStructureError error) {
+                if (error.reportable) {
+                  reporter.info(
+                      new StringDiagnostic(
+                          "Unrecognized Kotlin lambda ["
+                              + lambda.type.toSourceString()
+                              + "]: "
+                              + error.getMessage()));
+                }
+              }
+            });
 
     // Remove trivial groups.
     removeTrivialLambdaGroups();
@@ -233,9 +238,8 @@ public final class LambdaMerger {
       // Then, there is a dilemma: other sub optimizations trigger subtype lookup that will throw
       // NPE if it cannot find the holder for this synthesized lambda group.
       // One hack here is to mark those methods `processed` so that the lense rewriter is skipped.
-      synthesizedClass.forEachMethod(encodedMethod -> {
-        encodedMethod.markProcessed(ConstraintWithTarget.NEVER);
-      });
+      synthesizedClass.forEachMethod(
+          encodedMethod -> encodedMethod.markProcessed(ConstraintWithTarget.NEVER));
     }
     converter.optimizeSynthesizedClasses(lambdaGroupsClasses.values(), executorService);
 
@@ -324,7 +328,7 @@ public final class LambdaMerger {
     }
     Set<DexEncodedMethod> methods =
         methodsToReprocess.stream()
-            .map(method -> converter.graphLense().mapDexEncodedMethod(method, appView.appInfo()))
+            .map(method -> appView.graphLense().mapDexEncodedMethod(method, appView))
             .collect(Collectors.toSet());
     List<Future<?>> futures = new ArrayList<>();
     for (DexEncodedMethod method : methods) {

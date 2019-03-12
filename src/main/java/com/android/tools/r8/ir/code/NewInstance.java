@@ -100,13 +100,14 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
     return clazz;
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
-    return TypeLatticeElement.fromDexType(clazz, Nullability.definitelyNotNull(), appInfo);
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+    return TypeLatticeElement.fromDexType(clazz, Nullability.definitelyNotNull(), appView);
   }
 
   @Override

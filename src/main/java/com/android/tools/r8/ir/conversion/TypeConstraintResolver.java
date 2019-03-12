@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -21,7 +22,6 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -52,13 +52,13 @@ import java.util.function.Consumer;
  */
 public class TypeConstraintResolver {
 
+  private final AppView<? extends AppInfo> appView;
   private final IRBuilder builder;
-  private final Reporter reporter;
   private final Map<Value, Value> unificationParents = new HashMap<>();
 
-  public TypeConstraintResolver(IRBuilder builder, Reporter reporter) {
+  public TypeConstraintResolver(AppView<? extends AppInfo> appView, IRBuilder builder) {
+    this.appView = appView;
     this.builder = builder;
-    this.reporter = reporter;
   }
 
   public static ValueTypeConstraint constraintForType(TypeLatticeElement type) {
@@ -96,14 +96,13 @@ public class TypeConstraintResolver {
   public void resolve(
       List<ImpreciseMemberTypeInstruction> impreciseInstructions,
       IRCode code,
-      AppInfo appInfo,
       DexEncodedMethod method,
       DexEncodedMethod context) {
     // Round one will resolve at least all object vs single types.
     List<Value> remainingImpreciseValues = resolveRoundOne(code);
     // Round two will resolve any remaining single and wide types. These can depend on the types
     // of array instructions, thus we need to complete the type fixed point prior to resolving.
-    new TypeAnalysis(appInfo, context, true).widening(method, code);
+    new TypeAnalysis(appView, context, true).widening(method, code);
     // Round two resolves any remaining imprecision and finally selects a final precise type for
     // any unconstrained imprecise type.
     resolveRoundTwo(code, impreciseInstructions, remainingImpreciseValues);
@@ -150,14 +149,17 @@ public class TypeConstraintResolver {
     }
     ArrayList<Value> stillImprecise = constrainValues(true, remainingImpreciseValues);
     if (!stillImprecise.isEmpty()) {
-      throw reporter.fatalError(
-          new StringDiagnostic(
-              "Cannot determine precise type for value: "
-                  + stillImprecise.get(0)
-                  + ", its imprecise type is: "
-                  + stillImprecise.get(0).getTypeLattice(),
-              code.origin,
-              new MethodPosition(code.method.method)));
+      throw appView
+          .options()
+          .reporter
+          .fatalError(
+              new StringDiagnostic(
+                  "Cannot determine precise type for value: "
+                      + stillImprecise.get(0)
+                      + ", its imprecise type is: "
+                      + stillImprecise.get(0).getTypeLattice(),
+                  code.origin,
+                  new MethodPosition(code.method.method)));
     }
   }
 

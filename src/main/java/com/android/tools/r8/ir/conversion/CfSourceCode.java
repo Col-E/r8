@@ -15,6 +15,8 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -265,9 +267,11 @@ public class CfSourceCode implements SourceCode {
   @Override
   public int traceInstruction(int instructionIndex, IRBuilder builder) {
     CfInstruction instruction = code.getInstructions().get(instructionIndex);
-    assert builder.isGeneratingClassFiles() == internalOutputMode.isGeneratingClassFiles();
+    AppView<? extends AppInfo> appView = builder.appView;
+    assert appView.options().isGeneratingClassFiles()
+        == internalOutputMode.isGeneratingClassFiles();
     if (canThrowHelper(instruction)) {
-      TryHandlerList tryHandlers = getTryHandlers(instructionIndex, builder.getFactory());
+      TryHandlerList tryHandlers = getTryHandlers(instructionIndex, appView.dexItemFactory());
       if (!tryHandlers.isEmpty()) {
         // Ensure the block starts at the start of the try-range (don't enqueue, not a target).
         builder.ensureBlockWithoutEnqueuing(tryHandlers.startOffset);
@@ -366,8 +370,7 @@ public class CfSourceCode implements SourceCode {
         builder.addBooleanNonThisArgument(argumentRegister++);
       } else {
         TypeLatticeElement typeLattice =
-            TypeLatticeElement.fromDexType(
-                type, Nullability.maybeNull(), builder.getAppInfo());
+            TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), builder.appView);
         builder.addNonThisArgument(argumentRegister, typeLattice);
         argumentRegister += typeLattice.requiredRegisters();
       }
@@ -442,7 +445,7 @@ public class CfSourceCode implements SourceCode {
 
     if (canThrowHelper(instruction)) {
       Snapshot exceptionTransfer =
-          state.getSnapshot().exceptionTransfer(builder.getFactory().throwableType);
+          state.getSnapshot().exceptionTransfer(builder.appView.dexItemFactory().throwableType);
       for (int target : currentBlockInfo.exceptionalSuccessors) {
         recordStateForTarget(target, exceptionTransfer);
       }
@@ -626,7 +629,8 @@ public class CfSourceCode implements SourceCode {
   @Override
   public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
     TryHandlerList tryHandlers =
-        getTryHandlers(instructionOffset(currentInstructionIndex), builder.getFactory());
+        getTryHandlers(
+            instructionOffset(currentInstructionIndex), builder.appView.dexItemFactory());
     if (tryHandlers.isEmpty()) {
       return null;
     }

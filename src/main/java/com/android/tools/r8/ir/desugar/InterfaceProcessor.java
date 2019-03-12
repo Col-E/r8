@@ -32,7 +32,6 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -308,8 +307,7 @@ final class InterfaceProcessor {
   // also be kept (such a situation can happen if the vertical class merger merges two interfaces).
   private boolean interfaceMethodRemovalChangesApi(DexEncodedMethod method, DexClass iface) {
     if (appView.enableWholeProgramOptimizations()) {
-      AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
-      if (appInfoWithLiveness.isPinned(method.method)) {
+      if (appView.appInfo().withLiveness().isPinned(method.method)) {
         return true;
       }
     }

@@ -73,8 +73,6 @@ public class ClassInitializationAnalysis {
   }
 
   public ClassInitializationAnalysis(AppView<? extends AppInfoWithLiveness> appView, IRCode code) {
-    assert appView != null;
-    assert code != null;
     this.appView = appView;
     this.code = code;
     this.dexItemFactory = appView.dexItemFactory();

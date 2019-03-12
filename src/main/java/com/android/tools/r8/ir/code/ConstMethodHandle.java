@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstMethodHandle;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -106,14 +107,15 @@ public class ConstMethodHandle extends ConstInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppInfo appInfo) {
+  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
     return TypeLatticeElement.fromDexType(
-        appInfo.dexItemFactory.methodHandleType, Nullability.definitelyNotNull(), appInfo);
+        appView.dexItemFactory().methodHandleType, Nullability.definitelyNotNull(), appView);
   }
 
   @Override
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
-    return helper.getFactory().methodHandleType;
+  public DexType computeVerificationType(
+      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+    return appView.dexItemFactory().methodHandleType;
   }
 
   @Override

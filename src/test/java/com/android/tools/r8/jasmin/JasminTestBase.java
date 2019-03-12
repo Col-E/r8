@@ -275,10 +275,10 @@ public class JasminTestBase extends TestBase {
     return ToolHelper.runArtNoVerificationErrors(out.toString(), main);
   }
 
-  protected DexEncodedMethod getMethod(AndroidApp application, String clazz,
-      MethodSignature signature) {
-    return getMethod(application,
-        clazz, signature.type, signature.name, Arrays.asList(signature.parameters));
+  protected DexEncodedMethod getMethod(
+      AndroidApp application, String clazz, MethodSignature signature) {
+    return getMethod(
+        application, clazz, signature.type, signature.name, Arrays.asList(signature.parameters));
   }
 
   protected MethodSubject getMethodSubject(

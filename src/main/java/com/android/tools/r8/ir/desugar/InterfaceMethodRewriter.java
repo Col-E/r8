@@ -494,7 +494,7 @@ public final class InterfaceMethodRewriter {
       return;
     }
     DexMethod originalReferencedFrom =
-        converter.graphLense().getOriginalMethodSignature(referencedFrom);
+        appView.graphLense().getOriginalMethodSignature(referencedFrom);
     StringBuilder builder = new StringBuilder();
     builder
         .append("Type `")

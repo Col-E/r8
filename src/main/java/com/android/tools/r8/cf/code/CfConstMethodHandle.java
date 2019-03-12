@@ -50,6 +50,6 @@ public class CfConstMethodHandle extends CfInstruction {
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     builder.addConstMethodHandle(
-        state.push(builder.getFactory().methodHandleType).register, handle);
+        state.push(builder.appView.dexItemFactory().methodHandleType).register, handle);
   }
 }
