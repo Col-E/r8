@@ -42,6 +42,7 @@ public class MemberRebindingAnalysis {
     this.lense = appView.graphLense();
     this.options = appView.options();
     this.builder = MemberRebindingLense.builder(appInfo);
+    // TODO(b/128404854) Remove this when we have --classpath support.
     this.searchInLibrary = options.getProguardConfiguration().hasApplyMappingFile();
   }
 
@@ -137,8 +138,9 @@ public class MemberRebindingAnalysis {
         continue;
       }
       DexEncodedMethod target = lookupTarget.apply(method);
-      // Rebind to the lowest library class or program class.
-      if (target != null && target.method != method) {
+      // TODO(b/128404854) Rebind to the lowest library class or program class. For now we allow
+      //  searching in library for methods, but this should be done on classpath instead.
+      if (!originalClass.isLibraryClass() && target != null && target.method != method) {
         DexClass targetClass = appInfo.definitionFor(target.method.holder);
 
         // In Java bytecode, it is only possible to target interface methods that are in one of
