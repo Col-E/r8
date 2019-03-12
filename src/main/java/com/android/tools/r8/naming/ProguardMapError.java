@@ -4,9 +4,6 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
@@ -45,25 +42,5 @@ public class ProguardMapError extends CompilationError {
     return new ProguardMapError(
         String.format(DUPLICATE_TARGET_MESSAGE, source.toString(), other.toString(), mappedName),
         position);
-  }
-
-  // TODO(mkroghj) Remove these and when the ProguardMapApplier is removed.
-  static ProguardMapError keptTypeWasRenamed(DexType type, String keptName, String rename) {
-    return new ProguardMapError(
-        type + createMessageForConflict(keptName, rename));
-  }
-
-  static ProguardMapError keptMethodWasRenamed(DexMethod method, String keptName, String rename) {
-    return new ProguardMapError(
-        method.toSourceString() + createMessageForConflict(keptName, rename));
-  }
-
-  static ProguardMapError keptFieldWasRenamed(DexField field, String keptName, String rename) {
-    return new ProguardMapError(
-        field.toSourceString() + createMessageForConflict(keptName, rename));
-  }
-
-  private static String createMessageForConflict(String keptName, String rename) {
-    return " is not being kept as " + keptName + ", but remapped to " + rename;
   }
 }

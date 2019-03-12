@@ -619,7 +619,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
     Builder builder = builder(this);
     builder.setMethod(method);
-    // TODO(b/112847660): Fix type fixers that use this method: ProguardMapApplier
     // TODO(b/112847660): Fix type fixers that use this method: Staticizer
     // TODO(b/112847660): Fix type fixers that use this method: VerticalClassMerger
     // setObsolete();
