@@ -94,45 +94,8 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
 
   public DexString assignNewNameFor(
       DexReference source, DexString original, ProtoType proto, boolean markAsUsed) {
-    // The applymapping android studio case can result in us reserving a name that is remapped in
-    // the optimized version:
-    //
-    // interface A {
-    //   void foo();
-    // }
-    //
-    // interface B {
-    //   void foo();
-    // }
-    //
-    // class C implements A {
-    //   void bas() { ... }
-    //   void foo() { ... }
-    // }
-    //
-    // class D implements B {
-    //   void foo() { ... }
-    // }
-    //
-    // Names for interfaces are collected in one go across all interfaces such that interfaces
-    // methods that have the same name will get the same renaming. However, if A.foo() is never used
-    // and no other users of A.foo() exists, we can de-virtualize it and move it to C. We then could
-    // have a map:
-    //
-    // A      -> A: (no methods because of de-virtualization)
-    // B.foo  -> c
-    // C.bas  -> c
-    // C.foo  -> d
-    //
-    // When we now run without optimizations (second pass) we will not de-virtualize and assign the
-    // name c to C.foo, which obviously collides with B.foo. We therefore first ask the strategy if
-    // a mapping for foo exists.
-    DexString result = strategy.getExistingNamingIfPossible(source);
-    if (result != null) {
-      return result;
-    }
     KeyType key = keyTransform.apply(proto);
-    result = getAssignedNameFor(original, key);
+    DexString result = getAssignedNameFor(original, key);
     if (result == null) {
       InternalState state = getOrCreateInternalStateFor(key);
       result = state.getNameFor(source, original, key, markAsUsed);
