@@ -161,10 +161,5 @@ public class Minifier {
     public boolean breakOnNotAvailable(DexReference source, DexString name) {
       return false;
     }
-
-    @Override
-    public DexString getExistingNamingIfPossible(DexReference source) {
-      return null;
-    }
   }
 }

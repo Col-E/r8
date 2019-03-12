@@ -213,14 +213,5 @@ public class ProguardMapMinifier {
               memberNaming == null ? Position.UNKNOWN : memberNaming.position));
       return true;
     }
-
-    @Override
-    public DexString getExistingNamingIfPossible(DexReference source) {
-      MemberNaming memberNaming = mappedNames.get(source);
-      if (memberNaming == null) {
-        return null;
-      }
-      return factory.createString(memberNaming.getRenamedName());
-    }
   }
 }

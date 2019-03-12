@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -97,6 +98,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
+  @Ignore("b/126503704")
   @Test
   public void devirtualizingNoRenamingOfOverridenNotKeptInterfaceMethods() throws Exception {
     R8TestCompileResult libraryResult =
@@ -127,6 +129,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
+  @Ignore("b/126503704")
   @Test
   public void devirtualizingNoRenamingOfOverridenKeptInterfaceMethods() throws Exception {
     R8TestCompileResult libraryResult =
