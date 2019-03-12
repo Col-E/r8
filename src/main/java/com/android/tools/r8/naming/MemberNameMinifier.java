@@ -103,10 +103,13 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   }
 
   interface MemberNamingStrategy {
+
     DexString next(DexReference source, InternalState internalState);
 
     boolean bypassDictionary();
 
     boolean breakOnNotAvailable(DexReference source, DexString name);
+
+    DexString getExistingNamingIfPossible(DexReference source);
   }
 }
