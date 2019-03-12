@@ -293,6 +293,7 @@ public class Enqueuer {
       InternalOptions options,
       GraphConsumer keptGraphConsumer,
       ProguardConfiguration.Builder compatibility) {
+    assert appView.appServices() != null;
     this.appInfo = appView.appInfo();
     this.appView = appView;
     this.compatibility = compatibility;
