@@ -4,11 +4,9 @@
 
 package com.android.tools.r8.naming.signature;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
-import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -17,37 +15,37 @@ import org.junit.Test;
 public class GenericSignatureRenamingTest extends TestBase {
 
   @Test
-  public void testJVM() throws IOException, CompilationFailedException {
+  public void testJVM() throws Exception {
     testForJvm().addTestClasspath().run(Main.class).assertSuccess();
   }
 
   @Test
-  public void testR8Dex() throws IOException, CompilationFailedException {
+  public void testR8Dex() throws Exception {
     test(testForR8(Backend.DEX));
   }
 
   @Test
-  public void testR8CompatDex() throws IOException, CompilationFailedException {
+  public void testR8CompatDex() throws Exception {
     test(testForR8Compat(Backend.DEX));
   }
 
   @Test
-  public void testR8DexNoMinify() throws IOException, CompilationFailedException {
+  public void testR8DexNoMinify() throws Exception {
     test(testForR8(Backend.DEX).addKeepRules("-dontobfuscate"));
   }
 
   @Test
-  public void testR8Cf() throws IOException, CompilationFailedException {
+  public void testR8Cf() throws Exception {
     test(testForR8(Backend.CF));
   }
 
   @Test
-  public void testR8CfNoMinify() throws IOException, CompilationFailedException {
+  public void testR8CfNoMinify() throws Exception {
     test(testForR8(Backend.CF).addKeepRules("-dontobfuscate"));
   }
 
   @Test
-  public void testD8() throws IOException, CompilationFailedException {
+  public void testD8() throws Exception {
     testForD8()
         .addProgramClasses(Main.class)
         .addProgramClassesAndInnerClasses(A.class, B.class, CY.class, CYY.class)
@@ -58,7 +56,7 @@ public class GenericSignatureRenamingTest extends TestBase {
         .assertSuccess();
   }
 
-  private void test(R8TestBuilder builder) throws IOException, CompilationFailedException {
+  private void test(R8TestBuilder builder) throws Exception {
     builder
         .addKeepRules("-dontoptimize")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod,Signature")

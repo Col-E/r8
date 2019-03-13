@@ -6,16 +6,14 @@ package com.android.tools.r8.ir.optimize.classinliner;
 
 import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import java.io.IOException;
 import org.junit.Test;
 
 public class ExtraMethodNullTest extends TestBase {
 
   @Test
-  public void test() throws IOException, CompilationFailedException {
+  public void test() throws Exception {
     testForR8(Backend.DEX)
         .addProgramClassesAndInnerClasses(One.class)
         .addKeepMainRule(One.class)

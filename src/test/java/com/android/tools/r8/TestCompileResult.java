@@ -4,6 +4,8 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.TestBase.Backend.DEX;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
@@ -15,6 +17,7 @@ import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -48,33 +51,38 @@ public abstract class TestCompileResult<
   protected abstract RR createRunResult(ProcessResult result);
 
   @Deprecated
-  public RR run(Class<?> mainClass) throws IOException {
+  public RR run(Class<?> mainClass) throws ExecutionException, IOException {
     return run(mainClass.getTypeName());
   }
 
   @Deprecated
-  public RR run(String mainClass) throws IOException {
+  public RR run(String mainClass) throws ExecutionException, IOException {
+    ClassSubject mainClassSubject = inspector().clazz(mainClass);
+    assertThat(mainClassSubject, isPresent());
     switch (getBackend()) {
       case DEX:
-        return runArt(null, additionalRunClassPath, mainClass);
+        return runArt(null, additionalRunClassPath, mainClassSubject.getFinalName());
       case CF:
-        return runJava(null, additionalRunClassPath, mainClass);
+        return runJava(null, additionalRunClassPath, mainClassSubject.getFinalName());
       default:
         throw new Unreachable();
     }
   }
 
-  public RR run(TestRuntime runtime, Class<?> mainClass) throws IOException {
+  public RR run(TestRuntime runtime, Class<?> mainClass) throws ExecutionException, IOException {
     return run(runtime, mainClass.getTypeName());
   }
 
-  public RR run(TestRuntime runtime, String mainClass) throws IOException {
+  public RR run(TestRuntime runtime, String mainClass) throws ExecutionException, IOException {
     assert getBackend() == runtime.getBackend();
+    ClassSubject mainClassSubject = inspector().clazz(mainClass);
+    assertThat(mainClassSubject, isPresent());
     if (runtime.isDex()) {
-      return runArt(runtime.asDex().getVm(), additionalRunClassPath, mainClass);
+      return runArt(
+          runtime.asDex().getVm(), additionalRunClassPath, mainClassSubject.getFinalName());
     }
     assert runtime.isCf();
-    return runJava(runtime, additionalRunClassPath, mainClass);
+    return runJava(runtime, additionalRunClassPath, mainClassSubject.getFinalName());
   }
 
   public CR addRunClasspathFiles(Path... classpath) {

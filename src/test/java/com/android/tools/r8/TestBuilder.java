@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.ExecutionException;
 
 public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilder<RR, T>> {
 
@@ -34,18 +35,20 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
   }
 
   @Deprecated
-  public abstract RR run(String mainClass) throws IOException, CompilationFailedException;
+  public abstract RR run(String mainClass)
+      throws CompilationFailedException, ExecutionException, IOException;
 
   public abstract RR run(TestRuntime runtime, String mainClass)
-      throws IOException, CompilationFailedException;
+      throws CompilationFailedException, ExecutionException, IOException;
 
   @Deprecated
-  public RR run(Class mainClass) throws IOException, CompilationFailedException {
+  public RR run(Class<?> mainClass)
+      throws CompilationFailedException, ExecutionException, IOException {
     return run(mainClass.getTypeName());
   }
 
-  public RR run(TestRuntime runtime, Class mainClass)
-      throws IOException, CompilationFailedException {
+  public RR run(TestRuntime runtime, Class<?> mainClass)
+      throws CompilationFailedException, ExecutionException, IOException {
     return run(runtime, mainClass.getTypeName());
   }
 

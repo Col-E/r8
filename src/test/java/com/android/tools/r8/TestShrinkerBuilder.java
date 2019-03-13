@@ -18,7 +18,7 @@ public abstract class TestShrinkerBuilder<
         B extends BaseCompilerCommand.Builder<C, B>,
         CR extends TestCompileResult<CR, RR>,
         RR extends TestRunResult,
-        T extends TestCompilerBuilder<C, B, CR, RR, T>>
+        T extends TestShrinkerBuilder<C, B, CR, RR, T>>
     extends TestCompilerBuilder<C, B, CR, RR, T> {
 
   protected boolean enableMinification = true;

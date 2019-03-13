@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -85,13 +86,14 @@ public abstract class TestCompilerBuilder<
   }
 
   @Override
-  public RR run(String mainClass) throws IOException, CompilationFailedException {
+  public RR run(String mainClass)
+      throws CompilationFailedException, ExecutionException, IOException {
     return compile().run(mainClass);
   }
 
   @Override
   public RR run(TestRuntime runtime, String mainClass)
-      throws IOException, CompilationFailedException {
+      throws CompilationFailedException, ExecutionException, IOException {
     return compile().run(runtime, mainClass);
   }
 
