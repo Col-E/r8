@@ -256,7 +256,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public boolean isInliningCandidate(
       DexEncodedMethod container, Reason inliningReason, AppInfoWithSubtyping appInfo) {
     checkIfObsolete();
-    return isInliningCandidate(container.method.getHolder(), inliningReason, appInfo);
+    return isInliningCandidate(container.method.holder, inliningReason, appInfo);
   }
 
   public boolean isInliningCandidate(
@@ -280,11 +280,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       case PROCESSED_INLINING_CANDIDATE_ANY:
         return true;
       case PROCESSED_INLINING_CANDIDATE_SUBCLASS:
-        return containerType.isSubtypeOf(method.getHolder(), appInfo);
+        return containerType.isSubtypeOf(method.holder, appInfo);
       case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
-        return containerType.isSamePackage(method.getHolder());
+        return containerType.isSamePackage(method.holder);
       case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
-        return containerType == method.getHolder();
+        return containerType == method.holder;
       default:
         return false;
     }

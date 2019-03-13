@@ -185,7 +185,7 @@ public class MemberValuePropagation {
       InstructionListIterator iterator,
       InvokeMethod current) {
     DexMethod invokedMethod = current.getInvokedMethod();
-    DexType invokedHolder = invokedMethod.getHolder();
+    DexType invokedHolder = invokedMethod.holder;
     if (!invokedHolder.isClassType()) {
       return;
     }
@@ -261,7 +261,7 @@ public class MemberValuePropagation {
     DexField field = current.getField();
 
     // TODO(b/123857022): Should be able to use definitionFor().
-    DexEncodedField target = appView.appInfo().lookupStaticTarget(field.getHolder(), field);
+    DexEncodedField target = appView.appInfo().lookupStaticTarget(field.holder, field);
     if (target == null || appView.appInfo().neverPropagateValue.contains(target.field)) {
       return;
     }
@@ -295,10 +295,10 @@ public class MemberValuePropagation {
       // be updated outside the class constructor, e.g. via reflections), it is safe
       // to assume that the static-get instruction reads the value it initialized value
       // in class initializer and is never null.
-      DexClass holderDefinition = appView.definitionFor(field.getHolder());
+      DexClass holderDefinition = appView.definitionFor(field.holder);
       if (holderDefinition != null
           && holderDefinition.accessFlags.isFinal()
-          && !field.getHolder().initializationOfParentTypesMayHaveSideEffects(appView.appInfo())) {
+          && !field.holder.initializationOfParentTypesMayHaveSideEffects(appView.appInfo())) {
         Value outValue = current.dest();
         DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
         if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
@@ -324,8 +324,8 @@ public class MemberValuePropagation {
     // TODO(b/123857022): Should be possible to use definitionFor().
     DexEncodedField target =
         current.isInstancePut()
-            ? appView.appInfo().lookupInstanceTarget(field.getHolder(), field)
-            : appView.appInfo().lookupStaticTarget(field.getHolder(), field);
+            ? appView.appInfo().lookupInstanceTarget(field.holder, field)
+            : appView.appInfo().lookupStaticTarget(field.holder, field);
     if (target == null || appView.appInfo().neverPropagateValue.contains(target.field)) {
       return;
     }

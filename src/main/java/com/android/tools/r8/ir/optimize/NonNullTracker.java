@@ -127,7 +127,7 @@ public class NonNullTracker {
               current
                   .asInvokeMethod()
                   .lookupSingleTarget(
-                      appView.appInfo().withLiveness(), code.method.method.getHolder());
+                      appView.appInfo().withLiveness(), code.method.method.holder);
           if (singleTarget != null
               && singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits() != null) {
             BitSet facts = singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits();

@@ -73,11 +73,11 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
     boolean metKotlinIntrinsicsNullChecks = false;
     while (it.hasNext()) {
       DexMethod invokedMethod = it.next().getMethod();
-      if (invokedMethod.getHolder().toSourceString().contains("java.net")) {
+      if (invokedMethod.holder.toSourceString().contains("java.net")) {
         continue;
       }
       ClassSubject invokedMethodHolderSubject =
-          inspector.clazz(invokedMethod.getHolder().toSourceString());
+          inspector.clazz(invokedMethod.holder.toSourceString());
       assertThat(invokedMethodHolderSubject, isPresent());
       assertEquals(minification, invokedMethodHolderSubject.isRenamed());
       MethodSubject invokedMethodSubject = invokedMethodHolderSubject.method(

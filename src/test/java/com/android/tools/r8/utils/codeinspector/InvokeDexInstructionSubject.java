@@ -20,7 +20,7 @@ public class InvokeDexInstructionSubject extends DexInstructionSubject
 
   @Override
   public TypeSubject holder() {
-    return new TypeSubject(codeInspector, invokedMethod().getHolder());
+    return new TypeSubject(codeInspector, invokedMethod().holder);
   }
 
   @Override

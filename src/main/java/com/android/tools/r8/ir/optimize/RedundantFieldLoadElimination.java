@@ -79,7 +79,7 @@ public class RedundantFieldLoadElimination {
 
   private boolean couldBeVolatile(DexField field) {
     if (!appView.enableWholeProgramOptimizations()
-        && field.getHolder() != method.method.getHolder()) {
+        && field.holder != method.method.holder) {
       return true;
     }
     DexEncodedField definition = appView.definitionFor(field);

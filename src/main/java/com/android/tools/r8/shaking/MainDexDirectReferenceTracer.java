@@ -125,7 +125,7 @@ public class MainDexDirectReferenceTracer {
     }
 
     protected boolean registerInvoke(DexMethod method) {
-      consumer.accept(method.getHolder());
+      consumer.accept(method.holder);
       traceMethodDirectDependencies(method, consumer);
       return true;
     }
@@ -151,7 +151,7 @@ public class MainDexDirectReferenceTracer {
     }
 
     protected boolean registerFieldAccess(DexField field) {
-      consumer.accept(field.getHolder());
+      consumer.accept(field.holder);
       consumer.accept(field.type);
       return true;
     }
@@ -179,14 +179,14 @@ public class MainDexDirectReferenceTracer {
 
     @Override
     public boolean addField(DexField field) {
-      consumer.accept(field.getHolder());
+      consumer.accept(field.holder);
       consumer.accept(field.type);
       return false;
     }
 
     @Override
     public boolean addMethod(DexMethod method) {
-      consumer.accept(method.getHolder());
+      consumer.accept(method.holder);
       addProto(method.proto);
       return false;
     }

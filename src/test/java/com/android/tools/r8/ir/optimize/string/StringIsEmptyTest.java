@@ -79,7 +79,7 @@ public class StringIsEmptyTest extends TestBase {
   }
 
   private static boolean isStringIsEmpty(DexMethod method) {
-    return method.getHolder().toDescriptorString().equals("Ljava/lang/String;")
+    return method.holder.toDescriptorString().equals("Ljava/lang/String;")
         && method.getArity() == 0
         && method.proto.returnType.isBooleanType()
         && method.name.toString().equals("isEmpty");

@@ -124,7 +124,7 @@ public class SwitchMapCollector {
             return;
           }
           DexField enumField = enumGet.asStaticGet().getField();
-          if (!appView.definitionFor(enumField.getHolder()).accessFlags.isEnum()) {
+          if (!appView.definitionFor(enumField.holder).accessFlags.isEnum()) {
             return;
           }
           if (switchMap.put(integerIndex, enumField) != null) {

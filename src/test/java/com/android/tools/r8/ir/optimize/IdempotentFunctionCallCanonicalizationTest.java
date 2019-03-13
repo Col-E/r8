@@ -108,7 +108,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
   }
 
   private static boolean isValueOf(DexMethod method, String descriptor) {
-    return method.getHolder().toDescriptorString().equals(descriptor)
+    return method.holder.toDescriptorString().equals(descriptor)
         && method.getArity() == 1
         && method.proto.returnType.toDescriptorString().equals(descriptor)
         && method.name.toString().equals("valueOf");

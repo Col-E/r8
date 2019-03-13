@@ -518,7 +518,7 @@ public class CallGraph extends CallSiteInformation {
 
     private void addPossibleTarget(DexEncodedMethod possibleTarget) {
       DexClass possibleTargetClass =
-          appInfo.definitionFor(possibleTarget.method.getHolder());
+          appInfo.definitionFor(possibleTarget.method.holder);
       if (possibleTargetClass != null && !possibleTargetClass.isLibraryClass()) {
         addTarget(possibleTarget);
       }
@@ -541,7 +541,7 @@ public class CallGraph extends CallSiteInformation {
       DexEncodedMethod definition = appInfo.lookup(type, method, source.method.holder);
       if (definition != null) {
         assert !source.accessFlags.isBridge() || definition != caller.method;
-        DexClass clazz = appInfo.definitionFor(definition.method.getHolder());
+        DexClass clazz = appInfo.definitionFor(definition.method.holder);
         assert clazz != null;
         if (clazz.isProgramClass()) {
           // For static invokes, the class could be initialized.
@@ -569,7 +569,7 @@ public class CallGraph extends CallSiteInformation {
       if (field.holder.isClassType()) {
         DexEncodedField encodedField = appInfo.resolveField(field);
         if (encodedField != null && encodedField.isStatic()) {
-          addClassInitializerTarget(field.getHolder());
+          addClassInitializerTarget(field.holder);
         }
       }
     }

@@ -1023,7 +1023,7 @@ public class TestBase {
     return Streams.stream(method.iterateInstructions(instructionSubject -> {
       if (instructionSubject.isInvoke()) {
         DexMethod invokedMethod = instructionSubject.getMethod();
-        return invokedMethod.getHolder().toString().contains(className)
+        return invokedMethod.holder.toString().contains(className)
             && invokedMethod.name.toString().contains(methodName);
       }
       return false;

@@ -92,7 +92,7 @@ public class SwitchUtils {
     }
     // Due to member rebinding, only the fields are certain to provide the actual enums
     // class.
-    DexType enumType = indexMap.values().iterator().next().getHolder();
+    DexType enumType = indexMap.values().iterator().next().holder;
     Reference2IntMap<DexField> ordinalsMap = appInfo.getOrdinalsMapFor(enumType);
     if (ordinalsMap == null) {
       return null;

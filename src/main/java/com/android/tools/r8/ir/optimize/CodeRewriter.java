@@ -1440,7 +1440,7 @@ public class CodeRewriter {
     Wrapper<DexMethod> methodWrap = wrapper.wrap(invokedMethod);
     if (methodWrap.equals(throwParamIsNullException)
         || (methodWrap.equals(checkParameterIsNotNull) && instr.inValues().get(0).equals(value))) {
-      if (invokedMethod.getHolder().getPackageDescriptor().startsWith(Kotlin.NAME)) {
+      if (invokedMethod.holder.getPackageDescriptor().startsWith(Kotlin.NAME)) {
         return true;
       }
     }
@@ -1592,7 +1592,7 @@ public class CodeRewriter {
       return invoke.getInvokedMethod().proto.parameters.values[argumentIndex];
     }
     if (argumentIndex == 0) {
-      return invoke.getInvokedMethod().getHolder();
+      return invoke.getInvokedMethod().holder;
     }
     return invoke.getInvokedMethod().proto.parameters.values[argumentIndex - 1];
   }
@@ -1638,7 +1638,7 @@ public class CodeRewriter {
             }
           } else if (appInfoWithLiveness != null) {
             DexEncodedMethod target =
-                invoke.lookupSingleTarget(appInfoWithLiveness, code.method.method.getHolder());
+                invoke.lookupSingleTarget(appInfoWithLiveness, code.method.method.holder);
             if (target != null) {
               DexMethod invokedMethod = target.method;
               // Check if the invoked method is known to return one of its arguments.
@@ -1956,7 +1956,7 @@ public class CodeRewriter {
     }
     ConstraintWithTarget classVisibility =
         ConstraintWithTarget.deriveConstraint(
-            context.method.getHolder(), baseType, clazz.accessFlags, appInfo);
+            context.method.holder, baseType, clazz.accessFlags, appInfo);
     return classVisibility == ConstraintWithTarget.NEVER;
   }
 
@@ -3179,7 +3179,7 @@ public class CodeRewriter {
         }
 
         DexEncodedMethod singleTarget = insn.asInvokeMethod().lookupSingleTarget(
-            appInfoWithLiveness, code.method.method.getHolder());
+            appInfoWithLiveness, code.method.method.holder);
         if (singleTarget == null || !singleTarget.getOptimizationInfo().neverReturnsNormally()) {
           continue;
         }

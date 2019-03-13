@@ -209,7 +209,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
         filterInstructionKind(code, NewInstance.class)
             .map(insn -> ((NewInstance) insn).getType()),
         filterInstructionKind(code, SgetObject.class)
-            .map(insn -> insn.getField().getHolder())
+            .map(insn -> insn.getField().holder)
     )
         .filter(isTypeOfInterest)
         .map(DexType::toSourceString)

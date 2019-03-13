@@ -84,7 +84,7 @@ public class IdentifierNameStringMarker {
       return;
     }
     ThrowingInfo throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
-    DexType originHolder = code.method.method.getHolder();
+    DexType originHolder = code.method.method.holder;
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();

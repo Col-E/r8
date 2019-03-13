@@ -508,7 +508,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private Origin getMethodOrigin(DexMethod method) {
-    DexType holder = method.getHolder();
+    DexType holder = method.holder;
     if (isCompanionClassType(holder)) {
       holder = getInterfaceClassType(holder);
     }

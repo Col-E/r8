@@ -110,7 +110,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   @Override
   public DexEncodedMethod definitionFor(DexMethod method) {
-    DexType holderType = method.getHolder();
+    DexType holderType = method.holder;
     DexEncodedMethod cached = (DexEncodedMethod) getDefinitions(holderType).get(method);
     if (cached != null && cached.isObsolete()) {
       definitions.remove(holderType);
@@ -121,7 +121,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   @Override
   public DexEncodedField definitionFor(DexField field) {
-    return (DexEncodedField) getDefinitions(field.getHolder()).get(field);
+    return (DexEncodedField) getDefinitions(field.holder).get(field);
   }
 
   private Map<Descriptor<?,?>, KeyedDexItem<?>> getDefinitions(DexType type) {

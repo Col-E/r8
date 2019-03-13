@@ -148,7 +148,7 @@ public class StringValueOfTest extends TestBase {
   }
 
   private static boolean isStringValueOf(DexMethod method) {
-    return method.getHolder().toDescriptorString().equals(STRING_DESCRIPTOR)
+    return method.holder.toDescriptorString().equals(STRING_DESCRIPTOR)
         && method.getArity() == 1
         && method.proto.returnType.toDescriptorString().equals(STRING_DESCRIPTOR)
         && method.name.toString().equals("valueOf");

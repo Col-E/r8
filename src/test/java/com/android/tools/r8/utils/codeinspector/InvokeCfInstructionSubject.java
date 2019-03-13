@@ -21,7 +21,7 @@ public class InvokeCfInstructionSubject extends CfInstructionSubject
 
   @Override
   public TypeSubject holder() {
-    return new TypeSubject(codeInspector, invokedMethod().getHolder());
+    return new TypeSubject(codeInspector, invokedMethod().holder);
   }
 
   @Override

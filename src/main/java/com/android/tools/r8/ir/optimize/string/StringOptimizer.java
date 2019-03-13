@@ -358,7 +358,7 @@ public class StringOptimizer {
       }
       if (instr.isInvokeMethod()) {
         DexMethod invokedMethod = instr.asInvokeMethod().getInvokedMethod();
-        DexClass holder = appInfo.definitionFor(invokedMethod.getHolder());
+        DexClass holder = appInfo.definitionFor(invokedMethod.holder);
         // For most cases, library call is not interesting, e.g.,
         // System.out.println(...), String.valueOf(...), etc.
         // If it's too broad, we can introduce black-list.

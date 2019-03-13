@@ -520,7 +520,7 @@ public class Inliner {
           return false;
         }
         DexField field = instruction.asInstancePut().getField();
-        DexEncodedField target = appView.appInfo().lookupInstanceTarget(field.getHolder(), field);
+        DexEncodedField target = appView.appInfo().lookupInstanceTarget(field.holder, field);
         if (target != null && target.accessFlags.isFinal()) {
           return false;
         }
@@ -671,10 +671,10 @@ public class Inliner {
       if (assumedReceiverType == null) {
         // In case we don't know exact type of the receiver we use declared
         // method holder as a fallback.
-        assumedReceiverType = invoke.getInvokedMethod().getHolder();
+        assumedReceiverType = invoke.getInvokedMethod().holder;
       }
-      if (assumedReceiverType != target.method.getHolder()) {
-        return target.method.getHolder();
+      if (assumedReceiverType != target.method.holder) {
+        return target.method.holder;
       }
     }
     return null;

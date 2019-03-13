@@ -100,7 +100,7 @@ public class B112247415 extends TestBase {
       if (instr instanceof InvokeVirtual) {
         InvokeVirtual invokeVirtual = (InvokeVirtual) instr;
         DexMethod invokedMethod = invokeVirtual.getMethod();
-        if (invokedMethod.getHolder().getName().endsWith("StringBuilder")) {
+        if (invokedMethod.holder.getName().endsWith("StringBuilder")) {
           assertNotEquals("append", invokedMethod.name.toString());
         }
       }

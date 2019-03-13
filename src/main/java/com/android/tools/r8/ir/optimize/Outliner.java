@@ -902,7 +902,7 @@ public class Outliner {
     private DexType argumentTypeFromInvoke(InvokeMethod invoke, int index) {
       assert invoke.isInvokeMethodWithReceiver() || invoke.isInvokePolymorphic();
       if (index == 0) {
-        return invoke.getInvokedMethod().getHolder();
+        return invoke.getInvokedMethod().holder;
       }
       DexProto methodProto;
       if (invoke.isInvokePolymorphic()) {

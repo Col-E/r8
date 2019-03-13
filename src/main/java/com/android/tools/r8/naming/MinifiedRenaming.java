@@ -150,11 +150,11 @@ class MinifiedRenaming extends NamingLens {
     DexEncodedMethod directTarget = appInfo.lookupDirectTarget(item);
     DexEncodedMethod virtualTarget = appInfo.lookupVirtualTarget(item.holder, item);
     DexClass staticTargetHolder =
-        staticTarget != null ? appInfo.definitionFor(staticTarget.method.getHolder()) : null;
+        staticTarget != null ? appInfo.definitionFor(staticTarget.method.holder) : null;
     DexClass directTargetHolder =
-        directTarget != null ? appInfo.definitionFor(directTarget.method.getHolder()) : null;
+        directTarget != null ? appInfo.definitionFor(directTarget.method.holder) : null;
     DexClass virtualTargetHolder =
-        virtualTarget != null ? appInfo.definitionFor(virtualTarget.method.getHolder()) : null;
+        virtualTarget != null ? appInfo.definitionFor(virtualTarget.method.holder) : null;
     return (directTarget == null && staticTarget == null && virtualTarget == null)
         || (virtualTarget != null && virtualTarget.method == item)
         || (directTarget != null && directTarget.method == item)

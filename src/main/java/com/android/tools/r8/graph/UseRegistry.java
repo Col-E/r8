@@ -78,7 +78,7 @@ public abstract class UseRegistry {
         break;
       case INVOKE_CONSTRUCTOR:
         DexMethod method = methodHandle.asMethod();
-        registerNewInstance(method.getHolder());
+        registerNewInstance(method.holder);
         registerInvokeDirect(method);
         break;
       case INVOKE_INTERFACE:

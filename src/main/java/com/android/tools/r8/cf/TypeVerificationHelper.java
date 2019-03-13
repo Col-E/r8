@@ -239,8 +239,8 @@ public class TypeVerificationHelper {
         if (argumentIndex < 0) {
           argumentType =
               code.method.isInstanceInitializer()
-                  ? new ThisInstanceInfo(instruction.asArgument(), code.method.method.getHolder())
-                  : createInitializedType(code.method.method.getHolder());
+                  ? new ThisInstanceInfo(instruction.asArgument(), code.method.method.holder)
+                  : createInitializedType(code.method.method.holder);
         } else {
           argumentType =
               createInitializedType(code.method.method.proto.parameters.values[argumentIndex]);

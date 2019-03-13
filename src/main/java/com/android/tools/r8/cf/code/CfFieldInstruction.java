@@ -39,7 +39,7 @@ public class CfFieldInstruction extends CfInstruction {
 
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
-    String owner = lens.lookupInternalName(field.getHolder());
+    String owner = lens.lookupInternalName(field.holder);
     String name = lens.lookupName(declaringField).toString();
     String desc = lens.lookupDescriptor(field.type).toString();
     visitor.visitFieldInsn(opcode, owner, name, desc);

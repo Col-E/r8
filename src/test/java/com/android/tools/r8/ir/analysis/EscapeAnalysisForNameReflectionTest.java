@@ -173,7 +173,7 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
     return getMatchingInstruction(code, instruction -> {
       if (instruction.isInvokeVirtual()) {
         DexMethod invokedMethod = instruction.asInvokeVirtual().getInvokedMethod();
-        return invokedMethod.getHolder().toDescriptorString().equals("Ljava/lang/Class;")
+        return invokedMethod.holder.toDescriptorString().equals("Ljava/lang/Class;")
             && invokedMethod.name.toString().equals("getSimpleName");
       }
       return false;

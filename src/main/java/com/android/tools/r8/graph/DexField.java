@@ -122,11 +122,6 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
     return entry.field.name == name && entry.field.type == type;
   }
 
-  @Override
-  public DexType getHolder() {
-    return holder;
-  }
-
   public String qualifiedName() {
     return holder + "." + name;
   }

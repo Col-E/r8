@@ -78,7 +78,7 @@ public class StringToStringTest extends TestBase {
   }
 
   private static boolean isStringToString(DexMethod method) {
-    return method.getHolder().toDescriptorString().equals(STRING_DESCRIPTOR)
+    return method.holder.toDescriptorString().equals(STRING_DESCRIPTOR)
         && method.getArity() == 0
         && method.proto.returnType.toDescriptorString().equals(STRING_DESCRIPTOR)
         && method.name.toString().equals("toString");

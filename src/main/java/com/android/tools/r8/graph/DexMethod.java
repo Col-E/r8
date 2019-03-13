@@ -152,11 +152,6 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
     return entry.method.name == name && entry.method.proto == proto;
   }
 
-  @Override
-  public DexType getHolder() {
-    return holder;
-  }
-
   public String qualifiedName() {
     return holder + "." + name;
   }

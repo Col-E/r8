@@ -114,7 +114,7 @@ public class StringLengthTest extends TestBase {
   }
 
   private static boolean isStringLength(DexMethod method) {
-    return method.getHolder().toDescriptorString().equals("Ljava/lang/String;")
+    return method.holder.toDescriptorString().equals("Ljava/lang/String;")
         && method.getArity() == 0
         && method.proto.returnType.isIntType()
         && method.name.toString().equals("length");

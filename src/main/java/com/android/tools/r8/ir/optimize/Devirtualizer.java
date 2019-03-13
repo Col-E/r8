@@ -112,7 +112,7 @@ public class Devirtualizer {
         if (target == null) {
           continue;
         }
-        DexType holderType = target.method.getHolder();
+        DexType holderType = target.method.holder;
         DexClass holderClass = appView.definitionFor(holderType);
         // Make sure we are not landing on another interface, e.g., interface's default method.
         if (holderClass == null || holderClass.isInterface()) {
@@ -140,7 +140,7 @@ public class Devirtualizer {
         // CodeRewriter#removeTrivialCheckCastAndInstanceOfInstructions}.
         // a <- check-cast A i  // Otherwise ART verification error.
         // (out <-) invoke-virtual a, ... A#foo
-        if (holderType != invoke.getInvokedMethod().getHolder()) {
+        if (holderType != invoke.getInvokedMethod().holder) {
           Value receiver = invoke.getReceiver();
           TypeLatticeElement receiverTypeLattice = receiver.getTypeLattice();
           TypeLatticeElement castTypeLattice =

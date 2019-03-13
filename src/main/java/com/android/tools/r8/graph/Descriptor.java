@@ -8,8 +8,6 @@ public abstract class Descriptor<T extends DexItem, S extends Descriptor<T,S>>
 
   public abstract boolean match(T entry);
 
-  public abstract DexType getHolder();
-
   @Override
   public boolean isDescriptor() {
     return true;

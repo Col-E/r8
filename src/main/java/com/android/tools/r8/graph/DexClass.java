@@ -231,7 +231,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   private boolean verifyCorrectnessOfMethodHolder(DexEncodedMethod method) {
-    assert method.method.getHolder() == type
+    assert method.method.holder == type
         : "Expected method `"
             + method.method.toSourceString()
             + "` to have holder `"
@@ -452,7 +452,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   private boolean verifyCorrectnessOfFieldHolder(DexEncodedField field) {
-    assert field.field.getHolder() == type
+    assert field.field.holder == type
         : "Expected field `"
             + field.field.toSourceString()
             + "` to have holder `"

@@ -123,7 +123,7 @@ public final class ClassAndMemberPublicizer {
       accessFlags.promoteToPublic();
       // Although the current method became public, it surely has the single virtual target.
       encodedMethod.method.setSingleVirtualMethodCache(
-          encodedMethod.method.getHolder(), encodedMethod);
+          encodedMethod.method.holder, encodedMethod);
       return true;
     }
 

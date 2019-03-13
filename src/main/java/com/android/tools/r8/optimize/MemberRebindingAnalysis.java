@@ -47,7 +47,7 @@ public class MemberRebindingAnalysis {
   }
 
   private DexMethod validTargetFor(DexMethod target, DexMethod original) {
-    DexClass clazz = appInfo.definitionFor(target.getHolder());
+    DexClass clazz = appInfo.definitionFor(target.holder);
     assert clazz != null;
     if (searchInLibrary || !clazz.isLibraryClass()) {
       return target;
@@ -55,25 +55,25 @@ public class MemberRebindingAnalysis {
     DexType newHolder;
     if (clazz.isInterface()) {
       newHolder =
-          firstLibraryClassForInterfaceTarget(target, original.getHolder(), DexClass::lookupMethod);
+          firstLibraryClassForInterfaceTarget(target, original.holder, DexClass::lookupMethod);
     } else {
-      newHolder = firstLibraryClass(target.getHolder(), original.getHolder());
+      newHolder = firstLibraryClass(target.holder, original.holder);
     }
     return appInfo.dexItemFactory.createMethod(newHolder, original.proto, original.name);
   }
 
   private DexField validTargetFor(DexField target, DexField original,
       BiFunction<DexClass, DexField, DexEncodedField> lookup) {
-    DexClass clazz = appInfo.definitionFor(target.getHolder());
+    DexClass clazz = appInfo.definitionFor(target.holder);
     assert clazz != null;
     if (searchInLibrary || !clazz.isLibraryClass()) {
       return target;
     }
     DexType newHolder;
     if (clazz.isInterface()) {
-      newHolder = firstLibraryClassForInterfaceTarget(target, original.getHolder(), lookup);
+      newHolder = firstLibraryClassForInterfaceTarget(target, original.holder, lookup);
     } else {
-      newHolder = firstLibraryClass(target.getHolder(), original.getHolder());
+      newHolder = firstLibraryClass(target.holder, original.holder);
     }
     return appInfo.dexItemFactory.createField(newHolder, original.type, original.name);
   }
@@ -113,15 +113,15 @@ public class MemberRebindingAnalysis {
   }
 
   private DexEncodedMethod classLookup(DexMethod method) {
-    return appInfo.resolveMethodOnClass(method.getHolder(), method).asResultOfResolve();
+    return appInfo.resolveMethodOnClass(method.holder, method).asResultOfResolve();
   }
 
   private DexEncodedMethod interfaceLookup(DexMethod method) {
-    return appInfo.resolveMethodOnInterface(method.getHolder(), method).asResultOfResolve();
+    return appInfo.resolveMethodOnInterface(method.holder, method).asResultOfResolve();
   }
 
   private DexEncodedMethod anyLookup(DexMethod method) {
-    return appInfo.resolveMethod(method.getHolder(), method).asResultOfResolve();
+    return appInfo.resolveMethod(method.holder, method).asResultOfResolve();
   }
 
   private void computeMethodRebinding(
@@ -130,7 +130,7 @@ public class MemberRebindingAnalysis {
       Type invokeType) {
     for (DexMethod method : methodsWithContexts.keySet()) {
       // We can safely ignore array types, as the corresponding methods are defined in a library.
-      if (!method.getHolder().isClassType()) {
+      if (!method.holder.isClassType()) {
         continue;
       }
       DexClass originalClass = appInfo.definitionFor(method.holder);
@@ -159,7 +159,7 @@ public class MemberRebindingAnalysis {
           final DexEncodedMethod finalTarget = target;
           Set<DexEncodedMethod> contexts = methodsWithContexts.get(method);
           if (contexts.stream().anyMatch(context ->
-              mayNeedBridgeForVisibility(context.method.getHolder(), finalTarget))) {
+              mayNeedBridgeForVisibility(context.method.holder, finalTarget))) {
             target =
                 insertBridgeForVisibilityIfNeeded(
                     method, target, originalClass, targetClass, lookupTarget);
@@ -216,7 +216,7 @@ public class MemberRebindingAnalysis {
   }
 
   private boolean mayNeedBridgeForVisibility(DexType context, DexEncodedMethod method) {
-    DexType holderType = method.method.getHolder();
+    DexType holderType = method.method.holder;
     DexClass holder = appInfo.definitionFor(holderType);
     if (holder == null) {
       return false;
@@ -289,7 +289,7 @@ public class MemberRebindingAnalysis {
       BiFunction<DexType, DexField, DexEncodedField> lookup,
       BiFunction<DexClass, DexField, DexEncodedField> lookupTargetOnClass) {
     for (DexField field : fieldsWithContexts.keySet()) {
-      DexEncodedField target = lookup.apply(field.getHolder(), field);
+      DexEncodedField target = lookup.apply(field.holder, field);
       // Rebind to the lowest library class or program class. Do not rebind accesses to fields that
       // are not visible from the access context.
       Set<DexEncodedMethod> contexts = fieldsWithContexts.get(field);
@@ -300,7 +300,7 @@ public class MemberRebindingAnalysis {
                   context ->
                       isMemberVisibleFromOriginalContext(
                           appInfo,
-                          context.method.getHolder(),
+                          context.method.holder,
                           target.field.holder,
                           target.accessFlags))) {
         builder.map(field,

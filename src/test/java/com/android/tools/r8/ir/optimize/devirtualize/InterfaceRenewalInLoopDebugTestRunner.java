@@ -88,7 +88,7 @@ public class InterfaceRenewalInLoopDebugTestRunner extends DebugTestBase {
   }
 
   private static boolean isDevirtualizedCall(DexMethod method) {
-    return method.getHolder().toSourceString().equals(IMPL.getTypeName())
+    return method.holder.toSourceString().equals(IMPL.getTypeName())
         && method.getArity() == 0
         && method.proto.returnType.isVoidType()
         && method.name.toString().equals("foo");

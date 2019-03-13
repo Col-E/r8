@@ -192,7 +192,7 @@ public class JarCode extends Code {
     assert node.localVariables.isEmpty() || keepLocals(encodedMethod, appView.options());
     JarSourceCode source =
         new JarSourceCode(
-            method.getHolder(),
+            method.holder,
             node,
             application,
             appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
@@ -205,7 +205,7 @@ public class JarCode extends Code {
   public void registerCodeReferences(UseRegistry registry) {
     triggerDelayedParsingIfNeccessary();
     node.instructions.accept(
-        new JarRegisterEffectsVisitor(method.getHolder(), registry, application));
+        new JarRegisterEffectsVisitor(method.holder, registry, application));
     for (TryCatchBlockNode tryCatchBlockNode : node.tryCatchBlocks) {
       // Exception type can be null for "catch all" used for try/finally.
       if (tryCatchBlockNode.type != null) {

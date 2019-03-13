@@ -150,7 +150,7 @@ public class TreePruner {
             // Hence, removal of the current InnerClassAttribute too.
             return true;
           }
-          context = enclosingMethod.getHolder();
+          context = enclosingMethod.holder;
         }
       }
     }

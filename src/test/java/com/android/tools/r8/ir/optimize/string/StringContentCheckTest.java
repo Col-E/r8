@@ -194,7 +194,7 @@ public class StringContentCheckTest extends TestBase {
   }
 
   private static boolean isStringContentChecker(DexMethod method) {
-    return method.getHolder().toDescriptorString().equals(STRING_DESCRIPTOR)
+    return method.holder.toDescriptorString().equals(STRING_DESCRIPTOR)
         && (method.proto.returnType.isBooleanType()
             || method.proto.returnType.isIntType()
             || method.proto.returnType.toDescriptorString().equals(STRING_DESCRIPTOR))

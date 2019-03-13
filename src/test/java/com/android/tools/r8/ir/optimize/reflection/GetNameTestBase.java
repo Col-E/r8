@@ -45,7 +45,7 @@ public abstract class GetNameTestBase extends TestBase {
   }
 
   static boolean isNameReflection(DexMethod method) {
-    return method.getHolder().toDescriptorString().equals(CLASS_DESCRIPTOR)
+    return method.holder.toDescriptorString().equals(CLASS_DESCRIPTOR)
         && method.getArity() == 0
         && method.proto.returnType.toDescriptorString().equals(STRING_DESCRIPTOR)
         && method.name.toString().startsWith("get")

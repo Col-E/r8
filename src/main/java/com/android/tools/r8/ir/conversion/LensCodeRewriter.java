@@ -145,7 +145,7 @@ public class LensCodeRewriter {
         } else if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
-          DexType invokedHolder = invokedMethod.getHolder();
+          DexType invokedHolder = invokedMethod.holder;
           if (invokedHolder.isArrayType()) {
             DexType baseType = invokedHolder.toBaseType(appInfo.dexItemFactory);
             DexType mappedBaseType = graphLense.lookupType(baseType);

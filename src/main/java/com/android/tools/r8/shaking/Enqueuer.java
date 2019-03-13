@@ -429,22 +429,33 @@ public class Enqueuer {
 
   private <S extends DexItem, T extends Descriptor<S, T>> boolean registerItemWithTarget(
       Map<DexType, Set<T>> seen, T item) {
-    DexType holder = item.getHolder().toBaseType(appInfo.dexItemFactory);
+    assert item.isDexField() || item.isDexMethod();
+    DexType itemHolder =
+        item.isDexField()
+            ? item.asDexField().holder
+            : item.asDexMethod().holder;
+    DexType holder = itemHolder.toBaseType(appInfo.dexItemFactory);
     if (!holder.isClassType()) {
       return false;
     }
     markTypeAsLive(holder);
-    return seen.computeIfAbsent(item.getHolder(), (ignore) -> Sets.newIdentityHashSet()).add(item);
+    return seen.computeIfAbsent(itemHolder, (ignore) -> Sets.newIdentityHashSet()).add(item);
   }
 
   private <S extends DexItem, T extends Descriptor<S, T>> boolean registerItemWithTargetAndContext(
       Map<DexType, Set<TargetWithContext<T>>> seen, T item, DexEncodedMethod context) {
-    DexType holder = item.getHolder().toBaseType(appInfo.dexItemFactory);
+    assert item.isDexField() || item.isDexMethod();
+    DexType itemHolder =
+        item.isDexField()
+            ? item.asDexField().holder
+            : item.asDexMethod().holder;
+    DexType holder = itemHolder.toBaseType(appInfo.dexItemFactory);
     if (!holder.isClassType()) {
       return false;
     }
     markTypeAsLive(holder);
-    return seen.computeIfAbsent(item.getHolder(), (ignore) -> new HashSet<>())
+    return seen
+        .computeIfAbsent(itemHolder, (ignore) -> new HashSet<>())
         .add(new TargetWithContext<>(item, context));
   }
 
@@ -798,11 +809,11 @@ public class Enqueuer {
   }
 
   private DexMethod getInvokeSuperTarget(DexMethod method, DexEncodedMethod currentMethod) {
-    DexClass methodHolderClass = appInfo.definitionFor(method.getHolder());
+    DexClass methodHolderClass = appInfo.definitionFor(method.holder);
     if (methodHolderClass != null && methodHolderClass.isInterface()) {
       return method;
     }
-    DexClass holderClass = appInfo.definitionFor(currentMethod.method.getHolder());
+    DexClass holderClass = appInfo.definitionFor(currentMethod.method.holder);
     if (holderClass == null || holderClass.superType == null || holderClass.isInterface()) {
       // We do not know better or this call is made from an interface.
       return method;
@@ -1749,7 +1760,7 @@ public class Enqueuer {
   }
 
   private void markMethodAsKeptWithCompatRule(DexEncodedMethod method) {
-    DexClass holderClass = appInfo.definitionFor(method.method.getHolder());
+    DexClass holderClass = appInfo.definitionFor(method.method.holder);
     ProguardKeepRule rule =
         ProguardConfigurationUtils.buildMethodKeepRule(holderClass, method);
     proguardCompatibilityWorkList.add(
@@ -1809,7 +1820,7 @@ public class Enqueuer {
             !encodedField.accessFlags.isStatic()
                 && appInfo.dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod);
         if (keepClass) {
-          DexClass holderClass = appInfo.definitionFor(encodedField.field.getHolder());
+          DexClass holderClass = appInfo.definitionFor(encodedField.field.holder);
           markInstantiated(holderClass.type, KeepReason.reflectiveUseIn(method));
         }
         markFieldAsKept(encodedField, KeepReason.reflectiveUseIn(method));
@@ -2443,9 +2454,11 @@ public class Enqueuer {
         DexType typeToCheck;
         if (item.isDexType()) {
           typeToCheck = item.asDexType();
+        } else if (item.isDexMethod()) {
+          typeToCheck = item.asDexMethod().holder;
         } else {
-          assert item.isDescriptor();
-          typeToCheck = item.asDescriptor().getHolder();
+          assert item.isDexField();
+          typeToCheck = item.asDexField().holder;
         }
         assert !typeSet.contains(typeToCheck);
       }
@@ -2487,7 +2500,7 @@ public class Enqueuer {
           // TODO(b/121354886): Pinned fields should be in `fieldsRead`.
           || isPinned(field)
           // Fields in the class that is synthesized by D8/R8 would be used soon.
-          || field.getHolder().isD8R8SynthesizedClassType()
+          || field.holder.isD8R8SynthesizedClassType()
           // For library classes we don't know whether a field is read.
           || isLibraryField(field);
     }
@@ -2620,7 +2633,7 @@ public class Enqueuer {
     }
 
     public DexEncodedMethod lookup(Type type, DexMethod target, DexType invocationContext) {
-      DexType holder = target.getHolder();
+      DexType holder = target.holder;
       if (!holder.isClassType()) {
         return null;
       }
@@ -3119,11 +3132,11 @@ public class Enqueuer {
     return fieldNodes.computeIfAbsent(
         context,
         f -> {
-          DexClass holderDefinition = appInfo.definitionFor(context.getHolder());
+          DexClass holderDefinition = appInfo.definitionFor(context.holder);
           return new FieldGraphNode(
               holderDefinition != null && holderDefinition.isLibraryClass(),
               Reference.field(
-                  Reference.classFromDescriptor(f.getHolder().toDescriptorString()),
+                  Reference.classFromDescriptor(f.holder.toDescriptorString()),
                   f.name.toString(),
                   Reference.typeFromDescriptor(f.type.toDescriptorString())));
         });

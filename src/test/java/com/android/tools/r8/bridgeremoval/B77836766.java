@@ -146,7 +146,7 @@ public class B77836766 extends TestBase {
     DexCode code = fooInCls2.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(absSubject.getDexClass().type, invoke.getMethod().getHolder());
+    assertEquals(absSubject.getDexClass().type, invoke.getMethod().holder);
 
     MethodSubject fooInCls1 =
         cls1Subject.method("void", "foo", ImmutableList.of("java.lang.String"));
@@ -154,7 +154,7 @@ public class B77836766 extends TestBase {
     code = fooInCls1.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(absSubject.getDexClass().type, invoke.getMethod().getHolder());
+    assertEquals(absSubject.getDexClass().type, invoke.getMethod().holder);
   }
 
   /**
@@ -252,7 +252,7 @@ public class B77836766 extends TestBase {
     DexCode code = barInCls2.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(baseSubject.getDexClass().type, invoke.getMethod().getHolder());
+    assertEquals(baseSubject.getDexClass().type, invoke.getMethod().holder);
 
     MethodSubject fooInCls1 =
         cls1Subject.method("void", "foo", ImmutableList.of("java.lang.Integer"));
@@ -260,7 +260,7 @@ public class B77836766 extends TestBase {
     code = fooInCls1.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(baseSubject.getDexClass().type, invoke.getMethod().getHolder());
+    assertEquals(baseSubject.getDexClass().type, invoke.getMethod().holder);
   }
 
   /**
@@ -346,7 +346,7 @@ public class B77836766 extends TestBase {
     DexCode code = barInSub.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(baseSubject.getDexClass().type, invoke.getMethod().getHolder());
+    assertEquals(baseSubject.getDexClass().type, invoke.getMethod().holder);
   }
 
   /*
@@ -420,7 +420,7 @@ public class B77836766 extends TestBase {
     DexCode code = barInSub.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(baseSubject.getDexClass().type, invoke.getMethod().getHolder());
+    assertEquals(baseSubject.getDexClass().type, invoke.getMethod().holder);
   }
 
   private AndroidApp runAndVerifyOnJvmAndArt(

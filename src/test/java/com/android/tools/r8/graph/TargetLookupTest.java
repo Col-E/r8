@@ -155,8 +155,8 @@ public class TargetLookupTest extends SmaliTestBase {
     DexMethod methodYOnTest =
         getMethod(inspector, "Test", "int", "y", ImmutableList.of()).method;
 
-    DexType classTestSuper = methodXOnTestSuper.getHolder();
-    DexType classTest = methodYOnTest.getHolder();
+    DexType classTestSuper = methodXOnTestSuper.holder;
+    DexType classTest = methodYOnTest.holder;
     DexProto methodXProto = methodXOnTestSuper.proto;
     DexString methodXName = methodXOnTestSuper.name;
     DexMethod methodXOnTest =
@@ -205,7 +205,7 @@ public class TargetLookupTest extends SmaliTestBase {
         .createField(factory.createType("LInterface;"), factory.intType, "aField");
 
     assertEquals(aFieldOnInterface,
-        appInfo.lookupStaticTarget(aFieldOnSubClass.getHolder(), aFieldOnSubClass).field);
+        appInfo.lookupStaticTarget(aFieldOnSubClass.holder, aFieldOnSubClass).field);
 
     assertEquals("42", runArt(application));
 

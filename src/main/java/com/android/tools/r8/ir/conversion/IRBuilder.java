@@ -858,7 +858,7 @@ public class IRBuilder {
     boolean receiverCouldBeNull = context != null && context != method;
     Nullability nullability = receiverCouldBeNull ? maybeNull() : definitelyNotNull();
     TypeLatticeElement receiver =
-        TypeLatticeElement.fromDexType(method.method.getHolder(), nullability, appView);
+        TypeLatticeElement.fromDexType(method.method.holder, nullability, appView);
     Value value = writeRegister(register, receiver, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value));
     value.markAsThis();
@@ -1361,7 +1361,7 @@ public class IRBuilder {
             "MethodHandle.invoke and MethodHandle.invokeExact",
             null /* sourceString */);
       } else if (!appView.options().canUseInvokePolymorphicOnVarHandle()
-          && ((DexMethod) item).getHolder() == appView.dexItemFactory().varHandleType) {
+          && ((DexMethod) item).holder == appView.dexItemFactory().varHandleType) {
         throw new ApiLevelException(
             AndroidApiLevel.P,
             "Call to polymorphic signature of VarHandle",

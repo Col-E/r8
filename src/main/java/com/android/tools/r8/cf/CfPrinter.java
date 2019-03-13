@@ -710,7 +710,7 @@ public class CfPrinter {
       builder.append(mapper.originalSignatureOf(field).toString());
       return;
     }
-    appendClass(field.getHolder());
+    appendClass(field.holder);
     builder.append('/').append(field.name);
   }
 

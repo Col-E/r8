@@ -51,7 +51,7 @@ public class CfInvoke extends CfInstruction {
 
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
-    String owner = lens.lookupInternalName(method.getHolder());
+    String owner = lens.lookupInternalName(method.holder);
     String name = lens.lookupName(method).toString();
     String desc = method.proto.toDescriptorString(lens);
     visitor.visitMethodInsn(opcode, owner, name, desc, itf);

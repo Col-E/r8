@@ -10,7 +10,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -402,14 +401,14 @@ public class RootSetBuilder {
           targetClass.fields(
               f ->
                   liveFields.contains(f)
-                      && appView.graphLense().getOriginalFieldSignature(f.field).getHolder()
+                      && appView.graphLense().getOriginalFieldSignature(f.field).holder
                           == sourceClass.type));
       Iterables.addAll(
           filteredMembers,
           targetClass.methods(
               m ->
                   (liveMethods.contains(m) || targetedMethods.contains(m))
-                      && appView.graphLense().getOriginalMethodSignature(m.method).getHolder()
+                      && appView.graphLense().getOriginalMethodSignature(m.method).holder
                           == sourceClass.type));
 
       // If the number of member rules to hold is more than live members, we can't make it.
@@ -916,7 +915,7 @@ public class RootSetBuilder {
         if (options.isInterfaceMethodDesugaringEnabled()
             && encodedMethod.hasCode()
             && (encodedMethod.isPrivateMethod() || encodedMethod.isStaticMember())) {
-          DexClass holder = appView.definitionFor(encodedMethod.method.getHolder());
+          DexClass holder = appView.definitionFor(encodedMethod.method.holder);
           if (holder != null && holder.isInterface()) {
             if (rule.isSpecific()) {
               options.reporter.warning(
@@ -1271,9 +1270,12 @@ public class RootSetBuilder {
           requiredReferencesPerType.putIfAbsent(type, Sets.newIdentityHashSet());
         } else {
           assert reference.isDexField() || reference.isDexMethod();
-          Descriptor<?, ?> descriptor = reference.asDescriptor();
+          DexType holder =
+              reference.isDexField()
+                  ? reference.asDexField().holder
+                  : reference.asDexMethod().holder;
           requiredReferencesPerType
-              .computeIfAbsent(descriptor.getHolder(), key -> Sets.newIdentityHashSet())
+              .computeIfAbsent(holder, key -> Sets.newIdentityHashSet())
               .add(reference);
         }
       }

@@ -35,7 +35,7 @@ public final class EnclosingMethodAttribute {
   public void write(ClassWriter writer, NamingLens lens) {
     if (enclosingMethod != null) {
       writer.visitOuterClass(
-          lens.lookupInternalName(enclosingMethod.getHolder()),
+          lens.lookupInternalName(enclosingMethod.holder),
           lens.lookupName(enclosingMethod).toString(),
           enclosingMethod.proto.toDescriptorString(lens));
     } else {

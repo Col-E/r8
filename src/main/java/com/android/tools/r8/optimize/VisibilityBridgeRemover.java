@@ -73,7 +73,7 @@ public class VisibilityBridgeRemover {
       if (kind == InvokeKind.SUPER) {
         // This is a visibility forward, so check for the direct target.
         DexEncodedMethod targetMethod =
-            appView.appInfo().resolveMethod(target.getHolder(), target).asSingleTarget();
+            appView.appInfo().resolveMethod(target.holder, target).asSingleTarget();
         if (targetMethod != null && targetMethod.accessFlags.isPublic()) {
           if (Log.ENABLED) {
             Log.info(

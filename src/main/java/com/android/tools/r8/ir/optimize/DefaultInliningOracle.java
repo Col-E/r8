@@ -75,7 +75,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         invoke.lookupSingleTarget(inliner.appView.appInfo(), invocationContext);
     if ((candidate == null)
         || (candidate.getCode() == null)
-        || inliner.appView.definitionFor(candidate.method.getHolder()).isLibraryClass()) {
+        || inliner.appView.definitionFor(candidate.method.holder).isLibraryClass()) {
       if (info != null) {
         info.exclude(invoke, "No inlinee");
       }
@@ -196,7 +196,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    DexClass holder = inliner.appView.definitionFor(candidate.method.getHolder());
+    DexClass holder = inliner.appView.definitionFor(candidate.method.holder);
 
     if (holder.isInterface()) {
       // Art978_virtual_interfaceTest correctly expects an IncompatibleClassChangeError exception at

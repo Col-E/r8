@@ -171,7 +171,7 @@ public class TypeAnalysis {
 
   public static DexType getRefinedReceiverType(
       DexDefinitionSupplier definitions, InvokeMethodWithReceiver invoke) {
-    DexType receiverType = invoke.getInvokedMethod().getHolder();
+    DexType receiverType = invoke.getInvokedMethod().holder;
     TypeLatticeElement lattice = invoke.getReceiver().getTypeLattice();
     if (lattice.isClassType()) {
       DexType refinedType = lattice.asClassTypeLatticeElement().getClassType();
